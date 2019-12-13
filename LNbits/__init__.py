@@ -16,20 +16,15 @@ import time
 import json
 import bech32
 
-
+from .db import Database, DEFAULT_PATH
 from .helpers import encrypt
 
-
-# DATABASE = 'database.db'
 
 INVOICE_KEY = "YOUR-LNTXBOT-INVOICE-KEY"  # In the lntxbot bot on telegram type "/api"
 ADMIN_KEY = "YOUR-LNTXBOT-ADMIN-KEY"
 API_ENDPOINT = "YOUR-LNTXBOT-API-BASE-URL"
 
 app = Flask(__name__)
-
-
-DEFAULT_PATH = "database.sqlite3"
 
 
 def db_connect(db_path=DEFAULT_PATH):
@@ -45,58 +40,21 @@ def home():
 
 @app.route("/deletewallet")
 def deletewallet():
-
     thewal = request.args.get("wal")
 
-    con = db_connect()
-    cur = con.cursor()
-    print(thewal)
-    cur.execute("select * from wallets WHERE hash = '" + str(thewal) + "'")
-    rowss = cur.fetchall()
+    with Database() as db:
+        rowss = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
 
-    if len(rowss) > 0:
+        if len(rowss) > 0:
+            db.execute("UPDATE wallets SET user = ? WHERE hash = ?", (f"del{rowss[0][4]}", rowss[0][0]))
+            db.execute("UPDATE wallets SET adminkey = ? WHERE hash = ?", (f"del{rowss[0][5]}", rowss[0][0]))
+            db.execute("UPDATE wallets SET inkey = ? WHERE hash = ?", (f"del{rowss[0][6]}", rowss[0][0]))
+            rowsss = db.fetchall("SELECT * FROM wallets WHERE user = ?", (rowss[0][4],))
 
-        cur.close()
-        print(rowss)
+            if len(rowsss) > 0:
+                return render_template("deletewallet.html", theid=rowsss[0][4], thewal=rowsss[0][0])
 
-        con = db_connect()
-        cur = con.cursor()
-
-        cur.execute("UPDATE wallets SET user = '" + "del" + rowss[0][4] + "' WHERE hash = '" + rowss[0][0] + "'")
-
-        con.commit()
-        cur.close()
-
-        con = db_connect()
-        cur = con.cursor()
-
-        cur.execute("UPDATE wallets SET adminkey = '" + "del" + rowss[0][5] + "' WHERE hash = '" + rowss[0][0] + "'")
-
-        con.commit()
-        cur.close()
-
-        con = db_connect()
-        cur = con.cursor()
-
-        cur.execute("UPDATE wallets SET inkey = '" + "del" + rowss[0][6] + "' WHERE hash = '" + rowss[0][0] + "'")
-
-        con.commit()
-        cur.close()
-
-        con = db_connect()
-        cur = con.cursor()
-        print(thewal)
-        cur.execute("select * from wallets WHERE user = '" + rowss[0][4] + "'")
-        rowsss = cur.fetchall()
-
-        if len(rowsss) > 0:
-            cur.close()
-            return render_template("deletewallet.html", theid=rowsss[0][4], thewal=rowsss[0][0])
-        else:
-            return render_template("index.html")
-
-    else:
-        return render_template("index.html")
+    return render_template("index.html")
 
 
 @app.route("/lnurlwallet")
