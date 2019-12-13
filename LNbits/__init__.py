@@ -12,10 +12,13 @@ import sqlite3
 import base64
 import lnurl
 import requests
-import hashlib
 import time
 import json
 import bech32
+
+
+from .helpers import encrypt
+
 
 # DATABASE = 'database.db'
 
@@ -32,11 +35,6 @@ DEFAULT_PATH = "database.sqlite3"
 def db_connect(db_path=DEFAULT_PATH):
     con = sqlite3.connect(db_path)
     return con
-
-
-def encrypt_string(hash_string):
-    sha_signature = hashlib.sha256(hash_string.encode()).hexdigest()
-    return sha_signature
 
 
 @app.route("/")
@@ -144,10 +142,10 @@ def lnurlwallet():
             data = r.json()
             print(r.json())
 
-        adminkey = encrypt_string(payment_hash)[0:20]
-        inkey = encrypt_string(adminkey)[0:20]
-        thewal = encrypt_string(inkey)[0:20]
-        theid = encrypt_string(thewal)[0:20]
+        adminkey = encrypt(payment_hash)[0:20]
+        inkey = encrypt(adminkey)[0:20]
+        thewal = encrypt(inkey)[0:20]
+        theid = encrypt(thewal)[0:20]
         thenme = "Bitcoin LN Wallet"
 
         con = db_connect()
@@ -160,8 +158,8 @@ def lnurlwallet():
         con = db_connect()
         cur = con.cursor()
 
-        adminkey = encrypt_string(theid)
-        inkey = encrypt_string(adminkey)
+        adminkey = encrypt(theid)
+        inkey = encrypt(adminkey)
 
         cur.execute(
             "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
@@ -262,8 +260,8 @@ def wallet():
                     con = db_connect()
                     cur = con.cursor()
 
-                    adminkey = encrypt_string(thewal)
-                    inkey = encrypt_string(adminkey)
+                    adminkey = encrypt(thewal)
+                    inkey = encrypt(adminkey)
 
                     cur.execute(
                         "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
@@ -305,8 +303,8 @@ def wallet():
                 con = db_connect()
                 cur = con.cursor()
 
-                adminkey = encrypt_string(theid)
-                inkey = encrypt_string(adminkey)
+                adminkey = encrypt(theid)
+                inkey = encrypt(adminkey)
 
                 cur.execute(
                     "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
@@ -347,8 +345,8 @@ def wallet():
             con = db_connect()
             cur = con.cursor()
 
-            adminkey = encrypt_string(theid)
-            inkey = encrypt_string(adminkey)
+            adminkey = encrypt(theid)
+            inkey = encrypt(adminkey)
 
             cur.execute(
                 "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
