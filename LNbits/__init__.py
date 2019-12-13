@@ -375,79 +375,35 @@ def api_transactions():
 
 @app.route("/v1/invoice/<payhash>", methods=["GET"])
 def api_checkinvoice(payhash):
+    if request.headers["Content-Type"] != "application/json":
+        return jsonify({"ERROR": "MUST BE JSON"}), 200
 
-    if request.headers["Content-Type"] == "application/json":
+    with Database() as db:
+        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (payhash,))[0]
 
-        print(request.headers["Grpc-Metadata-macaroon"])
-        con = db_connect()
-        cur = con.cursor()
-        cur.execute("select * from apipayments WHERE payhash = '" + payhash + "'")
-        rows = cur.fetchall()
-        cur.close()
-        print(payhash)
-        if request.headers["Grpc-Metadata-macaroon"] == rows[0][4]:
-
-            if rows[0][3] == "0":
-                print(rows[0][3])
-                print("did it work?")
-                headers = {"Authorization": "Basic %s" % INVOICE_KEY}
-                r = requests.post(url=API_ENDPOINT + "/invoicestatus/" + payhash, headers=headers)
-                data = r.json()
-                print(r.json())
-                print("no")
-                if data == "":
-                    return jsonify({"PAID": "FALSE"}), 400
-                else:
-                    con = db_connect()
-                    cur = con.cursor()
-
-                    cur.execute("select * from wallets WHERE hash = '" + rows[0][2] + "'")
-
-                    rowsss = cur.fetchall()
-                    con.commit()
-                    cur.close()
-
-                    lastamt = rowsss[0][1].split(",")
-                    newamt = int(lastamt[-1]) + int(rows[0][1])
-                    updamt = rowsss[0][1] + "," + str(newamt)
-
-                    thetime = time.time()
-                    transactions = (
-                        rowsss[0][2] + "!" + rows[0][5] + "," + str(thetime) + "," + str(rows[0][1]) + "," + str(newamt)
-                    )
-
-                    con = db_connect()
-                    cur = con.cursor()
-
-                    cur.execute(
-                        "UPDATE wallets SET balance = '"
-                        + updamt
-                        + "', transactions = '"
-                        + transactions
-                        + "' WHERE hash = '"
-                        + rows[0][2]
-                        + "'"
-                    )
-
-                    con.commit()
-                    cur.close()
-
-                    con = db_connect()
-                    cur = con.cursor()
-
-                    cur.execute("UPDATE apipayments SET paid = '1' WHERE payhash = '" + payhash + "'")
-
-                    con.commit()
-                    cur.close()
-                    return jsonify({"PAID": "TRUE"}), 200
-            else:
-                return jsonify({"PAID": "TRUE"}), 200
-        else:
+        if request.headers["Grpc-Metadata-macaroon"] != payment[4]:
             return jsonify({"ERROR": "WRONG KEY"}), 400
 
-    else:
-        return jsonify({"ERROR": "NEEDS TO BE JSON"}), 400
+        if payment[3] != "0":
+            return jsonify({"PAID": "TRUE"}), 200
 
+        headers = {"Authorization": f"Basic {INVOICE_KEY}"}
+        r = requests.post(url=f"{API_ENDPOINT}/invoicestatus/{payhash}", headers=headers)
+        data = r.json()
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+        if data == "":
+            return jsonify({"PAID": "FALSE"}), 400
+
+        wallet = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (payment[2],))[0]
+
+        lastamt = wallet[1].split(",")
+        newamt = int(lastamt[-1]) + int(payment[1])
+        updamt = wallet[1] + "," + str(newamt)
+        transactions = f"{wallet[2]}!{payment[5]},{time.time()},{payment[1]},{newamt}"
+
+        db.execute(
+            "UPDATE wallets SET balance = ?, transactions = ? WHERE hash = ?", (updamt, transactions, payment[2])
+        )
+        db.execute("UPDATE apipayments SET paid = '1' WHERE payhash = ?", (payhash,))
+
+    return jsonify({"PAID": "TRUE"}), 200
