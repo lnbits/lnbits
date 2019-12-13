@@ -1,5 +1,5 @@
 # LNbits
-Free and open-source lightning wallet
+Free and open-source lightning wallet wrapper
 
 LNbits is a simple, free and open-source lightning-network wallet for bits and bobs. You can run it on your own server, or use this one.
 
