@@ -9,6 +9,9 @@ The wallet can run on top of LND, lntxbot, paywall, opennode
 
 Please note that although one of the aims of this wallet is to mitigate exposure of all your funds, it’s still very BETA and may in fact do the opposite!
 
-## As an LNURL-withdraw fallback
+## LNbits as an LNURL-withdraw fallback
+
+![lnurl fallback](https://i.imgur.com/6pMkVxh.png)
+
 
 
