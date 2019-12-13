@@ -160,129 +160,58 @@ def lnurlwallet():
 
 @app.route("/wallet")
 def wallet():
-
     theid = request.args.get("usr")
     thewal = request.args.get("wal")
-    theamt = request.args.get("amt")
     thenme = request.args.get("nme")
 
     if not thewal:
         return render_template("index.html")
-    else:
-        # Checks if the user exists in "accounts"
-        con = db_connect()
-        cur = con.cursor()
-        print(thewal)
-        cur.execute("select * from accounts WHERE userhash = '" + str(theid) + "'")
-        rows = cur.fetchall()
 
-        if len(rows) > 0:
-            cur.close()
+    with Database() as db:
+        user_exists = len(db.fetchall("SELECT * FROM accounts WHERE userhash = ?", (theid,))) > 0
 
-            # Yes, check the user has a wallet
-            con = db_connect()
-            cur = con.cursor()
-            print(thewal)
-            cur.execute("select * from wallets WHERE user = '" + str(theid) + "'")
-            rowss = cur.fetchall()
+        # user exists
+        # -----------
 
-            if len(rowss) > 0:
-                cur.close()
+        if user_exists:
+            user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (theid,))
 
-                # Checks if the current wallet exists
-                con = db_connect()
-                cur = con.cursor()
-                print(thewal)
-                cur.execute("select * from wallets WHERE hash = '" + str(thewal) + "'")
-                rowsss = cur.fetchall()
+            # user has wallets
+            # ----------------
 
-                if len(rowsss) > 0:
-                    cur.close()
-                    walb = rowsss[0][1].split(",")[-1]
+            if len(user_wallets) > 0:
+                wallet = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
+
+                if len(wallet) > 0:
+                    walb = wallet[0][1].split(",")[-1]
                     return render_template(
                         "wallet.html",
-                        thearr=rowss,
-                        len=len(rowss),
-                        walnme=rowsss[0][3],
+                        thearr=user_wallets,
+                        len=len(user_wallets),
+                        walnme=wallet[0][3],
                         user=theid,
                         walbal=walb,
                         theid=theid,
                         thewal=thewal,
-                        transactions=rowsss[0][2],
-                        adminkey=rowsss[0][5],
-                        inkey=rowsss[0][6],
+                        transactions=wallet[0][2],
+                        adminkey=wallet[0][5],
+                        inkey=wallet[0][6],
                     )
-                else:
-                    cur.close()
 
-                    con = db_connect()
-                    cur = con.cursor()
-
-                    adminkey = encrypt(thewal)
-                    inkey = encrypt(adminkey)
-
-                    cur.execute(
-                        "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
-                        + thewal
-                        + "',',0','0','"
-                        + thenme
-                        + "','"
-                        + theid
-                        + "','"
-                        + adminkey
-                        + "','"
-                        + inkey
-                        + "')"
-                    )
-                    con.commit()
-                    cur.close()
-
-                    con = db_connect()
-                    cur = con.cursor()
-                    print(thewal)
-                    cur.execute("select * from wallets WHERE user = '" + str(theid) + "'")
-                    rowss = cur.fetchall()
-                    cur.close()
-
-                    return render_template(
-                        "wallet.html",
-                        thearr=rowss,
-                        len=len(rowss),
-                        walnme=thenme,
-                        walbal="0",
-                        theid=theid,
-                        thewal=thewal,
-                        adminkey=adminkey,
-                        inkey=inkey,
-                    )
-            else:
-                cur.close()
-
-                con = db_connect()
-                cur = con.cursor()
-
-                adminkey = encrypt(theid)
+                adminkey = encrypt(thewal)
                 inkey = encrypt(adminkey)
 
-                cur.execute(
-                    "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
-                    + thewal
-                    + "',',0','0','"
-                    + thenme
-                    + "','"
-                    + theid
-                    + "','"
-                    + adminkey
-                    + "','"
-                    + inkey
-                    + "')"
+                db.execute(
+                    "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) "
+                    "VALUES (?, 0, 0, ?, ?, ?, ?)",
+                    (thewal, thenme, theid, adminkey, inkey),
                 )
-                con.commit()
-                cur.close()
+                rows = db.fetchall("SELECT * FROM wallets WHERE user = ?", (theid,))
 
                 return render_template(
                     "wallet.html",
-                    len=len("1"),
+                    thearr=rows,
+                    len=len(rows),
                     walnme=thenme,
                     walbal="0",
                     theid=theid,
@@ -291,44 +220,17 @@ def wallet():
                     inkey=inkey,
                 )
 
-        else:
-            cur.close()
-            con = db_connect()
-            cur = con.cursor()
-
-            cur.execute("INSERT INTO accounts (userhash) VALUES ('" + theid + "')")
-            con.commit()
-            cur.close()
-
-            con = db_connect()
-            cur = con.cursor()
+            # user has no wallets
+            # -------------------
 
             adminkey = encrypt(theid)
             inkey = encrypt(adminkey)
 
-            cur.execute(
-                "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
-                + thewal
-                + "',',0','0','"
-                + thenme
-                + "','"
-                + theid
-                + "','"
-                + adminkey
-                + "','"
-                + inkey
-                + "')"
+            db.execute(
+                "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) "
+                "VALUES (?, 0, 0, ?, ?, ?, ?)",
+                (thewal, thenme, theid, adminkey, inkey),
             )
-            con.commit()
-            cur.close()
-
-            con = db_connect()
-            cur = con.cursor()
-            print(thewal)
-            cur.execute("select * from wallets WHERE user = '" + str(theid) + "'")
-            rows = cur.fetchall()
-            con.commit()
-            cur.close()
 
             return render_template(
                 "wallet.html",
@@ -340,6 +242,31 @@ def wallet():
                 adminkey=adminkey,
                 inkey=inkey,
             )
+
+        # user does not exist: create an account
+        # --------------------------------------
+
+        db.execute("INSERT INTO accounts (userhash) VALUES (?)", (theid,))
+
+        adminkey = encrypt(theid)
+        inkey = encrypt(adminkey)
+
+        db.execute(
+            "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) "
+            "VALUES (?, 0, 0, ?, ?, ?, ?)",
+            (thewal, thenme, theid, adminkey, inkey),
+        )
+
+        return render_template(
+            "wallet.html",
+            len=len("1"),
+            walnme=thenme,
+            walbal="0",
+            theid=theid,
+            thewal=thewal,
+            adminkey=adminkey,
+            inkey=inkey,
+        )
 
 
 # API requests
