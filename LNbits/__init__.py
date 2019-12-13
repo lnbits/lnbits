@@ -34,7 +34,6 @@ def db_connect(db_path=DEFAULT_PATH):
 
 @app.route("/")
 def home():
-
     return render_template("index.html")
 
 
@@ -43,16 +42,16 @@ def deletewallet():
     thewal = request.args.get("wal")
 
     with Database() as db:
-        rowss = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
+        wallets = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
 
-        if rowss:
-            db.execute("UPDATE wallets SET user = ? WHERE hash = ?", (f"del{rowss[0][4]}", rowss[0][0]))
-            db.execute("UPDATE wallets SET adminkey = ? WHERE hash = ?", (f"del{rowss[0][5]}", rowss[0][0]))
-            db.execute("UPDATE wallets SET inkey = ? WHERE hash = ?", (f"del{rowss[0][6]}", rowss[0][0]))
-            rowsss = db.fetchall("SELECT * FROM wallets WHERE user = ?", (rowss[0][4],))
+        if wallets:
+            db.execute("UPDATE wallets SET user = ? WHERE hash = ?", (f"del{wallets[0][4]}", wallets[0][0]))
+            db.execute("UPDATE wallets SET adminkey = ? WHERE hash = ?", (f"del{wallets[0][5]}", wallets[0][0]))
+            db.execute("UPDATE wallets SET inkey = ? WHERE hash = ?", (f"del{wallets[0][6]}", wallets[0][0]))
+            user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (wallets[0][4],))
 
-            if rowsss:
-                return render_template("deletewallet.html", theid=rowsss[0][4], thewal=rowsss[0][0])
+            if user_wallets:
+                return render_template("deletewallet.html", theid=user_wallets[0][4], thewal=user_wallets[0][0])
 
     return render_template("index.html")
 
@@ -183,7 +182,7 @@ def wallet():
                 wallet = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
 
                 if wallet:
-                    walb = wallet[0][1].split(",")[-1]
+                    walb = str(wallet[0][1]).split(",")[-1]
                     return render_template(
                         "wallet.html",
                         thearr=user_wallets,
@@ -257,16 +256,16 @@ def wallet():
             (thewal, thenme, theid, adminkey, inkey),
         )
 
-        return render_template(
-            "wallet.html",
-            len=len("1"),
-            walnme=thenme,
-            walbal="0",
-            theid=theid,
-            thewal=thewal,
-            adminkey=adminkey,
-            inkey=inkey,
-        )
+    return render_template(
+        "wallet.html",
+        len=len("1"),
+        walnme=thenme,
+        walbal="0",
+        theid=theid,
+        thewal=thewal,
+        adminkey=adminkey,
+        inkey=inkey,
+    )
 
 
 @app.route("/v1/invoices", methods=["GET", "POST"])
@@ -300,7 +299,7 @@ def api_invoices():
         payment_hash = data["payment_hash"]
 
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, wallet, paid, inkey, memo) VALUES (?, ?, ?, 0, ?, ?)'",
+            "INSERT INTO apipayments (payhash, amount, wallet, paid, inkey, memo) VALUES (?, ?, ?, 0, ?, ?)",
             (
                 payment_hash,
                 postedjson["value"],
@@ -310,113 +309,79 @@ def api_invoices():
             ),
         )
 
-        return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
+    return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
 
 
-# API requests
 @app.route("/v1/channels/transactions", methods=["GET", "POST"])
 def api_transactions():
-    if request.headers["Content-Type"] == "application/json":
-        postedjson = request.json
-        print(postedjson)
-        print(postedjson["payment_request"])
+    if request.headers["Content-Type"] != "application/json":
+        return jsonify({"ERROR": "MUST BE JSON"}), 200
 
-        if "payment_request" in postedjson:
-            con = db_connect()
-            cur = con.cursor()
-            print(request.headers["Grpc-Metadata-macaroon"])
-            print()
-            cur.execute("select * from wallets WHERE adminkey = '" + request.headers["Grpc-Metadata-macaroon"] + "'")
-            rows = cur.fetchall()
-            if len(rows) > 0:
-                cur.close()
+    postedjson = request.json
 
-                s = postedjson["payment_request"]
-                result = re.search("lnbc(.*)1p", s)
-                tempp = result.group(1)
-
-                alpha = ""
-                num = ""
-
-                for i in range(len(tempp)):
-                    if tempp[i].isdigit():
-                        num = num + tempp[i]
-                    else:
-                        alpha += tempp[i]
-                sats = ""
-                if alpha == "n":
-                    sats = int(num) / 10
-                elif alpha == "u":
-                    sats = int(num) * 100
-                elif alpha == "m":
-                    sats = int(num) * 100000
-
-                print(sats)
-                print(alpha)
-                print(num)
-
-                dataj = {"invoice": postedjson["payment_request"]}
-                headers = {"Authorization": "Basic %s" % ADMIN_KEY}
-                r = requests.post(url=API_ENDPOINT + "/payinvoice", json=dataj, headers=headers)
-                data = r.json()
-                print(data)
-
-                con = db_connect()
-                cur = con.cursor()
-
-                cur.execute(
-                    "INSERT INTO apipayments (payhash, amount, wallet, paid, adminkey, memo) VALUES ('"
-                    + data["decoded"]["payment_hash"]
-                    + "','"
-                    + str(-int(data["decoded"]["num_satoshis"]))
-                    + "','"
-                    + rows[0][0]
-                    + "','1','"
-                    + request.headers["Grpc-Metadata-macaroon"]
-                    + "','"
-                    + data["decoded"]["description"]
-                    + "')"
-                )
-                con.commit()
-                cur.close()
-
-                con = db_connect()
-                cur = con.cursor()
-                cur.execute("select * from apipayments WHERE payhash = '" + data["decoded"]["payment_hash"] + "'")
-                rowss = cur.fetchall()
-                cur.close()
-
-                data["decoded"]["num_satoshis"]
-
-                lastamt = rows[0][1].split(",")
-                newamt = int(lastamt[-1]) - int(data["decoded"]["num_satoshis"])
-                updamt = rows[0][1] + "," + str(newamt)
-                thetime = time.time()
-                transactions = (
-                    rows[0][2] + "!" + rowss[0][5] + "," + str(thetime) + "," + str(rowss[0][1]) + "," + str(newamt)
-                )
-
-                con = db_connect()
-                cur = con.cursor()
-
-                cur.execute(
-                    "UPDATE wallets SET balance = '"
-                    + updamt
-                    + "', transactions = '"
-                    + transactions
-                    + "' WHERE hash = '"
-                    + rows[0][0]
-                    + "'"
-                )
-                con.commit()
-                cur.close()
-
-                return jsonify({"PAID": "TRUE"}), 200
-            else:
-                return jsonify({"ERROR": "BAD AUTH"}), 200
+    if "payment_request" not in postedjson:
         return jsonify({"ERROR": "NO PAY REQ"}), 200
 
-    return jsonify({"ERROR": "MUST BE JSON"}), 200
+    with Database() as db:
+        wallets = db.fetchall("SELECT * FROM wallets WHERE adminkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
+
+        if not wallets:
+            return jsonify({"ERROR": "BAD AUTH"}), 200
+
+        # TODO: check this unused code
+        # move sats calculation to a helper
+        # ---------------------------------
+        """
+        s = postedjson["payment_request"]
+        result = re.search("lnbc(.*)1p", s)
+        tempp = result.group(1)
+
+        alpha = ""
+        num = ""
+
+        for i in range(len(tempp)):
+            if tempp[i].isdigit():
+                num = num + tempp[i]
+            else:
+                alpha += tempp[i]
+        sats = ""
+        if alpha == "n":
+            sats = int(num) / 10
+        elif alpha == "u":
+            sats = int(num) * 100
+        elif alpha == "m":
+            sats = int(num) * 100000
+        """
+        # ---------------------------------
+
+        dataj = {"invoice": postedjson["payment_request"]}
+        headers = {"Authorization": f"Basic {ADMIN_KEY}"}
+        r = requests.post(url=f"{API_ENDPOINT}/payinvoice", json=dataj, headers=headers)
+        data = r.json()
+
+        db.execute(
+            "INSERT INTO apipayments (payhash, amount, wallet, paid, adminkey, memo) VALUES (?, ?, ?, 1, ?, ?)'",
+            (
+                data["decoded"]["payment_hash"],
+                str(-int(data["decoded"]["num_satoshis"])),
+                wallets[0][0],
+                request.headers["Grpc-Metadata-macaroon"],
+                data["decoded"]["description"],
+            ),
+        )
+
+        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (data["decoded"]["payment_hash"],))[0]
+
+        lastamt = str(wallets[0][1]).split(",")
+        newamt = int(lastamt[-1]) - int(data["decoded"]["num_satoshis"])
+        updamt = wallets[0][1] + "," + str(newamt)
+        transactions = f"{wallets[0][2]}!{payment[5]},{time.time()},{payment[1]},{newamt}"
+
+        db.execute(
+            "UPDATE wallets SET balance = ?, transactions = ? WHERE hash = ?", (updamt, transactions, wallets[0][0])
+        )
+
+    return jsonify({"PAID": "TRUE"}), 200
 
 
 @app.route("/v1/invoice/<payhash>", methods=["GET"])
