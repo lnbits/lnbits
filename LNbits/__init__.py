@@ -269,68 +269,48 @@ def wallet():
         )
 
 
-# API requests
 @app.route("/v1/invoices", methods=["GET", "POST"])
 def api_invoices():
-    if request.headers["Content-Type"] == "application/json":
-
-        postedjson = request.json
-        print(postedjson)
-
-        if "value" in postedjson:
-            if postedjson["value"].isdigit() == True:
-                if "memo" in postedjson:
-                    con = db_connect()
-                    cur = con.cursor()
-
-                    cur.execute(
-                        "select * from wallets WHERE inkey = '" + request.headers["Grpc-Metadata-macaroon"] + "'"
-                    )
-                    rows = cur.fetchall()
-
-                    if len(rows) > 0:
-                        cur.close()
-
-                        dataj = {"amt": postedjson["value"], "memo": postedjson["memo"]}
-                        headers = {"Authorization": "Basic %s" % INVOICE_KEY}
-                        r = requests.post(url=API_ENDPOINT + "/addinvoice", json=dataj, headers=headers)
-
-                        data = r.json()
-
-                        pay_req = data["pay_req"]
-                        payment_hash = data["payment_hash"]
-
-                        con = db_connect()
-                        cur = con.cursor()
-
-                        cur.execute(
-                            "INSERT INTO apipayments (payhash, amount, wallet, paid, inkey, memo) VALUES ('"
-                            + payment_hash
-                            + "','"
-                            + postedjson["value"]
-                            + "','"
-                            + rows[0][0]
-                            + "','0','"
-                            + request.headers["Grpc-Metadata-macaroon"]
-                            + "','"
-                            + postedjson["memo"]
-                            + "')"
-                        )
-                        con.commit()
-                        cur.close()
-
-                        return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
-
-                    else:
-                        return jsonify({"ERROR": "NO KEY"}), 200
-                else:
-                    return jsonify({"ERROR": "NO MEMO"}), 200
-            else:
-                return jsonify({"ERROR": "VALUE MUST BE A NUMMBER"}), 200
-        else:
-            return jsonify({"ERROR": "NO VALUE"}), 200
-    else:
+    if request.headers["Content-Type"] != "application/json":
         return jsonify({"ERROR": "MUST BE JSON"}), 200
+
+    postedjson = request.json
+
+    if "value" not in postedjson:
+        return jsonify({"ERROR": "NO VALUE"}), 200
+
+    if not postedjson["value"].isdigit():
+        return jsonify({"ERROR": "VALUE MUST BE A NUMMBER"}), 200
+
+    if "memo" not in postedjson:
+        return jsonify({"ERROR": "NO MEMO"}), 200
+
+    with Database() as db:
+        rows = db.fetchall("SELECT * FROM wallets WHERE inkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
+
+        if len(rows) == 0:
+            return jsonify({"ERROR": "NO KEY"}), 200
+
+        dataj = {"amt": postedjson["value"], "memo": postedjson["memo"]}
+        headers = {"Authorization": f"Basic {INVOICE_KEY}"}
+        r = requests.post(url=f"{API_ENDPOINT}/addinvoice", json=dataj, headers=headers)
+        data = r.json()
+
+        pay_req = data["pay_req"]
+        payment_hash = data["payment_hash"]
+
+        db.execute(
+            "INSERT INTO apipayments (payhash, amount, wallet, paid, inkey, memo) VALUES (?, ?, ?, 0, ?, ?)'",
+            (
+                payment_hash,
+                postedjson["value"],
+                rows[0][0],
+                request.headers["Grpc-Metadata-macaroon"],
+                postedjson["memo"],
+            ),
+        )
+
+        return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
 
 
 # API requests
