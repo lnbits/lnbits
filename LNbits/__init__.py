@@ -1,20 +1,8 @@
-from flask import Flask, render_template
-from flask import Flask, redirect
-from flask import request
-from flask import jsonify
-from flask import Flask, g
-from random import seed
-from random import random
-from flask import json
-import re
-import os
-import sqlite3
-import base64
 import lnurl
 import requests
 import time
-import json
-import bech32
+
+from flask import Flask, jsonify, render_template, request
 
 from .db import Database, DEFAULT_PATH
 from .helpers import encrypt
@@ -28,6 +16,7 @@ app = Flask(__name__)
 
 
 def db_connect(db_path=DEFAULT_PATH):
+    import sqlite3
     con = sqlite3.connect(db_path)
     return con
 
