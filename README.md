@@ -16,7 +16,8 @@ https://github.com/btcontract/lnurl-rfc/blob/master/spec.md
 
 Adding **/lnurlwallet?lightning="LNURL-WITHDRAW"** will trigger a withdraw that builds an LNbits wallet. 
 An example use would be an ATM, which utilises LNURL, if the user scans the QR with a regular QR code scanner app, they will stilll be able to access the funds.
-![lnurl fallback](https://i.imgur.com/Gi6bn3L.jpg)
+
+![lnurl ATM](https://i.imgur.com/Gi6bn3L.jpg)
 
 # Tip me
 If you like this project and might even use or extend it, why not send some tip love!
