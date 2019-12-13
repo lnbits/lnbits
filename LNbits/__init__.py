@@ -4,19 +4,17 @@ import time
 
 from flask import Flask, jsonify, render_template, request
 
-from .db import Database, DEFAULT_PATH
+from .db import Database
 from .helpers import encrypt
+from .settings import INVOICE_KEY, ADMIN_KEY, API_ENDPOINT, DATABASE_PATH
 
-
-INVOICE_KEY = "YOUR-LNTXBOT-INVOICE-KEY"  # In the lntxbot bot on telegram type "/api"
-ADMIN_KEY = "YOUR-LNTXBOT-ADMIN-KEY"
-API_ENDPOINT = "YOUR-LNTXBOT-API-BASE-URL"
 
 app = Flask(__name__)
 
 
-def db_connect(db_path=DEFAULT_PATH):
+def db_connect(db_path=DATABASE_PATH):
     import sqlite3
+
     con = sqlite3.connect(db_path)
     return con
 
@@ -129,7 +127,7 @@ def lnurlwallet():
         cur = con.cursor()
         print(thewal)
         cur.execute("select * from wallets WHERE user = '" + str(theid) + "'")
-        rows = cur.fetchall()
+        # rows = cur.fetchall()
         con.commit()
         cur.close()
         return render_template(

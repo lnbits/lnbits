@@ -1,13 +1,10 @@
-import os
 import sqlite3
 
-
-LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
-DEFAULT_PATH = os.path.join(LNBITS_PATH, "data", "database.sqlite3")
+from .settings import DATABASE_PATH
 
 
 class Database:
-    def __init__(self, db_path: str = DEFAULT_PATH):
+    def __init__(self, db_path: str = DATABASE_PATH):
         self.path = db_path
         self.connection = sqlite3.connect(db_path)
         self.cursor = self.connection.cursor()
