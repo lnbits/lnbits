@@ -11,7 +11,10 @@ Please note that although one of the aims of this wallet is to mitigate exposure
 
 ## LNbits as an LNURL-withdraw fallback
 
-![lnurl fallback](https://i.imgur.com/6pMkVxh.png)
+![lnurl fallback](https://i.imgur.com/CPBKHIv.png)
 
 
 
+# Tip me
+If you like this project and might even use or extend it, why not send some tip love!
+https://paywall.link/to/f4e4e
