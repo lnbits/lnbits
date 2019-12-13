@@ -45,13 +45,13 @@ def deletewallet():
     with Database() as db:
         rowss = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
 
-        if len(rowss) > 0:
+        if rowss:
             db.execute("UPDATE wallets SET user = ? WHERE hash = ?", (f"del{rowss[0][4]}", rowss[0][0]))
             db.execute("UPDATE wallets SET adminkey = ? WHERE hash = ?", (f"del{rowss[0][5]}", rowss[0][0]))
             db.execute("UPDATE wallets SET inkey = ? WHERE hash = ?", (f"del{rowss[0][6]}", rowss[0][0]))
             rowsss = db.fetchall("SELECT * FROM wallets WHERE user = ?", (rowss[0][4],))
 
-            if len(rowsss) > 0:
+            if rowsss:
                 return render_template("deletewallet.html", theid=rowsss[0][4], thewal=rowsss[0][0])
 
     return render_template("index.html")
@@ -179,10 +179,10 @@ def wallet():
             # user has wallets
             # ----------------
 
-            if len(user_wallets) > 0:
+            if user_wallets:
                 wallet = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
 
-                if len(wallet) > 0:
+                if wallet:
                     walb = wallet[0][1].split(",")[-1]
                     return render_template(
                         "wallet.html",
@@ -288,7 +288,7 @@ def api_invoices():
     with Database() as db:
         rows = db.fetchall("SELECT * from WALLETS WHERE inkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
 
-        if len(rows) == 0:
+        if not rows:
             return jsonify({"ERROR": "NO KEY"}), 200
 
         dataj = {"amt": postedjson["value"], "memo": postedjson["memo"]}
