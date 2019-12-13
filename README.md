@@ -1,4 +1,4 @@
-# lnbits
+# LNbits
 Free and open-source lightning wallet
 
 LNbits is a simple, free and open-source lightning-network wallet for bits and bobs. You can run it on your own server, or use this one.
@@ -12,7 +12,7 @@ Please note that although one of the aims of this wallet is to mitigate exposure
 ## LNbits as an LNURL-withdraw fallback
 
 ![lnurl fallback](https://i.imgur.com/CPBKHIv.png)
-
+https://github.com/btcontract/lnurl-rfc/blob/master/spec.md
 
 
 # Tip me
