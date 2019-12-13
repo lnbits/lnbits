@@ -13,9 +13,12 @@ __pycache__
 .pytest_cache
 htmlcov
 Pipfile.lock
+
 *.swo
 *.swp
 *.pyo
 *.pyc
 *.env
 venv
+
+database.sqlite3

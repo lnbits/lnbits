@@ -1,3 +1,4 @@
+import os
 import lnurl
 import requests
 import time
@@ -6,7 +7,7 @@ from flask import Flask, jsonify, render_template, request
 
 from .db import Database
 from .helpers import encrypt
-from .settings import INVOICE_KEY, ADMIN_KEY, API_ENDPOINT, DATABASE_PATH
+from .settings import INVOICE_KEY, ADMIN_KEY, API_ENDPOINT, DATABASE_PATH, LNBITS_PATH
 
 
 app = Flask(__name__)
@@ -17,6 +18,14 @@ def db_connect(db_path=DATABASE_PATH):
 
     con = sqlite3.connect(db_path)
     return con
+
+
+@app.before_first_request
+def init():
+    with Database() as db:
+        with open(os.path.join(LNBITS_PATH, "data/schema.sql")) as schemafile:
+            for stmt in schemafile.read().split("\n\n"):
+                db.execute(stmt, [])
 
 
 @app.route("/")
