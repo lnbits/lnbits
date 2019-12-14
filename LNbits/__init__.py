@@ -38,16 +38,18 @@ def deletewallet():
     thewal = request.args.get("wal")
 
     with Database() as db:
-        wallets = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
+        wallet_row = db.fetchone("SELECT * FROM wallets WHERE hash = ?", (thewal,))
 
-        if wallets:
-            db.execute("UPDATE wallets SET user = ? WHERE hash = ?", (f"del{wallets[0][4]}", wallets[0][0]))
-            db.execute("UPDATE wallets SET adminkey = ? WHERE hash = ?", (f"del{wallets[0][5]}", wallets[0][0]))
-            db.execute("UPDATE wallets SET inkey = ? WHERE hash = ?", (f"del{wallets[0][6]}", wallets[0][0]))
-            user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (wallets[0][4],))
+        if not wallet_row:
+            return render_template("index.html")
 
-            if user_wallets:
-                return render_template("deletewallet.html", theid=user_wallets[0][4], thewal=user_wallets[0][0])
+        db.execute("UPDATE wallets SET user = ? WHERE hash = ?", (f"del{wallet_row[4]}", wallet_row[0]))
+        db.execute("UPDATE wallets SET adminkey = ? WHERE hash = ?", (f"del{wallet_row[5]}", wallet_row[0]))
+        db.execute("UPDATE wallets SET inkey = ? WHERE hash = ?", (f"del{wallet_row[6]}", wallet_row[0]))
+
+        user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (wallet_row[4],))
+        if user_wallets:
+            return render_template("deletewallet.html", theid=user_wallets[0][4], thewal=user_wallets[0][0])
 
     return render_template("index.html")
 
@@ -163,119 +165,95 @@ def wallet():
         return render_template("index.html")
 
     with Database() as db:
-        user_exists = len(db.fetchall("SELECT * FROM accounts WHERE userhash = ?", (theid,))) > 0
+        user_exists = db.fetchone("SELECT * FROM accounts WHERE userhash = ?", (theid,))
+
+        if not user_exists:
+            # user does not exist: create an account
+            # --------------------------------------
+
+            db.execute("INSERT INTO accounts (userhash) VALUES (?)", (theid,))
 
         # user exists
         # -----------
 
-        if user_exists:
-            user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (theid,))
+        user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (theid,))
+
+        if user_wallets:
 
             # user has wallets
             # ----------------
 
-            if user_wallets:
-                wallet = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (thewal,))
-
-                if wallet:
-                    walb = str(wallet[0][1]).split(",")[-1]
-                    return render_template(
-                        "wallet.html",
-                        thearr=user_wallets,
-                        len=len(user_wallets),
-                        walnme=wallet[0][3],
-                        user=theid,
-                        walbal=walb,
-                        theid=theid,
-                        thewal=thewal,
-                        transactions=wallet[0][2],
-                        adminkey=wallet[0][5],
-                        inkey=wallet[0][6],
-                    )
-
-                adminkey = encrypt(thewal)
-                inkey = encrypt(adminkey)
-
-                db.execute(
-                    "INSERT INTO wallets (hash, name, user, adminkey, inkey) VALUES (?, ?, ?, ?, ?)",
-                    (thewal, thenme, theid, adminkey, inkey),
-                )
-                rows = db.fetchall("SELECT * FROM wallets WHERE user = ?", (theid,))
-
-                return render_template(
-                    "wallet.html",
-                    thearr=rows,
-                    len=len(rows),
-                    walnme=thenme,
-                    walbal="0",
-                    theid=theid,
-                    thewal=thewal,
-                    adminkey=adminkey,
-                    inkey=inkey,
-                )
-
-            # user has no wallets
-            # -------------------
-
-            adminkey = encrypt(theid)
-            inkey = encrypt(adminkey)
-
-            db.execute(
-                "INSERT INTO wallets (hash, name, user, adminkey, inkey) " "VALUES (?, ?, ?, ?, ?)",
-                (thewal, thenme, theid, adminkey, inkey),
+            wallet_row = db.fetchone(
+                """
+              SELECT
+                (SELECT balance/1000 FROM balances WHERE wallet = wallets.hash),
+                name,
+                adminkey,
+                inkey
+              FROM wallets
+              WHERE user = ? AND hash = ?
+            """,
+                (theid, thewal,),
             )
+
+            transactions = []
 
             return render_template(
                 "wallet.html",
-                len=len("1"),
-                walnme=thenme,
-                walbal="0",
+                thearr=user_wallets,
+                len=len(user_wallets),
+                walnme=wallet_row[1],
+                user=theid,
+                walbal=wallet_row[0],
                 theid=theid,
                 thewal=thewal,
-                adminkey=adminkey,
-                inkey=inkey,
+                transactions=transactions,
+                adminkey=wallet_row[2],
+                inkey=wallet_row[3],
             )
 
-        # user does not exist: create an account
-        # --------------------------------------
-
-        db.execute("INSERT INTO accounts (userhash) VALUES (?)", (theid,))
+        # user has no wallets
+        # -------------------
 
         adminkey = encrypt(theid)
         inkey = encrypt(adminkey)
 
         db.execute(
-            "INSERT INTO wallets (hash, name, user, adminkey, inkey) " "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO wallets (hash, name, user, adminkey, inkey) VALUES (?, ?, ?, ?, ?)",
             (thewal, thenme, theid, adminkey, inkey),
         )
 
-    return render_template(
-        "wallet.html",
-        len=len("1"),
-        walnme=thenme,
-        walbal="0",
-        theid=theid,
-        thewal=thewal,
-        adminkey=adminkey,
-        inkey=inkey,
-    )
+        return render_template(
+            "wallet.html",
+            len=1,
+            walnme=thenme,
+            walbal=0,
+            theid=theid,
+            thewal=thewal,
+            adminkey=adminkey,
+            inkey=inkey,
+            transactions=[],
+        )
 
 
 @app.route("/v1/invoices", methods=["GET", "POST"])
 def api_invoices():
     if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 200
+        return jsonify({"ERROR": "MUST BE JSON"}), 400
 
     postedjson = request.json
 
     if "value" not in postedjson:
-        return jsonify({"ERROR": "NO VALUE"}), 200
+        return jsonify({"ERROR": "NO VALUE"}), 400
 
     if not postedjson["value"].isdigit():
-        return jsonify({"ERROR": "VALUE MUST BE A NUMMBER"}), 200
+        return jsonify({"ERROR": "VALUE MUST BE A NUMBER"}), 400
+
+    if postedjson["value"] < 0:
+        return jsonify({"ERROR": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
 
     if "memo" not in postedjson:
-        return jsonify({"ERROR": "NO MEMO"}), 200
+        return jsonify({"ERROR": "NO MEMO"}), 400
 
     with Database() as db:
         wallet_row = db.fetchone(
@@ -350,6 +328,8 @@ def api_transactions():
 
         # decode the invoice
         invoice = bolt11.decode(data["payment_request"])
+        if invoice.amount == 0:
+            return jsonify({"ERROR": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
 
         # insert the payment
         db.execute(
@@ -364,26 +344,7 @@ def api_transactions():
         )
 
         # check balance
-        balance = db.fetchone(
-            """
-          WITH wallettransactions AS (
-              SELECT *
-              FROM apipayments
-              WHERE wallet = ?
-          )
-
-          SELECT sum(s) FROM (
-              SELECT sum(amount) AS s -- incoming
-              FROM wallettransactions
-              WHERE amount > 0 AND pending = false -- don't sum pending
-            UNION ALL
-              SELECT sum(amount + fee) AS s -- outgoing, sum fees
-              FROM wallettransactions
-              WHERE amount < 0 -- do sum pending
-          )
-          """,
-            (wallet_row[0],),
-        )
+        balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet_row[0]))[0]
         if balance < 0:
             return jsonify({"ERROR": "INSUFFICIENT BALANCE"}), 403
 
@@ -423,7 +384,7 @@ def api_checkinvoice(payhash):
           SELECT pending FROM apipayments
           INNER JOIN wallets AS w ON apipayments.wallet = w.hash
           WHERE payhash = ?
-            AND (w.adminkey = ? OR w.invkey = ?)
+            AND (w.adminkey = ? OR w.inkey = ?)
         """,
             (payhash, request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
         )
