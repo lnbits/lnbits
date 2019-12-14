@@ -239,6 +239,61 @@
     ></script>
   </head>
   <body class="skin-blue">
-    {% block body %}{% endblock %}
+    <div class="wrapper">
+      <header class="main-header">
+        <!-- Logo -->
+        <a href="/" class="logo"><b>LN</b>bits</a>
+        <!-- Header Navbar: style can be found in header.less -->
+        <nav class="navbar navbar-static-top" role="navigation">
+          <!-- Sidebar toggle button-->
+          <a
+            href="#"
+            class="sidebar-toggle"
+            data-toggle="offcanvas"
+            role="button"
+          >
+            <span class="sr-only">Toggle navigation</span>
+          </a>
+          <div class="navbar-custom-menu">
+            <ul class="nav navbar-nav">
+              <!-- Messages: style can be found in dropdown.less-->
+              <li class="dropdown messages-menu">
+                {% block messages %}{% endblock %}
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      <!-- Left side column. contains the logo and sidebar -->
+      <aside class="main-sidebar">
+        <!-- sidebar: style can be found in sidebar.less -->
+        <section class="sidebar">
+          <!-- Sidebar user panel -->
+
+          <!-- /.search form -->
+          <!-- sidebar menu: : style can be found in sidebar.less -->
+          <ul class="sidebar-menu">
+            <li class="header">MENU</li>
+            {% block menuitems %}{% endblock %}
+          </ul>
+        </section>
+        <!-- /.sidebar -->
+      </aside>
+
+      {% block body %}{% endblock %}
+    </div>
+
+    <footer class="main-footer">
+      <div class="pull-right hidden-xs">
+        <b>BETA</b>
+      </div>
+      <strong
+        >Learn more about LNbits
+        <a href="https://github.com/arcbtc/FOSSAW"
+          >https://github.com/arcbtc/lnbits</a
+        ></strong
+      >
+    </footer>
   </body>
 </html>

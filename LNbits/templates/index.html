@@ -1,146 +1,94 @@
 <!-- @format -->
 
-{% extends "base.html" %} {% block body %}
-<div class="wrapper">
-  <header class="main-header">
-    <!-- Logo -->
-    <a href="index.html" class="logo"><b>LN</b>bits</a>
-    <!-- Header Navbar: style can be found in header.less -->
-    <nav class="navbar navbar-static-top" role="navigation">
-      <!-- Sidebar toggle button-->
-      <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
-        <span class="sr-only">Toggle navigation</span>
-      </a>
-      <div class="navbar-custom-menu">
-        <ul class="nav navbar-nav">
-          <!-- Messages: style can be found in dropdown.less-->
-          <li class="dropdown messages-menu"></li>
-        </ul>
-      </div>
-    </nav>
-  </header>
-  <!-- Left side column. contains the logo and sidebar -->
-  <aside class="main-sidebar">
-    <!-- sidebar: style can be found in sidebar.less -->
-    <section class="sidebar">
-      <!-- Sidebar user panel -->
-
-      <!-- /.search form -->
-      <!-- sidebar menu: : style can be found in sidebar.less -->
-      <ul class="sidebar-menu">
-        <li class="header">MAIN NAVIGATION</li>
-
-        <li>
-          <a href="../documentation/index.html"
-            ><i class="fa fa-book"></i> Home</a
-          >
-        </li>
-      </ul>
-    </section>
-    <!-- /.sidebar -->
-  </aside>
-
-  <!-- Right side column. Contains the navbar and content of the page -->
-  <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
-    <section class="content-header">
-      <ol class="breadcrumb">
-        <li>
-          <a href="/index.html"><i class="fa fa-dashboard"></i> Home</a>
-        </li>
-      </ol>
-      <br /><br />
-      <div class="alert alert-danger alert-dismissable">
-        <h4>
-          Warning - Wallet is still in BETA and very, very #reckless, please be
-          careful with your funds!
-        </h4>
-      </div>
-    </section>
-
-    <!-- Main content -->
-    <section class="content">
-      <div class="row">
-        <div class="col-md-4">
-          <!-- Default box -->
-          <div class="box">
-            <div class="box-header">
-              <h1>
-                <a href="index.html" class="logo"><b>LN</b>bits</a>
-                <small>free and open-source lightning wallet</small>
-              </h1>
-              <p>
-                LNbits is a simple, free and open-source lightning-network
-                wallet for bits and bobs. You can run it on your own server, or
-                use this one.
-                <br /><br />
-                The wallet can be used in a variety of ways, an instant wallet
-                for LN demonstrations, a fallback wallet for the LNURL scheme,
-                an accounts system to mitigate the risk of exposing applications
-                to your full balance.
-                <br /><br />
-                The wallet can run on top of LND, lntxbot, paywall, opennode
-                <br /><br />
-                Please note that although one of the aims of this wallet is to
-                mitigate exposure of all your funds, it’s still very BETA and
-                may in fact do the opposite!
-                <br />
-                <a href="https://github.com/arcbtc/FOSSAW"
-                  >https://github.com/arcbtc/lnbits</a
-                >
-              </p>
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-        </div>
-
-        <div class="col-md-4">
-          <!-- Default box -->
-          <div class="box">
-            <div class="box-header">
-              <h1>
-                <small>Make a wallet</small>
-              </h1>
-              <div class="form-group">
-                <input
-                  type="text"
-                  class="form-control"
-                  id="walname"
-                  placeholder="Name your LNBits wallet"
-                  required
-                />
-              </div>
-              <button
-                type="button"
-                class="btn btn-primary"
-                onclick="newwallet()"
-              >
-                Submit
-              </button>
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-        </div>
-      </div>
-    </section>
-    <!-- /.content -->
-  </div>
-  <!-- /.content-wrapper -->
-
-  <footer class="main-footer">
-    <div class="pull-right hidden-xs">
-      <b>BETA</b>
+{% extends "base.html" %} {% block menuitems %}
+<li>
+  <a href="/"><i class="fa fa-book"></i> Home</a>
+</li>
+{% endblock %} {% block body %}
+<!-- Right side column. Contains the navbar and content of the page -->
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <ol class="breadcrumb">
+      <li>
+        <a href="/"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+    </ol>
+    <br /><br />
+    <div class="alert alert-danger alert-dismissable">
+      <h4>
+        Warning - Wallet is still in BETA and very, very #reckless, please be
+        careful with your funds!
+      </h4>
     </div>
-    <strong
-      >Learn more about LNbits
-      <a href="https://github.com/arcbtc/FOSSAW"
-        >https://github.com/arcbtc/lnbits</a
-      ></strong
-    >
-  </footer>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="row">
+      <div class="col-md-4">
+        <!-- Default box -->
+        <div class="box">
+          <div class="box-header">
+            <h1>
+              <a href="index.html" class="logo"><b>LN</b>bits</a>
+              <small>free and open-source lightning wallet</small>
+            </h1>
+            <p>
+              LNbits is a simple, free and open-source lightning-network wallet
+              for bits and bobs. You can run it on your own server, or use this
+              one.
+              <br /><br />
+              The wallet can be used in a variety of ways, an instant wallet for
+              LN demonstrations, a fallback wallet for the LNURL scheme, an
+              accounts system to mitigate the risk of exposing applications to
+              your full balance.
+              <br /><br />
+              The wallet can run on top of LND, lntxbot, paywall, opennode
+              <br /><br />
+              Please note that although one of the aims of this wallet is to
+              mitigate exposure of all your funds, it’s still very BETA and may
+              in fact do the opposite!
+              <br />
+              <a href="https://github.com/arcbtc/FOSSAW"
+                >https://github.com/arcbtc/lnbits</a
+              >
+            </p>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+      </div>
+
+      <div class="col-md-4">
+        <!-- Default box -->
+        <div class="box">
+          <div class="box-header">
+            <h1>
+              <small>Make a wallet</small>
+            </h1>
+            <div class="form-group">
+              <input
+                type="text"
+                class="form-control"
+                id="walname"
+                placeholder="Name your LNBits wallet"
+                required
+              />
+            </div>
+            <button type="button" class="btn btn-primary" onclick="newwallet()">
+              Submit
+            </button>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+      </div>
+    </div>
+  </section>
+  <!-- /.content -->
 </div>
+<!-- /.content-wrapper -->
 
 <script>
   function makeid(length) {

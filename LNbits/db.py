@@ -7,6 +7,7 @@ class Database:
     def __init__(self, db_path: str = DATABASE_PATH):
         self.path = db_path
         self.connection = sqlite3.connect(db_path)
+        self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
 
     def __enter__(self):

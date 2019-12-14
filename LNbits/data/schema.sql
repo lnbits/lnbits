@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS accounts (
-    userhash text PRIMARY KEY,
+    id text PRIMARY KEY,
     email text,
     pass text
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
-    hash text PRIMARY KEY,
+    id text PRIMARY KEY,
     name text NOT NULL,
     user text NOT NULL,
     adminkey text NOT NULL,
@@ -21,9 +21,7 @@ CREATE TABLE IF NOT EXISTS apipayments (
     memo text
 );
 
-DROP VIEW IF EXISTS balances;
-
-CREATE VIEW balances AS
+CREATE VIEW IF NOT EXISTS balances AS
   SELECT wallet, coalesce(sum(s), 0) AS balance FROM (
       SELECT wallet, sum(amount) AS s -- incoming
       FROM apipayments
