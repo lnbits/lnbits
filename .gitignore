@@ -19,6 +19,7 @@ Pipfile.lock
 *.pyo
 *.pyc
 *.env
+.env
 venv
 
 database.sqlite3

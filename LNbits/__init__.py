@@ -7,7 +7,7 @@ from flask import Flask, jsonify, render_template, request
 from . import bolt11
 from .db import Database
 from .helpers import encrypt
-from .settings import INVOICE_KEY, ADMIN_KEY, API_ENDPOINT, DATABASE_PATH, LNBITS_PATH
+from .settings import DATABASE_PATH, LNBITS_PATH, WALLET
 
 
 app = Flask(__name__)
@@ -70,10 +70,7 @@ def lnurlwallet():
     k1 = data["k1"]
 
     # get invoice
-    dataj = {"amt": str(withdraw)}
-    headers = {"Authorization": "Basic %s" % INVOICE_KEY}
-    rr = requests.post(url=API_ENDPOINT + "/addinvoice", json=dataj, headers=headers)
-
+    rr = WALLET.create_invoice(withdraw)
     dataa = rr.json()
 
     # get callback
@@ -93,7 +90,7 @@ def lnurlwallet():
 
         data = ""
         while data == "":
-            r = requests.post(url=API_ENDPOINT + "/invoicestatus/" + str(payment_hash), headers=headers)
+            r = WALLET.get_invoice_status(payment_hash)
             data = r.json()
             print(r.json())
 
@@ -264,11 +261,7 @@ def api_invoices():
         if not wallet_row:
             return jsonify({"ERROR": "NO KEY"}), 200
 
-        r = requests.post(
-            url=f"{API_ENDPOINT}/addinvoice",
-            json={"amt": postedjson["value"], "memo": postedjson["memo"]},
-            headers={"Authorization": f"Basic {INVOICE_KEY}"},
-        )
+        r = WALLET.create_invoice(postedjson["value"], postedjson["memo"])
         data = r.json()
 
         pay_req = data["pay_req"]
@@ -349,11 +342,8 @@ def api_transactions():
             return jsonify({"ERROR": "INSUFFICIENT BALANCE"}), 403
 
         # actually send the payment
-        r = requests.post(
-            url=f"{API_ENDPOINT}/payinvoice",
-            json={"invoice": data["payment_request"]},
-            headers={"Authorization": f"Basic {ADMIN_KEY}"},
-        )
+        r = WALLET.pay_invoice(data["payment_request"])
+
         if not r.ok:
             return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
@@ -395,8 +385,8 @@ def api_checkinvoice(payhash):
         if not payment_row[0]:  # pending
             return jsonify({"PAID": "TRUE"}), 200
 
-        headers = {"Authorization": f"Basic {INVOICE_KEY}"}
-        r = requests.post(url=f"{API_ENDPOINT}/invoicestatus/{payhash}", headers=headers)
+        r = WALLET.get_invoice_status(payhash)
+
         if not r.ok:
             return jsonify({"PAID": "FALSE"}), 400
 
