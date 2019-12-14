@@ -1,10 +1,10 @@
 import os
 import lnurl
 import requests
-import time
 
 from flask import Flask, jsonify, render_template, request
 
+from . import bolt11
 from .db import Database
 from .helpers import encrypt
 from .settings import INVOICE_KEY, ADMIN_KEY, API_ENDPOINT, DATABASE_PATH, LNBITS_PATH
@@ -115,7 +115,7 @@ def lnurlwallet():
         inkey = encrypt(adminkey)
 
         cur.execute(
-            "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) VALUES ('"
+            "INSERT INTO wallets (hash, name, user, adminkey, inkey) VALUES ('"
             + thewal
             + "',',0,"
             + str(withdraw)
@@ -197,8 +197,7 @@ def wallet():
                 inkey = encrypt(adminkey)
 
                 db.execute(
-                    "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) "
-                    "VALUES (?, 0, 0, ?, ?, ?, ?)",
+                    "INSERT INTO wallets (hash, name, user, adminkey, inkey) VALUES (?, ?, ?, ?, ?)",
                     (thewal, thenme, theid, adminkey, inkey),
                 )
                 rows = db.fetchall("SELECT * FROM wallets WHERE user = ?", (theid,))
@@ -222,8 +221,7 @@ def wallet():
             inkey = encrypt(adminkey)
 
             db.execute(
-                "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) "
-                "VALUES (?, 0, 0, ?, ?, ?, ?)",
+                "INSERT INTO wallets (hash, name, user, adminkey, inkey) " "VALUES (?, ?, ?, ?, ?)",
                 (thewal, thenme, theid, adminkey, inkey),
             )
 
@@ -247,8 +245,7 @@ def wallet():
         inkey = encrypt(adminkey)
 
         db.execute(
-            "INSERT INTO wallets (hash, balance, transactions, name, user, adminkey, inkey) "
-            "VALUES (?, 0, 0, ?, ?, ?, ?)",
+            "INSERT INTO wallets (hash, name, user, adminkey, inkey) " "VALUES (?, ?, ?, ?, ?)",
             (thewal, thenme, theid, adminkey, inkey),
         )
 
@@ -281,28 +278,27 @@ def api_invoices():
         return jsonify({"ERROR": "NO MEMO"}), 200
 
     with Database() as db:
-        rows = db.fetchall("SELECT * FROM wallets WHERE inkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
+        wallet_row = db.fetchone(
+            "SELECT hash FROM wallets WHERE inkey = ? OR adminkey = ?",
+            (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"],),
+        )
 
-        if not rows:
+        if not wallet_row:
             return jsonify({"ERROR": "NO KEY"}), 200
 
-        dataj = {"amt": postedjson["value"], "memo": postedjson["memo"]}
-        headers = {"Authorization": f"Basic {INVOICE_KEY}"}
-        r = requests.post(url=f"{API_ENDPOINT}/addinvoice", json=dataj, headers=headers)
+        r = requests.post(
+            url=f"{API_ENDPOINT}/addinvoice",
+            json={"amt": postedjson["value"], "memo": postedjson["memo"]},
+            headers={"Authorization": f"Basic {INVOICE_KEY}"},
+        )
         data = r.json()
 
         pay_req = data["pay_req"]
         payment_hash = data["payment_hash"]
 
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, wallet, paid, inkey, memo) VALUES (?, ?, ?, 0, ?, ?)",
-            (
-                payment_hash,
-                postedjson["value"],
-                rows[0][0],
-                request.headers["Grpc-Metadata-macaroon"],
-                postedjson["memo"],
-            ),
+            "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, true, ?)",
+            (payment_hash, postedjson["value"] * 1000, wallet_row[0], postedjson["memo"],),
         )
 
     return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
@@ -313,15 +309,17 @@ def api_transactions():
     if request.headers["Content-Type"] != "application/json":
         return jsonify({"ERROR": "MUST BE JSON"}), 200
 
-    postedjson = request.json
+    data = request.json
 
-    if "payment_request" not in postedjson:
+    if "payment_request" not in data:
         return jsonify({"ERROR": "NO PAY REQ"}), 200
 
     with Database() as db:
-        wallets = db.fetchall("SELECT * FROM wallets WHERE adminkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
+        wallet_row = db.fetchone(
+            "SELECT hash FROM wallets WHERE adminkey = ?", (request.headers["Grpc-Metadata-macaroon"],)
+        )
 
-        if not wallets:
+        if not wallet_row:
             return jsonify({"ERROR": "BAD AUTH"}), 200
 
         # TODO: check this unused code
@@ -350,31 +348,65 @@ def api_transactions():
         """
         # ---------------------------------
 
-        dataj = {"invoice": postedjson["payment_request"]}
-        headers = {"Authorization": f"Basic {ADMIN_KEY}"}
-        r = requests.post(url=f"{API_ENDPOINT}/payinvoice", json=dataj, headers=headers)
-        data = r.json()
+        # decode the invoice
+        invoice = bolt11.decode(data["payment_request"])
 
+        # insert the payment
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, wallet, paid, adminkey, memo) VALUES (?, ?, ?, 1, ?, ?)'",
+            "INSERT INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, true, ?)'",
             (
-                data["decoded"]["payment_hash"],
-                str(-int(data["decoded"]["num_satoshis"])),
-                wallets[0][0],
-                request.headers["Grpc-Metadata-macaroon"],
-                data["decoded"]["description"],
+                invoice.payment_hash,
+                -int(invoice.amount_msat),
+                -int(invoice.amount_msat * 0.01),
+                wallet_row[0],
+                invoice.description,
             ),
         )
 
-        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (data["decoded"]["payment_hash"],))[0]
+        # check balance
+        balance = db.fetchone(
+            """
+          WITH wallettransactions AS (
+              SELECT *
+              FROM apipayments
+              WHERE wallet = ?
+          )
 
-        lastamt = str(wallets[0][1]).split(",")
-        newamt = int(lastamt[-1]) - int(data["decoded"]["num_satoshis"])
-        updamt = wallets[0][1] + "," + str(newamt)
-        transactions = f"{wallets[0][2]}!{payment[5]},{time.time()},{payment[1]},{newamt}"
+          SELECT sum(s) FROM (
+              SELECT sum(amount) AS s -- incoming
+              FROM wallettransactions
+              WHERE amount > 0 AND pending = false -- don't sum pending
+            UNION ALL
+              SELECT sum(amount + fee) AS s -- outgoing, sum fees
+              FROM wallettransactions
+              WHERE amount < 0 -- do sum pending
+          )
+          """,
+            (wallet_row[0],),
+        )
+        if balance < 0:
+            return jsonify({"ERROR": "INSUFFICIENT BALANCE"}), 403
 
+        # actually send the payment
+        r = requests.post(
+            url=f"{API_ENDPOINT}/payinvoice",
+            json={"invoice": data["payment_request"]},
+            headers={"Authorization": f"Basic {ADMIN_KEY}"},
+        )
+        if not r.ok:
+            return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
+
+        data = r.json()
+        if r.ok and data["error"]:
+            # payment didn't went through, delete it here
+            # (these guarantees specific to lntxbot)
+            db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
+            return jsonify({"PAID": "FALSE"}), 200
+
+        # payment went through, not pending anymore, save actual fees
         db.execute(
-            "UPDATE wallets SET balance = ?, transactions = ? WHERE hash = ?", (updamt, transactions, wallets[0][0])
+            "UPDATE apipayments SET pending = false, fee = ? WHERE payhash = ?",
+            (data["fee_msat"], invoice.payment_hash,),
         )
 
     return jsonify({"PAID": "TRUE"}), 200
@@ -386,31 +418,30 @@ def api_checkinvoice(payhash):
         return jsonify({"ERROR": "MUST BE JSON"}), 200
 
     with Database() as db:
-        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (payhash,))[0]
+        payment_row = db.fetchone(
+            """
+          SELECT pending FROM apipayments
+          INNER JOIN wallets AS w ON apipayments.wallet = w.hash
+          WHERE payhash = ?
+            AND (w.adminkey = ? OR w.invkey = ?)
+        """,
+            (payhash, request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
+        )
 
-        if request.headers["Grpc-Metadata-macaroon"] != payment[4]:
-            return jsonify({"ERROR": "WRONG KEY"}), 400
+        if not payment_row:
+            return jsonify({"ERROR": "NO INVOICE"}), 404
 
-        if payment[3] != "0":
+        if not payment_row[0]:  # pending
             return jsonify({"PAID": "TRUE"}), 200
 
         headers = {"Authorization": f"Basic {INVOICE_KEY}"}
         r = requests.post(url=f"{API_ENDPOINT}/invoicestatus/{payhash}", headers=headers)
-        data = r.json()
-
-        if data == "":
+        if not r.ok:
             return jsonify({"PAID": "FALSE"}), 400
 
-        wallet = db.fetchall("SELECT * FROM wallets WHERE hash = ?", (payment[2],))[0]
+        data = r.json()
+        if "preimage" not in data or not data["preimage"]:
+            return jsonify({"PAID": "FALSE"}), 400
 
-        lastamt = wallet[1].split(",")
-        newamt = int(lastamt[-1]) + int(payment[1])
-        updamt = wallet[1] + "," + str(newamt)
-        transactions = f"{wallet[2]}!{payment[5]},{time.time()},{payment[1]},{newamt}"
-
-        db.execute(
-            "UPDATE wallets SET balance = ?, transactions = ? WHERE hash = ?", (updamt, transactions, payment[2])
-        )
-        db.execute("UPDATE apipayments SET paid = '1' WHERE payhash = ?", (payhash,))
-
-    return jsonify({"PAID": "TRUE"}), 200
+        db.execute("UPDATE apipayments SET pending = false WHERE payhash = ?", (payhash,))
+        return jsonify({"PAID": "TRUE"}), 200

@@ -21,6 +21,10 @@ class Database:
         self.cursor.execute(query, values)
         return self.cursor.fetchall()
 
+    def fetchone(self, query: str, values: tuple):
+        self.cursor.execute(query, values)
+        return self.cursor.fetchone()
+
     def execute(self, query: str, values: tuple) -> None:
         """Given a query, cursor.execute() it."""
         self.cursor.execute(query, values)
