@@ -7,6 +7,7 @@ verify_ssl = true
 python_version = "3.7"
 
 [packages]
+bitstring = "*"
 lnurl = "*"
 flask = "*"
 requests = "*"

@@ -23,7 +23,7 @@ def db_connect(db_path=DATABASE_PATH):
 @app.before_first_request
 def init():
     with Database() as db:
-        with open(os.path.join(LNBITS_PATH, "data/schema.sql")) as schemafile:
+        with open(os.path.join(LNBITS_PATH, "data", "schema.sql")) as schemafile:
             for stmt in schemafile.read().split("\n\n"):
                 db.execute(stmt, [])
 
@@ -246,7 +246,7 @@ def api_invoices():
     if not postedjson["value"].isdigit():
         return jsonify({"ERROR": "VALUE MUST BE A NUMBER"}), 400
 
-    if postedjson["value"] < 0:
+    if int(postedjson["value"]) < 0:
         return jsonify({"ERROR": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
 
     if "memo" not in postedjson:
@@ -269,7 +269,7 @@ def api_invoices():
 
         db.execute(
             "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, true, ?)",
-            (payment_hash, postedjson["value"] * 1000, wallet_row[0], postedjson["memo"],),
+            (payment_hash, int(postedjson["value"]) * 1000, wallet_row[0], postedjson["memo"],),
         )
 
     return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
@@ -321,12 +321,12 @@ def api_transactions():
 
         # decode the invoice
         invoice = bolt11.decode(data["payment_request"])
-        if invoice.amount == 0:
+        if invoice.amount_msat == 0:
             return jsonify({"ERROR": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
 
         # insert the payment
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, true, ?)'",
+            "INSERT INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, ?, true, ?)",
             (
                 invoice.payment_hash,
                 -int(invoice.amount_msat),
@@ -337,7 +337,7 @@ def api_transactions():
         )
 
         # check balance
-        balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet_row[0]))[0]
+        balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet_row[0],))[0]
         if balance < 0:
             return jsonify({"ERROR": "INSUFFICIENT BALANCE"}), 403
 
@@ -348,7 +348,7 @@ def api_transactions():
             return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
         data = r.json()
-        if r.ok and data["error"]:
+        if r.ok and 'error' in data:
             # payment didn't went through, delete it here
             # (these guarantees specific to lntxbot)
             db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
