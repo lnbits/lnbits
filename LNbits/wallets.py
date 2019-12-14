@@ -18,6 +18,7 @@ class Wallet(ABC):
     def pay_invoice(self, bolt11: str) -> WalletResponse:
         pass
 
+    @abstractmethod
     def get_invoice_status(self, payment_hash: str) -> WalletResponse:
         pass
 

@@ -7,8 +7,10 @@ flask==1.1.1
 idna==2.8
 itsdangerous==1.1.0
 jinja2==2.10.3
-lnurl==0.1.1
+lnurl==0.2.0
 markupsafe==1.1.1
+pydantic==1.2
 requests==2.22.0
+typing-extensions==3.7.4.1
 urllib3==1.25.7
 werkzeug==0.16.0

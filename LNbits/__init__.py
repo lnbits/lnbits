@@ -1,5 +1,5 @@
-import os
 import lnurl
+import os
 import requests
 
 from flask import Flask, jsonify, render_template, request
@@ -56,100 +56,52 @@ def deletewallet():
 
 @app.route("/lnurlwallet")
 def lnurlwallet():
+    withdraw_res = lnurl.handle(request.args.get("lightning"))
+    invoice = WALLET.create_invoice(withdraw_res.max_sats).json()
+    payment_hash = invoice["payment_hash"]
 
-    # put in a function
-    thestr = request.args.get("lightning")
-    lnurll = lnurl.decode(thestr)
-    r = requests.get(url=lnurll)
-
-    data = r.json()
-
-    callback = data["callback"]
-    maxwithdraw = data["maxWithdrawable"]
-    withdraw = int(maxwithdraw / 1000)
-    k1 = data["k1"]
-
-    # get invoice
-    rr = WALLET.create_invoice(withdraw)
-    dataa = rr.json()
-
-    # get callback
-
-    pay_req = dataa["pay_req"]
-    payment_hash = dataa["payment_hash"]
-
-    invurl = callback + "&k1=" + k1 + "&pr=" + pay_req
-
-    rrr = requests.get(url=invurl)
+    rrr = requests.get(
+        withdraw_res.callback.base,
+        params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": invoice["pay_req"]}},
+    )
     dataaa = rrr.json()
 
-    print(dataaa)
-    print("poo")
+    if dataaa["status"] != "OK":
+        """TODO: show some kind of error?"""
+        return render_template("index.html")
 
-    if dataaa["status"] == "OK":
+    data = ""
+    while data == "":
+        r = WALLET.get_invoice_status(payment_hash)
+        data = r.json()
 
-        data = ""
-        while data == "":
-            r = WALLET.get_invoice_status(payment_hash)
-            data = r.json()
-            print(r.json())
-
+    with Database() as db:
         adminkey = encrypt(payment_hash)[0:20]
         inkey = encrypt(adminkey)[0:20]
         thewal = encrypt(inkey)[0:20]
         theid = encrypt(thewal)[0:20]
         thenme = "Bitcoin LN Wallet"
 
-        con = db_connect()
-        cur = con.cursor()
-
-        cur.execute("INSERT INTO accounts (userhash) VALUES ('" + theid + "')")
-        con.commit()
-        cur.close()
-
-        con = db_connect()
-        cur = con.cursor()
+        db.execute("INSERT INTO accounts (userhash) VALUES (?)", (theid,))
 
         adminkey = encrypt(theid)
         inkey = encrypt(adminkey)
 
-        cur.execute(
-            "INSERT INTO wallets (hash, name, user, adminkey, inkey) VALUES ('"
-            + thewal
-            + "',',0,"
-            + str(withdraw)
-            + "','0','"
-            + thenme
-            + "','"
-            + theid
-            + "','"
-            + adminkey
-            + "','"
-            + inkey
-            + "')"
+        db.execute(
+            "INSERT INTO wallets (hash, name, user, adminkey, inkey) VALUES (?, ?, ?, ?, ?)",
+            (thewal, thenme, theid, adminkey, inkey),
         )
-        con.commit()
-        cur.close()
 
-        con = db_connect()
-        cur = con.cursor()
-        print(thewal)
-        cur.execute("select * from wallets WHERE user = '" + str(theid) + "'")
-        # rows = cur.fetchall()
-        con.commit()
-        cur.close()
-        return render_template(
-            "lnurlwallet.html",
-            len=len("1"),
-            walnme=thenme,
-            walbal=str(withdraw),
-            theid=theid,
-            thewal=thewal,
-            adminkey=adminkey,
-            inkey=inkey,
-        )
-    else:
-        return render_template("index.html")
+    return render_template(
+        "lnurlwallet.html",
+        len=len("1"),
+        walnme=thenme,
+        walbal=withdraw_res.max_sats,
+        theid=theid,
+        thewal=thewal,
+        adminkey=adminkey,
+        inkey=inkey,
+    )
 
 
 @app.route("/wallet")
@@ -348,7 +300,7 @@ def api_transactions():
             return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
         data = r.json()
-        if r.ok and 'error' in data:
+        if r.ok and "error" in data:
             # payment didn't went through, delete it here
             # (these guarantees specific to lntxbot)
             db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
