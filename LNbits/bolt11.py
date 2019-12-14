@@ -1,5 +1,6 @@
 import bitstring
 import re
+from binascii import hexlify
 from bech32 import bech32_decode, CHARSET
 
 
@@ -48,9 +49,9 @@ def decode(pr: str) -> Invoice:
         if tag == "d":
             invoice.description = trim_to_bytes(tagdata).decode("utf-8")
         elif tag == "h" and data_length == 52:
-            invoice.description = trim_to_bytes(tagdata)
+            invoice.description = hexlify(trim_to_bytes(tagdata))
         elif tag == "p" and data_length == 52:
-            invoice.payment_hash = trim_to_bytes(tagdata)
+            invoice.payment_hash = hexlify(trim_to_bytes(tagdata))
 
     return invoice
 
