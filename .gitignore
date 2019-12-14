@@ -24,3 +24,4 @@ venv
 
 database.sqlite3
 database.sqlite3*
+.pyre*

@@ -7,17 +7,12 @@ from flask import Flask, jsonify, render_template, request, redirect, url_for
 
 from . import bolt11
 from .db import Database
-from .settings import DATABASE_PATH, LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME
+from .helpers import megajson
+from .settings import LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME
 
 
 app = Flask(__name__)
-
-
-def db_connect(db_path=DATABASE_PATH):
-    import sqlite3
-
-    con = sqlite3.connect(db_path)
-    return con
+app.jinja_env.filters["megajson"] = megajson
 
 
 @app.before_first_request
@@ -50,7 +45,7 @@ def deletewallet():
             (thewal, theid),
         )
 
-        next_wallet = db.fetchone("SELECT hash FROM wallets WHERE user = ?", (theid,))
+        next_wallet = db.fetchone("SELECT id FROM wallets WHERE user = ?", (theid,))
         if next_wallet:
             return redirect(url_for("wallet", usr=theid, wal=next_wallet[0]))
 
@@ -164,16 +159,14 @@ def wallet():
               (SELECT balance/1000 FROM balances WHERE wallet = wallets.id),
               0
             ) AS balance,
-            name,
-            adminkey,
-            inkey
+            *
           FROM wallets
           WHERE user = ? AND id = ?
         """,
             (usr, wallet_id),
         )
 
-        transactions = []
+        transactions = db.fetchall("SELECT * FROM apipayments WHERE wallet = ?", (wallet_id,))
 
         return render_template(
             "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions,

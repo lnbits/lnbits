@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS apipayments (
     fee integer NOT NULL DEFAULT 0,
     wallet text NOT NULL,
     pending boolean NOT NULL,
-    memo text
+    memo text,
+    time timestamp NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
 CREATE VIEW IF NOT EXISTS balances AS
