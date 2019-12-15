@@ -336,3 +336,34 @@ def api_checkinvoice(payhash):
 
         db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
         return jsonify({"PAID": "TRUE"}), 200
+
+@app.route("/v1/checkpending", methods=["POST"])
+def api_checkpending():
+    with Database() as db:
+        for pendingtx in db.fetchall("""
+            SELECT
+              payhash,
+              CASE
+                WHEN amount < 0 THEN 'send'
+                ELSE 'recv'
+              END AS kind
+            FROM apipayments
+            INNER JOIN wallets ON apipayments.wallet = wallets.id
+            WHERE time > strftime('%s', 'now') - 86400
+              AND pending = 1
+              AND (adminkey = ? OR inkey = ?)
+        """, (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"])):
+            payhash = pendingtx['payhash']
+            kind = pendingtx['kind']
+
+            if kind == 'send':
+                status = WALLET.get_final_payment_status(payhash)
+                if status == 'complete':
+                    db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
+                elif status == 'failed':
+                    db.execute("DELETE FROM apipayments WHERE payhash = ?", (payhash,))
+
+            elif kind == 'recv':
+                if WALLET.is_invoice_paid(payhash):
+                    db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
+    return ''

@@ -19,7 +19,7 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
-    def get_invoice_status(self, payment_hash: str) -> WalletResponse:
+    def get_invoice_status(self, payment_hash: str, wait: bool = True) -> WalletResponse:
         pass
 
 
@@ -42,5 +42,24 @@ class LntxbotWallet(Wallet):
     def pay_invoice(self, bolt11: str) -> WalletResponse:
         return requests.post(url=f"{self.endpoint}/payinvoice", headers=self.auth_admin, json={"invoice": bolt11})
 
-    def get_invoice_status(self, payment_hash: str) -> Response:
-        return requests.post(url=f"{self.endpoint}/invoicestatus/{payment_hash}", headers=self.auth_invoice)
+    def get_invoice_status(self, payment_hash: str, wait: bool = True) -> Response:
+        wait = 'true' if wait else 'false'
+        return requests.post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait={wait}", headers=self.auth_invoice)
+
+    def is_invoice_paid(self, payment_hash: str) -> False:
+        r = self.get_invoice_status(payment_hash)
+        if not r.ok or r.json().get('error'):
+            return False
+
+        data = r.json()
+        if "preimage" not in data or not data["preimage"]:
+            return False
+
+        return True
+
+    def get_final_payment_status(self, payment_hash: str) -> str:
+        r = requests.post(url=f"{self.endpoint}/paymentstatus/{payment_hash}", headers=self.auth_invoice)
+        if not r.ok:
+            return "unknown"
+
+        return r.json().get('status', 'unknown')

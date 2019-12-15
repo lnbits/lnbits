@@ -347,3 +347,7 @@ function convertTimestamp(timestamp) {
 if (transactions.length) {
   drawChart(transactions)
 }
+
+if (wallet) {
+  postAjax('/v1/checkpending', '', wallet.adminkey, function(data) {})
+}
