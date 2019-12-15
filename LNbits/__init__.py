@@ -1,9 +1,9 @@
-import lnurl
 import uuid
 import os
 import requests
 
 from flask import Flask, jsonify, render_template, request, redirect, url_for
+from lnurl import Lnurl, LnurlWithdrawResponse
 
 from . import bolt11
 from .db import Database
@@ -55,7 +55,10 @@ def deletewallet():
 
 @app.route("/lnurlwallet")
 def lnurlwallet():
-    withdraw_res = lnurl.handle(request.args.get("lightning"))
+    lnurl = Lnurl(request.args.get("lightning"))
+    r = requests.get(lnurl.url)
+    withdraw_res = LnurlWithdrawResponse(**r.json())
+
     invoice = WALLET.create_invoice(withdraw_res.max_sats).json()
     payment_hash = invoice["payment_hash"]
 
@@ -75,19 +78,19 @@ def lnurlwallet():
         data = r.json()
 
     with Database() as db:
+        wallet_id = uuid.uuid4().hex
+        user_id = uuid.uuid4().hex
+        wallet_name = DEFAULT_USER_WALLET_NAME
         adminkey = uuid.uuid4().hex
         inkey = uuid.uuid4().hex
-        thewal = uuid.uuid4().hex
-        theid = uuid.uuid4().hex
-        thenme = DEFAULT_USER_WALLET_NAME
 
-        db.execute("INSERT INTO accounts (id) VALUES (?)", (theid,))
+        db.execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
         db.execute(
             "INSERT INTO wallets (id, name, user, adminkey, inkey) VALUES (?, ?, ?, ?, ?)",
-            (thewal, thenme, theid, adminkey, inkey),
+            (wallet_id, wallet_name, user_id, adminkey, inkey),
         )
 
-        return redirect(url_for("wallet", usr=theid, wal=thewal))
+    return redirect(url_for("wallet", usr=user_id, wal=wallet_id))
 
 
 @app.route("/wallet")
