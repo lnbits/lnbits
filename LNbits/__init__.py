@@ -111,7 +111,7 @@ def lnurlwallet():
 def wallet():
     usr = request.args.get("usr")
     wallet_id = request.args.get("wal")
-    wallet_name = request.args.get("nme") or DEFAULT_USER_WALLET_NAME
+    wallet_name = request.args.get("nme")
 
     # just usr: return a the first user wallet or create one if none found
     # usr and wallet_id: return that wallet or create it if it doesn't exist
@@ -139,11 +139,14 @@ def wallet():
         user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
 
         if not wallet_id:
-            # if not given, fetch the first wallet from this user or create
-            # -------------------------------------------------------------
-            if user_wallets:
+            if user_wallets and not wallet_name:
+                # fetch the first wallet from this user
+                # -------------------------------------
                 wallet_id = user_wallets[0]["id"]
             else:
+                # create for this user
+                # --------------------
+                wallet_name = wallet_name or DEFAULT_USER_WALLET_NAME
                 wallet_id = uuid.uuid4().hex
                 db.execute(
                     """
@@ -159,13 +162,15 @@ def wallet():
         # ------------------------------------------------------------
         db.execute(
             """
-          INSERT OR REPLACE INTO wallets (id, name, user, adminkey, inkey)
-          VALUES (?, ?, ?,
+          INSERT OR REPLACE INTO wallets (id, user, name, adminkey, inkey)
+          VALUES (?, ?,
+            coalesce((SELECT name FROM wallets WHERE id = ?), ?),
             coalesce((SELECT adminkey FROM wallets WHERE id = ?), ?),
             coalesce((SELECT inkey FROM wallets WHERE id = ?), ?)
           )
         """,
-            (wallet_id, wallet_name, usr,
+            (wallet_id, usr,
+            wallet_id, wallet_name or DEFAULT_USER_WALLET_NAME,
             wallet_id, uuid.uuid4().hex,
             wallet_id, uuid.uuid4().hex),
         )
