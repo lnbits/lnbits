@@ -294,14 +294,15 @@ function drawChart(transactions) {
     var datime = convertTimestamp(tx.time)
 
     // make the transactions table
-    transactionsHTML +=
+    transactionsHTML =
       "<tr><td  style='width: 50%'>" +
       tx.memo +
       '</td><td>' +
       datime +
       '</td><td>' +
       parseFloat(tx.amount / 1000) +
-      '</td></tr>'
+      '</td></tr>' +
+      transactionsHTML
 
     // make the line chart
     balance += parseInt(tx.amount / 1000)
