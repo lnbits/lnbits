@@ -280,8 +280,9 @@ function sidebarmake() {
 }
 
 function newwallet() {
-  walname = document.getElementById('walname').value
-  window.location.href = 'wallet?usr=' + user + '&nme=' + walname
+  var walname = document.getElementById('walname').value
+  window.location.href =
+    'wallet?' + (user ? 'usr=' + user + '&' : '') + 'nme=' + walname
 }
 
 function drawChart(transactions) {
