@@ -30,8 +30,8 @@ def home():
 
 @app.route("/deletewallet")
 def deletewallet():
-    theid = request.args.get("usr")
-    thewal = request.args.get("wal")
+    user_id = request.args.get("usr")
+    wallet_id = request.args.get("wal")
 
     with Database() as db:
         db.execute(
@@ -42,14 +42,15 @@ def deletewallet():
               inkey = 'del:' || w.inkey
             WHERE id = ? AND user = ?
         """,
-            (thewal, theid),
+            (wallet_id, user_id),
         )
 
-        next_wallet = db.fetchone("SELECT id FROM wallets WHERE user = ?", (theid,))
-        if next_wallet:
-            return redirect(url_for("wallet", usr=theid, wal=next_wallet[0]))
+        next_wallet = db.fetchone("SELECT id FROM wallets WHERE user = ?", (user_id,))
 
-    return render_template("index.html")
+        if next_wallet:
+            return redirect(url_for("wallet", usr=user_id, wal=next_wallet[0]))
+
+    return redirect(url_for("home"))
 
 
 @app.route("/lnurlwallet")
