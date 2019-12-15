@@ -1,5 +1,6 @@
 import uuid
 import os
+import json
 import requests
 
 from flask import Flask, jsonify, render_template, request, redirect, url_for
@@ -57,25 +58,34 @@ def deletewallet():
 def lnurlwallet():
     lnurl = Lnurl(request.args.get("lightning"))
     r = requests.get(lnurl.url)
-    withdraw_res = LnurlWithdrawResponse(**r.json())
+    if not r.ok:
+        return redirect(url_for('home'))
 
-    invoice = WALLET.create_invoice(withdraw_res.max_sats).json()
+    data = json.loads(r.text)
+    if data.get('status') == 'ERROR':
+        return redirect(url_for('home'))
+
+    withdraw_res = LnurlWithdrawResponse(**data)
+
+    invoice = WALLET.create_invoice(withdraw_res.max_sats, 'lnbits lnurl funding').json()
     payment_hash = invoice["payment_hash"]
 
     r = requests.get(
         withdraw_res.callback.base,
         params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": invoice["pay_req"]}},
     )
-    data = r.json()
+    if not r.ok:
+        print('error2', r.text)
+        return redirect(url_for('home'))
+    data = json.loads(r.text)
 
-    if data["status"] != "OK":
-        """TODO: show some kind of error?"""
-        return render_template("index.html")
-
-    data = ""
-    while data == "":
+    for i in range(10):
         r = WALLET.get_invoice_status(payment_hash)
+        if not r.ok:
+            continue
+
         data = r.json()
+        break
 
     with Database() as db:
         wallet_id = uuid.uuid4().hex
@@ -88,6 +98,10 @@ def lnurlwallet():
         db.execute(
             "INSERT INTO wallets (id, name, user, adminkey, inkey) VALUES (?, ?, ?, ?, ?)",
             (wallet_id, wallet_name, user_id, adminkey, inkey),
+        )
+        db.execute(
+            "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, 0, ?)",
+            (payment_hash, withdraw_res.max_sats * 1000, wallet_id, "lnbits lnurl funding",),
         )
 
     return redirect(url_for("wallet", usr=user_id, wal=wallet_id))
@@ -117,8 +131,7 @@ def wallet():
 
         db.execute(
             """
-          INSERT INTO accounts (id) VALUES (?)
-          ON CONFLICT (id) DO NOTHING
+          INSERT OR IGNORE INTO accounts (id) VALUES (?)
         """,
             (usr,),
         )
@@ -146,11 +159,15 @@ def wallet():
         # ------------------------------------------------------------
         db.execute(
             """
-          INSERT INTO wallets (id, name, user, adminkey, inkey)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT (id) DO UPDATE SET user = ?
+          INSERT OR REPLACE INTO wallets (id, name, user, adminkey, inkey)
+          VALUES (?, ?, ?,
+            coalesce((SELECT adminkey FROM wallets WHERE id = ?), ?),
+            coalesce((SELECT inkey FROM wallets WHERE id = ?), ?)
+          )
         """,
-            (wallet_id, wallet_name, usr, uuid.uuid4().hex, uuid.uuid4().hex, usr),
+            (wallet_id, wallet_name, usr,
+            wallet_id, uuid.uuid4().hex,
+            wallet_id, uuid.uuid4().hex),
         )
 
         # finally, get the wallet with balance and transactions
@@ -206,6 +223,9 @@ def api_invoices():
             return jsonify({"ERROR": "NO KEY"}), 200
 
         r = WALLET.create_invoice(postedjson["value"], postedjson["memo"])
+        if not r.ok or r.json().get('error'):
+            return jsonify({"ERROR": "UNEXPECTED BACKEND ERROR"}), 500
+
         data = r.json()
 
         pay_req = data["pay_req"]
@@ -213,7 +233,7 @@ def api_invoices():
         amount_msat = int(postedjson["value"]) * 1000
 
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, true, ?)",
+            "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, 1, ?)",
             (payment_hash, amount_msat, wallet["id"], postedjson["memo"],),
         )
 
@@ -243,7 +263,7 @@ def api_transactions():
 
         # insert the payment
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, ?, true, ?)",
+            "INSERT INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, ?, 1, ?)",
             (
                 invoice.payment_hash,
                 -int(invoice.amount_msat),
@@ -260,8 +280,7 @@ def api_transactions():
 
         # actually send the payment
         r = WALLET.pay_invoice(data["payment_request"])
-
-        if not r.ok:
+        if not r.ok or r.json().get('error'):
             return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
         data = r.json()
@@ -273,7 +292,7 @@ def api_transactions():
 
         # payment went through, not pending anymore, save actual fees
         db.execute(
-            "UPDATE apipayments SET pending = false, fee = ? WHERE payhash = ?",
+            "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ?",
             (data["fee_msat"], invoice.payment_hash,),
         )
 
@@ -303,12 +322,12 @@ def api_checkinvoice(payhash):
             return jsonify({"PAID": "TRUE"}), 200
 
         r = WALLET.get_invoice_status(payhash)
-        if not r.ok:
+        if not r.ok or r.json().get('error'):
             return jsonify({"PAID": "FALSE"}), 400
 
         data = r.json()
         if "preimage" not in data or not data["preimage"]:
             return jsonify({"PAID": "FALSE"}), 400
 
-        db.execute("UPDATE apipayments SET pending = false WHERE payhash = ?", (payhash,))
+        db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
         return jsonify({"PAID": "TRUE"}), 200

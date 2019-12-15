@@ -26,7 +26,7 @@ CREATE VIEW IF NOT EXISTS balances AS
   SELECT wallet, coalesce(sum(s), 0) AS balance FROM (
       SELECT wallet, sum(amount) AS s -- incoming
       FROM apipayments
-      WHERE amount > 0 AND pending = false -- don't sum pending
+      WHERE amount > 0 AND pending = 0 -- don't sum pending
       GROUP BY wallet
     UNION ALL
       SELECT wallet, sum(amount + fee) AS s -- outgoing, sum fees

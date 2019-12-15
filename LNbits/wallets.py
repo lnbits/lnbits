@@ -36,7 +36,7 @@ class LntxbotWallet(Wallet):
 
     def create_invoice(self, amount: int, memo: str = "") -> WalletResponse:
         return requests.post(
-            url=f"{self.endpoint}/addinvoice", headers=self.auth_invoice, json={"amt": amount, "memo": memo}
+            url=f"{self.endpoint}/addinvoice", headers=self.auth_invoice, json={"amt": str(amount), "memo": memo}
         )
 
     def pay_invoice(self, bolt11: str) -> WalletResponse:
