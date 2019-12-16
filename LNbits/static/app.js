@@ -81,9 +81,9 @@ function sendfundspaste() {
       '<br/>Memo: ' +
       outmemo +
       '</h3>' +
-      "<h4 style='word-wrap: break-word;'>" +
-      invoice +
-      '</h4>' +
+      "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" + 
+      invoice + 
+      "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/>" +
       "<button type='submit' class='btn btn-primary' onclick='sendfunds(" +
       JSON.stringify(invoice) +
       ")'>Send funds</button>" +
