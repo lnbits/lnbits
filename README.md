@@ -1,25 +1,66 @@
+
+![Lightning network wallet](https://i.imgur.com/arUWZbH.png)
 # LNbits
-Free and open-source lightning-network wallet/accounts system
+Simple Python lightning-network wallet/accounts system. Use https://lnbits.com, or run your own LNbits server!
 
-Either use https://lnbits.com, or run your own LNbits server!
-
-LNbits is a very simple layer that sits on top of a funding source. LNbits includes unique API keys for each wallet, so funds can be partioned to avoid explosure.
-
-The wallet can be used in a variety of ways, an instant wallet for LN demonstrations, a fallback wallet for the LNURL scheme, an accounts system to mitigate the risk of exposing applications to your full balance.
+LNbits is a very simple server that sits on top of a funding source, and can be used as: 
+* Accounts system to mitigate the risk of exposing applications to your full balance, via unique API keys for each wallet!
+* Fallback wallet for the LNURL scheme
+* Instant wallet for LN demonstrations 
 
 The wallet can run on top of any lightning-network funding source such as LND, lntxbot, paywall, opennode, etc
 
-Please note that although one of the aims of this wallet is to mitigate exposure of all your funds, it’s still very BETA and may in fact do the opposite!
+LNbits is still in BETA. Please report any vulnerabilities responsibly
+## LNbits as an account system
+LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv + more to come..
+
+
+![Lightning network wallet](https://i.imgur.com/Sd4ri3T.png)
+
+Each wallet also comes with its own API keys, to help partition the exposure of your funding source. 
+
+(LNbits M5StackSats available here https://github.com/arcbtc/M5StackSats) 
+
+![lnurl ATM](https://i.imgur.com/ABruzAn.png)
 
 ## LNbits as an LNURL-withdraw fallback
+LNURL has a fallback scheme, so if scanned by a regular QR code reader it can default to a URL. LNbits exploits this to generate an instant wallet using the LNURL-withdraw.
 
 ![lnurl fallback](https://i.imgur.com/CPBKHIv.png)
 https://github.com/btcontract/lnurl-rfc/blob/master/spec.md
 
 Adding **/lnurlwallet?lightning="LNURL-WITHDRAW"** will trigger a withdraw that builds an LNbits wallet. 
-An example use would be an ATM, which utilises LNURL, if the user scans the QR with a regular QR code scanner app, they will stilll be able to access the funds.
+Example use would be an ATM, which utilises LNURL, if the user scans the QR with a regular QR code scanner app, they will stilll be able to access the funds.
 
 ![lnurl ATM](https://i.imgur.com/Gi6bn3L.jpg)
+
+## LNbits as an insta-wallet
+Wallets can be easily generated and given out to people at events (one click multi-wallet generation to be added soon).
+"Go to this  website", has a lot less friction than "Download this app".
+
+![lnurl ATM](https://i.imgur.com/SF5KoIe.png)
+
+# Running LNbits locally
+
+## Linux/Mac
+Download this repo
+
+Install Python libraries
+
+Flask 
+`pip3 install flask`
+
+LNURL
+`pip3 install lnurl`
+
+Requests
+`pip3 install requests`
+
+Run
+`python3 *folders*/server.py`
+
+## Windows
+Meh
 
 # Tip me
 If you like this project and might even use or extend it, why not send some tip love!
