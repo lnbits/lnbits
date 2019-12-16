@@ -248,9 +248,9 @@ function scanQRsend() {
             '<br/>Memo: ' +
             outmemo +
             '</h3>' +
-            "<h4 style='word-wrap: break-word;'>" +
-            JSON.stringify(code.data) +
-            '</h4>' +
+            "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" + 
+             JSON.stringify(code.data) +
+             "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/>" +
             "<button type='submit' class='btn btn-primary' onclick='sendfunds(" +
             JSON.stringify(code.data) +
             ")'>Send funds</button>" +
@@ -264,6 +264,14 @@ function scanQRsend() {
     }
     requestAnimationFrame(tick)
   }
+}
+
+function copyfunc(){
+  var copyText = document.getElementById("invoiceinput");
+  copyText.select();
+  copyText.setSelectionRange(0, 99999); 
+  document.execCommand("copy");
+
 }
 
 function deletewallet() {
