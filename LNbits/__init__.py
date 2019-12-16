@@ -280,25 +280,31 @@ def api_transactions():
         # check balance
         balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet["id"],))[0]
         if balance < 0:
+            db.execute("DELETE FROM apipayments WHERE payhash = ? AND wallet = ?", (invoice.payment_hash, wallet["id"]))
             return jsonify({"ERROR": "INSUFFICIENT BALANCE"}), 403
 
-        # actually send the payment
-        r = WALLET.pay_invoice(data["payment_request"])
-        if not r.ok or r.json().get('error'):
-            return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
+        # check if the invoice is an internal one
+        if db.fetchone("SELECT count(*) FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))[0] == 2:
+            # internal. mark both sides as fulfilled.
+            db.execute("UPDATE apipayments SET pending = 0, fee = 0 WHERE payhash = ?", (invoice.payment_hash,))
+        else:
+            # actually send the payment
+            r = WALLET.pay_invoice(data["payment_request"])
+            if not r.ok or r.json().get('error'):
+                return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
-        data = r.json()
-        if r.ok and "error" in data:
-            # payment didn't went through, delete it here
-            # (these guarantees specific to lntxbot)
-            db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
-            return jsonify({"PAID": "FALSE"}), 200
+            data = r.json()
+            if r.ok and "error" in data:
+                # payment didn't went through, delete it here
+                # (these guarantees specific to lntxbot)
+                db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
+                return jsonify({"PAID": "FALSE"}), 200
 
-        # payment went through, not pending anymore, save actual fees
-        db.execute(
-            "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
-            (data["fee_msat"], invoice.payment_hash, wallet['id']),
-        )
+            # payment went through, not pending anymore, save actual fees
+            db.execute(
+                "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
+                (data["fee_msat"], invoice.payment_hash, wallet['id']),
+            )
 
     return jsonify({"PAID": "TRUE"}), 200
 
