@@ -20,7 +20,7 @@ app.jinja_env.filters["megajson"] = megajson
 def init():
     with Database() as db:
         with open(os.path.join(LNBITS_PATH, "data", "schema.sql")) as schemafile:
-            for stmt in schemafile.read().split("\n\n"):
+            for stmt in schemafile.read().split(";\n\n"):
                 db.execute(stmt, [])
 
 
@@ -75,7 +75,6 @@ def lnurlwallet():
         params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": invoice["pay_req"]}},
     )
     if not r.ok:
-        print('error2', r.text)
         return redirect(url_for('home'))
     data = json.loads(r.text)
 
@@ -192,7 +191,7 @@ def wallet():
             (usr, wallet_id),
         )
 
-        transactions = db.fetchall("SELECT * FROM apipayments WHERE wallet = ?", (wallet_id,))
+        transactions = db.fetchall("SELECT * FROM apipayments WHERE wallet = ? AND pending = 0", (wallet_id,))
 
         return render_template(
             "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions,
@@ -297,8 +296,8 @@ def api_transactions():
 
         # payment went through, not pending anymore, save actual fees
         db.execute(
-            "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ?",
-            (data["fee_msat"], invoice.payment_hash,),
+            "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
+            (data["fee_msat"], invoice.payment_hash, wallet['id']),
         )
 
     return jsonify({"PAID": "TRUE"}), 200

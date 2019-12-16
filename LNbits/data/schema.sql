@@ -13,13 +13,15 @@ CREATE TABLE IF NOT EXISTS wallets (
 );
 
 CREATE TABLE IF NOT EXISTS apipayments (
-    payhash text PRIMARY KEY,
+    payhash text NOT NULL,
     amount integer NOT NULL,
     fee integer NOT NULL DEFAULT 0,
     wallet text NOT NULL,
     pending boolean NOT NULL,
     memo text,
-    time timestamp NOT NULL DEFAULT (strftime('%s', 'now'))
+    time timestamp NOT NULL DEFAULT (strftime('%s', 'now')),
+
+    UNIQUE (wallet, payhash)
 );
 
 CREATE VIEW IF NOT EXISTS balances AS
