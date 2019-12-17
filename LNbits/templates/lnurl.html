@@ -1,0 +1,90 @@
+<!-- @format -->
+
+{% extends "base.html" %} {% block menuitems %}
+<li>
+  <a href="/"><i class="fa fa-book"></i> Home</a>
+</li>
+{% endblock %} {% block body %}
+<!-- Right side column. Contains the navbar and content of the page -->
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <ol class="breadcrumb">
+      <li>
+        <a href="/"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+    </ol>
+    <br /><br />
+    <div class="alert alert-danger alert-dismissable">
+      <h4>
+        Warning - Wallet is still in BETA and very, very #reckless, please be
+        careful with your funds!
+      </h4>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="row">
+
+
+
+      <div class="col-md-3">
+        <!-- Default box -->
+        <div class="box">
+          <div class="box-header">
+
+            <a href="lnurlwallet?lightning={{ lnurl }}">
+	      <button type="button" class="btn btn-block btn-primary btn-lg" class="btn btn-primary">
+              Press to claim bitcoin!
+            </button></a>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+      </div>
+    </div>
+        <div class="row">
+
+            <div class="col-md-6">
+        <!-- Default box -->
+        <div class="box">
+          <div class="box-header">
+            <h1>
+              <a href="index.html" class="logo"><b>LN</b>bits</a>
+              <small>free and open-source lightning wallet</small>
+            </h1>
+            <p>
+              LNbits is a simple, free and open-source lightning-network wallet
+              for bits and bobs. You can run it on your own server, or use this
+              one.
+              <br /><br />
+              The wallet can be used in a variety of ways, an instant wallet for
+              LN demonstrations, a fallback wallet for the LNURL scheme, an
+              accounts system to mitigate the risk of exposing applications to
+              your full balance.
+              <br /><br />
+              The wallet can run on top of LND, lntxbot, paywall, opennode
+              <br /><br />
+              Please note that although one of the aims of this wallet is to
+              mitigate exposure of all your funds, it’s still very BETA and may
+              in fact do the opposite!
+              <br />
+              <a href="https://github.com/arcbtc/lnbits"
+                >https://github.com/arcbtc/lnbits</a
+              >
+            </p>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+      </div>
+    </div>
+
+
+
+  </section>
+  <!-- /.content -->
+</div>
+<!-- /.content-wrapper -->
+{% endblock %}
