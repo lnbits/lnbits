@@ -53,6 +53,10 @@ def deletewallet():
 
     return redirect(url_for("home"))
 
+@app.route("/lnurl")
+def lnurl():
+    lnurl = request.args.get("lightning")
+    return render_template("lnurl.html", lnurl=lnurl)
 
 @app.route("/lnurlwallet")
 def lnurlwallet():
