@@ -8,7 +8,7 @@ LNbits is a very simple server that sits on top of a funding source, and can be 
 * Fallback wallet for the LNURL scheme
 * Instant wallet for LN demonstrations 
 
-The wallet can run on top of any lightning-network funding source such as LND, lntxbot, paywall, opennode, etc. This first BETA release runs on top of lntxbot, other releases coming soon, although if you are impatient, it could be ported to other funding sources relatively easily. Contributors very welcome.
+The wallet can run on top of any lightning-network funding source such as LND, lntxbot, paywall, opennode, etc. This first BETA release runs on top of lntxbot, other releases coming soon, although if you are impatient, it could be ported to other funding sources relatively easily. Contributors very welcome :)
 
 LNbits is still in BETA. Please report any vulnerabilities responsibly
 ## LNbits as an account system
