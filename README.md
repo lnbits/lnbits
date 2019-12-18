@@ -41,26 +41,34 @@ Wallets can be easily generated and given out to people at events (one click mul
 ![lnurl ATM](https://i.imgur.com/SF5KoIe.png)
 
 # Running LNbits locally
-
-## Linux/Mac
 Download this repo
 
-Install Python libraries
+LNbits uses [Flask](http://flask.pocoo.org/).  
+Feel free to contribute to the project.
 
-Flask 
-`pip3 install flask`
+Application dependencies
+------------------------
+The application uses [Pipenv][pipenv] to manage Python packages.
+While in development, you will need to install all dependencies:
 
-LNURL
-`pip3 install lnurl`
+    $ pipenv shell
+    $ pipenv install --dev
 
-Requests
-`pip3 install requests`
+Running the server
+------------------
 
-Run
-`python3 *folders*/server.py`
+    $ flask run
 
-## Windows
-Meh
+There is an environment variable called `FLASK_ENV` that has to be set to `development`
+if you want to run Flask in debug mode with autoreload
+
+Style guide
+-----------
+Tab size is 4 spaces. Maximum line length is 120. You should run `black` before commiting any change.
+
+    $ black lnbits
+
+[pipenv]: https://docs.pipenv.org/#install-pipenv-today
 
 # Tip me
 If you like this project and might even use or extend it, why not send some tip love!
