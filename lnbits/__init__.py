@@ -9,7 +9,7 @@ from lnurl import Lnurl, LnurlWithdrawResponse
 from . import bolt11
 from .db import Database
 from .helpers import megajson
-from .settings import LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME
+from .settings import LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 
 
 app = Flask(__name__)
@@ -187,12 +187,12 @@ def wallet():
             coalesce(
               (SELECT balance/1000 FROM balances WHERE wallet = wallets.id),
               0
-            ) AS balance,
+            ) * ? AS balance,
             *
           FROM wallets
           WHERE user = ? AND id = ?
         """,
-            (usr, wallet_id),
+            (FEE_RESERVE, usr, wallet_id),
         )
 
         transactions = db.fetchall("SELECT * FROM apipayments WHERE wallet = ? AND pending = 0", (wallet_id,))
@@ -275,7 +275,7 @@ def api_transactions():
             (
                 invoice.payment_hash,
                 -int(invoice.amount_msat),
-                -int(invoice.amount_msat * 0.01),
+                -int(invoice.amount_msat) * FEE_RESERVE,
                 wallet["id"],
                 invoice.description,
             ),
