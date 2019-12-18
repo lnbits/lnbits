@@ -30,6 +30,7 @@
         <!-- Default box -->
         <div class="box">
           <div class="box-header">
+            {% block call_to_action %}
             <h1>
               <small>Make a wallet</small>
             </h1>
@@ -45,6 +46,7 @@
             <button type="button" class="btn btn-primary" onclick="newwallet()">
               Submit
             </button>
+            {% endblock %}
           </div>
           <!-- /.box-body -->
         </div>
