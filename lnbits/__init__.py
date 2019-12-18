@@ -53,25 +53,27 @@ def deletewallet():
 
     return redirect(url_for("home"))
 
+
 @app.route("/lnurl")
 def lnurl():
     lnurl = request.args.get("lightning")
     return render_template("lnurl.html", lnurl=lnurl)
+
 
 @app.route("/lnurlwallet")
 def lnurlwallet():
     lnurl = Lnurl(request.args.get("lightning"))
     r = requests.get(lnurl.url)
     if not r.ok:
-        return redirect(url_for('home'))
+        return redirect(url_for("home"))
 
     data = json.loads(r.text)
-    if data.get('status') == 'ERROR':
-        return redirect(url_for('home'))
+    if data.get("status") == "ERROR":
+        return redirect(url_for("home"))
 
     withdraw_res = LnurlWithdrawResponse(**data)
 
-    invoice = WALLET.create_invoice(withdraw_res.max_sats, 'lnbits lnurl funding').json()
+    invoice = WALLET.create_invoice(withdraw_res.max_sats, "lnbits lnurl funding").json()
     payment_hash = invoice["payment_hash"]
 
     r = requests.get(
@@ -79,7 +81,7 @@ def lnurlwallet():
         params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": invoice["pay_req"]}},
     )
     if not r.ok:
-        return redirect(url_for('home'))
+        return redirect(url_for("home"))
     data = json.loads(r.text)
 
     for i in range(10):
@@ -172,10 +174,16 @@ def wallet():
             coalesce((SELECT inkey FROM wallets WHERE id = ?), ?)
           )
         """,
-            (wallet_id, usr,
-            wallet_id, wallet_name or DEFAULT_USER_WALLET_NAME,
-            wallet_id, uuid.uuid4().hex,
-            wallet_id, uuid.uuid4().hex),
+            (
+                wallet_id,
+                usr,
+                wallet_id,
+                wallet_name or DEFAULT_USER_WALLET_NAME,
+                wallet_id,
+                uuid.uuid4().hex,
+                wallet_id,
+                uuid.uuid4().hex,
+            ),
         )
 
         # finally, get the wallet with balance and transactions
@@ -192,7 +200,7 @@ def wallet():
           FROM wallets
           WHERE user = ? AND id = ?
         """,
-            (FEE_RESERVE, usr, wallet_id),
+            (1 - FEE_RESERVE, usr, wallet_id),
         )
 
         transactions = db.fetchall("SELECT * FROM apipayments WHERE wallet = ? AND pending = 0", (wallet_id,))
@@ -231,7 +239,7 @@ def api_invoices():
             return jsonify({"ERROR": "NO KEY"}), 200
 
         r = WALLET.create_invoice(postedjson["value"], postedjson["memo"])
-        if not r.ok or r.json().get('error'):
+        if not r.ok or r.json().get("error"):
             return jsonify({"ERROR": "UNEXPECTED BACKEND ERROR"}), 500
 
         data = r.json()
@@ -294,7 +302,7 @@ def api_transactions():
         else:
             # actually send the payment
             r = WALLET.pay_invoice(data["payment_request"])
-            if not r.ok or r.json().get('error'):
+            if not r.ok or r.json().get("error"):
                 return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
             data = r.json()
@@ -307,7 +315,7 @@ def api_transactions():
             # payment went through, not pending anymore, save actual fees
             db.execute(
                 "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
-                (data["fee_msat"], invoice.payment_hash, wallet['id']),
+                (data["fee_msat"], invoice.payment_hash, wallet["id"]),
             )
 
     return jsonify({"PAID": "TRUE"}), 200
@@ -336,7 +344,7 @@ def api_checkinvoice(payhash):
             return jsonify({"PAID": "TRUE"}), 200
 
         r = WALLET.get_invoice_status(payhash)
-        if not r.ok or r.json().get('error'):
+        if not r.ok or r.json().get("error"):
             return jsonify({"PAID": "FALSE"}), 400
 
         data = r.json()
@@ -346,10 +354,12 @@ def api_checkinvoice(payhash):
         db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
         return jsonify({"PAID": "TRUE"}), 200
 
+
 @app.route("/v1/checkpending", methods=["POST"])
 def api_checkpending():
     with Database() as db:
-        for pendingtx in db.fetchall("""
+        for pendingtx in db.fetchall(
+            """
             SELECT
               payhash,
               CASE
@@ -361,18 +371,20 @@ def api_checkpending():
             WHERE time > strftime('%s', 'now') - 86400
               AND pending = 1
               AND (adminkey = ? OR inkey = ?)
-        """, (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"])):
-            payhash = pendingtx['payhash']
-            kind = pendingtx['kind']
+        """,
+            (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
+        ):
+            payhash = pendingtx["payhash"]
+            kind = pendingtx["kind"]
 
-            if kind == 'send':
+            if kind == "send":
                 status = WALLET.get_final_payment_status(payhash)
-                if status == 'complete':
+                if status == "complete":
                     db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-                elif status == 'failed':
+                elif status == "failed":
                     db.execute("DELETE FROM apipayments WHERE payhash = ?", (payhash,))
 
-            elif kind == 'recv':
+            elif kind == "recv":
                 if WALLET.is_invoice_paid(payhash):
                     db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-    return ''
+    return ""
