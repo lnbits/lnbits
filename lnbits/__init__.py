@@ -203,7 +203,14 @@ def wallet():
             (1 - FEE_RESERVE, usr, wallet_id),
         )
 
-        transactions = db.fetchall("SELECT * FROM apipayments WHERE wallet = ? AND pending = 0", (wallet_id,))
+        transactions = db.fetchall(
+            """
+          SELECT * FROM apipayments
+          WHERE wallet = ? AND pending = 0
+          ORDER BY time
+        """,
+            (wallet_id,),
+        )
 
         return render_template(
             "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions,
@@ -348,7 +355,7 @@ def api_checkinvoice(payhash):
             return jsonify({"PAID": "FALSE"}), 400
 
         data = r.json()
-        if "preimage" not in data or not data["preimage"]:
+        if "preimage" not in data:
             return jsonify({"PAID": "FALSE"}), 400
 
         db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
