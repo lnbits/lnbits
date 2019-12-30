@@ -352,7 +352,7 @@ def api_checkinvoice(payhash):
 
         r = WALLET.get_invoice_status(payhash)
         if not r.ok or r.json().get("error"):
-            return jsonify({"PAID": "FALSE"}), 400
+            return jsonify({"PAID": "FALSE"}), 200
 
         data = r.json()
         if "preimage" not in data:
