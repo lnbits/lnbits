@@ -54,6 +54,10 @@ While in development, you will need to install all dependencies:
     $ pipenv shell
     $ pipenv install --dev
 
+You will need to set the variables in .env.example, and rename the file to .env
+
+![lnurl ATM](https://i.imgur.com/ri2zOe8.png)
+
 Running the server
 ------------------
 
