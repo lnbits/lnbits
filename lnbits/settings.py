@@ -1,6 +1,6 @@
 import os
 
-from .wallets import LntxbotWallet  # OR LndHubWallet
+from .wallets import LntxbotWallet  # OR LndWallet
 
 
 WALLET = LntxbotWallet(
@@ -10,7 +10,7 @@ WALLET = LntxbotWallet(
 )
 
 # OR
-# WALLET = LndHubWallet(uri=os.getenv("LNDHUB_URI"))
+# WALLET = LndWallet(endpoint=os.getenv("LND_API_ENDPOINT"), admin_macaroon=os.getenv("LND_ADMIN_MACAROON"))
 
 LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
 DATABASE_PATH = os.getenv("DATABASE_PATH") or os.path.join(LNBITS_PATH, "data", "database.sqlite3")

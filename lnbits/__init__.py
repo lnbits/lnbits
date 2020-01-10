@@ -37,12 +37,13 @@ def deletewallet():
     with Database() as db:
         db.execute(
             """
-            UPDATE wallets AS w SET
-              user = 'del:' || w.user,
-              adminkey = 'del:' || w.adminkey,
-              inkey = 'del:' || w.inkey
+            UPDATE wallets AS w
+            SET
+                user = 'del:' || w.user,
+                adminkey = 'del:' || w.adminkey,
+                inkey = 'del:' || w.inkey
             WHERE id = ? AND user = ?
-        """,
+            """,
             (wallet_id, user_id),
         )
 
@@ -73,19 +74,19 @@ def lnurlwallet():
 
     withdraw_res = LnurlWithdrawResponse(**data)
 
-    invoice = WALLET.create_invoice(withdraw_res.max_sats, "lnbits lnurl funding").json()
-    payment_hash = invoice["payment_hash"]
+    _, pay_hash, pay_req = WALLET.create_invoice(withdraw_res.max_sats, "LNbits lnurl funding")
 
     r = requests.get(
         withdraw_res.callback.base,
-        params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": invoice["pay_req"]}},
+        params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": pay_req}},
     )
+
     if not r.ok:
         return redirect(url_for("home"))
     data = json.loads(r.text)
 
     for i in range(10):
-        r = WALLET.get_invoice_status(payment_hash)
+        r = WALLET.get_invoice_status(pay_hash).raw_response
         if not r.ok:
             continue
 
@@ -106,7 +107,7 @@ def lnurlwallet():
         )
         db.execute(
             "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, 0, ?)",
-            (payment_hash, withdraw_res.max_sats * 1000, wallet_id, "lnbits lnurl funding",),
+            (pay_hash, withdraw_res.max_sats * 1000, wallet_id, "LNbits lnurl funding",),
         )
 
     return redirect(url_for("wallet", usr=user_id, wal=wallet_id))
@@ -136,8 +137,8 @@ def wallet():
 
         db.execute(
             """
-          INSERT OR IGNORE INTO accounts (id) VALUES (?)
-        """,
+            INSERT OR IGNORE INTO accounts (id) VALUES (?)
+            """,
             (usr,),
         )
 
@@ -155,9 +156,9 @@ def wallet():
                 wallet_id = uuid.uuid4().hex
                 db.execute(
                     """
-                  INSERT INTO wallets (id, name, user, adminkey, inkey)
-                  VALUES (?, ?, ?, ?, ?)
-                """,
+                    INSERT INTO wallets (id, name, user, adminkey, inkey)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
                     (wallet_id, wallet_name, usr, uuid.uuid4().hex, uuid.uuid4().hex),
                 )
 
@@ -167,13 +168,13 @@ def wallet():
         # ------------------------------------------------------------
         db.execute(
             """
-          INSERT OR REPLACE INTO wallets (id, user, name, adminkey, inkey)
-          VALUES (?, ?,
-            coalesce((SELECT name FROM wallets WHERE id = ?), ?),
-            coalesce((SELECT adminkey FROM wallets WHERE id = ?), ?),
-            coalesce((SELECT inkey FROM wallets WHERE id = ?), ?)
-          )
-        """,
+            INSERT OR REPLACE INTO wallets (id, user, name, adminkey, inkey)
+            VALUES (?, ?,
+                coalesce((SELECT name FROM wallets WHERE id = ?), ?),
+                coalesce((SELECT adminkey FROM wallets WHERE id = ?), ?),
+                coalesce((SELECT inkey FROM wallets WHERE id = ?), ?)
+            )
+            """,
             (
                 wallet_id,
                 usr,
@@ -191,24 +192,22 @@ def wallet():
 
         wallet = db.fetchone(
             """
-          SELECT
-            coalesce(
-              (SELECT balance/1000 FROM balances WHERE wallet = wallets.id),
-              0
-            ) * ? AS balance,
-            *
-          FROM wallets
-          WHERE user = ? AND id = ?
-        """,
+            SELECT
+                coalesce((SELECT balance/1000 FROM balances WHERE wallet = wallets.id), 0) * ? AS balance,
+                *
+            FROM wallets
+            WHERE user = ? AND id = ?
+            """,
             (1 - FEE_RESERVE, usr, wallet_id),
         )
 
         transactions = db.fetchall(
             """
-          SELECT * FROM apipayments
-          WHERE wallet = ? AND pending = 0
-          ORDER BY time
-        """,
+            SELECT *
+            FROM apipayments
+            WHERE wallet = ? AND pending = 0
+            ORDER BY time
+            """,
             (wallet_id,),
         )
 
@@ -245,39 +244,36 @@ def api_invoices():
         if not wallet:
             return jsonify({"ERROR": "NO KEY"}), 200
 
-        r = WALLET.create_invoice(postedjson["value"], postedjson["memo"])
-        if not r.ok or r.json().get("error"):
+        r, pay_hash, pay_req = WALLET.create_invoice(postedjson["value"], postedjson["memo"])
+
+        if not r.ok or "error" in r.json():
             return jsonify({"ERROR": "UNEXPECTED BACKEND ERROR"}), 500
 
-        data = r.json()
-
-        pay_req = data["pay_req"]
-        payment_hash = data["payment_hash"]
         amount_msat = int(postedjson["value"]) * 1000
 
         db.execute(
             "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, 1, ?)",
-            (payment_hash, amount_msat, wallet["id"], postedjson["memo"],),
+            (pay_hash, amount_msat, wallet["id"], postedjson["memo"],),
         )
 
-    return jsonify({"pay_req": pay_req, "payment_hash": payment_hash}), 200
+    return jsonify({"pay_req": pay_req, "payment_hash": pay_hash}), 200
 
 
 @app.route("/v1/channels/transactions", methods=["GET", "POST"])
 def api_transactions():
     if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 200
+        return jsonify({"ERROR": "MUST BE JSON"}), 400
 
     data = request.json
 
     if "payment_request" not in data:
-        return jsonify({"ERROR": "NO PAY REQ"}), 200
+        return jsonify({"ERROR": "NO PAY REQ"}), 400
 
     with Database() as db:
         wallet = db.fetchone("SELECT id FROM wallets WHERE adminkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
 
         if not wallet:
-            return jsonify({"ERROR": "BAD AUTH"}), 200
+            return jsonify({"ERROR": "BAD AUTH"}), 401
 
         # decode the invoice
         invoice = bolt11.decode(data["payment_request"])
@@ -331,16 +327,17 @@ def api_transactions():
 @app.route("/v1/invoice/<payhash>", methods=["GET"])
 def api_checkinvoice(payhash):
     if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 200
+        return jsonify({"ERROR": "MUST BE JSON"}), 400
 
     with Database() as db:
         payment = db.fetchone(
             """
-          SELECT pending FROM apipayments
-          INNER JOIN wallets AS w ON apipayments.wallet = w.id
-          WHERE payhash = ?
-            AND (w.adminkey = ? OR w.inkey = ?)
-        """,
+            SELECT pending
+            FROM apipayments
+            INNER JOIN wallets AS w ON apipayments.wallet = w.id
+            WHERE payhash = ?
+                AND (w.adminkey = ? OR w.inkey = ?)
+            """,
             (payhash, request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
         )
 
@@ -350,13 +347,8 @@ def api_checkinvoice(payhash):
         if not payment["pending"]:  # pending
             return jsonify({"PAID": "TRUE"}), 200
 
-        r = WALLET.get_invoice_status(payhash)
-        if not r.ok or r.json().get("error"):
+        if not WALLET.get_invoice_status(payhash).settled:
             return jsonify({"PAID": "FALSE"}), 200
-
-        data = r.json()
-        if "preimage" not in data:
-            return jsonify({"PAID": "FALSE"}), 400
 
         db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
         return jsonify({"PAID": "TRUE"}), 200
@@ -368,30 +360,30 @@ def api_checkpending():
         for pendingtx in db.fetchall(
             """
             SELECT
-              payhash,
-              CASE
-                WHEN amount < 0 THEN 'send'
-                ELSE 'recv'
-              END AS kind
+                payhash,
+                CASE
+                    WHEN amount < 0 THEN 'send'
+                    ELSE 'recv'
+                END AS kind
             FROM apipayments
             INNER JOIN wallets ON apipayments.wallet = wallets.id
             WHERE time > strftime('%s', 'now') - 86400
-              AND pending = 1
-              AND (adminkey = ? OR inkey = ?)
-        """,
+                AND pending = 1
+                AND (adminkey = ? OR inkey = ?)
+            """,
             (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
         ):
             payhash = pendingtx["payhash"]
             kind = pendingtx["kind"]
 
             if kind == "send":
-                status = WALLET.get_final_payment_status(payhash)
-                if status == "complete":
+                payment_complete = WALLET.get_payment_status(payhash).settled
+                if payment_complete:
                     db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-                elif status == "failed":
+                elif payment_complete is False:
                     db.execute("DELETE FROM apipayments WHERE payhash = ?", (payhash,))
 
-            elif kind == "recv":
-                if WALLET.is_invoice_paid(payhash):
-                    db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
+            elif kind == "recv" and WALLET.get_invoice_status(payhash).settled:
+                db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
+
     return ""
