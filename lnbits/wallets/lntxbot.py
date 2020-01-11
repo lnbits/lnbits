@@ -27,10 +27,11 @@ class LntxbotWallet(Wallet):
     def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
         wait = "true" if wait else "false"
         r = post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait={wait}", headers=self.auth_invoice)
-        data = r.json()
 
-        if not r.ok or "error" in data:
+        if not r.ok or "error" in r.json():
             return TxStatus(r, None)
+
+        data = r.json()
 
         if "preimage" not in data or not data["preimage"]:
             return TxStatus(r, False)
@@ -39,9 +40,8 @@ class LntxbotWallet(Wallet):
 
     def get_payment_status(self, payment_hash: str) -> TxStatus:
         r = post(url=f"{self.endpoint}/paymentstatus/{payment_hash}", headers=self.auth_invoice)
-        data = r.json()
 
-        if not r.ok or "error" in data:
+        if not r.ok or "error" in r.json():
             return TxStatus(r, None)
 
-        return TxStatus(r, {"complete": True, "failed": False, "unknown": None}[data.get("status", "unknown")])
+        return TxStatus(r, {"complete": True, "failed": False, "unknown": None}[r.json().get("status", "unknown")])

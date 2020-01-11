@@ -15,12 +15,13 @@ class LndWallet(Wallet):
         r = post(
             url=f"{self.endpoint}/v1/invoices",
             headers=self.auth_admin,
-            json={"value": f"{amount}", "description_hash": memo},  # , "private": True},
+            json={"value": f"{amount}", "description_hash": memo, "private": True},
         )
 
         if r.ok:
-            data = r.json()
-            payment_hash, payment_request = data["r_hash"], data["payment_request"]
+            payment_request = r.json()["payment_request"]
+            decoded = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_admin)
+            payment_hash, payment_request = decoded.json()["payment_hash"], payment_request
 
         return InvoiceResponse(r, payment_hash, payment_request)
 
@@ -28,9 +29,9 @@ class LndWallet(Wallet):
         raise NotImplementedError
 
     def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
-        r = get(url=f"{self.endpoint}/v1/invoice", headers=self.auth_admin, params={"r_hash": payment_hash})
+        r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_admin)
 
-        if not r.ok:
+        if not r.ok or "settled" not in r.json():
             return TxStatus(r, None)
 
         return TxStatus(r, r.json()["settled"])
