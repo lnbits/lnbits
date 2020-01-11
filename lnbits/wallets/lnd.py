@@ -26,7 +26,9 @@ class LndWallet(Wallet):
         return InvoiceResponse(r, payment_hash, payment_request)
 
     def pay_invoice(self, bolt11: str) -> Response:
-        raise NotImplementedError
+        return post(
+            url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, json={"payment_request": bolt11}
+        )
 
     def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
         r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_admin)
@@ -46,4 +48,5 @@ class LndWallet(Wallet):
         payment = payments[0] if payments else None
 
         # check payment.status: https://api.lightning.community/rest/index.html?python#peersynctype
-        return TxStatus(r, {0: None, 1: None, 2: True, 3: False}[payment["status"]] if payment else None)
+        statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
+        return TxStatus(r, statuses[payment["status"]] if payment else None)
