@@ -2,3 +2,4 @@
 
 from .lnd import LndWallet
 from .lntxbot import LntxbotWallet
+from .opennode import OpennodeWallet
