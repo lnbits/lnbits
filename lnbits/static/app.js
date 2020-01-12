@@ -129,11 +129,13 @@ function received() {
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       })
+    setInterval(function(){ 
       getAjax('/v1/invoice/' + thehash, wallet.inkey, function(datab) {
         console.log(JSON.parse(datab).PAID)
         if (JSON.parse(datab).PAID == 'TRUE') {
           window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
         }
+         })}, 3000);
       })
     }
   )
@@ -150,11 +152,13 @@ function sendfunds(invoice) {
     JSON.stringify({payment_request: invoice}),
     wallet.adminkey,
     function(data) {
+      setInterval(function(){ 
       thehash = JSON.parse(data).payment_hash
       console.log(JSON.parse(data))
       if (JSON.parse(data).PAID == 'TRUE') {
         window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
       }
+       })}, 3000);
     }
   )
 }
