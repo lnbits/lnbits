@@ -1,6 +1,6 @@
 import os
 
-from .wallets import LntxbotWallet  # OR LndWallet
+from .wallets import LntxbotWallet  # OR LndWallet OR OpennodeWallet
 
 
 WALLET = LntxbotWallet(
@@ -11,6 +11,7 @@ WALLET = LntxbotWallet(
 
 # OR
 # WALLET = LndWallet(endpoint=os.getenv("LND_API_ENDPOINT"), admin_macaroon=os.getenv("LND_ADMIN_MACAROON"))
+# WALLET = OpennodeWallet(endpoint=os.getenv("OPENNODE_API_ENDPOINT"),admin_key=os.getenv("OPENNODE_ADMIN_KEY"),invoice_key=os.getenv("OPENNODE_INVOICE_KEY"))
 
 LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
 DATABASE_PATH = os.getenv("DATABASE_PATH") or os.path.join(LNBITS_PATH, "data", "database.sqlite3")
