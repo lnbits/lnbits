@@ -176,14 +176,7 @@ function scanQRsend() {
   var outputContainer = document.getElementById('output')
   var outputMessage = document.getElementById('outputMessage')
   var outputData = document.getElementById('outputData')
-  function drawLine(begin, end, color) {
-    canvas.beginPath()
-    canvas.moveTo(begin.x, begin.y)
-    canvas.lineTo(end.x, end.y)
-    canvas.lineWidth = 4
-    canvas.strokeStyle = color
-    canvas.stroke()
-  }
+
   // Use facingMode: environment to attemt to get the front camera on phones
   navigator.mediaDevices
     .getUserMedia({video: {facingMode: 'environment'}})
@@ -212,26 +205,7 @@ function scanQRsend() {
         inversionAttempts: 'dontInvert'
       })
       if (code) {
-        drawLine(
-          code.location.topLeftCorner,
-          code.location.topRightCorner,
-          '#FF3B58'
-        )
-        drawLine(
-          code.location.topRightCorner,
-          code.location.bottomRightCorner,
-          '#FF3B58'
-        )
-        drawLine(
-          code.location.bottomRightCorner,
-          code.location.bottomLeftCorner,
-          '#FF3B58'
-        )
-        drawLine(
-          code.location.bottomLeftCorner,
-          code.location.topLeftCorner,
-          '#FF3B58'
-        )
+
         outputMessage.hidden = true
         outputData.parentElement.hidden = false
         outputData.innerText = JSON.stringify(code.data)
