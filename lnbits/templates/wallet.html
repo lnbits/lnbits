@@ -88,12 +88,19 @@
         <button
           onclick="sendfundsinput()"
           class="btn btn-block btn-primary btn-lg"
+          data-toggle="modal" 
+          data-target=".sends" 
         >
           Send
         </button>
       </div>
       <div class="col-sm-3">
-        <button onclick="receive()" class="btn btn-block btn-primary btn-lg">
+        <button 
+        onclick="receive()" 
+        class="btn btn-block btn-primary btn-lg"
+        data-toggle="modal" 
+        data-target=".receives" 
+        >
           Receive
         </button>
       </div>
