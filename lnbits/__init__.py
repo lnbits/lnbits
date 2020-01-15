@@ -305,10 +305,16 @@ def api_transactions():
         else:
             # actually send the payment
             r = WALLET.pay_invoice(data["payment_request"])
+
+            
             if not r.ok or r.json().get("error"):
                 return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
             data = r.json()
+            data["fee_msat"] = data["data"]["amount"] #opennode hack
+            print(data)
+
+        
             if r.ok and "error" in data:
                 # payment didn't went through, delete it here
                 # (these guarantees specific to lntxbot)
@@ -321,7 +327,7 @@ def api_transactions():
                 (data["fee_msat"], invoice.payment_hash, wallet["id"]),
             )
 
-    return jsonify({"PAID": "TRUE"}), 200
+    return jsonify({"PAID": "TRUE", "payment_hash": invoice.payment_hash}), 200
 
 
 @app.route("/v1/invoice/<payhash>", methods=["GET"])
@@ -348,6 +354,36 @@ def api_checkinvoice(payhash):
             return jsonify({"PAID": "TRUE"}), 200
 
         if not WALLET.get_invoice_status(payhash).settled:
+            return jsonify({"PAID": "FALSE"}), 200
+
+        db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
+        return jsonify({"PAID": "TRUE"}), 200
+
+
+@app.route("/v1/payment/<payhash>", methods=["GET"])
+def api_checkpayment(payhash):
+    if request.headers["Content-Type"] != "application/json":
+        return jsonify({"ERROR": "MUST BE JSON"}), 400
+
+    with Database() as db:
+        payment = db.fetchone(
+            """
+            SELECT pending
+            FROM apipayments
+            INNER JOIN wallets AS w ON apipayments.wallet = w.id
+            WHERE payhash = ?
+                AND (w.adminkey = ? OR w.inkey = ?)
+            """,
+            (payhash, request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
+        )
+
+        if not payment:
+            return jsonify({"ERROR": "NO INVOICE"}), 404
+
+        if not payment["pending"]:  # pending
+            return jsonify({"PAID": "TRUE"}), 200
+
+        if not WALLET.get_payment_status(payhash).settled:
             return jsonify({"PAID": "FALSE"}), 200
 
         db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
