@@ -48,17 +48,23 @@ function getAjax(url, thekey, success) {
   }
   xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
   xhr.setRequestHeader('Content-Type', 'application/json')
+  
   xhr.send()
   return xhr
 }
 
 function sendfundsinput() {
   document.getElementById('sendfunds').innerHTML =
-    "<br/><br/><div class='row'><div class='col-md-4'>" +
-    "<textarea id='pasteinvoice' class='form-control' rows='3' placeholder='Paste an invoice'></textarea></div></div>" +
-    "<br/><div class='row'><div class='col-md-4'><button type='submit' onclick='sendfundspaste()' class='btn btn-primary'>" +
+    "<div class='modal fade sends' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
+    "<div class='modal-dialog' style='background:#fff;'>"+
+    "<div id='sendfunds2' style='padding: 0 10px 0 10px;'><div class='modal-content'>"+
+    "<br/><br/>" +
+    "<textarea id='pasteinvoice' class='form-control' rows='3' placeholder='Paste an invoice'></textarea></div>" +
+    "<div class='modal-footer'>"+
+    "<button type='submit' onclick='sendfundspaste()' class='btn btn-primary'>" +
     "Submit</button><button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='scanQRsend()'>" +
-    'Use camera to scan an invoice</button></div></div><br/><br/>'
+    'Use camera to scan an invoice</button></div>'+
+    "</div></div>"
   document.getElementById('receive').innerHTML = ''
 }
 
@@ -68,14 +74,15 @@ function sendfundspaste() {
   outmemo = theinvoice.data.tags[1].value
   outamount = Number(theinvoice.human_readable_part.amount) / 1000
   if (outamount > Number(wallet.balance)) {
-    document.getElementById('sendfunds').innerHTML =
-      "<div class='row'><div class='col-md-6'>" +
-      "<h3><b style='color:red;'>Not enough funds!</b></h3>" +
-      "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Continue</button>" +
-      '</br/></br/></div></div>'
+    document.getElementById('sendfunds2').innerHTML =
+      "<div class='modal-content'>"+
+      "<h3><b style='color:red;'>Not enough funds!</b></h3></div>" +
+      "<div class='modal-footer'>"+
+      "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Continue</button></div>"
+
   } else {
-    document.getElementById('sendfunds').innerHTML =
-      "<div class='row'><div class='col-md-6'>" +
+    document.getElementById('sendfunds2').innerHTML =
+      "<div class='modal-content'>"+
       '<h3><b>Invoice details</b></br/>Amount: ' +
       outamount +
       '<br/>Memo: ' +
@@ -83,22 +90,27 @@ function sendfundspaste() {
       '</h3>' +
       "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" + 
       invoice + 
-      "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/>" +
+      "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/></div>" +
+      "<div class='modal-footer'>"+     
       "<button type='submit' class='btn btn-primary' onclick='sendfunds(" +
       JSON.stringify(invoice) +
       ")'>Send funds</button>" +
       "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel payment</button>" +
-      '</br/></br/></div></div>'
+      '</br/></br/></div></div></div>'
   }
 }
 
 function receive() {
   document.getElementById('receive').innerHTML =
-    "<br/><div class='row'><div id='QRCODE'>" +
-    "<div class='col-sm-2'><input type='number' class='form-control' id='amount' placeholder='Amount' max='1000000' required></div>" +
-    "<div class='col-sm-2'><input type='text' class='form-control' id='memo' placeholder='Memo' required></div>" +
-    "<div class='col-sm-2'><input type='button' id='getinvoice' onclick='received()' class='btn btn-primary' value='Create invoice' /></div>" +
-    '</div></div><br/>'
+    "<div class='modal fade receives' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
+    "<div class='modal-dialog' style='background:#fff;'><div id='QRCODE'><div class='modal-content' style='padding: 0 10px 0 10px;'>"+
+    "<br/><center><input  style='width:80%' type='number' class='form-control' id='amount' placeholder='Amount' max='1000000' required>" +
+    "<input  style='width:80%' type='text' class='form-control' id='memo' placeholder='Memo' required></center></div>" +
+    "<div class='modal-footer'>"+  
+    "<input type='button' id='getinvoice' onclick='received()' class='btn btn-primary' value='Create invoice' />" +
+    '</div></div><br/>'+
+    "</div></div></div>"
+
   document.getElementById('sendfunds').innerHTML = ''
 }
 
@@ -113,13 +125,13 @@ function received() {
       theinvoice = JSON.parse(data).pay_req
       thehash = JSON.parse(data).payment_hash
       document.getElementById('QRCODE').innerHTML =
-        "<div class='col-md-4'><div class='box'><div class='box-header'>" +
+        "<div class='modal-content' style='padding: 10px 10px 0 10px;'>"+
         "<center><a href='lightning:" +
         theinvoice +
         "'><div id='qrcode'></div></a>" +
         "<p style='word-wrap: break-word;'>" +
         theinvoice +
-        '</p></div></div></div></center>'
+        '</p></center>'
 
       new QRCode(document.getElementById('qrcode'), {
         text: theinvoice,
@@ -129,14 +141,17 @@ function received() {
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       })
-    setInterval(function(){ 
+
+
+      setInterval(function(){ 
       getAjax('/v1/invoice/' + thehash, wallet.inkey, function(datab) {
         console.log(JSON.parse(datab).PAID)
         if (JSON.parse(datab).PAID == 'TRUE') {
           window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
         }
-         })}, 3000);
-      })
+      })}, 3000);
+
+      
     }
   )
 }
@@ -146,29 +161,34 @@ function cancelsend() {
 }
 
 function sendfunds(invoice) {
-  var url = '/v1/channels/transactions'
   postAjax(
-    url,
+    '/v1/channels/transactions',
     JSON.stringify({payment_request: invoice}),
     wallet.adminkey,
+
     function(data) {
-      setInterval(function(){ 
       thehash = JSON.parse(data).payment_hash
-      console.log(JSON.parse(data))
-      if (JSON.parse(data).PAID == 'TRUE') {
-        window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
-      }
-       })}, 3000);
+
+      setInterval(function(){ 
+        getAjax('/v1/payment/' + thehash, wallet.adminkey, function(datab) {
+        console.log(JSON.parse(datab).PAID)
+        if (JSON.parse(datab).PAID == 'TRUE') {
+          window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
+        }
+      })}, 3000);
+
     }
   )
+
 }
 
 function scanQRsend() {
-  document.getElementById('sendfunds').innerHTML =
-    "<br/><br/><div class='row'><div class='col-md-4'>" +
-    "<div id='loadingMessage'>🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>" +
+  document.getElementById('sendfunds2').innerHTML =
+    "<div class='modal-content'>"+
+    "<br/><div id='loadingMessage'>🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>" +
     "<canvas id='canvas' hidden></canvas><div id='output' hidden><div id='outputMessage'></div>" +
-    "<br/><span id='outputData'></span></div></div></div><button type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel</button><br/><br/>"
+    "<br/><span id='outputData'></span></div></div><div class='modal-footer'>"+  
+    "<button type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel</button><br/><br/>"
   var video = document.createElement('video')
   var canvasElement = document.getElementById('canvas')
   var canvas = canvasElement.getContext('2d')
@@ -213,13 +233,13 @@ function scanQRsend() {
         outmemo = theinvoice.data.tags[1].value
         outamount = Number(theinvoice.human_readable_part.amount) / 1000
         if (outamount > Number(wallet.balance)) {
-          document.getElementById('sendfunds').innerHTML =
+          document.getElementById('sendfunds2').innerHTML =
             "<div class='row'><div class='col-md-6'>" +
             "<h3><b style='color:red;'>Not enough funds!</b></h3>" +
             "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Continue</button>" +
             '</br/></br/></div></div>'
         } else {
-          document.getElementById('sendfunds').innerHTML =
+          document.getElementById('sendfunds2').innerHTML =
             "<div class='row'><div class='col-md-6'>" +
             '<h3><b>Invoice details</b></br/>Amount: ' +
             outamount +
