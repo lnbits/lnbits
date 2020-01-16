@@ -1,13 +1,15 @@
 <!-- @format -->
 
 {% extends "index.html" %} {% block call_to_action %}
-<a href="lnurlwallet?lightning={{ lnurl }}">
+
   <button
-    type="button"
     class="btn btn-block btn-primary btn-lg"
-    class="btn btn-primary"
+    onclick="processing()"
+    data-toggle="modal" 
+    data-target=".proc" 
   >
     Press to claim bitcoin!
-  </button></a
->
+  </button>
+  <div id="processing">
+ </div>
 {% endblock %}
