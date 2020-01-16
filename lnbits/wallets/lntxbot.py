@@ -1,6 +1,7 @@
-from requests import Response, post
-
-from .base import InvoiceResponse, TxStatus, Wallet
+from requests import Response, get, post
+from flask import jsonify
+from .base import InvoiceResponse, TxStatus, Wallet, PaymentResponse
+import json
 
 
 class LntxbotWallet(Wallet):
@@ -21,27 +22,34 @@ class LntxbotWallet(Wallet):
 
         return InvoiceResponse(r, payment_hash, payment_request)
 
-    def pay_invoice(self, bolt11: str) -> Response:
-        return post(url=f"{self.endpoint}/payinvoice", headers=self.auth_admin, json={"invoice": bolt11})
+    def pay_invoice(self, bolt11: str) -> PaymentResponse:
+        fee_msat = None
+        r = post(url=f"{self.endpoint}/payinvoice", headers=self.auth_admin, json={"invoice": bolt11})
+        return PaymentResponse(r)
+
+
 
     def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
         wait = "true" if wait else "false"
         r = post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait={wait}", headers=self.auth_invoice)
-
-        if not r.ok or "error" in r.json():
-            return TxStatus(r, None)
-
         data = r.json()
+
+        if not r.ok or "error" in data:
+            return TxStatus(r, None)
 
         if "preimage" not in data or not data["preimage"]:
             return TxStatus(r, False)
 
         return TxStatus(r, True)
 
+
     def get_payment_status(self, payment_hash: str) -> TxStatus:
         r = post(url=f"{self.endpoint}/paymentstatus/{payment_hash}", headers=self.auth_invoice)
+        data = r.json()
 
-        if not r.ok or "error" in r.json():
+        if not r.ok or "error" in data:
             return TxStatus(r, None)
 
-        return TxStatus(r, {"complete": True, "failed": False, "unknown": None}[r.json().get("status", "unknown")])
+        return TxStatus(r, {"complete": True, "failed": False, "unknown": None}[data.get("status", "unknown")])
+
+        
