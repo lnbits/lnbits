@@ -160,7 +160,36 @@ function cancelsend() {
   window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
 }
 
+function processing() {
+  document.getElementById('processing').innerHTML =
+  "<div class='modal fade proc' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
+  "<div class='modal-dialog' style='background:#fff;'>"+
+  "<div style='padding: 0 10px 0 10px;'><div class='modal-content'>"+
+  "<h3><b>Processing...</b></br/></br/></br/></h3></div>"+
+  "</div></div></div>"
+
+  
+  window.top.location.href = "lnurlwallet?lightning=" + getQueryVariable("lightning");
+}
+
+
+function getQueryVariable(variable)
+{
+       var query = window.location.search.substring(1);
+       var vars = query.split("&");
+       for (var i=0;i<vars.length;i++) {
+               var pair = vars[i].split("=");
+               if(pair[0] == variable){return pair[1];}
+       }
+       return(false);
+}
+
 function sendfunds(invoice) {
+
+  document.getElementById('sendfunds2').innerHTML =
+  "<div class='modal-content'></br/></br/>"+
+  '<h3><b>Processing...</b></h3><</br/></br/></br/>/div> ';
+
   postAjax(
     '/v1/channels/transactions',
     JSON.stringify({payment_request: invoice}),
