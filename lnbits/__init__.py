@@ -305,17 +305,17 @@ def api_transactions():
         else:
             # actually send the payment
             r = WALLET.pay_invoice(data["payment_request"])
-
+            print(r)
             
-            if not r.ok or r.json().get("error"):
+            if not r.raw_response:
                 return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
 
-            data = r.json()
-            data["fee_msat"] = data["data"]["amount"] #opennode hack
+            data = r.raw_response.json()
+
             print(data)
 
         
-            if r.ok and "error" in data:
+            if r.raw_response and "error" in data:
                 # payment didn't went through, delete it here
                 # (these guarantees specific to lntxbot)
                 db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
@@ -324,7 +324,7 @@ def api_transactions():
             # payment went through, not pending anymore, save actual fees
             db.execute(
                 "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
-                (data["fee_msat"], invoice.payment_hash, wallet["id"]),
+                (invoice.amount_msat, invoice.payment_hash, wallet["id"]),
             )
 
     return jsonify({"PAID": "TRUE", "payment_hash": invoice.payment_hash}), 200
