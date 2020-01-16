@@ -188,7 +188,7 @@ function sendfunds(invoice) {
 
   document.getElementById('sendfunds2').innerHTML =
   "<div class='modal-content'></br/></br/>"+
-  '<h3><b>Processing...</b></h3><</br/></br/></br/>/div> ';
+  '<h3><b>Processing...</b></h3><</br/></br/></div> ';
 
   postAjax(
     '/v1/channels/transactions',
