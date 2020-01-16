@@ -12,6 +12,9 @@ class InvoiceResponse(NamedTuple):
 class TxStatus(NamedTuple):
     raw_response: Response
     settled: Optional[bool] = None
+    
+class PaymentResponse(NamedTuple):
+    raw_response: Response
 
 
 class Wallet(ABC):
