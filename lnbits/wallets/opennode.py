@@ -1,6 +1,6 @@
 from requests import Response, get, post
 from flask import jsonify
-from .base import InvoiceResponse, TxStatus, Wallet
+from .base import InvoiceResponse, TxStatus, Wallet, PaymentResponse
 import json
 
 class OpenNodeWallet(Wallet):
@@ -24,11 +24,11 @@ class OpenNodeWallet(Wallet):
 
         return InvoiceResponse(r, payment_hash, payment_request)
 
-    def pay_invoice(self, bolt11: str) -> Response:
-        return post(
-            url=f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, json={"type": "ln", "address": bolt11}
-        )
+    def pay_invoice(self, bolt11: str) -> PaymentResponse:
 
+        r = post(url=f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, json={"type": "ln","address": bolt11})
+
+        return PaymentResponse(r)
 
 
     def get_invoice_status(self, payment_hash: str) -> TxStatus:
