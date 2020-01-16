@@ -9,12 +9,15 @@ class InvoiceResponse(NamedTuple):
     payment_request: Optional[str] = None
 
 
+class PaymentResponse(NamedTuple):
+    raw_response: Response
+    failed: bool = False
+    fee_msat: int = 0
+
+
 class TxStatus(NamedTuple):
     raw_response: Response
     settled: Optional[bool] = None
-    
-class PaymentResponse(NamedTuple):
-    raw_response: Response
 
 
 class Wallet(ABC):

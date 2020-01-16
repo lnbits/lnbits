@@ -1,7 +1,7 @@
-from requests import Response, get, post
-from flask import jsonify
-from .base import InvoiceResponse, TxStatus, Wallet, PaymentResponse
-import json
+from requests import get, post
+
+from .base import InvoiceResponse, PaymentResponse, TxStatus, Wallet
+
 
 class OpenNodeWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
@@ -20,33 +20,24 @@ class OpenNodeWallet(Wallet):
         )
         if r.ok:
             data = r.json()
-            payment_hash, payment_request = data['data']['id'], data["data"]["lightning_invoice"]["payreq"]
+            payment_hash, payment_request = data["data"]["id"], data["data"]["lightning_invoice"]["payreq"]
 
         return InvoiceResponse(r, payment_hash, payment_request)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-
-        r = post(url=f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, json={"type": "ln","address": bolt11})
-
-        return PaymentResponse(r)
-
+        r = post(url=f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, json={"type": "ln", "address": bolt11})
+        return PaymentResponse(r, not r.ok)
 
     def get_invoice_status(self, payment_hash: str) -> TxStatus:
-
         r = get(url=f"{self.endpoint}/v1/charge/{payment_hash}", headers=self.auth_invoice)
 
-        data = r.json()
-        print(data)
-        print(f"{self.endpoint}/v1/charge/{payment_hash} {self.auth_invoice}")
         if not r.ok:
             return TxStatus(r, None)
-        
-        
+
         statuses = {"processing": None, "paid": True, "unpaid": False}
         return TxStatus(r, statuses[r.json()["data"]["status"]])
 
     def get_payment_status(self, payment_hash: str) -> TxStatus:
-
         r = get(url=f"{self.endpoint}/v1/withdrawal/{payment_hash}", headers=self.auth_admin)
 
         if not r.ok:
@@ -54,6 +45,3 @@ class OpenNodeWallet(Wallet):
 
         statuses = {"pending": None, "confirmed": True, "error": False, "failed": False}
         return TxStatus(r, statuses[r.json()["data"]["status"]])
-       
-
-        

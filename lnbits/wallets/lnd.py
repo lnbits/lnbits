@@ -1,7 +1,5 @@
-from requests import Response, get, post
-from flask import jsonify
-from .base import InvoiceResponse, TxStatus, Wallet, PaymentResponse
-import json
+from requests import get, post
+from .base import InvoiceResponse, PaymentResponse, TxStatus, Wallet
 
 
 class LndWallet(Wallet):
@@ -26,28 +24,23 @@ class LndWallet(Wallet):
             payment_request = data["payment_request"]
 
         rr = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read)
-        print(rr.json())
+
         if rr.ok:
             dataa = rr.json()
             payment_hash = dataa["payment_hash"]
 
-
         return InvoiceResponse(r, payment_hash, payment_request)
 
-
-
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        fee_msat = None
-        r = post(url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, json={"payment_request": bolt11})
-        return PaymentResponse(r)
-
-
+        r = post(
+            url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, json={"payment_request": bolt11}
+        )
+        return PaymentResponse(r, not r.ok)
 
     def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
         r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_read)
-    #    print(payment_hash)
-        print(r.json())
-        if not r.ok:
+
+        if not r.ok or "settled" not in r.json():
             return TxStatus(r, None)
 
         return TxStatus(r, r.json()["settled"])
@@ -64,5 +57,3 @@ class LndWallet(Wallet):
         # check payment.status: https://api.lightning.community/rest/index.html?python#peersynctype
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
         return TxStatus(r, statuses[payment["status"]] if payment else None)
-
-

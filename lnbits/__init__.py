@@ -282,7 +282,7 @@ def api_transactions():
 
         # insert the payment
         db.execute(
-            "INSERT INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, ?, 1, ?)",
+            "INSERT OR IGNORE INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, ?, 1, ?)",
             (
                 invoice.payment_hash,
                 -int(invoice.amount_msat),
@@ -305,26 +305,14 @@ def api_transactions():
         else:
             # actually send the payment
             r = WALLET.pay_invoice(data["payment_request"])
-            print(r)
-            
-            if not r.raw_response:
+
+            if not r.raw_response.ok or r.failed:
                 return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
-
-            data = r.raw_response.json()
-
-            print(data)
-
-        
-            if r.raw_response and "error" in data:
-                # payment didn't went through, delete it here
-                # (these guarantees specific to lntxbot)
-                db.execute("DELETE FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))
-                return jsonify({"PAID": "FALSE"}), 200
 
             # payment went through, not pending anymore, save actual fees
             db.execute(
                 "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
-                (invoice.amount_msat, invoice.payment_hash, wallet["id"]),
+                (r.fee_msat, invoice.payment_hash, wallet["id"]),
             )
 
     return jsonify({"PAID": "TRUE", "payment_hash": invoice.payment_hash}), 200
