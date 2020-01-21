@@ -253,23 +253,34 @@ function scanQRsend() {
       var code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: 'dontInvert'
       })
-      if (code) {
+        if (code) {
 
         outputMessage.hidden = true
         outputData.parentElement.hidden = false
         outputData.innerText = JSON.stringify(code.data)
-        theinvoice = decode(code.data)
-        outmemo = theinvoice.data.tags[1].value
-        if (outmemo.split(":")[0] == "lightning") {
-          outmemo = outmemo.split(":")[1];
+        outstr = ""
+        outmemo = ""
+        if (code.data.split(":")[0] == "lightning") {
+          theinvoice = decode(code.data.split(":")[1])
+          outmemo = theinvoice.data.tags[1].value
+          outstr = JSON.stringify(code.data.split(":")[1])
         }
-        if (outmemo.substring(0, 4).toUpperCase() == "LNBC"){
+        
+        if (code.data.substring(0, 4).toUpperCase() != "LNBC"){
           document.getElementById('sendfunds2').innerHTML =
             "<div class='row'><div class='col-md-6'>" +
             "<h3><b style='color:red;'>Not a lightning invoice</b></h3>" +
             "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Continue</button>" +
             '</br/></br/></div></div>'
         }
+        else{
+          
+          theinvoice = decode(code.data)
+          outmemo = theinvoice.data.tags[1].value
+          outstr = JSON.stringify(code.data)
+        }
+
+
         outamount = Number(theinvoice.human_readable_part.amount) / 1000
         if (outamount > Number(wallet.balance)) {
           document.getElementById('sendfunds2').innerHTML =
@@ -286,10 +297,10 @@ function scanQRsend() {
             outmemo +
             '</h3>' +
             "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" + 
-             JSON.stringify(code.data) +
+             outstr +
              "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/>" +
             "<button type='submit' class='btn btn-primary' onclick='sendfunds(" +
-            JSON.stringify(code.data) +
+            outstr +
             ")'>Send funds</button>" +
             "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel payment</button>" +
             '</br/></br/></div></div>'
