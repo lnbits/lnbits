@@ -260,6 +260,16 @@ function scanQRsend() {
         outputData.innerText = JSON.stringify(code.data)
         theinvoice = decode(code.data)
         outmemo = theinvoice.data.tags[1].value
+        if (outmemo.split(":")[0] == "lightning") {
+          outmemo = outmemo.split(":")[1];
+        }
+        if (outmemo.substring(0, 4).toUpperCase() == "LNBC"){
+          document.getElementById('sendfunds2').innerHTML =
+            "<div class='row'><div class='col-md-6'>" +
+            "<h3><b style='color:red;'>Not a lightning invoice</b></h3>" +
+            "<button style='margin-left:20px;' type='submit' class='btn btn-primary' onclick='cancelsend()'>Continue</button>" +
+            '</br/></br/></div></div>'
+        }
         outamount = Number(theinvoice.human_readable_part.amount) / 1000
         if (outamount > Number(wallet.balance)) {
           document.getElementById('sendfunds2').innerHTML =
