@@ -118,6 +118,13 @@ def wallet():
     usr = request.args.get("usr")
     wallet_id = request.args.get("wal")
     wallet_name = request.args.get("nme")
+    
+    if usr:
+        if not len(usr) > 20:
+            return redirect(url_for("home"))
+    if wallet_id:
+        if not len(wallet_id) > 20:
+            return redirect(url_for("home"))
 
     # just usr: return a the first user wallet or create one if none found
     # usr and wallet_id: return that wallet or create it if it doesn't exist
