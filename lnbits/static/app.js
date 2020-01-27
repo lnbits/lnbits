@@ -53,6 +53,8 @@ function getAjax(url, thekey, success) {
   return xhr
 }
 
+
+
 function sendfundsinput() {
   document.getElementById('sendfunds').innerHTML =
     "<div class='modal fade sends' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
@@ -188,7 +190,7 @@ function sendfunds(invoice) {
 
   document.getElementById('sendfunds2').innerHTML =
   "<div class='modal-content'></br/></br/>"+
-  '<h3><b>Processing...</b></h3><</br/></br/></div> ';
+  '<h3><b>Processing...</b></h3><</br/></br/></br/></div> ';
 
   postAjax(
     '/v1/channels/transactions',
@@ -235,7 +237,8 @@ function scanQRsend() {
       video.play()
       requestAnimationFrame(tick)
     })
-  function tick() {
+
+   function tick() {
     loadingMessage.innerText = '⌛ Loading video...'
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       loadingMessage.hidden = true
@@ -253,7 +256,7 @@ function scanQRsend() {
       var code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: 'dontInvert'
       })
-        if (code) {
+      if (code) {
 
         outputMessage.hidden = true
         outputData.parentElement.hidden = false
@@ -313,6 +316,8 @@ function scanQRsend() {
     requestAnimationFrame(tick)
   }
 }
+
+
 
 function copyfunc(){
   var copyText = document.getElementById("invoiceinput");
