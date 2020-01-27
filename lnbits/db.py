@@ -1,6 +1,7 @@
 import sqlite3
-
+import os
 from .settings import DATABASE_PATH
+from .settings import LNBITS_PATH
 
 
 class Database:
