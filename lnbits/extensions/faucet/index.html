@@ -1,0 +1,233 @@
+<!-- @format -->
+
+{% extends "base.html" %} {% block messages %}
+<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+  <i class="fa fa-bell-o"></i>
+  <span class="label label-danger">!</span>
+</a>
+<ul class="dropdown-menu">
+  <li class="header"><b>Instant wallet, bookmark to save</b></li>
+  <li></li>
+</ul>
+{% endblock %} {% block menuitems %}
+<li class="treeview">
+  <a href="#">
+    <i class="fa fa-bitcoin"></i> <span>Wallets</span>
+    <i class="fa fa-angle-left pull-right"></i>
+  </a>
+  <ul class="treeview-menu">
+    {% for w in user_wallets %}
+    <li>
+      <a href="wallet?wal={{ w.id }}&usr={{ w.user }}"
+        ><i class="fa fa-bolt"></i> {{ w.name }}</a
+      >
+    </li>
+    {% endfor %}
+    <li><a onclick="sidebarmake()">Add a wallet +</a></li>
+    <div id="sidebarmake"></div>
+  </ul>
+</li>
+
+<li class="active treeview">
+  <a href="#">
+    <i class="fa fa-th"></i> <span>Extensions</span>
+  </a>
+    <ul class="treeview-menu">
+
+
+    {% if user_ext[0][1] %}
+    <li>
+      <a href="lnevents?usr={{ user_ext[0][0]}}"
+        ><i class="fa fa-bolt"></i> LNEvents</a>
+    </li>
+    {% endif %}
+
+    {% if user_ext[0][2] %}
+    <li>
+      <a href="lnjoust?usr={{ user_ext[0][0]}}"
+        ><i class="fa fa-bolt"></i> LNJoust</a>
+    </li>
+    {% endif %}
+
+    {% if user_ext[0][3] %}
+    <li>
+      <a href="faucet?usr={{ user_ext[0][0]}}"
+        ><i class="fa fa-bolt"></i> Faucet</a>
+    </li>
+    {% endif %}
+
+
+  </ul>
+</li>
+
+{% endblock %} {% block body %}
+<!-- Right side column. Contains the navbar and content of the page -->
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>
+      Wallet
+      <small
+        >Control panel
+        <div id="wonga"></div
+      ></small>
+    </h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="#"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li class="active">Extensions</li>
+
+    </ol>
+    <br /><br />
+    <div class="alert alert-danger alert-dismissable">
+      <h4>
+        Bookmark to save your wallet. Wallet is in BETA, use with caution.
+      </h4>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <!-- Small boxes (Stat box) -->
+    <div class="row">
+
+      {% if not user_ext[0][2] %}
+           <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-green">
+                <div class="inner">
+                  <h3>
+                    LNJoust
+                  </h3>
+                  <p>
+                    LN powered Joust gamesmaster
+                  </p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-wand"></i>
+                </div>
+                
+                <a href="extensions?usr={{user}}&lnjoust=1" class="small-box-footer">
+                  Activate <i class="fa fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div><!-- ./col -->
+
+            {% else %}
+              <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-green">
+                <div class="inner">
+                  <h3>
+                    LNJoust
+                  </h3>
+                  <p>
+                    LN powered Joust gamesmaster
+                  </p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-wand"></i>
+                </div>             
+                 <a href="extensions?usr={{user}}&lnjoust=0" class="small-box-footer">
+                  Deactivate <i class="fa fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div><!-- ./col -->
+      {% endif %}
+      {% if not user_ext[0][1] %}
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-yellow">
+                <div class="inner">
+                  <h3>
+                    LNEvents
+                  </h3>
+                  <p>
+                    Lightning powered tickets
+                  </p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-calendar"></i>
+                </div>
+                <a href="extensions?usr={{user}}&lnevents=1" class="small-box-footer">
+                  Activate <i class="fa fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div><!-- ./col -->
+
+        {% else %}
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-yellow">
+                <div class="inner">
+                  <h3>
+                    LNEvents
+                  </h3>
+                  <p>
+                    Lightning powered tickets
+                  </p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-calendar"></i>
+                </div>
+                <a href="extensions?usr={{user}}&lnevents=0" class="small-box-footer">
+                  Deactivate <i class="fa fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div><!-- ./col -->
+        {% endif %}
+        {% if not user_ext[0][3] %}
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-red">
+                <div class="inner">
+                  <h3>
+                    Faucet
+                  </h3>
+                  <p>
+                    Make LNURL faucets
+                  </p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-beer"></i>
+                </div>
+                <a href="extensions?usr={{user}}&faucet=1" class="small-box-footer">
+                  Activate <i class="fa fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div><!-- ./col -->
+         {% else %}
+            <div class="col-lg-3 col-xs-6">
+              <!-- small box -->
+              <div class="small-box bg-red">
+                <div class="inner">
+                  <h3>
+                    Faucet
+                  </h3>
+                  <p>
+                    Make LNURL faucets
+                  </p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-beer"></i>
+                </div>
+                <a href="extensions?usr={{user}}&faucet=0" class="small-box-footer">
+                  Deactivate <i class="fa fa-arrow-circle-right"></i>
+                </a>
+              </div>
+            </div><!-- ./col -->
+          {% endif %}
+    </div>
+
+    <!-- /.content -->
+  </section>
+
+  <script>
+    window.user = {{ user | megajson | safe }}
+    window.user_wallets = {{ user_wallets | megajson | safe }}
+    window.user_ext = {{ user_ext | megajson | safe }}
+    
+  </script>
+</div>
+{% endblock %}
