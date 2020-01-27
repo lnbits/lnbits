@@ -63,7 +63,7 @@ class ExtDatabase:
 
 
 class FauDatabase:
-    def __init__(self, db_path: str = os.path.join(LNBITS_PATH, "extensions", "lnurlfaucet", "database.sqlite3")):
+    def __init__(self, db_path: str = os.path.join(LNBITS_PATH, "extensions", "faucet", "database.sqlite3")):
         self.path = db_path
         self.connection = sqlite3.connect(db_path)
         self.connection.row_factory = sqlite3.Row
