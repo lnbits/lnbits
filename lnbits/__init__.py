@@ -4,10 +4,11 @@ import json
 import requests
 
 from flask import Flask, jsonify, render_template, request, redirect, url_for
-from lnurl import Lnurl, LnurlWithdrawResponse
+from lnurl import Lnurl, LnurlWithdrawResponse, encode
+from datetime import datetime
 
 from . import bolt11
-from .db import Database
+from .db import Database, ExtDatabase, FauDatabase
 from .helpers import megajson
 from .settings import LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 
@@ -22,7 +23,6 @@ def init():
         with open(os.path.join(LNBITS_PATH, "data", "schema.sql")) as schemafile:
             for stmt in schemafile.read().split(";\n\n"):
                 db.execute(stmt, [])
-
 
 @app.route("/")
 def home():
@@ -118,7 +118,7 @@ def wallet():
     usr = request.args.get("usr")
     wallet_id = request.args.get("wal")
     wallet_name = request.args.get("nme")
-    
+
     if usr:
         if not len(usr) > 20:
             return redirect(url_for("home"))
@@ -218,9 +218,9 @@ def wallet():
             (wallet_id,),
         )
 
-        return render_template(
-            "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions,
-        )
+    return render_template(
+        "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions,
+    )
 
 
 @app.route("/v1/invoices", methods=["GET", "POST"])
@@ -268,11 +268,13 @@ def api_invoices():
 
 @app.route("/v1/channels/transactions", methods=["GET", "POST"])
 def api_transactions():
+
     if request.headers["Content-Type"] != "application/json":
         return jsonify({"ERROR": "MUST BE JSON"}), 400
 
     data = request.json
 
+    print(data)
     if "payment_request" not in data:
         return jsonify({"ERROR": "NO PAY REQ"}), 400
 
@@ -418,3 +420,312 @@ def api_checkpending():
                 db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
 
     return ""
+
+
+
+
+###########EXTENSIONS STUFF - ADD TO LNFAUCET FOLDER IF POSS
+
+# Checks DB to see if the extensions are activated or not activated for the user
+@app.route("/extensions")
+def extensions():
+    usr = request.args.get("usr")
+    lnevents = request.args.get("lnevents")
+    lnjoust = request.args.get("lnjoust")
+    withdraw = request.args.get("withdraw")
+    if usr:
+        if not len(usr) > 20:
+            return redirect(url_for("home"))
+   
+    with Database() as db:
+
+        user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
+
+    with ExtDatabase() as Extdd:
+        user_ext = Extdd.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+        if not user_ext:
+            Extdd.execute(
+                """
+                INSERT OR IGNORE INTO overview (user) VALUES (?)
+                """,
+                (usr,),
+            )
+            return redirect(url_for("extensions", usr=usr))
+
+        if lnevents:
+            if int(lnevents) != user_ext[0][1] and int(lnevents) < 2:
+                Extdd.execute("UPDATE overview SET lnevents = ? WHERE user = ?", (int(lnevents),usr,))
+                user_ext = Extdd.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+        if lnjoust:
+            if int(lnjoust) != user_ext[0][2] and int(lnjoust) < 2:
+                Extdd.execute("UPDATE overview SET lnjoust = ? WHERE user = ?", (int(lnjoust),usr,))
+                user_ext = Extdd.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+        if withdraw:
+            if int(withdraw) != user_ext[0][3] and int(withdraw) < 2:
+                Extdd.execute("UPDATE overview SET withdraw = ? WHERE user = ?", (int(withdraw),usr,))
+                user_ext = Extdd.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+
+    return render_template(
+            "extensions.html", user_wallets=user_wallets, user=usr, user_ext=user_ext
+    )
+
+
+# Main withdraw link page
+@app.route("/withdraw")
+def withdraw():
+    usr = request.args.get("usr")
+    fauc = request.args.get("fauc")
+
+    if usr:
+        if not len(usr) > 20:
+            return redirect(url_for("home"))
+   
+   #Get all the data
+    with Database() as db:
+        user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
+
+    with ExtDatabase() as Extdd:
+        user_ext = Extdd.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
+
+    #If del is selected by user from withdraw page, the withdraw link is to be deleted
+    faudel = request.args.get("del")
+        if faudel:
+            Faudb.execute("DELETE FROM withdraws WHERE uni = ?", (faudel,))
+            user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
+
+    return render_template(
+        "withdraw.html", user_wallets=user_wallets, user=usr, user_ext=user_ext, user_fau=user_fau
+    )
+
+
+#Returns encoded LNURL if web url and parameter gieven
+@app.route("/v1/lnurlencode/<urlstr>/<parstr>", methods=["GET"])
+def api_lnurlencode(urlstr, parstr):
+
+    if not urlstr:
+        return jsonify({"STATUS": "FALSE"}), 200
+
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE uni = ?", (parstr,))
+        randar = user_fau[0][15].split(",")
+        randar = randar[:-1]
+        
+        #If "Unique links" selected get correct rand, if not there is only one rand
+        if user_fau[0][12] > 0:
+            rand = randar[user_fau[0][10]-1]
+        else:
+            rand = randar[0]
+
+    lnurlstr = encode( "https://" + urlstr + "/v1/lnurlfetch/" + urlstr + "/" + parstr + "/" + rand)
+
+    return jsonify({"STATUS": "TRUE", "LNURL": lnurlstr}), 200
+
+
+#Returns LNURL json
+@app.route("/v1/lnurlfetch/<urlstr>/<parstr>/<rand>", methods=["GET"])
+def api_lnurlfetch(parstr, urlstr, rand):
+
+    if not parstr:
+        return jsonify({"STATUS": "FALSE", "ERROR": "NO WALL ID"}), 200
+
+    if not urlstr:
+
+        return jsonify({"STATUS": "FALSE", "ERROR": "NO URL"}), 200
+
+    with FauDatabase() as Faudb:
+
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE uni = ?", (parstr,))
+        print(user_fau[0][0])
+
+        k1str = uuid.uuid4().hex
+    
+        Faudb.execute("UPDATE withdraws SET withdrawals = ? WHERE uni = ?", (k1str ,parstr,))
+       
+    res = LnurlWithdrawResponse(
+        callback='https://' + urlstr + '/v1/lnurlwithdraw/' + rand + '/',
+        k1=k1str,
+        min_withdrawable=user_fau[0][8]*1000,
+        max_withdrawable=user_fau[0][7]*1000,
+        default_description="LNURL withdraw",
+    )
+    print("res")
+    return res.json(), 200
+
+
+
+#Pays invoice if passed k1 invoice and rand
+@app.route("/v1/lnurlwithdraw/<rand>/", methods=["GET"])
+def api_lnurlwithdraw(rand):
+    k1 = request.args.get("k1")
+    pr = request.args.get("pr")
+    print(rand)
+
+    
+    if not k1:
+        return jsonify({"STATUS": "FALSE", "ERROR": "NO k1"}), 200
+
+    if not pr:
+        return jsonify({"STATUS": "FALSE", "ERROR": "NO PR"}), 200
+
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
+
+        if not user_fau:
+            return jsonify({"status":"ERROR", "reason":"NO AUTH"}), 400
+
+        if user_fau[0][10] <1:
+            return jsonify({"status":"ERROR", "reason":"withdraw SPENT"}), 400
+
+        # Check withdraw time
+        dt = datetime.now()  
+        seconds = dt.timestamp()
+        secspast = seconds - user_fau[0][14]
+        print(secspast)
+
+        if secspast < user_fau[0][11]:
+            return jsonify({"status":"ERROR", "reason":"WAIT " + str(int(secspast)) + "s"}), 400
+
+        randar = user_fau[0][15].split(",")
+        if rand not in randar:
+            return jsonify({"status":"ERROR", "reason":"BAD AUTH"}), 400
+        if len(randar) > 1:
+            randar.remove(rand)
+        randstr = ','.join(randar)
+
+        # Update time
+        Faudb.execute("UPDATE withdraws SET tmestmp = ? AND rand = ? WHERE withdrawals = ?", (seconds , randstr, k1,))
+
+    header = {'Content-Type': 'application/json','Grpc-Metadata-macaroon':str(user_fau[0][4])} 
+
+    data = {'payment_request': pr} 
+  
+    r = requests.post(url = "https://zapped.ngrok.io/v1/channels/transactions", headers=header, data=json.dumps(data)) 
+
+    r_json=r.json()
+    if "ERROR" in r_json:
+        return jsonify({"status":"ERROR", "reason":r_json["ERROR"]}), 400
+
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
+        
+        upinc = user_fau[0][10] - 1
+        Faudb.execute("UPDATE withdraws SET inc = ? WHERE withdrawals = ?", (upinc ,k1,))
+
+    return jsonify({"status":"OK"}), 200
+
+
+
+@app.route("/withdrawmaker", methods=["GET", "POST"])
+def withdrawmaker():
+    data = request.json
+    amt = data["amt"]
+    tit = data["tit"]
+    wal = data["wal"]
+    minamt = data["minamt"]
+    maxamt = data["maxamt"]
+    tme = data["tme"]
+    uniq = data["uniq"]
+    usr = data["usr"]
+    wall = wal.split("-")
+   
+    #If id that means its a link being edited, delet the record first
+    if "id" in data:
+        unid = data["id"].split("-")
+        uni = unid[1]
+        print(data["id"])
+        print(uni)
+        with FauDatabase() as Faudb:
+            Faudb.execute("DELETE FROM withdraws WHERE uni = ?", (unid[1],))
+    else:
+        uni = uuid.uuid4().hex
+    
+    # Randomiser for random QR option
+    rand = ""
+    if uniq > 0:
+        for x in range(0,int(amt)):
+            rand += uuid.uuid4().hex[0:5] + ","
+    else:
+        rand = uuid.uuid4().hex[0:5] + ","
+
+    with Database() as dbb:
+        user_wallets = dbb.fetchall("SELECT * FROM wallets WHERE user = ? AND id = ?", (usr,wall[1],))
+    if not user_wallets:
+            return jsonify({"ERROR": "NO WALLET USER"}), 401
+
+    # Get time
+    dt = datetime.now()  
+    seconds = dt.timestamp()
+    print(seconds)
+
+    #Add to DB
+    with FauDatabase() as db:
+        db.execute(
+            "INSERT OR IGNORE INTO withdraws (usr, wal, walnme, adm, uni, tit, maxamt, minamt, spent, inc, tme, uniq, withdrawals, tmestmp, rand) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                usr, 
+                wall[1], 
+                user_wallets[0][1],
+                user_wallets[0][3], 
+                uni, 
+                tit, 
+                maxamt, 
+                minamt, 
+                0, 
+                amt, 
+                tme, 
+                uniq,  
+                0,
+                seconds,
+                rand,
+            ),
+        )
+        
+   #Get updated records
+    with ExtDatabase() as Extdd:
+        user_ext = Extdd.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+        if not user_ext:
+            return jsonify({"ERROR": "NO WALLET USER"}), 401
+            
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
+        if not user_fau:
+            return jsonify({"ERROR": "NO WALLET USER"}), 401
+            
+
+    return render_template(
+        "withdraw.html", user_wallets=user_wallets, user=usr, user_ext=user_ext, user_fau=user_fau
+    )
+    
+
+#Simple shareable link
+@app.route("/displaywithdraw", methods=["GET", "POST"])
+def displaywithdraw():
+    fauid = request.args.get("id")
+
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE uni = ?", (fauid,))
+
+    return render_template(
+        "displaywithdraw.html", user_fau=user_fau,
+    )
+
+#Simple printable page of links
+@app.route("/printwithdraw/<urlstr>/", methods=["GET", "POST"])
+def printwithdraw(urlstr):
+    fauid = request.args.get("id")
+
+    with FauDatabase() as Faudb:
+        user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE uni = ?", (fauid,))
+        randar = user_fau[0][15].split(",")
+        randar = randar[:-1]
+        lnurlar = []
+        print(len(randar))
+        for d in range(len(randar)):
+            lnurlar.append( encode("https://"+ urlstr +"/v1/lnurlfetch/" + urlstr + "/" + fauid + "/" + randar[d]))
+  
+    return render_template(
+        "printwithdraws.html", lnurlar=lnurlar, user_fau=user_fau[0],
+    ) 
