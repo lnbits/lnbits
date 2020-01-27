@@ -491,7 +491,7 @@ def withdraw():
         user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
 
     #If del is selected by user from withdraw page, the withdraw link is to be deleted
-    faudel = request.args.get("del")
+        faudel = request.args.get("del")
         if faudel:
             Faudb.execute("DELETE FROM withdraws WHERE uni = ?", (faudel,))
             user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
