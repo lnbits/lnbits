@@ -289,7 +289,8 @@ function drawwithdraw(data) {
       + 
       "<a target='_blank' href='/displaywithdraw?id=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" +
       "<a target='_blank' href='/printwithdraw/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>" 
-      
+      document.getElementById("qrcode").style.backgroundColor = "white";
+      document.getElementById("qrcode").style.padding = "20px";
 
         }
         else {
