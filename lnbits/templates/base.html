@@ -237,12 +237,196 @@
       src="{{ url_for('static', filename='plugins/bolt11/utils.js') }}"
       type="text/javascript"
     ></script>
+    <style>
+
+      //GOOFY CSS HACK TO GO DARK
+      
+.skin-blue .wrapper {
+    background: 
+    #1f2234;
+}
+
+body {
+    color: #fff;
+}
+
+ .skin-blue .sidebar-menu > li.active > a {
+    color: #fff;
+  background:#1f2234;
+  border-left-color:#8964a9;
+}
+
+.skin-blue .main-header .navbar {
+    background-color: 
+    #2e507d;
+}
+
+.content-wrapper, .right-side {
+    background-color: 
+    #1f2234;
+}
+.skin-blue .main-header .logo {
+    background-color: 
+#1f2234;
+color:
+#fff;
+}
+
+.skin-blue .sidebar-menu > li.header {
+    color: 
+#4b646f;
+background:
+    #1f2234;
+}
+.skin-blue .wrapper, .skin-blue .main-sidebar, .skin-blue .left-side {
+    background: 
+    #1f2234;
+}
+
+.skin-blue .sidebar-menu > li > .treeview-menu {
+    margin: 0 1px;
+    background: 
+    #1f2234;
+}
+
+.skin-blue .sidebar-menu > li > a {
+    border-left: 3px solid 
+    transparent;
+    margin-right: 1px;
+}
+.skin-blue .sidebar-menu > li > a:hover, .skin-blue .sidebar-menu > li.active > a {
+
+  color: #fff;
+  background:#3e355a;
+  border-left-color:#8964a9;
+
+}
+
+
+.skin-blue .main-header .logo:hover {
+    background: 
+   #3e355a;
+}
+
+.skin-blue .main-header .navbar .sidebar-toggle:hover {
+    background-color: 
+    #3e355a;
+}
+.main-footer {
+    background-color: #1f2234;
+    padding: 15px;
+    color: #fff;
+    border-top: 0px;
+}
+
+.skin-blue .main-header .navbar {
+    background-color: #1f2234;
+}
+
+.bg-red, .callout.callout-danger, .alert-danger, .alert-error, .label-danger, .modal-danger .modal-body {
+    background-color: 
+    #1f2234 !important;
+}
+.alert-danger, .alert-error {
+
+    border-color: #fff;
+    border: 1px solid 
+
+    #fff;
+    border-radius: 7px;
+
+}
+
+.skin-blue .main-header .navbar .nav > li > a:hover, .skin-blue .main-header .navbar .nav > li > a:active, .skin-blue .main-header .navbar .nav > li > a:focus, .skin-blue .main-header .navbar .nav .open > a, .skin-blue .main-header .navbar .nav .open > a:hover, .skin-blue .main-header .navbar .nav .open > a:focus {
+    color: 
+    #f6f6f6;
+    background-color: #3e355a;
+}
+.bg-aqua, .callout.callout-info, .alert-info, .label-info, .modal-info .modal-body {
+    background-color: 
+    #3e355a !important;
+}
+
+.box {
+    position: relative;
+    border-radius: 3px;
+    background-color: #333646;
+   border-top: 3px solid #8964a9;
+    margin-bottom: 20px;
+    width: 100%;
+
+}
+.table-striped > tbody > tr:nth-of-type(2n+1) {
+    background-color: 
+    #333646;
+}
+
+.box-header {
+    color: #fff;
+
+}
+
+
+.box.box-danger {
+    border-top-color: #8964a9;
+}
+.box.box-primary {
+    border-top-color: #8964a9;
+}
+
+a {
+color: #8964a9;
+}
+.box-header.with-border {
+    border-bottom: none;
+}
+
+a:hover, a:active, a:focus {
+    outline: none;
+    text-decoration: none;
+    color: #fff;
+}
+// .modal.in .modal-dialog{ 
+//  color:#000;
+// }
+
+.form-control {
+
+background-color:#333646;
+color: #fff;
+
+}
+.box-footer {
+
+    border-top: none;
+
+    background-color: 
+    #333646;
+}
+.modal-footer {
+
+    border-top: none;
+
+}
+.modal-content {
+
+background-color:
+    #333646;
+}
+.modal.in .modal-dialog {
+
+    background-color: #333646;
+
+}
+
+
+    </style>
   </head>
   <body class="skin-blue">
     <div class="wrapper">
       <header class="main-header">
         <!-- Logo -->
-        <a href="/" class="logo"><b>LN</b>bits</a>
+        <a href="/" class="logo"><b style="color: #8964a9;">LN</b>bits</a>
         <!-- Header Navbar: style can be found in header.less -->
         <nav class="navbar navbar-static-top" role="navigation">
           <!-- Sidebar toggle button-->
