@@ -127,8 +127,8 @@ function received() {
       theinvoice = JSON.parse(data).pay_req
       thehash = JSON.parse(data).payment_hash
       document.getElementById('QRCODE').innerHTML =
-        "<div class='modal-content' style='padding: 10px 10px 0 10px;'>"+
-        "<center><a href='lightning:" +
+        "<center><div class='modal-content' style='width:360px; padding: 10px 10px 0 10px;'>"+
+        "<a href='lightning:" +
         theinvoice +
         "'><div id='qrcode'></div></a>" +
         "<p style='word-wrap: break-word;'>" +
