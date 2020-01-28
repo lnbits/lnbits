@@ -58,7 +58,7 @@ function getAjax(url, thekey, success) {
 function sendfundsinput() {
   document.getElementById('sendfunds').innerHTML =
     "<div class='modal fade sends' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
-    "<div class='modal-dialog' style='background:#fff;'>"+
+    "<div class='modal-dialog' >"+
     "<div id='sendfunds2' style='padding: 0 10px 0 10px;'><div class='modal-content'>"+
     "<br/><br/>" +
     "<textarea id='pasteinvoice' class='form-control' rows='3' placeholder='Paste an invoice'></textarea></div>" +
@@ -105,7 +105,7 @@ function sendfundspaste() {
 function receive() {
   document.getElementById('receive').innerHTML =
     "<div class='modal fade receives' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
-    "<div class='modal-dialog' style='background:#fff;'><div id='QRCODE'><div class='modal-content' style='padding: 0 10px 0 10px;'>"+
+    "<div class='modal-dialog' ><div id='QRCODE'><div class='modal-content' style='padding: 0 10px 0 10px;'>"+
     "<br/><center><input  style='width:80%' type='number' class='form-control' id='amount' placeholder='Amount' max='1000000' required>" +
     "<input  style='width:80%' type='text' class='form-control' id='memo' placeholder='Memo' required></center></div>" +
     "<div class='modal-footer'>"+  
@@ -143,6 +143,8 @@ function received() {
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       })
+      document.getElementById("qrcode").style.backgroundColor = "white";
+      document.getElementById("qrcode").style.padding = "20px";
 
 
       setInterval(function(){ 
@@ -165,7 +167,7 @@ function cancelsend() {
 function processing() {
   document.getElementById('processing').innerHTML =
   "<div class='modal fade proc' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>"+
-  "<div class='modal-dialog' style='background:#fff;'>"+
+  "<div class='modal-dialog'>"+
   "<div style='padding: 0 10px 0 10px;'><div class='modal-content'>"+
   "<h3><b>Processing...</b></br/></br/></br/></h3></div>"+
   "</div></div></div>"
