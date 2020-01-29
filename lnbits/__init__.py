@@ -600,7 +600,7 @@ def api_lnurlwithdraw(rand):
 
         # Update time and increments left
         upinc = user_fau[0][10] - 1
-        Faudb.execute("UPDATE withdraws SET inc = ? SET tmestmp = ? AND rand = ? WHERE withdrawals = ?", (upinc, seconds, randstr, k1,))
+        Faudb.execute("UPDATE withdraws SET inc = ? AND tmestmp = ? AND rand = ? WHERE withdrawals = ?", (upinc, seconds, randstr, k1,))
     
     header = {'Content-Type': 'application/json','Grpc-Metadata-macaroon':str(user_fau[0][4])} 
 
