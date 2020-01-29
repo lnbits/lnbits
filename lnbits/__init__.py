@@ -630,6 +630,10 @@ def withdrawmaker():
     uniq = data["uniq"]
     usr = data["usr"]
     wall = wal.split("-")
+    
+    #Form validation 
+    if int(amt) < 0 or not tit.isalpha() or wal == "" or int(minamt) < 0 or int(maxamt) < 0 or int(minamt) > int(maxamt) or int(tme) < 0:
+        return jsonify({"ERROR": "FORM ERROR"}), 401
    
     #If id that means its a link being edited, delet the record first
     if "id" in data:
