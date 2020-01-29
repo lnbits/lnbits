@@ -2,6 +2,7 @@ import uuid
 import os
 import json
 import requests
+import re
 
 from flask import Flask, jsonify, render_template, request, redirect, url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode
@@ -229,10 +230,11 @@ def api_invoices():
         return jsonify({"ERROR": "MUST BE JSON"}), 400
 
     postedjson = request.json
+
     #Form validation 
     if int(postedjson["value"]) < 0 or not postedjson["memo"].replace(' ','').isalnum():
         return jsonify({"ERROR": "FORM ERROR"}), 401
-    
+
     if "value" not in postedjson:
         return jsonify({"ERROR": "NO VALUE"}), 400
 
@@ -514,11 +516,12 @@ def api_lnurlencode(urlstr, parstr):
     with FauDatabase() as Faudb:
         user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE uni = ?", (parstr,))
         randar = user_fau[0][15].split(",")
-        randar = randar[:-1]
-        
+       # randar = randar[:-1]
+        print(int(user_fau[0][10])-1)
         #If "Unique links" selected get correct rand, if not there is only one rand
         if user_fau[0][12] > 0:
-            rand = randar[user_fau[0][10]-1]
+            rand = randar[user_fau[0][10]-2]
+            print(rand)
         else:
             rand = randar[0]
 
@@ -589,19 +592,21 @@ def api_lnurlwithdraw(rand):
         print(secspast)
 
         if secspast < user_fau[0][11]:
-            return jsonify({"status":"ERROR", "reason":"WAIT " + str(int(secspast)) + "s"}), 400
+            return jsonify({"status":"ERROR", "reason":"WAIT " + str(int(user_fau[0][11] - secspast)) + "s"}), 400
 
         randar = user_fau[0][15].split(",")
         if rand not in randar:
             return jsonify({"status":"ERROR", "reason":"BAD AUTH"}), 400
-        if len(randar) > 1:
+        if len(randar) > 2:
             randar.remove(rand)
         randstr = ','.join(randar)
+       
+        print(randstr)
+       
+        # Update time and increments 
+        upinc = (int(user_fau[0][10]) - 1)
+        Faudb.execute("UPDATE withdraws SET inc = ?, rand = ?, tmestmp = ? WHERE withdrawals = ?", (upinc, randstr, seconds, k1,))
 
-        # Update time and increments left
-        upinc = user_fau[0][10] - 1
-        Faudb.execute("UPDATE withdraws SET inc = ? AND tmestmp = ? AND rand = ? WHERE withdrawals = ?", (upinc, seconds, randstr, k1,))
-    
     header = {'Content-Type': 'application/json','Grpc-Metadata-macaroon':str(user_fau[0][4])} 
 
     data = {'payment_request': pr} 
@@ -614,7 +619,7 @@ def api_lnurlwithdraw(rand):
 
     with FauDatabase() as Faudb:
         user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
-        
+
     return jsonify({"status":"OK"}), 200
 
 
@@ -631,9 +636,9 @@ def withdrawmaker():
     uniq = data["uniq"]
     usr = data["usr"]
     wall = wal.split("-")
-    
+
     #Form validation 
-    if int(amt) < 0 or not tit.isalpha() or wal == "" or int(minamt) < 0 or int(maxamt) < 0 or int(minamt) > int(maxamt) or int(tme) < 0:
+    if int(amt) < 0 or not tit.replace(' ','').isalnum() or wal == "" or int(minamt) < 0 or int(maxamt) < 0 or int(minamt) > int(maxamt) or int(tme) < 0:
         return jsonify({"ERROR": "FORM ERROR"}), 401
    
     #If id that means its a link being edited, delet the record first
