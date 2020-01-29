@@ -429,7 +429,10 @@ background-color:
     #3e355a;
 }
 
+.skin-blue .sidebar-menu > li > a:hover, .skin-blue .sidebar-menu > li.active > a {
 
+    background: none;
+}
     </style>
 
 
@@ -454,13 +457,15 @@ background-color:
             <ul class="nav navbar-nav">
               <!-- Messages: style can be found in dropdown.less-->
               <li class="dropdown messages-menu">
+
                 {% block messages %}{% endblock %}
               </li>
             </ul>
           </div>
         </nav>
       </header>
-        <aside class="main-sidebar">
+
+       <aside class="main-sidebar">
         <!-- sidebar: style can be found in sidebar.less -->
         <section class="sidebar" style="height: auto;">
           <!-- Sidebar user panel -->
