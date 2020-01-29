@@ -611,7 +611,7 @@ def api_lnurlwithdraw(rand):
 
     data = {'payment_request': pr} 
   
-    r = requests.post(url = "https://zapped.ngrok.io/v1/channels/transactions", headers=header, data=json.dumps(data)) 
+    r = requests.post(url = "https://lnbits.com/v1/channels/transactions", headers=header, data=json.dumps(data)) 
 
     r_json=r.json()
     if "ERROR" in r_json:
