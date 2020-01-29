@@ -598,9 +598,10 @@ def api_lnurlwithdraw(rand):
             randar.remove(rand)
         randstr = ','.join(randar)
 
-        # Update time
-        Faudb.execute("UPDATE withdraws SET tmestmp = ? AND rand = ? WHERE withdrawals = ?", (seconds , randstr, k1,))
-
+        # Update time and increments left
+        upinc = user_fau[0][10] - 1
+        Faudb.execute("UPDATE withdraws SET inc = ? SET tmestmp = ? AND rand = ? WHERE withdrawals = ?", (upinc, seconds, randstr, k1,))
+    
     header = {'Content-Type': 'application/json','Grpc-Metadata-macaroon':str(user_fau[0][4])} 
 
     data = {'payment_request': pr} 
@@ -614,9 +615,6 @@ def api_lnurlwithdraw(rand):
     with FauDatabase() as Faudb:
         user_fau = Faudb.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
         
-        upinc = user_fau[0][10] - 1
-        Faudb.execute("UPDATE withdraws SET inc = ? WHERE withdrawals = ?", (upinc ,k1,))
-
     return jsonify({"status":"OK"}), 200
 
 
