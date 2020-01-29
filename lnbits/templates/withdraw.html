@@ -104,7 +104,7 @@
 
                     <div class="form-group">
                       <label for="exampleInputEmail1">Link title</label>
-                      <input id="tit" type="text" class="form-control" >
+                      <input id="tit" type="text" pattern="^[A-Za-z]+$" class="form-control" >
                     </div>
                           <!-- select -->
                     <div class="form-group">
@@ -143,7 +143,7 @@
 
                   <div class="box-footer">
  
-                    <button onclick="postfau()" type="button" class="btn btn-info">Create link(s)</button>
+                    <button onclick="postfau()" type="button" class="btn btn-info">Create link(s)</button><p style="color:red;" id="error"></p>
                   </div>
                 </form>
               </div><!-- /.box -->
@@ -164,15 +164,15 @@
                   <div class="box-body">
                      <div class="form-group">
 
-                      <select class="form-control" >
-
+                      <select class="form-control" id="fauselect" onchange="drawwithdraw()">
+                        <option></option>
                          {% for w in user_fau %}
-                        <option id="{{w.uni}}"  onclick="drawwithdraw( '{{w.uni}}' )" >{{w.tit}}-{{w.uni}}</option>
+                        <option id="{{w.uni}}"   >{{w.tit}}-{{w.uni}}-{{w.inc}}</option>
                          {% endfor %}
                       </select>
                     </div>
 
-                   <center> <br/><div id="qrcode" style="width:340px"  ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
+                   <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
                 </div>
                </form>
 
@@ -265,13 +265,15 @@ if (user_fau.length) {
 
 
 //draws withdraw QR code
-function drawwithdraw(data) {
+function drawwithdraw() {
+      
 
-      walname = document.getElementById(data).value
+      walname = document.getElementById("fauselect").value
+
       thewithdraw = walname.split("-");
       console.log(window.location.hostname + "-" + thewithdraw[1])
 
-      getAjax('/v1/lnurlencode/'+ window.location.hostname + "/" + thewithdraw[1], "filla", function(datab) {
+        getAjax('/v1/lnurlencode/'+ window.location.hostname + "/" + thewithdraw[1], "filla", function(datab) {
       if (JSON.parse(datab).STATUS == 'TRUE') {
           console.log(JSON.parse(datab).STATUS)
           lnurlfau = (JSON.parse(datab).LNURL)
@@ -285,12 +287,21 @@ function drawwithdraw(data) {
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       })
+
+      if (thewithdraw[2] > 0){
       document.getElementById('qrcodetxt').innerHTML = lnurlfau 
       + 
       "<a target='_blank' href='/displaywithdraw?id=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" +
       "<a target='_blank' href='/printwithdraw/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>" 
       document.getElementById("qrcode").style.backgroundColor = "white";
       document.getElementById("qrcode").style.padding = "20px";
+      }
+      else{
+        document.getElementById('qrcode').innerHTML = ""
+        document.getElementById('qrcodetxt').innerHTML = "<h1>No more uses left in link!</h1><br/><br/>"
+
+
+      }
 
         }
         else {
@@ -298,6 +309,7 @@ function drawwithdraw(data) {
           thewithdraw[1] = "Failed to build LNURL"
         }
       })
+  
 }
 
 
@@ -312,13 +324,34 @@ function postfau(){
   uniq = document.getElementById('uniq').checked
 
 
- console.log(wal)
- console.log(tit)
- console.log(amt)
- console.log(maxamt)
- console.log(minamt)
- console.log(wal)
- console.log(tme)
+  if (tit == "") {
+    document.getElementById("error").innerHTML = "Only use letters in title"
+    return amt
+  } 
+    if (wal == "") {
+    document.getElementById("error").innerHTML = "No wallet selected"
+    return amt
+  } 
+
+  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
+    document.getElementById("error").innerHTML = "Max 15 - 1000000 and must be higher than min"
+    return amt
+  } 
+  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
+    document.getElementById("error").innerHTML = "Min 1 - 1000000 and must be lower than max"
+    return amt
+  } 
+
+    if (isNaN(amt) || amt < 1 || amt > 1000) {
+    document.getElementById("error").innerHTML = "Amount of uses must be between 1 - 1000"
+    return amt
+  } 
+
+    if (isNaN(tme) || tme < 1 || tme > 86400) {
+    document.getElementById("error").innerHTML = "Max waiting time 1 day (86400 secs)"
+    return amt
+  } 
+
 
   postAjax(
     '/withdrawmaker',
@@ -414,7 +447,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                     "</div></div><!-- /.box-body -->"+
                   " </div><br/>"+
                  " <div class='box-footer'>"+
-                   " <button onclick='editlinkcont()' type='button' class='btn btn-info'>Edit link(s)</button>"+
+                   " <button onclick='editlinkcont()' type='button' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
                 "  </div></form></div><!-- /.box --></div></div>"
                
 
@@ -432,13 +465,34 @@ function editlinkcont(){
   uniq = document.getElementById('edituniq').checked
 
 
- console.log(wal)
- console.log(tit)
- console.log(amt)
- console.log(maxamt)
- console.log(minamt)
- console.log(tme)
+  
+  if (tit == "") {
+    document.getElementById("error2").innerHTML = "Only use letters in title"
+    return amt
+  } 
+    if (wal == "") {
+    document.getElementById("error2").innerHTML = "No wallet selected"
+    return amt
+  } 
 
+  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
+    document.getElementById("error2").innerHTML = "Max 10 - 1000000 and must be higher than min"
+    return amt
+  } 
+  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
+    document.getElementById("error2").innerHTML = "Min 1 - 1000000 and must be lower than max"
+    return amt
+  } 
+
+    if (isNaN(amt) || amt < 1 || amt > 1000) {
+    document.getElementById("error2").innerHTML = "Amount of uses must be between 1 - 1000"
+    return amt
+  } 
+
+    if (isNaN(tme) || tme < 1 || tme > 86400) {
+    document.getElementById("error2").innerHTML = "Max waiting time 1 day (86400 secs)"
+    return amt
+  } 
 
 
   postAjax(
