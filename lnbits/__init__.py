@@ -229,7 +229,10 @@ def api_invoices():
         return jsonify({"ERROR": "MUST BE JSON"}), 400
 
     postedjson = request.json
-
+    #Form validation 
+    if int(postedjson["value"]) < 0 or not postedjson["memo"].replace(' ','').isalnum():
+        return jsonify({"ERROR": "FORM ERROR"}), 401
+    
     if "value" not in postedjson:
         return jsonify({"ERROR": "NO VALUE"}), 400
 
