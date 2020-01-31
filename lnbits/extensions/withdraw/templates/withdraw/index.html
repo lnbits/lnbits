@@ -18,7 +18,7 @@
   <ul class="treeview-menu">
     {% for w in user_wallets %}
     <li>
-      <a href="wallet?wal={{ w.id }}&usr={{ w.user }}"
+      <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"
         ><i class="fa fa-bolt"></i> {{ w.name }}</a
       >
     </li>
@@ -34,28 +34,14 @@
     <i class="fa fa-angle-left pull-right"></i>
   </a>
     <ul class="treeview-menu">
-    {% if user_ext[0][1] %}
-    <li>
-      <a href="lnevents?usr={{ user_ext[0][0]}}"
-        ><i class="fa fa-plus"></i> LNEvents</a>
-    </li>
-    {% endif %}
-
-    {% if user_ext[0][2] %}
-    <li>
-      <a href="lnjoust?usr={{ user_ext[0][0]}}"
-        ><i class="fa fa-plus"></i> LNJoust</a>
-    </li>
-    {% endif %}
-
     {% if user_ext[0][3] %}
     <li>
-      <a href="withdraw?usr={{ user_ext[0][0]}}"
+      <a href="{{ url_for('withdraw.index') }}?usr={{ user_ext[0][0]}}"
         ><i class="fa fa-plus"></i> LNURLw</a>
     </li>
     {% endif %}
         <li>
-      <a href="extensions?usr={{ user }}"
+      <a href="{{ url_for('extensions') }}?usr={{ user }}"
         >Manager </a>
     </li>
 
@@ -75,13 +61,13 @@
     </h1>
     <ol class="breadcrumb">
       <li>
-        <a href="/wallet?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
+        <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
       </li>
       <li>
-      <a href="/extensions?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
+      <a href="{{ url_for('extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
       </li>
        <li>
-        <i class="active" class="fa fa-dashboard">Withdraw link maker</i> 
+        <i class="active" class="fa fa-dashboard">Withdraw link maker</i>
       </li>
     </ol>
     <br /><br />
@@ -142,7 +128,7 @@
                   </div><!-- /.box-body -->
 
                   <div class="box-footer">
- 
+
                     <button onclick="postfau()" type="button" class="btn btn-info">Create link(s)</button><p style="color:red;" id="error"></p>
                   </div>
                 </form>
@@ -224,7 +210,7 @@
     window.user_ext = {{ user_ext | megajson | safe }}
     window.user_fau = {{ user_fau | megajson | safe }}
 
-    const user_fau  = window.user_fau 
+    const user_fau  = window.user_fau
     console.log(user_fau)
 
 
@@ -239,7 +225,7 @@ function drawChart(user_fau) {
       "<tr><td  style='width: 50%'>" +
       tx.tit +
       '</td><td >' +
-      "<a  href='" + "/displaywithdraw?id=" + tx.uni + "'>" + tx.uni.substring(0, 4) + "...</a>" +
+      "<a  href='" + "{{ url_for('withdraw.display') }}?id=" + tx.uni + "'>" + tx.uni.substring(0, 4) + "...</a>" +
       '</td><td>' +
       tx.maxamt    +
       '</td><td>' +
@@ -247,11 +233,11 @@ function drawChart(user_fau) {
       '</td><td>' +
       tx.tme    +
       '</td><td>' +
-      "<a href='/wallet?usr="+ user +"'>" + tx.uni.substring(0, 4) + "...</a>" +
+      "<a href='{{ url_for('wallet') }}?usr="+ user +"'>" + tx.uni.substring(0, 4) + "...</a>" +
       '</td><td>' +
       "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
       '</td><td>' +
-      "<b><a style='color:red;' href='" + "/withdraw?del=" + tx.uni + "&usr=" + user +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
+      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + tx.uni + "&usr=" + user +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
       '</td></tr>' +
       transactionsHTML
       document.getElementById('transactions').innerHTML = transactionsHTML
@@ -266,14 +252,14 @@ if (user_fau.length) {
 
 //draws withdraw QR code
 function drawwithdraw() {
-      
+
 
       walname = document.getElementById("fauselect").value
 
       thewithdraw = walname.split("-");
       console.log(window.location.hostname + "-" + thewithdraw[1])
 
-        getAjax('/v1/lnurlencode/'+ window.location.hostname + "/" + thewithdraw[1], "filla", function(datab) {
+        getAjax("/withdraw/api/v1/lnurlencode/"+ window.location.hostname + "/" + thewithdraw[1], "filla", function(datab) {
       if (JSON.parse(datab).STATUS == 'TRUE') {
           console.log(JSON.parse(datab).STATUS)
           lnurlfau = (JSON.parse(datab).LNURL)
@@ -289,10 +275,10 @@ function drawwithdraw() {
       })
 
       if (thewithdraw[2] > 0){
-      document.getElementById('qrcodetxt').innerHTML = lnurlfau 
-      + 
-      "<a target='_blank' href='/displaywithdraw?id=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" +
-      "<a target='_blank' href='/printwithdraw/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>" 
+      document.getElementById('qrcodetxt').innerHTML = lnurlfau
+      +
+      "<a target='_blank' href='{{ url_for('withdraw.display') }}?id=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" +
+      "<a target='_blank' href='/withdraw/printwithdraw/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>"
       document.getElementById("qrcode").style.backgroundColor = "white";
       document.getElementById("qrcode").style.padding = "20px";
       }
@@ -309,7 +295,7 @@ function drawwithdraw() {
           thewithdraw[1] = "Failed to build LNURL"
         }
       })
-  
+
 }
 
 
@@ -327,38 +313,38 @@ function postfau(){
   if (tit == "") {
     document.getElementById("error").innerHTML = "Only use letters in title"
     return amt
-  } 
+  }
     if (wal == "") {
     document.getElementById("error").innerHTML = "No wallet selected"
     return amt
-  } 
+  }
 
   if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
     document.getElementById("error").innerHTML = "Max 15 - 1000000 and must be higher than min"
     return amt
-  } 
+  }
   if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
     document.getElementById("error").innerHTML = "Min 1 - 1000000 and must be lower than max"
     return amt
-  } 
+  }
 
     if (isNaN(amt) || amt < 1 || amt > 1000) {
     document.getElementById("error").innerHTML = "Amount of uses must be between 1 - 1000"
     return amt
-  } 
+  }
 
     if (isNaN(tme) || tme < 1 || tme > 86400) {
     document.getElementById("error").innerHTML = "Max waiting time 1 day (86400 secs)"
     return amt
-  } 
+  }
 
 
   postAjax(
-    '/withdrawmaker',
+    "{{ url_for('withdraw.create') }}",
     JSON.stringify({"tit": tit, "amt": amt, "maxamt": maxamt, "minamt": minamt, "tme": tme, "wal": wal, "usr": user, "uniq": uniq}),
     "filla",
 
-    function(data) {  location.replace("/withdraw?usr=" + user)
+    function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
 })
 
 
@@ -393,7 +379,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Link title</label>"+
     "<input id='edittit' type='text' class='form-control' value='"+
-         faudetails.tit + 
+         faudetails.tit +
         "'></input> </div>"+
                  " </div>"+
                  " <div class='col-sm-4 col-md-4'>"+
@@ -403,9 +389,9 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                       "<select id='editwal' class='form-control'>"+
                        " <option>" + faudetails.walnme + "-" + faudetails.wal + "</option>"+
                         " {% for w in user_wallets %}"+
-                       
+
                         " <option>{{w.name}}-{{w.id}}</option>"+
-                      
+
                         " {% endfor %}"+
                      " </select>"+
                    " </div>"+
@@ -414,42 +400,42 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                     "<div class='form-group'>"+
                      " <label for='exampleInputPassword1'>Time between withdrawals:</label>"+
         " <input id='edittme' type='number' class='form-control' placeholder='0' max='86400' value='"+
-         faudetails.tme + 
+         faudetails.tme +
         "'></input>"+
                     "</div> </div>"+
                    " <div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Max withdraw:</label>"+
              " <input id='editmaxamt' type='number' class='form-control' placeholder='1' value='"+
-         faudetails.maxamt + 
+         faudetails.maxamt +
         "'></input>"+
                    " </div></div>"+
                    " <div class='col-sm-3 col-md-4'>"+
                     " <div class='form-group'>"+
                      " <label for='exampleInputEmail1'>Min withdraw:</label>"+
            " <input id='editminamt' type='number' class='form-control' placeholder='1' value='"+
-         faudetails.minamt + 
+         faudetails.minamt +
         "'></input>"+
                    " </div></div>"+
                    " <div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                      " <label for='exampleInputPassword1'>Amount of uses:</label>"+
         "   <input id='editamt' type='number' class='form-control' placeholder='1' value='"+
-         faudetails.inc + 
+         faudetails.inc +
         "'></input>"+
                    " </div> </div>"+
                   "   <div class='col-sm-3 col-md-4'>"+
                    " <div class='checkbox'>"+
               "<label  data-toggle='tooltip' title='Some tooltip text!'><input id='edituniq' type='checkbox' "+
-         checkbox + 
-        ">"+ 
+         checkbox +
+        ">"+
         "Unique links</label>"+
                     "</div></div><!-- /.box-body -->"+
                   " </div><br/>"+
                  " <div class='box-footer'>"+
                    " <button onclick='editlinkcont()' type='button' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
                 "  </div></form></div><!-- /.box --></div></div>"
-               
+
 
 }
 
@@ -465,48 +451,48 @@ function editlinkcont(){
   uniq = document.getElementById('edituniq').checked
 
 
-  
+
   if (tit == "") {
     document.getElementById("error2").innerHTML = "Only use letters in title"
     return amt
-  } 
+  }
     if (wal == "") {
     document.getElementById("error2").innerHTML = "No wallet selected"
     return amt
-  } 
+  }
 
   if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
     document.getElementById("error2").innerHTML = "Max 10 - 1000000 and must be higher than min"
     return amt
-  } 
+  }
   if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
     document.getElementById("error2").innerHTML = "Min 1 - 1000000 and must be lower than max"
     return amt
-  } 
+  }
 
     if (isNaN(amt) || amt < 1 || amt > 1000) {
     document.getElementById("error2").innerHTML = "Amount of uses must be between 1 - 1000"
     return amt
-  } 
+  }
 
     if (isNaN(tme) || tme < 1 || tme > 86400) {
     document.getElementById("error2").innerHTML = "Max waiting time 1 day (86400 secs)"
     return amt
-  } 
+  }
 
 
   postAjax(
-    '/withdrawmaker',
+    "{{ url_for('withdraw.create') }}",
     JSON.stringify({"id": unid, "tit": tit, "amt": amt, "maxamt": maxamt, "minamt": minamt, "tme": tme, "wal": wal, "usr": user, "uniq": uniq}),
     "filla",
 
-    function(data) {  location.replace("/withdraw?usr=" + user)
+    function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
 })
 
 
 
 }
-    
+
   </script>
 </div>
 {% endblock %}

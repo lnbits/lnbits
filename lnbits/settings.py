@@ -9,7 +9,7 @@ WALLET = OpenNodeWallet(endpoint=os.getenv("OPENNODE_API_ENDPOINT"),admin_key=os
 
 
 LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
-DATABASE_PATH = os.getenv("DATABASE_PATH") or os.path.join(LNBITS_PATH, "data", "database.sqlite3")
-DEFAULT_USER_WALLET_NAME = os.getenv("DEFAULT_USER_WALLET_NAME") or "Bitcoin LN Wallet"
+DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(LNBITS_PATH, "data", "database.sqlite3"))
 
-FEE_RESERVE = float(os.getenv("FEE_RESERVE") or 0)
+DEFAULT_USER_WALLET_NAME = os.getenv("DEFAULT_USER_WALLET_NAME", "Bitcoin LN Wallet")
+FEE_RESERVE = float(os.getenv("FEE_RESERVE", 0))

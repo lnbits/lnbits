@@ -48,7 +48,7 @@ function getAjax(url, thekey, success) {
   }
   xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
   xhr.setRequestHeader('Content-Type', 'application/json')
-  
+
   xhr.send()
   return xhr
 }
@@ -90,10 +90,10 @@ function sendfundspaste() {
       '<br/>Memo: ' +
       outmemo +
       '</h3>' +
-      "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" + 
-      invoice + 
+      "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" +
+      invoice +
       "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/></div>" +
-      "<div class='modal-footer'>"+     
+      "<div class='modal-footer'>"+
       "<button type='submit' class='btn btn-primary' onclick='sendfunds(" +
       JSON.stringify(invoice) +
       ")'>Send funds</button>" +
@@ -108,7 +108,7 @@ function receive() {
     "<div class='modal-dialog' ><div id='QRCODE' ><div class='modal-content' style='padding: 0 10px 0 10px;'>"+
     "<br/><center><input  style='width:80%' type='number' class='form-control' id='amount' placeholder='Amount' max='1000000' required>" +
     "<input  style='width:80%' type='text' class='form-control' id='memo' placeholder='Memo' required></center></div>" +
-    "<div class='modal-footer'>"+  
+    "<div class='modal-footer'>"+
     "<input type='button' id='getinvoice' onclick='received()' class='btn btn-primary' value='Create invoice' />" +
     '</div></div><br/>'+
     "</div></div></div>"
@@ -120,7 +120,7 @@ function received() {
   memo = document.getElementById('memo').value
   amount = document.getElementById('amount').value
   postAjax(
-    '/v1/invoices',
+    '/api/v1/invoices',
     JSON.stringify({value: amount, memo: memo}),
     wallet.inkey,
     function(data) {
@@ -147,15 +147,15 @@ function received() {
       document.getElementById("qrcode").style.padding = "20px";
 
 
-      setInterval(function(){ 
-      getAjax('/v1/invoice/' + thehash, wallet.inkey, function(datab) {
+      setInterval(function(){
+      getAjax('/api/v1/invoice/' + thehash, wallet.inkey, function(datab) {
         console.log(JSON.parse(datab).PAID)
         if (JSON.parse(datab).PAID == 'TRUE') {
           window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
         }
       })}, 3000);
 
-      
+
     }
   )
 }
@@ -172,7 +172,7 @@ function processing() {
   "<h3><b>Processing...</b></br/></br/></br/></h3></div>"+
   "</div></div></div>"
 
-  
+
   window.top.location.href = "lnurlwallet?lightning=" + getQueryVariable("lightning");
 }
 
@@ -195,15 +195,15 @@ function sendfunds(invoice) {
   '<h3><b>Processing...</b></h3><</br/></br/></br/></div> ';
 
   postAjax(
-    '/v1/channels/transactions',
+    '/api/v1/channels/transactions',
     JSON.stringify({payment_request: invoice}),
     wallet.adminkey,
 
     function(data) {
       thehash = JSON.parse(data).payment_hash
 
-      setInterval(function(){ 
-        getAjax('/v1/payment/' + thehash, wallet.adminkey, function(datab) {
+      setInterval(function(){
+        getAjax('/api/v1/payment/' + thehash, wallet.adminkey, function(datab) {
         console.log(JSON.parse(datab).PAID)
         if (JSON.parse(datab).PAID == 'TRUE') {
           window.location.href = 'wallet?wal=' + wallet.id + '&usr=' + user
@@ -220,7 +220,7 @@ function scanQRsend() {
     "<div class='modal-content'>"+
     "<br/><div id='loadingMessage'>🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>" +
     "<canvas id='canvas' hidden></canvas><div id='output' hidden><div id='outputMessage'></div>" +
-    "<br/><span id='outputData'></span></div></div><div class='modal-footer'>"+  
+    "<br/><span id='outputData'></span></div></div><div class='modal-footer'>"+
     "<button type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel</button><br/><br/>"
   var video = document.createElement('video')
   var canvasElement = document.getElementById('canvas')
@@ -270,7 +270,7 @@ function scanQRsend() {
           outmemo = theinvoice.data.tags[1].value
           outstr = JSON.stringify(code.data.split(":")[1])
         }
-        
+
         if (code.data.substring(0, 4).toUpperCase() != "LNBC"){
           document.getElementById('sendfunds2').innerHTML =
             "<div class='row'><div class='col-md-6'>" +
@@ -279,7 +279,7 @@ function scanQRsend() {
             '</br/></br/></div></div>'
         }
         else{
-          
+
           theinvoice = decode(code.data)
           outmemo = theinvoice.data.tags[1].value
           outstr = JSON.stringify(code.data)
@@ -301,7 +301,7 @@ function scanQRsend() {
             '<br/>Memo: ' +
             outmemo +
             '</h3>' +
-            "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" + 
+            "<div class='input-group input-group-sm'><input type='text' id='invoiceinput' class='form-control' value='" +
              outstr +
              "'><span class='input-group-btn'><button class='btn btn-info btn-flat' type='button' onclick='copyfunc()'>Copy</button></span></div></br/>" +
             "<button type='submit' class='btn btn-primary' onclick='sendfunds(" +
@@ -324,7 +324,7 @@ function scanQRsend() {
 function copyfunc(){
   var copyText = document.getElementById("invoiceinput");
   copyText.select();
-  copyText.setSelectionRange(0, 99999); 
+  copyText.setSelectionRange(0, 99999);
   document.execCommand("copy");
 
 }
@@ -414,7 +414,7 @@ if (transactions.length) {
 }
 
 if (wallet) {
-  postAjax('/v1/checkpending', '', wallet.adminkey, function(data) {})
+  postAjax('/api/v1/checkpending', '', wallet.adminkey, function(data) {})
 }
 
 
@@ -447,14 +447,14 @@ function download_csv(csv, filename) {
 function export_table_to_csv(html, filename) {
   var csv = [];
   var rows = document.querySelectorAll("table tr");
-  
+
     for (var i = 0; i < rows.length; i++) {
     var row = [], cols = rows[i].querySelectorAll("td, th");
-    
-        for (var j = 0; j < cols.length; j++) 
+
+        for (var j = 0; j < cols.length; j++)
             row.push(cols[j].innerText);
-        
-    csv.push(row.join(","));    
+
+    csv.push(row.join(","));
   }
 
     // Download CSV

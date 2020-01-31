@@ -86,25 +86,25 @@
       </div>
     </div>
     <!-- ./col -->
-    
+
     <!-- /.row -->
     <div class="row">
       <div class="col-sm-3">
         <button
           onclick="sendfundsinput()"
           class="btn btn-block btn-primary btn-lg"
-          data-toggle="modal" 
-          data-target=".sends" 
+          data-toggle="modal"
+          data-target=".sends"
         >
           Send
         </button>
       </div>
       <div class="col-sm-3">
-        <button 
-        onclick="receive()" 
+        <button
+        onclick="receive()"
         class="btn btn-block btn-primary btn-lg"
-        data-toggle="modal" 
-        data-target=".receives" 
+        data-toggle="modal"
+        data-target=".receives"
         >
           Receive
         </button>
@@ -173,7 +173,7 @@
                   <div class="box-body" style="word-wrap: break-word;">
                     <b>Admin key: </b><i>{{ wallet.adminkey }}</i><br />
                     <b>Invoice/Read key: </b><i>{{ wallet.inkey }}</i><br />
-                    Generate an invoice:<br /><code>POST /v1/invoices</code
+                    Generate an invoice:<br /><code>POST /api/v1/invoices</code
                     ><br />Header
                     <code
                       >{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i
@@ -187,7 +187,7 @@
 
                     Check invoice:<br />
                     Check an invoice:<br /><code
-                      >GET /v1/invoice/*payment_hash*</code
+                      >GET /api/v1/invoice/*payment_hash*</code
                     ><br />Header
                     <code
                       >{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i
