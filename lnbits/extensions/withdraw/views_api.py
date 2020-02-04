@@ -13,19 +13,21 @@ from lnbits.extensions.withdraw import withdraw_ext
 @withdraw_ext.route("/api/v1/lnurlencode/<urlstr>/<parstr>", methods=["GET"])
 def api_lnurlencode(urlstr, parstr):
     """Returns encoded LNURL if web url and parameter gieven."""
-
+    print(urlstr)
     if not urlstr:
         return jsonify({"status": "FALSE"}), 200
 
     with open_ext_db("withdraw") as withdraw_ext_db:
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE uni = ?", (parstr,))
         randar = user_fau[0][15].split(",")
+        print(randar)
         # randar = randar[:-1]
         # If "Unique links" selected get correct rand, if not there is only one rand
         if user_fau[0][12] > 0:
-            rand = randar[user_fau[0][10] - 2]
+            rand = randar[user_fau[0][10] - 1]
         else:
             rand = randar[0]
+        print(rand)
 
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=parstr, rand=rand)
 
@@ -55,6 +57,7 @@ def api_lnurlfetch(parstr, urlstr, rand):
         max_withdrawable=user_fau[0][7] * 1000,
         default_description="LNbits LNURL withdraw",
     )
+    print(res.json())
 
     return res.json(), 200
 
@@ -76,9 +79,11 @@ def api_lnurlwithdraw(rand):
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
 
         if not user_fau:
+          
             return jsonify({"status": "ERROR", "reason": "NO AUTH"}), 400
 
         if user_fau[0][10] < 1:
+            
             return jsonify({"status": "ERROR", "reason": "withdraw SPENT"}), 400
 
         # Check withdraw time
@@ -91,6 +96,7 @@ def api_lnurlwithdraw(rand):
 
         randar = user_fau[0][15].split(",")
         if rand not in randar:
+            print("huhhh")
             return jsonify({"status": "ERROR", "reason": "BAD AUTH"}), 400
         if len(randar) > 2:
             randar.remove(rand)
