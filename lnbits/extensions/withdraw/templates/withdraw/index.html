@@ -1,0 +1,498 @@
+<!-- @format -->
+
+{% extends "base.html" %} {% block messages %}
+<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+  <i class="fa fa-bell-o"></i>
+  <span class="label label-danger">!</span>
+</a>
+<ul class="dropdown-menu">
+  <li class="header"><b>Instant wallet, bookmark to save</b></li>
+  <li></li>
+</ul>
+{% endblock %} {% block menuitems %}
+<li class="treeview">
+  <a href="#">
+    <i class="fa fa-bitcoin"></i> <span>Wallets</span>
+    <i class="fa fa-angle-left pull-right"></i>
+  </a>
+  <ul class="treeview-menu">
+    {% for w in user_wallets %}
+    <li>
+      <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"
+        ><i class="fa fa-bolt"></i> {{ w.name }}</a
+      >
+    </li>
+    {% endfor %}
+    <li><a onclick="sidebarmake()">Add a wallet +</a></li>
+    <div id="sidebarmake"></div>
+  </ul>
+</li>
+
+<li class="active treeview">
+  <a href="#">
+    <i class="fa fa-th"></i> <span>Extensions</span>
+    <i class="fa fa-angle-left pull-right"></i>
+  </a>
+    <ul class="treeview-menu">
+    {% if user_ext[0][3] %}
+    <li>
+      <a href="{{ url_for('withdraw.index') }}?usr={{ user_ext[0][0]}}"
+        ><i class="fa fa-plus"></i> LNURLw</a>
+    </li>
+    {% endif %}
+        <li>
+      <a href="{{ url_for('extensions') }}?usr={{ user }}"
+        >Manager </a>
+    </li>
+
+
+  </ul>
+</li>
+
+{% endblock %} {% block body %}
+<!-- Right side column. Contains the navbar and content of the page -->
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>
+      Withdraw link maker
+      <small>powered by LNURL</small>
+
+    </h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li>
+      <a href="{{ url_for('extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
+      </li>
+       <li>
+        <i class="active" class="fa fa-dashboard">Withdraw link maker</i>
+      </li>
+    </ol>
+    <br /><br />
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <!-- Small boxes (Stat box) -->
+    <div class="row">
+
+            <div class="col-md-6">
+              <!-- general form elements -->
+              <div class="box box-primary">
+                <div class="box-header">
+                  <h3 class="box-title"> Make a link</h3>
+                </div><!-- /.box-header -->
+                <!-- form start -->
+                <form role="form">
+                  <div class="box-body">
+
+                    <div class="form-group">
+                      <label for="exampleInputEmail1">Link title</label>
+                      <input id="tit" type="text" pattern="^[A-Za-z]+$" class="form-control" >
+                    </div>
+                          <!-- select -->
+                    <div class="form-group">
+                      <label>Select a wallet</label>
+                      <select id="wal" class="form-control">
+                         <option></option>
+                         {% for w in user_wallets %}
+                        <option>{{w.name}}-{{w.id}}</option>
+                         {% endfor %}
+                      </select>
+                    </div>
+
+
+                    <div class="form-group">
+                      <label for="exampleInputEmail1">Max withdraw:</label>
+                      <input id="maxamt" type="number" class="form-control" placeholder="1"></input>
+                    </div>
+                     <div class="form-group">
+                      <label for="exampleInputEmail1">Min withdraw:</label>
+                      <input id="minamt" type="number" class="form-control" placeholder="1"></input>
+                    </div>
+                    <div class="form-group">
+                      <label for="exampleInputPassword1">Amount of uses:</label>
+                      <input id="amt" type="number" class="form-control" placeholder="1"></input>
+                    </div>
+                    <div class="form-group">
+                      <label for="exampleInputPassword1">Time between withdrawals:</label>
+                      <input id="tme" type="number" class="form-control" placeholder="0" max="86400"></input>
+                    </div>
+                    <div class="checkbox">
+                      <label>
+                        <input id="uniq" type="checkbox"> Unique links
+                      </label>
+                    </div>
+                  </div><!-- /.box-body -->
+
+                  <div class="box-footer">
+
+                    <button onclick="postfau()" type="button" class="btn btn-info">Create link(s)</button><p style="color:red;" id="error"></p>
+                  </div>
+                </form>
+              </div><!-- /.box -->
+              </div>
+
+
+
+
+
+
+              <div class="col-md-6">
+              <!-- general form elements -->
+              <div class="box box-primary">
+                <div class="box-header">
+                  <h3 class="box-title">Select a link</h3>
+                </div><!-- /.box-header -->
+                <form role="form">
+                  <div class="box-body">
+                     <div class="form-group">
+
+                      <select class="form-control" id="fauselect" onchange="drawwithdraw()">
+                        <option></option>
+                         {% for w in user_fau %}
+                        <option id="{{w.uni}}"   >{{w.tit}}-{{w.uni}}-{{w.inc}}</option>
+                         {% endfor %}
+                      </select>
+                    </div>
+
+                   <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
+                </div>
+               </form>
+
+              </div><!-- /.box -->
+              </div>
+
+
+
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="box">
+          <div class="box-header">
+            <h3 class="box-title">Withdraw links <b id="withdraws"></b></h3>
+          </div>
+          <!-- /.box-header -->
+          <div class="box-body no-padding">
+            <table id="pagnation" class="table table-bordered table-striped">
+              <tr>
+                <th>Title</th>
+                <th style="width:15%">Link/ID</th>
+                <th style="width:15%">Max Withdraw</th>
+                <th style="width:15%">No. uses</th>
+                <th style="width:15%">Wait</th>
+                <th style="width:15%">Wallet</th>
+                <th style="width:10%">Edit</th>
+                <th style="width:10%">Del</th>
+              </tr>
+              <tbody id="transactions"></tbody>
+            </table>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+      </div>
+    </div>
+
+
+
+<div id="editlink"></div>
+
+    <!-- /.content -->
+  </section>
+
+  <script>
+    window.user = {{ user | megajson | safe }}
+    window.user_wallets = {{ user_wallets | megajson | safe }}
+    window.user_ext = {{ user_ext | megajson | safe }}
+    window.user_fau = {{ user_fau | megajson | safe }}
+
+    const user_fau  = window.user_fau
+    console.log(user_fau)
+
+
+function drawChart(user_fau) {
+  var transactionsHTML = ''
+
+  for (var i = 0; i < user_fau.length; i++) {
+    var tx = user_fau[i]
+    console.log(tx.nme)
+        // make the transactions table
+    transactionsHTML =
+      "<tr><td  style='width: 50%'>" +
+      tx.tit +
+      '</td><td >' +
+      "<a  href='" + "{{ url_for('withdraw.display') }}?id=" + tx.uni + "'>" + tx.uni.substring(0, 4) + "...</a>" +
+      '</td><td>' +
+      tx.maxamt    +
+      '</td><td>' +
+      tx.inc    +
+      '</td><td>' +
+      tx.tme    +
+      '</td><td>' +
+      "<a href='{{ url_for('wallet') }}?usr="+ user +"'>" + tx.uni.substring(0, 4) + "...</a>" +
+      '</td><td>' +
+      "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
+      '</td><td>' +
+      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + tx.uni + "&usr=" + user +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
+      '</td></tr>' +
+      transactionsHTML
+      document.getElementById('transactions').innerHTML = transactionsHTML
+
+    }
+  }
+
+if (user_fau.length) {
+  drawChart(user_fau)
+}
+
+
+//draws withdraw QR code
+function drawwithdraw() {
+
+
+      walname = document.getElementById("fauselect").value
+
+      thewithdraw = walname.split("-");
+      console.log(window.location.hostname + "-" + thewithdraw[1])
+
+        getAjax("/withdraw/api/v1/lnurlencode/"+ window.location.hostname + "/" + thewithdraw[1], "filla", function(datab) {
+      if (JSON.parse(datab).STATUS == 'TRUE') {
+          console.log(JSON.parse(datab).STATUS)
+          lnurlfau = (JSON.parse(datab).LNURL)
+
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: lnurlfau,
+        width: 300,
+        height: 300,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      })
+
+      if (thewithdraw[2] > 0){
+      document.getElementById('qrcodetxt').innerHTML = lnurlfau
+      +
+      "<a target='_blank' href='{{ url_for('withdraw.display') }}?id=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" +
+      "<a target='_blank' href='/withdraw/printwithdraw/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>"
+      document.getElementById("qrcode").style.backgroundColor = "white";
+      document.getElementById("qrcode").style.padding = "20px";
+      }
+      else{
+        document.getElementById('qrcode').innerHTML = ""
+        document.getElementById('qrcodetxt').innerHTML = "<h1>No more uses left in link!</h1><br/><br/>"
+
+
+      }
+
+        }
+        else {
+
+          thewithdraw[1] = "Failed to build LNURL"
+        }
+      })
+
+}
+
+
+function postfau(){
+
+  wal = document.getElementById('wal').value
+  tit = document.getElementById('tit').value
+  amt = document.getElementById('amt').value
+  maxamt = document.getElementById('maxamt').value
+  minamt = document.getElementById('minamt').value
+  tme = document.getElementById('tme').value
+  uniq = document.getElementById('uniq').checked
+
+
+  if (tit == "") {
+    document.getElementById("error").innerHTML = "Only use letters in title"
+    return amt
+  }
+    if (wal == "") {
+    document.getElementById("error").innerHTML = "No wallet selected"
+    return amt
+  }
+
+  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
+    document.getElementById("error").innerHTML = "Max 15 - 1000000 and must be higher than min"
+    return amt
+  }
+  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
+    document.getElementById("error").innerHTML = "Min 1 - 1000000 and must be lower than max"
+    return amt
+  }
+
+    if (isNaN(amt) || amt < 1 || amt > 1000) {
+    document.getElementById("error").innerHTML = "Amount of uses must be between 1 - 1000"
+    return amt
+  }
+
+    if (isNaN(tme) || tme < 1 || tme > 86400) {
+    document.getElementById("error").innerHTML = "Max waiting time 1 day (86400 secs)"
+    return amt
+  }
+
+
+  postAjax(
+    "{{ url_for('withdraw.create') }}",
+    JSON.stringify({"tit": tit, "amt": amt, "maxamt": maxamt, "minamt": minamt, "tme": tme, "wal": wal, "usr": user, "uniq": uniq}),
+    "filla",
+
+    function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
+})
+
+
+}
+
+
+function editlink(linknum){
+
+faudetails = user_fau[linknum]
+
+console.log(faudetails)
+wallpick = ""
+
+checkbox = ""
+if (faudetails.uniq == 1){
+  checkbox = "checked"}
+
+document.getElementById('editlink').innerHTML = "<div class='row'>"+
+            "<div class='col-md-6'>"+
+             " <!-- general form elements -->"+
+              "<div class='box box-primary'>"+
+                "<div class='box-header'>"+
+                  "<h3 class='box-title'> Edit: <i id='unid'>" + faudetails.tit + "-" + faudetails.uni + "</i> </h3>"+
+                  "<div class='box-tools pull-right'>" +
+"<button class='btn btn-box-tool' data-widget='remove'><i class='fa fa-times'></i></button>" +
+                  "</div>" +
+               " </div><!-- /.box-header -->"+
+               " <!-- form start -->"+
+                "<form role='form'>"+
+                  "<div class='box-body'>"+
+                    "<div class='col-sm-3 col-md-4'>"+
+                    "<div class='form-group'>"+
+                      "<label for='exampleInputEmail1'>Link title</label>"+
+    "<input id='edittit' type='text' class='form-control' value='"+
+         faudetails.tit +
+        "'></input> </div>"+
+                 " </div>"+
+                 " <div class='col-sm-4 col-md-4'>"+
+                        "  <!-- select -->"+
+                   " <div class='form-group'>"+
+                     " <label>Select a wallet</label>"+
+                      "<select id='editwal' class='form-control'>"+
+                       " <option>" + faudetails.walnme + "-" + faudetails.wal + "</option>"+
+                        " {% for w in user_wallets %}"+
+
+                        " <option>{{w.name}}-{{w.id}}</option>"+
+
+                        " {% endfor %}"+
+                     " </select>"+
+                   " </div>"+
+                   " </div>"+
+                   " <div class='col-sm-3 col-md-4'>"+
+                    "<div class='form-group'>"+
+                     " <label for='exampleInputPassword1'>Time between withdrawals:</label>"+
+        " <input id='edittme' type='number' class='form-control' placeholder='0' max='86400' value='"+
+         faudetails.tme +
+        "'></input>"+
+                    "</div> </div>"+
+                   " <div class='col-sm-3 col-md-4'>"+
+                    "<div class='form-group'>"+
+                      "<label for='exampleInputEmail1'>Max withdraw:</label>"+
+             " <input id='editmaxamt' type='number' class='form-control' placeholder='1' value='"+
+         faudetails.maxamt +
+        "'></input>"+
+                   " </div></div>"+
+                   " <div class='col-sm-3 col-md-4'>"+
+                    " <div class='form-group'>"+
+                     " <label for='exampleInputEmail1'>Min withdraw:</label>"+
+           " <input id='editminamt' type='number' class='form-control' placeholder='1' value='"+
+         faudetails.minamt +
+        "'></input>"+
+                   " </div></div>"+
+                   " <div class='col-sm-3 col-md-4'>"+
+                    "<div class='form-group'>"+
+                     " <label for='exampleInputPassword1'>Amount of uses:</label>"+
+        "   <input id='editamt' type='number' class='form-control' placeholder='1' value='"+
+         faudetails.inc +
+        "'></input>"+
+                   " </div> </div>"+
+                  "   <div class='col-sm-3 col-md-4'>"+
+                   " <div class='checkbox'>"+
+              "<label  data-toggle='tooltip' title='Some tooltip text!'><input id='edituniq' type='checkbox' "+
+         checkbox +
+        ">"+
+        "Unique links</label>"+
+                    "</div></div><!-- /.box-body -->"+
+                  " </div><br/>"+
+                 " <div class='box-footer'>"+
+                   " <button onclick='editlinkcont()' type='button' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
+                "  </div></form></div><!-- /.box --></div></div>"
+
+
+}
+
+function editlinkcont(){
+
+  unid = document.getElementById('unid').innerHTML
+  wal = document.getElementById('editwal').value
+  tit = document.getElementById('edittit').value
+  amt = document.getElementById('editamt').value
+  maxamt = document.getElementById('editmaxamt').value
+  minamt = document.getElementById('editminamt').value
+  tme = document.getElementById('edittme').value
+  uniq = document.getElementById('edituniq').checked
+
+
+
+  if (tit == "") {
+    document.getElementById("error2").innerHTML = "Only use letters in title"
+    return amt
+  }
+    if (wal == "") {
+    document.getElementById("error2").innerHTML = "No wallet selected"
+    return amt
+  }
+
+  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
+    document.getElementById("error2").innerHTML = "Max 10 - 1000000 and must be higher than min"
+    return amt
+  }
+  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
+    document.getElementById("error2").innerHTML = "Min 1 - 1000000 and must be lower than max"
+    return amt
+  }
+
+    if (isNaN(amt) || amt < 1 || amt > 1000) {
+    document.getElementById("error2").innerHTML = "Amount of uses must be between 1 - 1000"
+    return amt
+  }
+
+    if (isNaN(tme) || tme < 1 || tme > 86400) {
+    document.getElementById("error2").innerHTML = "Max waiting time 1 day (86400 secs)"
+    return amt
+  }
+
+
+  postAjax(
+    "{{ url_for('withdraw.create') }}",
+    JSON.stringify({"id": unid, "tit": tit, "amt": amt, "maxamt": maxamt, "minamt": minamt, "tme": tme, "wal": wal, "usr": user, "uniq": uniq}),
+    "filla",
+
+    function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
+})
+
+
+
+}
+
+  </script>
+</div>
+{% endblock %}

@@ -1,9 +1,7 @@
-<!-- @format -->
-
 <!DOCTYPE html>
-<html>
+<html style="background-color:grey;">
   <head>
-    <meta charset="UTF-8" />
+       <meta charset="UTF-8" />
     <title>LNBits Wallet</title>
     <meta
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
@@ -102,6 +100,9 @@
       #noQRFound {
         text-align: center;
       }
+      .layout-boxed {
+       background: white;
+     }
     </style>
 
     <!-- jQuery 2.1.3 -->
@@ -201,264 +202,90 @@
       src="{{ url_for('static', filename='plugins/bolt11/utils.js') }}"
       type="text/javascript"
     ></script>
+  </head>
+  <body class="skin-white layout-boxed sidebar-collapse sidebar-open">
+    <div class="wrapper">
+
     <style>
+    body {
+        width: 210mm;
+        /* to centre page on screen*/
+        margin-left: auto;
+        margin-right: auto;
+        background-color:white;
+    }
+    .layout-boxed .wrapper {
+    box-shadow: none;
 
-      //GOOFY CSS HACK TO GO DARK
-
-.skin-blue .wrapper {
-    background:
-    #1f2234;
-}
-
-body {
-    color: #fff;
-}
-
- .skin-blue .sidebar-menu > li.active > a {
-    color: #fff;
-  background:#1f2234;
-  border-left-color:#8964a9;
-}
-
-.skin-blue .main-header .navbar {
-    background-color:
-    #2e507d;
-}
-
-.content-wrapper, .right-side {
-    background-color:
-    #1f2234;
-}
-.skin-blue .main-header .logo {
-    background-color:
-#1f2234;
-color:
-#fff;
-}
-
-.skin-blue .sidebar-menu > li.header {
-    color:
-#4b646f;
-background:
-    #1f2234;
-}
-.skin-blue .wrapper, .skin-blue .main-sidebar, .skin-blue .left-side {
-    background:
-    #1f2234;
-}
-
-.skin-blue .sidebar-menu > li > .treeview-menu {
-    margin: 0 1px;
-    background:
-    #1f2234;
-}
-
-.skin-blue .sidebar-menu > li > a {
-    border-left: 3px solid
-    transparent;
-    margin-right: 1px;
-}
-.skin-blue .sidebar-menu > li > a:hover, .skin-blue .sidebar-menu > li.active > a {
-
-  color: #fff;
-  background:#3e355a;
-  border-left-color:#8964a9;
-
-}
-
-
-.skin-blue .main-header .logo:hover {
-    background:
-   #3e355a;
-}
-
-.skin-blue .main-header .navbar .sidebar-toggle:hover {
-    background-color:
-    #3e355a;
-}
-.main-footer {
-    background-color: #1f2234;
-    padding: 15px;
-    color: #fff;
-    border-top: 0px;
-}
-
-.skin-blue .main-header .navbar {
-    background-color: #1f2234;
-}
-
-.bg-red, .callout.callout-danger, .alert-danger, .alert-error, .label-danger, .modal-danger .modal-body {
-    background-color:
-    #1f2234 !important;
-}
-.alert-danger, .alert-error {
-
-    border-color: #fff;
-    border: 1px solid
-
-    #fff;
-    border-radius: 7px;
-
-}
-
-.skin-blue .main-header .navbar .nav > li > a:hover, .skin-blue .main-header .navbar .nav > li > a:active, .skin-blue .main-header .navbar .nav > li > a:focus, .skin-blue .main-header .navbar .nav .open > a, .skin-blue .main-header .navbar .nav .open > a:hover, .skin-blue .main-header .navbar .nav .open > a:focus {
-    color:
-    #f6f6f6;
-    background-color: #3e355a;
-}
-.bg-aqua, .callout.callout-info, .alert-info, .label-info, .modal-info .modal-body {
-    background-color:
-    #3e355a !important;
-}
-
-.box {
-    position: relative;
-    border-radius: 3px;
-    background-color: #333646;
-   border-top: 3px solid #8964a9;
-    margin-bottom: 20px;
-    width: 100%;
-
-}
-.table-striped > tbody > tr:nth-of-type(2n+1) {
-    background-color:
-    #333646;
-}
-
-.box-header {
-    color: #fff;
-
-}
-
-
-.box.box-danger {
-    border-top-color: #8964a9;
-}
-.box.box-primary {
-    border-top-color: #8964a9;
-}
-
-a {
-color: #8964a9;
-}
-.box-header.with-border {
-    border-bottom: none;
-}
-
-a:hover, a:active, a:focus {
-    outline: none;
-    text-decoration: none;
-    color: #fff;
-}
-// .modal.in .modal-dialog{
-//  color:#000;
-// }
-
-.form-control {
-
-background-color:#333646;
-color: #fff;
-
-}
-.box-footer {
-
-    border-top: none;
-
-    background-color:
-    #333646;
-}
-.modal-footer {
-
-    border-top: none;
-
-}
-.modal-content {
-
-background-color:
-    #333646;
-}
-.modal.in .modal-dialog {
-
-    background-color: #333646;
-
-}
-
-.h1 .small, .h1 small, .h2 .small, .h2 small, .h3 .small, .h3 small, .h4 .small, .h4 small, .h5 .small, .h5 small, .h6 .small, .h6 small, h1 .small, h1 small, h2 .small, h2 small, h3 .small, h3 small, h4 .small, h4 small, h5 .small, h5 small, h6 .small, h6 small {
-    font-weight: 400;
-    line-height: 1;
-    color:
-    #fff;
-}
-
-body {
-
-    background-color: #1f2234;
-}
-
-
+    }
     </style>
   </head>
-  <body class="skin-blue">
-    <div class="wrapper">
-      <header class="main-header">
-        <!-- Logo -->
-        <a href="{{ url_for('core.home') }}" class="logo"><b style="color: #8964a9;">LN</b>bits</a>
-        <!-- Header Navbar: style can be found in header.less -->
-        <nav class="navbar navbar-static-top" role="navigation">
-          <!-- Sidebar toggle button-->
-          <a
-            href="#"
-            class="sidebar-toggle"
-            data-toggle="offcanvas"
-            role="button"
-          >
-            <span class="sr-only">Toggle navigation</span>
-          </a>
-          <div class="navbar-custom-menu">
-            <ul class="nav navbar-nav">
-              <!-- Messages: style can be found in dropdown.less-->
-              <li class="dropdown messages-menu">
-                {% block messages %}{% endblock %}
-              </li>
-            </ul>
-          </div>
-        </nav>
-      </header>
+  <body>
 
-      <!-- Left side column. contains the logo and sidebar -->
-      <aside class="main-sidebar">
-        <!-- sidebar: style can be found in sidebar.less -->
-        <section class="sidebar">
-          <!-- Sidebar user panel -->
+<div id="allqrs"></div>
 
-          <!-- /.search form -->
-          <!-- sidebar menu: : style can be found in sidebar.less -->
-          <ul class="sidebar-menu">
-            <li class="header">MENU</li>
-            {% block menuitems %}{% endblock %}
-          </ul>
-        </section>
-        <!-- /.sidebar -->
-      </aside>
 
-      {% block body %}{% endblock %}
-    </div>
-
-    <footer class="main-footer">
-      <div class="pull-right hidden-xs">
-        <b>BETA</b>
-      </div>
-      <strong
-        >Learn more about LNbits
-        <a href="https://github.com/arcbtc/lnbits"
-          >https://github.com/arcbtc/lnbits</a
-        ></strong
-      >
-    </footer>
   </body>
 
-  <script
-    src="{{ url_for('static', filename='app.js') }}"
-    type="text/javascript"
-  ></script>
+      <script>
+    function getAjax(url, thekey, success) {
+  var xhr = window.XMLHttpRequest
+    ? new XMLHttpRequest()
+    : new ActiveXObject('Microsoft.XMLHTTP')
+  xhr.open('GET', url, true)
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState > 3 && xhr.status == 200) {
+      success(xhr.responseText)
+    }
+  }
+  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('Content-Type', 'application/json')
+
+  xhr.send()
+  return xhr
+}
+
+window.user_fau = {{ user_fau | megajson | safe }}
+
+
+function drawwithdraw(data, id) {
+
+      new QRCode(document.getElementById(id), {
+        text: data,
+        width: 120,
+        height: 120,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      } )
+
+
+        }
+lnurlar = {{ lnurlar|tojson }}
+lnurlamt = user_fau["inc"]
+console.log(user_fau)
+allqr = ""
+
+for (i = 0; i < lnurlamt; i++) {
+  allqr += "<div style='float:left;padding:20px; background-image: url(/static/note.jpg); width: 500px;height: 248px;'><div style='width:120px;float:right;margin-top:-16px;margin-right:-19px;background-color: white;'><div id='qrcode" + i + "'></div><center><p>{{user_fau[7]}} FREE SATS! <br/> <small style='font-size: 52%;'>SCAN AND FOLLOW LINK OR<br/>USE LN BITCOIN WALLET</small></p></center></div></div>"
+}
+
+document.getElementById("allqrs").innerHTML = allqr
+
+if (typeof lnurlar[1] != 'undefined'){
+for (i = 0; i < lnurlamt; i++) {
+  drawwithdraw(lnurlar[i], "qrcode" + i)
+}
+window.print()
+}
+else{
+  for (i = 0; i < lnurlamt; i++) {
+  drawwithdraw(lnurlar[0], "qrcode" + i)
+}
+window.print()
+}
+
+
+
+  </script>
 </html>
