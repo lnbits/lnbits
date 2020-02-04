@@ -13,7 +13,7 @@ from lnbits.extensions.withdraw import withdraw_ext
 @withdraw_ext.route("/api/v1/lnurlencode/<urlstr>/<parstr>", methods=["GET"])
 def api_lnurlencode(urlstr, parstr):
     """Returns encoded LNURL if web url and parameter gieven."""
-    print(urlstr)
+
     if not urlstr:
         return jsonify({"status": "FALSE"}), 200
 
@@ -27,7 +27,7 @@ def api_lnurlencode(urlstr, parstr):
             rand = randar[user_fau[0][10] - 1]
         else:
             rand = randar[0]
-        print(rand)
+
 
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=parstr, rand=rand)
 
@@ -57,7 +57,7 @@ def api_lnurlfetch(parstr, urlstr, rand):
         max_withdrawable=user_fau[0][7] * 1000,
         default_description="LNbits LNURL withdraw",
     )
-    print(res.json())
+
 
     return res.json(), 200
 
