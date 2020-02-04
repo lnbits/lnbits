@@ -277,7 +277,7 @@ function drawwithdraw() {
       document.getElementById('qrcodetxt').innerHTML = lnurlfau
       +
       "<a target='_blank' href='{{ url_for('withdraw.display') }}?id=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" +
-      "<a target='_blank' href='/withdraw/printwithdraw/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>"
+      "<a target='_blank' href='/withdraw/print/" + window.location.hostname + "/?id=" + thewithdraw[1] + "'><h4>Print all withdraws</h4></a>"
       document.getElementById("qrcode").style.backgroundColor = "white";
       document.getElementById("qrcode").style.padding = "20px";
       }
