@@ -260,9 +260,8 @@ function drawwithdraw() {
       console.log(window.location.hostname + "-" + thewithdraw[1])
 
         getAjax("/withdraw/api/v1/lnurlencode/"+ window.location.hostname + "/" + thewithdraw[1], "filla", function(datab) {
-      if (JSON.parse(datab).STATUS == 'TRUE') {
-          console.log(JSON.parse(datab).STATUS)
-          lnurlfau = (JSON.parse(datab).LNURL)
+      if (JSON.parse(datab).status == 'TRUE') {
+          lnurlfau = (JSON.parse(datab).lnurl)
 
 
       new QRCode(document.getElementById('qrcode'), {
