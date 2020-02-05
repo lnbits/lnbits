@@ -110,7 +110,7 @@ def api_lnurlwithdraw(rand):
 
     header = {"Content-Type": "application/json", "Grpc-Metadata-macaroon": str(user_fau[0][4])}
     data = {"payment_request": pr}
-    r = requests.post(url=url_for("api_transactions", _external=True), headers=header, data=json.dumps(data))
+    r = requests.post(url="https://lnbits.com/api/v1/channels/transactions", headers=header, data=json.dumps(data))
     r_json = r.json()
 
     if "ERROR" in r_json:
