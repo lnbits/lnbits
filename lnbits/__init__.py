@@ -16,7 +16,19 @@ from .settings import LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 
 
 app = Flask(__name__)
-
+Talisman(app, content_security_policy={
+    "default-src": [
+        "'self'",
+        "'unsafe-eval'",
+        "'unsafe-inline'",
+        "cdnjs.cloudflare.com",
+        "code.ionicframework.com",
+        "code.jquery.com",
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "maxcdn.bootstrapcdn.com",
+    ]
+})
 
 # filters
 app.jinja_env.filters["megajson"] = megajson
