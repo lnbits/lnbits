@@ -9,7 +9,7 @@ class MegaEncoder(json.JSONEncoder):
             for k in o.keys():
                 val[k] = o[k]
             return val
-        return o
+        return obj
 
 
 def megajson(obj):
