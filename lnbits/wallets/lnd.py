@@ -15,7 +15,7 @@ class LndWallet(Wallet):
         payment_hash, payment_request = None, None
         r = post(
             url=f"{self.endpoint}/v1/invoices",
-            headers=self.auth_admin,
+            headers=self.auth_admin, verify=False,
             json={"value": "100", "memo": memo, "private": True},
         )
 
@@ -23,7 +23,7 @@ class LndWallet(Wallet):
             data = r.json()
             payment_request = data["payment_request"]
 
-        rr = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read)
+        rr = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read, verify=False,)
 
         if rr.ok:
             dataa = rr.json()
@@ -33,12 +33,12 @@ class LndWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = post(
-            url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, json={"payment_request": bolt11}
+            url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, verify=False, json={"payment_request": bolt11}
         )
         return PaymentResponse(r, not r.ok)
 
     def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
-        r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_read)
+        r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_read, verify=False,)
 
         if not r.ok or "settled" not in r.json():
             return TxStatus(r, None)
@@ -46,7 +46,7 @@ class LndWallet(Wallet):
         return TxStatus(r, r.json()["settled"])
 
     def get_payment_status(self, payment_hash: str) -> TxStatus:
-        r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, params={"include_incomplete": True})
+        r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, verify=False, params={"include_incomplete": True})
 
         if not r.ok:
             return TxStatus(r, None)
