@@ -28,7 +28,6 @@ def api_lnurlencode(urlstr, parstr):
         else:
             rand = randar[0]
 
-
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=parstr, rand=rand)
 
     return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http", "https"))}), 200
@@ -42,7 +41,6 @@ def api_lnurlfetch(parstr, urlstr, rand):
         return jsonify({"status": "FALSE", "ERROR": "NO WALL ID"}), 200
 
     if not urlstr:
-
         return jsonify({"status": "FALSE", "ERROR": "NO URL"}), 200
 
     with open_ext_db("withdraw") as withdraw_ext_db:
@@ -57,7 +55,6 @@ def api_lnurlfetch(parstr, urlstr, rand):
         max_withdrawable=user_fau[0][7] * 1000,
         default_description="LNbits LNURL withdraw",
     )
-
 
     return res.json(), 200
 
@@ -79,11 +76,9 @@ def api_lnurlwithdraw(rand):
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
 
         if not user_fau:
-          
             return jsonify({"status": "ERROR", "reason": "NO AUTH"}), 400
 
         if user_fau[0][10] < 1:
-            
             return jsonify({"status": "ERROR", "reason": "withdraw SPENT"}), 400
 
         # Check withdraw time
@@ -110,8 +105,8 @@ def api_lnurlwithdraw(rand):
 
     header = {"Content-Type": "application/json", "Grpc-Metadata-macaroon": str(user_fau[0][4])}
     data = {"payment_request": pr}
-    #this works locally but not being served over host, bug, needs fixing
-    #r = requests.post(url="https://lnbits.com/api/v1/channels/transactions", headers=header, data=json.dumps(data))
+    # this works locally but not being served over host, bug, needs fixing
+    # r = requests.post(url="https://lnbits.com/api/v1/channels/transactions", headers=header, data=json.dumps(data))
     r = requests.post(url=url_for("api_transactions", _external=True), headers=header, data=json.dumps(data))
     r_json = r.json()
 

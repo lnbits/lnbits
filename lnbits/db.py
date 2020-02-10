@@ -1,9 +1,7 @@
 import os
 import sqlite3
 
-from typing import Optional
-
-from .settings import DATABASE_PATH, LNBITS_PATH
+from .settings import LNBITS_PATH, LNBITS_DATA_FOLDER
 
 
 class Database:
@@ -35,11 +33,28 @@ class Database:
         self.connection.commit()
 
 
-def open_db(db_path: str = DATABASE_PATH) -> Database:
+def open_db(db_name: str = "database") -> Database:
+    db_path = os.path.join(LNBITS_DATA_FOLDER, f"{db_name}.sqlite3")
     return Database(db_path=db_path)
 
 
-def open_ext_db(extension: Optional[str] = None) -> Database:
-    if extension:
-        return open_db(os.path.join(LNBITS_PATH, "extensions", extension, "database.sqlite3"))
-    return open_db(os.path.join(LNBITS_PATH, "extensions", "overview.sqlite3"))
+def open_ext_db(extension_name: str) -> Database:
+    return open_db(f"ext_{extension_name}")
+
+
+def init_databases() -> None:
+    """Creates the necessary databases if they don't exist already."""
+    """TODO: see how we can deal with migrations."""
+
+    schemas = [
+        ("database", os.path.join(LNBITS_PATH, "data", "schema.sql")),
+    ]
+
+    for extension in [x[1] for x in os.walk(os.path.join(LNBITS_PATH, "extensions"))][0]:
+        schemas.append((f"ext_{extension}", os.path.join(LNBITS_PATH, "extensions", extension, "schema.sql")))
+
+    for schema in [s for s in schemas if os.path.exists(s[1])]:
+        with open_db(schema[0]) as db:
+            with open(schema[1]) as schemafile:
+                for stmt in schemafile.read().split(";\n\n"):
+                    db.execute(stmt, [])

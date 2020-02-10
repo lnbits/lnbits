@@ -1,5 +1,4 @@
 import json
-import os
 import requests
 import uuid
 
@@ -9,26 +8,29 @@ from lnurl import Lnurl, LnurlWithdrawResponse
 
 from . import bolt11
 from .core import core_app
-from .db import open_db, open_ext_db
+from .db import init_databases, open_db
 from .extensions.withdraw import withdraw_ext
 from .helpers import megajson
-from .settings import LNBITS_PATH, WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
+from .settings import WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 
 
 app = Flask(__name__)
-Talisman(app, content_security_policy={
-    "default-src": [
-        "'self'",
-        "'unsafe-eval'",
-        "'unsafe-inline'",
-        "cdnjs.cloudflare.com",
-        "code.ionicframework.com",
-        "code.jquery.com",
-        "fonts.googleapis.com",
-        "fonts.gstatic.com",
-        "maxcdn.bootstrapcdn.com",
-    ]
-})
+Talisman(
+    app,
+    content_security_policy={
+        "default-src": [
+            "'self'",
+            "'unsafe-eval'",
+            "'unsafe-inline'",
+            "cdnjs.cloudflare.com",
+            "code.ionicframework.com",
+            "code.jquery.com",
+            "fonts.googleapis.com",
+            "fonts.gstatic.com",
+            "maxcdn.bootstrapcdn.com",
+        ]
+    },
+)
 
 # filters
 app.jinja_env.filters["megajson"] = megajson
@@ -40,10 +42,7 @@ app.register_blueprint(withdraw_ext, url_prefix="/withdraw")
 
 @app.before_first_request
 def init():
-    with open_db() as db:
-        with open(os.path.join(LNBITS_PATH, "data", "schema.sql")) as schemafile:
-            for stmt in schemafile.read().split(";\n\n"):
-                db.execute(stmt, [])
+    init_databases()
 
 
 @app.route("/deletewallet")
@@ -447,38 +446,35 @@ def api_checkpending():
 @app.route("/extensions")
 def extensions():
     usr = request.args.get("usr")
-    lnevents = request.args.get("lnevents")
-    lnjoust = request.args.get("lnjoust")
-    withdraw = request.args.get("withdraw")
-    if usr:
-        if not len(usr) > 20:
-            return redirect(url_for("home"))
+    enable = request.args.get("enable")
+    disable = request.args.get("disable")
+    ext = None
+
+    if usr and not len(usr) > 20:
+        return redirect(url_for("home"))
+
+    if enable and disable:
+        # TODO: show some kind of error
+        return redirect(url_for("extensions"))
 
     with open_db() as db:
         user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
 
-    with open_ext_db() as ext_db:
-        user_ext = ext_db.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
-        if not user_ext:
-            ext_db.execute(
-                """
-                INSERT OR IGNORE INTO overview (user) VALUES (?)
-                """,
-                (usr,),
-            )
-            return redirect(url_for("extensions", usr=usr))
+        if enable:
+            ext, value = enable, 1
+        if disable:
+            ext, value = disable, 0
 
-        if lnevents:
-            if int(lnevents) != user_ext[0][1] and int(lnevents) < 2:
-                ext_db.execute("UPDATE overview SET lnevents = ? WHERE user = ?", (int(lnevents), usr,))
-                user_ext = ext_db.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
-        if lnjoust:
-            if int(lnjoust) != user_ext[0][2] and int(lnjoust) < 2:
-                ext_db.execute("UPDATE overview SET lnjoust = ? WHERE user = ?", (int(lnjoust), usr,))
-                user_ext = ext_db.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
-        if withdraw:
-            if int(withdraw) != user_ext[0][3] and int(withdraw) < 2:
-                ext_db.execute("UPDATE overview SET withdraw = ? WHERE user = ?", (int(withdraw), usr,))
-                user_ext = ext_db.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+        if ext:
+            db.execute(
+                """
+                INSERT OR REPLACE INTO extensions (user, extension, active)
+                VALUES (?, ?, ?)
+                """,
+                (usr, ext, value),
+            )
+
+        user_ext = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (usr,))
+        user_ext = [v[0] for v in user_ext]
 
     return render_template("extensions.html", user_wallets=user_wallets, user=usr, user_ext=user_ext)
