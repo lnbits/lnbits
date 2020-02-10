@@ -36,23 +36,23 @@
     <ul class="treeview-menu">
 
 
-    {% if user_ext[0][1] %}
+    {% if "lnevents" in user_ext %}
     <li>
-      <a href="lnevents?usr={{ user_ext[0][0]}}"
+      <a href="lnevents?usr={{ user }}"
         ><i class="fa fa-plus"></i> LNEvents</a>
     </li>
     {% endif %}
 
-    {% if user_ext[0][2] %}
+    {% if "lnjoust" in user_ext %}
     <li>
-      <a href="lnjoust?usr={{ user_ext[0][0]}}"
+      <a href="lnjoust?usr={{ user }}"
         ><i class="fa fa-plus"></i> LNJoust</a>
     </li>
     {% endif %}
 
-    {% if user_ext[0][3] %}
+    {% if "withdraw" in user_ext %}
     <li>
-      <a href="withdraw?usr={{ user_ext[0][0]}}"
+      <a href="withdraw?usr={{ user }}"
         ><i class="fa fa-plus"></i> LNURLw</a>
     </li>
     {% endif %}
@@ -97,8 +97,7 @@
     <!-- Small boxes (Stat box) -->
     <div class="row">
 
-
-        {% if not user_ext[0][3] %}
+        {% if "withdraw" not in user_ext %}
             <div class="col-lg-3 col-xs-6">
               <!-- small box -->
               <div class="small-box bg-blue">
@@ -113,18 +112,18 @@
                 <div class="icon">
                   <i class="ion ion-beer"></i>
                 </div>
-                <a href="extensions?usr={{user}}&withdraw=1" class="small-box-footer">
+                <a href="extensions?usr={{user}}&enable=withdraw" class="small-box-footer">
                   Activate <i class="fa fa-arrow-circle-right"></i>
                 </a>
               </div>
             </div><!-- ./col -->
          {% else %}
-           
+
             <div class="col-lg-3 col-xs-6">
               <!-- small box -->
-              
+
               <div class="small-box bg-blue">
-               
+
                 <div class="inner">
                    <a href="withdraw?usr={{user}}" style="color: inherit;">
                   <h3>
@@ -136,17 +135,17 @@
 
                 </div>
                 <div class="icon">
-                  
+
                   <i class="ion ion-beer"></i>
-                
+
                 </div>
               </a>
-                <a href="extensions?usr={{user}}&withdraw=0" class="small-box-footer">
+                <a href="extensions?usr={{user}}&disable=withdraw" class="small-box-footer">
                   Deactivate <i class="fa fa-arrow-circle-right"></i>
                 </a>
 
               </div>
-               
+
             </div><!-- ./col -->
 
           {% endif %}
@@ -159,7 +158,7 @@
     window.user = {{ user | megajson | safe }}
     window.user_wallets = {{ user_wallets | megajson | safe }}
     window.user_ext = {{ user_ext | megajson | safe }}
-    
+
   </script>
 </div>
 {% endblock %}

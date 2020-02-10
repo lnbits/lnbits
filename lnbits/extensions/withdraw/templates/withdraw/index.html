@@ -34,9 +34,9 @@
     <i class="fa fa-angle-left pull-right"></i>
   </a>
     <ul class="treeview-menu">
-    {% if user_ext[0][3] %}
+    {% if "withdraw" in user_ext %}
     <li>
-      <a href="{{ url_for('withdraw.index') }}?usr={{ user_ext[0][0]}}"
+      <a href="{{ url_for('withdraw.index') }}?usr={{ user }}"
         ><i class="fa fa-plus"></i> LNURLw</a>
     </li>
     {% endif %}

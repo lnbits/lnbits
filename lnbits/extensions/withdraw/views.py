@@ -21,9 +21,8 @@ def index():
     # Get all the data
     with open_db() as db:
         user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
-
-    with open_ext_db() as ext_db:
-        user_ext = ext_db.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
+        user_ext = db.fetchall("SELECT * FROM extensions WHERE user = ?", (usr,))
+        user_ext = [v[0] for v in user_ext]
 
     with open_ext_db("withdraw") as withdraw_ext_db:
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
@@ -92,10 +91,18 @@ def create():
     dt = datetime.now()
     seconds = dt.timestamp()
 
+    with open_db() as db:
+        user_ext = db.fetchall("SELECT * FROM extensions WHERE user = ?", (usr,))
+        user_ext = [v[0] for v in user_ext]
+
     # Add to DB
-    with open_ext_db("withdraw") as db:
-        db.execute(
-            "INSERT OR IGNORE INTO withdraws (usr, wal, walnme, adm, uni, tit, maxamt, minamt, spent, inc, tme, uniq, withdrawals, tmestmp, rand) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    with open_ext_db("withdraw") as withdraw_ext_db:
+        withdraw_ext_db.execute(
+            """
+            INSERT OR IGNORE INTO withdraws
+            (usr, wal, walnme, adm, uni, tit, maxamt, minamt, spent, inc, tme, uniq, withdrawals, tmestmp, rand)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
             (
                 usr,
                 wall[1],
@@ -115,14 +122,8 @@ def create():
             ),
         )
 
-    # Get updated records
-    with open_ext_db() as ext_db:
-        user_ext = ext_db.fetchall("SELECT * FROM overview WHERE user = ?", (usr,))
-        if not user_ext:
-            return jsonify({"ERROR": "NO WALLET USER"}), 401
-
-    with open_ext_db("withdraw") as withdraw_ext_db:
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE usr = ?", (usr,))
+
         if not user_fau:
             return jsonify({"ERROR": "NO WALLET USER"}), 401
 

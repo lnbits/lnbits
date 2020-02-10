@@ -22,6 +22,5 @@ Pipfile.lock
 .env
 venv
 
-database.sqlite3
-database.sqlite3*
+*.sqlite3
 .pyre*
