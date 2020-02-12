@@ -156,6 +156,6 @@ def print_qr(urlstr):
 
         for d in range(len(randar)):
             url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=fauid, rand=randar[d])
-            lnurlar.append(lnurl_encode(url.replace("http", "https")))
+            lnurlar.append(lnurl_encode(url.replace("http://", "https://")))
 
     return render_template("withdraw/print.html", lnurlar=lnurlar, user_fau=user_fau[0],)
