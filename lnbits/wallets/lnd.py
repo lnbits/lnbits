@@ -16,7 +16,7 @@ class LndWallet(Wallet):
         r = post(
             url=f"{self.endpoint}/v1/invoices",
             headers=self.auth_admin, verify=False,
-            json={"value": "100", "memo": memo, "private": True},
+            json={"value": amount, "memo": memo, "private": True},
         )
 
         if r.ok:
