@@ -10,7 +10,7 @@ from . import bolt11
 from .core import core_app
 from .db import init_databases, open_db
 from .extensions.withdraw import withdraw_ext
-from .helpers import megajson
+from .helpers import ExtensionManager, megajson
 from .settings import WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 
 
@@ -33,6 +33,7 @@ Talisman(
 )
 
 # filters
+app.jinja_env.globals["EXTENSIONS"] = [ext for ext in ExtensionManager().extensions if ext.is_valid]
 app.jinja_env.filters["megajson"] = megajson
 
 # blueprints

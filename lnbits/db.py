@@ -1,6 +1,7 @@
 import os
 import sqlite3
 
+from .helpers import ExtensionManager
 from .settings import LNBITS_PATH, LNBITS_DATA_FOLDER
 
 
@@ -50,8 +51,8 @@ def init_databases() -> None:
         ("database", os.path.join(LNBITS_PATH, "data", "schema.sql")),
     ]
 
-    for extension in [x[1] for x in os.walk(os.path.join(LNBITS_PATH, "extensions"))][0]:
-        schemas.append((f"ext_{extension}", os.path.join(LNBITS_PATH, "extensions", extension, "schema.sql")))
+    for extension in ExtensionManager().extensions:
+        schemas.append((f"ext_{extension.code}", os.path.join(extension.path, "schema.sql")))
 
     for schema in [s for s in schemas if os.path.exists(s[1])]:
         with open_db(schema[0]) as db:
