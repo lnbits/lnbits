@@ -1,4 +1,4 @@
-bech32==1.1.0
+bech32==1.2.0
 bitstring==3.1.6
 certifi==2019.11.28
 chardet==3.0.4
@@ -8,11 +8,11 @@ flask==1.1.1
 idna==2.8
 itsdangerous==1.1.0
 jinja2==2.11.1
-lnurl==0.3.2
+lnurl==0.3.3
 markupsafe==1.1.1
 pydantic==1.4
 requests==2.22.0
 six==1.14.0
 typing-extensions==3.7.4.1 ; python_version < '3.8'
 urllib3==1.25.8
-werkzeug==0.16.1
+werkzeug==1.0.0
