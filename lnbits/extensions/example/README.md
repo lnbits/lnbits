@@ -1,4 +1,4 @@
-<h1>Example extension</h1>
+<h1>Example Extension</h1>
 <h2>*tagline*</h2>
 This is an example extension to help you organise and build you own.
 
