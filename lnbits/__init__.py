@@ -1,3 +1,4 @@
+import importlib
 import json
 import requests
 import uuid
@@ -9,12 +10,17 @@ from lnurl import Lnurl, LnurlWithdrawResponse
 from . import bolt11
 from .core import core_app
 from .db import init_databases, open_db
-from .extensions.withdraw import withdraw_ext
 from .helpers import ExtensionManager, megajson
 from .settings import WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 
 
 app = Flask(__name__)
+valid_extensions = [ext for ext in ExtensionManager().extensions if ext.is_valid]
+
+
+# optimization & security
+# -----------------------
+
 Talisman(
     app,
     content_security_policy={
@@ -32,18 +38,39 @@ Talisman(
     },
 )
 
+
+# blueprints / extensions
+# -----------------------
+
+app.register_blueprint(core_app)
+
+for ext in valid_extensions:
+    try:
+        ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
+        app.register_blueprint(getattr(ext_module, f"{ext.code}_ext"), url_prefix=f"/{ext.code}")
+    except Exception:
+        raise ImportError(f"Please make sure that the extension `{ext.code}` follows conventions.")
+
+
 # filters
-app.jinja_env.globals["EXTENSIONS"] = [ext for ext in ExtensionManager().extensions if ext.is_valid]
+# -------
+
+app.jinja_env.globals["EXTENSIONS"] = valid_extensions
 app.jinja_env.filters["megajson"] = megajson
 
-# blueprints
-app.register_blueprint(core_app)
-app.register_blueprint(withdraw_ext, url_prefix="/withdraw")
 
+# init
+# ----
 
 @app.before_first_request
 def init():
     init_databases()
+
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvv
+# move the rest to `core_app`
+# vvvvvvvvvvvvvvvvvvvvvvvvvvv
+# vvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 
 @app.route("/deletewallet")
