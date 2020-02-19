@@ -9,7 +9,7 @@ from lnbits.extensions.events import events_ext
 
 @events_ext.route("/")
 def index():
-    """Main withdraw link page."""
+    """Main events link page."""
 
     return render_template(
         "events/index.html"
