@@ -5,4 +5,4 @@ https://github.com/btcontract/lnurl-rfc/blob/master/spec.md#3-lnurl-withdraw
 
 With this extension to can create/edit LNURL withdraws, set a min/max amount, set time (useful for subscription services)
 
-[![lnurl](https://i.imgur.com/qHi7ExL.png)]
+![lnurl](https://i.imgur.com/qHi7ExL.png)
