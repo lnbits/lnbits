@@ -1,7 +1,7 @@
 #add your dependencies here
 from flask import jsonify, render_template, request, redirect, url_for
 from lnbits.db import open_db, open_ext_db
-from lnbits.extensions.events import events_ext
+from lnbits.extensions.example import example_ext
 
 #add your endpoints here
 
