@@ -2,6 +2,8 @@
 
 #add your dependencies here
 
+import json
+import requests
 from flask import jsonify, render_template, request, redirect, url_for
 from lnbits.db import open_db, open_ext_db
 from lnbits.extensions.example import example_ext
@@ -13,5 +15,4 @@ def api_example():
     """Try to add descriptions for others."""
     #YOUR-CODE
     
-    return jsonify({"status": "TRUE"), 200
-    
+    return jsonify({"status": "TRUE"}), 200
