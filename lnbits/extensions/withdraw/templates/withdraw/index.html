@@ -218,7 +218,7 @@
 function erralert(){
 
   var myUrlPattern = '.onion';
-  if (window.location.hostname.indexOf("168")  > 3 || location.hostname === "localhost" || location.hostname === "127.0.0.1" || n > 2 || window.location.hostname.indexOf(myUrlPattern) >= 0){
+  if (window.location.hostname.indexOf("168")  > 3 || location.hostname === "localhost" || location.hostname === "127.0.0.1" || window.location.hostname.indexOf(myUrlPattern) >= 0){
     document.getElementById("erralert").innerHTML = "<div class='alert alert-danger alert-dismissable'>"+
     "<h4>*Running LNURLw locally will likely need an SSH tunnel, or DNS magic."+
     "</h4></div>";
