@@ -6,7 +6,8 @@ from flask import jsonify, request, url_for
 from lnurl import LnurlWithdrawResponse, encode as lnurl_encode
 from datetime import datetime
 
-from lnbits.db import open_ext_db
+
+from lnbits.db import open_ext_db, open_db
 from lnbits.extensions.withdraw import withdraw_ext
 
 
@@ -117,3 +118,64 @@ def api_lnurlwithdraw(rand):
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE withdrawals = ?", (k1,))
 
     return jsonify({"status": "OK"}), 200
+
+@withdraw_ext.route("/api/v1/lnurlmaker", methods=["GET","POST"])
+def api_lnurlmaker():
+
+    if request.headers["Content-Type"] != "application/json":
+        return jsonify({"ERROR": "MUST BE JSON"}), 400
+
+    with open_db() as db:
+        wallet = db.fetchall(
+            "SELECT * FROM wallets WHERE adminkey = ?",
+            (request.headers["Grpc-Metadata-macaroon"],),
+        )
+        if not wallet:
+            return jsonify({"ERROR": "NO KEY"}), 200
+
+        balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet[0][0],))[0]
+        print(balance)
+
+    postedjson = request.json
+    print(postedjson["amount"])
+    
+    if balance < int(postedjson["amount"]):
+        return jsonify({"ERROR": "NOT ENOUGH FUNDS"}), 200
+
+    uni = uuid.uuid4().hex
+    rand = uuid.uuid4().hex[0:5]
+
+    with open_ext_db("withdraw") as withdraw_ext_db:
+        withdraw_ext_db.execute(
+            """
+            INSERT OR IGNORE INTO withdraws
+            (usr, wal, walnme, adm, uni, tit, maxamt, minamt, spent, inc, tme, uniq, withdrawals, tmestmp, rand)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                wallet[0][2],
+                wallet[0][0],
+                wallet[0][1],
+                wallet[0][3],
+                uni,
+                postedjson["memo"],
+                postedjson["amount"],
+                postedjson["amount"],
+                0,
+                1,
+                1,
+                0,
+                0,
+                1,
+                rand,
+            ),
+        )
+
+        user_fau = withdraw_ext_db.fetchone("SELECT * FROM withdraws WHERE uni = ?", (uni,))
+
+        if not user_fau:
+            return jsonify({"ERROR": "WITHDRAW NOT MADE"}), 401
+
+    url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=request.host, parstr=uni, rand=rand)
+    
+    return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
