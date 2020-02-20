@@ -53,8 +53,8 @@
   <!-- Content Header (Page header) -->
   <section class="content-header">
     <h1>
-      Withdraw link maker
-      <small>powered by LNURL</small>
+      Events
+      <small>bitcoin tickets</small>
 
     </h1>
     <ol class="breadcrumb">
@@ -111,7 +111,7 @@
 
                     <div class="form-group">
                       <label for="nooftickets">No. of tickets</label>
-                      <input id="notickets" type="number" class="form-control" placeholder="1" max="86400"></input>
+                      <input id="notickets" type="number" class="form-control" placeholder="10" max="86400"></input>
                     </div>
 
                 <div class="form-group">
@@ -128,7 +128,7 @@
 
                     <div class="form-group">
                       <label for="prpertick">Price per ticket</label>
-                      <input id="prtickets" type="number" class="form-control" placeholder="1"></input>
+                      <input id="prtickets" type="number" class="form-control" placeholder="10"></input>
                     </div>
 
 
@@ -240,7 +240,7 @@ function postev(){
   cldate = document.getElementById('datepicker').value
   notickets = document.getElementById('notickets').value
   prtickets = document.getElementById('prtickets').value
-  alert(cldate)
+
   if (tit == "") {
     document.getElementById("error").innerHTML = "Only use letters in title"
     return amt
@@ -330,7 +330,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Price per ticket:</label>"+
              " <input id='editprtick' type='number' class='form-control' placeholder='1' value='"+
-         evdetails.prtickets +
+         evdetails.prtick +
         "'></input>"+
                    " </div></div>"+
                    " <div class='col-sm-3 col-md-4'>"+
@@ -344,7 +344,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                    "</div><!-- /.box-body -->"+
                   " </div><br/>"+
                  " <div class='box-footer'>"+
-                   " <button onclick='editlinkcont()' type='button' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
+                   " <button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
                 "  </div></form></div><!-- /.box --></div></div>"
 
 
@@ -362,10 +362,8 @@ function editlinkcont(){
   tit = document.getElementById('edittit').value
   nooftickets = document.getElementById('editnooftickets').value
   prtick = document.getElementById('editprtick').value
-  cldate = document.getElementById('datepicker').value
-  tme = document.getElementById('edittme').value
-  uniq = document.getElementById('edituniq').checked
-
+  cldate = document.getElementById('datepicker2').value
+  uni = unid.split("-")[1]
 
   if (tit == "") {
     document.getElementById("error2").innerHTML = "Only use letters in title"
@@ -376,32 +374,23 @@ function editlinkcont(){
     return amt
   }
 
-  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
-    document.getElementById("error2").innerHTML = "Max 10 - 1000000 and must be higher than min"
+  if (isNaN(nooftickets) || nooftickets < 1 || nooftickets > 1000000) {
+    document.getElementById("error2").innerHTML = "No. of tickets must be between 1 - 1000000"
     return amt
   }
-  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
-    document.getElementById("error2").innerHTML = "Min 1 - 1000000 and must be lower than max"
-    return amt
-  }
-
-    if (isNaN(amt) || amt < 1 || amt > 1000) {
-    document.getElementById("error2").innerHTML = "Amount of uses must be between 1 - 1000"
-    return amt
-  }
-
-    if (isNaN(tme) || tme < 1 || tme > 86400) {
-    document.getElementById("error2").innerHTML = "Max waiting time 1 day (86400 secs)"
+  if (isNaN(prtick) || prtick < 10 ) {
+    document.getElementById("error2").innerHTML = "Ticket pricket must be higher than 10"
     return amt
   }
 
 
   postAjax(
-    "{{ url_for('withdraw.create') }}",
-    JSON.stringify({"id": unid, "tit": tit, "amt": amt, "maxamt": maxamt, "minamt": minamt, "tme": tme, "wal": wal, "usr": user, "uniq": uniq}),
+    "{{ url_for('events.create') }}",
+    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid}),
+                    
     "filla",
 
-    function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
+    function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
 })
 
 }
