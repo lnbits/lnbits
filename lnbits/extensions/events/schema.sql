@@ -15,5 +15,7 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS eventssold (
     key INTEGER PRIMARY KEY AUTOINCREMENT,
     uni TEXT,
+    email TEXT,
+    name TEXT,
     hash TEXT
 );
