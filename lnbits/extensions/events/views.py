@@ -75,7 +75,7 @@ def create():
     with open_db() as db:
         user_ext = db.fetchall("SELECT * FROM extensions WHERE user = ?", (usr,))
         user_ext = [v[0] for v in user_ext]
-
+    
     # Add to DB
     with open_ext_db("events") as events_ext_db:
         events_ext_db.execute(
