@@ -6,15 +6,16 @@ CREATE TABLE IF NOT EXISTS events (
     walinvkey INTEGER,
     uni TEXT,
     tit TEXT,
-    amt INTEGER,
-    sold INTEGER,
-    dat TEXT,
-    tme TEXT,
-    price INTEGER
+    cldate TEXT,
+    notickets INTEGER,
+    sold INTEGER DEFAULT 0,
+    prtick INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS eventssold (
     key INTEGER PRIMARY KEY AUTOINCREMENT,
     uni TEXT,
+    email TEXT,
+    name TEXT,
     hash TEXT
 );

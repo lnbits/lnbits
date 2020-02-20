@@ -53,8 +53,8 @@
   <!-- Content Header (Page header) -->
   <section class="content-header">
     <h1>
-      Withdraw link maker
-      <small>powered by LNURL</small>
+      Events
+      <small>bitcoin tickets</small>
 
     </h1>
     <ol class="breadcrumb">
@@ -70,7 +70,14 @@
     </ol>
     <br /><br />
   </section>
+<style>
+#ui-datepicker-div{
 
+  background-color: #1f2234;
+    padding: 0 10px 10px 10px;
+}
+
+</style>
   <!-- Main content -->
   <section class="content">
     <!-- Small boxes (Stat box) -->
@@ -80,7 +87,7 @@
               <!-- general form elements -->
               <div class="box box-primary">
                 <div class="box-header">
-                  <h3 class="box-title"> Make a wave</h3>
+                  <h3 class="box-title"> Make a eve</h3>
                 </div><!-- /.box-header -->
                 <!-- form start -->
                 <form role="form">
@@ -104,17 +111,24 @@
 
                     <div class="form-group">
                       <label for="nooftickets">No. of tickets</label>
-                      <input id="notickets" type="number" class="form-control" placeholder="1" max="86400"></input>
+                      <input id="notickets" type="number" class="form-control" placeholder="10" max="86400"></input>
                     </div>
 
-                    <div class="form-group">
-                      <label for="nooftickets">Date</label>
-                      <input type="text" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask/>
-                    </div><!-- /.input group -->
+                <div class="form-group">
+                <label>Close date:</label>
+
+                <div class="input-group date">
+                  <div class="input-group-addon">
+                    <i class="fa fa-calendar"></i>
+                  </div>
+                  <input type="text" class="form-control pull-right" id="datepicker">
+                </div>
+                <!-- /.input group -->
+              </div>
 
                     <div class="form-group">
                       <label for="prpertick">Price per ticket</label>
-                      <input id="prtickets" type="number" class="form-control" placeholder="1"></input>
+                      <input id="prtickets" type="number" class="form-control" placeholder="10"></input>
                     </div>
 
 
@@ -122,7 +136,7 @@
 
                   <div class="box-footer">
 
-                    <button onclick="postwave()" type="button" class="btn btn-info">Create wave</button><p style="color:red;" id="error"></p>
+                    <button onclick="postev()" type="button" class="btn btn-info">Create Wave</button><p style="color:red;" id="error"></p>
                   </div>
                 </form>
               </div><!-- /.box -->
@@ -136,7 +150,7 @@
       <div class="col-md-6">
         <div class="box">
           <div class="box-header">
-            <h3 class="box-title">Ticket waves<b id="withdraws"></b></h3>
+            <h3 class="box-title">Ticket Waves<b id="withdraws"></b></h3>
           </div>
           <!-- /.box-header -->
           <div class="box-body no-padding">
@@ -145,7 +159,7 @@
                 <th>Title</th>
                 <th style="width:15%">Amt</th>
                 <th style="width:15%">Sold</th>
-                <th style="width:15%">Date</th>
+                <th style="width:15%">Closing</th>
                 <th style="width:15%">Price</th>
                 <th style="width:15%">Wallet</th>
                 <th style="width:10%">Edit</th>
@@ -168,36 +182,46 @@
   </section>
 
   <script>
+
+    //Date picker
+    $('#datepicker').datepicker({
+      autoclose: true
+    })
+  
+
+
     window.user = {{ user | megajson | safe }}
     window.user_wallets = {{ user_wallets | megajson | safe }}
     window.user_ext = {{ user_ext | megajson | safe }}
-    window.user_wav = {{ user_fau | megajson | safe }}
+    window.user_ev = {{ user_ev | megajson | safe }}
 
-    const user_wav  = window.user_wav
-    console.log(user_wav)
+    const user_ev = window.user_ev
+    console.log(user_ev)
 
 
-function drawChart(user_wav) {
+function drawChart(user_ev) {
   var transactionsHTML = ''
 
-  for (var i = 0; i < user_wav.length; i++) {
-    var wv = user_wav[i]
+  for (var i = 0; i < user_ev.length; i++) {
+    var ev = user_ev[i]
 
     transactionsHTML =
       "<tr><td  style='width: 50%'>" +
-      wv.tit +
+      ev.tit +
       '</td><td>' +
-      wv.nosold    +
+      ev.notickets    +
       '</td><td>' +
-      wv.noavail    +
+      ev.sold    +
       '</td><td>' +
-      wv.prpertick    +
+      ev.cldate    +
       '</td><td>' +
-      "<a href='{{ url_for('wallet') }}?usr="+ user +"'>" + wv.uni.substring(0, 4) + "...</a>" +
+      ev.prtick +
+      '</td><td>' +
+      "<a href='{{ url_for('wallet') }}?usr="+ ev.usr +"'>" + ev.wal.substring(0, 4) + "...</a>" +
       '</td><td>' +
       "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
       '</td><td>' +
-      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + wv.uni + "&usr=" + user +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
+      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
       '</td></tr>' +
       transactionsHTML
       document.getElementById('ticketwaves').innerHTML = transactionsHTML
@@ -205,12 +229,17 @@ function drawChart(user_wav) {
     }
   }
 
-function postwav(){
+if (user_ev.length) {
+  drawChart(user_ev)
+}
+
+function postev(){
 
   wal = document.getElementById('wal').value
   tit = document.getElementById('tit').value
-  nooftickets = document.getElementById('nooftickets').value
-  prtick = document.getElementById('prtick').value
+  cldate = document.getElementById('datepicker').value
+  notickets = document.getElementById('notickets').value
+  prtickets = document.getElementById('prtickets').value
 
   if (tit == "") {
     document.getElementById("error").innerHTML = "Only use letters in title"
@@ -220,36 +249,40 @@ function postwav(){
     document.getElementById("error").innerHTML = "No wallet selected"
     return amt
   }
+      if (cldate == "") {
+    document.getElementById("error").innerHTML = "No date selected"
+    return amt
+  }
 
   if (isNaN(notickets) || notickets < 1) {
     document.getElementById("error").innerHTML = "Must be more than 1"
     return amt
   }
-  if (isNaN(prpertickets) || prpertickets < 10) {
+  if (isNaN(prtickets) || prtickets < 10) {
     document.getElementById("error").innerHTML = "Must be higher 10"
     return amt
   }
 
   postAjax(
-    "{{ url_for('wave.create') }}",
-    JSON.stringify({"tit": tit, "nooftickets": nooftickets, "nooftickets": nooftickets, "prtick": prtick}),
+    "{{ url_for('events.create') }}",
+    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets}),
     "filla",
 
-    function(data) {  location.replace("{{ url_for('wav.index') }}?usr=" + user)
+    function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
   })
 
 }
 
 
-function editlink(wavnum){
+function editlink(evnum){
 
-wavdetails = user_wav[wavnum]
+evdetails = user_ev[evnum]
 
-console.log(wavdetails)
+console.log(evdetails)
 wallpick = ""
 
 checkbox = ""
-if (wavdetails.uniq == 1){
+if (evdetails.uniq == 1){
   checkbox = "checked"}
 
 document.getElementById('editlink').innerHTML = "<div class='row'>"+
@@ -257,7 +290,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
              " <!-- general form elements -->"+
               "<div class='box box-primary'>"+
                 "<div class='box-header'>"+
-                  "<h3 class='box-title'> Edit: <i id='unid'>" + wavdetails.tit + "-" + wavdetails.uni + "</i> </h3>"+
+                  "<h3 class='box-title'> Edit: <i id='unid'>" + evdetails.tit + "-" + evdetails.uni + "</i> </h3>"+
                   "<div class='box-tools pull-right'>" +
 "<button class='btn btn-box-tool' data-widget='remove'><i class='fa fa-times'></i></button>" +
                   "</div>" +
@@ -269,7 +302,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Link title</label>"+
     "<input id='edittit' type='text' class='form-control' value='"+
-         wavdetails.tit +
+         evdetails.tit +
         "'></input> </div>"+
                  " </div>"+
                  " <div class='col-sm-4 col-md-4'>"+
@@ -277,7 +310,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                    " <div class='form-group'>"+
                      " <label>Select a wallet</label>"+
                       "<select id='editwal' class='form-control'>"+
-                       " <option>" + wavdetails.walnme + "-" + wavdetails.wal + "</option>"+
+                       " <option>" + evdetails.walnme + "-" + evdetails.wal + "</option>"+
                         " {% for w in user_wallets %}"+
 
                         " <option>{{w.name}}-{{w.id}}</option>"+
@@ -289,58 +322,48 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                    " <div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                      " <label for='exampleInputPassword1'>No of tickets:</label>"+
-        " <input id='edittme' type='number' class='form-control' placeholder='0' max='86400' value='"+
-         wavdetails.notickets +
+        " <input id='editnooftickets' type='number' class='form-control' placeholder='0' max='86400' value='"+
+         evdetails.notickets +
         "'></input>"+
                     "</div> </div>"+
                    " <div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Price per ticket:</label>"+
-             " <input id='editmaxamt' type='number' class='form-control' placeholder='1' value='"+
-         wavdetails.prperticket +
+             " <input id='editprtick' type='number' class='form-control' placeholder='1' value='"+
+         evdetails.prtick +
         "'></input>"+
                    " </div></div>"+
                    " <div class='col-sm-3 col-md-4'>"+
-                    " <div class='form-group'>"+
+                    "  <div class='input-group date'>"+
                      " <label for='exampleInputEmail1'>Close date:</label>"+
-           " <input id='editminamt' type='number' class='form-control' placeholder='1' value='"+
-         wavdetails.minamt +
+           " <input id='datepicker2' type='text' class='form-control' placeholder='1' value='"+
+         evdetails.cldate +
         "'></input>"+
                    " </div></div>"+
-                   " <div class='col-sm-3 col-md-4'>"+
-                    "<div class='form-group'>"+
-                     " <label for='exampleInputPassword1'>Amount of uses:</label>"+
-        "   <input id='editamt' type='number' class='form-control' placeholder='1' value='"+
-         wavdetails.inc +
-        "'></input>"+
-                   " </div> </div>"+
                   "   <div class='col-sm-3 col-md-4'>"+
-                   " <div class='checkbox'>"+
-              "<label  data-toggle='tooltip' title='Some tooltip text!'><input id='edituniq' type='checkbox' "+
-         checkbox +
-        ">"+
-        "Unique links</label>"+
-                    "</div></div><!-- /.box-body -->"+
+                   "</div><!-- /.box-body -->"+
                   " </div><br/>"+
                  " <div class='box-footer'>"+
-                   " <button onclick='editlinkcont()' type='button' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
+                   " <button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
                 "  </div></form></div><!-- /.box --></div></div>"
 
 
 }
 
+      //Date picker
+    $('#datepicker2').datepicker({
+      autoclose: true
+    })
+    
 function editlinkcont(){
 
   unid = document.getElementById('unid').innerHTML
   wal = document.getElementById('editwal').value
   tit = document.getElementById('edittit').value
-  amt = document.getElementById('editamt').value
-  maxamt = document.getElementById('editmaxamt').value
-  minamt = document.getElementById('editminamt').value
-  tme = document.getElementById('edittme').value
-  uniq = document.getElementById('edituniq').checked
-
-
+  nooftickets = document.getElementById('editnooftickets').value
+  prtick = document.getElementById('editprtick').value
+  cldate = document.getElementById('datepicker2').value
+  uni = unid.split("-")[1]
 
   if (tit == "") {
     document.getElementById("error2").innerHTML = "Only use letters in title"
@@ -351,37 +374,28 @@ function editlinkcont(){
     return amt
   }
 
-  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
-    document.getElementById("error2").innerHTML = "Max 10 - 1000000 and must be higher than min"
+  if (isNaN(nooftickets) || nooftickets < 1 || nooftickets > 1000000) {
+    document.getElementById("error2").innerHTML = "No. of tickets must be between 1 - 1000000"
     return amt
   }
-  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
-    document.getElementById("error2").innerHTML = "Min 1 - 1000000 and must be lower than max"
-    return amt
-  }
-
-    if (isNaN(amt) || amt < 1 || amt > 1000) {
-    document.getElementById("error2").innerHTML = "Amount of uses must be between 1 - 1000"
-    return amt
-  }
-
-    if (isNaN(tme) || tme < 1 || tme > 86400) {
-    document.getElementById("error2").innerHTML = "Max waiting time 1 day (86400 secs)"
+  if (isNaN(prtick) || prtick < 10 ) {
+    document.getElementById("error2").innerHTML = "Ticket pricket must be higher than 10"
     return amt
   }
 
 
   postAjax(
-    "{{ url_for('withdraw.create') }}",
-    JSON.stringify({"id": unid, "tit": tit, "amt": amt, "maxamt": maxamt, "minamt": minamt, "tme": tme, "wal": wal, "usr": user, "uniq": uniq}),
+    "{{ url_for('events.create') }}",
+    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid}),
+                    
     "filla",
 
-    function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
+    function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
 })
 
-
-
 }
+
+
 
   </script>
 </div>
