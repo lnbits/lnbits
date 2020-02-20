@@ -44,17 +44,16 @@ def create():
     tit = data["tit"]
     wal = data["wal"]
     cldate = data["cldate"]
-    nooftickets = data["nooftickets"]
-    prtick = data["prtick"]
+    notickets = data["notickets"]
+    prtick = data["prtickets"]
     usr = data["usr"]
     wall = wal.split("-")
 
     # Form validation
     if (
-        int(amt) < 0
-        or not tit.replace(" ", "").isalnum()
+        not tit.replace(" ", "").isalnum()
         or wal == ""
-        or int(nooftickets) < 0
+        or int(notickets) < 0
         or int(prtick) < 0
     ):
         return jsonify({"ERROR": "FORM ERROR"}), 401
@@ -82,8 +81,8 @@ def create():
         events_ext_db.execute(
             """
             INSERT OR IGNORE INTO events
-            (usr, wal, walnme, walinvkey, uni, tit, cldate, nooftickets, prtick)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (usr, wal, walnme, walinvkey, uni, tit, cldate, notickets, prtick)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 usr,
@@ -93,7 +92,7 @@ def create():
                 uni,
                 tit,
                 cldate,
-                nooftickets,
+                notickets,
                 prtick,
             ),
         )
