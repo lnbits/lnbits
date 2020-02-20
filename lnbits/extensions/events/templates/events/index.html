@@ -70,7 +70,14 @@
     </ol>
     <br /><br />
   </section>
+<style>
+#ui-datepicker-div{
 
+  background-color: #1f2234;
+    padding: 0 10px 10px 10px;
+}
+
+</style>
   <!-- Main content -->
   <section class="content">
     <!-- Small boxes (Stat box) -->
@@ -107,10 +114,17 @@
                       <input id="notickets" type="number" class="form-control" placeholder="1" max="86400"></input>
                     </div>
 
-                    <div class="form-group">
-                      <label for="cldate">Date</label>
-                      <input type="text" class="form-control" id="cldate"></input>
-                    </div>
+                <div class="form-group">
+                <label>Close date:</label>
+
+                <div class="input-group date">
+                  <div class="input-group-addon">
+                    <i class="fa fa-calendar"></i>
+                  </div>
+                  <input type="text" class="form-control pull-right" id="datepicker">
+                </div>
+                <!-- /.input group -->
+              </div>
 
                     <div class="form-group">
                       <label for="prpertick">Price per ticket</label>
@@ -145,7 +159,7 @@
                 <th>Title</th>
                 <th style="width:15%">Amt</th>
                 <th style="width:15%">Sold</th>
-                <th style="width:15%">Date</th>
+                <th style="width:15%">Closing</th>
                 <th style="width:15%">Price</th>
                 <th style="width:15%">Wallet</th>
                 <th style="width:10%">Edit</th>
@@ -168,6 +182,14 @@
   </section>
 
   <script>
+
+    //Date picker
+    $('#datepicker').datepicker({
+      autoclose: true
+    })
+  
+
+
     window.user = {{ user | megajson | safe }}
     window.user_wallets = {{ user_wallets | megajson | safe }}
     window.user_ext = {{ user_ext | megajson | safe }}
@@ -187,17 +209,19 @@ function drawChart(user_ev) {
       "<tr><td  style='width: 50%'>" +
       ev.tit +
       '</td><td>' +
-      ev.nosold    +
+      ev.notickets    +
       '</td><td>' +
-      ev.noavail    +
+      ev.sold    +
       '</td><td>' +
-      ev.prpertick    +
+      ev.cldate    +
       '</td><td>' +
-      "<a href='{{ url_for('wallet') }}?usr="+ user +"'>" + ev.uni.substring(0, 4) + "...</a>" +
+      ev.prtick +
+      '</td><td>' +
+      "<a href='{{ url_for('wallet') }}?usr="+ ev.usr +"'>" + ev.wal.substring(0, 4) + "...</a>" +
       '</td><td>' +
       "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
       '</td><td>' +
-      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + ev.uni + "&usr=" + user +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
+      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
       '</td></tr>' +
       transactionsHTML
       document.getElementById('ticketwaves').innerHTML = transactionsHTML
@@ -205,14 +229,18 @@ function drawChart(user_ev) {
     }
   }
 
+if (user_ev.length) {
+  drawChart(user_ev)
+}
+
 function postev(){
 
   wal = document.getElementById('wal').value
   tit = document.getElementById('tit').value
-  cldate = document.getElementById('cldate').value
-  nooftickets = document.getElementById('nooftickets').value
-  prtick = document.getElementById('prtick').value
-
+  cldate = document.getElementById('datepicker').value
+  notickets = document.getElementById('notickets').value
+  prtickets = document.getElementById('prtickets').value
+  alert(cldate)
   if (tit == "") {
     document.getElementById("error").innerHTML = "Only use letters in title"
     return amt
@@ -230,14 +258,14 @@ function postev(){
     document.getElementById("error").innerHTML = "Must be more than 1"
     return amt
   }
-  if (isNaN(prpertickets) || prpertickets < 10) {
+  if (isNaN(prtickets) || prtickets < 10) {
     document.getElementById("error").innerHTML = "Must be higher 10"
     return amt
   }
 
   postAjax(
     "{{ url_for('events.create') }}",
-    JSON.stringify({"tit": tit, "wal": wal, "nooftickets": nooftickets,"cldate": cldate, "prtick": prtick}),
+    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets}),
     "filla",
 
     function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
@@ -295,20 +323,20 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                     "<div class='form-group'>"+
                      " <label for='exampleInputPassword1'>No of tickets:</label>"+
         " <input id='editnooftickets' type='number' class='form-control' placeholder='0' max='86400' value='"+
-         evdetails.nooftickets +
+         evdetails.notickets +
         "'></input>"+
                     "</div> </div>"+
                    " <div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Price per ticket:</label>"+
              " <input id='editprtick' type='number' class='form-control' placeholder='1' value='"+
-         evdetails.prtick +
+         evdetails.prtickets +
         "'></input>"+
                    " </div></div>"+
                    " <div class='col-sm-3 col-md-4'>"+
-                    " <div class='form-group'>"+
+                    "  <div class='input-group date'>"+
                      " <label for='exampleInputEmail1'>Close date:</label>"+
-           " <input id='editminamt' type='number' class='form-control' placeholder='1' value='"+
+           " <input id='datepicker2' type='text' class='form-control' placeholder='1' value='"+
          evdetails.cldate +
         "'></input>"+
                    " </div></div>"+
@@ -321,8 +349,12 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
 
 
 }
-usr, wal, walnme, walinvkey, uni, tit, cldate, nooftickets, prtick
 
+      //Date picker
+    $('#datepicker2').datepicker({
+      autoclose: true
+    })
+    
 function editlinkcont(){
 
   unid = document.getElementById('unid').innerHTML
@@ -330,7 +362,7 @@ function editlinkcont(){
   tit = document.getElementById('edittit').value
   nooftickets = document.getElementById('editnooftickets').value
   prtick = document.getElementById('editprtick').value
-  cldate = document.getElementById('editcldate').value
+  cldate = document.getElementById('datepicker').value
   tme = document.getElementById('edittme').value
   uniq = document.getElementById('edituniq').checked
 
@@ -372,9 +404,9 @@ function editlinkcont(){
     function(data) {  location.replace("{{ url_for('withdraw.index') }}?usr=" + user)
 })
 
-
-
 }
+
+
 
   </script>
 </div>
