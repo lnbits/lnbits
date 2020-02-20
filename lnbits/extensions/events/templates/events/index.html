@@ -71,10 +71,9 @@
     <br /><br />
   </section>
 <style>
-#ui-datepicker-div{
+.datepicker-days{
 
   background-color: #1f2234;
-    padding: 0 10px 10px 10px;
 }
 
 </style>
@@ -83,12 +82,16 @@
     <!-- Small boxes (Stat box) -->
     <div class="row">
 
-            <div class="col-md-6">
+            <div class="col-md-6"> 
               <!-- general form elements -->
               <div class="box box-primary">
+
+
                 <div class="box-header">
                   <h3 class="box-title"> Make a eve</h3>
                 </div><!-- /.box-header -->
+
+
                 <!-- form start -->
                 <form role="form">
                   <div class="box-body">
@@ -117,14 +120,10 @@
                 <div class="form-group">
                 <label>Close date:</label>
 
-                <div class="input-group date">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="datepicker">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="datepicker"></input>
                 </div>
-                <!-- /.input group -->
-              </div>
+ 
 
                     <div class="form-group">
                       <label for="prpertick">Price per ticket</label>
@@ -139,6 +138,32 @@
                     <button onclick="postev()" type="button" class="btn btn-info">Create Wave</button><p style="color:red;" id="error"></p>
                   </div>
                 </form>
+              </div></div></div>
+ 
+
+
+              <div class="col-md-6">
+              <!-- general form elements -->
+              <div class="box box-primary">
+                <div class="box-header">
+                  <h3 class="box-title">Select a link</h3>
+                </div><!-- /.box-header -->
+                <form role="form">
+                  <div class="box-body">
+                     <div class="form-group">
+
+                      <select class="form-control" id="waveselect" onchange="drawwithdraw()">
+                        <option></option>
+                         {% for w in user_ev %}
+                        <option id="{{w.uni}}"   >{{w.tit}}-{{w.uni}}-{{w.inc}}</option>
+                         {% endfor %}
+                      </select>
+                    </div>
+
+                   <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
+                </div>
+               </form>
+
               </div><!-- /.box -->
               </div>
 
@@ -395,7 +420,39 @@ function editlinkcont(){
 
 }
 
+//draws withdraw QR code
+function drawwithdraw() {
 
+
+      walname = document.getElementById("waveselect").value
+
+      thewave = walname.split("-");
+      console.log(window.location.hostname + "-" + thewave[1])
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: lnurlfau,
+        width: 300,
+        height: 300,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      })
+
+      if (thewave[2] > 0){
+      document.getElementById('qrcodetxt').innerHTML = lnurlfau
+      +
+      "<a target='_blank' href='?id=" + thewave[1] + "'><h4>Shareable link</h4></a>" 
+
+      document.getElementById("qrcode").style.backgroundColor = "white";
+      document.getElementById("qrcode").style.padding = "20px";
+      }
+      else{
+        document.getElementById('qrcode').innerHTML = ""
+        document.getElementById('qrcodetxt').innerHTML = "<h1>No more uses left in link!</h1><br/><br/>"
+
+
+      }
+}
 
   </script>
 </div>
