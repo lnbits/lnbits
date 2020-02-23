@@ -1,5 +1,5 @@
 {
     "name": "LNEVENTS",
-    "short_description": "Make LNURL withdraw links.",
+    "short_description": "LN tickets for events",
     "ion_icon": "calendar"
 }
