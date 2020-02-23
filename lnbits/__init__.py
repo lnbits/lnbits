@@ -261,9 +261,12 @@ def wallet():
             """,
             (wallet_id,),
         )
+    
+        user_ext = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (usr,))
+        user_ext = [v[0] for v in user_ext]
 
     return render_template(
-        "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions,
+        "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions, user_ext=user_ext
     )
 
 
