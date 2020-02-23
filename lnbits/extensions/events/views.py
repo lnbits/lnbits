@@ -28,7 +28,10 @@ def index():
         # If del is selected by user from events page, the event link is to be deleted
         evdel = request.args.get("del")
         if evdel:
+            user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE uni = ?", (evdel,))
             events_ext_db.execute("DELETE FROM events WHERE uni = ?", (evdel,))
+            if user_ev[0][9] > 0:
+                events_ext_db.execute("DELETE FROM eventssold WHERE uni = ?", (user_ev[0][12],))
             user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE usr = ?", (usr,))
     print(user_ext)
 
@@ -47,6 +50,7 @@ def create():
     notickets = data["notickets"]
     prtick = data["prtickets"]
     usr = data["usr"]
+    descr = data["descr"]
     wall = wal.split("-")
 
     # Form validation
@@ -62,11 +66,14 @@ def create():
     if "id" in data:
         unid = data["id"].split("-")
         uni = unid[1]
+        unireg = unid[2]
         with open_ext_db("events") as events_ext_db:
             events_ext_db.execute("DELETE FROM events WHERE uni = ?", (unid[1],))
     else:
         uni = uuid.uuid4().hex
-
+        unireg = uuid.uuid4().hex
+        
+    
     with open_db() as dbb:
         user_wallets = dbb.fetchall("SELECT * FROM wallets WHERE user = ? AND id = ?", (usr, wall[1],))
     if not user_wallets:
@@ -81,8 +88,8 @@ def create():
         events_ext_db.execute(
             """
             INSERT OR IGNORE INTO events
-            (usr, wal, walnme, walinvkey, uni, tit, cldate, notickets, prtick)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (usr, wal, walnme, walinvkey, uni, tit, cldate, notickets, prtick, descr, unireg)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 usr,
@@ -94,6 +101,8 @@ def create():
                 cldate,
                 notickets,
                 prtick,
+                descr,
+                unireg,
             ),
         )
 
@@ -105,3 +114,32 @@ def create():
     return render_template(
         "events/index.html", user_wallets=user_wallets, user=usr, user_ext=user_ext, user_ev=user_ev
     )
+
+
+
+@events_ext.route("/wave/<wave>/", methods=["GET", "POST"])
+def wave(wave):
+    """."""
+
+    with open_ext_db("events") as events_ext_db:
+        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (wave,))
+        if not user_ev:
+            return jsonify({"ERROR": "NO RECORD"}), 401
+
+    return render_template(
+        "events/display.html", wave=wave, nme=user_ev[0][6], descr=user_ev[0][11]
+    )
+
+@events_ext.route("/registration/<wave>", methods=["GET", "POST"])
+def registration(wave):
+    """."""
+    with open_ext_db("events") as events_ext_db:
+        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE uni = ?", (wave,))
+        user_ev_sold = events_ext_db.fetchall("SELECT * FROM eventssold WHERE uni = ?  AND paid = 1", (user_ev[0][12],))
+        if not user_ev:
+            return jsonify({"ERROR": "NO RECORD"}), 401
+
+    return render_template(
+        "events/registration.html", user_ev=user_ev, user_ev_sold=user_ev_sold
+    )
+
