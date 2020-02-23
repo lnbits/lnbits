@@ -1,7 +1,8 @@
-# LNEVENTS
-## Create/sell tickets for an event
-Events is an easy way to create/sell tickets for an event.
+<h1> LNEVENTS</h1>
+<h2>Create/sell tickets for an event</h2>
+<p>Events is an easy way to create/sell tickets for an event.
 
-It is advised to setup a specific wallet in lnbits for the event.
+It is advised to setup a specific wallet in lnbits for the event.</p>
 
-![lnurl](https://i.imgur.com/qHi7ExL.png)
+<img src="https://i.imgur.com/qHi7ExL.png">
+
