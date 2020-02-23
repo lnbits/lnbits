@@ -1,4 +1,4 @@
-<!-- @format -->
+  <!-- @format -->
 
 <!DOCTYPE html>
 <html>
@@ -452,15 +452,31 @@ background-color:
         <!-- Content Header (Page header) -->
         <section class="content-header">
           <h1>
-            LNURL Withdraw Link
-            <small>Use LNURL compatible bitcoin wallet</small>
+            LNBits Events
+            <small>Lightning powered tickets</small>
           </h1>
 
         </section>
 
         <!-- Main content -->
         <section class="content"><br/><br/>
-          <center><h1 style="font-size:500%">Withdraw Link: {{ user_fau[0][6] }}</h1></center>
+          <center><h1 style="font-size:500%">{{ nme }}</h1></center>
+          <center><h2 style="width:55%;word-wrap: break-word;" >{{ descr }}</h2></center>
+           <div id="theform">
+          <br/><br/><br/>
+                <center>
+              
+                <form role="form">
+
+                    <div class="form-group" style="width:300px;">
+
+                      <input id="Nam" type="text" class="form-control" placeholder="Name"></input>
+                      <input id="Ema" type="text" class="form-control" placeholder="Email"></input>
+                    </div>
+                    <button onclick="submitforticket()" type="button" class="btn btn-info">Go to payment</button><p style="color:red;" id="error"></p>
+                </form>
+              </div>
+              </center>
 
         <center><br/><br/>  <div id="qrcode" style="width: 340px;"></div><br/><br/>
           <div style="width:55%;word-wrap: break-word;" id="qrcodetxt"></div> <br/></center>
@@ -471,6 +487,32 @@ background-color:
   </body>
 
      <script>
+
+
+function postAjax(url, data, thekey, success) {
+  var params =
+    typeof data == 'string'
+      ? data
+      : Object.keys(data)
+          .map(function(k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
+          })
+          .join('&')
+  var xhr = window.XMLHttpRequest
+    ? new XMLHttpRequest()
+    : new ActiveXObject('Microsoft.XMLHTTP')
+  xhr.open('POST', url)
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState > 3 && xhr.status == 200) {
+      success(xhr.responseText)
+    }
+  }
+  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.send(params)
+  return xhr
+}
+
     function getAjax(url, thekey, success) {
   var xhr = window.XMLHttpRequest
     ? new XMLHttpRequest()
@@ -488,40 +530,79 @@ background-color:
   return xhr
 }
 
+function submitforticket(){
 
-function drawwithdraw(data) {
+  nam = document.getElementById('Nam').value
+  ema = document.getElementById('Ema').value
 
+  postAjax(
+    "{{ url_for('events.api_getticket') }}?ema=" + ema,
+    JSON.stringify({"unireg": "{{wave }}", "name": nam}),
+    "filla",
 
-      console.log(data)
+    function(data) {  
+      theinvoice = JSON.parse(data).pay_req
+      thehash = JSON.parse(data).payment_hash
 
-
-      getAjax('/withdraw/api/v1/lnurlencode/'+ window.location.hostname + "/" + data, "filla", function(datab) {
-      if (JSON.parse(datab).status == 'TRUE') {
-          console.log(JSON.parse(datab).status)
-          lnurlfau = (JSON.parse(datab).lnurl)
-
-
-      new QRCode(document.getElementById('qrcode'), {
-        text: lnurlfau,
+     new QRCode(document.getElementById('qrcode'), {
+        text: theinvoice,
         width: 300,
         height: 300,
         colorDark: '#000000',
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       })
+      document.getElementById('theform').innerHTML = ""
+
       document.getElementById("qrcode").style.backgroundColor = "white";
       document.getElementById("qrcode").style.padding = "20px";
 
-      document.getElementById('qrcodetxt').innerHTML = lnurlfau + "<br/><br/>"
 
-        }
-        else {
+      document.getElementById('qrcodetxt').innerHTML = theinvoice + "<br/><br/>"
+      
+      var refreshId = setInterval(function(){
 
-          data = "Failed to build LNURL"
+      getAjax('/api/v1/invoice/' + thehash, "{{wave}}", function(datab) {
+        console.log(JSON.parse(datab).PAID)
+        if (JSON.parse(datab).PAID == 'TRUE') {
+           displayticket(thehash)
+           clearInterval(refreshId)
         }
-      })
+      })}, 3000);
+     
+
+})
 }
-drawwithdraw("{{ user_fau[0][5] }}")
+
+function displayticket(thehash){
+
+
+postAjax(
+    "{{ url_for('events.api_updateticket') }}",
+    JSON.stringify({"unireg": "{{wave}}", "hash": thehash}),
+    "filla",
+
+    function(data) {  
+      thehash = JSON.parse(data).payment_hash
+
+      document.getElementById('qrcode').innerHTML = ""
+     document.getElementById('qrcodetxt').innerHTML = ""
+
+     new QRCode(document.getElementById('qrcode'), {
+        text: thehash,
+        width: 300,
+        height: 300,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      })
+    document.getElementById('theform').innerHTML = "<center><h2>*This QR code is your ticket, save it, and bring<br/>it to the event registration.</h2></center>"
+      document.getElementById("qrcode").style.backgroundColor = "white";
+      document.getElementById("qrcode").style.padding = "20px";
+
+
+})
+}
 
 
 
