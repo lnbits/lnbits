@@ -100,6 +100,12 @@
                       <label for="exampleInputEmail1">Ticket title</label>
                       <input id="tit" type="text" pattern="^[A-Za-z]+$" class="form-control" >
                     </div>
+
+                     <div class="form-group">
+                      <label>Description of event</label>
+                      <textarea id="descr" class="form-control" rows="2"></textarea>
+                    </div>
+
                           <!-- select -->
                     <div class="form-group">
                       <label>Select a wallet</label>
@@ -130,7 +136,6 @@
                       <input id="prtickets" type="number" class="form-control" placeholder="10"></input>
                     </div>
 
-
                   </div><!-- /.box-body -->
 
                   <div class="box-footer">
@@ -153,9 +158,11 @@
                      <div class="form-group">
 
                       <select class="form-control" id="waveselect" onchange="drawwithdraw()">
-                        <option></option>
+                               <option value="none" selected> 
+                                 Select an Option 
+                            </option> 
                          {% for w in user_ev %}
-                        <option id="{{w.uni}}"   >{{w.tit}}-{{w.uni}}-{{w.inc}}</option>
+                        <option id="{{w.uni}}" value="{{w.tit}}-{{w.unireg}}-{{w.uni}}">{{w.tit}}-{{w.unireg}}-{{w.uni}}</option>
                          {% endfor %}
                       </select>
                     </div>
@@ -246,7 +253,7 @@ function drawChart(user_ev) {
       '</td><td>' +
       "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
       '</td><td>' +
-      "<b><a style='color:red;' href='" + "{{ url_for('withdraw.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
+      "<b><a style='color:red;' href='" + "{{ url_for('events.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
       '</td></tr>' +
       transactionsHTML
       document.getElementById('ticketwaves').innerHTML = transactionsHTML
@@ -265,6 +272,7 @@ function postev(){
   cldate = document.getElementById('datepicker').value
   notickets = document.getElementById('notickets').value
   prtickets = document.getElementById('prtickets').value
+  descr = document.getElementById('descr').value
 
   if (tit == "") {
     document.getElementById("error").innerHTML = "Only use letters in title"
@@ -290,7 +298,7 @@ function postev(){
 
   postAjax(
     "{{ url_for('events.create') }}",
-    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets}),
+    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets, "descr": descr}),
     "filla",
 
     function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
@@ -303,7 +311,7 @@ function editlink(evnum){
 
 evdetails = user_ev[evnum]
 
-console.log(evdetails)
+console.log(evdetails.descr)
 wallpick = ""
 
 checkbox = ""
@@ -313,9 +321,9 @@ if (evdetails.uniq == 1){
 document.getElementById('editlink').innerHTML = "<div class='row'>"+
             "<div class='col-md-6'>"+
              " <!-- general form elements -->"+
-              "<div class='box box-primary'>"+
+              "<div class='box box-primary' style='min-height: 300px;'>"+
                 "<div class='box-header'>"+
-                  "<h3 class='box-title'> Edit: <i id='unid'>" + evdetails.tit + "-" + evdetails.uni + "</i> </h3>"+
+                  "<h3 class='box-title'> Edit: <i id='unid'>" + evdetails.tit + "-" + evdetails.uni + "-" + evdetails.unireg + "</i> </h3>"+
                   "<div class='box-tools pull-right'>" +
 "<button class='btn btn-box-tool' data-widget='remove'><i class='fa fa-times'></i></button>" +
                   "</div>" +
@@ -323,6 +331,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
                " <!-- form start -->"+
                 "<form role='form'>"+
                   "<div class='box-body'>"+
+
                     "<div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Link title</label>"+
@@ -330,6 +339,14 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
          evdetails.tit +
         "'></input> </div>"+
                  " </div>"+
+                  
+                         "<div class='col-sm-1 col-md-8'>"+
+                    "<div class='form-group'>"+
+                      "<label for='exampleInputEmail1'>Description of event</label>"+
+    "<textarea id='editdescr' type='textarea' rows='1' class='form-control'>"+evdetails.descr+"</textarea> </div>"+
+                 " </div>"+
+
+
                  " <div class='col-sm-4 col-md-4'>"+
                         "  <!-- select -->"+
                    " <div class='form-group'>"+
@@ -351,6 +368,7 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
          evdetails.notickets +
         "'></input>"+
                     "</div> </div>"+
+
                    " <div class='col-sm-3 col-md-4'>"+
                     "<div class='form-group'>"+
                       "<label for='exampleInputEmail1'>Price per ticket:</label>"+
@@ -365,11 +383,17 @@ document.getElementById('editlink').innerHTML = "<div class='row'>"+
          evdetails.cldate +
         "'></input>"+
                    " </div></div>"+
+
+
+
                   "   <div class='col-sm-3 col-md-4'>"+
                    "</div><!-- /.box-body -->"+
                   " </div><br/>"+
                  " <div class='box-footer'>"+
-                   " <button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button><p style='color:red;' id='error2'></p>"+
+                                    " <div class='col-sm-3 col-md-4'>"+
+                  "<button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button>"+
+                   "</div>"+
+                   "<p style='color:red;' id='error2'>.</p>"+
                 "  </div></form></div><!-- /.box --></div></div>"
 
 
@@ -388,6 +412,7 @@ function editlinkcont(){
   nooftickets = document.getElementById('editnooftickets').value
   prtick = document.getElementById('editprtick').value
   cldate = document.getElementById('datepicker2').value
+  descr = document.getElementById('editdescr').value
   uni = unid.split("-")[1]
 
   if (tit == "") {
@@ -411,7 +436,7 @@ function editlinkcont(){
 
   postAjax(
     "{{ url_for('events.create') }}",
-    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid}),
+    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid, "descr": descr}),
                     
     "filla",
 
@@ -423,14 +448,16 @@ function editlinkcont(){
 //draws withdraw QR code
 function drawwithdraw() {
 
-
+      document.getElementById("qrcode").innerHTML  = "";
       walname = document.getElementById("waveselect").value
 
       thewave = walname.split("-");
       console.log(window.location.hostname + "-" + thewave[1])
+      toencode = "/events/wave/" + thewave[1]
+      toreg = "/events/registration/" + thewave[2]
 
       new QRCode(document.getElementById('qrcode'), {
-        text: lnurlfau,
+        text: toencode,
         width: 300,
         height: 300,
         colorDark: '#000000',
@@ -438,20 +465,13 @@ function drawwithdraw() {
         correctLevel: QRCode.CorrectLevel.M
       })
 
-      if (thewave[2] > 0){
-      document.getElementById('qrcodetxt').innerHTML = lnurlfau
-      +
-      "<a target='_blank' href='?id=" + thewave[1] + "'><h4>Shareable link</h4></a>" 
+  
+      document.getElementById('qrcodetxt').innerHTML = "<a target='_blank' href='" + toencode + "'><h2>Payment link</a> , " +
+                                                       "<a target='_blank' href='" + toreg + "'>Registration</h2></a>"
 
       document.getElementById("qrcode").style.backgroundColor = "white";
       document.getElementById("qrcode").style.padding = "20px";
-      }
-      else{
-        document.getElementById('qrcode').innerHTML = ""
-        document.getElementById('qrcodetxt').innerHTML = "<h1>No more uses left in link!</h1><br/><br/>"
 
-
-      }
 }
 
   </script>
