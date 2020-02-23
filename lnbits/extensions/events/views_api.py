@@ -5,6 +5,89 @@ import requests
 from flask import jsonify, request, url_for
 from datetime import datetime
 
-from lnbits.db import open_ext_db
+from lnbits.db import open_db, open_ext_db
 from lnbits.extensions.events import events_ext
 
+@events_ext.route("/api/v1/getticket/", methods=["GET","POST"])
+def api_getticket():
+    """."""
+
+    data = request.json
+    unireg = data["unireg"]
+    name = data["name"]
+    email = request.args.get("ema")
+
+    with open_ext_db("events") as events_ext_db:
+        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (unireg,))
+
+
+        header = {"Content-Type": "application/json", "Grpc-Metadata-macaroon": user_ev[0][4]}
+        data = {"value": str(user_ev[0][10]), "memo": user_ev[0][6]}
+        print(url_for("api_invoices", _external=True))
+        r = requests.post(url=url_for("api_invoices", _external=True), headers=header, data=json.dumps(data))
+        r_json = r.json()
+
+        if "ERROR" in r_json:
+            return jsonify({"status": "ERROR", "reason": r_json["ERROR"]}), 400
+
+        events_ext_db.execute(
+            """
+            INSERT OR IGNORE INTO eventssold
+            (uni, email, name, hash)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                unireg,
+                email,
+                name,
+                r_json["payment_hash"]
+            ),
+        )
+
+    return jsonify({"status": "TRUE", "pay_req": r_json["pay_req"], "payment_hash": r_json["payment_hash"]}), 200
+
+
+@events_ext.route("/api/v1/updateticket/", methods=["GET","POST"])
+def api_updateticket():
+    """."""
+
+    data = request.json
+    unireg = data["unireg"]
+    hashe = data["hash"]
+
+    #Double check the payment has cleared
+    with open_db() as db:
+        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (hashe,))
+
+        if not payment:
+            return jsonify({"status": "ERROR", "reason":"NO RECORD OF PAYMENT"}), 400
+
+        if payment[0][4] == 1:
+            return jsonify({"status": "ERROR", "reason":"NOT PAID"}), 400
+    
+    #Update databases
+    with open_ext_db("events") as events_ext_db:
+        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (unireg,))
+        updatesold = user_ev[0][9] + 1
+        events_ext_db.execute("UPDATE events SET sold = ? WHERE unireg = ?", (updatesold, unireg,))
+        events_ext_db.execute("UPDATE eventssold SET paid = 1 WHERE hash = ?", (hashe,))
+
+    return jsonify({"status": "TRUE", "payment_hash": hashe}), 200
+
+
+@events_ext.route("/api/v1/checkticket/", methods=["GET"])
+def api_checkticket():
+    """."""
+    thehash = request.args.get("thehash")
+    #Check databases
+    with open_ext_db("events") as events_ext_db:
+        eventssold = events_ext_db.fetchall("SELECT * FROM eventssold WHERE hash = ?", (thehash,))
+        if not eventssold:
+        	return jsonify({"status": "ERROR", "reason":"NO TICKET RECORD"}), 200
+    if eventssold[0][4] == 0:
+    	return jsonify({"status": "ERROR", "reason":"NOT PAID"}), 200
+
+    with open_ext_db("events") as events_ext_db:
+        events_ext_db.execute("UPDATE eventssold SET reg = 1 WHERE hash = ?", (thehash,))
+
+    return jsonify({"status": "TRUE", "name": eventssold[0][3]}), 200
