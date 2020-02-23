@@ -76,7 +76,7 @@
         <!-- small box -->
         <div class="small-box bg-aqua">
           <div class="inner">
-            <h3><b>{{ wallet.balance }} sats</b></h3>
+            <h3><b id="walletsats"></b></h3>
             <h3>{{ wallet.name }}</h3>
           </div>
           <div class="icon">
@@ -247,6 +247,8 @@
     window.user_wallets = {{ user_wallets | megajson | safe }}
     window.wallet = {{ wallet | megajson | safe }}
     window.transactions = {{ transactions | megajson | safe }}
+
+    document.getElementById("walletsats").innerHTML = Math.round({{ wallet.balance }}) + " sats";
   </script>
 </div>
 {% endblock %}
