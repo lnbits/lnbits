@@ -21,7 +21,7 @@ def index():
     # Get all the data
     with open_db() as db:
         user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
-        user_ext = db.fetchall("SELECT * FROM extensions WHERE user = ?", (usr,))
+        user_ext = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (usr,))
         user_ext = [v[0] for v in user_ext]
 
     with open_ext_db("withdraw") as withdraw_ext_db:
