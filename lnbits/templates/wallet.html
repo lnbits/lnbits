@@ -9,34 +9,45 @@
   <li class="header"><b>Instant wallet, bookmark to save</b></li>
   <li></li>
 </ul>
-{% endblock %} {% block menuitems %}
-<li class="active treeview">
-  <a href="#">
-    <i class="fa fa-bitcoin"></i> <span>Wallets</span>
-    <i class="fa fa-angle-left pull-right"></i>
-  </a>
-  <ul class="treeview-menu">
-    {% for w in user_wallets %}
-    <li>
-      <a href="wallet?wal={{ w.id }}&usr={{ w.user }}"
-        ><i class="fa fa-bolt"></i> {{ w.name }}</a
-      >
-    </li>
-    {% endfor %}
-    <li><a onclick="sidebarmake()">Add a wallet +</a></li>
-    <div id="sidebarmake"></div>
-  </ul>
-</li>
-
-<li class="treeview">
-  <a href="extensions?usr={{ user }}">
-    <i class="fa fa-th"></i> <span>Extensions</span>
-    <i class="fa fa-angle-left pull-right"></i>
-   </a>
-    </li>
+{% endblock %} 
 
 
-{% endblock %} {% block body %}
+{% block menuitems %}
+  <li class="active treeview">
+    <a href="#">
+      <i class="fa fa-bitcoin"></i> <span>Wallets</span>
+      <i class="fa fa-angle-left pull-right"></i>
+    </a>
+    <ul class="treeview-menu">
+      {% for w in user_wallets %}
+      <li>
+        <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"><i class="fa fa-bolt"></i> {{ w.name }}</a>
+      </li>
+      {% endfor %}
+      <li><a onclick="sidebarmake()">Add a wallet +</a></li>
+      <div id="sidebarmake"></div>
+    </ul>
+  </li>
+  <li class="treeview">
+    <a href="#">
+      <i class="fa fa-th"></i> <span>Extensions</span>
+      <i class="fa fa-angle-left pull-right"></i>
+    </a>
+    <ul class="treeview-menu">
+      {% for extension in EXTENSIONS %}
+        {% if extension.code in user_ext %}
+          <li>
+            <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"><i class="fa fa-plus"></i> {{ extension.name }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      <li>
+      <a href="{{ url_for('extensions') }}?usr={{ user }}">Manager</a></li>
+    </ul>
+  </li>
+{% endblock %}
+
+{% block body %}
 <!-- Right side column. Contains the navbar and content of the page -->
 <div class="content-wrapper">
   <!-- Content Header (Page header) -->
