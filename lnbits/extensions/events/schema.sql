@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS events (
     cldate TEXT,
     notickets INTEGER,
     sold INTEGER DEFAULT 0,
-    prtick INTEGER
+    prtick INTEGER,
+    descr TEXT,
+    unireg TEXT
 );
 
 CREATE TABLE IF NOT EXISTS eventssold (
@@ -17,5 +19,8 @@ CREATE TABLE IF NOT EXISTS eventssold (
     uni TEXT,
     email TEXT,
     name TEXT,
-    hash TEXT
+    hash TEXT,
+    paid INTEGER DEFAULT 0,
+    reg INTEGER DEFAULT 0
 );
+
