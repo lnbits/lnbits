@@ -1,4 +1,4 @@
-<!-- @format -->
+  <!-- @format -->
 
 <!DOCTYPE html>
 <html>
@@ -452,18 +452,78 @@ background-color:
         <!-- Content Header (Page header) -->
         <section class="content-header">
           <h1>
-            LNURL Withdraw Link
-            <small>Use LNURL compatible bitcoin wallet</small>
+            LNBits Events
+            <small>Lightning powered tickets</small>
           </h1>
 
         </section>
 
         <!-- Main content -->
         <section class="content"><br/><br/>
-          <center><h1 style="font-size:500%">Withdraw Link: {{ user_fau[0][6] }}</h1></center>
+          <center><h1 style="font-size:500%">{{ user_ev[0][6] }}</h1></center>
+      
 
-        <center><br/><br/>  <div id="qrcode" style="width: 340px;"></div><br/><br/>
-          <div style="width:55%;word-wrap: break-word;" id="qrcodetxt"></div> <br/></center>
+        <br/><br/><br/>
+
+        <div class='modal fade sends' tabindex='-1' role='dialog' aria-labelledby='myLargeModalLabel' aria-hidden='true'>
+        <div class='modal-dialog' >
+        <div id='scantickets' style='padding: 0 10px 0 10px;'>
+        </div></div></div>
+
+
+        <center>
+        <button
+          onclick="scanQRsend()"
+          class="btn btn-block btn-primary btn-lg"
+          data-toggle="modal"
+          data-target=".sends"
+          style="width:300px;"
+        >
+          Scan ticket
+        </button>
+         </center>
+   
+   
+      <div id="scantickets"></div>
+            <br/><br/><br/>
+          <div id="qrcodetxt"></div> <br/></center>
+      <br/><br/><br/>
+     
+     <center>
+      <div class="row" style="width:80%;margin-top:80px">
+
+
+<style>
+.ema, button:focus .txt  {
+  display: none;
+}
+button:focus .ema {
+  display: block;
+}
+
+</style>
+        <div class="box">
+          <div class="box-header">
+            <h3 class="box-title">Attendees<b id="withdraws"></b></h3>
+          </div>
+          <!-- /.box-header -->
+          <div class="box-body no-padding">
+            <table id="pagnation" class="table table-bswearing anchorordered table-striped">
+              <tr>
+                <th style="width:20%">Name</th>
+                <th style="width:20%">Email</th>
+                <th style="width:50%">Ticket</th>
+                <th style="width:10%">Registered</th>
+              </tr>
+              <tbody id="ticketwaves"></tbody>
+            </table>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
+
+    </div>
+  </center>
 
         </section><!-- /.content -->
       </div><!-- /.content-wrapper -->
@@ -471,6 +531,67 @@ background-color:
   </body>
 
      <script>
+
+
+window.user_ev = {{ user_ev | megajson | safe }}
+window.user_ev_sold = {{ user_ev_sold | megajson | safe }}
+console.log(user_ev)
+console.log(user_ev_sold)
+
+
+function drawChart(user_ev_sold) {
+  var transactionsHTML = ''
+
+  for (var i = 0; i < user_ev_sold.length; i++) {
+    var ev = user_ev_sold[i]
+
+    transactionsHTML =
+      "<tr><td>" +
+      ev.name +
+      '</td><td>' +
+      '<button style="background-color: #333646;padding: 0;border: none;background: none;" class="lost"><span class="txt">xxxxxx</span>' +
+      '<span class="ema">' + ev.email + '</span></button>'+
+      '</td><td>' +
+      ev.hash    +
+      '</td><td>' +
+      ev.reg    +
+      '</td></tr>' +
+      transactionsHTML
+      document.getElementById('ticketwaves').innerHTML = transactionsHTML
+
+    }
+  }
+
+if (user_ev_sold.length) {
+  drawChart(user_ev_sold)
+}
+
+
+
+function postAjax(url, data, thekey, success) {
+  var params =
+    typeof data == 'string'
+      ? data
+      : Object.keys(data)
+          .map(function(k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
+          })
+          .join('&')
+  var xhr = window.XMLHttpRequest
+    ? new XMLHttpRequest()
+    : new ActiveXObject('Microsoft.XMLHTTP')
+  xhr.open('POST', url)
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState > 3 && xhr.status == 200) {
+      success(xhr.responseText)
+    }
+  }
+  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.send(params)
+  return xhr
+}
+
     function getAjax(url, thekey, success) {
   var xhr = window.XMLHttpRequest
     ? new XMLHttpRequest()
@@ -488,42 +609,94 @@ background-color:
   return xhr
 }
 
+function scanQRsend() {
+  document.getElementById('scantickets').innerHTML =
+    "<div class='modal-content'>"+
+    "<br/><div id='loadingMessage'>🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>" +
+    "<canvas id='canvas' hidden></canvas><div id='output' hidden><div id='outputMessage'></div>" +
+    "<br/><span id='outputData'></span></div></div><div class='modal-footer'>"+
+    "<button type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel</button><br/><br/>"
+  var video = document.createElement('video')
+  var canvasElement = document.getElementById('canvas')
+  var canvas = canvasElement.getContext('2d')
+  var loadingMessage = document.getElementById('loadingMessage')
+  var outputContainer = document.getElementById('output')
+  var outputMessage = document.getElementById('outputMessage')
+  var outputData = document.getElementById('outputData')
 
-function drawwithdraw(data) {
+  // Use facingMode: environment to attemt to get the front camera on phones
+  navigator.mediaDevices
+    .getUserMedia({video: {facingMode: 'environment'}})
+    .then(function(stream) {
+      video.srcObject = stream
+      video.setAttribute('playsinline', true) // required to tell iOS safari we don't want fullscreen
+      video.play()
+      requestAnimationFrame(tick)
+    })
 
-
-      console.log(data)
-
-
-      getAjax('/withdraw/api/v1/lnurlencode/'+ window.location.hostname + "/" + data, "filla", function(datab) {
-      if (JSON.parse(datab).status == 'TRUE') {
-          console.log(JSON.parse(datab).status)
-          lnurlfau = (JSON.parse(datab).lnurl)
-
-
-      new QRCode(document.getElementById('qrcode'), {
-        text: lnurlfau,
-        width: 300,
-        height: 300,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
+   function tick() {
+    loadingMessage.innerText = '⌛ Loading video...'
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      loadingMessage.hidden = true
+      canvasElement.hidden = false
+      outputContainer.hidden = false
+      canvasElement.height = video.videoHeight
+      canvasElement.width = video.videoWidth
+      canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height)
+      var imageData = canvas.getImageData(
+        0,
+        0,
+        canvasElement.width,
+        canvasElement.height
+      )
+      var code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
       })
-      document.getElementById("qrcode").style.backgroundColor = "white";
-      document.getElementById("qrcode").style.padding = "20px";
+      if (code) {
+        thehash = code.data
+        document.getElementById('scantickets').innerHTML = ""
+        outputMessage.hidden = true
+        outputData.parentElement.hidden = false
+        outputData.innerText = JSON.stringify(code.data)
+        getAjax("{{ url_for('events.api_checkticket') }}?thehash=" + thehash, "filla", function(datab) {
+         status = JSON.parse(data).status
+         if (status != "FALSE"){
 
-      document.getElementById('qrcodetxt').innerHTML = lnurlfau + "<br/><br/>"
+          name = JSON.parse(data).name
 
-        }
-        else {
+          window.location.href = 'wave?thehash=' + thehash + '&name=' + name
 
-          data = "Failed to build LNURL"
-        }
-      })
+         }
+        })
+
+      } else {
+        outputMessage.hidden = false
+        outputData.parentElement.hidden = true
+      }
+    }
+    requestAnimationFrame(tick)
+  }
 }
-drawwithdraw("{{ user_fau[0][5] }}")
+
+function cancelsend() {
+  location.reload(); 
+}
 
 
+function getUrlVars() {
+    var vars = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        vars[key] = value;
+    });
+    return vars;
+}
+var name = getUrlVars()["name"];
+var thehash = getUrlVars()["thehash"];
+console.log(thehash)
+if(thehash != null){
+  document.getElementById('qrcodetxt').innerHTML = "<center><h1>" + name + " is registered!</h1></center>"
+
+}
 
 
   </script>
