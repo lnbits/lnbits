@@ -380,22 +380,14 @@ def api_checkinvoice(payhash):
     if request.headers["Content-Type"] != "application/json":
         return jsonify({"ERROR": "MUST BE JSON"}), 400
 
-    with open_db() as db:
-        payment = db.fetchone(
-            """
-            SELECT pending
-            FROM apipayments
-            INNER JOIN wallets AS w ON apipayments.wallet = w.id
-            WHERE payhash = ?
-                AND (w.adminkey = ? OR w.inkey = ?)
-            """,
-            (payhash, request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
-        )
 
+    with open_db() as db:
+        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (payhash,))
+        
         if not payment:
             return jsonify({"ERROR": "NO INVOICE"}), 404
 
-        if not payment["pending"]:  # pending
+        if not payment[0][4]:  # pending
             return jsonify({"PAID": "TRUE"}), 200
 
         if not WALLET.get_invoice_status(payhash).settled:
