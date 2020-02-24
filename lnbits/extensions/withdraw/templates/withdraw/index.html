@@ -328,11 +328,11 @@ function postfau(){
     return amt
   }
 
-  if (isNaN(maxamt) || maxamt < 10 || maxamt > 1000000) {
+  if (isNaN(maxamt) || maxamt < 10) {
     document.getElementById("error").innerHTML = "Max 15 - 1000000 and must be higher than min"
     return amt
   }
-  if (isNaN(minamt) || minamt < 1 || minamt > 1000000 || minamt > maxamt) {
+  if (isNaN(minamt) || minamt < 1 || minamt > maxamt) {
     document.getElementById("error").innerHTML = "Min 1 - 1000000 and must be lower than max"
     return amt
   }
