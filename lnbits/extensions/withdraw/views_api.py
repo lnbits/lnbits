@@ -32,10 +32,9 @@ def api_lnurlencode(urlstr, parstr):
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=parstr, rand=rand)
     
     if "onion" in url:
-        url.replace('http://', '')
-        url.replace('https://', '')
-
-    return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
+        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(TorUrl(url))}), 200
+    else:
+        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
 
 
 @withdraw_ext.route("/api/v1/lnurlfetch/<urlstr>/<parstr>/<rand>", methods=["GET"])
@@ -55,11 +54,12 @@ def api_lnurlfetch(parstr, urlstr, rand):
 
         precallback=url_for("withdraw.api_lnurlwithdraw", _external=True, rand=rand)
         if "onion" in precallback:
-            precallback.replace('http://', '')
-            precallback.replace('https://', '')
+            precallback=TorUrl(precallback)
+        else:
+            precallback=precallback.replace("http://", "https://")
 
     res = LnurlWithdrawResponse(
-        callback=precallback.replace("http://", "https://"),
+        callback=precallback,
         k1=k1str,
         min_withdrawable=user_fau[0][8] * 1000,
         max_withdrawable=user_fau[0][7] * 1000,
@@ -188,7 +188,8 @@ def api_lnurlmaker():
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=request.host, parstr=uni, rand=rand)
 
     if "onion" in url:
-        url.replace('http://', '')
-        url.replace('https://', '')
+        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
+    else:
+        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(TorUrl(url))}), 200
 
-    return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
+
