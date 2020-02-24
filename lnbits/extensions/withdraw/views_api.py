@@ -30,6 +30,10 @@ def api_lnurlencode(urlstr, parstr):
             rand = randar[0]
 
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=parstr, rand=rand)
+    
+    if "onion" in url:
+        url.replace('http://', '')
+        url.replace('https://', '')
 
     return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
 
@@ -49,8 +53,13 @@ def api_lnurlfetch(parstr, urlstr, rand):
         k1str = uuid.uuid4().hex
         withdraw_ext_db.execute("UPDATE withdraws SET withdrawals = ? WHERE uni = ?", (k1str, parstr,))
 
+        precallback=url_for("withdraw.api_lnurlwithdraw", _external=True, rand=rand)
+        if "onion" in precallback:
+            precallback.replace('http://', '')
+            precallback.replace('https://', '')
+
     res = LnurlWithdrawResponse(
-        callback=url_for("withdraw.api_lnurlwithdraw", _external=True, rand=rand).replace("http://", "https://"),
+        callback=precallback.replace("http://", "https://"),
         k1=k1str,
         min_withdrawable=user_fau[0][8] * 1000,
         max_withdrawable=user_fau[0][7] * 1000,
@@ -177,5 +186,9 @@ def api_lnurlmaker():
             return jsonify({"ERROR": "WITHDRAW NOT MADE"}), 401
 
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=request.host, parstr=uni, rand=rand)
-    
+
+    if "onion" in url:
+        url.replace('http://', '')
+        url.replace('https://', '')
+
     return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
