@@ -30,11 +30,14 @@ def api_lnurlencode(urlstr, parstr):
             rand = randar[0]
 
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=urlstr, parstr=parstr, rand=rand)
-    
+   
     if "onion" in url:
-        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(TorUrl(url))}), 200
-    else:
-        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
+        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url)}), 200
+        print(url)
+    
+    return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
+    
+
 
 
 @withdraw_ext.route("/api/v1/lnurlfetch/<urlstr>/<parstr>/<rand>", methods=["GET"])
@@ -51,13 +54,14 @@ def api_lnurlfetch(parstr, urlstr, rand):
         user_fau = withdraw_ext_db.fetchall("SELECT * FROM withdraws WHERE uni = ?", (parstr,))
         k1str = uuid.uuid4().hex
         withdraw_ext_db.execute("UPDATE withdraws SET withdrawals = ? WHERE uni = ?", (k1str, parstr,))
-
-        precallback=url_for("withdraw.api_lnurlwithdraw", _external=True, rand=rand)
-        if "onion" in precallback:
-            precallback=TorUrl(precallback)
-        else:
-            precallback=precallback.replace("http://", "https://")
-
+    
+    precallback = url_for("withdraw.api_lnurlwithdraw", _external=True, rand=rand)
+        
+    if "onion" in precallback:
+        print(precallback)
+    else:
+        precallback = url_for("withdraw.api_lnurlwithdraw", _external=True, rand=rand).replace("http://", "https://")
+    
     res = LnurlWithdrawResponse(
         callback=precallback,
         k1=k1str,
@@ -188,8 +192,10 @@ def api_lnurlmaker():
     url = url_for("withdraw.api_lnurlfetch", _external=True, urlstr=request.host, parstr=uni, rand=rand)
 
     if "onion" in url:
-        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
-    else:
-        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(TorUrl(url))}), 200
+        return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url)}), 200
+        print(url)
+    
+    return jsonify({"status": "TRUE", "lnurl": lnurl_encode(url.replace("http://", "https://"))}), 200
+    
 
 
