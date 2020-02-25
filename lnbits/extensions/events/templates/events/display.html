@@ -565,7 +565,7 @@ function submitforticket(){
       getAjax('/api/v1/invoice/' + thehash, "{{wave}}", function(datab) {
         console.log(JSON.parse(datab).PAID)
         if (JSON.parse(datab).PAID == 'TRUE') {
-           displayticket(thehash)
+           location.replace("{{ url_for('events.ticket') }}?hash="+thehash + "&unireg={{wave}}")
            clearInterval(refreshId)
         }
       })}, 3000);
@@ -573,37 +573,6 @@ function submitforticket(){
 
 })
 }
-
-function displayticket(thehash){
-
-
-postAjax(
-    "{{ url_for('events.api_updateticket') }}",
-    JSON.stringify({"unireg": "{{wave}}", "hash": thehash}),
-    "filla",
-
-    function(data) {  
-      thehash = JSON.parse(data).payment_hash
-
-      document.getElementById('qrcode').innerHTML = ""
-     document.getElementById('qrcodetxt').innerHTML = ""
-
-     new QRCode(document.getElementById('qrcode'), {
-        text: thehash,
-        width: 300,
-        height: 300,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      })
-    document.getElementById('theform').innerHTML = "<center><h2>*This QR code is your ticket, save it, and bring<br/>it to the event registration.</h2></center>"
-      document.getElementById("qrcode").style.backgroundColor = "white";
-      document.getElementById("qrcode").style.padding = "20px";
-
-
-})
-}
-
 
 
 
