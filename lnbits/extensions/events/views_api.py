@@ -47,34 +47,6 @@ def api_getticket():
     return jsonify({"status": "TRUE", "pay_req": r_json["pay_req"], "payment_hash": r_json["payment_hash"]}), 200
 
 
-@events_ext.route("/api/v1/updateticket/", methods=["GET","POST"])
-def api_updateticket():
-    """."""
-
-    data = request.json
-    unireg = data["unireg"]
-    hashe = data["hash"]
-
-    #Double check the payment has cleared
-    with open_db() as db:
-        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (hashe,))
-
-        if not payment:
-            return jsonify({"status": "ERROR", "reason":"NO RECORD OF PAYMENT"}), 400
-
-        if payment[0][4] == 1:
-            return jsonify({"status": "ERROR", "reason":"NOT PAID"}), 400
-    
-    #Update databases
-    with open_ext_db("events") as events_ext_db:
-        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (unireg,))
-        updatesold = user_ev[0][9] + 1
-        events_ext_db.execute("UPDATE events SET sold = ? WHERE unireg = ?", (updatesold, unireg,))
-        events_ext_db.execute("UPDATE eventssold SET paid = 1 WHERE hash = ?", (hashe,))
-
-    return jsonify({"status": "TRUE", "payment_hash": hashe}), 200
-
-
 @events_ext.route("/api/v1/checkticket/", methods=["GET"])
 def api_checkticket():
     """."""
