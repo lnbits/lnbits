@@ -143,3 +143,32 @@ def registration(wave):
         "events/registration.html", user_ev=user_ev, user_ev_sold=user_ev_sold
     )
 
+@events_ext.route("/ticket/", methods=["GET"])
+def ticket():
+    """."""
+    thehash = request.args.get("hash")
+    unireg = request.args.get("unireg")
+
+    #Double check the payment has cleared
+    with open_db() as db:
+        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (thehash,))
+
+        if not payment:
+            return jsonify({"status": "ERROR", "reason":"NO RECORD OF PAYMENT"}), 400
+
+        if payment[0][4] == 1:
+            return jsonify({"status": "ERROR", "reason":"NOT PAID"}), 400
+    
+    #Update databases
+    with open_ext_db("events") as events_ext_db:
+        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (unireg,))
+        updatesold = user_ev[0][9] + 1
+        events_ext_db.execute("UPDATE events SET sold = ? WHERE unireg = ?", (updatesold, unireg,))
+        events_ext_db.execute("UPDATE eventssold SET paid = 1 WHERE hash = ?", (thehash,))
+        eventssold = events_ext_db.fetchall("SELECT * FROM eventssold WHERE hash = ?", (thehash,))
+        if not eventssold:
+            return jsonify({"status": "ERROR", "reason":"NO TICKET RECORD"}), 200
+
+    return render_template(
+        "events/ticket.html", name=eventssold[0][3], ticket=thehash
+    )
