@@ -1,0 +1,211 @@
+<!-- @format -->
+
+{% extends "base.html" %} {% block messages %}
+
+<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+  <i class="fa fa-bell-o"></i>
+  <span class="label label-danger">!</span>
+</a>
+<ul class="dropdown-menu">
+  <li class="header"><b>Instant wallet, bookmark to save</b></li>
+  <li></li>
+</ul>
+{% endblock %} 
+
+
+{% block menuitems %}
+  <li class="treeview">
+    <a href="#">
+      <i class="fa fa-bitcoin"></i> <span>Wallets</span>
+      <i class="fa fa-angle-left pull-right"></i>
+    </a>
+    <ul class="treeview-menu">
+      {% for w in user_wallets %}
+      <li>
+        <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"><i class="fa fa-bolt"></i> {{ w.name }}</a>
+      </li>
+      {% endfor %}
+      <li><a onclick="sidebarmake()">Add a wallet +</a></li>
+      <div id="sidebarmake"></div>
+    </ul>
+  </li>
+  <li class="active treeview">
+    <a href="#">
+      <i class="fa fa-th"></i> <span>Extensions</span>
+      <i class="fa fa-angle-left pull-right"></i>
+    </a>
+    <ul class="treeview-menu">
+      {% for extension in EXTENSIONS %}
+        {% if extension.code in user_ext %}
+          <li>
+            <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"><i class="fa fa-plus"></i> {{ extension.name }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      <li>
+      <a href="{{ url_for('extensions') }}?usr={{ user }}">Manager</a></li>
+    </ul>
+  </li>
+{% endblock %}
+
+{% block body %}
+<!-- Right side column. Contains the navbar and content of the page -->
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <h1>
+      Withdraw link maker
+      <small>powered by LNURL</small>
+
+    </h1>
+    <ol class="breadcrumb">
+      <li>
+        <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
+      </li>
+      <li>
+      <a href="{{ url_for('extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
+      </li>
+       <li>
+        <i class="active" class="fa fa-dashboard">example</i>
+      </li>
+    </ol>
+    <br /><br />
+
+    
+    
+  <!-- DOWNLOAD AND SEARCH ADMINLITE2 FOR HTML-->
+    
+ <section class="content">
+    <!-- Small boxes (Stat box) -->
+    <div class="row">
+
+            <div class="col-md-6">
+              <!-- general form elements -->
+              <div class="box box-primary">
+                <div class="box-header">
+                  <h3 class="box-title"> Make a POS</h3>
+                </div><!-- /.box-header -->
+                <!-- form start -->
+                <form role="form">
+                  <div class="box-body">
+
+                    <div class="form-group">
+                      <label for="exampleInputEmail1">PoS Name</label>
+                      <input id="nme" type="text" pattern="^[A-Za-z]+$" class="form-control" >
+                    </div>
+
+
+                  </div><!-- /.box-body -->
+
+                  <div class="box-footer">
+
+                    <button onclick="postfau()" type="button" class="btn btn-info">Create POS</button><p style="color:red;" id="error"></p>
+                  </div>
+                </form>
+              </div><!-- /.box -->
+
+
+              <div class="box box-primary">
+                <div class="box-header">
+                  <h3 class="box-title">Select POS</h3>
+                </div><!-- /.box-header -->
+                <form role="form">
+                  <div class="box-body">
+                     <div class="form-group">
+
+                      <select class="form-control" id="fauselect" onchange="drawwithdraw()">
+                        <option></option>
+                         {% for w in user_fau %}
+                        <option id="{{w.uni}}"   >{{w.nme}}-{{w.uni}}</option>
+                         {% endfor %}
+                      </select>
+                    </div>
+
+                   <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
+                </div>
+               </form>
+
+              </div><!-- /.box -->
+
+
+              </div>
+
+
+
+    </div>
+
+    <!-- /.content -->
+  </section>
+
+  <script>
+
+    window.user = {{ usr | megajson | safe }}
+    window.user_wallets = {{ user_wallets | megajson | safe }}
+    window.user_ext = {{ user_ext | megajson | safe }}
+    window.user_fau = {{ user_fau | megajson | safe }}
+
+
+    function getAjax(url, thekey, success) {
+  var xhr = window.XMLHttpRequest
+    ? new XMLHttpRequest()
+    : new ActiveXObject('Microsoft.XMLHTTP')
+  xhr.open('GET', url, true)
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState > 3 && xhr.status == 200) {
+      success(xhr.responseText)
+    }
+  }
+  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('Content-Type', 'application/json')
+
+  xhr.send()
+  return xhr
+}
+
+
+    //draws withdraw QR code
+function drawwithdraw() {
+
+
+
+      walname = document.getElementById("fauselect").value
+
+      thewithdraw = walname.split("-");
+  theurl = window.location.hostname + "{{ url_for('tpos.tpos') }}?pos=" + thewithdraw[1] + "&exc=9000"
+
+      new QRCode(document.getElementById('qrcode'), {
+        text: theurl,
+        width: 300,
+        height: 300,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      })
+
+     
+      document.getElementById('qrcodetxt').innerHTML = 
+      "<a target='_blank' href='{{ url_for('tpos.tpos') }}?pos=" + thewithdraw[1] + "&exc=9000" + "'><h4>Shareable link</h4></a>" 
+      document.getElementById("qrcode").style.backgroundColor = "white";
+      document.getElementById("qrcode").style.padding = "20px";
+
+
+}
+
+function postfau(){
+
+  nme = document.getElementById('nme').value
+
+  getAjax(
+    "{{ url_for('tpos.index') }}?nme=" + nme + "&usr=" + user,
+    "filla",
+
+    function(data) {  location.replace("{{ url_for('tpos.index') }}?usr=" + user)
+})
+
+
+}
+
+
+  </script>
+</div>
+{% endblock %}
