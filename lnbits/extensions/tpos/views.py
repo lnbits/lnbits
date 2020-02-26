@@ -66,5 +66,5 @@ def tpos():
     r_json = r.json()
 
     return render_template(
-        "tpos/tpos.html", pos=pos, exchange=int(r_json["data"]["BTC" + user_fau[0][5]][user_fau[0][5]])
+        "tpos/tpos.html", pos=pos, ratee=user_fau[0][5], exchange=int(r_json["data"]["BTC" + user_fau[0][5]][user_fau[0][5]])
     )
