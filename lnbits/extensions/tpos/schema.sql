@@ -4,6 +4,6 @@ CREATE TABLE IF NOT EXISTS tpos (
     nme TEXT,
     uni TEXT,
     usr TEXT,
-    invkey TEXT
+    invkey TEXT,
+    cur TEXT
 );
-
