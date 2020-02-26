@@ -169,7 +169,7 @@
  function keys(num){
  	if(Number.isInteger(num)){
       total = total + String(num)
-      document.getElementById("fiat").innerHTML = String(parseInt(total)/100) + " " + {{ ratee }}
+      document.getElementById("fiat").innerHTML = String(parseInt(total)/100) + " " + "{{ ratee }}"
 
       document.getElementById("sats").innerHTML = parseInt( (parseInt(total)/100) * parseInt( {{exchange}} )) + " " + "Sats"
 
@@ -190,11 +190,10 @@
  	}
 
  	else if(num == "OK"){
-    submitforticket(parseInt((parseInt(total)/100)* parseInt( {{exchange}} ))))
+    submitforticket(parseInt((parseInt(total)/100)* parseInt( {{exchange}} )))
  	}
 
  }
-
 
  function submitforticket(sats){
 console.log(sats)
