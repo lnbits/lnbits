@@ -97,7 +97,7 @@
                        <div class="form-group">
                       <label>Select a wallet</label>
                       <select id="wal" class="form-control">
-                         <option></option>
+                         <option>Select a wallet</option>
                          {% for w in user_wallets %}
                         <option>{{w.name}}-{{w.id}}</option>
                          {% endfor %}
@@ -209,7 +209,7 @@
                      <div class="form-group">
 
                       <select class="form-control" id="fauselect" onchange="drawwithdraw()">
-                        <option></option>
+                        <option>Select a PoS</option>
                          {% for w in user_fau %}
                         <option id="{{w.uni}}"   >{{w.nme}}-{{w.uni}}</option>
                          {% endfor %}
