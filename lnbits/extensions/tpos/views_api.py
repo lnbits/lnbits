@@ -33,10 +33,3 @@ def api_tpos():
         return jsonify({"status": "ERROR", "reason": r_json["ERROR"]}), 400
 
     return jsonify({"status": "TRUE","pay_req": r_json["pay_req"] ,"payment_hash": r_json["payment_hash"]  }), 200
-
-
-
-
-
-
-
