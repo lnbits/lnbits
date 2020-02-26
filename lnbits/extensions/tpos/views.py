@@ -13,6 +13,8 @@ def index():
     """Try to add descriptions for others."""
     usr = request.args.get("usr")
     nme = request.args.get("nme")
+    wal = request.args.get("wal")
+    cur = request.args.get("cur")
 
     if usr:
         if not len(usr) > 20:
@@ -21,6 +23,7 @@ def index():
     # Get all the data
     with open_db() as db:
         user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
+        user_wall = db.fetchall("SELECT * FROM wallets WHERE user = ? AND id = ?", (usr,wal))
         user_ext = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (usr,))
         user_ext = [v[0] for v in user_ext]
     
@@ -30,20 +33,21 @@ def index():
             pos_ext_db.execute(
                 """
                 INSERT OR IGNORE INTO tpos
-                (nme, uni, usr, invkey)
-                VALUES (?, ?, ?, ?)
+                (nme, uni, usr, invkey, cur)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     nme,
                     uni,
                     usr,
-                    user_wallets[0][3],
+                    user_wall[0][3],
+                    cur,
 
                 ),
             )
     with open_ext_db("tpos") as pos_ext_dbb:
         user_fau = pos_ext_dbb.fetchall("SELECT * FROM tpos WHERE usr = ?", (usr,))
-
+    
     return render_template(
         "tpos/index.html", user_wallets=user_wallets, user_ext=user_ext, usr=usr, user_fau=user_fau
     )
@@ -52,13 +56,15 @@ def index():
 def tpos():
     """Try to add descriptions for others."""
     pos = request.args.get("pos")
-    exc = request.args.get("exc")
 
     with open_ext_db("tpos") as pos_ext_dbb:
         user_fau = pos_ext_dbb.fetchall("SELECT * FROM tpos WHERE uni = ?", (pos,))
     if not user_fau:
         return jsonify({"status": "ERROR", "reason":"NO POS"}), 400
 
+    r = requests.get("https://api.opennode.co/v1/rates")
+    r_json = r.json()
+
     return render_template(
-        "tpos/tpos.html", pos=pos, exchange=exc
+        "tpos/tpos.html", pos=pos, exchange=int(r_json["data"]["BTC" + user_fau[0][5]][user_fau[0][5]])
     )
