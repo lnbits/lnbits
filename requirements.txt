@@ -16,3 +16,4 @@ six==1.14.0
 typing-extensions==3.7.4.1 ; python_version < '3.8'
 urllib3==1.25.8
 werkzeug==1.0.0
+gevent==1.4.0
