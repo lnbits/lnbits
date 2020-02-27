@@ -434,15 +434,7 @@ background-color:
         <section class="sidebar" style="height: auto;">
           <!-- Sidebar user panel -->
 
-          <!-- /.search form -->
-          <!-- sidebar menu: : style can be found in sidebar.less -->
-          <ul class="sidebar-menu">
-           <li><br/><br/><a href="https://where39.com/"><p>Where39 anon locations</p><img src="../static/where39.png" style="width:170px"></a></li>
-           <li><br/><a href="https://github.com/arcbtc/Quickening"><p>The Quickening <$8 PoS</p><img src="../static/quick.gif" style="width:170px"></a></li>
-           <li><br/><a href="https://jigawatt.co/"><p>Buy BTC stamps + electronics</p><img src="../static/stamps.jpg" style="width:170px"></a></li>
-           <li><br/><a href="mailto:ben@arc.wales"><h3>Advertise here!</h3></a></li>
 
-          </ul>
         </section>
         <!-- /.sidebar -->
       </aside>
@@ -612,10 +604,10 @@ function postAjax(url, data, thekey, success) {
 function scanQRsend() {
   document.getElementById('scantickets').innerHTML =
     "<div class='modal-content'>"+
-    "<br/><div id='loadingMessage'>🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>" +
+    "<br/><div id='registered'><div id='loadingMessage'>🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>" +
     "<canvas id='canvas' hidden></canvas><div id='output' hidden><div id='outputMessage'></div>" +
     "<br/><span id='outputData'></span></div></div><div class='modal-footer'>"+
-    "<button type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel</button><br/><br/>"
+    "<button type='submit' class='btn btn-primary' onclick='cancelsend()'>Cancel</button><br/><br/></div>"
   var video = document.createElement('video')
   var canvasElement = document.getElementById('canvas')
   var canvas = canvasElement.getContext('2d')
@@ -654,18 +646,13 @@ function scanQRsend() {
       })
       if (code) {
         thehash = code.data
-        document.getElementById('scantickets').innerHTML = ""
+        document.getElementById('registered').innerHTML = "<h1 style='color:green;font-size:300%;'>Registered!</h1>"
         outputMessage.hidden = true
         outputData.parentElement.hidden = false
         outputData.innerText = JSON.stringify(code.data)
         getAjax("{{ url_for('events.api_checkticket') }}?thehash=" + thehash, "filla", function(datab) {
-         status = JSON.parse(data).status
-         if (status != "FALSE"){
-
-          name = JSON.parse(data).name
-
-          window.location.href = 'wave?thehash=' + thehash + '&name=' + name
-
+        if (JSON.parse(datab).status == 'TRUE') {
+           location.reload()
          }
         })
 
