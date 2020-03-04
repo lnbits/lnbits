@@ -1,0 +1,12 @@
+{% macro window_vars(user, wallet) -%}
+  <script>
+    window.extensions = {{ EXTENSIONS | tojson | safe }};
+    {% if user %}
+      window.user = {{ user | tojson | safe }};
+    {% endif %}
+    {% if wallet %}
+      window.wallet = {{ wallet | tojson | safe }};
+      window.transactions = {{ wallet.get_transactions() | tojson | safe }};
+    {% endif %}
+  </script>
+{%- endmacro %}

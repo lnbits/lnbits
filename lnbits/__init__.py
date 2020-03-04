@@ -3,12 +3,15 @@ import json
 import requests
 import uuid
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import g, Flask, jsonify, redirect, render_template, request, url_for
+from flask_assets import Environment, Bundle
+from flask_compress import Compress
 from flask_talisman import Talisman
 from lnurl import Lnurl, LnurlWithdrawResponse
 
 from . import bolt11
 from .core import core_app
+from .decorators import api_validate_post_request
 from .db import init_databases, open_db
 from .helpers import ExtensionManager, megajson
 from .settings import WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
@@ -21,6 +24,7 @@ valid_extensions = [ext for ext in ExtensionManager().extensions if ext.is_valid
 # optimization & security
 # -----------------------
 
+Compress(app)
 Talisman(
     app,
     content_security_policy={
@@ -34,6 +38,8 @@ Talisman(
             "fonts.googleapis.com",
             "fonts.gstatic.com",
             "maxcdn.bootstrapcdn.com",
+            "github.com",
+            "avatars2.githubusercontent.com",
         ]
     },
 )
@@ -55,12 +61,22 @@ for ext in valid_extensions:
 # filters
 # -------
 
+app.jinja_env.globals["DEBUG"] = app.config["DEBUG"]
 app.jinja_env.globals["EXTENSIONS"] = valid_extensions
 app.jinja_env.filters["megajson"] = megajson
 
 
+# assets
+# ------
+
+assets = Environment(app)
+assets.url = app.static_url_path
+assets.register("base_css", Bundle("scss/base.scss", filters="pyscss", output="css/base.css"))
+
+
 # init
 # ----
+
 
 @app.before_first_request
 def init():
@@ -71,32 +87,6 @@ def init():
 # move the rest to `core_app`
 # vvvvvvvvvvvvvvvvvvvvvvvvvvv
 # vvvvvvvvvvvvvvvvvvvvvvvvvvv
-
-
-@app.route("/deletewallet")
-def deletewallet():
-    user_id = request.args.get("usr")
-    wallet_id = request.args.get("wal")
-
-    with open_db() as db:
-        db.execute(
-            """
-            UPDATE wallets AS w
-            SET
-                user = 'del:' || w.user,
-                adminkey = 'del:' || w.adminkey,
-                inkey = 'del:' || w.inkey
-            WHERE id = ? AND user = ?
-            """,
-            (wallet_id, user_id),
-        )
-
-        next_wallet = db.fetchone("SELECT id FROM wallets WHERE user = ?", (user_id,))
-
-        if next_wallet:
-            return redirect(url_for("wallet", usr=user_id, wal=next_wallet[0]))
-
-    return redirect(url_for("home"))
 
 
 @app.route("/lnurl")
@@ -157,188 +147,20 @@ def lnurlwallet():
     return redirect(url_for("wallet", usr=user_id, wal=wallet_id))
 
 
-@app.route("/wallet")
-def wallet():
-    usr = request.args.get("usr")
-    wallet_id = request.args.get("wal")
-    wallet_name = request.args.get("nme")
-
-    if usr:
-        if not len(usr) > 20:
-            return redirect(url_for("home"))
-    if wallet_id:
-        if not len(wallet_id) > 20:
-            return redirect(url_for("home"))
-
-    # just usr: return a the first user wallet or create one if none found
-    # usr and wallet_id: return that wallet or create it if it doesn't exist
-    # usr, wallet_id and wallet_name: same as above, but use the specified name
-    # usr and wallet_name: generate a wallet_id and create
-    # wallet_id and wallet_name: create a user, then move an existing wallet or create
-    # just wallet_name: create a user, then generate a wallet_id and create
-    # nothing: create everything
-
-    with open_db() as db:
-        # ensure this user exists
-        # -------------------------------
-
-        if not usr:
-            usr = uuid.uuid4().hex
-            return redirect(url_for("wallet", usr=usr, wal=wallet_id, nme=wallet_name))
-
-        db.execute(
-            """
-            INSERT OR IGNORE INTO accounts (id) VALUES (?)
-            """,
-            (usr,),
-        )
-
-        user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
-
-        if not wallet_id:
-            if user_wallets and not wallet_name:
-                # fetch the first wallet from this user
-                # -------------------------------------
-                wallet_id = user_wallets[0]["id"]
-            else:
-                # create for this user
-                # --------------------
-                wallet_name = wallet_name or DEFAULT_USER_WALLET_NAME
-                wallet_id = uuid.uuid4().hex
-                db.execute(
-                    """
-                    INSERT INTO wallets (id, name, user, adminkey, inkey)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (wallet_id, wallet_name, usr, uuid.uuid4().hex, uuid.uuid4().hex),
-                )
-
-            return redirect(url_for("wallet", usr=usr, wal=wallet_id, nme=wallet_name))
-
-        # if wallet_id is given, try to move it to this user or create
-        # ------------------------------------------------------------
-        db.execute(
-            """
-            INSERT OR REPLACE INTO wallets (id, user, name, adminkey, inkey)
-            VALUES (?, ?,
-                coalesce((SELECT name FROM wallets WHERE id = ?), ?),
-                coalesce((SELECT adminkey FROM wallets WHERE id = ?), ?),
-                coalesce((SELECT inkey FROM wallets WHERE id = ?), ?)
-            )
-            """,
-            (
-                wallet_id,
-                usr,
-                wallet_id,
-                wallet_name or DEFAULT_USER_WALLET_NAME,
-                wallet_id,
-                uuid.uuid4().hex,
-                wallet_id,
-                uuid.uuid4().hex,
-            ),
-        )
-
-        # finally, get the wallet with balance and transactions
-        # -----------------------------------------------------
-
-        wallet = db.fetchone(
-            """
-            SELECT
-                coalesce((SELECT balance/1000 FROM balances WHERE wallet = wallets.id), 0) * ? AS balance,
-                *
-            FROM wallets
-            WHERE user = ? AND id = ?
-            """,
-            (1 - FEE_RESERVE, usr, wallet_id),
-        )
-
-        transactions = db.fetchall(
-            """
-            SELECT *
-            FROM apipayments
-            WHERE wallet = ? AND pending = 0
-            ORDER BY time
-            """,
-            (wallet_id,),
-        )
-    
-        user_ext = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (usr,))
-        user_ext = [v[0] for v in user_ext]
-
-    return render_template(
-        "wallet.html", user_wallets=user_wallets, wallet=wallet, user=usr, transactions=transactions, user_ext=user_ext
-    )
-
-
-@app.route("/api/v1/invoices", methods=["GET", "POST"])
-def api_invoices():
-    if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 400
-
-    postedjson = request.json
-
-    # Form validation
-    if int(postedjson["value"]) < 0 or not postedjson["memo"].replace(" ", "").isalnum():
-        return jsonify({"ERROR": "FORM ERROR"}), 401
-
-    if "value" not in postedjson:
-        return jsonify({"ERROR": "NO VALUE"}), 400
-
-    if not postedjson["value"].isdigit():
-        return jsonify({"ERROR": "VALUE MUST BE A NUMBER"}), 400
-
-    if int(postedjson["value"]) < 0:
-        return jsonify({"ERROR": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
-
-    if "memo" not in postedjson:
-        return jsonify({"ERROR": "NO MEMO"}), 400
-
-    with open_db() as db:
-        wallet = db.fetchone(
-            "SELECT id FROM wallets WHERE inkey = ? OR adminkey = ?",
-            (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"],),
-        )
-
-        if not wallet:
-            return jsonify({"ERROR": "NO KEY"}), 200
-
-        r, pay_hash, pay_req = WALLET.create_invoice(postedjson["value"], postedjson["memo"])
-
-        if not r.ok or "error" in r.json():
-            return jsonify({"ERROR": "UNEXPECTED BACKEND ERROR"}), 500
-
-        amount_msat = int(postedjson["value"]) * 1000
-
-        db.execute(
-            "INSERT INTO apipayments (payhash, amount, wallet, pending, memo) VALUES (?, ?, ?, 1, ?)",
-            (pay_hash, amount_msat, wallet["id"], postedjson["memo"],),
-        )
-
-    return jsonify({"pay_req": pay_req, "payment_hash": pay_hash}), 200
-
-
 @app.route("/api/v1/channels/transactions", methods=["GET", "POST"])
+@api_validate_post_request(required_params=["payment_request"])
 def api_transactions():
-
-    if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 400
-
-    data = request.json
-
-    print(data)
-    if "payment_request" not in data:
-        return jsonify({"ERROR": "NO PAY REQ"}), 400
 
     with open_db() as db:
         wallet = db.fetchone("SELECT id FROM wallets WHERE adminkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
 
         if not wallet:
-            return jsonify({"ERROR": "BAD AUTH"}), 401
+            return jsonify({"message": "BAD AUTH"}), 401
 
         # decode the invoice
-        invoice = bolt11.decode(data["payment_request"])
+        invoice = bolt11.decode(g.data["payment_request"])
         if invoice.amount_msat == 0:
-            return jsonify({"ERROR": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
+            return jsonify({"message": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
 
         # insert the payment
         db.execute(
@@ -356,7 +178,7 @@ def api_transactions():
         balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet["id"],))[0]
         if balance < 0:
             db.execute("DELETE FROM apipayments WHERE payhash = ? AND wallet = ?", (invoice.payment_hash, wallet["id"]))
-            return jsonify({"ERROR": "INSUFFICIENT BALANCE"}), 403
+            return jsonify({"message": "INSUFFICIENT BALANCE"}), 403
 
         # check if the invoice is an internal one
         if db.fetchone("SELECT count(*) FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))[0] == 2:
@@ -364,10 +186,10 @@ def api_transactions():
             db.execute("UPDATE apipayments SET pending = 0, fee = 0 WHERE payhash = ?", (invoice.payment_hash,))
         else:
             # actually send the payment
-            r = WALLET.pay_invoice(data["payment_request"])
+            r = WALLET.pay_invoice(g.data["payment_request"])
 
             if not r.raw_response.ok or r.failed:
-                return jsonify({"ERROR": "UNEXPECTED PAYMENT ERROR"}), 500
+                return jsonify({"message": "UNEXPECTED PAYMENT ERROR"}), 500
 
             # payment went through, not pending anymore, save actual fees
             db.execute(
@@ -376,58 +198,6 @@ def api_transactions():
             )
 
     return jsonify({"PAID": "TRUE", "payment_hash": invoice.payment_hash}), 200
-
-
-@app.route("/api/v1/invoice/<payhash>", methods=["GET"])
-def api_checkinvoice(payhash):
-    if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 400
-
-
-    with open_db() as db:
-        payment = db.fetchall("SELECT * FROM apipayments WHERE payhash = ?", (payhash,))
-        
-        if not payment:
-            return jsonify({"ERROR": "NO INVOICE"}), 404
-
-        if not payment[0][4]:  # pending
-            return jsonify({"PAID": "TRUE"}), 200
-
-        if not WALLET.get_invoice_status(payhash).settled:
-            return jsonify({"PAID": "FALSE"}), 200
-
-        db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-        return jsonify({"PAID": "TRUE"}), 200
-
-
-@app.route("/api/v1/payment/<payhash>", methods=["GET"])
-def api_checkpayment(payhash):
-    if request.headers["Content-Type"] != "application/json":
-        return jsonify({"ERROR": "MUST BE JSON"}), 400
-
-    with open_db() as db:
-        payment = db.fetchone(
-            """
-            SELECT pending
-            FROM apipayments
-            INNER JOIN wallets AS w ON apipayments.wallet = w.id
-            WHERE payhash = ?
-                AND (w.adminkey = ? OR w.inkey = ?)
-            """,
-            (payhash, request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
-        )
-
-        if not payment:
-            return jsonify({"ERROR": "NO INVOICE"}), 404
-
-        if not payment["pending"]:  # pending
-            return jsonify({"PAID": "TRUE"}), 200
-
-        if not WALLET.get_payment_status(payhash).settled:
-            return jsonify({"PAID": "FALSE"}), 200
-
-        db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-        return jsonify({"PAID": "TRUE"}), 200
 
 
 @app.route("/api/v1/checkpending", methods=["POST"])
@@ -465,39 +235,5 @@ def api_checkpending():
     return ""
 
 
-# Checks DB to see if the extensions are activated or not activated for the user
-@app.route("/extensions")
-def extensions():
-    usr = request.args.get("usr")
-    enable = request.args.get("enable")
-    disable = request.args.get("disable")
-    ext = None
-
-    if usr and not len(usr) > 20:
-        return redirect(url_for("home"))
-
-    if enable and disable:
-        # TODO: show some kind of error
-        return redirect(url_for("extensions"))
-
-    with open_db() as db:
-        user_wallets = db.fetchall("SELECT * FROM wallets WHERE user = ?", (usr,))
-
-        if enable:
-            ext, value = enable, 1
-        if disable:
-            ext, value = disable, 0
-
-        if ext:
-            db.execute(
-                """
-                INSERT OR REPLACE INTO extensions (user, extension, active)
-                VALUES (?, ?, ?)
-                """,
-                (usr, ext, value),
-            )
-
-        user_ext = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (usr,))
-        user_ext = [v[0] for v in user_ext]
-
-    return render_template("extensions.html", user_wallets=user_wallets, user=usr, user_ext=user_ext)
+if __name__ == '__main__':
+    app.run()

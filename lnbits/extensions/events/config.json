@@ -1,5 +1,6 @@
 {
-    "name": "LNEVENTS",
-    "short_description": "LN tickets for events",
-    "ion_icon": "calendar"
+    "name": "Events",
+    "short_description": "LN tickets for events.",
+    "icon": "local_activity",
+    "contributors": ["arcbtc"]
 }

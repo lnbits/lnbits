@@ -1,5 +1,6 @@
 {
     "name": "TPOS",
     "short_description": "A shareable POS!",
-    "ion_icon": "calculator"
+    "icon": "dialpad",
+    "contributors": ["talvasconcelos", "arcbtc"]
 }

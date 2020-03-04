@@ -1,5 +1,6 @@
 {
   "name": "LNURLw",
-  "short_description": "Make LNURL withdraw links",
-  "ion_icon": "beer"
+  "short_description": "Make LNURL withdraw links.",
+  "icon": "crop_free",
+  "contributors": ["arcbtc"]
 }

@@ -11,8 +11,10 @@ __pycache__
 *.egg-info
 .coverage
 .pytest_cache
+.webassets-cache
 htmlcov
 Pipfile.lock
+test-reports
 
 *.swo
 *.swp
@@ -24,3 +26,5 @@ venv
 
 *.sqlite3
 .pyre*
+
+__bundle__

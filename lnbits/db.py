@@ -48,11 +48,12 @@ def init_databases() -> None:
     """TODO: see how we can deal with migrations."""
 
     schemas = [
-        ("database", os.path.join(LNBITS_PATH, "data", "schema.sql")),
+        ("database", os.path.join(LNBITS_PATH, "core", "schema.sql")),
     ]
 
     for extension in ExtensionManager().extensions:
-        schemas.append((f"ext_{extension.code}", os.path.join(extension.path, "schema.sql")))
+        extension_path = os.path.join(LNBITS_PATH, "extensions", extension.code)
+        schemas.append((f"ext_{extension.code}", os.path.join(extension_path, "schema.sql")))
 
     for schema in [s for s in schemas if os.path.exists(s[1])]:
         with open_db(schema[0]) as db:

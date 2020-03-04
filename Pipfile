@@ -10,7 +10,13 @@ python_version = "3.7"
 bitstring = "*"
 lnurl = "*"
 flask = "*"
+flask-assets = "*"
+flask-compress = "*"
 flask-talisman = "*"
+gevent = "*"
+greenlet = "*"
+gunicorn = "*"
+pyscss = "*"
 requests = "*"
 
 [dev-packages]

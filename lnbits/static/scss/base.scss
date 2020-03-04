@@ -1,0 +1,53 @@
+$dark-background: #1f2234;
+$dark-card-background: #333646;
+
+
+[v-cloak] {
+  display: none;
+}
+
+.bg-lnbits-dark {
+  background-color: $dark-background;
+}
+
+body.body--dark,
+body.body--dark .q-drawer--dark,
+body.body--dark .q-menu--dark {
+  background: $dark-background;
+}
+
+body.body--dark .q-card--dark {
+  background: $dark-card-background;
+}
+
+body.body--dark .q-table--dark {
+  background: transparent;
+}
+
+body.body--light,
+body.body--light .q-drawer  {
+  background: whitesmoke;
+}
+
+body.body--dark .q-field--error {
+  .text-negative,
+  .q-field__messages {
+    color: yellow !important;
+  }
+}
+
+.lnbits__q-table__icon-td {
+  padding-left: 5px !important;
+}
+
+.lnbits-drawer__q-list .q-item {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+
+  &.q-item--active {
+    color: inherit;
+    font-weight: bold;
+  }
+}

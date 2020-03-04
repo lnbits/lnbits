@@ -1,6 +1,6 @@
 <!-- @format -->
 
-{% extends "base.html" %} {% block messages %}
+{% extends "legacy.html" %} {% block messages %}
 
 <a href="#" class="dropdown-toggle" data-toggle="dropdown">
   <i class="fa fa-bell-o"></i>
@@ -43,7 +43,7 @@
         {% endif %}
       {% endfor %}
       <li>
-      <a href="{{ url_for('extensions') }}?usr={{ user }}">Manager</a></li>
+      <a href="{{ url_for('core.extensions') }}?usr={{ user }}">Manager</a></li>
     </ul>
   </li>
 {% endblock %}
@@ -63,7 +63,7 @@
         <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
       </li>
       <li>
-      <a href="{{ url_for('extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
+      <a href="{{ url_for('core.extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
       </li>
        <li>
         <i class="active" class="fa fa-dashboard">example</i>

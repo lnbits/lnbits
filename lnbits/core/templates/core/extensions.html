@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% from "macros.jinja" import window_vars with context %}
+
+
+{% block scripts %}
+  {{ window_vars(user) }}
+  {% assets filters='rjsmin', output='__bundle__/core/extensions.js',
+    'core/js/extensions.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+{% endblock %}
+
+{% block page %}
+  <div class="row q-col-gutter-md">
+    <div class="col-6 col-md-4 col-lg-3" v-for="extension in w.extensions" :key="extension.code">
+      <q-card>
+        <q-card-section>
+          <q-icon :name="extension.icon" color="grey-5" style="font-size: 4rem;"></q-icon>
+          {% raw %}
+            <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
+            {{ extension.shortDescription }}
+          {% endraw %}
+        </q-card-section>
+        <q-separator></q-separator>
+        <q-card-actions>
+          <div v-if="extension.isEnabled">
+            <q-btn flat color="deep-purple"
+              type="a" :href="[extension.url, '?usr=', w.user.id].join('')">Open</q-btn>
+            <q-btn flat color="grey-5"
+              type="a"
+              :href="['{{ url_for('core.extensions') }}', '?usr=', w.user.id, '&disable=', extension.code].join('')"> Disable</q-btn>
+          </div>
+          <q-btn v-else flat color="deep-purple"
+            type="a"
+            :href="['{{ url_for('core.extensions') }}', '?usr=', w.user.id, '&enable=', extension.code].join('')">
+            Enable</q-btn>
+        </q-card-actions>
+      </q-card>
+    </div>
+  </div>
+{% endblock %}

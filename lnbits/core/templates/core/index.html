@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+
+{% block scripts %}
+  {% assets filters='rjsmin', output='__bundle__/core/index.js',
+    'core/js/index.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+{% endblock %}
+
+{% block drawer %}
+{% endblock %}
+
+{% block page %}
+  <div class="row q-col-gutter-md justify-between">
+    <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+
+      <q-card>
+        <q-card-section>
+          <q-form class="q-gutter-md">
+            <q-input filled dense
+              v-model="walletName"
+              label="Name your LNbits wallet *"
+            ></q-input>
+            <q-btn unelevated
+              color="deep-purple"
+              :disable="walletName == ''"
+              @click="createWallet">Add a new wallet</q-btn>
+          </q-form>
+        </q-card-section>
+      </q-card>
+
+      <q-card>
+        <q-card-section>
+          <h3 class="q-my-none"><strong>LN</strong>bits</h3>
+          <h5 class="q-my-md">Free and open-source lightning wallet</h5>
+          <p>LNbits is a simple, free and open-source lightning-network
+            wallet for bits and bobs. You can run it on your own server,
+            or use it at lnbits.com.</p>
+          <p>The wallet can be used in a variety of ways: an instant wallet for
+            LN demonstrations, a fallback wallet for the LNURL scheme, an
+            accounts system to mitigate the risk of exposing applications to
+            your full balance.</p>
+          <p>The wallet can run on top of LND, LNPay, @lntxbot or OpenNode.</p>
+          <p>Please note that although one of the aims of this wallet is to
+            mitigate exposure of all your funds, it’s still very BETA and may,
+            in fact, do the opposite!</p>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat
+            color="deep-purple"
+            type="a" href="https://github.com/arcbtc/lnbits" target="_blank" rel="noopener">View project in GitHub</q-btn>
+          <q-btn flat
+            color="deep-purple"
+            type="a" href="https://paywall.link/to/f4e4e" target="_blank" rel="noopener">Donate</q-btn>
+        </q-card-actions>
+      </q-card>
+
+    </div>
+
+    <!-- Ads -->
+    <div class="col-12 col-md-3 col-lg-3 q-gutter-y-md">
+      <q-btn flat color="deep-purple" label="Advertise here!" type="a" href="mailto:ben@arc.wales" class="full-width"></q-btn>
+      <div>
+        <a href="https://where39.com/">
+          <q-img :ratio="16/9" src="{{ url_for('static', filename='images/where39.png') }}" class="rounded-borders">
+            <div class="absolute-top text-center">Where39 anon locations</div>
+          </q-img>
+        </a>
+      </div>
+      <div>
+        <a href="https://github.com/arcbtc/Quickening">
+          <q-img :ratio="16/9" src="{{ url_for('static', filename='images/quick.gif') }}" class="rounded-borders">
+            <div class="absolute-top text-center">The Quickening <$8 PoS</div>
+          </q-img>
+        </a>
+      </div>
+      <div>
+        <a href="http://jigawatt.co/">
+          <q-img :ratio="16/9" src="{{ url_for('static', filename='images/stamps.jpg') }}" class="rounded-borders">
+            <div class="absolute-top text-center">Buy BTC stamps + electronics</div>
+          </q-img>
+        </a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

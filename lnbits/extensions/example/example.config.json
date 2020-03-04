@@ -1,5 +1,6 @@
 {
     "name": "SHORT-NAME-FOR-EXTENSIONS-PAGE",
     "short_description": "BLah blah blah.",
-    "ion_icon": "calendar"
+    "icon": "calendar",
+    "contributors": ["github_username"]
 }

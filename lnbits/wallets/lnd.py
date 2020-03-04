@@ -15,7 +15,8 @@ class LndWallet(Wallet):
         payment_hash, payment_request = None, None
         r = post(
             url=f"{self.endpoint}/v1/invoices",
-            headers=self.auth_admin, verify=False,
+            headers=self.auth_admin,
+            verify=False,
             json={"value": amount, "memo": memo, "private": True},
         )
 
@@ -33,7 +34,10 @@ class LndWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = post(
-            url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, verify=False, json={"payment_request": bolt11}
+            url=f"{self.endpoint}/v1/channels/transactions",
+            headers=self.auth_admin,
+            verify=False,
+            json={"payment_request": bolt11},
         )
         return PaymentResponse(r, not r.ok)
 
@@ -46,7 +50,12 @@ class LndWallet(Wallet):
         return TxStatus(r, r.json()["settled"])
 
     def get_payment_status(self, payment_hash: str) -> TxStatus:
-        r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, verify=False, params={"include_incomplete": True})
+        r = get(
+            url=f"{self.endpoint}/v1/payments",
+            headers=self.auth_admin,
+            verify=False,
+            params={"include_incomplete": True},
+        )
 
         if not r.ok:
             return TxStatus(r, None)
