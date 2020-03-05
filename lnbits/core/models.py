@@ -59,4 +59,5 @@ class Transaction(NamedTuple):
 
     def set_pending(self, pending: bool) -> None:
         from .crud import update_transaction_status
+
         update_transaction_status(self.payhash, pending)

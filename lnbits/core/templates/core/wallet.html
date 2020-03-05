@@ -4,7 +4,12 @@
 
 
 {% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
   {{ window_vars(user, wallet) }}
+  {% assets filters='rjsmin', output='__bundle__/core/chart.js',
+    'vendor/chart.js@2.9.3/chart.min.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
   {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
     'vendor/bolt11/utils.js',
     'vendor/bolt11/decoder.js',
@@ -26,13 +31,13 @@
             <q-btn unelevated
               color="purple"
               class="full-width"
-              @click="openSendDialog">Send</q-btn>
+              @click="showSendDialog">Send</q-btn>
           </div>
           <div class="col">
             <q-btn unelevated
               color="deep-purple"
               class="full-width"
-              @click="openReceiveDialog">Receive</q-btn>
+              @click="showReceiveDialog">Receive</q-btn>
           </div>
         </div>
       </q-card>
@@ -45,6 +50,9 @@
             </div>
             <div class="col-auto">
               <q-btn flat color="grey" onclick="exportbut()">Export to CSV</q-btn>
+              <q-btn dense flat round icon="show_chart" color="grey" @click="showChart">
+                <q-tooltip>Show chart</q-tooltip>
+              </q-btn>
             </div>
           </div>
           <q-table dense flat
@@ -67,7 +75,7 @@
                 <q-td auto-width class="lnbits__q-table__icon-td">
                   <q-icon size="14px"
                     :name="(props.row.sat < 0) ? 'call_made' : 'call_received'"
-                    :color="(props.row.sat < 0) ? 'purple-5' : 'green'"></q-icon>
+                    :color="(props.row.sat < 0) ? 'pink' : 'green'"></q-icon>
                 </q-td>
                 <q-td key="memo" :props="props">
                   {{ props.row.memo }}
@@ -82,12 +90,6 @@
             </template>
             {% endraw %}
           </q-table>
-        </q-card-section>
-      </q-card>
-
-      <q-card>
-        <q-card-section>
-          <div id="satschart"></div>
         </q-card-section>
       </q-card>
     </div>
@@ -167,7 +169,7 @@
     </div>
   </div>
 
-  <q-dialog v-model="receive.show" :position="($q.screen.gt.sm) ? 'standard' : 'top'">
+  <q-dialog v-model="receive.show" position="top">
     <q-card class="q-pa-md" style="width: 500px">
       <q-form v-if="!receive.paymentReq" class="q-gutter-md">
         <q-input filled dense
@@ -205,7 +207,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="send.show" :position="($q.screen.gt.sm) ? 'standard' : 'top'">
+  <q-dialog v-model="send.show" position="top">
     <q-card class="q-pa-md" style="width: 500px">
       <q-form v-if="!send.invoice" class="q-gutter-md">
         <q-input filled dense
@@ -247,6 +249,14 @@
           <q-btn v-close-popup flat color="grey">Cancel</q-btn>
         </div>
       </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="transactionsChart.show" position="top">
+    <q-card class="q-pa-md" style="width: 800px; max-width: unset">
+      <q-card-section>
+        <canvas ref="canvas" width="600" height="400"></canvas>
+      </q-card-section>
     </q-card>
   </q-dialog>
 {% endblock %}

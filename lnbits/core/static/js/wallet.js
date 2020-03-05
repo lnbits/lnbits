@@ -1,5 +1,80 @@
 Vue.component(VueQrcode.name, VueQrcode);
 
+
+function generateChart(canvas, transactions) {
+  var txs = [];
+  var n = 0;
+  var data = {
+    labels: [],
+    sats: [],
+    cumulative: []
+  };
+
+  _.each(transactions.sort(function (a, b) {
+    return a.time - b.time;
+  }), function (tx) {
+    txs.push({
+      day: Quasar.utils.date.formatDate(tx.date, 'YYYY-MM-DDTHH:00'),
+      sat: tx.sat,
+    });
+  });
+
+  _.each(_.groupBy(txs, 'day'), function (value, day) {
+    var sat = _.reduce(value, function(memo, tx) { return memo + tx.sat; }, 0);
+    n = n + sat;
+    data.labels.push(day);
+    data.sats.push(sat);
+    data.cumulative.push(n);
+  });
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [
+        {
+          data: data.cumulative,
+          type: 'line',
+          label: 'balance',
+          borderColor: '#673ab7',  // deep-purple
+          borderWidth: 4,
+          pointRadius: 3,
+          fill: false
+        },
+        {
+          data: data.sats,
+          type: 'bar',
+          label: 'tx',
+          backgroundColor: function (ctx) {
+            var value = ctx.dataset.data[ctx.dataIndex];
+            return (value < 0) ? '#e91e63' : '#4caf50';  // pink : green
+          }
+        }
+      ]
+    },
+    options: {
+      title: {
+        text: 'Chart.js Combo Time Scale'
+      },
+      tooltips: {
+        mode: 'index',
+        intersect:false
+      },
+      scales: {
+        xAxes: [{
+          type: 'time',
+          display: true,
+          time: {
+            minUnit: 'hour',
+            stepSize: 3
+          }
+        }],
+      },
+    }
+  });
+}
+
+
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
@@ -31,6 +106,9 @@ new Vue({
         pagination: {
           rowsPerPage: 10
         }
+      },
+      transactionsChart: {
+        show: false
       }
     };
   },
@@ -47,7 +125,7 @@ new Vue({
     }
   },
   methods: {
-    openReceiveDialog: function () {
+    showReceiveDialog: function () {
       this.receive = {
         show: true,
         status: 'pending',
@@ -58,7 +136,7 @@ new Vue({
         }
       };
     },
-    openSendDialog: function () {
+    showSendDialog: function () {
       this.send = {
         show: true,
         invoice: null,
@@ -66,6 +144,12 @@ new Vue({
           bolt11: ''
         }
       };
+    },
+    showChart: function () {
+      this.transactionsChart.show = true;
+      this.$nextTick(function () {
+        generateChart(this.$refs.canvas, this.transactions);
+      });
     },
     createInvoice: function () {
       var self = this;
