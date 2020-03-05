@@ -44,7 +44,6 @@ class LNPayWallet(Wallet):
             return TxStatus(r, None)
 
         statuses = {0: None, 1: True, -1: False}
-
         return TxStatus(r, statuses[r.json()["settled"]])
 
     def get_payment_status(self, payment_hash: str) -> TxStatus:
@@ -54,5 +53,4 @@ class LNPayWallet(Wallet):
             return TxStatus(r, None)
 
         statuses = {0: None, 1: True, -1: False}
-
         return TxStatus(r, statuses[r.json()["settled"]])

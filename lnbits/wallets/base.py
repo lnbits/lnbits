@@ -30,7 +30,7 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
-    def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
+    def get_invoice_status(self, payment_hash: str) -> TxStatus:
         pass
 
     @abstractmethod

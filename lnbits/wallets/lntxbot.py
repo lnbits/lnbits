@@ -34,9 +34,8 @@ class LntxbotWallet(Wallet):
 
         return PaymentResponse(r, failed, fee_msat)
 
-    def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
-        wait = "true" if wait else "false"
-        r = post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait={wait}", headers=self.auth_invoice)
+    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+        r = post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait=false", headers=self.auth_invoice)
 
         if not r.ok:
             return TxStatus(r, None)
@@ -57,4 +56,5 @@ class LntxbotWallet(Wallet):
         if not r.ok or "error" in r.json():
             return TxStatus(r, None)
 
-        return TxStatus(r, {"complete": True, "failed": False, "unknown": None}[r.json().get("status", "unknown")])
+        statuses = {"complete": True, "failed": False, "unknown": None}
+        return TxStatus(r, statuses[r.json().get("status", "unknown")])

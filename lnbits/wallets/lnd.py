@@ -41,8 +41,8 @@ class LndWallet(Wallet):
         )
         return PaymentResponse(r, not r.ok)
 
-    def get_invoice_status(self, payment_hash: str, wait: bool = True) -> TxStatus:
-        r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_read, verify=False,)
+    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+        r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_read, verify=False)
 
         if not r.ok or "settled" not in r.json():
             return TxStatus(r, None)
