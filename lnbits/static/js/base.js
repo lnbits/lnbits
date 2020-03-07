@@ -13,22 +13,27 @@ var LNbits = {
       });
     },
     createInvoice: function (wallet, amount, memo) {
-      return this.request('post', '/api/v1/invoices', wallet.inkey, {
+      return this.request('post', '/api/v1/payments', wallet.inkey, {
+        out: false,
         amount: amount,
         memo: memo
       });
     },
-    getInvoice: function (wallet, payhash) {
-      return this.request('get', '/api/v1/invoices/' + payhash, wallet.inkey);
+    payInvoice: function (wallet, bolt11) {
+      return this.request('post', '/api/v1/payments', wallet.inkey, {
+        out: true,
+        bolt11: bolt11
+      });
     },
-    getTransactions: function (wallet) {
-      return this.request('get', '/api/v1/transactions', wallet.inkey);
+    getPayments: function (wallet, checkPending) {
+      var query_param = (checkPending) ? '?check_pending' : '';
+      return this.request('get', ['/api/v1/payments', query_param].join(''), wallet.inkey);
+    },
+    getPayment: function (wallet, payhash) {
+      return this.request('get', '/api/v1/payments/' + payhash, wallet.inkey);
     }
   },
   href: {
-    openWallet: function (wallet) {
-      window.location.href = '/wallet?usr=' + wallet.user + '&wal=' + wallet.id;
-    },
     createWallet: function (walletName, userId) {
       window.location.href = '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName;
     },
@@ -40,14 +45,6 @@ var LNbits = {
     extension: function (data) {
       var obj = _.object(['code', 'isValid', 'name', 'shortDescription', 'icon'], data);
       obj.url = ['/', obj.code, '/'].join('');
-      return obj;
-    },
-    transaction: function (data) {
-      var obj = _.object(['payhash', 'pending', 'amount', 'fee', 'memo', 'time'], data);
-      obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm')
-      obj.msat = obj.amount;
-      obj.sat = obj.msat / 1000;
-      obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat);
       return obj;
     },
     user: function (data) {
@@ -62,9 +59,21 @@ var LNbits = {
     },
     wallet: function (data) {
       var obj = _.object(['id', 'name', 'user', 'adminkey', 'inkey', 'balance'], data);
-      obj.sat = Math.round(obj.balance);
+      obj.msat = obj.balance;
+      obj.sat = Math.round(obj.balance / 1000);
       obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat);
       obj.url = ['/wallet?usr=', obj.user, '&wal=', obj.id].join('');
+      return obj;
+    },
+    payment: function (data) {
+      var obj = _.object(['payhash', 'pending', 'amount', 'fee', 'memo', 'time'], data);
+      obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm')
+      obj.msat = obj.amount;
+      obj.sat = obj.msat / 1000;
+      obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat);
+      obj.isIn = obj.amount > 0;
+      obj.isOut = obj.amount < 0;
+      obj.isPaid = obj.pending == 0;
       return obj;
     }
   },
@@ -79,11 +88,10 @@ var LNbits = {
         500: 'negative'
       }
       Quasar.plugins.Notify.create({
-        progress: true,
         timeout: 3000,
         type: types[error.response.status] || 'warning',
         message: error.response.data.message || null,
-        caption: [error.response.status, ' ', error.response.statusText].join('') || null,
+        caption: [error.response.status, ' ', error.response.statusText].join('').toUpperCase() || null,
         icon: null
       });
     }
@@ -98,7 +106,7 @@ var windowMixin = {
         extensions: [],
         user: null,
         wallet: null,
-        transactions: [],
+        payments: [],
       }
     };
   },
@@ -121,11 +129,6 @@ var windowMixin = {
     }
     if (window.wallet) {
       this.w.wallet = Object.freeze(LNbits.map.wallet(window.wallet));
-    }
-    if (window.transactions) {
-      this.w.transactions = window.transactions.map(function (data) {
-        return LNbits.map.transaction(data);
-      });
     }
     if (window.extensions) {
       var user = this.w.user;

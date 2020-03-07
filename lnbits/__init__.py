@@ -3,18 +3,16 @@ import json
 import requests
 import uuid
 
-from flask import g, Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, redirect, render_template, request, url_for
 from flask_assets import Environment, Bundle
 from flask_compress import Compress
 from flask_talisman import Talisman
 from lnurl import Lnurl, LnurlWithdrawResponse
 
-from . import bolt11
 from .core import core_app
-from .decorators import api_validate_post_request
 from .db import init_databases, open_db
 from .helpers import ExtensionManager, megajson
-from .settings import WALLET, DEFAULT_USER_WALLET_NAME, FEE_RESERVE
+from .settings import WALLET, DEFAULT_USER_WALLET_NAME
 
 
 app = Flask(__name__)
@@ -145,94 +143,6 @@ def lnurlwallet():
         )
 
     return redirect(url_for("wallet", usr=user_id, wal=wallet_id))
-
-
-@app.route("/api/v1/channels/transactions", methods=["GET", "POST"])
-@api_validate_post_request(required_params=["payment_request"])
-def api_transactions():
-
-    with open_db() as db:
-        wallet = db.fetchone("SELECT id FROM wallets WHERE adminkey = ?", (request.headers["Grpc-Metadata-macaroon"],))
-
-        if not wallet:
-            return jsonify({"message": "BAD AUTH"}), 401
-
-        # decode the invoice
-        invoice = bolt11.decode(g.data["payment_request"])
-        if invoice.amount_msat == 0:
-            return jsonify({"message": "AMOUNTLESS INVOICES NOT SUPPORTED"}), 400
-
-        # insert the payment
-        db.execute(
-            "INSERT OR IGNORE INTO apipayments (payhash, amount, fee, wallet, pending, memo) VALUES (?, ?, ?, ?, 1, ?)",
-            (
-                invoice.payment_hash,
-                -int(invoice.amount_msat),
-                -int(invoice.amount_msat) * FEE_RESERVE,
-                wallet["id"],
-                invoice.description,
-            ),
-        )
-
-        # check balance
-        balance = db.fetchone("SELECT balance/1000 FROM balances WHERE wallet = ?", (wallet["id"],))[0]
-        if balance < 0:
-            db.execute("DELETE FROM apipayments WHERE payhash = ? AND wallet = ?", (invoice.payment_hash, wallet["id"]))
-            return jsonify({"message": "INSUFFICIENT BALANCE"}), 403
-
-        # check if the invoice is an internal one
-        if db.fetchone("SELECT count(*) FROM apipayments WHERE payhash = ?", (invoice.payment_hash,))[0] == 2:
-            # internal. mark both sides as fulfilled.
-            db.execute("UPDATE apipayments SET pending = 0, fee = 0 WHERE payhash = ?", (invoice.payment_hash,))
-        else:
-            # actually send the payment
-            r = WALLET.pay_invoice(g.data["payment_request"])
-
-            if not r.raw_response.ok or r.failed:
-                return jsonify({"message": "UNEXPECTED PAYMENT ERROR"}), 500
-
-            # payment went through, not pending anymore, save actual fees
-            db.execute(
-                "UPDATE apipayments SET pending = 0, fee = ? WHERE payhash = ? AND wallet = ?",
-                (r.fee_msat, invoice.payment_hash, wallet["id"]),
-            )
-
-    return jsonify({"PAID": "TRUE", "payment_hash": invoice.payment_hash}), 200
-
-
-@app.route("/api/v1/checkpending", methods=["POST"])
-def api_checkpending():
-    with open_db() as db:
-        for pendingtx in db.fetchall(
-            """
-            SELECT
-                payhash,
-                CASE
-                    WHEN amount < 0 THEN 'send'
-                    ELSE 'recv'
-                END AS kind
-            FROM apipayments
-            INNER JOIN wallets ON apipayments.wallet = wallets.id
-            WHERE time > strftime('%s', 'now') - 86400
-                AND pending = 1
-                AND (adminkey = ? OR inkey = ?)
-            """,
-            (request.headers["Grpc-Metadata-macaroon"], request.headers["Grpc-Metadata-macaroon"]),
-        ):
-            payhash = pendingtx["payhash"]
-            kind = pendingtx["kind"]
-
-            if kind == "send":
-                payment_complete = WALLET.get_payment_status(payhash).settled
-                if payment_complete:
-                    db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-                elif payment_complete is False:
-                    db.execute("DELETE FROM apipayments WHERE payhash = ?", (payhash,))
-
-            elif kind == "recv" and WALLET.get_invoice_status(payhash).settled:
-                db.execute("UPDATE apipayments SET pending = 0 WHERE payhash = ?", (payhash,))
-
-    return ""
 
 
 if __name__ == '__main__':

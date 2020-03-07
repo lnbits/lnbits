@@ -1,29 +1,36 @@
 Vue.component(VueQrcode.name, VueQrcode);
 
 
-function generateChart(canvas, transactions) {
+function generateChart(canvas, payments) {
   var txs = [];
   var n = 0;
   var data = {
     labels: [],
-    sats: [],
+    income: [],
+    outcome: [],
     cumulative: []
   };
 
-  _.each(transactions.sort(function (a, b) {
+  _.each(payments.slice(0).sort(function (a, b) {
     return a.time - b.time;
   }), function (tx) {
     txs.push({
-      day: Quasar.utils.date.formatDate(tx.date, 'YYYY-MM-DDTHH:00'),
+      hour: Quasar.utils.date.formatDate(tx.date, 'YYYY-MM-DDTHH:00'),
       sat: tx.sat,
     });
   });
 
-  _.each(_.groupBy(txs, 'day'), function (value, day) {
-    var sat = _.reduce(value, function(memo, tx) { return memo + tx.sat; }, 0);
-    n = n + sat;
+  _.each(_.groupBy(txs, 'hour'), function (value, day) {
+    var income = _.reduce(value, function(memo, tx) {
+      return (tx.sat >= 0) ? memo + tx.sat : memo;
+    }, 0);
+    var outcome = _.reduce(value, function(memo, tx) {
+      return (tx.sat < 0) ? memo + Math.abs(tx.sat) : memo;
+    }, 0);
+    n = n + income - outcome;
     data.labels.push(day);
-    data.sats.push(sat);
+    data.income.push(income);
+    data.outcome.push(outcome);
     data.cumulative.push(n);
   });
 
@@ -36,19 +43,25 @@ function generateChart(canvas, transactions) {
           data: data.cumulative,
           type: 'line',
           label: 'balance',
-          borderColor: '#673ab7',  // deep-purple
+          backgroundColor: '#673ab7',  // deep-purple
+          borderColor: '#673ab7',
           borderWidth: 4,
           pointRadius: 3,
           fill: false
         },
         {
-          data: data.sats,
+          data: data.income,
           type: 'bar',
-          label: 'tx',
-          backgroundColor: function (ctx) {
-            var value = ctx.dataset.data[ctx.dataIndex];
-            return (value < 0) ? '#e91e63' : '#4caf50';  // pink : green
-          }
+          label: 'in',
+          barPercentage: 0.75,
+          backgroundColor: window.Color('rgb(76,175,80)').alpha(0.5).rgbString()  // green
+        },
+        {
+          data: data.outcome,
+          type: 'bar',
+          label: 'out',
+          barPercentage: 0.75,
+          backgroundColor: window.Color('rgb(233,30,99)').alpha(0.5).rgbString()  // pink
         }
       ]
     },
@@ -64,12 +77,22 @@ function generateChart(canvas, transactions) {
         xAxes: [{
           type: 'time',
           display: true,
+          offset: true,
           time: {
             minUnit: 'hour',
             stepSize: 3
           }
         }],
       },
+      // performance tweaks
+      animation: {
+        duration: 0
+      },
+      elements: {
+        line: {
+          tension: 0
+        }
+      }
     }
   });
 }
@@ -80,7 +103,6 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
-      txUpdate: null,
       receive: {
         show: false,
         status: 'pending',
@@ -97,7 +119,8 @@ new Vue({
           bolt11: ''
         }
       },
-      transactionsTable: {
+      payments: [],
+      paymentsTable: {
         columns: [
           {name: 'memo', align: 'left', label: 'Memo', field: 'memo'},
           {name: 'date', align: 'left', label: 'Date', field: 'date', sortable: true},
@@ -107,24 +130,38 @@ new Vue({
           rowsPerPage: 10
         }
       },
-      transactionsChart: {
+      paymentsChart: {
         show: false
       }
     };
   },
   computed: {
+    balance: function () {
+      if (this.payments.length) {
+        return _.pluck(this.payments, 'amount').reduce(function (a, b) { return a + b; }, 0) / 1000;
+      }
+      return this.w.wallet.sat;
+    },
+    fbalance: function () {
+      return LNbits.utils.formatSat(this.balance)
+    },
     canPay: function () {
       if (!this.send.invoice) return false;
-      return this.send.invoice.sat < this.w.wallet.balance;
+      return this.send.invoice.sat < this.balance;
     },
-    transactions: function () {
-      var data = (this.txUpdate) ? this.txUpdate : this.w.transactions;
-      return data.sort(function (a, b) {
-        return b.time - a.time;
-      });
+    pendingPaymentsExist: function () {
+      return (this.payments)
+        ? _.where(this.payments, {pending: 1}).length > 0
+        : false;
     }
   },
   methods: {
+    showChart: function () {
+      this.paymentsChart.show = true;
+      this.$nextTick(function () {
+        generateChart(this.$refs.canvas, this.payments);
+      });
+    },
     showReceiveDialog: function () {
       this.receive = {
         show: true,
@@ -133,7 +170,8 @@ new Vue({
         data: {
           amount: null,
           memo: ''
-        }
+        },
+        paymentChecker: null
       };
     },
     showSendDialog: function () {
@@ -145,11 +183,11 @@ new Vue({
         }
       };
     },
-    showChart: function () {
-      this.transactionsChart.show = true;
-      this.$nextTick(function () {
-        generateChart(this.$refs.canvas, this.transactions);
-      });
+    closeReceiveDialog: function () {
+      var checker = this.receive.paymentChecker;
+      setTimeout(function () {
+        clearInterval(checker);
+      }, 10000);
     },
     createInvoice: function () {
       var self = this;
@@ -159,15 +197,15 @@ new Vue({
           self.receive.status = 'success';
           self.receive.paymentReq = response.data.payment_request;
 
-          var check_invoice = setInterval(function () {
-            LNbits.api.getInvoice(self.w.wallet, response.data.payment_hash).then(function (response) {
+          self.receive.paymentChecker = setInterval(function () {
+            LNbits.api.getPayment(self.w.wallet, response.data.payment_hash).then(function (response) {
               if (response.data.paid) {
-                self.refreshTransactions();
+                self.fetchPayments();
                 self.receive.show = false;
-                clearInterval(check_invoice);
+                clearInterval(self.receive.paymentChecker);
               }
             });
-          }, 3000);
+          }, 2000);
 
         }).catch(function (error) {
           LNbits.utils.notifyApiError(error);
@@ -177,8 +215,14 @@ new Vue({
     decodeInvoice: function () {
       try {
         var invoice = decode(this.send.data.bolt11);
-      } catch (err) {
-        this.$q.notify({type: 'warning', message: err});
+      } catch (error) {
+        this.$q.notify({
+          timeout: 3000,
+          type: 'warning',
+          message: error + '.',
+          caption: '400 BAD REQUEST',
+          icon: null
+        });
         return;
       }
 
@@ -203,19 +247,57 @@ new Vue({
       this.send.invoice = Object.freeze(cleanInvoice);
     },
     payInvoice: function () {
-      alert('pay!');
+      var self = this;
+
+      dismissPaymentMsg = this.$q.notify({
+        timeout: 0,
+        message: 'Processing payment...',
+        icon: null
+      });
+
+      LNbits.api.payInvoice(this.w.wallet, this.send.data.bolt11).catch(function (error) {
+        LNbits.utils.notifyApiError(error);
+      });
+
+      paymentChecker = setInterval(function () {
+        LNbits.api.getPayment(self.w.wallet, self.send.invoice.hash).then(function (response) {
+          if (response.data.paid) {
+            this.send.show = false;
+            clearInterval(paymentChecker);
+            dismissPaymentMsg();
+            self.fetchPayments();
+          }
+        });
+      }, 2000);
     },
     deleteWallet: function (walletId, user) {
       LNbits.href.deleteWallet(walletId, user);
     },
-    refreshTransactions: function (notify) {
+    fetchPayments: function (checkPending) {
       var self = this;
 
-      LNbits.api.getTransactions(this.w.wallet).then(function (response) {
-        self.txUpdate = response.data.map(function (obj) {
-          return LNbits.map.transaction(obj);
+      return LNbits.api.getPayments(this.w.wallet, checkPending).then(function (response) {
+        self.payments = response.data.map(function (obj) {
+          return LNbits.map.payment(obj);
+        }).sort(function (a, b) {
+          return b.time - a.time;
         });
       });
+    },
+    checkPendingPayments: function () {
+      var dismissMsg = this.$q.notify({
+        timeout: 0,
+        message: 'Checking pending transactions...',
+        icon: null
+      });
+
+      this.fetchPayments(true).then(function () {
+        dismissMsg();
+      });
     }
+  },
+  created: function () {
+    this.fetchPayments();
+    this.checkPendingPayments();
   }
 });

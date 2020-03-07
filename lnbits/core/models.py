@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import List, NamedTuple, Optional
 
 
@@ -24,20 +23,24 @@ class Wallet(NamedTuple):
     user: str
     adminkey: str
     inkey: str
-    balance: Decimal
+    balance_msat: int
 
-    def get_transaction(self, payhash: str) -> "Transaction":
-        from .crud import get_wallet_transaction
+    @property
+    def balance(self) -> int:
+        return int(self.balance / 1000)
 
-        return get_wallet_transaction(self.id, payhash)
+    def get_payment(self, payhash: str) -> "Payment":
+        from .crud import get_wallet_payment
 
-    def get_transactions(self) -> List["Transaction"]:
-        from .crud import get_wallet_transactions
+        return get_wallet_payment(self.id, payhash)
 
-        return get_wallet_transactions(self.id)
+    def get_payments(self, *, include_all_pending: bool = False) -> List["Payment"]:
+        from .crud import get_wallet_payments
+
+        return get_wallet_payments(self.id, include_all_pending=include_all_pending)
 
 
-class Transaction(NamedTuple):
+class Payment(NamedTuple):
     payhash: str
     pending: bool
     amount: int
@@ -54,10 +57,19 @@ class Transaction(NamedTuple):
         return self.amount / 1000
 
     @property
-    def tx_type(self) -> str:
-        return "payment" if self.amount < 0 else "invoice"
+    def is_in(self) -> bool:
+        return self.amount > 0
+
+    @property
+    def is_out(self) -> bool:
+        return self.amount < 0
 
     def set_pending(self, pending: bool) -> None:
-        from .crud import update_transaction_status
+        from .crud import update_payment_status
 
-        update_transaction_status(self.payhash, pending)
+        update_payment_status(self.payhash, pending)
+
+    def delete(self) -> None:
+        from .crud import delete_payment
+
+        delete_payment(self.payhash)

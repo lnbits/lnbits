@@ -1,6 +1,6 @@
 from requests import get, post
 
-from .base import InvoiceResponse, PaymentResponse, TxStatus, Wallet
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LNPayWallet(Wallet):
@@ -37,20 +37,14 @@ class LNPayWallet(Wallet):
 
         return PaymentResponse(r, not r.ok)
 
-    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
+        return self.get_payment_status(payment_hash)
+
+    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
         r = get(url=f"{self.endpoint}/user/lntx/{payment_hash}", headers=self.auth_api)
 
         if not r.ok:
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
         statuses = {0: None, 1: True, -1: False}
-        return TxStatus(r, statuses[r.json()["settled"]])
-
-    def get_payment_status(self, payment_hash: str) -> TxStatus:
-        r = get(url=f"{self.endpoint}/user/lntx/{payment_hash}", headers=self.auth_api)
-
-        if not r.ok:
-            return TxStatus(r, None)
-
-        statuses = {0: None, 1: True, -1: False}
-        return TxStatus(r, statuses[r.json()["settled"]])
+        return PaymentStatus(r, statuses[r.json()["settled"]])

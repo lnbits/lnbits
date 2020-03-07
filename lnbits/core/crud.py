@@ -4,7 +4,7 @@ from lnbits.db import open_db
 from lnbits.settings import DEFAULT_USER_WALLET_NAME, FEE_RESERVE
 from typing import List, Optional
 
-from .models import User, Transaction, Wallet
+from .models import User, Wallet, Payment
 
 
 # accounts
@@ -34,7 +34,7 @@ def get_user(user_id: str) -> Optional[User]:
             extensions = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (user_id,))
             wallets = db.fetchall(
                 """
-                SELECT *, COALESCE((SELECT balance/1000 FROM balances WHERE wallet = wallets.id), 0) * ? AS balance
+                SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) * ? AS balance_msat
                 FROM wallets
                 WHERE user = ?
                 """,
@@ -96,7 +96,7 @@ def get_wallet(wallet_id: str) -> Optional[Wallet]:
     with open_db() as db:
         row = db.fetchone(
             """
-            SELECT *, COALESCE((SELECT balance/1000 FROM balances WHERE wallet = wallets.id), 0) * ? AS balance
+            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) * ? AS balance_msat
             FROM wallets
             WHERE id = ?
             """,
@@ -111,7 +111,7 @@ def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
         check_field = "adminkey" if key_type == "admin" else "inkey"
         row = db.fetchone(
             f"""
-            SELECT *, COALESCE((SELECT balance/1000 FROM balances WHERE wallet = wallets.id), 0) * ? AS balance
+            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) * ? AS balance_msat
             FROM wallets
             WHERE {check_field} = ?
             """,
@@ -121,11 +121,11 @@ def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
     return Wallet(**row) if row else None
 
 
-# wallet transactions
-# -------------------
+# wallet payments
+# ---------------
 
 
-def get_wallet_transaction(wallet_id: str, payhash: str) -> Optional[Transaction]:
+def get_wallet_payment(wallet_id: str, payhash: str) -> Optional[Payment]:
     with open_db() as db:
         row = db.fetchone(
             """
@@ -136,45 +136,51 @@ def get_wallet_transaction(wallet_id: str, payhash: str) -> Optional[Transaction
             (wallet_id, payhash),
         )
 
-    return Transaction(**row) if row else None
+    return Payment(**row) if row else None
 
 
-def get_wallet_transactions(wallet_id: str, *, pending: bool = False) -> List[Transaction]:
+def get_wallet_payments(wallet_id: str, *, include_all_pending: bool = False) -> List[Payment]:
     with open_db() as db:
+        if include_all_pending:
+            clause = "pending = 1"
+        else:
+            clause = "((amount > 0 AND pending = 0) OR amount < 0)"
+
         rows = db.fetchall(
-            """
+            f"""
             SELECT payhash, amount, fee, pending, memo, time
             FROM apipayments
-            WHERE wallet = ? AND pending = ?
+            WHERE wallet = ? AND {clause}
             ORDER BY time DESC
             """,
-            (wallet_id, int(pending)),
+            (wallet_id,),
         )
 
-    return [Transaction(**row) for row in rows]
+    return [Payment(**row) for row in rows]
 
 
-# transactions
-# ------------
+# payments
+# --------
 
 
-def create_transaction(*, wallet_id: str, payhash: str, amount: str, memo: str) -> Transaction:
+def create_payment(*, wallet_id: str, payhash: str, amount: str, memo: str, fee: int = 0) -> Payment:
     with open_db() as db:
         db.execute(
             """
-            INSERT INTO apipayments (wallet, payhash, amount, pending, memo)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO apipayments (wallet, payhash, amount, pending, memo, fee)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (wallet_id, payhash, amount, 1, memo),
+            (wallet_id, payhash, amount, 1, memo, fee),
         )
 
-    return get_wallet_transaction(wallet_id, payhash)
+    return get_wallet_payment(wallet_id, payhash)
 
 
-def update_transaction_status(payhash: str, pending: bool) -> None:
+def update_payment_status(payhash: str, pending: bool) -> None:
     with open_db() as db:
         db.execute("UPDATE apipayments SET pending = ? WHERE payhash = ?", (int(pending), payhash,))
 
 
-def check_pending_transactions(wallet_id: str) -> None:
-    pass
+def delete_payment(payhash: str) -> None:
+    with open_db() as db:
+        db.execute("DELETE FROM apipayments WHERE payhash = ?", (payhash,))

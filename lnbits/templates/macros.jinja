@@ -6,7 +6,6 @@
     {% endif %}
     {% if wallet %}
       window.wallet = {{ wallet | tojson | safe }};
-      window.transactions = {{ wallet.get_transactions() | tojson | safe }};
     {% endif %}
   </script>
 {%- endmacro %}

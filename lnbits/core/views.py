@@ -79,13 +79,15 @@ def wallet():
 @check_user_exists()
 def deletewallet():
     wallet_id = request.args.get("wal", type=str)
+    user_wallet_ids = g.user.wallet_ids
 
-    if wallet_id not in g.user.wallet_ids:
+    if wallet_id not in user_wallet_ids:
         abort(Status.FORBIDDEN, "Not your wallet.")
     else:
         delete_wallet(user_id=g.user.id, wallet_id=wallet_id)
+        user_wallet_ids.remove(wallet_id)
 
-    if g.user.wallets:
-        return redirect(url_for("core.wallet", usr=g.user.id, wal=g.user.wallets[0].id))
+    if user_wallet_ids:
+        return redirect(url_for("core.wallet", usr=g.user.id, wal=user_wallet_ids[0]))
 
     return redirect(url_for("core.home"))

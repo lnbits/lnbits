@@ -13,11 +13,16 @@ class PaymentResponse(NamedTuple):
     raw_response: Response
     failed: bool = False
     fee_msat: int = 0
+    error_message: Optional[str] = None
 
 
-class TxStatus(NamedTuple):
+class PaymentStatus(NamedTuple):
     raw_response: Response
-    settled: Optional[bool] = None
+    paid: Optional[bool] = None
+
+    @property
+    def pending(self) -> bool:
+        return self.paid is not True
 
 
 class Wallet(ABC):
@@ -26,13 +31,13 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
-    def pay_invoice(self, bolt11: str) -> Response:
+    def pay_invoice(self, bolt11: str) -> PaymentResponse:
         pass
 
     @abstractmethod
-    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
         pass
 
     @abstractmethod
-    def get_payment_status(self, payment_hash: str) -> TxStatus:
+    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
         pass

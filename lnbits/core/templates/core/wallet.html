@@ -4,9 +4,9 @@
 
 
 {% block scripts %}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
   {{ window_vars(user, wallet) }}
   {% assets filters='rjsmin', output='__bundle__/core/chart.js',
+    'vendor/moment@2.24.0/moment.min.js',
     'vendor/chart.js@2.9.3/chart.min.js' %}
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
   {% endassets %}
@@ -24,7 +24,7 @@
     <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
       <q-card>
         <q-card-section>
-          <h4 class="q-my-none"><strong>{% raw %}{{ w.wallet.fsat }}{% endraw %}</strong> sat</h4>
+          <h3 class="q-my-none"><strong>{% raw %}{{ fbalance }}{% endraw %}</strong> sat</h3>
         </q-card-section>
         <div class="row q-pb-md q-px-md q-col-gutter-md">
           <div class="col">
@@ -50,16 +50,19 @@
             </div>
             <div class="col-auto">
               <q-btn flat color="grey" onclick="exportbut()">Export to CSV</q-btn>
+              <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
+                <q-tooltip>Check pending</q-tooltip>
+              </q-btn>-->
               <q-btn dense flat round icon="show_chart" color="grey" @click="showChart">
                 <q-tooltip>Show chart</q-tooltip>
               </q-btn>
             </div>
           </div>
           <q-table dense flat
-            :data="transactions"
+            :data="payments"
             row-key="payhash"
-            :columns="transactionsTable.columns"
-            :pagination.sync="transactionsTable.pagination">
+            :columns="paymentsTable.columns"
+            :pagination.sync="paymentsTable.pagination">
             {% raw %}
             <template v-slot:header="props">
               <q-tr :props="props">
@@ -71,11 +74,14 @@
               </q-tr>
             </template>
             <template v-slot:body="props">
-              <q-tr :props="props">
+              <q-tr :props="props" v-if="props.row.isPaid">
                 <q-td auto-width class="lnbits__q-table__icon-td">
-                  <q-icon size="14px"
+                  <q-icon v-if="props.row.isPaid" size="14px"
                     :name="(props.row.sat < 0) ? 'call_made' : 'call_received'"
                     :color="(props.row.sat < 0) ? 'pink' : 'green'"></q-icon>
+                  <q-icon v-else name="settings_ethernet" color="grey">
+                    <q-tooltip>Pending</q-tooltip>
+                  </q-icon>
                 </q-td>
                 <q-td key="memo" :props="props">
                   {{ props.row.memo }}
@@ -169,8 +175,8 @@
     </div>
   </div>
 
-  <q-dialog v-model="receive.show" position="top">
-    <q-card class="q-pa-md" style="width: 500px">
+  <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
+    <q-card class="q-pa-lg" style="width: 500px">
       <q-form v-if="!receive.paymentReq" class="q-gutter-md">
         <q-input filled dense
           v-model.number="receive.data.amount"
@@ -208,7 +214,7 @@
   </q-dialog>
 
   <q-dialog v-model="send.show" position="top">
-    <q-card class="q-pa-md" style="width: 500px">
+    <q-card class="q-pa-lg" style="width: 500px">
       <q-form v-if="!send.invoice" class="q-gutter-md">
         <q-input filled dense
             v-model="send.data.bolt11"
@@ -232,6 +238,7 @@
       <div v-else>
         {% raw %}
           <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
+          <q-separator class="q-my-sm"></q-separator>
           <p style="word-break: break-all">
             <strong>Memo:</strong> {{ send.invoice.description }}<br>
             <strong>Expire date:</strong> {{ send.invoice.expireDate }}<br>
@@ -252,8 +259,8 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="transactionsChart.show" position="top">
-    <q-card class="q-pa-md" style="width: 800px; max-width: unset">
+  <q-dialog v-model="paymentsChart.show" position="top">
+    <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
       <q-card-section>
         <canvas ref="canvas" width="600" height="400"></canvas>
       </q-card-section>

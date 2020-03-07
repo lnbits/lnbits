@@ -1,6 +1,6 @@
 from requests import post
 
-from .base import InvoiceResponse, PaymentResponse, TxStatus, Wallet
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LntxbotWallet(Wallet):
@@ -23,38 +23,39 @@ class LntxbotWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = post(url=f"{self.endpoint}/payinvoice", headers=self.auth_admin, json={"invoice": bolt11})
-        failed, fee_msat = not r.ok, 0
+        failed, fee_msat, error_message = not r.ok, 0, None
 
         if r.ok:
             data = r.json()
             if "error" in data and data["error"]:
                 failed = True
+                error_message = data["message"]
             elif "fee_msat" in data:
                 fee_msat = data["fee_msat"]
 
-        return PaymentResponse(r, failed, fee_msat)
+        return PaymentResponse(r, failed, fee_msat, error_message)
 
-    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
         r = post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait=false", headers=self.auth_invoice)
 
         if not r.ok:
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
         data = r.json()
 
         if "error" in data:
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
         if "preimage" not in data or not data["preimage"]:
-            return TxStatus(r, False)
+            return PaymentStatus(r, False)
 
-        return TxStatus(r, True)
+        return PaymentStatus(r, True)
 
-    def get_payment_status(self, payment_hash: str) -> TxStatus:
+    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
         r = post(url=f"{self.endpoint}/paymentstatus/{payment_hash}", headers=self.auth_invoice)
 
         if not r.ok or "error" in r.json():
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
-        statuses = {"complete": True, "failed": False, "unknown": None}
-        return TxStatus(r, statuses[r.json().get("status", "unknown")])
+        statuses = {"complete": True, "failed": False, "pending": None, "unknown": None}
+        return PaymentStatus(r, statuses[r.json().get("status", "unknown")])

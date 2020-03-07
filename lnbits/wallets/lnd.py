@@ -1,5 +1,5 @@
 from requests import get, post
-from .base import InvoiceResponse, PaymentResponse, TxStatus, Wallet
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LndWallet(Wallet):
@@ -41,15 +41,15 @@ class LndWallet(Wallet):
         )
         return PaymentResponse(r, not r.ok)
 
-    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
         r = get(url=f"{self.endpoint}/v1/invoice/{payment_hash}", headers=self.auth_read, verify=False)
 
         if not r.ok or "settled" not in r.json():
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
-        return TxStatus(r, r.json()["settled"])
+        return PaymentStatus(r, r.json()["settled"])
 
-    def get_payment_status(self, payment_hash: str) -> TxStatus:
+    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
         r = get(
             url=f"{self.endpoint}/v1/payments",
             headers=self.auth_admin,
@@ -58,11 +58,11 @@ class LndWallet(Wallet):
         )
 
         if not r.ok:
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
         payments = [p for p in r.json()["payments"] if p["payment_hash"] == payment_hash]
         payment = payments[0] if payments else None
 
         # check payment.status: https://api.lightning.community/rest/index.html?python#peersynctype
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
-        return TxStatus(r, statuses[payment["status"]] if payment else None)
+        return PaymentStatus(r, statuses[payment["status"]] if payment else None)

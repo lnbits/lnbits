@@ -1,6 +1,6 @@
 from requests import get, post
 
-from .base import InvoiceResponse, PaymentResponse, TxStatus, Wallet
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class OpenNodeWallet(Wallet):
@@ -28,20 +28,20 @@ class OpenNodeWallet(Wallet):
         r = post(url=f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, json={"type": "ln", "address": bolt11})
         return PaymentResponse(r, not r.ok)
 
-    def get_invoice_status(self, payment_hash: str) -> TxStatus:
+    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
         r = get(url=f"{self.endpoint}/v1/charge/{payment_hash}", headers=self.auth_invoice)
 
         if not r.ok:
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
         statuses = {"processing": None, "paid": True, "unpaid": False}
-        return TxStatus(r, statuses[r.json()["data"]["status"]])
+        return PaymentStatus(r, statuses[r.json()["data"]["status"]])
 
-    def get_payment_status(self, payment_hash: str) -> TxStatus:
+    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
         r = get(url=f"{self.endpoint}/v1/withdrawal/{payment_hash}", headers=self.auth_admin)
 
         if not r.ok:
-            return TxStatus(r, None)
+            return PaymentStatus(r, None)
 
         statuses = {"pending": None, "confirmed": True, "error": False, "failed": False}
-        return TxStatus(r, statuses[r.json()["data"]["status"]])
+        return PaymentStatus(r, statuses[r.json()["data"]["status"]])
