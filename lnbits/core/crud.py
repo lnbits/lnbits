@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from lnbits.db import open_db
-from lnbits.settings import DEFAULT_USER_WALLET_NAME, FEE_RESERVE
+from lnbits.settings import DEFAULT_WALLET_NAME, FEE_RESERVE
 from typing import List, Optional
 
 from .models import User, Wallet, Payment
@@ -71,7 +71,7 @@ def create_wallet(*, user_id: str, wallet_name: Optional[str]) -> Wallet:
             INSERT INTO wallets (id, name, user, adminkey, inkey)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (wallet_id, wallet_name or DEFAULT_USER_WALLET_NAME, user_id, uuid4().hex, uuid4().hex),
+            (wallet_id, wallet_name or DEFAULT_WALLET_NAME, user_id, uuid4().hex, uuid4().hex),
         )
 
     return get_wallet(wallet_id=wallet_id)

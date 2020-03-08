@@ -5,7 +5,7 @@ from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.helpers import Status
 
-from .crud import (
+from ..crud import (
     create_account,
     get_user,
     update_user_extension,

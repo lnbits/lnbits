@@ -1,0 +1,22 @@
+{% extends "core/index.html" %}
+
+
+{% block scripts %}
+  {% assets filters='rjsmin', output='__bundle__/core/lnurl.js',
+    'core/js/lnurl.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+{% endblock %}
+
+{% block call_to_action %}
+  <q-card>
+    <q-card-section>
+      <q-btn unelevated
+        color="deep-purple"
+        @click="notify"
+        type="a" href="{{ url_for('core.lnurlwallet', lightning=lnurl) }}">
+        Press to claim bitcoin
+      </q-btn>
+    </q-card-section>
+  </q-card>
+{% endblock %}

@@ -31,8 +31,10 @@
       </q-header>
 
       <q-drawer v-model="w.visibleDrawer" side="left" :width="($q.screen.lt.md) ? 260 : 230" show-if-above :elevated="$q.screen.lt.md">
-        <lnbits-wallet-list></lnbits-wallet-list>
-        <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
+        {% block drawer %}
+          <lnbits-wallet-list></lnbits-wallet-list>
+          <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
+        {% endblock %}
       </q-drawer>
 
       <q-page-container>

@@ -11,5 +11,5 @@ WALLET = OpenNodeWallet(endpoint=os.getenv("OPENNODE_API_ENDPOINT"),admin_key=os
 LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
 LNBITS_DATA_FOLDER = os.getenv("LNBITS_DATA_FOLDER", os.path.join(LNBITS_PATH, "data"))
 
-DEFAULT_USER_WALLET_NAME = os.getenv("DEFAULT_USER_WALLET_NAME", "LNbits wallet")
-FEE_RESERVE = float(os.getenv("FEE_RESERVE", 0))
+DEFAULT_WALLET_NAME = os.getenv("LNBITS_DEFAULT_WALLET_NAME", "LNbits wallet")
+FEE_RESERVE = float(os.getenv("LNBITS_FEE_RESERVE", 0))

@@ -6,7 +6,7 @@ from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_reque
 from lnbits.helpers import Status
 from lnbits.settings import FEE_RESERVE, WALLET
 
-from .crud import create_payment
+from ..crud import create_payment
 
 
 @core_app.route("/api/v1/payments", methods=["GET"])
