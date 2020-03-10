@@ -1,4 +1,5 @@
 Vue.component(VueQrcode.name, VueQrcode);
+Vue.use(VueQrcodeReader);
 
 
 function generateChart(canvas, payments) {
@@ -119,6 +120,10 @@ new Vue({
           bolt11: ''
         }
       },
+      sendCamera: {
+        show: false,
+        camera: 'auto'
+      },
       payments: [],
       paymentsTable: {
         columns: [
@@ -147,15 +152,26 @@ new Vue({
     },
     canPay: function () {
       if (!this.send.invoice) return false;
-      return this.send.invoice.sat < this.balance;
+      return this.send.invoice.sat <= this.balance;
     },
     pendingPaymentsExist: function () {
       return (this.payments)
         ? _.where(this.payments, {pending: 1}).length > 0
         : false;
+    },
+    paymentsFiltered: function () {
+      return this.payments.filter(function (obj) {
+        return obj.isPaid;
+      });
     }
   },
   methods: {
+    closeCamera: function () {
+      this.sendCamera.show = false;
+    },
+    showCamera: function () {
+      this.sendCamera.show = true;
+    },
     showChart: function () {
       this.paymentsChart.show = true;
       this.$nextTick(function () {
@@ -180,7 +196,8 @@ new Vue({
         invoice: null,
         data: {
           bolt11: ''
-        }
+        },
+        paymentChecker: null
       };
     },
     closeReceiveDialog: function () {
@@ -188,6 +205,13 @@ new Vue({
       setTimeout(function () {
         clearInterval(checker);
       }, 10000);
+    },
+    closeSendDialog: function () {
+      this.sendCamera.show = false;
+      var checker = this.send.paymentChecker;
+      setTimeout(function () {
+        clearInterval(checker);
+      }, 1000);
     },
     createInvoice: function () {
       var self = this;
@@ -211,6 +235,11 @@ new Vue({
           LNbits.utils.notifyApiError(error);
           self.receive.status = 'pending';
         });
+    },
+    decodeQR: function (res) {
+      this.send.data.bolt11 = res;
+      this.decodeInvoice();
+      this.sendCamera.show = false;
     },
     decodeInvoice: function () {
       try {
@@ -259,11 +288,11 @@ new Vue({
         LNbits.utils.notifyApiError(error);
       });
 
-      paymentChecker = setInterval(function () {
+      self.send.paymentChecker = setInterval(function () {
         LNbits.api.getPayment(self.w.wallet, self.send.invoice.hash).then(function (response) {
           if (response.data.paid) {
-            this.send.show = false;
-            clearInterval(paymentChecker);
+            self.send.show = false;
+            clearInterval(self.send.paymentChecker);
             dismissPaymentMsg();
             self.fetchPayments();
           }
@@ -298,6 +327,8 @@ new Vue({
   },
   created: function () {
     this.fetchPayments();
-    this.checkPendingPayments();
+    setTimeout(function () {
+      this.checkPendingPayments();
+    }, 1100);
   }
 });

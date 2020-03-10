@@ -63,7 +63,7 @@ def update_user_extension(*, user_id: str, extension: str, active: int) -> None:
 # -------
 
 
-def create_wallet(*, user_id: str, wallet_name: Optional[str]) -> Wallet:
+def create_wallet(*, user_id: str, wallet_name: Optional[str] = None) -> Wallet:
     with open_db() as db:
         wallet_id = uuid4().hex
         db.execute(

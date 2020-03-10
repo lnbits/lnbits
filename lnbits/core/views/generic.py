@@ -21,7 +21,7 @@ def favicon():
 
 @core_app.route("/")
 def home():
-    return render_template("core/index.html")
+    return render_template("core/index.html", lnurl=request.args.get("lightning", None))
 
 
 @core_app.route("/extensions")

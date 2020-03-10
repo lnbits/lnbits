@@ -31,3 +31,6 @@
     .lnbits-drawer__q-list .q-item.q-item--active {
       color: inherit;
       font-weight: bold; }
+
+video {
+  border-radius: 3px; }
