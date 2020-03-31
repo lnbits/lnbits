@@ -67,7 +67,7 @@ var LNbits = {
     },
     payment: function (data) {
       var obj = _.object(['payhash', 'pending', 'amount', 'fee', 'memo', 'time'], data);
-      obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm')
+      obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm');
       obj.msat = obj.amount;
       obj.sat = obj.msat / 1000;
       obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat);
@@ -86,9 +86,9 @@ var LNbits = {
         400: 'warning',
         401: 'warning',
         500: 'negative'
-      }
+      };
       Quasar.plugins.Notify.create({
-        timeout: 3000,
+        timeout: 5000,
         type: types[error.response.status] || 'warning',
         message: error.response.data.message || null,
         caption: [error.response.status, ' ', error.response.statusText].join('').toUpperCase() || null,

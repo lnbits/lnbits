@@ -160,6 +160,7 @@ new Vue({
         : false;
     },
     paymentsFiltered: function () {
+      return this.payments;
       return this.payments.filter(function (obj) {
         return obj.isPaid;
       });
@@ -222,7 +223,7 @@ new Vue({
           self.receive.paymentReq = response.data.payment_request;
 
           self.receive.paymentChecker = setInterval(function () {
-            LNbits.api.getPayment(self.w.wallet, response.data.payment_hash).then(function (response) {
+            LNbits.api.getPayment(self.w.wallet, response.data.checking_id).then(function (response) {
               if (response.data.paid) {
                 self.fetchPayments();
                 self.receive.show = false;
@@ -284,20 +285,21 @@ new Vue({
         icon: null
       });
 
-      LNbits.api.payInvoice(this.w.wallet, this.send.data.bolt11).catch(function (error) {
+      LNbits.api.payInvoice(this.w.wallet, this.send.data.bolt11).then(function (response) {
+        self.send.paymentChecker = setInterval(function () {
+          LNbits.api.getPayment(self.w.wallet, response.data.checking_id).then(function (res) {
+            if (res.data.paid) {
+              self.send.show = false;
+              clearInterval(self.send.paymentChecker);
+              dismissPaymentMsg();
+              self.fetchPayments();
+            }
+          });
+        }, 2000);
+      }).catch(function (error) {
+        dismissPaymentMsg();
         LNbits.utils.notifyApiError(error);
       });
-
-      self.send.paymentChecker = setInterval(function () {
-        LNbits.api.getPayment(self.w.wallet, self.send.invoice.hash).then(function (response) {
-          if (response.data.paid) {
-            self.send.show = false;
-            clearInterval(self.send.paymentChecker);
-            dismissPaymentMsg();
-            self.fetchPayments();
-          }
-        });
-      }, 2000);
     },
     deleteWallet: function (walletId, user) {
       LNbits.href.deleteWallet(walletId, user);
@@ -327,8 +329,6 @@ new Vue({
   },
   created: function () {
     this.fetchPayments();
-    setTimeout(function () {
-      this.checkPendingPayments();
-    }, 1100);
+    setTimeout(this.checkPendingPayments(), 1200);
   }
 });

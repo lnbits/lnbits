@@ -3,8 +3,6 @@ import importlib
 from flask import Flask
 from flask_assets import Environment, Bundle
 from flask_compress import Compress
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from os import getenv
 
@@ -21,7 +19,6 @@ valid_extensions = [ext for ext in ExtensionManager().extensions if ext.is_valid
 # -----------------------
 
 Compress(app)
-Limiter(app, key_func=get_remote_address, default_limits=["1 per second"])
 Talisman(
     app,
     force_https=getenv("LNBITS_WITH_ONION", 0) == 0,

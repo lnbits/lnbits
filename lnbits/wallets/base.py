@@ -1,23 +1,22 @@
 from abc import ABC, abstractmethod
-from requests import Response
 from typing import NamedTuple, Optional
 
 
 class InvoiceResponse(NamedTuple):
-    raw_response: Response
-    payment_hash: Optional[str] = None
+    ok: bool
+    checking_id: Optional[str] = None  # payment_hash, rpc_id
     payment_request: Optional[str] = None
+    error_message: Optional[str] = None
 
 
 class PaymentResponse(NamedTuple):
-    raw_response: Response
-    failed: bool = False
+    ok: bool
+    checking_id: Optional[str] = None  # payment_hash, rcp_id
     fee_msat: int = 0
     error_message: Optional[str] = None
 
 
 class PaymentStatus(NamedTuple):
-    raw_response: Response
     paid: Optional[bool] = None
 
     @property
@@ -35,9 +34,9 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
-    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
+    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         pass
 
     @abstractmethod
-    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
+    def get_payment_status(self, checking_id: str) -> PaymentStatus:
         pass

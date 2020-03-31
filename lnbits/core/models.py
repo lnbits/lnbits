@@ -29,10 +29,10 @@ class Wallet(NamedTuple):
     def balance(self) -> int:
         return int(self.balance / 1000)
 
-    def get_payment(self, payhash: str) -> "Payment":
+    def get_payment(self, checking_id: str) -> "Payment":
         from .crud import get_wallet_payment
 
-        return get_wallet_payment(self.id, payhash)
+        return get_wallet_payment(self.id, checking_id)
 
     def get_payments(self, *, include_all_pending: bool = False) -> List["Payment"]:
         from .crud import get_wallet_payments
@@ -41,7 +41,7 @@ class Wallet(NamedTuple):
 
 
 class Payment(NamedTuple):
-    payhash: str
+    checking_id: str
     pending: bool
     amount: int
     fee: int
@@ -67,9 +67,9 @@ class Payment(NamedTuple):
     def set_pending(self, pending: bool) -> None:
         from .crud import update_payment_status
 
-        update_payment_status(self.payhash, pending)
+        update_payment_status(self.checking_id, pending)
 
     def delete(self) -> None:
         from .crud import delete_payment
 
-        delete_payment(self.payhash)
+        delete_payment(self.checking_id)

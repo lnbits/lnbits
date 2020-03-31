@@ -1,15 +1,13 @@
+import importlib
 import os
 
-from .wallets import OpenNodeWallet  # OR LndWallet OR OpennodeWallet
 
-WALLET = OpenNodeWallet(endpoint=os.getenv("OPENNODE_API_ENDPOINT"),admin_key=os.getenv("OPENNODE_ADMIN_KEY"),invoice_key=os.getenv("OPENNODE_INVOICE_KEY"))
-#WALLET = LntxbotWallet(endpoint=os.getenv("LNTXBOT_API_ENDPOINT"),admin_key=os.getenv("LNTXBOT_ADMIN_KEY"),invoice_key=os.getenv("LNTXBOT_INVOICE_KEY"))
-#WALLET = LndWallet(endpoint=os.getenv("LND_API_ENDPOINT"),admin_macaroon=os.getenv("LND_ADMIN_MACAROON"),invoice_macaroon=os.getenv("LND_INVOICE_MACAROON"),read_macaroon=os.getenv("LND_READ_MACAROON"))
-#WALLET = LNPayWallet(endpoint=os.getenv("LNPAY_API_ENDPOINT"),admin_key=os.getenv("LNPAY_ADMIN_KEY"),invoice_key=os.getenv("LNPAY_INVOICE_KEY"),api_key=os.getenv("LNPAY_API_KEY"),read_key=os.getenv("LNPAY_READ_KEY"))
-
+wallets_module = importlib.import_module(f"lnbits.wallets")
+wallet_class = getattr(wallets_module, os.getenv("LNBITS_BACKEND_WALLET_CLASS", "LntxbotWallet"))
 
 LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
 LNBITS_DATA_FOLDER = os.getenv("LNBITS_DATA_FOLDER", os.path.join(LNBITS_PATH, "data"))
 
+WALLET = wallet_class()
 DEFAULT_WALLET_NAME = os.getenv("LNBITS_DEFAULT_WALLET_NAME", "LNbits wallet")
 FEE_RESERVE = float(os.getenv("LNBITS_FEE_RESERVE", 0))

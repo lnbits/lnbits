@@ -15,9 +15,9 @@ def api_payments():
     if "check_pending" in request.args:
         for payment in g.wallet.get_payments(include_all_pending=True):
             if payment.is_out:
-                payment.set_pending(WALLET.get_payment_status(payment.payhash).pending)
+                payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
             elif payment.is_in:
-                payment.set_pending(WALLET.get_invoice_status(payment.payhash).pending)
+                payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
 
     return jsonify(g.wallet.get_payments()), Status.OK
 
@@ -32,18 +32,17 @@ def api_payments_create_invoice():
         return jsonify({"message": "`memo` needs to be a valid string."}), Status.BAD_REQUEST
 
     try:
-        r, payhash, payment_request = WALLET.create_invoice(g.data["amount"], g.data["memo"])
-        server_error = not r.ok or "message" in r.json()
-    except Exception:
-        server_error = True
+        ok, checking_id, payment_request, error_message = WALLET.create_invoice(g.data["amount"], g.data["memo"])
+    except Exception as e:
+        ok, error_message = False, str(e)
 
-    if server_error:
-        return jsonify({"message": "Unexpected backend error. Try again later."}), Status.INTERNAL_SERVER_ERROR
+    if not ok:
+        return jsonify({"message": error_message or "Unexpected backend error."}), Status.INTERNAL_SERVER_ERROR
 
     amount_msat = g.data["amount"] * 1000
-    create_payment(wallet_id=g.wallet.id, payhash=payhash, amount=amount_msat, memo=g.data["memo"])
+    create_payment(wallet_id=g.wallet.id, checking_id=checking_id, amount=amount_msat, memo=g.data["memo"])
 
-    return jsonify({"payment_request": payment_request, "payment_hash": payhash}), Status.CREATED
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED
 
 
 @api_check_wallet_macaroon(key_type="invoice")
@@ -61,24 +60,24 @@ def api_payments_pay_invoice():
         if invoice.amount_msat > g.wallet.balance_msat:
             return jsonify({"message": "Insufficient balance."}), Status.FORBIDDEN
 
-        create_payment(
-            wallet_id=g.wallet.id,
-            payhash=invoice.payment_hash,
-            amount=-invoice.amount_msat,
-            memo=invoice.description,
-            fee=-invoice.amount_msat * FEE_RESERVE,
-        )
+        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(g.data["bolt11"])
 
-        r, server_error, fee_msat, error_message = WALLET.pay_invoice(g.data["bolt11"])
+        if ok:
+            create_payment(
+                wallet_id=g.wallet.id,
+                checking_id=checking_id,
+                amount=-invoice.amount_msat,
+                memo=invoice.description,
+                fee=-invoice.amount_msat * FEE_RESERVE,
+            )
 
     except Exception as e:
-        server_error = True
-        error_message = str(e)
+        ok, error_message = False, str(e)
 
-    if server_error:
-        return jsonify({"message": error_message}), Status.INTERNAL_SERVER_ERROR
+    if not ok:
+        return jsonify({"message": error_message or "Unexpected backend error."}), Status.INTERNAL_SERVER_ERROR
 
-    return jsonify({"payment_hash": invoice.payment_hash}), Status.CREATED
+    return jsonify({"checking_id": checking_id}), Status.CREATED
 
 
 @core_app.route("/api/v1/payments", methods=["POST"])
@@ -89,10 +88,10 @@ def api_payments_create():
     return api_payments_create_invoice()
 
 
-@core_app.route("/api/v1/payments/<payhash>", methods=["GET"])
+@core_app.route("/api/v1/payments/<checking_id>", methods=["GET"])
 @api_check_wallet_macaroon(key_type="invoice")
-def api_payment(payhash):
-    payment = g.wallet.get_payment(payhash)
+def api_payment(checking_id):
+    payment = g.wallet.get_payment(checking_id)
 
     if not payment:
         return jsonify({"message": "Payment does not exist."}), Status.NOT_FOUND
@@ -101,9 +100,9 @@ def api_payment(payhash):
 
     try:
         if payment.is_out:
-            is_paid = WALLET.get_payment_status(payhash).paid
+            is_paid = WALLET.get_payment_status(checking_id).paid
         elif payment.is_in:
-            is_paid = WALLET.get_invoice_status(payhash).paid
+            is_paid = WALLET.get_invoice_status(checking_id).paid
     except Exception:
         return jsonify({"paid": False}), Status.OK
 

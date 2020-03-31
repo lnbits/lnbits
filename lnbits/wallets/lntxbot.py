@@ -1,3 +1,4 @@
+from os import getenv
 from requests import post
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
@@ -6,56 +7,58 @@ from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 class LntxbotWallet(Wallet):
     """https://github.com/fiatjaf/lntxbot/blob/master/api.go"""
 
-    def __init__(self, *, endpoint: str, admin_key: str, invoice_key: str):
+    def __init__(self):
+        endpoint = getenv("LNTXBOT_API_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth_admin = {"Authorization": f"Basic {admin_key}"}
-        self.auth_invoice = {"Authorization": f"Basic {invoice_key}"}
+        self.auth_admin = {"Authorization": f"Basic {getenv('LNTXBOT_ADMIN_KEY')}"}
+        self.auth_invoice = {"Authorization": f"Basic {getenv('LNTXBOT_INVOICE_KEY')}"}
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
-        payment_hash, payment_request = None, None
         r = post(url=f"{self.endpoint}/addinvoice", headers=self.auth_invoice, json={"amt": str(amount), "memo": memo})
+        ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
         if r.ok:
             data = r.json()
-            payment_hash, payment_request = data["payment_hash"], data["pay_req"]
+            checking_id, payment_request = data["payment_hash"], data["pay_req"]
 
-        return InvoiceResponse(r, payment_hash, payment_request)
+            if "error" in data and data["error"]:
+                ok = False
+                error_message = data["message"]
+
+        return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = post(url=f"{self.endpoint}/payinvoice", headers=self.auth_admin, json={"invoice": bolt11})
-        failed, fee_msat, error_message = not r.ok, 0, None
+        ok, checking_id, fee_msat, error_message = r.ok, None, 0, None
 
         if r.ok:
             data = r.json()
-            if "error" in data and data["error"]:
-                failed = True
-                error_message = data["message"]
-            elif "fee_msat" in data:
-                fee_msat = data["fee_msat"]
 
-        return PaymentResponse(r, failed, fee_msat, error_message)
+            if "payment_hash" in data:
+                checking_id, fee_msat = data["decoded"]["payment_hash"], data["fee_msat"]
+            elif "error" in data and data["error"]:
+                ok, error_message = False, data["message"]
 
-    def get_invoice_status(self, payment_hash: str) -> PaymentStatus:
-        r = post(url=f"{self.endpoint}/invoicestatus/{payment_hash}?wait=false", headers=self.auth_invoice)
+        return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
-        if not r.ok:
-            return PaymentStatus(r, None)
+    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        r = post(url=f"{self.endpoint}/invoicestatus/{checking_id}?wait=false", headers=self.auth_invoice)
+
+        if not r.ok or "error" in r.json():
+            return PaymentStatus(None)
 
         data = r.json()
 
-        if "error" in data:
-            return PaymentStatus(r, None)
-
         if "preimage" not in data or not data["preimage"]:
-            return PaymentStatus(r, False)
+            return PaymentStatus(False)
 
-        return PaymentStatus(r, True)
+        return PaymentStatus(True)
 
-    def get_payment_status(self, payment_hash: str) -> PaymentStatus:
-        r = post(url=f"{self.endpoint}/paymentstatus/{payment_hash}", headers=self.auth_invoice)
+    def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        r = post(url=f"{self.endpoint}/paymentstatus/{checking_id}", headers=self.auth_invoice)
 
         if not r.ok or "error" in r.json():
-            return PaymentStatus(r, None)
+            return PaymentStatus(None)
 
         statuses = {"complete": True, "failed": False, "pending": None, "unknown": None}
-        return PaymentStatus(r, statuses[r.json().get("status", "unknown")])
+        return PaymentStatus(statuses[r.json().get("status", "unknown")])

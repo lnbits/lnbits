@@ -125,15 +125,15 @@ def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
 # ---------------
 
 
-def get_wallet_payment(wallet_id: str, payhash: str) -> Optional[Payment]:
+def get_wallet_payment(wallet_id: str, checking_id: str) -> Optional[Payment]:
     with open_db() as db:
         row = db.fetchone(
             """
-            SELECT payhash, amount, fee, pending, memo, time
+            SELECT payhash as checking_id, amount, fee, pending, memo, time
             FROM apipayments
             WHERE wallet = ? AND payhash = ?
             """,
-            (wallet_id, payhash),
+            (wallet_id, checking_id),
         )
 
     return Payment(**row) if row else None
@@ -148,7 +148,7 @@ def get_wallet_payments(wallet_id: str, *, include_all_pending: bool = False) ->
 
         rows = db.fetchall(
             f"""
-            SELECT payhash, amount, fee, pending, memo, time
+            SELECT payhash as checking_id, amount, fee, pending, memo, time
             FROM apipayments
             WHERE wallet = ? AND {clause}
             ORDER BY time DESC
@@ -163,24 +163,26 @@ def get_wallet_payments(wallet_id: str, *, include_all_pending: bool = False) ->
 # --------
 
 
-def create_payment(*, wallet_id: str, payhash: str, amount: str, memo: str, fee: int = 0) -> Payment:
+def create_payment(
+    *, wallet_id: str, checking_id: str, amount: str, memo: str, fee: int = 0, pending: bool = True
+) -> Payment:
     with open_db() as db:
         db.execute(
             """
             INSERT INTO apipayments (wallet, payhash, amount, pending, memo, fee)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (wallet_id, payhash, amount, 1, memo, fee),
+            (wallet_id, checking_id, amount, int(pending), memo, fee),
         )
 
-    return get_wallet_payment(wallet_id, payhash)
+    return get_wallet_payment(wallet_id, checking_id)
 
 
-def update_payment_status(payhash: str, pending: bool) -> None:
+def update_payment_status(checking_id: str, pending: bool) -> None:
     with open_db() as db:
-        db.execute("UPDATE apipayments SET pending = ? WHERE payhash = ?", (int(pending), payhash,))
+        db.execute("UPDATE apipayments SET pending = ? WHERE payhash = ?", (int(pending), checking_id,))
 
 
-def delete_payment(payhash: str) -> None:
+def delete_payment(checking_id: str) -> None:
     with open_db() as db:
-        db.execute("DELETE FROM apipayments WHERE payhash = ?", (payhash,))
+        db.execute("DELETE FROM apipayments WHERE payhash = ?", (checking_id,))
