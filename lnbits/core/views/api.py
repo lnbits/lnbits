@@ -45,7 +45,7 @@ def api_payments_create_invoice():
     return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED
 
 
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_macaroon(key_type="admin")
 @api_validate_post_request(required_params=["bolt11"])
 def api_payments_pay_invoice():
     if not isinstance(g.data["bolt11"], str) or not g.data["bolt11"].strip():

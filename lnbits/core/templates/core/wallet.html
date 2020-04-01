@@ -54,7 +54,7 @@
               <h5 class="text-subtitle1 q-my-none">Transactions</h5>
             </div>
             <div class="col-auto">
-              <q-btn flat color="grey" onclick="exportbut()">Export to CSV</q-btn>
+              <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
               <!--<q-btn v-if="pendingPaymentsExist" dense flat round icon="update" color="grey" @click="checkPendingPayments">
                 <q-tooltip>Check pending</q-tooltip>
               </q-btn>-->
@@ -64,7 +64,7 @@
             </div>
           </div>
           <q-table dense flat
-            :data="paymentsFiltered"
+            :data="payments"
             row-key="payhash"
             :columns="paymentsTable.columns"
             :pagination.sync="paymentsTable.pagination">
@@ -122,40 +122,44 @@
               label="API info"
               :content-inset-level="0.5"
             >
-              <q-expansion-item group="api" expand-separator label="Create an invoice">
+              <q-expansion-item group="api" dense expand-separator label="Create an invoice (incoming)">
                 <q-card>
                   <q-card-section>
-                    Generate an invoice:<br /><code>POST /api/v1/invoices</code
-                    ><br />Header
+                    <code><span class="text-light-green">POST</span> /api/v1/payments</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
                     <code
                       >{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i
                       >"}</code
                     ><br />
-                    Body <code>{"value": "200","memo": "beer"} </code><br />
-                    Returns
-                    <code>{"pay_req": string,"pay_id": string} </code><br />
-                    *payment will not register in the wallet until the "check
-                    invoice" endpoint is used<br /><br />
-
-                    Check invoice:<br />
-                    Check an invoice:<br /><code
-                      >GET /api/v1/invoice/*payment_hash*</code
-                    ><br />Header
-                    <code
-                      >{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i
-                      >"}</code
-                    ><br />
-
-                    Returns
-                    <code>{"PAID": "TRUE"}/{"PAID": "FALSE"} </code><br />
-                    *if using LNTXBOT return will hang until paid<br /><br />
+                    <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+                    <code>{"out": false, "value": &lt;int&gt;, "memo": &lt;string&gt;}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
+                    <code>{"checking_id": &lt;string&gt;, "payment_request": &lt;string&gt;}</code>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-              <q-expansion-item group="api" expand-separator label="Get an invoice">
+              <q-expansion-item group="api" dense expand-separator label="Pay an invoice (outgoing)">
                 <q-card>
                   <q-card-section>
-                    This whole wallet will be deleted, the funds will be <strong>UNRECOVERABLE</strong>.
+                    <code><span class="text-light-green">POST</span> /api/v1/payments</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+                    <code>{"Grpc-Metadata-macaroon": "{{ wallet.adminkey }}"}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+                    <code>{"out": true, "bolt11": &lt;string&gt;}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
+                    <code>{"checking_id": &lt;string&gt;}</code>
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
+              <q-expansion-item group="api" dense expand-separator label="Check an invoice (incoming or outgoing)"
+                class="q-mb-md">
+                <q-card>
+                  <q-card-section>
+                    <code><span class="text-light-blue">GET</span> /api/v1/payments/&lt;checking_id&gt;</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+                    <code>{"Grpc-Metadata-macaroon": "{{ wallet.inkey }}"}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK (application/json)</h5>
+                    <code>{"paid": &lt;bool&gt;}</code>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>

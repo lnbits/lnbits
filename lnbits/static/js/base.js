@@ -1,5 +1,7 @@
 var LOCALE = 'en'
 
+var EventHub = new Vue();
+
 var LNbits = {
   api: {
     request: function (method, url, macaroon, data) {
@@ -20,7 +22,7 @@ var LNbits = {
       });
     },
     payInvoice: function (wallet, bolt11) {
-      return this.request('post', '/api/v1/payments', wallet.inkey, {
+      return this.request('post', '/api/v1/payments', wallet.adminkey, {
         out: true,
         bolt11: bolt11
       });
@@ -53,7 +55,7 @@ var LNbits = {
       obj.wallets = obj.wallets.map(function (obj) {
         return mapWallet(obj);
       }).sort(function (a, b) {
-        return a.name > b.name;
+        return a.name.localeCompare(b.name);
       });
       return obj;
     },
@@ -94,6 +96,44 @@ var LNbits = {
         caption: [error.response.status, ' ', error.response.statusText].join('').toUpperCase() || null,
         icon: null
       });
+    },
+    exportCSV: function (columns, data) {
+      var wrapCsvValue = function(val, formatFn) {
+        var formatted = formatFn !== void 0
+          ? formatFn(val)
+          : val;
+
+        formatted = (formatted === void 0 || formatted === null)
+          ? ''
+          : String(formatted);
+
+        formatted = formatted.split('"').join('""');
+
+        return `"${formatted}"`;
+      }
+
+      var content = [columns.map(function (col) {
+        return wrapCsvValue(col.label);
+      })].concat(data.map(function (row) {
+        return columns.map(function (col) {
+          return wrapCsvValue(
+            (typeof col.field === 'function')
+              ? col.field(row)
+              : row[(col.field === void 0) ? col.name : col.field],
+            col.format
+          );
+        }).join(',');
+      })).join('\r\n');
+
+      var status = Quasar.utils.exportFile('table-export.csv', content, 'text/csv');
+
+      if (status !== true) {
+        Quasar.plugins.Notify.create({
+          message: 'Browser denied file download...',
+          color: 'negative',
+          icon: null
+        });
+      }
     }
   }
 };

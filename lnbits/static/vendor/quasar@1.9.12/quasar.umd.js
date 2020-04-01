@@ -1,5 +1,5 @@
 /*!
- * Quasar Framework v1.9.7
+ * Quasar Framework v1.9.12
  * (c) 2015-present Razvan Stoenescu
  * Released under the MIT License.
  */
@@ -10,13 +10,9 @@
   (global = global || self, global.Quasar = factory(global.Vue));
 }(this, (function (Vue) { 'use strict';
 
-  if (Vue === void 0) {
-    console.error('[ Quasar ] Vue is required to run. Please add a script tag for it before loading Quasar.')
-    return
-  }
-  Vue = Vue && Vue.hasOwnProperty('default') ? Vue['default'] : Vue;
+  Vue = Vue && Object.prototype.hasOwnProperty.call(Vue, 'default') ? Vue['default'] : Vue;
 
-  var version = "1.9.7";
+  var version = "1.9.12";
 
   /* eslint-disable no-useless-escape */
 
@@ -703,6 +699,10 @@
         else {
           update();
         }
+
+        // due to optimizations, this would be left out otherwise
+        classes === true && this$1.name === 'xs' &&
+          document.body.classList.add("screen--xs");
       };
 
       if (fromSSR === true) {
@@ -1403,12 +1403,7 @@
   }
 
   function isKeyCode (evt, keyCodes) {
-    return (
-      lastKeyCompositionStatus === true ||
-      evt !== Object(evt) ||
-      evt.isComposing === true ||
-      evt.qKeyEvent === true
-    )
+    return shouldIgnoreKey(evt) === true
       ? false
       : [].concat(keyCodes).includes(evt.keyCode)
   }
@@ -1699,7 +1694,8 @@
   };
 
   var $q = {
-    version: version
+    version: version,
+    config: {}
   };
 
   function install (Vue, opts) {
@@ -1708,7 +1704,7 @@
     if (this.__qInstalled === true) { return }
     this.__qInstalled = true;
 
-    var cfg = opts.config || {};
+    var cfg = $q.config = Object.freeze(opts.config || {});
 
     // required plugins
     Platform.install($q, queues);
@@ -1907,10 +1903,7 @@
         type: String,
         default: '2px'
       },
-      color: {
-        type: String,
-        default: 'red'
-      },
+      color: String,
       skipHijack: Boolean,
       reverse: Boolean
     },
@@ -1926,7 +1919,8 @@
 
     computed: {
       classes: function classes () {
-        return "q-loading-bar q-loading-bar--" + (this.position) + " bg-" + (this.color) +
+        return "q-loading-bar q-loading-bar--" + (this.position) +
+          (this.color !== void 0 ? (" bg-" + (this.color)) : '') +
           (this.animate === true ? '' : ' no-transition')
       },
 
@@ -2008,7 +2002,9 @@
       },
 
       increment: function increment (amount) {
-        this.calls > 0 && (this.progress = inc(this.progress, amount));
+        if (this.calls > 0) {
+          this.progress = inc(this.progress, amount);
+        }
       },
 
       stop: function stop () {
@@ -2057,7 +2053,7 @@
 
     beforeDestroy: function beforeDestroy () {
       clearTimeout(this.timer);
-      this.hijacked && restoreAjax(this.start, this.stop);
+      this.hijacked === true && restoreAjax(this.start, this.stop);
     },
 
     render: function render (h) {
@@ -2446,7 +2442,7 @@
       var actions = slot(this, 'action');
       var child = [
         h('div', {
-          staticClass: 'q-banner__avatar col-auto row items-center'
+          staticClass: 'q-banner__avatar col-auto row items-center self-start'
         }, slot(this, 'avatar')),
 
         h('div', {
@@ -2824,6 +2820,124 @@
     ready: ready
   };
 
+  var directions = [ 'left', 'right', 'up', 'down', 'horizontal', 'vertical' ];
+
+  var modifiersAll = {
+    left: true,
+    right: true,
+    up: true,
+    down: true,
+    horizontal: true,
+    vertical: true,
+    all: true
+  };
+
+  function getModifierDirections (mod) {
+    var dir = {};
+
+    directions.forEach(function (direction) {
+      if (mod[direction]) {
+        dir[direction] = true;
+      }
+    });
+
+    if (Object.keys(dir).length === 0) {
+      return modifiersAll
+    }
+
+    if (dir.horizontal === true) {
+      dir.left = dir.right = true;
+    }
+    if (dir.vertical === true) {
+      dir.up = dir.down = true;
+    }
+    if (dir.left === true && dir.right === true) {
+      dir.horizontal = true;
+    }
+    if (dir.up === true && dir.down === true) {
+      dir.vertical = true;
+    }
+    if (dir.horizontal === true && dir.vertical === true) {
+      dir.all = true;
+    }
+
+    return dir
+  }
+
+  function updateModifiers (ctx, ref) {
+    var oldValue = ref.oldValue;
+    var value = ref.value;
+    var modifiers = ref.modifiers;
+
+    if (oldValue !== value) {
+      typeof value !== 'function' && ctx.end();
+      ctx.handler = value;
+    }
+
+    if (
+      ctx.modifiers.mouseAllDir !== modifiers.mouseAllDir ||
+      directions.some(function (direction) { return modifiers[direction] !== ctx.modifiers[direction]; })
+    ) {
+      ctx.modifiers = modifiers;
+      ctx.direction = getModifierDirections(modifiers);
+    }
+  }
+
+  function addEvt (ctx, target, events) {
+    target += 'Evt';
+
+    ctx[target] = ctx[target] !== void 0
+      ? ctx[target].concat(events)
+      : events;
+
+    events.forEach(function (evt) {
+      evt[0].addEventListener(evt[1], ctx[evt[2]], listenOpts[evt[3]]);
+    });
+  }
+
+  function cleanEvt (ctx, target) {
+    target += 'Evt';
+
+    if (ctx[target] !== void 0) {
+      ctx[target].forEach(function (evt) {
+        evt[0].removeEventListener(evt[1], ctx[evt[2]], listenOpts[evt[3]]);
+      });
+      ctx[target] = void 0;
+    }
+  }
+
+  var getTouchTarget = isSSR === false && iosEmulated !== true && (
+    client.is.ios === true ||
+    window.navigator.vendor.toLowerCase().indexOf('apple') > -1
+  )
+    ? function () { return document; }
+    : function (target) { return target; };
+
+  function shouldStart (evt, ctx) {
+    return ctx.event === void 0 &&
+      evt.target !== void 0 &&
+      evt.target.draggable !== true &&
+      typeof ctx.handler === 'function' &&
+      evt.target.nodeName.toUpperCase() !== 'INPUT' &&
+      (evt.qClonedBy === void 0 || evt.qClonedBy.indexOf(ctx.uid) === -1)
+  }
+
+  function throttle (fn, limit) {
+    if ( limit === void 0 ) limit = 250;
+
+    var wait = false, result;
+
+    return function (/* ...args */) {
+      if (wait === false) {
+        wait = true;
+        setTimeout(function () { wait = false; }, limit);
+        result = fn.apply(this, arguments);
+      }
+
+      return result
+    }
+  }
+
   function showRipple (evt, el, ctx, forceCenter) {
     ctx.modifiers.stop === true && stop(evt);
 
@@ -2893,19 +3007,14 @@
     ctx.enabled = value !== false;
 
     if (ctx.enabled === true) {
-      ctx.modifiers = Object(value) === value
-        ? {
-          stop: value.stop === true || modifiers.stop === true,
-          center: value.center === true || modifiers.center === true,
-          color: value.color || arg,
-          keyCodes: [].concat(value.keyCodes || 13)
-        }
-        : {
-          stop: modifiers.stop,
-          center: modifiers.center,
-          color: arg,
-          keyCodes: [13]
-        };
+      var cfg = Object.assign({}, $q.config.ripple, modifiers, value);
+      ctx.modifiers = {
+        early: cfg.early === true,
+        stop: cfg.stop === true,
+        center: cfg.center === true,
+        color: cfg.color || arg,
+        keyCodes: [].concat(cfg.keyCodes || 13)
+      };
     }
   }
 
@@ -2917,26 +3026,32 @@
         modifiers: {},
         abort: [],
 
-        click: function click (evt) {
-          // on ENTER in form IE emits a PointerEvent with negative client cordinates
+        start: function start (evt) {
           if (
             ctx.enabled === true &&
             evt.qSkipRipple !== true &&
-            (client.is.ie !== true || evt.clientX >= 0)
+            // on ENTER in form IE emits a PointerEvent with negative client cordinates
+            (client.is.ie !== true || evt.clientX >= 0) &&
+            (
+              ctx.modifiers.early === true
+                ? ['mousedown', 'touchstart'].includes(evt.type) === true
+                : evt.type === 'click'
+            )
           ) {
             showRipple(evt, el, ctx, evt.qKeyEvent === true);
           }
         },
 
-        keyup: function keyup (evt) {
+        keystart: throttle(function (evt) {
           if (
             ctx.enabled === true &&
             evt.qSkipRipple !== true &&
-            isKeyCode(evt, ctx.modifiers.keyCodes) === true
+            isKeyCode(evt, ctx.modifiers.keyCodes) === true &&
+            evt.type === ("key" + (ctx.modifiers.early === true ? 'down' : 'up'))
           ) {
             showRipple(evt, el, ctx, true);
           }
-        }
+        }, 300)
       };
 
       updateCtx(ctx, binding);
@@ -2946,8 +3061,14 @@
       }
 
       el.__qripple = ctx;
-      el.addEventListener('click', ctx.click, listenOpts.passive);
-      el.addEventListener('keyup', ctx.keyup, listenOpts.passive);
+
+      addEvt(ctx, 'main', [
+        [ el, 'mousedown', 'start', 'passive' ],
+        [ el, 'touchstart', 'start', 'passive' ],
+        [ el, 'click', 'start', 'passive' ],
+        [ el, 'keydown', 'keystart', 'passive' ],
+        [ el, 'keyup', 'keystart', 'passive' ]
+      ]);
     },
 
     update: function update (el, binding) {
@@ -2958,8 +3079,7 @@
       var ctx = el.__qripple_old || el.__qripple;
       if (ctx !== void 0) {
         ctx.abort.forEach(function (fn) { fn(); });
-        el.removeEventListener('click', ctx.click, listenOpts.passive);
-        el.removeEventListener('keyup', ctx.keyup, listenOpts.passive);
+        cleanEvt(ctx, 'main');
         delete el[el.__qripple_old ? '__qripple_old' : '__qripple'];
       }
     }
@@ -3130,108 +3250,6 @@
     }
   };
 
-  var directions = [ 'left', 'right', 'up', 'down', 'horizontal', 'vertical' ];
-
-  var modifiersAll = {
-    left: true,
-    right: true,
-    up: true,
-    down: true,
-    horizontal: true,
-    vertical: true,
-    all: true
-  };
-
-  function getModifierDirections (mod) {
-    var dir = {};
-
-    directions.forEach(function (direction) {
-      if (mod[direction]) {
-        dir[direction] = true;
-      }
-    });
-
-    if (Object.keys(dir).length === 0) {
-      return modifiersAll
-    }
-
-    if (dir.horizontal === true) {
-      dir.left = dir.right = true;
-    }
-    if (dir.vertical === true) {
-      dir.up = dir.down = true;
-    }
-    if (dir.left === true && dir.right === true) {
-      dir.horizontal = true;
-    }
-    if (dir.up === true && dir.down === true) {
-      dir.vertical = true;
-    }
-    if (dir.horizontal === true && dir.vertical === true) {
-      dir.all = true;
-    }
-
-    return dir
-  }
-
-  function updateModifiers (ctx, ref) {
-    var oldValue = ref.oldValue;
-    var value = ref.value;
-    var modifiers = ref.modifiers;
-
-    if (oldValue !== value) {
-      typeof value !== 'function' && ctx.end();
-      ctx.handler = value;
-    }
-
-    if (
-      ctx.modifiers.mouseAllDir !== modifiers.mouseAllDir ||
-      directions.some(function (direction) { return modifiers[direction] !== ctx.modifiers[direction]; })
-    ) {
-      ctx.modifiers = modifiers;
-      ctx.direction = getModifierDirections(modifiers);
-    }
-  }
-
-  function addEvt (ctx, target, events) {
-    target += 'Evt';
-
-    ctx[target] = ctx[target] !== void 0
-      ? ctx[target].concat(events)
-      : events;
-
-    events.forEach(function (evt) {
-      evt[0].addEventListener(evt[1], ctx[evt[2]], listenOpts[evt[3]]);
-    });
-  }
-
-  function cleanEvt (ctx, target) {
-    target += 'Evt';
-
-    if (ctx[target] !== void 0) {
-      ctx[target].forEach(function (evt) {
-        evt[0].removeEventListener(evt[1], ctx[evt[2]], listenOpts[evt[3]]);
-      });
-      ctx[target] = void 0;
-    }
-  }
-
-  var getTouchTarget = isSSR === false && iosEmulated !== true && (
-    client.is.ios === true ||
-    window.navigator.vendor.toLowerCase().indexOf('apple') > -1
-  )
-    ? function () { return document; }
-    : function (target) { return target; };
-
-  function shouldStart (evt, ctx) {
-    return ctx.event === void 0 &&
-      evt.target !== void 0 &&
-      evt.target.draggable !== true &&
-      typeof ctx.handler === 'function' &&
-      evt.target.nodeName.toUpperCase() !== 'INPUT' &&
-      (evt.qClonedBy === void 0 || evt.qClonedBy.indexOf(ctx.uid) === -1)
-  }
-
   var passiveCapture = listenOpts.passiveCapture;
 
   var
@@ -3260,7 +3278,7 @@
         return this.ripple === false
           ? false
           : Object.assign(
-            { keyCodes: [] },
+            { keyCodes: this.isLink === true ? [ 13, 32 ] : [ 13 ] },
             this.ripple === true ? {} : this.ripple
           )
       },
@@ -3269,6 +3287,16 @@
         var val = Math.max(0, Math.min(100, this.percentage));
         if (val > 0) {
           return { transition: 'transform 0.6s', transform: ("translateX(" + (val - 100) + "%)") }
+        }
+      },
+
+      onLoadingEvents: function onLoadingEvents () {
+        return {
+          mousedown: this.__onLoadingEvt,
+          touchstart: this.__onLoadingEvt,
+          click: this.__onLoadingEvt,
+          keydown: this.__onLoadingEvt,
+          keyup: this.__onLoadingEvt
         }
       }
     },
@@ -3362,6 +3390,8 @@
       },
 
       __onTouchstart: function __onTouchstart (e) {
+        var this$1 = this;
+
         if (touchTarget !== this.$el) {
           touchTarget !== void 0 && this.__cleanup();
           touchTarget = this.$el;
@@ -3369,6 +3399,14 @@
           target.addEventListener('touchcancel', this.__onPressEnd, passiveCapture);
           target.addEventListener('touchend', this.__onPressEnd, passiveCapture);
         }
+
+        // avoid duplicated mousedown event
+        // triggering another early ripple
+        this.avoidMouseRipple = true;
+        clearTimeout(this.mouseTimer);
+        this.mouseTimer = setTimeout(function () {
+          this$1.avoidMouseRipple = false;
+        }, 200);
 
         this.$emit('touchstart', e);
       },
@@ -3381,6 +3419,7 @@
           document.addEventListener('mouseup', this.__onPressEnd, passiveCapture);
         }
 
+        e.qSkipRipple = this.avoidMouseRipple === true;
         this.$emit('mousedown', e);
       },
 
@@ -3512,10 +3551,7 @@
 
       if (this.loading === true) {
         // stop propagation and ripple
-        data.on = {
-          click: this.__onLoadingEvt,
-          keyup: this.__onLoadingEvt
-        };
+        data.on = this.onLoadingEvents;
 
         this.percentage !== void 0 && child.push(
           h('div', {
@@ -5676,7 +5712,7 @@
             stopAndPrevent(evt);
 
             if (ctx.event.mouse === true) {
-              document.body.classList.add('no-pointer-events');
+              document.body.classList.add('no-pointer-events--children');
               document.body.classList.add('non-selectable');
               clearSelection();
 
@@ -5686,7 +5722,7 @@
                 document.body.classList.remove('non-selectable');
 
                 var remove = function () {
-                  document.body.classList.remove('no-pointer-events');
+                  document.body.classList.remove('no-pointer-events--children');
                 };
 
                 if (withDelay === true) { setTimeout(remove, 50); }
@@ -7332,22 +7368,6 @@
     testPattern: testPattern
   };
 
-  function throttle (fn, limit) {
-    if ( limit === void 0 ) limit = 250;
-
-    var wait = false, result;
-
-    return function (/* ...args */) {
-      if (wait === false) {
-        wait = true;
-        setTimeout(function () { wait = false; }, limit);
-        result = fn.apply(this, arguments);
-      }
-
-      return result
-    }
-  }
-
   function getChanges (evt, ctx, isFinal) {
     var
       pos = position(evt),
@@ -7412,7 +7432,7 @@
 
     var synthetic = false;
 
-    if (dir === void 0 && isFinal !== true) {
+    if (dir === void 0 && isFinal === false) {
       if (ctx.event.isFirst === true || ctx.event.lastDir === void 0) {
         return {}
       }
@@ -7582,7 +7602,7 @@
             handleEvent(evt, isMouseEvt);
 
             document.documentElement.style.cursor = 'grabbing';
-            isMouseEvt === true && document.body.classList.add('no-pointer-events');
+            isMouseEvt === true && document.body.classList.add('no-pointer-events--children');
             document.body.classList.add('non-selectable');
             clearSelection();
 
@@ -7594,7 +7614,7 @@
 
               if (isMouseEvt === true) {
                 var remove = function () {
-                  document.body.classList.remove('no-pointer-events');
+                  document.body.classList.remove('no-pointer-events--children');
                 };
 
                 if (withDelay === true) { setTimeout(remove, 50); }
@@ -8628,14 +8648,14 @@
           var offset = this.vertical === true ? newPos$1.top - top : newPos$1.left - left;
 
           if (offset < 0) {
-            this.$refs.content[this.vertical === true ? 'scrollTop' : 'scrollLeft'] += offset;
+            this.$refs.content[this.vertical === true ? 'scrollTop' : 'scrollLeft'] += Math.floor(offset);
             this.__updateArrows();
             return
           }
 
           offset += this.vertical === true ? newPos$1.height - height : newPos$1.width - width;
           if (offset > 0) {
-            this.$refs.content[this.vertical === true ? 'scrollTop' : 'scrollLeft'] += offset;
+            this.$refs.content[this.vertical === true ? 'scrollTop' : 'scrollLeft'] += Math.ceil(offset);
             this.__updateArrows();
           }
         }
@@ -9762,7 +9782,7 @@
               : this.formatModel.indexOf('a') > -1
           );
 
-        if (v === null || v === void 0 || v === '' || testPattern.anyColor(v) !== true) {
+        if (typeof v !== 'string' || v.length === 0 || testPattern.anyColor(v.replace(/ /g, '')) !== true) {
           return {
             h: 0,
             s: 0,
@@ -10333,8 +10353,10 @@
           return '(\\d{2})'
 
         case 'Z': // to split: (?:(Z)()()|([+-])?(\\d{2}):?(\\d{2}))
+          map.Z = index;
           return '(Z|[+-]\\d{2}:\\d{2})'
         case 'ZZ':
+          map.ZZ = index;
           return '(Z|[+-]\\d{2}\\d{2})'
 
         case 'X':
@@ -10362,7 +10384,7 @@
   function extractDate (str, mask, dateLocale) {
     var d = __splitDate(str, mask, dateLocale);
 
-    return new Date(
+    var date = new Date(
       d.year,
       d.month === null ? null : d.month - 1,
       d.day,
@@ -10370,7 +10392,13 @@
       d.minute,
       d.second,
       d.millisecond
-    )
+    );
+
+    var tzOffset = date.getTimezoneOffset();
+
+    return d.timezoneOffset === null || d.timezoneOffset === tzOffset
+      ? date
+      : getChange(date, { minutes: d.timezoneOffset - tzOffset }, true)
   }
 
   function __splitDate (str, mask, dateLocale, calendar, defaultModel) {
@@ -10382,6 +10410,7 @@
       minute: null,
       second: null,
       millisecond: null,
+      timezoneOffset: null,
       dateHash: null,
       timeHash: null
     }, defaultModel);
@@ -10413,6 +10442,8 @@
     if (match === null) {
       return date
     }
+
+    var tzString = '';
 
     if (map.X !== void 0 || map.x !== void 0) {
       var stamp = parseInt(match[map.X !== void 0 ? map.X : map.x], 10);
@@ -10495,10 +10526,15 @@
       if (map.S !== void 0) {
         date.millisecond = parseInt(match[map.S], 10) * Math.pow( 10, (3 - match[map.S].length) );
       }
+
+      if (map.Z !== void 0 || map.ZZ !== void 0) {
+        tzString = (map.Z !== void 0 ? match[map.Z].replace(':', '') : match[map.ZZ]);
+        date.timezoneOffset = (tzString[0] === '+' ? -1 : 1) * (60 * tzString.slice(1, 3) + 1 * tzString.slice(3, 5));
+      }
     }
 
     date.dateHash = date.year + '/' + pad(date.month) + '/' + pad(date.day);
-    date.timeHash = pad(date.hour) + ':' + pad(date.minute) + ':' + pad(date.second);
+    date.timeHash = pad(date.hour) + ':' + pad(date.minute) + ':' + pad(date.second) + tzString;
 
     return date
   }
@@ -10579,18 +10615,25 @@
     return 1 + Math.floor(weekDiff)
   }
 
+  function getDayIdentifier (date) {
+    return date.getFullYear() * 10000 + date.getMonth() * 100 + date.getDate()
+  }
+
+  function getDateIdentifier (date, onlyDate /* = false */) {
+    var d = new Date(date);
+    return onlyDate === true ? getDayIdentifier(d) : d.getTime()
+  }
+
   function isBetweenDates (date, from, to, opts) {
     if ( opts === void 0 ) opts = {};
 
     var
-      d1 = new Date(from).getTime(),
-      d2 = new Date(to).getTime(),
-      cur = new Date(date).getTime();
+      d1 = getDateIdentifier(from, opts.onlyDate),
+      d2 = getDateIdentifier(to, opts.onlyDate),
+      cur = getDateIdentifier(date, opts.onlyDate);
 
-    opts.inclusiveFrom && d1--;
-    opts.inclusiveTo && d2++;
-
-    return cur > d1 && cur < d2
+    return (cur > d1 || (opts.inclusiveFrom === true && cur === d1)) &&
+      (cur < d2 || (opts.inclusiveTo === true && cur === d2))
   }
 
   function addToDate (date, mod) {
@@ -10983,13 +11026,21 @@
     },
 
     // Timezone: -01:00, +00:00, ... +12:00
-    Z: function Z (date) {
-      return formatTimezone(date.getTimezoneOffset(), ':')
+    Z: function Z (date, dateLocale, forcedYear, forcedTimezoneOffset) {
+      var tzOffset = forcedTimezoneOffset === void 0 || forcedTimezoneOffset === null
+        ? date.getTimezoneOffset()
+        : forcedTimezoneOffset;
+
+      return formatTimezone(tzOffset, ':')
     },
 
     // Timezone: -0100, +0000, ... +1200
-    ZZ: function ZZ (date) {
-      return formatTimezone(date.getTimezoneOffset())
+    ZZ: function ZZ (date, dateLocale, forcedYear, forcedTimezoneOffset) {
+      var tzOffset = forcedTimezoneOffset === void 0 || forcedTimezoneOffset === null
+        ? date.getTimezoneOffset()
+        : forcedTimezoneOffset;
+
+      return formatTimezone(tzOffset)
     },
 
     // Seconds timestamp: 512969520
@@ -11003,7 +11054,7 @@
     }
   };
 
-  function formatDate (val, mask, dateLocale, __forcedYear) {
+  function formatDate (val, mask, dateLocale, __forcedYear, __forcedTimezoneOffset) {
     if (
       (val !== 0 && !val) ||
       val === Infinity ||
@@ -11029,7 +11080,7 @@
     return mask.replace(
       token,
       function (match, text) { return match in formatter
-        ? formatter[match](date, locale, __forcedYear)
+        ? formatter[match](date, locale, __forcedYear, __forcedTimezoneOffset)
         : (text === void 0 ? match : text.split('\\]').join(']')); }
     )
   }
@@ -11785,7 +11836,7 @@
             ? this.__getDaysInMonth(date)
             : this.daysInMonth;
 
-          date.day = Math.min(date.day, maxDay);
+          date.day = Math.min(Math.max(1, date.day), maxDay);
         }
 
         var val = this.calendar === 'persian'
@@ -11802,7 +11853,8 @@
             ),
             this.mask,
             this.computedLocale,
-            date.year
+            date.year,
+            this.extModel.timezoneOffset
           );
 
         date.changed = val !== this.value;
@@ -12554,9 +12606,17 @@
         ));
       },
 
-      side: function side (_, oldSide) {
-        this.layout[oldSide].space = false;
-        this.layout[oldSide].offset = 0;
+      side: function side (newSide, oldSide) {
+        if (this.layout.instances[oldSide] === this) {
+          this.layout.instances[oldSide] = void 0;
+          this.layout[oldSide].space = false;
+          this.layout[oldSide].offset = 0;
+        }
+
+        this.layout.instances[newSide] = this;
+        this.layout[newSide].size = this.size;
+        this.layout[newSide].space = this.onLayout;
+        this.layout[newSide].offset = this.offset;
       },
 
       behavior: function behavior (val) {
@@ -13659,8 +13719,9 @@
           node.push(
             this.__getInnerAppendNode(h, 'inner-clearable-append', [
               h(QIcon, {
-                staticClass: 'cursor-pointer',
-                props: { name: this.clearIcon || this.$q.iconSet.field.clear },
+                staticClass: 'q-field__focusable-action',
+                props: { tag: 'button', name: this.clearIcon || this.$q.iconSet.field.clear },
+                attrs: { tabindex: 0 },
                 on: this.clearableEvents
               })
             ])
@@ -13834,7 +13895,10 @@
       },
 
       __clearValue: function __clearValue (e) {
-        stop(e);
+        // prevent activating the field but keep focus on desktop
+        stopAndPrevent(e);
+        this.$el.focus();
+
         if (this.type === 'file') {
           // do not let focus be triggered
           // as it will make the native file dialog
@@ -16036,6 +16100,7 @@
       height: String,
       definitions: Object,
       fonts: Object,
+      placeholder: String,
 
       toolbar: {
         type: Array,
@@ -16282,7 +16347,7 @@
 
     methods: {
       __onInput: function __onInput () {
-        if (this.editWatcher === true) {
+        if (this.editWatcher === true && this.$refs.content !== void 0) {
           var val = this.isViewingSource
             ? this.$refs.content.innerText
             : this.$refs.content.innerHTML;
@@ -16319,10 +16384,12 @@
       },
 
       __onBlur: function __onBlur () {
-        var ref = this.$refs.content;
-        var scrollTop = ref.scrollTop;
-        var scrollHeight = ref.scrollHeight;
-        this.__offsetBottom = scrollHeight - scrollTop;
+        if (this.$refs.content !== void 0) {
+          var ref = this.$refs.content;
+          var scrollTop = ref.scrollTop;
+          var scrollHeight = ref.scrollHeight;
+          this.__offsetBottom = scrollHeight - scrollTop;
+        }
         this.$q.platform.is.ie !== true && this.caret.save();
         this.$emit('blur');
       },
@@ -16386,7 +16453,7 @@
       },
 
       focus: function focus () {
-        this.$refs.content.focus();
+        this.$refs.content !== void 0 && this.$refs.content.focus();
       },
 
       getContentEl: function getContentEl () {
@@ -16394,11 +16461,13 @@
       },
 
       __setContent: function __setContent (v) {
-        if (this.isViewingSource) {
-          this.$refs.content.innerText = v;
-        }
-        else {
-          this.$refs.content.innerHTML = v;
+        if (this.$refs.content !== void 0) {
+          if (this.isViewingSource) {
+            this.$refs.content.innerText = v;
+          }
+          else {
+            this.$refs.content.innerHTML = v;
+          }
         }
       }
     },
@@ -16483,7 +16552,10 @@
               staticClass: "q-editor__content",
               style: this.innerStyle,
               class: this.innerClass,
-              attrs: { contenteditable: this.editable },
+              attrs: {
+                contenteditable: this.editable,
+                placeholder: this.placeholder
+              },
               domProps: isSSR
                 ? { innerHTML: this.value }
                 : undefined,
@@ -17675,8 +17747,8 @@
         this.validateIndex++;
 
         var components = getAllChildren(this);
-        var emit = function (res) {
-          this$1.$emit('validation-' + (res === true ? 'success' : 'error'));
+        var emit = function (res, ref) {
+          this$1.$emit('validation-' + (res === true ? 'success' : 'error'), ref);
         };
 
         var loop = function ( i ) {
@@ -17695,7 +17767,7 @@
             }
             else if (valid !== true) {
               if (this$1.greedy === false) {
-                emit(false);
+                emit(false, comp);
 
                 if (focus === true && typeof comp.focus === 'function') {
                   comp.focus();
@@ -17732,10 +17804,11 @@
                 return true
               }
 
-              emit(false);
               var ref = errors[0];
               var valid = ref.valid;
               var comp = ref.comp;
+
+              emit(false, comp);
 
               if (
                 focus === true &&
@@ -18587,11 +18660,15 @@
       ctx.observer = new IntersectionObserver(function (ref) {
         var entry = ref[0];
 
-        if (typeof ctx.handler === 'function' && el.__vue__._inactive !== true) {
-          if (entry.rootBounds === null) {
+        if (typeof ctx.handler === 'function') {
+          // if observed element is part of a vue transition
+          // then we need to be careful...
+          if (
+            entry.rootBounds === null &&
+            (el.__vue__ !== void 0 ? el.__vue__._inactive !== true : document.body.contains(el) === true)
+          ) {
             ctx.observer.unobserve(el);
             ctx.observer.observe(el);
-
             return
           }
 
@@ -20139,6 +20216,11 @@
         type: Number,
         default: 0,
         validator: function (v) { return v >= 0; }
+      },
+
+      ripple: {
+        type: [Boolean, Object],
+        default: null
       }
     },
 
@@ -20209,6 +20291,17 @@
             'aria-disabled': ''
           }
         }
+      },
+
+      btnProps: function btnProps () {
+        return {
+          color: this.color,
+          flat: true,
+          size: this.size,
+          ripple: this.ripple !== null
+            ? this.ripple
+            : true
+        }
       }
     },
 
@@ -20235,9 +20328,7 @@
       __getBtn: function __getBtn (h, data, props, page) {
         var this$1 = this;
 
-        data.props = Object.assign({}, {color: this.color,
-          flat: true,
-          size: this.size},
+        data.props = Object.assign({}, this.btnProps,
           props);
 
         if (page !== void 0) {
@@ -20365,8 +20456,7 @@
             disable: this.disable,
             flat: !active,
             textColor: active ? this.textColor : null,
-            label: this.min,
-            ripple: false
+            label: this.min
           }, this.min));
         }
         if (boundaryEnd) {
@@ -20378,8 +20468,7 @@
             disable: this.disable,
             flat: !active$1,
             textColor: active$1 ? this.textColor : null,
-            label: this.max,
-            ripple: false
+            label: this.max
           }, this.max));
         }
         if (ellipsesStart) {
@@ -20388,7 +20477,8 @@
             style: style
           }, {
             disable: this.disable,
-            label: '…'
+            label: '…',
+            ripple: false
           }, pgFrom - 1));
         }
         if (ellipsesEnd) {
@@ -20397,7 +20487,8 @@
             style: style
           }, {
             disable: this.disable,
-            label: '…'
+            label: '…',
+            ripple: false
           }, pgTo + 1));
         }
         for (var i = pgFrom; i <= pgTo; i++) {
@@ -20409,8 +20500,7 @@
             disable: this.disable,
             flat: !active$2,
             textColor: active$2 ? this.textColor : null,
-            label: i,
-            ripple: false
+            label: i
           }, i));
         }
       }
@@ -22898,7 +22988,7 @@
             this.innerLoading !== true &&
             ((this.dialog !== true && this.menu !== true) || this.hasValue !== true)
           ) {
-            this.__resetInputValue();
+            this.userInputValue !== true && this.__resetInputValue();
             if (this.dialog === true || this.menu === true) {
               this.filter('');
             }
@@ -23112,6 +23202,43 @@
       // takes into account 'option-disable' prop
       isOptionDisabled: function isOptionDisabled () {
         return this.__getPropValueFn('optionDisable', 'disable')
+      },
+
+      autocompleteControlEvents: function autocompleteControlEvents () {
+        var on = {
+          keydown: this.__onTargetKeydown,
+          keyup: this.__onTargetAutocomplete,
+          keypress: this.__onTargetKeypress
+        };
+
+        if (this.$q.platform.is.mobile === true) {
+          on.focus = function (ev) { ev.target.blur(); };
+        }
+
+        return on
+      },
+
+      inputControlEvents: function inputControlEvents () {
+        var on = {
+          input: this.__onInput,
+          // Safari < 10.2 & UIWebView doesn't fire compositionend when
+          // switching focus before confirming composition choice
+          // this also fixes the issue where some browsers e.g. iOS Chrome
+          // fires "change" instead of "input" on autocomplete.
+          change: this.__onChange,
+          keydown: this.__onTargetKeydown,
+          keyup: this.__onTargetKeyup,
+          keypress: this.__onTargetKeypress,
+          focus: this.__selectInputText
+        };
+
+        on.compositionstart = on.compositionupdate = on.compositionend = this.__onComposition;
+
+        if (this.hasDialog === true) {
+          on.click = stop;
+        }
+
+        return on
       }
     },
 
@@ -23263,11 +23390,11 @@
             this.setOptionIndex(index);
             this.scrollTo(index);
 
-            if (skipInputValue !== true && index >= 0 && this.useInput === true && this.fillInput === true) {
-              var inputValue = this.getOptionLabel(this.options[index]);
-              if (this.inputValue !== inputValue) {
-                this.inputValue = inputValue;
-              }
+            if (skipInputValue !== true && this.useInput === true && this.fillInput === true) {
+              this.__setInputValue(index >= 0
+                ? this.getOptionLabel(this.options[index])
+                : this.defaultInputValue
+              );
             }
           }
         }
@@ -23311,6 +23438,7 @@
           stop(e);
           // on ESC we need to close the dialog also
           this.hidePopup();
+          this.__resetInputValue();
         }
 
         this.$emit('keyup', e);
@@ -23324,11 +23452,13 @@
 
         e.target.value = '';
 
-        if (
-          e.keyCode === void 0 &&
-          typeof value === 'string' &&
-          value.length > 0
-        ) {
+        if (e.keyCode !== void 0) {
+          this.__onTargetKeyup(e);
+
+          return
+        }
+
+        if (typeof value === 'string' && value.length > 0) {
           var needle = value.toLocaleLowerCase();
 
           var fn = function (opt) { return this$1.getOptionValue(opt).toLocaleLowerCase() === needle; };
@@ -23449,10 +23579,7 @@
               this$1.scrollTo(index);
 
               if (index >= 0 && this$1.useInput === true && this$1.fillInput === true) {
-                var inputValue = this$1.getOptionLabel(this$1.options[index]);
-                if (this$1.inputValue !== inputValue) {
-                  this$1.inputValue = inputValue;
-                }
+                this$1.__setInputValue(this$1.getOptionLabel(this$1.options[index]));
               }
             });
           }
@@ -23479,7 +23606,6 @@
           var done = function (val, mode) {
             if (mode) {
               if (validateNewValueMode(mode) !== true) {
-                console.error('QSelect: invalid new value mode - ' + mode);
                 return
               }
             }
@@ -23543,15 +23669,15 @@
         var obj;
 
         if (this.hideSelected === true) {
-          return fromDialog !== true && this.hasDialog === true
-            ? [
+          return fromDialog === true || this.dialog !== true || this.hasDialog !== true
+            ? []
+            : [
               h('span', {
                 domProps: {
                   textContent: this.inputValue
                 }
               })
             ]
-            : []
         }
 
         if (this.$scopedSlots['selected-item'] !== void 0) {
@@ -23569,7 +23695,7 @@
             return h(QChip, {
             key: 'option-' + i,
             props: {
-              removable: this$1.isOptionDisabled(scope.opt) !== true,
+              removable: this$1.editable === true && this$1.isOptionDisabled(scope.opt) !== true,
               dense: true,
               textColor: this$1.color,
               tabindex: this$1.computedTabindex
@@ -23596,40 +23722,28 @@
 
       __getControl: function __getControl (h, fromDialog) {
         var child = this.__getSelection(h, fromDialog);
+        var isTarget = fromDialog === true || this.dialog !== true || this.hasDialog !== true;
 
-        if (this.useInput === true && (fromDialog === true || this.hasDialog === false)) {
+        if (isTarget === true && this.useInput === true) {
           child.push(this.__getInput(h, fromDialog));
         }
         else if (this.editable === true) {
-          var isShadowField = this.hasDialog === true && fromDialog !== true && this.menu === true;
+          var options = {
+            staticClass: 'q-select__autocomplete-input no-outline',
+            attrs: {
+              autocomplete: this.$attrs.autocomplete,
+              tabindex: this.tabindex
+            },
+            on: this.autocompleteControlEvents
+          };
 
-          if (fromDialog !== true) {
-            child.push(h('input', {
-              staticClass: 'q-select__autocomplete-input no-outline',
-              attrs: {
-                autocomplete: this.$attrs.autocomplete,
-                tabindex: -1
-              },
-              on: cache(this, 'acpl', {
-                keyup: this.__onTargetAutocomplete
-              })
-            }));
+          if (isTarget === true) {
+            // there can be only one (when dialog is opened the control in dialog should be target)
+            options.ref = 'target';
+            options.attrs.id = this.targetUid;
           }
 
-          child.push(h('div', {
-            // there can be only one (when dialog is opened the control in dialog should be target)
-            ref: isShadowField === true ? void 0 : 'target',
-            staticClass: 'no-outline',
-            attrs: {
-              tabindex: this.tabindex,
-              id: isShadowField === true ? void 0 : this.targetUid
-            },
-            on: cache(this, 'ctrl', {
-              keydown: this.__onTargetKeydown,
-              keyup: this.__onTargetKeyup,
-              keypress: this.__onTargetKeypress
-            })
-          }));
+          child.push(h('input', options));
         }
 
         if (this.nameProp !== void 0 && this.disable !== true && this.innerOptionsValue.length > 0) {
@@ -23697,26 +23811,7 @@
       },
 
       __getInput: function __getInput (h, fromDialog) {
-        var on = {
-          input: this.__onInput,
-          // Safari < 10.2 & UIWebView doesn't fire compositionend when
-          // switching focus before confirming composition choice
-          // this also fixes the issue where some browsers e.g. iOS Chrome
-          // fires "change" instead of "input" on autocomplete.
-          change: this.__onChange,
-          keydown: this.__onTargetKeydown,
-          keyup: this.__onTargetKeyup,
-          keypress: this.__onTargetKeypress,
-          focus: this.__selectInputText
-        };
-
-        on.compositionstart = on.compositionupdate = on.compositionend = this.__onComposition;
-
-        if (this.hasDialog === true) {
-          on.click = stop;
-        }
-
-        return h('input', {
+        var options = {
           ref: 'target',
           staticClass: 'q-field__input q-placeholder col',
           style: this.inputStyle,
@@ -23724,13 +23819,21 @@
           domProps: { value: this.inputValue !== void 0 ? this.inputValue : '' },
           attrs: Object.assign({}, {type: 'search'},
             this.$attrs,
-            {tabindex: this.tabindex,
+            {id: this.targetUid,
+            maxlength: this.maxlength, // this is converted to prop by QField
+            tabindex: this.tabindex,
             'data-autofocus': fromDialog === true ? false : this.autofocus,
-            id: this.targetUid,
             disabled: this.disable === true,
             readonly: this.readonly === true}),
-          on: cache(this, 'inp#' + this.hasDialog, on)
-        })
+          on: this.inputControlEvents
+        };
+
+        if (fromDialog !== true && this.hasDialog === true) {
+          options.staticClass += ' no-pointer-events';
+          options.attrs.readonly = true;
+        }
+
+        return h('input', options)
       },
 
       __onChange: function __onChange (e) {
@@ -23746,10 +23849,11 @@
           return
         }
 
-        this.inputValue = e.target.value || '';
+        this.__setInputValue(e.target.value || '');
         // mark it here as user input so that if updateInputValue is called
         // before filter is called the indicator is reset
         this.userInputValue = true;
+        this.defaultInputValue = this.inputValue;
 
         if (
           this.focused !== true &&
@@ -23765,12 +23869,21 @@
         }
       },
 
+      __setInputValue: function __setInputValue (inputValue) {
+        if (this.inputValue !== inputValue) {
+          this.inputValue = inputValue;
+          this.$emit('input-value', inputValue);
+        }
+      },
+
       updateInputValue: function updateInputValue (val, noFiltering, internal) {
         this.userInputValue = internal !== true;
 
         if (this.useInput === true) {
-          if (this.inputValue !== val) {
-            this.inputValue = val;
+          this.__setInputValue(val);
+
+          if (noFiltering === true || internal !== true) {
+            this.defaultInputValue = val;
           }
 
           noFiltering !== true && this.filter(val);
@@ -24040,6 +24153,8 @@
           return
         }
 
+        this.optionIndex = -1;
+
         if (this.menu === true) {
           this.menu = false;
         }
@@ -24056,9 +24171,14 @@
       },
 
       showPopup: function showPopup (e) {
+        var this$1 = this;
+
         if (this.hasDialog === true) {
           this.__onControlFocusin(e);
           this.dialog = true;
+          this.$nextTick(function () {
+            this$1.__focus();
+          });
         }
         else {
           this.__focus();
@@ -24181,7 +24301,7 @@
 
       classes: function classes () {
         return "q-skeleton--" + (this.isDark === true ? 'dark' : 'light') + " q-skeleton--type-" + (this.type) +
-          (this.animation !== 'none' ? (" q-skeleton--anim-" + (this.animation)) : '') +
+          (this.animation !== 'none' ? (" q-skeleton--anim q-skeleton--anim-" + (this.animation)) : '') +
           (this.square === true ? ' q-skeleton--square' : '') +
           (this.bordered === true ? ' q-skeleton--bordered' : '')
       }
@@ -29183,83 +29303,88 @@
 
       __click: function __click (evt) {
         // __activate() has already updated the offset
-        // we only need to change the view now, so:
-
+        // (on desktop only, through mousedown event)
         if (this.$q.platform.is.desktop !== true) {
-          this.__drag({ isFirst: true, evt: evt });
+          this.__updateClock(evt, this.__getClockRect());
         }
 
-        this.__drag({ isFinal: true, evt: evt });
+        this.__goToNextView();
       },
 
       __activate: function __activate (evt) {
-        this.__drag({ isFirst: true, evt: evt }, true);
-        this.__drag({ isFinal: true, evt: evt }, true);
+        this.__updateClock(evt, this.__getClockRect());
       },
 
-      __drag: function __drag (event, noViewChange) {
+      __getClockRect: function __getClockRect () {
+        var
+          clock = this.$refs.clock;
+        var ref = clock.getBoundingClientRect();
+        var top = ref.top;
+        var left = ref.left;
+        var width = ref.width;
+        var dist = width / 2;
+
+        return {
+          top: top + dist,
+          left: left + dist,
+          dist: dist * 0.7
+        }
+      },
+
+      __goToNextView: function __goToNextView () {
+        if (this.view === 'Hour') {
+          this.view = 'Minute';
+        }
+        else if (this.withSeconds && this.view === 'Minute') {
+          this.view = 'Second';
+        }
+      },
+
+      __drag: function __drag (event) {
         // cases when on a popup getting closed
         // on previously emitted value
         if (this._isBeingDestroyed === true || this._isDestroyed === true) {
           return
         }
 
-        if (event.isFirst) {
-          var
-            clock = this.$refs.clock;
-          var ref = clock.getBoundingClientRect();
-          var top = ref.top;
-          var left = ref.left;
-          var width = ref.width;
-          var dist = width / 2;
-
-          this.dragging = {
-            top: top + dist,
-            left: left + dist,
-            dist: dist * 0.7
-          };
-          this.dragCache = null;
-          this.__updateClock(event.evt);
+        if (event.isFirst === true) {
+          this.draggingClockRect = this.__getClockRect();
+          this.dragCache = this.__updateClock(event.evt, this.draggingClockRect);
           return
         }
 
-        this.__updateClock(event.evt);
+        this.dragCache = this.__updateClock(event.evt, this.draggingClockRect, this.dragCache);
 
-        if (event.isFinal && noViewChange !== true) {
-          this.dragging = false;
-
-          if (this.view === 'Hour') {
-            this.view = 'Minute';
-          }
-          else if (this.withSeconds && this.view === 'Minute') {
-            this.view = 'Second';
-          }
+        if (event.isFinal === true) {
+          this.draggingClockRect = false;
+          this.dragCache = null;
+          this.__goToNextView();
         }
       },
 
-      __updateClock: function __updateClock (evt) {
+      __updateClock: function __updateClock (evt, clockRect, cacheVal) {
         var
           val,
           pos = position(evt),
-          height = Math.abs(pos.top - this.dragging.top),
+          height = Math.abs(pos.top - clockRect.top),
           distance = Math.sqrt(
-            Math.pow(Math.abs(pos.top - this.dragging.top), 2) +
-            Math.pow(Math.abs(pos.left - this.dragging.left), 2)
+            Math.pow(Math.abs(pos.top - clockRect.top), 2) +
+            Math.pow(Math.abs(pos.left - clockRect.left), 2)
           ),
           angle = Math.asin(height / distance) * (180 / Math.PI);
 
-        if (pos.top < this.dragging.top) {
-          angle = this.dragging.left < pos.left ? 90 - angle : 270 + angle;
+        if (pos.top < clockRect.top) {
+          angle = clockRect.left < pos.left ? 90 - angle : 270 + angle;
         }
         else {
-          angle = this.dragging.left < pos.left ? angle + 90 : 270 - angle;
+          angle = clockRect.left < pos.left ? angle + 90 : 270 - angle;
         }
 
         if (this.view === 'Hour') {
           val = Math.round(angle / 30);
 
           if (this.computedFormat24h === true) {
-            if (distance < this.dragging.dist) {
+            if (distance < clockRect.dist) {
               if (val < 12) {
                 val += 12;
               }
@@ -29284,8 +29409,8 @@
           }
         }
 
-        if (this.dragCache === val) {
-          return
+        if (cacheVal === val) {
+          return val
         }
 
         var opt = this[((this.view.toLowerCase()) + "InSelection")];
@@ -29294,8 +29419,8 @@
           return
         }
 
-        this.dragCache = val;
         this[("__set" + (this.view))](val);
+        return val
       },
 
       __onKeyupHour: function __onKeyupHour (e) {
@@ -29598,7 +29723,8 @@
             ),
             this.computedMask,
             this.computedLocale,
-            date.year
+            date.year,
+            date.timezoneOffset
           );
 
         date.changed = val !== this.value;
@@ -30738,7 +30864,13 @@
       __addFiles: function __addFiles (e, fileList) {
         var this$1 = this;
 
-        var files = this.__processFiles(e, fileList);
+        var processedFiles = this.__processFiles(e, fileList);
+
+        if (processedFiles === void 0) { return }
+
+        var files = processedFiles
+          .filter(function (file) { return this$1.files.findIndex(function (f) { return file.name === f.name; }) === -1; });
+
         this.__getFileInput().value = '';
 
         if (files === void 0) { return }
@@ -32953,6 +33085,7 @@
               autofocus: true,
               dark: this.isDark
             },
+            attrs: this.prompt.attrs,
             on: cache(this, 'prompt', {
               input: function (v) { this$1.prompt.model = v; },
               keyup: function (evt) {
@@ -33684,7 +33817,7 @@
         };
 
         if (notif.position) {
-          if (!positionList.includes(notif.position)) {
+          if (positionList.includes(notif.position) === false) {
             console.error(("Notify: wrong position: " + (notif.position)));
             return false
           }
@@ -33714,8 +33847,19 @@
           };
         }
 
-        var actions = (Array.isArray(config.actions) === true ? config.actions : [])
-          .concat(config.ignoreDefaults !== true && Array.isArray(defaults$1.actions) === true ? defaults$1.actions : []);
+        var actions = (
+          Array.isArray(config.actions) === true
+            ? config.actions
+            : []
+        ).concat(
+          config.ignoreDefaults !== true && Array.isArray(defaults$1.actions) === true
+            ? defaults$1.actions
+            : []
+        ).concat(
+          notifTypes[config.type] !== void 0 && Array.isArray(notifTypes[config.type].actions) === true
+            ? notifTypes[config.type].actions
+            : []
+        );
 
         notif.closeBtn && actions.push({
           label: typeof notif.closeBtn === 'string'

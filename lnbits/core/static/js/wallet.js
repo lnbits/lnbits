@@ -158,12 +158,6 @@ new Vue({
       return (this.payments)
         ? _.where(this.payments, {pending: 1}).length > 0
         : false;
-    },
-    paymentsFiltered: function () {
-      return this.payments;
-      return this.payments.filter(function (obj) {
-        return obj.isPaid;
-      });
     }
   },
   methods: {
@@ -325,6 +319,14 @@ new Vue({
       this.fetchPayments(true).then(function () {
         dismissMsg();
       });
+    },
+    exportCSV: function () {
+      LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments);
+    }
+  },
+  watch: {
+    'payments': function () {
+      EventHub.$emit('update-wallet-balance', [this.w.wallet.id, this.balance]);
     }
   },
   created: function () {

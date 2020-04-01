@@ -3,6 +3,7 @@ Vue.component('lnbits-wallet-list', {
     return {
       user: null,
       activeWallet: null,
+      activeBalance: [],
       showForm: false,
       walletName: ''
     }
@@ -10,7 +11,7 @@ Vue.component('lnbits-wallet-list', {
   template: `
     <q-list v-if="user && user.wallets.length" dense class="lnbits-drawer__q-list">
       <q-item-label header>Wallets</q-item-label>
-      <q-item v-for="wallet in user.wallets" :key="wallet.id"
+      <q-item v-for="wallet in wallets" :key="wallet.id"
         clickable
         :active="activeWallet && activeWallet.id == wallet.id"
         tag="a" :href="wallet.url">
@@ -25,7 +26,7 @@ Vue.component('lnbits-wallet-list', {
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1">{{ wallet.name }}</q-item-label>
-          <q-item-label caption>{{ wallet.fsat }} sat</q-item-label>
+          <q-item-label caption>{{ wallet.live_fsat }} sat</q-item-label>
         </q-item-section>
         <q-item-section side v-show="activeWallet && activeWallet.id == wallet.id">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
@@ -41,7 +42,7 @@ Vue.component('lnbits-wallet-list', {
       </q-item>
       <q-item v-if="showForm">
         <q-item-section>
-          <q-form>
+          <q-form @submit="createWallet">
             <q-input filled dense v-model="walletName" label="Name wallet *">
               <template v-slot:append>
                 <q-btn round dense flat icon="send" size="sm" @click="createWallet" :disable="walletName == ''"></q-btn>
@@ -52,9 +53,23 @@ Vue.component('lnbits-wallet-list', {
       </q-item>
     </q-list>
   `,
+  computed: {
+    wallets: function () {
+      var bal = this.activeBalance;
+      return this.user.wallets.map(function (obj) {
+        obj.live_fsat = (bal.length && bal[0] == obj.id)
+          ? LNbits.utils.formatSat(bal[1])
+          : obj.fsat;
+        return obj;
+      });
+    }
+  },
   methods: {
     createWallet: function () {
       LNbits.href.createWallet(this.walletName, this.user.id);
+    },
+    updateWalletBalance: function (payload) {
+      this.activeBalance = payload;
     }
   },
   created: function () {
@@ -64,6 +79,7 @@ Vue.component('lnbits-wallet-list', {
     if (window.wallet) {
       this.activeWallet = LNbits.map.wallet(window.wallet);
     }
+    EventHub.$on('update-wallet-balance', this.updateWalletBalance);
   }
 });
 
@@ -113,8 +129,9 @@ Vue.component('lnbits-extension-list', {
     this.extensions = window.extensions.map(function (data) {
       return LNbits.map.extension(data);
     }).sort(function (a, b) {
-      return a.name > b.name;
+      return a.name.localeCompare(b.name);
     });
+
     if (window.user) {
       this.user = LNbits.map.user(window.user);
     }
