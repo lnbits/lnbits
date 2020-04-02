@@ -6,17 +6,24 @@ from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LndWallet(Wallet):
-    """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
     def __init__(self):
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.port = getenv("LND_GRPC_PORT")
-        self.auth_admin = os.path.expanduser("~/")+(getenv("LND_ADMIN_MACAROON"))
-        self.auth_invoice = os.path.expanduser("~/")+(getenv("LND_INVOICE_MACAROON"))
-        self.auth_read = os.path.expanduser("~/")+(getenv("LND_READ_MACAROON"))
-        self.auth_cert = os.path.expanduser("~/")+(getenv("LND_CERT"))
+        self.auth_admin = getenv("LND_ADMIN_MACAROON")
+        self.auth_invoice = getenv("LND_INVOICE_MACAROON")
+        self.auth_read = getenv("LND_READ_MACAROON")
+        self.auth_cert = getenv("LND_CERT")
+
+        lnd_rpc = lnd_grpc.Client(
+            lnd_dir = None,
+            tls_cert_path = self.auth_cert,
+            network = 'mainnet',
+            grpc_host = self.endpoint,
+            grpc_port = self.port
+        )
 
     def create_invoice(self, amount: int, mem: str = "") -> InvoiceResponse:
 
@@ -51,7 +58,7 @@ class LndWallet(Wallet):
             grpc_port = self.port
         )
 
-        payinvoice = lnd_rpc.pay_invoice( # https://github.com/willcl-ark/lnd_grpc/blob/cf938c51c201f078e8bbe9e19ffc2d038f3abf7f/lnd_grpc/lightning.py#L439
+        payinvoice = lnd_rpc.pay_invoice( 
             payment_request = bolt11,
         )
 
