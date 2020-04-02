@@ -1,7 +1,7 @@
 from os import getenv
 import os
 import base64
-import lnd_grpc # https://github.com/willcl-ark/lnd_grpc/blob/master/lnd_grpc/lightning.py
+import lnd_grpc # https://github.com/willcl-ark/lnd_grpc
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
