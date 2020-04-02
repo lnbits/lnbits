@@ -3,7 +3,7 @@ import lnd_grpc # https://github.com/willcl-ark/lnd_grpc/blob/master/lnd_grpc/li
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
-class LndWallet(Wallet):
+class LndWalletgrpc(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
     def __init__(self):
