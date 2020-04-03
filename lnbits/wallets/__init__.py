@@ -4,3 +4,4 @@ from .lndgrpc import LndWallet
 from .lntxbot import LntxbotWallet
 from .opennode import OpenNodeWallet
 from .lnpay import LNPayWallet
+from .clightning import CLightningWallet
