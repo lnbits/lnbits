@@ -1,244 +1,105 @@
-<!-- @format -->
+{% extends "base.html" %}
 
-{% extends "legacy.html" %} {% block messages %}
-
-<a href="#" class="dropdown-toggle" data-toggle="dropdown">
-  <i class="fa fa-bell-o"></i>
-  <span class="label label-danger">!</span>
-</a>
-<ul class="dropdown-menu">
-  <li class="header"><b>Instant wallet, bookmark to save</b></li>
-  <li></li>
-</ul>
-{% endblock %} 
+{% from "macros.jinja" import window_vars with context %}
 
 
-{% block menuitems %}
-  <li class="treeview">
-    <a href="#">
-      <i class="fa fa-bitcoin"></i> <span>Wallets</span>
-      <i class="fa fa-angle-left pull-right"></i>
-    </a>
-    <ul class="treeview-menu">
-      {% for w in user_wallets %}
-      <li>
-        <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"><i class="fa fa-bolt"></i> {{ w.name }}</a>
-      </li>
-      {% endfor %}
-      <li><a onclick="sidebarmake()">Add a wallet +</a></li>
-      <div id="sidebarmake"></div>
-    </ul>
-  </li>
-  <li class="active treeview">
-    <a href="#">
-      <i class="fa fa-th"></i> <span>Extensions</span>
-      <i class="fa fa-angle-left pull-right"></i>
-    </a>
-    <ul class="treeview-menu">
-      {% for extension in EXTENSIONS %}
-        {% if extension.code in user_ext %}
-          <li>
-            <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"><i class="fa fa-plus"></i> {{ extension.name }}</a>
-          </li>
-        {% endif %}
-      {% endfor %}
-      <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}">Manager</a></li>
-    </ul>
-  </li>
+{% block scripts %}
+  {{ window_vars(user) }}
+  <script>
+
+    new Vue({
+      el: '#vue',
+      mixins: [windowMixin],
+        data () {
+
+    return {
+      model: null,
+      model2: null,
+      optionswal: [
+        'USD',  'EUR',  'GBP',  'DZD',  'ARP',  'AUD',  'ATS',  'BSD',  'BBD',  'BEF',  'BMD',  'BRL',  'BGL',  'CAD',  'CLP',  'CNY',  'CYP',  'CSK',  'DKK',  'NLG',  'XCD',  'EGP',  'FJD',  'FIM',  'FRF',  'DEM',  'XAU',  'GRD',  'HKD',  'HUF',  'ISK',  'INR',  'IDR',  'IEP',  'ILS',  'ITL',  'JMD',  'JPY',  'JOD',  'KRW',  'LBP',  'LUF',  'MYR',  'MXP',  'NLG',  'NZD',  'NOK',  'PKR',  'XPD',  'PHP',  'XPT',  'PLZ',  'PTE',  'ROL',  'RUR',  'SAR',  'XAG',  'SGD',  'SKK',  'ZAR',  'KRW',  'ESP',  'XDR',  'SDD',  'SEK',  'CHF',  'TWD',  'THB',  'TTD',  'TRL',  'VEB',  'ZMK',  'EUR',  'XCD',  'XDR',  'XAG',  'XAU',  'XPD',  'XPT',
+
+      ],
+      optionscur: []
+      
+    }
+  }
+
+
+
+    });
+  </script>
 {% endblock %}
 
-{% block body %}
-<!-- Right side column. Contains the navbar and content of the page -->
-<div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <section class="content-header">
-      <h1>
-      TPOS, the shareable PoS
-      <small> contributor/artist  <a href="https://github.com/talvasconcelos">Tiago Vasconcelos</a></small>
+{% block page %}
 
-    </h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
-      </li>
-      <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
-      </li>
-       <li>
-        <i class="active" class="fa fa-dashboard">example</i>
-      </li>
-    </ol>
-    <br /><br />
 
-    
-    
-  <!-- DOWNLOAD AND SEARCH ADMINLITE2 FOR HTML-->
-    
- <section class="content">
-    <!-- Small boxes (Stat box) -->
+  
+   
     <div class="row">
+      <div class="col-md-6 q-pr-sm">
+<div class="q-gutter-y-md">
 
-            <div class="col-md-6">
-              <!-- general form elements -->
-              <div class="box box-primary">
-                <div class="box-header">
-                  <h3 class="box-title"> Make a POS</h3>
-                </div><!-- /.box-header -->
-                <!-- form start -->
-                <form role="form">
-                  <div class="box-body">
+      <q-card >
+        <q-card-section>
+            <q-form class="q-gutter-md">
+              <h4>Make a PoS</h4>
+              <div>
+              <q-input square filled id="nme"label="PoS Name" /><br/>
+            </div>
+            <div>
+              <q-select filled v-model="model" id="wal"  :options="optionswal" label="Select a wallet">
+              </q-select>
+            </div>
+            <div>
+              <q-select filled v-model="model2" id="cur" :options="optionscur" label="Fiat currency">
 
-                    <div class="form-group">
-                      <label for="exampleInputEmail1">PoS Name</label>
-                      <input id="nme" type="text" pattern="^[A-Za-z]+$" class="form-control" >
-                    </div>
+              </q-select>
 
-                       <div class="form-group">
-                      <label>Select a wallet</label>
-                      <select id="wal" class="form-control">
-                         <option>Select a wallet</option>
-                         {% for w in user_wallets %}
-                        <option>{{w.name}}-{{w.id}}</option>
+
+            </div>
+        </q-card-section>
+          <q-card-actions class="q-px-md">
+            <q-btn unelevated color="deep-purple" onclick="postfau()" size="lg" class="full-width" label="Create PoS" />
+          </q-card-actions><br/>
+        </q-form>
+      </q-card>
+
+      <q-card>
+        <q-card-section>
+          <h4>Select PoS</h4>
+            <div>
+              <q-select filled v-model="model" id="cur" label="Fiat currency">
+                {% for w in user_fau %}
+                        <option id="{{w.uni}}">{{w.nme}}-{{w.uni}}</option>
                          {% endfor %}
-                      </select>
-                    </div>
-
-                  <div class="form-group">
-                  <label>Fiat currency</label>
-                  <select id="cur" class="form-control">
-  <option value="USD" selected="selected">United States Dollars</option>
-  <option value="EUR">Euro</option>
-  <option value="GBP">United Kingdom Pounds</option>
-  <option value="DZD">Algeria Dinars</option>
-  <option value="ARP">Argentina Pesos</option>
-  <option value="AUD">Australia Dollars</option>
-  <option value="ATS">Austria Schillings</option>
-  <option value="BSD">Bahamas Dollars</option>
-  <option value="BBD">Barbados Dollars</option>
-  <option value="BEF">Belgium Francs</option>
-  <option value="BMD">Bermuda Dollars</option>
-  <option value="BRL">Brazil Real</option>
-  <option value="BGL">Bulgaria Lev</option>
-  <option value="CAD">Canada Dollars</option>
-  <option value="CLP">Chile Pesos</option>
-  <option value="CNY">China Yuan Renmimbi</option>
-  <option value="CYP">Cyprus Pounds</option>
-  <option value="CSK">Czech Republic Koruna</option>
-  <option value="DKK">Denmark Kroner</option>
-  <option value="NLG">Dutch Guilders</option>
-  <option value="XCD">Eastern Caribbean Dollars</option>
-  <option value="EGP">Egypt Pounds</option>
-  <option value="FJD">Fiji Dollars</option>
-  <option value="FIM">Finland Markka</option>
-  <option value="FRF">France Francs</option>
-  <option value="DEM">Germany Deutsche Marks</option>
-  <option value="XAU">Gold Ounces</option>
-  <option value="GRD">Greece Drachmas</option>
-  <option value="HKD">Hong Kong Dollars</option>
-  <option value="HUF">Hungary Forint</option>
-  <option value="ISK">Iceland Krona</option>
-  <option value="INR">India Rupees</option>
-  <option value="IDR">Indonesia Rupiah</option>
-  <option value="IEP">Ireland Punt</option>
-  <option value="ILS">Israel New Shekels</option>
-  <option value="ITL">Italy Lira</option>
-  <option value="JMD">Jamaica Dollars</option>
-  <option value="JPY">Japan Yen</option>
-  <option value="JOD">Jordan Dinar</option>
-  <option value="KRW">Korea (South) Won</option>
-  <option value="LBP">Lebanon Pounds</option>
-  <option value="LUF">Luxembourg Francs</option>
-  <option value="MYR">Malaysia Ringgit</option>
-  <option value="MXP">Mexico Pesos</option>
-  <option value="NLG">Netherlands Guilders</option>
-  <option value="NZD">New Zealand Dollars</option>
-  <option value="NOK">Norway Kroner</option>
-  <option value="PKR">Pakistan Rupees</option>
-  <option value="XPD">Palladium Ounces</option>
-  <option value="PHP">Philippines Pesos</option>
-  <option value="XPT">Platinum Ounces</option>
-  <option value="PLZ">Poland Zloty</option>
-  <option value="PTE">Portugal Escudo</option>
-  <option value="ROL">Romania Leu</option>
-  <option value="RUR">Russia Rubles</option>
-  <option value="SAR">Saudi Arabia Riyal</option>
-  <option value="XAG">Silver Ounces</option>
-  <option value="SGD">Singapore Dollars</option>
-  <option value="SKK">Slovakia Koruna</option>
-  <option value="ZAR">South Africa Rand</option>
-  <option value="KRW">South Korea Won</option>
-  <option value="ESP">Spain Pesetas</option>
-  <option value="XDR">Special Drawing Right (IMF)</option>
-  <option value="SDD">Sudan Dinar</option>
-  <option value="SEK">Sweden Krona</option>
-  <option value="CHF">Switzerland Francs</option>
-  <option value="TWD">Taiwan Dollars</option>
-  <option value="THB">Thailand Baht</option>
-  <option value="TTD">Trinidad and Tobago Dollars</option>
-  <option value="TRL">Turkey Lira</option>
-  <option value="VEB">Venezuela Bolivar</option>
-  <option value="ZMK">Zambia Kwacha</option>
-  <option value="EUR">Euro</option>
-  <option value="XCD">Eastern Caribbean Dollars</option>
-  <option value="XDR">Special Drawing Right (IMF)</option>
-  <option value="XAG">Silver Ounces</option>
-  <option value="XAU">Gold Ounces</option>
-  <option value="XPD">Palladium Ounces</option>
-  <option value="XPT">Platinum Ounces</option>
-                  </select>
-                </div>
+              </q-select>
+              <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
+                
+            </div>
+         <br/>
+      </q-card>
+    
+    </div></div></div>
 
 
-                  </div><!-- /.box-body -->
+<script>
+console.log("optionscur")
 
-                  <div class="box-footer">
-
-                    <button onclick="postfau()" type="button" class="btn btn-info">Create POS</button><p style="color:red;" id="error"></p>
-                  </div>
-                </form>
-              </div><!-- /.box -->
-
-
-              <div class="box box-primary">
-                <div class="box-header">
-                  <h3 class="box-title">Select POS</h3>
-                </div><!-- /.box-header -->
-                <form role="form">
-                  <div class="box-body">
-                     <div class="form-group">
-
-                      <select class="form-control" id="fauselect" onchange="drawwithdraw()">
-                        <option>Select a PoS</option>
-                         {% for w in user_fau %}
-                        <option id="{{w.uni}}"   >{{w.nme}}-{{w.uni}}</option>
-                         {% endfor %}
-                      </select>
-                    </div>
-
-                   <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
-                </div>
-               </form>
-
-              </div><!-- /.box -->
-
-
-              </div>
-
-
-
-    </div>
-
-    <!-- /.content -->
-  </section>
-
-  <script>
 
     window.user = {{ usr | megajson | safe }}
     window.user_wallets = {{ user_wallets | megajson | safe }}
     window.user_ext = {{ user_ext | megajson | safe }}
     window.user_fau = {{ user_fau | megajson | safe }}
+    
 
+console.log(user_fau)
+    var i;
+for (i = 0; i < user_fau.length; i++) {
+  optionscur[i] += user_fau[i]["nme"] + "-" + user_fau[i]["uni"];
+} 
+
+  setTimeout(() => app.options = options, 1000)
+console.log(optionscur)
 
     function getAjax(url, thekey, success) {
   var xhr = window.XMLHttpRequest
@@ -306,5 +167,5 @@ function postfau(){
 
 
   </script>
-</div>
+
 {% endblock %}
