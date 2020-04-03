@@ -1,18 +1,37 @@
-#views_api.py is for you API endpoints that could be hit by another service
+# views_api.py is for you API endpoints that could be hit by another service
 
-#add your dependencies here
+# add your dependencies here
 
-import json
-import requests
-from flask import jsonify, render_template, request, redirect, url_for
-from lnbits.db import open_db, open_ext_db
+# import json
+# import requests
+
+from flask import jsonify
+
+from lnbits.helpers import Status
 from lnbits.extensions.example import example_ext
 
-#add your endpoints here
 
-@example_ext.route("/api/v1/example", methods=["GET","POST"])
+# add your endpoints here
+
+@example_ext.route("/api/v1/tools", methods=["GET"])
 def api_example():
     """Try to add descriptions for others."""
-    #YOUR-CODE
-    
-    return jsonify({"status": "TRUE"}), 200
+    tools = [
+        {
+            "name": "Flask",
+            "url": "https://flask.palletsprojects.com/",
+            "language": "Python",
+        },
+        {
+            "name": "Vue.js",
+            "url": "https://vuejs.org/",
+            "language": "JavaScript",
+        },
+        {
+            "name": "Quasar Framework",
+            "url": "https://vuejs.org/",
+            "language": "JavaScript",
+        }
+    ]
+
+    return jsonify(tools), Status.OK

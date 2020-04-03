@@ -1,6 +1,6 @@
 {
-    "name": "SHORT-NAME-FOR-EXTENSIONS-PAGE",
+    "name": "Example",
     "short_description": "BLah blah blah.",
-    "icon": "calendar",
+    "icon": "info",
     "contributors": ["github_username"]
 }

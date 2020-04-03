@@ -1,103 +1,54 @@
-<!-- @format -->
+{% extends "base.html" %}
 
-{% extends "legacy.html" %} {% block messages %}
-
-<a href="#" class="dropdown-toggle" data-toggle="dropdown">
-  <i class="fa fa-bell-o"></i>
-  <span class="label label-danger">!</span>
-</a>
-<ul class="dropdown-menu">
-  <li class="header"><b>Instant wallet, bookmark to save</b></li>
-  <li></li>
-</ul>
-{% endblock %} 
+{% from "macros.jinja" import window_vars with context %}
 
 
-{% block menuitems %}
-  <li class="treeview">
-    <a href="#">
-      <i class="fa fa-bitcoin"></i> <span>Wallets</span>
-      <i class="fa fa-angle-left pull-right"></i>
-    </a>
-    <ul class="treeview-menu">
-      {% for w in user_wallets %}
-      <li>
-        <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"><i class="fa fa-bolt"></i> {{ w.name }}</a>
-      </li>
-      {% endfor %}
-      <li><a onclick="sidebarmake()">Add a wallet +</a></li>
-      <div id="sidebarmake"></div>
-    </ul>
-  </li>
-  <li class="active treeview">
-    <a href="#">
-      <i class="fa fa-th"></i> <span>Extensions</span>
-      <i class="fa fa-angle-left pull-right"></i>
-    </a>
-    <ul class="treeview-menu">
-      {% for extension in EXTENSIONS %}
-        {% if extension.code in user_ext %}
-          <li>
-            <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"><i class="fa fa-plus"></i> {{ extension.name }}</a>
-          </li>
-        {% endif %}
-      {% endfor %}
-      <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}">Manager</a></li>
-    </ul>
-  </li>
+{% block page %}
+  <q-card>
+    <q-card-section>
+      <h5 class="text-subtitle1 q-mt-none q-mb-md">Frameworks used by LNbits</h5>
+      <q-list>
+        <q-item v-for="tool in tools" :key="tool.name" tag="a" :href="tool.url" target="_blank">
+          {% raw %} <!-- with raw Flask won't try to interpret the Vue moustaches -->
+            <q-item-section>
+              <q-item-label>{{ tool.name }}</q-item-label>
+              <q-item-label caption>{{ tool.language }}</q-item-label>
+            </q-item-section>
+          {% endraw %}
+        </q-item>
+      </q-list>
+      <q-separator class="q-my-lg"></q-separator>
+      <p>A magical "w" is always available, with info about the user, wallets and extensions:</p>
+      <code class="text-caption">{% raw %}{{ w }}{% endraw %}</code>
+    </q-card-section>
+  </q-card>
 {% endblock %}
 
-{% block body %}
-<!-- Right side column. Contains the navbar and content of the page -->
-<div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <section class="content-header">
-    <h1>
-      Withdraw link maker
-      <small>powered by LNURL</small>
-
-    </h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
-      </li>
-      <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
-      </li>
-       <li>
-        <i class="active" class="fa fa-dashboard">example</i>
-      </li>
-    </ol>
-    <br /><br />
-
-    
-    
-  <!-- DOWNLOAD AND SEARCH ADMINLITE2 FOR HTML-->
-    
-  </section>
-  <!-- Main content  -->
-  <section class="content">
-    <!-- Small boxes (Stat box) -->
-    <div class="row">
-            <div class="col-md-6">
-              <!-- general form elements -->
-              <div class="box box-primary">
-                <div class="box-header">
-                  <h3 class="box-title"> EXAMPLE BOX HEADING</h3>
-                </div><!-- /.box-header -->
-                <div class="box-body">
-                <p>*Some content in here</p>
-              </div>
-              </div><!-- /.box -->
-              </div>
-    </div>
-  </section>
-
+{% block scripts %}
+  {{ window_vars(user) }}
   <script>
+    new Vue({
+      el: '#vue',
+      mixins: [windowMixin],
+      data: function () {
+        return {
+          tools: []
+        };
+      },
+      created: function () {
+        var self = this;
 
-//ADD YOUR JAVASCIPT HERE//
-
+        // axios is available for making requests
+        axios({
+          method: 'GET',
+          url: '/example/api/v1/tools',
+          headers: {
+            'X-example-header': 'not-used'
+          }
+        }).then(function (response) {
+          self.tools = response.data;
+        });
+      }
+    });
   </script>
-</div>
 {% endblock %}
