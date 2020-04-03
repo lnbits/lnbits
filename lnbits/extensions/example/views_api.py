@@ -29,7 +29,7 @@ def api_example():
         },
         {
             "name": "Quasar Framework",
-            "url": "https://vuejs.org/",
+            "url": "https://quasar.dev/",
             "language": "JavaScript",
         }
     ]
