@@ -12,19 +12,21 @@
       mixins: [windowMixin],
         data () {
 
+     var optionswal = []
+
+     for (i = 0; i < user[3].length; i++) {optionswal[i] += String(user[3][i][1] + "-" + user[3][i][0]);}
+
     return {
       model: null,
       model2: null,
-      optionswal: [
+      model3: null,
+      optionswal,
+      optionscur: [
         'USD',  'EUR',  'GBP',  'DZD',  'ARP',  'AUD',  'ATS',  'BSD',  'BBD',  'BEF',  'BMD',  'BRL',  'BGL',  'CAD',  'CLP',  'CNY',  'CYP',  'CSK',  'DKK',  'NLG',  'XCD',  'EGP',  'FJD',  'FIM',  'FRF',  'DEM',  'XAU',  'GRD',  'HKD',  'HUF',  'ISK',  'INR',  'IDR',  'IEP',  'ILS',  'ITL',  'JMD',  'JPY',  'JOD',  'KRW',  'LBP',  'LUF',  'MYR',  'MXP',  'NLG',  'NZD',  'NOK',  'PKR',  'XPD',  'PHP',  'XPT',  'PLZ',  'PTE',  'ROL',  'RUR',  'SAR',  'XAG',  'SGD',  'SKK',  'ZAR',  'KRW',  'ESP',  'XDR',  'SDD',  'SEK',  'CHF',  'TWD',  'THB',  'TTD',  'TRL',  'VEB',  'ZMK',  'EUR',  'XCD',  'XDR',  'XAG',  'XAU',  'XPD',  'XPT',
-
-      ],
-      optionscur: []
+      ]
       
     }
   }
-
-
 
     });
   </script>
@@ -52,7 +54,6 @@
             </div>
             <div>
               <q-select filled v-model="model2" id="cur" :options="optionscur" label="Fiat currency">
-
               </q-select>
 
 
@@ -68,10 +69,7 @@
         <q-card-section>
           <h4>Select PoS</h4>
             <div>
-              <q-select filled v-model="model" id="cur" label="Fiat currency">
-                {% for w in user_fau %}
-                        <option id="{{w.uni}}">{{w.nme}}-{{w.uni}}</option>
-                         {% endfor %}
+              <q-select filled v-model="model3" id="cur" :options="optionswal" label="Fiat currency">
               </q-select>
               <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
                 
@@ -83,23 +81,12 @@
 
 
 <script>
-console.log("optionscur")
-
-
     window.user = {{ usr | megajson | safe }}
     window.user_wallets = {{ user_wallets | megajson | safe }}
     window.user_ext = {{ user_ext | megajson | safe }}
     window.user_fau = {{ user_fau | megajson | safe }}
     
-
-console.log(user_fau)
-    var i;
-for (i = 0; i < user_fau.length; i++) {
-  optionscur[i] += user_fau[i]["nme"] + "-" + user_fau[i]["uni"];
-} 
-
   setTimeout(() => app.options = options, 1000)
-console.log(optionscur)
 
     function getAjax(url, thekey, success) {
   var xhr = window.XMLHttpRequest
@@ -161,10 +148,7 @@ function postfau(){
 
     function(data) {  location.replace("{{ url_for('tpos.index') }}?usr=" + user)
 })
-
-
 }
-
 
   </script>
 
