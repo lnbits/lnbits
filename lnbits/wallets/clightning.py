@@ -10,10 +10,8 @@ class CLightningWallet(Wallet):
         self.l1 = LightningRpc(getenv("CLIGHTNING_RPC"))
         
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
-        print(self.l1)
         label = "lbl{}".format(random.random())  
         r = self.l1.invoice(amount*1000, label, memo, exposeprivatechannels=True)
-        print(r)
         ok, checking_id, payment_request, error_message = True, r["payment_hash"], r["bolt11"], None
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
