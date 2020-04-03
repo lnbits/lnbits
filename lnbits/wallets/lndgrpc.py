@@ -37,8 +37,8 @@ class LndWallet(Wallet):
         )
 
         lndResponse = lnd_rpc.add_invoice(
-            memo = "mem",
-            value = 20,
+            memo = mem,
+            value = amount,
             expiry = 600,
             private = True
         )
