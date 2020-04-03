@@ -127,14 +127,13 @@
                   <q-card-section>
                     <code><span class="text-light-green">POST</span> /api/v1/payments</code>
                     <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-                    <code
-                      >{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i
-                      >"}</code
-                    ><br />
+                    <code>{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i>"}</code><br />
                     <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-                    <code>{"out": false, "value": &lt;int&gt;, "memo": &lt;string&gt;}</code>
+                    <code>{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}</code>
                     <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
                     <code>{"checking_id": &lt;string&gt;, "payment_request": &lt;string&gt;}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+                    <code>curl -X POST http://127.0.0.1:5000/api/v1/payments -d '{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H "Grpc-Metadata-macaroon: <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
