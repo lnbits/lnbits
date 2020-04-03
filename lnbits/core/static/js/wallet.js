@@ -145,7 +145,7 @@ new Vue({
       if (this.payments.length) {
         return _.pluck(this.payments, 'amount').reduce(function (a, b) { return a + b; }, 0) / 1000;
       }
-      return this.w.wallet.sat;
+      return this.g.wallet.sat;
     },
     fbalance: function () {
       return LNbits.utils.formatSat(this.balance)
@@ -211,7 +211,7 @@ new Vue({
     createInvoice: function () {
       var self = this;
       this.receive.status = 'loading';
-      LNbits.api.createInvoice(this.w.wallet, this.receive.data.amount, this.receive.data.memo)
+      LNbits.api.createInvoice(this.g.wallet, this.receive.data.amount, this.receive.data.memo)
         .then(function (response) {
           self.receive.status = 'success';
           self.receive.paymentReq = response.data.payment_request;
@@ -279,7 +279,7 @@ new Vue({
         icon: null
       });
 
-      LNbits.api.payInvoice(this.w.wallet, this.send.data.bolt11).then(function (response) {
+      LNbits.api.payInvoice(this.g.wallet, this.send.data.bolt11).then(function (response) {
         self.send.paymentChecker = setInterval(function () {
           LNbits.api.getPayment(self.w.wallet, response.data.checking_id).then(function (res) {
             if (res.data.paid) {
@@ -301,7 +301,7 @@ new Vue({
     fetchPayments: function (checkPending) {
       var self = this;
 
-      return LNbits.api.getPayments(this.w.wallet, checkPending).then(function (response) {
+      return LNbits.api.getPayments(this.g.wallet, checkPending).then(function (response) {
         self.payments = response.data.map(function (obj) {
           return LNbits.map.payment(obj);
         }).sort(function (a, b) {
@@ -326,7 +326,7 @@ new Vue({
   },
   watch: {
     'payments': function () {
-      EventHub.$emit('update-wallet-balance', [this.w.wallet.id, this.balance]);
+      EventHub.$emit('update-wallet-balance', [this.g.wallet.id, this.balance]);
     }
   },
   created: function () {

@@ -141,7 +141,7 @@ var LNbits = {
 var windowMixin = {
   data: function () {
     return {
-      w: {
+      g: {
         visibleDrawer: false,
         extensions: [],
         user: null,
@@ -165,14 +165,14 @@ var windowMixin = {
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'));
     if (window.user) {
-      this.w.user = Object.freeze(LNbits.map.user(window.user));
+      this.g.user = Object.freeze(LNbits.map.user(window.user));
     }
     if (window.wallet) {
-      this.w.wallet = Object.freeze(LNbits.map.wallet(window.wallet));
+      this.g.wallet = Object.freeze(LNbits.map.wallet(window.wallet));
     }
     if (window.extensions) {
-      var user = this.w.user;
-      this.w.extensions = Object.freeze(window.extensions.map(function (data) {
+      var user = this.g.user;
+      this.g.extensions = Object.freeze(window.extensions.map(function (data) {
         return LNbits.map.extension(data);
       }).map(function (obj) {
         if (user) {
