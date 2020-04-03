@@ -53,7 +53,7 @@ def index():
         user_fau = pos_ext_dbb.fetchall("SELECT * FROM tpos WHERE usr = ?", (usr,))
     
     return render_template(
-        "tpos/index.html", user_wallets=user_wallets, user_ext=user_ext, usr=usr, user_fau=user_fau
+        "tpos/index.html", user_wallets=user_wallets, user_ext=user_ext, usr=usr, user_fau=user_fau, user=g.user
     )
 
 @tpos_ext.route("/tpos")
