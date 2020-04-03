@@ -1,4 +1,5 @@
 from requests import get, post
+from os import getenv
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 from lightning import LightningRpc
 import random
@@ -6,7 +7,7 @@ import random
 class CLightningWallet(Wallet):
 
     def __init__(self):
-        l1 = LightningRpc()
+        l1 = LightningRpc(getenv("OPENNODE_API_ENDPOINT"))
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
         label = "lbl{}".format(random.random())  
