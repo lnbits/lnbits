@@ -2,13 +2,17 @@ import uuid
 import json
 import requests
 
-from flask import jsonify, render_template, request, redirect, url_for
+from flask import jsonify, render_template, request, redirect, url_for, g
+
+from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.db import open_db, open_ext_db
 from lnbits.extensions.tpos import tpos_ext
 
 #add your endpoints here
 
 @tpos_ext.route("/")
+@validate_uuids(["usr"], required=True)
+@check_user_exists()
 def index():
     """Try to add descriptions for others."""
     usr = request.args.get("usr")
