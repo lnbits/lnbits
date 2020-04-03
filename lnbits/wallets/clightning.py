@@ -7,7 +7,7 @@ import random
 class CLightningWallet(Wallet):
 
     def __init__(self):
-        l1 = LightningRpc(getenv("OPENNODE_API_ENDPOINT"))
+        l1 = LightningRpc(getenv("CLIGHTNING_RPC"))
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
         label = "lbl{}".format(random.random())  
