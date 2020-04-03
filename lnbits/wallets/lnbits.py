@@ -40,9 +40,9 @@ class LnbitsWallet(Wallet):
         return InvoiceResponse(ok, checking_id, fee_msat, error_message)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/v1/api/payments{checking_id}", headers=self.auth_invoice)
+        r = get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.auth_invoice)
         return PaymentStatus(r['paid'])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/v1/api/payments{checking_id}", headers=self.auth_invoice)
+        r = get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.auth_invoice)
         return PaymentStatus(r['paid'])
