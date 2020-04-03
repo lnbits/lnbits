@@ -147,6 +147,8 @@
                     <code>{"out": true, "bolt11": &lt;string&gt;}</code>
                     <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
                     <code>{"checking_id": &lt;string&gt;}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+                    <code>curl -X POST http://127.0.0.1:5000/api/v1/payments -d '{"out": true, "bolt11": &lt;string&gt;}' -H "Grpc-Metadata-macaroon: {{ wallet.adminkey }}"</i> -H "Content-type: application/json"</code>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
@@ -159,6 +161,8 @@
                     <code>{"Grpc-Metadata-macaroon": "{{ wallet.inkey }}"}</code>
                     <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK (application/json)</h5>
                     <code>{"paid": &lt;bool&gt;}</code>
+                    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+                    <code>curl -X GET http://127.0.0.1:5000/api/v1/payments/&lt;checking_id&gt; -H "Grpc-Metadata-macaroon: {{ wallet.inkey }}"</i> -H "Content-type: application/json"</code>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
