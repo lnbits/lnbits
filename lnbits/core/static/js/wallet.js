@@ -217,7 +217,7 @@ new Vue({
           self.receive.paymentReq = response.data.payment_request;
 
           self.receive.paymentChecker = setInterval(function () {
-            LNbits.api.getPayment(self.w.wallet, response.data.checking_id).then(function (response) {
+            LNbits.api.getPayment(self.g.wallet, response.data.checking_id).then(function (response) {
               if (response.data.paid) {
                 self.fetchPayments();
                 self.receive.show = false;
@@ -281,7 +281,7 @@ new Vue({
 
       LNbits.api.payInvoice(this.g.wallet, this.send.data.bolt11).then(function (response) {
         self.send.paymentChecker = setInterval(function () {
-          LNbits.api.getPayment(self.w.wallet, response.data.checking_id).then(function (res) {
+          LNbits.api.getPayment(self.g.wallet, response.data.checking_id).then(function (res) {
             if (res.data.paid) {
               self.send.show = false;
               clearInterval(self.send.paymentChecker);
