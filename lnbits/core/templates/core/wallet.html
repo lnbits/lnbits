@@ -188,7 +188,7 @@
   </div>
 
   <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
-    <q-card class="q-pa-lg" style="width: 500px">
+    <q-card class="q-pa-lg q-mt-xl" style="width: 500px">
       <q-form v-if="!receive.paymentReq" class="q-gutter-md">
         <q-input filled dense
           v-model.number="receive.data.amount"
@@ -226,7 +226,7 @@
   </q-dialog>
 
   <q-dialog v-model="send.show" position="top" @hide="closeSendDialog">
-    <q-card class="q-pa-lg" style="width: 500px">
+    <q-card class="q-pa-lg q-mt-xl" style="width: 500px">
       <div v-if="!send.invoice">
         <q-form v-if="!sendCamera.show" class="q-gutter-md">
           <q-input filled dense
