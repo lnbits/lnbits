@@ -108,6 +108,7 @@
     <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
       <q-card>
         <q-card-section>
+          <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
           <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br>
           <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br>
           <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br>
@@ -116,57 +117,7 @@
         <q-card-section class="q-pa-none">
           <q-separator></q-separator>
           <q-list>
-            <q-expansion-item
-              group="extras"
-              icon="swap_vertical_circle"
-              label="API info"
-              :content-inset-level="0.5"
-            >
-              <q-expansion-item group="api" dense expand-separator label="Create an invoice (incoming)">
-                <q-card>
-                  <q-card-section>
-                    <code><span class="text-light-green">POST</span> /api/v1/payments</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-                    <code>{"Grpc-Metadata-macaroon": "<i>{{ wallet.inkey }}</i>"}</code><br />
-                    <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-                    <code>{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
-                    <code>{"checking_id": &lt;string&gt;, "payment_request": &lt;string&gt;}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-                    <code>curl -X POST http://127.0.0.1:5000/api/v1/payments -d '{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H "Grpc-Metadata-macaroon: <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              <q-expansion-item group="api" dense expand-separator label="Pay an invoice (outgoing)">
-                <q-card>
-                  <q-card-section>
-                    <code><span class="text-light-green">POST</span> /api/v1/payments</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-                    <code>{"Grpc-Metadata-macaroon": "{{ wallet.adminkey }}"}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-                    <code>{"out": true, "bolt11": &lt;string&gt;}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
-                    <code>{"checking_id": &lt;string&gt;}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-                    <code>curl -X POST http://127.0.0.1:5000/api/v1/payments -d '{"out": true, "bolt11": &lt;string&gt;}' -H "Grpc-Metadata-macaroon: {{ wallet.adminkey }}"</i> -H "Content-type: application/json"</code>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              <q-expansion-item group="api" dense expand-separator label="Check an invoice (incoming or outgoing)"
-                class="q-mb-md">
-                <q-card>
-                  <q-card-section>
-                    <code><span class="text-light-blue">GET</span> /api/v1/payments/&lt;checking_id&gt;</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-                    <code>{"Grpc-Metadata-macaroon": "{{ wallet.inkey }}"}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK (application/json)</h5>
-                    <code>{"paid": &lt;bool&gt;}</code>
-                    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-                    <code>curl -X GET http://127.0.0.1:5000/api/v1/payments/&lt;checking_id&gt; -H "Grpc-Metadata-macaroon: {{ wallet.inkey }}"</i> -H "Content-type: application/json"</code>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-            </q-expansion-item>
+            {% include "core/_api_docs.html" %}
             <q-separator></q-separator>
             <q-expansion-item
               group="extras"
@@ -188,14 +139,14 @@
   </div>
 
   <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
-    <q-card class="q-pa-lg q-mt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form v-if="!receive.paymentReq" class="q-gutter-md">
         <q-input filled dense
           v-model.number="receive.data.amount"
           type="number"
           label="Amount *"></q-input>
         <q-input filled dense
-          v-model="receive.data.memo"
+          v-model.trim="receive.data.memo"
           label="Memo"
           placeholder="LNbits invoice"></q-input>
         <div v-if="receive.status == 'pending'" class="row justify-between">
@@ -226,11 +177,11 @@
   </q-dialog>
 
   <q-dialog v-model="send.show" position="top" @hide="closeSendDialog">
-    <q-card class="q-pa-lg q-mt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <div v-if="!send.invoice">
         <q-form v-if="!sendCamera.show" class="q-gutter-md">
           <q-input filled dense
-              v-model="send.data.bolt11"
+              v-model.trim="send.data.bolt11"
               type="textarea"
               label="Paste an invoice *"
             >

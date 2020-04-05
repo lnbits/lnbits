@@ -36,10 +36,6 @@ body.body--dark .q-field--error {
   }
 }
 
-.lnbits__q-table__icon-td {
-  padding-left: 5px !important;
-}
-
 .lnbits-drawer__q-list .q-item {
   padding-top: 5px !important;
   padding-bottom: 5px !important;
@@ -49,6 +45,20 @@ body.body--dark .q-field--error {
   &.q-item--active {
     color: inherit;
     font-weight: bold;
+  }
+}
+
+.q-table--dense {
+  th:first-child,
+  td:first-child,
+  .q-table__bottom {
+    padding-left: 6px !important;
+  }
+
+  th:last-child,
+  td:last-child,
+  .q-table__bottom {
+    padding-right: 6px !important;
   }
 }
 

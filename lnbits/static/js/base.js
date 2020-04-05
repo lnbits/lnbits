@@ -57,6 +57,12 @@ var LNbits = {
       }).sort(function (a, b) {
         return a.name.localeCompare(b.name);
       });
+      obj.walletOptions = obj.wallets.map(function (obj) {
+        return {
+          label: [obj.name, ' (', obj.id , ')'].join(''),
+          value: obj.id
+        };
+      });
       return obj;
     },
     wallet: function (data) {
@@ -158,7 +164,7 @@ var windowMixin = {
     copyText: function (text, message) {
       var notify = this.$q.notify;
       Quasar.utils.copyToClipboard(text).then(function () {
-        notify({message: 'Copied to clipboard!'});
+        notify({message: message || 'Copied to clipboard!'});
       });
     }
   },

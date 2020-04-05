@@ -20,17 +20,21 @@
             body.body--dark .q-field--error .q-field__messages {
               color: yellow !important; }
 
-.lnbits__q-table__icon-td {
-  padding-left: 5px !important; }
+.lnbits-drawer__q-list .q-item {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px; }
+  .lnbits-drawer__q-list .q-item.q-item--active {
+    color: inherit;
+    font-weight: bold; }
 
-  .lnbits-drawer__q-list .q-item {
-    padding-top: 5px !important;
-    padding-bottom: 5px !important;
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px; }
-    .lnbits-drawer__q-list .q-item.q-item--active {
-      color: inherit;
-      font-weight: bold; }
+.q-table--dense th:first-child, .q-table--dense td:first-child,
+.q-table--dense .q-table__bottom {
+  padding-left: 6px !important; }
+  .q-table--dense th:last-child, .q-table--dense td:last-child,
+  .q-table--dense .q-table__bottom {
+    padding-right: 6px !important; }
 
 video {
   border-radius: 3px; }
