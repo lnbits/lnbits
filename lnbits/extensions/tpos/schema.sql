@@ -1,9 +1,6 @@
-/* create your extensions table and the variables needed here */
-CREATE TABLE IF NOT EXISTS tpos (
-    key INTEGER PRIMARY KEY AUTOINCREMENT,
-    nme TEXT,
-    uni TEXT,
-    usr TEXT,
-    invkey TEXT,
-    cur TEXT
+CREATE TABLE IF NOT EXISTS tposs (
+  id TEXT PRIMARY KEY,
+  wallet TEXT NOT NULL,
+  name TEXT NOT NULL,
+  currency TEXT NOT NULL
 );
