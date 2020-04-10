@@ -3,153 +3,256 @@
 {% from "macros.jinja" import window_vars with context %}
 
 
-{% block scripts %}
-  {{ window_vars(user) }}
-  <script>
-
-    new Vue({
-      el: '#vue',
-      mixins: [windowMixin],
-        data () {
-
-     var optionswal = []
-
-     for (i = 0; i < user[3].length; i++) {optionswal[i] += String(user[3][i][1] + "-" + user[3][i][0]);}
-
-    return {
-      model: null,
-      model2: null,
-      model3: null,
-      optionswal,
-      optionscur: [
-        'USD',  'EUR',  'GBP',  'DZD',  'ARP',  'AUD',  'ATS',  'BSD',  'BBD',  'BEF',  'BMD',  'BRL',  'BGL',  'CAD',  'CLP',  'CNY',  'CYP',  'CSK',  'DKK',  'NLG',  'XCD',  'EGP',  'FJD',  'FIM',  'FRF',  'DEM',  'XAU',  'GRD',  'HKD',  'HUF',  'ISK',  'INR',  'IDR',  'IEP',  'ILS',  'ITL',  'JMD',  'JPY',  'JOD',  'KRW',  'LBP',  'LUF',  'MYR',  'MXP',  'NLG',  'NZD',  'NOK',  'PKR',  'XPD',  'PHP',  'XPT',  'PLZ',  'PTE',  'ROL',  'RUR',  'SAR',  'XAG',  'SGD',  'SKK',  'ZAR',  'KRW',  'ESP',  'XDR',  'SDD',  'SEK',  'CHF',  'TWD',  'THB',  'TTD',  'TRL',  'VEB',  'ZMK',  'EUR',  'XCD',  'XDR',  'XAG',  'XAU',  'XPD',  'XPT',
-      ]
-      
-    }
-  }
-
-    });
-  </script>
-{% endblock %}
-
 {% block page %}
-
-
-  
-   
-    <div class="row">
-      <div class="col-md-6 q-pr-sm">
-<div class="q-gutter-y-md">
-
-      <q-card >
+  <div class="row q-col-gutter-md">
+    <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+      <q-card>
         <q-card-section>
-            <q-form class="q-gutter-md">
-              <h4>Make a PoS</h4>
-              <div>
-              <q-input square filled id="nme"label="PoS Name" /><br/>
-            </div>
-            <div>
-              <q-select filled v-model="model" id="wal"  :options="optionswal" label="Select a wallet">
-              </q-select>
-            </div>
-            <div>
-              <q-select filled v-model="model2" id="cur" :options="optionscur" label="Fiat currency">
-              </q-select>
-
-
-            </div>
+          <q-btn unelevated color="deep-purple" @click="tposDialog.show = true">New TPoS</q-btn>
         </q-card-section>
-          <q-card-actions class="q-px-md">
-            <q-btn unelevated color="deep-purple" onclick="postfau()" size="lg" class="full-width" label="Create PoS" />
-          </q-card-actions><br/>
-        </q-form>
       </q-card>
 
       <q-card>
         <q-card-section>
-          <h4>Select PoS</h4>
-            <div>
-              <q-select filled v-model="model3" id="cur" :options="optionswal" label="Fiat currency">
-              </q-select>
-              <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
-                
+          <div class="row items-center no-wrap q-mb-md">
+            <div class="col">
+              <h5 class="text-subtitle1 q-my-none">TPoS</h5>
             </div>
-         <br/>
+            <div class="col-auto">
+              <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+            </div>
+          </div>
+          <q-table dense flat
+            :data="tposs"
+            row-key="id"
+            :columns="tpossTable.columns"
+            :pagination.sync="tpossTable.pagination">
+            {% raw %}
+            <template v-slot:header="props">
+              <q-tr :props="props">
+                <q-th auto-width></q-th>
+
+                <q-th
+                  v-for="col in props.cols"
+                  :key="col.name"
+                  :props="props"
+                >
+                  {{ col.label }}
+                </q-th>
+
+                <q-th auto-width></q-th>
+
+              </q-tr>
+            </template>
+
+            <template v-slot:body="props">
+              <q-tr :props="props">
+                <q-td auto-width>
+                  <q-btn unelevated dense size="xs" icon="vpn_lock" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" type="a" :href="props.row.tpos" target="_blank"></q-btn>
+                 </q-td>
+                <q-td
+                  v-for="col in props.cols"
+                  :key="col.name"
+                  :props="props"
+                >
+                  {{ col.value }}
+                </q-td>
+                <q-td auto-width>
+                  <q-btn flat dense size="xs" @click="deleteTPoS(props.row.id)" icon="cancel" color="pink"></q-btn>
+                </q-td>
+              </q-tr>
+            </template>
+            {% endraw %}
+          </q-table>
+        </q-card-section>
       </q-card>
-    
-    </div></div></div>
+    </div>
 
-
-<script>
-    window.user = {{ usr | megajson | safe }}
-    window.user_wallets = {{ user_wallets | megajson | safe }}
-    window.user_ext = {{ user_ext | megajson | safe }}
-    window.user_fau = {{ user_fau | megajson | safe }}
-    
-  setTimeout(() => app.options = options, 1000)
-
-    function getAjax(url, thekey, success) {
-  var xhr = window.XMLHttpRequest
-    ? new XMLHttpRequest()
-    : new ActiveXObject('Microsoft.XMLHTTP')
-  xhr.open('GET', url, true)
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState > 3 && xhr.status == 200) {
-      success(xhr.responseText)
-    }
-  }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
-  xhr.setRequestHeader('Content-Type', 'application/json')
-
-  xhr.send()
-  return xhr
-}
-
-
-    //draws withdraw QR code
-function drawwithdraw() {
+    <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+      <q-card>
+        <q-card-section>
+          <h6 class="text-subtitle1 q-my-none">LNbits tpos extension</h6>
+        </q-card-section>
+        <q-card-section class="q-pa-none">
+          <q-separator></q-separator>
+          <q-list>
 
 
 
-      walname = document.getElementById("fauselect").value
+            <q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="Create a tpos">
+    <q-card>
+      <q-card-section>
 
-      thewithdraw = walname.split("-");
-  theurl = window.location.hostname + "{{ url_for('tpos.tpos') }}?pos=" + thewithdraw[1]
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="List tposs">
+    <q-card>
+      <q-card-section>
 
-      new QRCode(document.getElementById('qrcode'), {
-        text: theurl,
-        width: 300,
-        height: 300,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      })
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Delete a tpos">
+    <q-card>
+      <q-card-section>
 
-     
-      document.getElementById('qrcodetxt').innerHTML = 
-      "<a href='{{ url_for('tpos.tpos') }}?pos=" + thewithdraw[1] + "'><h4>Shareable link</h4></a>" 
-      document.getElementById("qrcode").style.backgroundColor = "white";
-      document.getElementById("qrcode").style.padding = "20px";
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>
 
 
-}
 
-function postfau(){
+          </q-list>
+        </q-card-section>
+      </q-card>
+    </div>
 
-  nme = document.getElementById('nme').value
-  wal = document.getElementById('wal').value
-  cur = document.getElementById('cur').value
-  wall = wal.split("-")
-      console.log(window.location.hostname + "-" + wall[1])
+    <q-dialog v-model="tposDialog.show" position="top">
+      <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+        <q-form class="q-gutter-md">
 
-  getAjax(
-    "{{ url_for('tpos.index') }}?nme=" + nme + "&usr=" + user + "&cur=" + cur + "&wal=" + wall[1],
-    "filla",
+            <q-input filled dense
+            v-model.trim="tposDialog.data.name"
+            label="Name"
+            placeholder="Tiago's PoS"></q-input>
 
-    function(data) {  location.replace("{{ url_for('tpos.index') }}?usr=" + user)
-})
-}
+           <q-select filled dense emit-value v-model="tposDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
+          </q-select>
 
-  </script>
+           <q-select filled dense emit-value v-model="tposDialog.data.currency" :options="currencyOptions" label="Currency *">
+          </q-select>
 
+
+          <q-btn unelevated
+            color="deep-purple"
+            :disable="tposDialog.data.currency == null || tposDialog.data.name == null"
+            @click="createTPoS">Create TPoS</q-btn>
+
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+        </q-form>
+      </q-card>
+    </q-dialog>
+  </div>
 {% endblock %}
+
+{% block scripts %}
+  {{ window_vars(user) }}
+  <script>
+    var mapTPoS = function (obj) {
+      obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm');
+      obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount);
+      obj.tpos = ['/tpos/', obj.id].join('');
+      return obj;
+    }
+
+    new Vue({
+      el: '#vue',
+      mixins: [windowMixin],
+      data: function () {
+        return {
+          tposs: [],
+          currencyOptions: [
+        'USD',  'EUR',  'GBP',  'DZD',  'ARP',  'AUD',  'ATS',  'BSD',  'BBD',  'BEF',  'BMD',  'BRL',  'BGL',  'CAD',  'CLP',  'CNY',  'CYP',  'CSK',  'DKK',  'NLG',  'XCD',  'EGP',  'FJD',  'FIM',  'FRF',  'DEM',  'XAU',  'GRD',  'HKD',  'HUF',  'ISK',  'INR',  'IDR',  'IEP',  'ILS',  'ITL',  'JMD',  'JPY',  'JOD',  'KRW',  'LBP',  'LUF',  'MYR',  'MXP',  'NLG',  'NZD',  'NOK',  'PKR',  'XPD',  'PHP',  'XPT',  'PLZ',  'PTE',  'ROL',  'RUR',  'SAR',  'XAG',  'SGD',  'SKK',  'ZAR',  'KRW',  'ESP',  'XDR',  'SDD',  'SEK',  'CHF',  'TWD',  'THB',  'TTD',  'TRL',  'VEB',  'ZMK',  'EUR',  'XCD',  'XDR',  'XAG',  'XAU',  'XPD',  'XPT',
+         ],
+
+          tpossTable: {
+            columns: [
+              {name: 'id', align: 'left', label: 'ID', field: 'id'},
+              {name: 'name', align: 'left', label: 'Name', field: 'name'},
+              {name: 'currency', align: 'left', label: 'Currency', field: 'currency'}
+            ],
+            pagination: {
+              rowsPerPage: 10
+            }
+          },
+          tposDialog: {
+            show: false,
+            data: {}
+          }
+        };
+      },
+      methods: {
+        getTPoSs: function () {
+          var self = this;
+
+          LNbits.api.request(
+            'GET',
+            '/tpos/api/v1/tposs?all_wallets',
+            this.g.user.wallets[0].inkey
+          ).then(function (response) {
+            self.tposs = response.data.map(function (obj) {
+              console.log(obj)
+              return mapTPoS(obj);
+            });
+          });
+        },
+        createTPoS: function () {
+          var data = {
+            name: this.tposDialog.data.name,
+            currency: this.tposDialog.data.currency
+          };
+          var self = this;
+
+          console.log(this.tposDialog.data.wallet);
+
+          LNbits.api.request(
+            'POST',
+            '/tpos/api/v1/tposs',
+            _.findWhere(this.g.user.wallets, {id: this.tposDialog.data.wallet}).inkey,
+            data
+          ).then(function (response) {
+            self.tposs.push(mapTPoS(response.data));
+            self.tposDialog.show = false;
+            self.tposDialog.data = {};
+          }).catch(function (error) {
+            LNbits.utils.notifyApiError(error);
+          });
+        },
+        deleteTPoS: function (tposId) {
+          var self = this;
+          var tpos = _.findWhere(this.tposs, {id: tposId});
+
+          this.$q.dialog({
+            message: 'Are you sure you want to delete this TPoS link?',
+            ok: {
+              flat: true,
+              color: 'orange'
+            },
+            cancel: {
+              flat: true,
+              color: 'grey'
+            }
+          }).onOk(function () {
+            LNbits.api.request(
+              'DELETE',
+              '/tpos/api/v1/tposs/' + tposId,
+              _.findWhere(self.g.user.wallets, {id: tpos.wallet}).inkey
+            ).then(function (response) {
+              self.tposs = _.reject(self.tposs, function (obj) { return obj.id == tposId; });
+            }).catch(function (error) {
+              LNbits.utils.notifyApiError(error);
+            });
+          });
+        },
+        exportCSV: function () {
+          LNbits.utils.exportCSV(this.tpossTable.columns, this.tposs);
+        }
+      },
+      created: function () {
+        if (this.g.user.wallets.length) {
+          this.getTPoSs();
+        }
+      }
+    });
+  </script>
+{% endblock %}
+
+
