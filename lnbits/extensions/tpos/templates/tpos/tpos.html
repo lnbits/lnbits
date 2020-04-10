@@ -6,16 +6,13 @@
 
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
-    <title>sparkpos</title>
+    <title>TPoS</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#363636">
 
-    <script
-      src="{{ url_for('static', filename='plugins/jscam/qrcode.min.js') }}"
-      type="text/javascript"
-    ></script>
+
 
 
 
@@ -159,94 +156,19 @@
   return xhr
 }
 
+console.log( "{{ tpos.wallet }}" )
 
-	var total = "";
-	field1 = "field1"
-	field2 = "field2"
-	document.getElementById(field1).innerHTML = "<p style='font-size: 30px;' id=sats></p>"
-	document.getElementById(field2).innerHTML = "<p style='font-size: 50px;' id=fiat></p>"
-
- function keys(num){
- 	if(Number.isInteger(num)){
-      total = total + String(num)
-      document.getElementById("fiat").innerHTML = String(parseInt(total)/100) + " " + "{{ ratee }}"
-
-      document.getElementById("sats").innerHTML = parseInt( (parseInt(total)/100) * parseInt( {{exchange}} )) + " " + "Sats"
-
- 	}
-  
- 	else if(num == "DEL"){
-      total = "0";
- 	}
- 	else if(num == "C"){
-     location.reload();
- 	}
- 	else if(num == "<->"){
- 	field1 = field2
- 	field2 = field1
-	document.getElementById(field1).innerHTML = "<p style='font-size: 30px;' id=sats></p>"
-	document.getElementById(field2).innerHTML = "<p style='font-size: 50px;' id=fiat></p>"
-
- 	}
-
- 	else if(num == "OK"){
-    submitforticket(parseInt((parseInt(total)/100)* parseInt( {{exchange}} )))
- 	}
-
- }
-
- function submitforticket(sats){
-console.log(sats)
-
-  postAjax(
-    "{{ url_for('tpos.api_tpos') }}",
-    JSON.stringify({"pos": "{{ pos }}", "sats": String(sats)}),
+     postAjax(
+    "{{ url_for('tpos.api_tpos_create_invoice') }}",
+    JSON.stringify({"amount": "100"}),
     "filla",
 
-    function(data) {  
-      theinvoice = JSON.parse(data).pay_req
-      thehash = JSON.parse(data).payment_hash
-      
-     new QRCode(document.getElementById('qrcode'), {
-        text: theinvoice,
-        width: 300,
-        height: 300,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      })
-  document.getElementById("sats").innerHTML = ""
-  document.getElementById("fiat").innerHTML = ""
+    function(data) { 
+     console.log(data)
+    }
+    );
 
 
-      document.getElementById("qrcode").style.backgroundColor = "white";
-      document.getElementById("qrcode").style.padding = "20px";
-
-
-      var refreshId = setInterval(function(){
-
-      getAjax('/api/v1/invoice/' + thehash, "{{wave}}", function(datab) {
-        console.log(JSON.parse(datab).PAID)
-        if (JSON.parse(datab).PAID == 'TRUE') {
-           
-            document.getElementById("qrcode").innerHTML = ""
-            document.getElementById("qrcode").style.padding = "0px";
-            document.getElementById("qrcode").style.backgroundColor = "#363636";
-               document.getElementById("qrcode").innerHTML = "<h1 style='color:green;font-size: 100px;'>PAID!</h1>"
-               console.log("theinvoice");
-
-          setTimeout(function(){
-                
-                 
-               location.reload();
-           }, 4000);
-          
-      }
-      })}, 3000);
-     
-
-})
-}
 </script>
 
 <style>
