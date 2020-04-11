@@ -22,7 +22,12 @@ def api_tposs():
 
 @tpos_ext.route("/api/v1/tposs", methods=["POST"])
 @api_check_wallet_macaroon(key_type="invoice")
-@api_validate_post_request(required_params=["name", "currency"])
+@api_validate_post_request(
+    schema={
+        "name": {"type": "string", "empty": False, "required": True},
+        "currency": {"type": "string", "empty": False, "required": True},
+    }
+)
 def api_tpos_create():
     print("poo")
 
@@ -46,7 +51,7 @@ def api_tpos_delete(tpos_id):
     return '', Status.NO_CONTENT
 
 @tpos_ext.route("/api/v1/tposs/invoice/<tpos_id>", methods=["POST"])
-@api_validate_post_request(required_params=["amount"])
+@api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
 def api_tpos_create_invoice(tpos_id):
     r = get_tpos(tpos_id)
     print(r)
@@ -55,4 +60,3 @@ def api_tpos_create_invoice(tpos_id):
   #  api_payments_create_invoice(memo=tpos_id.id, amount=amount, )
 
     return jsonify(rr), Status.CREATED
-

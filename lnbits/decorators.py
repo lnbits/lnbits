@@ -1,3 +1,4 @@
+from cerberus import Validator
 from flask import g, abort, jsonify, request
 from functools import wraps
 from typing import List, Union
@@ -26,18 +27,18 @@ def api_check_wallet_macaroon(*, key_type: str = "invoice"):
     return wrap
 
 
-def api_validate_post_request(*, required_params: List[str] = []):
+def api_validate_post_request(*, schema: dict):
     def wrap(view):
         @wraps(view)
         def wrapped_view(**kwargs):
             if "application/json" not in request.headers["Content-Type"]:
                 return jsonify({"message": "Content-Type must be `application/json`."}), Status.BAD_REQUEST
 
-            g.data = request.json
+            v = Validator(schema)
+            g.data = {key: request.json[key] for key in schema.keys()}
 
-            for param in required_params:
-                if param not in g.data:
-                    return jsonify({"message": f"`{param}` is required."}), Status.BAD_REQUEST
+            if not v.validate(g.data):
+                return jsonify({"message": f"Errors in request data: {v.errors}"}), Status.BAD_REQUEST
 
             return view(**kwargs)
 

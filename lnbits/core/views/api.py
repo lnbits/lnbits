@@ -23,14 +23,13 @@ def api_payments():
 
 
 @api_check_wallet_macaroon(key_type="invoice")
-@api_validate_post_request(required_params=["amount", "memo"])
+@api_validate_post_request(
+    schema={
+        "amount": {"type": "integer", "min": 1, "required": True},
+        "memo": {"type": "string", "empty": False, "required": True},
+    }
+)
 def api_payments_create_invoice():
-    if not isinstance(g.data["amount"], int) or g.data["amount"] < 1:
-        return jsonify({"message": "`amount` needs to be a positive integer."}), Status.BAD_REQUEST
-
-    if not isinstance(g.data["memo"], str) or not g.data["memo"].strip():
-        return jsonify({"message": "`memo` needs to be a valid string."}), Status.BAD_REQUEST
-
     try:
         ok, checking_id, payment_request, error_message = WALLET.create_invoice(g.data["amount"], g.data["memo"])
     except Exception as e:
@@ -46,11 +45,8 @@ def api_payments_create_invoice():
 
 
 @api_check_wallet_macaroon(key_type="admin")
-@api_validate_post_request(required_params=["bolt11"])
+@api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
 def api_payments_pay_invoice():
-    if not isinstance(g.data["bolt11"], str) or not g.data["bolt11"].strip():
-        return jsonify({"message": "`bolt11` needs to be a valid string."}), Status.BAD_REQUEST
-
     try:
         invoice = bolt11.decode(g.data["bolt11"])
 
@@ -81,7 +77,7 @@ def api_payments_pay_invoice():
 
 
 @core_app.route("/api/v1/payments", methods=["POST"])
-@api_validate_post_request(required_params=["out"])
+@api_validate_post_request(schema={"out": {"type": "boolean", "required": True}})
 def api_payments_create():
     if g.data["out"] is True:
         return api_payments_pay_invoice()

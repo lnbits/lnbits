@@ -8,6 +8,7 @@ python_version = "3.7"
 
 [packages]
 bitstring = "*"
+cerberus = "*"
 lnd-grpc = "*"
 lnurl = "*"
 flask = "*"

@@ -21,16 +21,13 @@ def api_paywalls():
 
 @paywall_ext.route("/api/v1/paywalls", methods=["POST"])
 @api_check_wallet_macaroon(key_type="invoice")
-@api_validate_post_request(required_params=["url", "memo", "amount"])
+@api_validate_post_request(schema={
+    "url": {"type": "string", "empty": False, "required": True},
+    "memo": {"type": "string", "empty": False, "required": True},
+    "amount": {"type": "integer", "min": 0, "required": True},
+})
 def api_paywall_create():
-    if not isinstance(g.data["amount"], int) or g.data["amount"] < 0:
-        return jsonify({"message": "`amount` needs to be a positive integer, or zero."}), Status.BAD_REQUEST
-
-    for var in ["url", "memo"]:
-        if not isinstance(g.data[var], str) or not g.data[var].strip():
-            return jsonify({"message": f"`{var}` needs to be a valid string."}), Status.BAD_REQUEST
-
-    paywall = create_paywall(wallet_id=g.wallet.id, url=g.data["url"], memo=g.data["memo"], amount=g.data["amount"])
+    paywall = create_paywall(wallet_id=g.wallet.id, **g.data)
 
     return jsonify(paywall._asdict()), Status.CREATED
 
@@ -48,4 +45,4 @@ def api_paywall_delete(paywall_id):
 
     delete_paywall(paywall_id)
 
-    return '', Status.NO_CONTENT
+    return "", Status.NO_CONTENT
