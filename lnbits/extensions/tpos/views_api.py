@@ -1,6 +1,7 @@
 from flask import g, jsonify, request
 
 from lnbits.core.crud import get_user
+from lnbits.core.utils import create_invoice
 from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
 from lnbits.helpers import Status
 
@@ -11,7 +12,6 @@ from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
 @tpos_ext.route("/api/v1/tposs", methods=["GET"])
 @api_check_wallet_macaroon(key_type="invoice")
 def api_tposs():
-
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -35,6 +35,7 @@ def api_tpos_create():
 
     return jsonify(tpos._asdict()), Status.CREATED
 
+
 @tpos_ext.route("/api/v1/tposs/<tpos_id>", methods=["DELETE"])
 @api_check_wallet_macaroon(key_type="invoice")
 def api_tpos_delete(tpos_id):
@@ -44,19 +45,29 @@ def api_tpos_delete(tpos_id):
         return jsonify({"message": "TPoS does not exist."}), Status.NOT_FOUND
 
     if tpos.wallet != g.wallet.id:
-        return jsonify({"message": "Not your tpos."}), Status.FORBIDDEN
+        return jsonify({"message": "Not your TPoS."}), Status.FORBIDDEN
 
     delete_tpos(tpos_id)
 
     return '', Status.NO_CONTENT
 
+
 @tpos_ext.route("/api/v1/tposs/invoice/<tpos_id>", methods=["POST"])
+@api_check_wallet_macaroon(key_type="invoice")
 @api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
 def api_tpos_create_invoice(tpos_id):
-    r = get_tpos(tpos_id)
-    print(r)
-    rr = get_wallet(tpos_id.id)
-    print(rr)
-  #  api_payments_create_invoice(memo=tpos_id.id, amount=amount, )
+    tpos = get_tpos(tpos_id)
 
-    return jsonify(rr), Status.CREATED
+    if not tpos:
+        return jsonify({"message": "TPoS does not exist."}), Status.NOT_FOUND
+
+    if tpos.wallet != g.wallet.id:
+        return jsonify({"message": "Not your TPoS."}), Status.FORBIDDEN
+
+    try:
+        memo = f"TPoS {tpos_id}"
+        checking_id, payment_request = create_invoice(wallet_id=g.wallet.id, amount=g.data["amount"], memo=memo)
+    except Exception as e:
+        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
+
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED

@@ -1,12 +1,12 @@
 from flask import g, jsonify, request
 
-from lnbits import bolt11
+from lnbits.bolt11 import decode as bolt11_decode
 from lnbits.core import core_app
 from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
 from lnbits.helpers import Status
-from lnbits.settings import FEE_RESERVE, WALLET
+from lnbits.settings import WALLET
 
-from ..crud import create_payment
+from ..utils import create_invoice, pay_invoice
 
 
 @core_app.route("/api/v1/payments", methods=["GET"])
@@ -31,15 +31,11 @@ def api_payments():
 )
 def api_payments_create_invoice():
     try:
-        ok, checking_id, payment_request, error_message = WALLET.create_invoice(g.data["amount"], g.data["memo"])
+        checking_id, payment_request = create_invoice(
+            wallet_id=g.wallet.id, amount=g.data["amount"], memo=g.data["memo"]
+        )
     except Exception as e:
-        ok, error_message = False, str(e)
-
-    if not ok:
-        return jsonify({"message": error_message or "Unexpected backend error."}), Status.INTERNAL_SERVER_ERROR
-
-    amount_msat = g.data["amount"] * 1000
-    create_payment(wallet_id=g.wallet.id, checking_id=checking_id, amount=amount_msat, memo=g.data["memo"])
+        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
 
     return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED
 
@@ -48,7 +44,7 @@ def api_payments_create_invoice():
 @api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
 def api_payments_pay_invoice():
     try:
-        invoice = bolt11.decode(g.data["bolt11"])
+        invoice = bolt11_decode(g.data["bolt11"])
 
         if invoice.amount_msat == 0:
             return jsonify({"message": "Amountless invoices not supported."}), Status.BAD_REQUEST
@@ -56,22 +52,10 @@ def api_payments_pay_invoice():
         if invoice.amount_msat > g.wallet.balance_msat:
             return jsonify({"message": "Insufficient balance."}), Status.FORBIDDEN
 
-        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(g.data["bolt11"])
-
-        if ok:
-            create_payment(
-                wallet_id=g.wallet.id,
-                checking_id=checking_id,
-                amount=-invoice.amount_msat,
-                memo=invoice.description,
-                fee=-invoice.amount_msat * FEE_RESERVE,
-            )
+        checking_id = pay_invoice(wallet_id=g.wallet.id, bolt11=g.data["bolt11"])
 
     except Exception as e:
-        ok, error_message = False, str(e)
-
-    if not ok:
-        return jsonify({"message": error_message or "Unexpected backend error."}), Status.INTERNAL_SERVER_ERROR
+        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
 
     return jsonify({"checking_id": checking_id}), Status.CREATED
 
