@@ -146,9 +146,9 @@ console.log("cunt")
   function keys(num){
   if(Number.isInteger(num)){
       total = total + String(num)
-      document.getElementById("fiat").innerHTML = String(parseInt(total)/100) + " " + ""
+      document.getElementById("fiat").innerHTML = String(parseInt(total)/100) + " " + " {{ curr }}"
 
-      document.getElementById("sats").innerHTML = parseInt( (parseInt(total)/100) *  "{{ rate }}") + "Sats"
+      document.getElementById("sats").innerHTML = parseInt( (parseInt(total)/100) *  "{{ rate }}") + " Sats"
 
   }
   
