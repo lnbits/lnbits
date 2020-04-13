@@ -23,4 +23,4 @@ def tpos(tpos_id):
     r = requests.get("https://api.opennode.co/v1/rates")
     r_json = r.json()
     rr = get_wallet(tpos.wallet)
-    return render_template("tpos/tpos.html", tpos=tpos.id, inkey=rr.inkey, rate=r_json["data"]["BTC" + tpos.currency][tpos.currency])
+    return render_template("tpos/tpos.html", tpos=tpos.id, inkey=rr.inkey, rate=r_json["data"]["BTC" + tpos.currency][tpos.currency], curr=tpos.currency)
