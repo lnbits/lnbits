@@ -25,7 +25,7 @@ class LndWallet(Wallet):
             grpc_port = self.port
         )
 
-    def create_invoice(self, amount: int, mem: str = "") -> InvoiceResponse:
+    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
 
         lnd_rpc = lnd_grpc.Client(
             lnd_dir = None,
@@ -37,7 +37,7 @@ class LndWallet(Wallet):
         )
 
         lndResponse = lnd_rpc.add_invoice(
-            memo = mem,
+            memo = memo,
             value = amount,
             expiry = 600,
             private = True
