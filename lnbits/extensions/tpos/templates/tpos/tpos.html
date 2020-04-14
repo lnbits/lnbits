@@ -84,7 +84,7 @@
             <button data-target=".sends" data-toggle="modal" onclick="keys('OK')" class="btn-confirm">OK</button>
             <button onclick="keys('DEL')" class="btn-numpad">DEL</button>
             <button onclick="keys(0)" class="btn-numpad">0</button>
-            <button onclick="keys('flip')" class="btn-numpad"><-></button>
+            <button onclick="keys('#')" class="btn-numpad">#</button>
         </div>
     </div>
 
@@ -140,8 +140,6 @@ var total = "";
   document.getElementById(field1).innerHTML = "<p style='font-size: 30px;' id=sats></p>"
   document.getElementById(field2).innerHTML = "<p style='font-size: 50px;' id=fiat></p>"
 
-console.log( "{{ rate }}" );
-console.log("cunt")
 
   function keys(num){
   if(Number.isInteger(num)){
@@ -158,11 +156,22 @@ console.log("cunt")
   else if(num == "C"){
      location.reload();
   }
-  else if(num == "<->"){
-  field1 = field2
-  field2 = field1
-  document.getElementById(field1).innerHTML = "<p style='font-size: 30px;' id=sats></p>"
-  document.getElementById(field2).innerHTML = "<p style='font-size: 50px;' id=fiat></p>"
+  else if(num == "#"){
+
+      new QRCode(document.getElementById('qrcode'), {
+            text: window.location.href,
+            width: 300,
+            height: 300,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          })
+      document.getElementById("sats").innerHTML = ""
+      document.getElementById("fiat").innerHTML = ""
+
+
+          document.getElementById("qrcode").style.backgroundColor = "white";
+          document.getElementById("qrcode").style.padding = "20px";
 
   }
 
