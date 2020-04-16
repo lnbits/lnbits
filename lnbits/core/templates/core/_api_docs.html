@@ -9,7 +9,7 @@
       <q-card-section>
         <code><span class="text-light-green">POST</span> /api/v1/payments</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"api_key": "<i>{{ wallet.inkey }}</i>"}</code><br />
+        <code>{"X-Api-Key": "<i>{{ wallet.inkey }}</i>"}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code>{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
@@ -24,7 +24,7 @@
       <q-card-section>
         <code><span class="text-light-green">POST</span> /api/v1/payments</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"api_key": "{{ wallet.adminkey }}"}</code>
+        <code>{"X-Api-Key": "{{ wallet.adminkey }}"}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code>{"out": true, "bolt11": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
@@ -40,7 +40,7 @@
       <q-card-section>
         <code><span class="text-light-blue">GET</span> /api/v1/payments/&lt;checking_id&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"api_key": "{{ wallet.inkey }}"}</code>
+        <code>{"X-Api-Key": "{{ wallet.inkey }}"}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK (application/json)</h5>
         <code>{"paid": &lt;bool&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>

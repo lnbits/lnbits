@@ -1,7 +1,7 @@
 from flask import g, jsonify, request
 
 from lnbits.core import core_app
-from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.helpers import Status
 from lnbits.settings import WALLET
 
@@ -9,7 +9,7 @@ from ..services import create_invoice, pay_invoice
 
 
 @core_app.route("/api/v1/payments", methods=["GET"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_payments():
     if "check_pending" in request.args:
         for payment in g.wallet.get_payments(include_all_pending=True):
@@ -21,7 +21,7 @@ def api_payments():
     return jsonify(g.wallet.get_payments()), Status.OK
 
 
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
         "amount": {"type": "integer", "min": 1, "required": True},
@@ -39,7 +39,7 @@ def api_payments_create_invoice():
     return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED
 
 
-@api_check_wallet_macaroon(key_type="admin")
+@api_check_wallet_key("admin")
 @api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
 def api_payments_pay_invoice():
     try:
@@ -63,7 +63,7 @@ def api_payments_create():
 
 
 @core_app.route("/api/v1/payments/<checking_id>", methods=["GET"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_payment(checking_id):
     payment = g.wallet.get_payment(checking_id)
 

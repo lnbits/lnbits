@@ -3,7 +3,7 @@ from flask import g, jsonify, request
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import pay_invoice
-from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.helpers import urlsafe_short_hash, Status
 
 from lnbits.extensions.withdraw import withdraw_ext
@@ -18,7 +18,7 @@ from .crud import (
 
 
 @withdraw_ext.route("/api/v1/links", methods=["GET"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_links():
     wallet_ids = [g.wallet.id]
 
@@ -29,7 +29,7 @@ def api_links():
 
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["GET"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_link_retrieve(link_id):
     link = get_withdraw_link(link_id)
 
@@ -44,7 +44,7 @@ def api_link_retrieve(link_id):
 
 @withdraw_ext.route("/api/v1/links", methods=["POST"])
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
@@ -79,7 +79,7 @@ def api_link_create(link_id=None):
 
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_link_delete(link_id):
     link = get_withdraw_link(link_id)
 

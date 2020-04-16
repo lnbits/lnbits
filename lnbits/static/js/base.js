@@ -4,12 +4,12 @@ var EventHub = new Vue();
 
 var LNbits = {
   api: {
-    request: function (method, url, macaroon, data) {
+    request: function (method, url, apiKey, data) {
       return axios({
         method: method,
         url: url,
         headers: {
-          'api_key': macaroon
+          'X-Api-Key': apiKey
         },
         data: data
       });

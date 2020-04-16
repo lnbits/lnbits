@@ -1,7 +1,7 @@
 from flask import g, jsonify, request
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.helpers import Status
 
 from lnbits.extensions.amilk import amilk_ext
@@ -9,7 +9,7 @@ from .crud import create_amilk, get_amilk, get_amilks, delete_amilk
 
 
 @amilk_ext.route("/api/v1/amilk", methods=["GET"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_amilks():
     wallet_ids = [g.wallet.id]
 
@@ -20,7 +20,7 @@ def api_amilks():
 
 
 @amilk_ext.route("/api/v1/amilk", methods=["POST"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 @api_validate_post_request(schema={
     "url": {"type": "string", "empty": False, "required": True},
     "memo": {"type": "string", "empty": False, "required": True},
@@ -33,7 +33,7 @@ def api_amilk_create():
 
 
 @amilk_ext.route("/api/v1/amilk/<amilk_id>", methods=["DELETE"])
-@api_check_wallet_macaroon(key_type="invoice")
+@api_check_wallet_key("invoice")
 def api_amilk_delete(amilk_id):
     amilk = get_amilk(amilk_id)
 

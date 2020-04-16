@@ -8,14 +8,14 @@ from lnbits.core.crud import get_user, get_wallet_for_key
 from .helpers import Status
 
 
-def api_check_wallet_macaroon(*, key_type: str = "invoice"):
+def api_check_wallet_key(key_type: str = "invoice"):
     def wrap(view):
         @wraps(view)
         def wrapped_view(**kwargs):
             try:
-                g.wallet = get_wallet_for_key(request.headers["api_key"], key_type)
+                g.wallet = get_wallet_for_key(request.headers["X-Api-Key"], key_type)
             except KeyError:
-                return jsonify({"message": "`api_key` header missing."}), Status.BAD_REQUEST
+                return jsonify({"message": "`X-Api-Key` header missing."}), Status.BAD_REQUEST
 
             if not g.wallet:
                 return jsonify({"message": "Wrong keys."}), Status.UNAUTHORIZED
