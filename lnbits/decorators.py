@@ -13,9 +13,9 @@ def api_check_wallet_macaroon(*, key_type: str = "invoice"):
         @wraps(view)
         def wrapped_view(**kwargs):
             try:
-                g.wallet = get_wallet_for_key(request.headers["Grpc-Metadata-macaroon"], key_type)
+                g.wallet = get_wallet_for_key(request.headers["api_key"], key_type)
             except KeyError:
-                return jsonify({"message": "`Grpc-Metadata-macaroon` header missing."}), Status.BAD_REQUEST
+                return jsonify({"message": "`api_key` header missing."}), Status.BAD_REQUEST
 
             if not g.wallet:
                 return jsonify({"message": "Wrong keys."}), Status.UNAUTHORIZED
