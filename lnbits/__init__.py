@@ -6,8 +6,7 @@ from flask_compress import Compress
 from flask_talisman import Talisman
 from os import getenv
 
-from .core import core_app
-from .db import init_databases
+from .core import core_app, migrations as core_migrations
 from .helpers import ExtensionManager, megajson
 
 
@@ -70,14 +69,24 @@ assets.url = app.static_url_path
 assets.register("base_css", Bundle("scss/base.scss", filters="pyscss", output="css/base.css"))
 
 
+# commands
+# --------
+
+@app.cli.command("migrate")
+def migrate_databases():
+    """Creates the necessary databases if they don't exist already; or migrates them."""
+    core_migrations.migrate()
+
+    for ext in valid_extensions:
+        try:
+            ext_migrations = importlib.import_module(f"lnbits.extensions.{ext.code}.migrations")
+            ext_migrations.migrate()
+        except Exception:
+            raise ImportError(f"Please make sure that the extension `{ext.code}` has a migrations file.")
+
+
 # init
 # ----
-
-
-@app.before_first_request
-def init():
-    init_databases()
-
 
 if __name__ == "__main__":
     app.run()

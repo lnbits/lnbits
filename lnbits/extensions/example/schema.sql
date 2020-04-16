@@ -1,1 +1,0 @@
-/* create your extensions table and the variables needed here */

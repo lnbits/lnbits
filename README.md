@@ -61,6 +61,7 @@ You will need to set the variables in .env.example, and rename the file to .env
 Running the server
 ------------------
 
+    $ flask migrate
     $ flask run
 
 There is an environment variable called `FLASK_ENV` that has to be set to `development`
