@@ -9,7 +9,7 @@ var LNbits = {
         method: method,
         url: url,
         headers: {
-          'Grpc-Metadata-macaroon': macaroon
+          'api_key': macaroon
         },
         data: data
       });
