@@ -9,6 +9,7 @@
 
 {% block scripts %}
   {{ window_vars(user, wallet) }}
+  <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
   {% assets filters='rjsmin', output='__bundle__/core/chart.js',
     'vendor/moment@2.24.0/moment.min.js',
     'vendor/chart.js@2.9.3/chart.min.js' %}
@@ -17,7 +18,6 @@
   {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
     'vendor/bolt11/utils.js',
     'vendor/bolt11/decoder.js',
-    'vendor/vue-qrcode@1.0.2/vue-qrcode.min.js',
     'vendor/vue-qrcode-reader@2.1.1/vue-qrcode-reader.min.js',
     'core/js/wallet.js' %}
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
@@ -26,7 +26,7 @@
 
 {% block page %}
   <div class="row q-col-gutter-md">
-    <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <div class="col-12 col-md-7 q-gutter-y-md">
       <q-card>
         <q-card-section>
           <h3 class="q-my-none"><strong>{% raw %}{{ fbalance }}{% endraw %}</strong> sat</h3>
@@ -105,9 +105,10 @@
       </q-card>
     </div>
 
-    <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <div class="col-12 col-md-5 q-gutter-y-md">
       <q-card>
         <q-card-section>
+          <q-btn flat color="grey" @click="exportCSV" class="float-right">Renew keys</q-btn>
           <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
           <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br>
           <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br>
@@ -139,12 +140,12 @@
   </div>
 
   <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form v-if="!receive.paymentReq" class="q-gutter-md">
+    <q-card v-if="!receive.paymentReq" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form class="q-gutter-md">
         <q-input filled dense
           v-model.number="receive.data.amount"
           type="number"
-          label="Amount *"></q-input>
+          label="Amount (sat) *"></q-input>
         <q-input filled dense
           v-model.trim="receive.data.memo"
           label="Memo"
@@ -158,26 +159,24 @@
         </div>
         <q-spinner v-if="receive.status == 'loading'" color="deep-purple" size="2.55em"></q-spinner>
       </q-form>
-      <div v-else>
-        <div class="text-center q-mb-md">
-          <a :href="'lightning:' + receive.paymentReq">
+    </q-card>
+    <q-card v-else class="q-pa-lg lnbits__dialog-card">
+      <div class="text-center q-mb-md">
+        <a :href="'lightning:' + receive.paymentReq">
+          <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode :value="receive.paymentReq" :options="{width: 340}" class="rounded-borders"></qrcode>
-          </a>
-        </div>
-        <!--<q-separator class="q-my-md"></q-separator>
-        <p class="text-caption" style="word-break: break-all">
-          {% raw %}{{ receive.paymentReq }}{% endraw %}
-        </p>-->
-        <div class="row justify-between">
-          <q-btn flat color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
-          <q-btn v-close-popup flat color="grey">Close</q-btn>
-        </div>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row justify-between">
+        <q-btn flat color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
+        <q-btn v-close-popup flat color="grey">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
 
   <q-dialog v-model="send.show" position="top" @hide="closeSendDialog">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div v-if="!send.invoice">
         <q-form v-if="!sendCamera.show" class="q-gutter-md">
           <q-input filled dense

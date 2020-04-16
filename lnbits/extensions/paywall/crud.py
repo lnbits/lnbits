@@ -1,15 +1,14 @@
-from base64 import urlsafe_b64encode
-from uuid import uuid4
 from typing import List, Optional, Union
 
 from lnbits.db import open_ext_db
+from lnbits.helpers import urlsafe_short_hash
 
 from .models import Paywall
 
 
 def create_paywall(*, wallet_id: str, url: str, memo: str, amount: int) -> Paywall:
     with open_ext_db("paywall") as db:
-        paywall_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
+        paywall_id = urlsafe_short_hash()
         db.execute(
             """
             INSERT INTO paywalls (id, wallet, url, memo, amount)

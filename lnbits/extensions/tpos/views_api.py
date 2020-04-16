@@ -1,13 +1,14 @@
 from flask import g, jsonify, request
 
 from lnbits.core.crud import get_user
-from lnbits.core.utils import create_invoice
+from lnbits.core.services import create_invoice
 from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
 from lnbits.helpers import Status
-from lnbits.settings import WALLET, FEE_RESERVE
-from lnbits.extensions.tpos import tpos_ext
+from lnbits.settings import WALLET
 
+from lnbits.extensions.tpos import tpos_ext
 from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
+
 
 @tpos_ext.route("/api/v1/tposs", methods=["GET"])
 @api_check_wallet_macaroon(key_type="invoice")

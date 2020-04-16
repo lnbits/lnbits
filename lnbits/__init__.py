@@ -58,6 +58,7 @@ for ext in valid_extensions:
 
 app.jinja_env.globals["DEBUG"] = app.config["DEBUG"]
 app.jinja_env.globals["EXTENSIONS"] = valid_extensions
+app.jinja_env.globals["SITE_TITLE"] = getenv("LNBITS_SITE_TITLE", "LNbits")
 app.jinja_env.filters["megajson"] = megajson
 
 

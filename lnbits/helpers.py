@@ -1,5 +1,6 @@
 import json
 import os
+import shortuuid
 import sqlite3
 
 from typing import List, NamedTuple, Optional
@@ -50,6 +51,10 @@ class Status:
     METHOD_NOT_ALLOWED = 405
     TOO_MANY_REQUESTS = 429
     INTERNAL_SERVER_ERROR = 500
+
+
+def urlsafe_short_hash() -> str:
+    return shortuuid.uuid()
 
 
 class MegaEncoder(json.JSONEncoder):

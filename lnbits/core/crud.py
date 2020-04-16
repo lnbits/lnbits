@@ -1,5 +1,5 @@
-from uuid import uuid4
 from typing import List, Optional
+from uuid import uuid4
 
 from lnbits.db import open_db
 from lnbits.settings import DEFAULT_WALLET_NAME, FEE_RESERVE

@@ -1,12 +1,12 @@
-from flask import g, abort, render_template
-from lnbits.core.crud import get_wallet
-
-from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.extensions.tpos import tpos_ext
-from lnbits.helpers import Status
 import requests
-import json
 
+from flask import g, abort, render_template
+
+from lnbits.core.crud import get_wallet
+from lnbits.decorators import check_user_exists, validate_uuids
+from lnbits.helpers import Status
+
+from lnbits.extensions.tpos import tpos_ext
 from .crud import get_tpos
 
 

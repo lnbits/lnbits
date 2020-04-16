@@ -8,7 +8,11 @@
       <link rel="stylesheet" type="text/css" href="{{ ASSET_URL }}">
     {% endassets %}
     {% block styles %}{% endblock %}
-    <title>{% block title %}LNbits{% endblock %}</title>
+    <title>
+      {% block title %}
+        {% if SITE_TITLE != 'LNbits' %}{{ SITE_TITLE }}{% else %}LNbits{% endif %}
+      {% endblock %}
+    </title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     {% block head_scripts %}{% endblock %}
@@ -19,23 +23,31 @@
 
       <q-header bordered class="bg-lnbits-dark">
         <q-toolbar>
-          <q-btn dense flat round icon="menu" @click="g.visibleDrawer = !g.visibleDrawer"></q-btn>
-          <q-toolbar-title><strong>LN</strong>bits</q-toolbar-title>
-          <q-badge color="yellow" text-color="black">
-            <span><span v-show="$q.screen.gt.sm">USE WITH CAUTION - LNbits wallet is still in </span>BETA</span>
-          </q-badge>
+          {% block drawer_toggle %}
+            <q-btn dense flat round icon="menu" @click="g.visibleDrawer = !g.visibleDrawer"></q-btn>
+          {% endblock %}
+          {% if SITE_TITLE != 'LNbits' %}
+            <q-toolbar-title>{{ SITE_TITLE }}</q-toolbar-title>
+          {% else %}
+            <q-toolbar-title><strong>LN</strong>bits</q-toolbar-title>
+          {% endif %}
+          {% block beta %}
+            <q-badge color="yellow" text-color="black">
+              <span><span v-show="$q.screen.gt.sm">USE WITH CAUTION - LNbits wallet is still in </span>BETA</span>
+            </q-badge>
+          {% endblock %}
           <q-btn dense flat round @click="toggleDarkMode" :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'" class="q-ml-lg" size="sm">
             <q-tooltip>Toggle Dark Mode</q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-header>
 
-      <q-drawer v-model="g.visibleDrawer" side="left" :width="($q.screen.lt.md) ? 260 : 230" show-if-above :elevated="$q.screen.lt.md">
-        {% block drawer %}
+      {% block drawer %}
+        <q-drawer v-model="g.visibleDrawer" side="left" :width="($q.screen.lt.md) ? 260 : 230" show-if-above :elevated="$q.screen.lt.md">
           <lnbits-wallet-list></lnbits-wallet-list>
           <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
-        {% endblock %}
-      </q-drawer>
+        </q-drawer>
+      {% endblock %}
 
       <q-page-container>
         <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">

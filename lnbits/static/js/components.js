@@ -91,19 +91,26 @@ Vue.component('lnbits-extension-list', {
     }
   },
   template: `
-    <q-list v-if="user" dense class="lnbits-drawer__q-list">
+    <q-list v-if="user && extensions.length" dense class="lnbits-drawer__q-list">
       <q-item-label header>Extensions</q-item-label>
       <q-item v-for="extension in userExtensions" :key="extension.code"
         clickable
+        :active="extension.isActive"
         tag="a" :href="[extension.url, '?usr=', user.id].join('')">
         <q-item-section side>
-          <q-avatar size="md" color="grey-5">
+          <q-avatar size="md"
+            :color="(extension.isActive)
+              ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
+              : 'grey-5'">
             <q-icon :name="extension.icon" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
           </q-avatar>
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1">{{ extension.name }}</q-item-label>
+        </q-item-section>
+        <q-item-section side v-show="extension.isActive">
+          <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
       <q-item clickable tag="a" :href="['/extensions?usr=', user.id].join('')">
@@ -119,18 +126,26 @@ Vue.component('lnbits-extension-list', {
   computed: {
     userExtensions: function () {
       if (!this.user) return [];
+
+      var path = window.location.pathname;
       var userExtensions = this.user.extensions;
+
       return this.extensions.filter(function (obj) {
         return userExtensions.indexOf(obj.code) !== -1;
+      }).map(function (obj) {
+        obj.isActive = path.startsWith(obj.url);
+        return obj;
       });
     }
   },
   created: function () {
-    this.extensions = window.extensions.map(function (data) {
-      return LNbits.map.extension(data);
-    }).sort(function (a, b) {
-      return a.name.localeCompare(b.name);
-    });
+    if (window.extensions) {
+      this.extensions = window.extensions.map(function (data) {
+        return LNbits.map.extension(data);
+      }).sort(function (a, b) {
+        return a.name.localeCompare(b.name);
+      });
+    }
 
     if (window.user) {
       this.user = LNbits.map.user(window.user);

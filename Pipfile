@@ -23,6 +23,7 @@ gunicorn = "*"
 pylightning = "*"
 pyscss = "*"
 requests = "*"
+shortuuid = "*"
 
 [dev-packages]
 black = "==19.10b0"

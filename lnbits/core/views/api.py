@@ -1,12 +1,11 @@
 from flask import g, jsonify, request
 
-from lnbits.bolt11 import decode as bolt11_decode
 from lnbits.core import core_app
 from lnbits.decorators import api_check_wallet_macaroon, api_validate_post_request
 from lnbits.helpers import Status
 from lnbits.settings import WALLET
 
-from ..utils import create_invoice, pay_invoice
+from ..services import create_invoice, pay_invoice
 
 
 @core_app.route("/api/v1/payments", methods=["GET"])
@@ -44,16 +43,11 @@ def api_payments_create_invoice():
 @api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
 def api_payments_pay_invoice():
     try:
-        invoice = bolt11_decode(g.data["bolt11"])
-
-        if invoice.amount_msat == 0:
-            return jsonify({"message": "Amountless invoices not supported."}), Status.BAD_REQUEST
-
-        if invoice.amount_msat > g.wallet.balance_msat:
-            return jsonify({"message": "Insufficient balance."}), Status.FORBIDDEN
-
-        checking_id = pay_invoice(wallet_id=g.wallet.id, bolt11=g.data["bolt11"])
-
+        checking_id = pay_invoice(wallet=g.wallet, bolt11=g.data["bolt11"])
+    except ValueError as e:
+        return jsonify({"message": str(e)}), Status.BAD_REQUEST
+    except PermissionError as e:
+        return jsonify({"message": str(e)}), Status.FORBIDDEN
     except Exception as e:
         return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
 

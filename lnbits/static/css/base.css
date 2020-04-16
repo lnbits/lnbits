@@ -29,12 +29,15 @@
     color: inherit;
     font-weight: bold; }
 
-.q-table--dense th:first-child, .q-table--dense td:first-child,
-.q-table--dense .q-table__bottom {
-  padding-left: 6px !important; }
-  .q-table--dense th:last-child, .q-table--dense td:last-child,
+.lnbits__dialog-card {
+  width: 500px; }
+
+  .q-table--dense th:first-child, .q-table--dense td:first-child,
   .q-table--dense .q-table__bottom {
-    padding-right: 6px !important; }
+    padding-left: 6px !important; }
+    .q-table--dense th:last-child, .q-table--dense td:last-child,
+    .q-table--dense .q-table__bottom {
+      padding-right: 6px !important; }
 
 video {
   border-radius: 3px; }

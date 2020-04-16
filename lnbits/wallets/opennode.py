@@ -56,5 +56,5 @@ class OpenNodeWallet(Wallet):
         if not r.ok:
             return PaymentStatus(None)
 
-        statuses = {"pending": None, "confirmed": True, "error": False, "failed": False}
+        statuses = {"initial": None, "pending": None, "confirmed": True, "error": False, "failed": False}
         return PaymentStatus(statuses[r.json()["data"]["status"]])

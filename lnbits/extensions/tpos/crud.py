@@ -1,15 +1,14 @@
-from base64 import urlsafe_b64encode
-from uuid import uuid4
 from typing import List, Optional, Union
 
 from lnbits.db import open_ext_db
+from lnbits.helpers import urlsafe_short_hash
 
 from .models import TPoS
 
 
 def create_tpos(*, wallet_id: str, name: str, currency: str) -> TPoS:
     with open_ext_db("tpos") as db:
-        tpos_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
+        tpos_id = urlsafe_short_hash()
         db.execute(
             """
             INSERT INTO tposs (id, wallet, name, currency)
