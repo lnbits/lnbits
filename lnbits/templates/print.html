@@ -1,0 +1,48 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Material+Icons" type="text/css">
+    <style>
+      @page {
+        size: A4 portrait;
+      }
+      body {
+        font-family: Roboto,-apple-system,Helvetica Neue,Helvetica,Arial,sans-serif;
+      }
+    </style>
+    {% block styles %}{% endblock %}
+    <title>
+      {% block title %}
+        {% if SITE_TITLE != 'LNbits' %}{{ SITE_TITLE }}{% else %}LNbits{% endif %}
+      {% endblock %}
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {% block head_scripts %}{% endblock %}
+  </head>
+
+  <body>
+    <q-layout id="vue" view="hHh lpR lfr" v-cloak>
+      <q-page-container>
+        <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+          {% block page %}{% endblock %}
+        </q-page>
+      </q-page-container>
+    </q-layout>
+
+    {% if DEBUG %}
+      <script src="{{ url_for('static', filename='vendor/vue@2.6.11/vue.js') }}"></script>
+      <script src="{{ url_for('static', filename='vendor/quasar@1.9.12/quasar.umd.js') }}"></script>
+    {% else %}
+      {% assets output='__bundle__/vue-print.js',
+        'vendor/quasar@1.9.12/quasar.ie.polyfills.umd.min.js',
+        'vendor/vue@2.6.11/vue.min.js',
+        'vendor/quasar@1.9.12/quasar.umd.min.js' %}
+        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+      {% endassets %}
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
