@@ -28,7 +28,7 @@ def m001_initial(db):
             wallet TEXT NOT NULL,
             shopname TEXT NOT NULL,
             indexeraddress TEXT NOT NULL,
-            ratingkey TEXT NOT NULL,
+            online BOOLEAN NOT NULL,
             rating INTEGER NOT NULL,
             shippingzone1 TEXT NOT NULL,
             shippingzone2 TEXT NOT NULL,
@@ -40,7 +40,7 @@ def m001_initial(db):
 
 
     """
-    Initial indexers table.
+    Initial orders table.
     """
     db.execute("""
         CREATE TABLE IF NOT EXISTS orders (
