@@ -133,7 +133,8 @@ new Vue({
         ],
         pagination: {
           rowsPerPage: 10
-        }
+        },
+        filter: null
       },
       paymentsChart: {
         show: false
@@ -141,6 +142,12 @@ new Vue({
     };
   },
   computed: {
+    filteredPayments: function () {
+      var q = this.paymentsTable.filter;
+      if (!q || q == '') return this.payments;
+
+      return LNbits.utils.search(this.payments, q);
+    },
     balance: function () {
       if (this.payments.length) {
         return _.pluck(this.payments, 'amount').reduce(function (a, b) { return a + b; }, 0) / 1000;

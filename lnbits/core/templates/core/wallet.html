@@ -49,7 +49,7 @@
 
       <q-card>
         <q-card-section>
-          <div class="row items-center no-wrap q-mb-md">
+          <div class="row items-center no-wrap q-mb-sm">
             <div class="col">
               <h5 class="text-subtitle1 q-my-none">Transactions</h5>
             </div>
@@ -63,8 +63,12 @@
               </q-btn>
             </div>
           </div>
+          <q-input v-if="payments.length > 10" filled dense clearable
+            v-model="paymentsTable.filter"
+            debounce="300" placeholder="Search by memo, amount" class="q-mb-md">
+          </q-input>
           <q-table dense flat
-            :data="payments"
+            :data="filteredPayments"
             row-key="payhash"
             :columns="paymentsTable.columns"
             :pagination.sync="paymentsTable.pagination">
@@ -160,8 +164,8 @@
         <q-spinner v-if="receive.status == 'loading'" color="deep-purple" size="2.55em"></q-spinner>
       </q-form>
     </q-card>
-    <q-card v-else class="q-pa-lg lnbits__dialog-card">
-      <div class="text-center q-mb-md">
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
         <a :href="'lightning:' + receive.paymentReq">
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode :value="receive.paymentReq" :options="{width: 340}" class="rounded-borders"></qrcode>

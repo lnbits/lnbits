@@ -161,9 +161,7 @@ new Vue({
     if (this.g.user.wallets.length) {
       var getWithdrawLinks = this.getWithdrawLinks;
       getWithdrawLinks();
-      /*setInterval(function(){
-        getWithdrawLinks();
-      }, 20000);*/
+      setInterval(function () { getWithdrawLinks(); }, 20000);
     }
   }
 });
