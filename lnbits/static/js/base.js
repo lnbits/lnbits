@@ -1,4 +1,4 @@
-var LOCALE = 'en'
+var LOCALE = 'en';
 
 var EventHub = new Vue();
 
@@ -82,10 +82,14 @@ var LNbits = {
       obj.isIn = obj.amount > 0;
       obj.isOut = obj.amount < 0;
       obj.isPaid = obj.pending == 0;
+      obj._q = [obj.memo, obj.sat].join(' ').toLowerCase();
       return obj;
     }
   },
   utils: {
+    formatCurrency: function (value, currency) {
+      return new Intl.NumberFormat(LOCALE, {style: 'currency', currency: currency}).format(value);
+    },
     formatSat: function (value) {
       return new Intl.NumberFormat(LOCALE).format(value);
     },
@@ -102,6 +106,22 @@ var LNbits = {
         caption: [error.response.status, ' ', error.response.statusText].join('').toUpperCase() || null,
         icon: null
       });
+    },
+    search: function (data, q, field, separator) {
+      var field = field || '_q';
+
+      try {
+        var queries = q.toLowerCase().split(separator || ' ');
+        return data.filter(function (obj) {
+          var matches = 0;
+          _.each(queries, function (q) {
+            if (obj[field].indexOf(q) !== -1) matches++;
+          });
+          return matches == queries.length;
+        });
+      } catch (err) {
+          return data;
+      }
     },
     exportCSV: function (columns, data) {
       var wrapCsvValue = function(val, formatFn) {
@@ -161,10 +181,10 @@ var windowMixin = {
       this.$q.dark.toggle();
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive);
     },
-    copyText: function (text, message) {
+    copyText: function (text, message, position) {
       var notify = this.$q.notify;
       Quasar.utils.copyToClipboard(text).then(function () {
-        notify({message: message || 'Copied to clipboard!'});
+        notify({message: message || 'Copied to clipboard!', position: position || 'bottom'});
       });
     }
   },

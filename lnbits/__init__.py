@@ -27,13 +27,9 @@ Talisman(
             "'unsafe-eval'",
             "'unsafe-inline'",
             "blob:",
-            "cdnjs.cloudflare.com",
-            "code.ionicframework.com",
-            "code.jquery.com",
             "api.opennode.co",
             "fonts.googleapis.com",
             "fonts.gstatic.com",
-            "maxcdn.bootstrapcdn.com",
             "github.com",
             "avatars2.githubusercontent.com",
         ]
