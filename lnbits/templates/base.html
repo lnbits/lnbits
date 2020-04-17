@@ -26,11 +26,15 @@
           {% block drawer_toggle %}
             <q-btn dense flat round icon="menu" @click="g.visibleDrawer = !g.visibleDrawer"></q-btn>
           {% endblock %}
-          {% if SITE_TITLE != 'LNbits' %}
-            <q-toolbar-title>{{ SITE_TITLE }}</q-toolbar-title>
-          {% else %}
-            <q-toolbar-title><strong>LN</strong>bits</q-toolbar-title>
-          {% endif %}
+          <q-toolbar-title>
+            {% block toolbar_title %}
+              {% if SITE_TITLE != 'LNbits' %}
+                {{ SITE_TITLE }}
+              {% else %}
+                <strong>LN</strong>bits
+              {% endif %}
+            {% endblock %}
+          </q-toolbar-title>
           {% block beta %}
             <q-badge color="yellow" text-color="black">
               <span><span v-show="$q.screen.gt.sm">USE WITH CAUTION - LNbits wallet is still in </span>BETA</span>
@@ -49,23 +53,27 @@
         </q-drawer>
       {% endblock %}
 
-      <q-page-container>
-        <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
-          {% block page %}{% endblock %}
-        </q-page>
-      </q-page-container>
+      {% block page_container %}
+        <q-page-container>
+          <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+            {% block page %}{% endblock %}
+          </q-page>
+        </q-page-container>
+      {% endblock %}
 
-      <q-footer class="bg-transparent q-px-lg q-py-md" :class="{'text-dark': !$q.dark.isActive}">
-        <q-toolbar>
-          <q-toolbar-title class="text-caption">
-            <strong>LN</strong>bits, free and open-source lightning wallet
-          </q-toolbar-title>
-          <q-space></q-space>
-          <q-btn flat dense :color="($q.dark.isActive) ? 'white' : 'deep-purple'" icon="code" type="a" href="https://github.com/arcbtc/lnbits" target="_blank" rel="noopener">
-            <q-tooltip>View project in GitHub</q-tooltip>
-          </q-btn>
-        </q-toolbar>
-      </q-footer>
+      {% block footer %}
+        <q-footer class="bg-transparent q-px-lg q-py-md" :class="{'text-dark': !$q.dark.isActive}">
+          <q-toolbar>
+            <q-toolbar-title class="text-caption">
+              <strong>LN</strong>bits, free and open-source lightning wallet
+            </q-toolbar-title>
+            <q-space></q-space>
+            <q-btn flat dense :color="($q.dark.isActive) ? 'white' : 'deep-purple'" icon="code" type="a" href="https://github.com/arcbtc/lnbits" target="_blank" rel="noopener">
+              <q-tooltip>View project in GitHub</q-tooltip>
+            </q-btn>
+          </q-toolbar>
+        </q-footer>
+      {% endblock %}
 
     </q-layout>
 

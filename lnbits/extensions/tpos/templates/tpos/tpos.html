@@ -1,241 +1,225 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "public.html" %}
 
-<head>
 
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <title>TPoS</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#363636">
-    <script
-      src="{{ url_for('static', filename='plugins/jscam/qrcode.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <style>
-        @import url(https://fonts.googleapis.com/css?family=Muli:400,700&display=swap);
-        * {
-            box-sizing: border-box
-        }
-        
-        body {
-            margin: 0;
-            min-height: 100vh;
-            scroll-behavior: smooth;
-            text-rendering: optimizeSpeed;
-            line-height: 1.5
-        }
-        
-        @media (prefers-reduced-motion:reduce) {
-            * {
-                -webkit-animation-duration: .01ms!important;
-                animation-duration: .01ms!important;
-                -webkit-animation-iteration-count: 1!important;
-                animation-iteration-count: 1!important;
-                -webkit-transition-duration: .01ms!important;
-                transition-duration: .01ms!important;
-                scroll-behavior: auto!important
-            }
-        }
-        
-        :root {
-            --primary-color: #ff533d;
-            --primary-bg-color: #363636;
-            --primary-text-color: #f1f1f1;
-            --dimmed-text-color: #818181;
-            --max-width: 460px
-        }
-        
-        body,
-        html {
-            font: 16px/1.21 Muli, sans-serif;
-            font-weight: 400;
-            color: var(--primary-text-color);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale
-        }
-    </style>
-    <link href="sparkpos_files/bundle.css" rel="preload" as="style">
-</head>
+{% block toolbar_title %}{{ tpos.name }}{% endblock %}
 
-<body>
-    <div id="app">
-        <div class="display">
-  <div id="qrcode" style="position: absolute;">
-  <div id="field1" style="position: absolute;margin-top: 125px;"></div>
+{% block footer %}{% endblock %}
 
-  <div id="field2"></div>
-  
-  </div>
+{% block page_container %}
+  <q-page-container>
+    <q-page>
+      <q-page-sticky v-if="exchangeRate" expand position="top">
+        <div class="row justify-center full-width">
+          <div class="col-12 col-sm-8 col-md-6 col-lg-4 text-center">
+            <h3 class="q-mb-md">{% raw %}{{ famount }}{% endraw %}</h3>
+            <h5 class="q-mt-none">
+              {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+            </h5>
+          </div>
         </div>
-        <div class="keypad">
-            <button onclick="keys(1)" class="btn-numpad">1</button>
-            <button onclick="keys(2)" class="btn-numpad">2</button>
-            <button onclick="keys(3)" class="btn-numpad">3</button>
-            <button onclick="keys('C')" class="btn-cancel">C</button>
-            <button onclick="keys(4)" class="btn-numpad">4</button>
-            <button onclick="keys(5)" class="btn-numpad">5</button>
-            <button onclick="keys(6)" class="btn-numpad">6</button>
-            <button onclick="keys(7)" class="btn-numpad">7</button>
-            <button onclick="keys(8)" class="btn-numpad">8</button>
-            <button onclick="keys(9)" class="btn-numpad">9</button>
-            <button data-target=".sends" data-toggle="modal" onclick="keys('OK')" class="btn-confirm">OK</button>
-            <button onclick="keys('DEL')" class="btn-numpad">DEL</button>
-            <button onclick="keys(0)" class="btn-numpad">0</button>
-            <button onclick="keys('#')" class="btn-numpad">#</button>
+      </q-page-sticky>
+      <q-page-sticky expand position="bottom">
+        <div class="row justify-center full-width">
+          <div class="col-12 col-sm-8 col-md-6 col-lg-4">
+            <div class="keypad q-pa-sm">
+              <q-btn unelevated
+                @click="stack.push(1)"
+                size="xl" color="grey-8">1</q-btn>
+              <q-btn unelevated
+                @click="stack.push(2)"
+                size="xl" color="grey-8">2</q-btn>
+              <q-btn unelevated
+                @click="stack.push(3)"
+                size="xl" color="grey-8">3</q-btn>
+              <q-btn unelevated
+                @click="stack = []"
+                size="xl" color="pink" class="btn-cancel">C</q-btn>
+              <q-btn unelevated
+                @click="stack.push(4)"
+                size="xl" color="grey-8">4</q-btn>
+              <q-btn unelevated
+                @click="stack.push(5)"
+                size="xl" color="grey-8">5</q-btn>
+              <q-btn unelevated
+                @click="stack.push(6)"
+                size="xl" color="grey-8">6</q-btn>
+              <q-btn unelevated
+                @click="stack.push(7)"
+                size="xl" color="grey-8">7</q-btn>
+              <q-btn unelevated
+                @click="stack.push(8)"
+                size="xl" color="grey-8">8</q-btn>
+              <q-btn unelevated
+                @click="stack.push(9)"
+                size="xl" color="grey-8">9</q-btn>
+              <q-btn unelevated
+                :disabled="amount == 0"
+                @click="showInvoice()"
+                size="xl" color="green" class="btn-confirm">OK</q-btn>
+              <q-btn unelevated
+                @click="stack.splice(-1, 1)"
+                size="xl" color="grey-7">DEL</q-btn>
+              <q-btn unelevated
+                @click="stack.push(0)"
+                size="xl" color="grey-8">0</q-btn>
+              <q-btn unelevated
+                @click="urlDialog.show = true"
+                size="xl" color="grey-7">#</q-btn>
+            </div>
+          </div>
         </div>
-    </div>
+      </q-page-sticky>
+      <q-dialog v-model="invoiceDialog.show" position="top" @hide="closeInvoiceDialog">
+        <q-card v-if="invoiceDialog.data" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+            <qrcode :value="invoiceDialog.data.payment_request" :options="{width: 800}" class="rounded-borders"></qrcode>
+          </q-responsive>
+          <div class="text-center">
+            <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
+            <h5 class="q-mt-none">
+              {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+            </h5>
+          </div>
+          <div class="row q-mt-md">
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+          </div>
+        </q-card>
+      </q-dialog>
+      <q-dialog v-model="urlDialog.show" position="top">
+        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+          <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+            <qrcode value="{{ request.url }}" :options="{width: 800}" class="rounded-borders"></qrcode>
+          </q-responsive>
+          <div class="text-center q-mb-xl">
+            <p style="word-break: break-all"><strong>{{ tpos.name }}</strong><br>{{ request.url }}</p>
+          </div>
+          <div class="row q-mt-md">
+            <q-btn flat color="grey" @click="copyText('{{ request.url }}', 'TPoS URL copied to clipboard!')" >Copy URL</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+          </div>
+        </q-card>
+      </q-dialog>
+    </q-page>
+  </q-page-container>
+{% endblock %}
 
-</body>
-</center>
-
-<script>
-
-	function postAjax(url, data, thekey, success) {
-  var params =
-    typeof data == 'string'
-      ? data
-      : Object.keys(data)
-          .map(function(k) {
-            return encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
-          })
-          .join('&')
-  var xhr = window.XMLHttpRequest
-    ? new XMLHttpRequest()
-    : new ActiveXObject('Microsoft.XMLHTTP')
-  xhr.open('POST', url)
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState > 3 && xhr.status == 200) {
-      success(xhr.responseText)
+{% block styles %}
+  <style>
+    .keypad {
+      display: grid;
+      grid-gap: 8px;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
     }
-  }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
-  xhr.setRequestHeader('Content-Type', 'application/json')
-  xhr.send(params)
-  return xhr
-}
-
-    function getAjax(url, thekey, success) {
-  var xhr = window.XMLHttpRequest
-    ? new XMLHttpRequest()
-    : new ActiveXObject('Microsoft.XMLHTTP')
-  xhr.open('GET', url, true)
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState > 3 && xhr.status == 200) {
-      success(xhr.responseText)
+    .keypad .btn {
+      height: 100%;
     }
-  }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
-  xhr.setRequestHeader('Content-Type', 'application/json')
+    .btn-cancel, .btn-confirm {
+      grid-row: auto/span 2;
+    }
+  </style>
+{% endblock %}
 
-  xhr.send()
-  return xhr
-}
+{% block scripts %}
+  <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+  <script>
+    Vue.component(VueQrcode.name, VueQrcode);
 
-var total = "";
-  field1 = "field1"
-  field2 = "field2"
-  document.getElementById(field1).innerHTML = "<p style='font-size: 30px;' id=sats></p>"
-  document.getElementById(field2).innerHTML = "<p style='font-size: 50px;' id=fiat></p>"
+    new Vue({
+      el: '#vue',
+      mixins: [windowMixin],
+      data: function () {
+        return {
+          tposId: '{{ tpos.id }}',
+          currency: '{{ tpos.currency }}',
+          exchangeRate: null,
+          stack: [],
+          invoiceDialog: {
+            show: false,
+            data: null,
+            dismissMsg: null,
+            paymentChecker: null
+          },
+          urlDialog: {
+            show: false
+          }
+        };
+      },
+      computed: {
+        amount: function () {
+          if (!this.stack.length) return 0.00;
+          return (Number(this.stack.join('')) / 100).toFixed(2);
+        },
+        famount: function () {
+          return LNbits.utils.formatCurrency(this.amount, this.currency);
+        },
+        sat: function () {
+          if (!this.exchangeRate) return 0;
+          return Math.ceil((this.amount / this.exchangeRate) * 100000000);
+        },
+        fsat: function () {
+          return LNbits.utils.formatSat(this.sat);
+        }
+      },
+      methods: {
+        closeInvoiceDialog: function () {
+          this.stack = [];
+          var dialog = this.invoiceDialog;
+          setTimeout(function () {
+            clearInterval(dialog.paymentChecker);
+            dialog.dismissMsg();
+          }, 3000);
+        },
+        showInvoice: function () {
+          var self = this;
+          var dialog = this.invoiceDialog;
 
+          axios.post(
+            '/tpos/api/v1/tposs/' + this.tposId + '/invoices/',
+            {amount: this.sat}
+          ).then(function (response) {
+            dialog.data = response.data;
+            dialog.show = true;
 
-  function keys(num){
-  if(Number.isInteger(num)){
-      total = total + String(num)
-      document.getElementById("fiat").innerHTML = String(parseInt(total)/100) + " " + " {{ curr }}"
+            dialog.dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            });
 
-      document.getElementById("sats").innerHTML = parseInt( (parseInt(total)/100) *  "{{ rate }}") + " Sats"
+            dialog.paymentChecker = setInterval(function () {
+              axios.get(
+                '/tpos/api/v1/tposs/' + self.tposId + '/invoices/' + response.data.checking_id
+              ).then(function (res) {
+                if (res.data.paid) {
+                  clearInterval(dialog.paymentChecker);
+                  dialog.dismissMsg();
+                  dialog.show = false;
 
-  }
-  
-  else if(num == "DEL"){
-      total = "0";
-  }
-  else if(num == "C"){
-     location.reload();
-  }
-  else if(num == "#"){
+                  self.$q.notify({
+                    type: 'positive',
+                    message: self.fsat + ' sat received!',
+                    icon: null
+                  });
+                }
+              });
+            }, 2000);
 
-      new QRCode(document.getElementById('qrcode'), {
-            text: window.location.href,
-            width: 300,
-            height: 300,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
-          })
-      document.getElementById("sats").innerHTML = ""
-      document.getElementById("fiat").innerHTML = ""
-
-
-          document.getElementById("qrcode").style.backgroundColor = "white";
-          document.getElementById("qrcode").style.padding = "20px";
-
-  }
-
-  else if(num == "OK"){
-    satz = document.getElementById("sats").innerHTML
-    console.log(satz)
-    stax = satz.replace("Sats", "")
-    submitforticket(parseInt(stax))
-  }
-}
-
-function submitforticket(sats){
-console.log(sats)
-
-  postAjax(
-    "/tpos/api/v1/tposs/invoice/"  + "{{ tpos }}",
-    JSON.stringify({"amount":  parseInt(sats)}),
-    "lorem",
-
-    function(data) {
-
-      theinvoice = JSON.parse(data).payment_request
-      thehash = JSON.parse(data).checking_id
-      
-     new QRCode(document.getElementById('qrcode'), {
-        text: theinvoice,
-        width: 300,
-        height: 300,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      })
-  document.getElementById("sats").innerHTML = ""
-  document.getElementById("fiat").innerHTML = ""
-
-
-      document.getElementById("qrcode").style.backgroundColor = "white";
-      document.getElementById("qrcode").style.padding = "20px";
-
-
-      var refreshId = setInterval(function(){
-
-      getAjax('/tpos/api/v1/tposs/invoice/' + thehash, "lorem", function(datab) {
-        console.log(JSON.parse(datab))
-        if (JSON.parse(datab).PAID == true) {
-           
-            document.getElementById("qrcode").innerHTML = ""
-            document.getElementById("qrcode").style.padding = "0px";
-            document.getElementById("qrcode").style.backgroundColor = "#363636";
-               document.getElementById("qrcode").innerHTML = "<h1 style='color:green;font-size: 100px;'>PAID!</h1>"
-               console.log("theinvoice");
-
-          setTimeout(function(){
-                
-                 
-               location.reload();
-           }, 4000);
-          
+          }).catch(function (error) {
+            LNbits.utils.notifyApiError(error);
+          });
+        },
+        getRates: function () {
+          var self = this;
+          axios.get("https://api.opennode.co/v1/rates").then(function (response) {
+            self.exchangeRate = response.data.data['BTC' + self.currency][self.currency];
+          });
+        }
+      },
+      created: function () {
+        var getRates = this.getRates;
+        getRates();
+        setInterval(function () { getRates(); }, 20000);
       }
-      })}, 3000);
-});
-}
-</script>
-<style>
-@import url(https://fonts.googleapis.com/css?family=Muli:400,700&display=swap);*,:after,:before{box-sizing:border-box}ol[class],ul[class]{padding:0}blockquote,body,dd,dl,figcaption,figure,h1,h2,h3,h4,li,ol[class],p,ul[class]{margin:0}body{min-height:100vh;scroll-behavior:smooth;text-rendering:optimizeSpeed;line-height:1.5}ol[class],ul[class]{list-style:none}a:not([class]){-webkit-text-decoration-skip:ink;text-decoration-skip-ink:auto}img{max-width:100%;display:block}article>*+*{margin-top:1em}button,input,select,textarea{font:inherit}@media (prefers-reduced-motion:reduce){*{-webkit-animation-duration:.01ms!important;animation-duration:.01ms!important;-webkit-animation-iteration-count:1!important;animation-iteration-count:1!important;-webkit-transition-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}:root{--primary-color:#ff533d;--primary-bg-color:#363636;--primary-text-color:#f1f1f1;--dimmed-text-color:#818181;--max-width:460px}body,html{font:16px/1.21 Muli,sans-serif;font-weight:400;color:var(--primary-text-color);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}#app{position:relative;min-height:100vh;display:grid;grid-template-rows:1fr 1fr;width:100%;max-width:var(--max-width);margin:0 auto;background:var(--primary-bg-color)}input,select,textarea{display:block;margin-bottom:1.25em;padding:.5em .6em;border:1px solid transparent;box-sizing:border-box;outline:none}input:active{border:1px solid var(--primary-color)}input:focus,select:focus,textarea:focus{outline:none}select{height:2.5em}label{display:block;margin:.5em 0;font-size:90%}button,select{text-transform:none}.btn{background-color:transparent;border-color:var(--primary-text-color);border-width:1px;color:var(--primary-text-color);border-radius:4px;cursor:pointer;-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;padding:calc(.375em - 1px) .75em;text-align:center;white-space:nowrap;height:2.5em}.btn.btn-primary{background-color:var(--primary-color);border-color:transparent}.btn.btn-submit{background-color:var(--submit-color);border-color:transparent}.menu-toggle{position:absolute;top:20px;right:25px;font-size:1.5rem;cursor:pointer;padding:5px;width:40px;height:40px;z-index:2;fill:var(--dimmed-text-color);will-change:fill}.menu-toggle:focus,.menu-toggle:hover{fill:var(--primary-text-color);-webkit-transition:all .3s ease;transition:all .3s ease}.img-responsive{width:100%;height:auto}.main-menu{height:100%;width:0;position:absolute;z-index:1;top:0;left:0;background-color:var(--primary-bg-color);overflow-x:hidden;padding-top:60px;-webkit-transition:.5s;transition:.5s}.main-menu a{padding:8px 8px 8px 32px;text-decoration:none;font-size:25px;color:var(--dimmed-text-color);display:block;-webkit-transition:.3s;transition:.3s}.main-menu a:hover{color:var(--primary-text-color)}.main-menu .closebtn{position:absolute;display:block;cursor:pointer;top:0;right:25px;font-size:36px;margin-left:50px}.accordion{width:100%;text-align:left;border:none;outline:none}.title{cursor:pointer;font-weight:700;padding:1rem}.panel{padding:1rem;width:80%;display:none;overflow:hidden}.panel.active{display:block}footer.menu-footer{position:absolute;padding:1rem;bottom:0}footer.menu-footer>a{font-size:80%;padding:0}.display{position:relative;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;overflow:hidden;padding:0 10px;text-shadow:2px 4px 15px rgba(0,0,0,.15);color:var(--primary-text-color)}.display .symbol{font-size:1rem}.display .sats{position:absolute;font-size:1.25rem;bottom:10px;left:10px}.display p{margin:0 5px}.keypad{max-height:500px;display:grid;grid-gap:7px;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);-webkit-box-align:center;-ms-flex-align:center;align-items:center;justify-items:center;padding:5px}.keypad *{all:unset;width:100%;height:100%;color:var(--primary-text-color)}.btn-cancel,.btn-confirm,.btn-numpad{border:2px solid var(--primary-text-color);border-radius:10px;background:none;text-align:center;font-size:1.7em}.btn-cancel:active,.btn-confirm:active,.btn-numpad:active{background:var(--primary-color)}@media (hover:hover){.btn-cancel:hover,.btn-confirm:hover,.btn-numpad:hover{background:var(--primary-color)}}.btn-cancel,.btn-confirm{grid-row:auto/span 2}.btn-confirm{background:#6b8e23}.btn-cancel{background:tomato}.modal{position:fixed;top:0;left:0;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;height:0;background-color:transparent;overflow:hidden;-webkit-transition:background-color .25s ease;transition:background-color .25s ease;z-index:9998}.modal.open{position:fixed;width:100%;height:100vh;background-color:rgba(0,0,0,.5);-webkit-transition:background-color .25s;transition:background-color .25s}.modal.open>.content-wrapper{-webkit-transform:scale(1);-ms-transform:scale(1);transform:scale(1)}.modal .content-wrapper{position:relative;-webkit-box-orient:vertical;-webkit-box-direction:normal;-ms-flex-direction:column;flex-direction:column;-webkit-box-pack:start;-ms-flex-pack:start;justify-content:flex-start;width:90%;max-width:calc(var(--max-width)*0.95);margin:0;padding:2.5rem;background-color:#fff;border-radius:.3125rem;box-shadow:0 0 2.5rem rgba(0,0,0,.5);-webkit-transform:scale(0);-ms-transform:scale(0);transform:scale(0);-webkit-transition:-webkit-transform .25s;transition:-webkit-transform .25s;transition:transform .25s;transition:transform .25s,-webkit-transform .25s;-webkit-transition-delay:.15s;transition-delay:.15s;color:#444}.modal .content-wrapper,.modal .content-wrapper .close,.modal.open.settled .content-wrapper{display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-ms-flex-align:center;align-items:center}.modal .content-wrapper .close,.modal.open.settled .content-wrapper{-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;-webkit-transition:.25s linear;transition:.25s linear}.modal .content-wrapper .close{position:absolute;top:.5rem;right:.5rem;width:2.5rem;height:2.5rem;border:none;background-color:transparent;font-size:1.5rem}.modal .content-wrapper .close:after,.modal .content-wrapper .close:before{position:absolute;content:"";width:1.25rem;height:.125rem;background-color:var(--primary-bg-color)}.modal .content-wrapper .close:before{-webkit-transform:rotate(-45deg);-ms-transform:rotate(-45deg);transform:rotate(-45deg)}.modal .content-wrapper .close:after{-webkit-transform:rotate(45deg);-ms-transform:rotate(45deg);transform:rotate(45deg)}.modal .content-wrapper .close:hover:after,.modal .content-wrapper .close:hover:before{background-color:var(--dimmed-text-color)}.modal .content-wrapper .modal-header{position:relative;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-orient:horizontal;-webkit-box-direction:normal;-ms-flex-direction:row;flex-direction:row;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;width:100%;margin:0;padding:0 0 1.25rem}.modal .content-wrapper .modal-header h2{font-size:1.5rem;font-weight:700}.modal .content-wrapper .content{position:relative;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-orient:vertical;-webkit-box-direction:normal;-ms-flex-flow:column nowrap;flex-flow:column nowrap;max-width:100%}.modal .content-wrapper .content p{font-size:.875rem;line-height:1.75}.modal .content-wrapper .content p,.modal .content-wrapper .content small{text-align:center;word-wrap:break-word}.modal .content-wrapper .modal-footer{position:relative;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:space-evenly;-ms-flex-pack:space-evenly;justify-content:space-evenly;width:100%;margin:0;padding:1.875rem 0 0}.modal .content-wrapper .modal-footer .action{position:relative;margin-left:.625rem;padding:.625rem 1.25rem;border:none;background-color:#708090;border-radius:.25rem;color:#fff;font-size:.87rem;font-weight:300;overflow:hidden;z-index:1}.modal .content-wrapper .modal-footer .action:before{position:absolute;content:"";top:0;left:0;width:0;height:100%;background-color:hsla(0,0%,100%,.2);-webkit-transition:width .25s;transition:width .25s;z-index:0}.modal .content-wrapper .modal-footer .action.green{background-color:#6b8e23}.modal .content-wrapper .modal-footer .action.red{background-color:tomato}.modal .content-wrapper .modal-footer .action:hover:before{width:100%}.checkmark{width:56px;height:56px;margin:5rem auto;border-radius:50%;display:block;stroke-width:2;stroke:#fff;stroke-miterlimit:10;box-shadow:inset 0 0 0 #7ac142;-webkit-animation:fill .4s ease-in-out .4s forwards,scale .3s ease-in-out .9s both;animation:fill .4s ease-in-out .4s forwards,scale .3s ease-in-out .9s both}.checkmark__circle{stroke-dasharray:166;stroke-dashoffset:166;stroke-width:2;stroke-miterlimit:10;stroke:#7ac142;fill:none;-webkit-animation:stroke .6s cubic-bezier(.65,0,.45,1) forwards;animation:stroke .6s cubic-bezier(.65,0,.45,1) forwards}.checkmark__check{-webkit-transform-origin:50% 50%;-ms-transform-origin:50% 50%;transform-origin:50% 50%;stroke-dasharray:48;stroke-dashoffset:48;-webkit-animation:stroke .3s cubic-bezier(.65,0,.45,1) .8s forwards;animation:stroke .3s cubic-bezier(.65,0,.45,1) .8s forwards}@-webkit-keyframes stroke{to{stroke-dashoffset:0}}@keyframes stroke{to{stroke-dashoffset:0}}@-webkit-keyframes scale{0%,to{-webkit-transform:none;transform:none}50%{-webkit-transform:scale3d(1.1,1.1,1);transform:scale3d(1.1,1.1,1)}}@keyframes scale{0%,to{-webkit-transform:none;transform:none}50%{-webkit-transform:scale3d(1.1,1.1,1);transform:scale3d(1.1,1.1,1)}}@-webkit-keyframes fill{to{box-shadow:inset 0 0 0 30px #7ac142}}@keyframes fill{to{box-shadow:inset 0 0 0 30px #7ac142}}.loader{display:-webkit-box;display:-ms-flexbox;display:flex;position:absolute;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;background-color:var(--primary-bg-color);width:100%;height:100vh;z-index:9999;stroke:var(--primary-color)}.loader svg{height:100px;width:100px;-webkit-transform:rotate(-90deg);-ms-transform:rotate(-90deg);transform:rotate(-90deg)}.loader circle{stroke-dasharray:156;stroke-dashoffset:156;-webkit-animation:load 2.3s infinite;animation:load 2.3s infinite}@-webkit-keyframes load{50%{stroke-dashoffset:0}to{stroke-dashoffset:-156}}@keyframes load{50%{stroke-dashoffset:0}to{stroke-dashoffset:-156}}
-</style>
-</html>
+    });
+  </script>
+{% endblock %}

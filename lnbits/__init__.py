@@ -30,6 +30,7 @@ Talisman(
             "cdnjs.cloudflare.com",
             "code.ionicframework.com",
             "code.jquery.com",
+            "api.opennode.co",
             "fonts.googleapis.com",
             "fonts.gstatic.com",
             "maxcdn.bootstrapcdn.com",

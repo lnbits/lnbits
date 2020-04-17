@@ -1,6 +1,6 @@
 {
-    "name": "TPOS",
-    "short_description": "A shareable POS!",
-    "icon": "dialpad",
-    "contributors": ["talvasconcelos", "arcbtc"]
+  "name": "TPoS",
+  "short_description": "A shareable PoS terminal!",
+  "icon": "dialpad",
+  "contributors": ["talvasconcelos", "arcbtc"]
 }
