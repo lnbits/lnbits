@@ -39,6 +39,11 @@ class Wallet(NamedTuple):
 
         return get_wallet_payments(self.id, include_all_pending=include_all_pending)
 
+    def delete_expired_payments(self, seconds: int = 86400) -> None:
+        from .crud import delete_wallet_payments_expired
+
+        delete_wallet_payments_expired(self.id, seconds=seconds)
+
 
 class Payment(NamedTuple):
     checking_id: str

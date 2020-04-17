@@ -5,14 +5,17 @@ def m001_initial(db):
     """
     Initial LNbits tables.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS accounts (
             id TEXT PRIMARY KEY,
             email TEXT,
             pass TEXT
         );
-    """)
-    db.execute("""
+    """
+    )
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS extensions (
             user TEXT NOT NULL,
             extension TEXT NOT NULL,
@@ -20,8 +23,10 @@ def m001_initial(db):
 
             UNIQUE (user, extension)
         );
-    """)
-    db.execute("""
+    """
+    )
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS wallets (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -29,8 +34,10 @@ def m001_initial(db):
             adminkey TEXT NOT NULL,
             inkey TEXT
         );
-    """)
-    db.execute("""
+    """
+    )
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS apipayments (
             payhash TEXT NOT NULL,
             amount INTEGER NOT NULL,
@@ -42,8 +49,10 @@ def m001_initial(db):
 
             UNIQUE (wallet, payhash)
         );
-    """)
-    db.execute("""
+    """
+    )
+    db.execute(
+        """
         CREATE VIEW IF NOT EXISTS balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
@@ -57,7 +66,8 @@ def m001_initial(db):
             GROUP BY wallet
         )
         GROUP BY wallet;
-    """)
+    """
+    )
 
 
 def migrate():

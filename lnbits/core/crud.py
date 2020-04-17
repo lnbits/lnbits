@@ -159,6 +159,17 @@ def get_wallet_payments(wallet_id: str, *, include_all_pending: bool = False) ->
     return [Payment(**row) for row in rows]
 
 
+def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> None:
+    with open_db() as db:
+        db.execute(
+            """
+            DELETE
+            FROM apipayments WHERE wallet = ? AND pending = 1 AND time < strftime('%s', 'now') - ?
+            """,
+            (wallet_id, seconds),
+        )
+
+
 # payments
 # --------
 

@@ -12,6 +12,8 @@ from ..services import create_invoice, pay_invoice
 @api_check_wallet_key("invoice")
 def api_payments():
     if "check_pending" in request.args:
+        g.wallet.delete_expired_payments()
+
         for payment in g.wallet.get_payments(include_all_pending=True):
             if payment.is_out:
                 payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
@@ -74,13 +76,13 @@ def api_payment(checking_id):
 
     try:
         if payment.is_out:
-            is_paid = WALLET.get_payment_status(checking_id).paid
+            is_paid = not WALLET.get_payment_status(checking_id).pending
         elif payment.is_in:
-            is_paid = WALLET.get_invoice_status(checking_id).paid
+            is_paid = not WALLET.get_invoice_status(checking_id).pending
     except Exception:
         return jsonify({"paid": False}), Status.OK
 
-    if is_paid is True:
+    if is_paid:
         payment.set_pending(False)
         return jsonify({"paid": True}), Status.OK
 
