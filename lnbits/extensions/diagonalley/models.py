@@ -5,7 +5,7 @@ class Indexers(NamedTuple):
     wallet: str
     shopname: str
     indexeraddress: str
-    ratingkey: str
+    online: bool
     rating: str
     shippingzone1: str
     shippingzone2: str
