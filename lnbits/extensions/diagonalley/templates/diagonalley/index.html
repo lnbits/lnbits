@@ -64,6 +64,7 @@
                   {{ col.value }}
                 </q-td>
                 <q-td auto-width>
+                   <q-btn flat dense size="xs" @click="openProductUpdateDialog(props.row.id)" icon="edit" color="light-blue"></q-btn>
                   <q-btn flat dense size="xs" @click="deleteProduct(props.row.id)" icon="cancel" color="pink"></q-btn>
                 </q-td>
               </q-tr>
@@ -116,6 +117,8 @@
                   {{ col.value }}
                 </q-td>
                 <q-td auto-width>
+
+                  <q-btn flat dense size="xs" @click="openIndexerUpdateDialog(props.row.id)" icon="edit" color="light-blue"></q-btn>
                   <q-btn flat dense size="xs" @click="deleteIndexer(props.row.id)" icon="cancel" color="pink"></q-btn>
                 </q-td>
               </q-tr>
@@ -207,7 +210,7 @@
 
     <q-dialog v-model="productDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-        <q-form class="q-gutter-md">
+        <q-form  @submit="sendProductFormData" class="q-gutter-md">
           <q-select filled dense emit-value v-model="productDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
           </q-select>
           <q-input filled dense
@@ -232,13 +235,18 @@
             type="number"
             label="Quantity"
            ></q-input>
-          <q-btn unelevated
+
+           <q-btn v-if="productDialog.data.id" unelevated color="deep-purple" 
+           type="submit">Update Product</q-btn>
+
+          <q-btn v-else unelevated
             color="deep-purple"
             :disable="productDialog.data.image == null 
             || productDialog.data.product == null
             || productDialog.data.description == null
             || productDialog.data.quantity == null" 
-            @click="createProduct">Create Product</q-btn>
+            type="submit">Create Product</q-btn>
+
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </q-form>
       </q-card>
@@ -249,7 +257,7 @@
 
     <q-dialog v-model="indexerDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-        <q-form class="q-gutter-md">
+        <q-form  @submit="sendIndexerFormData" class="q-gutter-md">
           <q-select filled dense emit-value v-model="indexerDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
           </q-select>
           <q-input filled dense
@@ -286,7 +294,11 @@
             v-model.trim="indexerDialog.data.email"
             label="Email to share with customers"></q-input>
           
-          <q-btn unelevated
+
+           <q-btn v-if="indexerDialog.data.id" unelevated color="deep-purple" 
+           type="submit">Update Indexer</q-btn>
+
+            <q-btn v-else unelevated
             color="deep-purple"
             :disable="indexerDialog.data.shopname == null 
             || indexerDialog.data.shippingzone1 == null
@@ -295,7 +307,8 @@
             || indexerDialog.data.shippingzone2 == null
             || indexerDialog.data.zone2cost == null
             || indexerDialog.data.email == null" 
-            @click="createIndexer">Create Product</q-btn>
+            type="submit">Create Indexer</q-btn>
+
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </q-form>
       </q-card>
@@ -314,6 +327,7 @@
       obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm');
       obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount);
       obj.wall = ['/diagonalley/', obj.id].join('');
+      obj._data = _.clone(obj);
       return obj;
     }
 
@@ -336,8 +350,10 @@
             columns: [
               {name: 'shopname', align: 'left', label: 'Shop', field: 'shopname'},
               {name: 'indexeraddress', align: 'left', label: 'Address', field: 'indexeraddress'},
+              {name: 'id', align: 'left', label: 'ID', field: 'id'},
               {name: 'rating', align: 'left', label: 'Your Rating', field: 'rating'},
-              {name: 'email', align: 'left', label: 'Your email', field: 'email'}
+              {name: 'email', align: 'left', label: 'Your email', field: 'email'},
+              {name: 'online', align: 'left', label: 'Online', field: 'online'}
             ],
              pagination: {
               rowsPerPage: 10
@@ -400,8 +416,16 @@
             });
           });
         },
-        createIndexer: function () {
 
+        openIndexerUpdateDialog: function (linkId) {
+          var link = _.findWhere(this.indexers, {id: linkId});
+
+          this.indexerDialog.data = _.clone(link._data);
+          this.indexerDialog.show = true;
+        },
+        sendIndexerFormData: function () {
+          if (this.indexerDialog.data.id){}
+          else{
           var data = {
             shopname: this.indexerDialog.data.shopname,
             indexeraddress: this.indexerDialog.data.indexeraddress,
@@ -410,11 +434,31 @@
             shippingzone2: this.indexerDialog.data.shippingzone2.join(', '),
             zone2cost: this.indexerDialog.data.zone2cost,
             email: this.indexerDialog.data.email
-          };
+          };}
+
+          if (this.indexerDialog.data.id) { 
+            this.updateIndexer(this.indexerDialog.data); }
+          else { this.createIndexer(data); }
+        },
+        updateIndexer: function (data) {
           var self = this;
-
-          console.log(data);
-
+          LNbits.api.request(
+            'PUT',
+            '/diagonalley/api/v1/diagonalley/indexers' + data.id,
+            _.findWhere(this.g.user.wallets, {id: this.indexerDialog.data.wallet}).inkey,
+            _.pick(data, 'shopname', 'indexeraddress', 'shippingzone1', 'zone1cost', 'shippingzone2', 'zone2cost', 'email')
+          ).then(function (response) {
+            self.indexers = _.reject(self.indexers, function (obj) { return obj.id == data.id; });
+            self.indexers.push(mapDiagonAlley(response.data));
+            self.indexerDialog.show = false;
+            self.indexerDialog.data = {};
+            data = {};
+          }).catch(function (error) {
+            LNbits.utils.notifyApiError(error);
+          });
+        },
+        createIndexer: function (data) {
+          var self = this;
           LNbits.api.request(
             'POST',
             '/diagonalley/api/v1/diagonalley/indexers',
@@ -424,10 +468,12 @@
             self.indexers.push(mapDiagonAlley(response.data));
             self.indexerDialog.show = false;
             self.indexerDialog.data = {};
+            data = {};
           }).catch(function (error) {
             LNbits.utils.notifyApiError(error);
           });
         },
+
         deleteIndexer: function (indexerId) {
           var self = this;
           var indexer = _.findWhere(this.indexers, {id: indexerId});
@@ -555,7 +601,17 @@
           });
         },
 
-        createProduct: function () {
+
+
+        openProductUpdateDialog: function (linkId) {
+          var link = _.findWhere(this.products, {id: linkId});
+
+          this.productDialog.data = _.clone(link._data);
+          this.productDialog.show = true;
+        },
+        sendProductFormData: function () {
+          if (this.productDialog.data.id){}
+          else{
           var data = {
             product: this.productDialog.data.product,
             categories: this.productDialog.data.categories,
@@ -563,9 +619,29 @@
             image: this.productDialog.data.image,
             price: this.productDialog.data.price,
             quantity: this.productDialog.data.quantity
-          };
+          };}
+          if (this.productDialog.data.id) { 
+            this.updateProduct(this.productDialog.data); }
+          else { this.createProduct(data); }
+        },
+        updateProduct: function (data) {
           var self = this;
-
+          LNbits.api.request(
+            'PUT',
+            '/diagonalley/api/v1/diagonalley/products' + data.id,
+            _.findWhere(this.g.user.wallets, {id: this.productDialog.data.wallet}).inkey,
+            _.pick(data, 'shopname', 'indexeraddress', 'shippingzone1', 'zone1cost', 'shippingzone2', 'zone2cost', 'email')
+          ).then(function (response) {
+            self.products = _.reject(self.products, function (obj) { return obj.id == data.id; });
+            self.products.push(mapDiagonAlley(response.data));
+            self.productDialog.show = false;
+            self.productDialog.data = {};
+          }).catch(function (error) {
+            LNbits.utils.notifyApiError(error);
+          });
+        },
+        createProduct: function (data) {
+          var self = this;
           LNbits.api.request(
             'POST',
             '/diagonalley/api/v1/diagonalley/products',
@@ -579,6 +655,7 @@
             LNbits.utils.notifyApiError(error);
           });
         },
+
         deleteProduct: function (productId) {
           var self = this;
           var product = _.findWhere(this.products, {id: productId});
