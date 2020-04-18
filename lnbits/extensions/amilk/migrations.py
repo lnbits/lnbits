@@ -10,7 +10,7 @@ def m001_initial(db):
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             lnurl TEXT NOT NULL,
-            atime TEXT NOT NULL,
+            atime INTEGER NOT NULL,
             amount INTEGER NOT NULL
         );
     """)
