@@ -5,5 +5,5 @@ class AMilk(NamedTuple):
     id: str
     wallet: str
     lnurl: str
-    atime: str
+    atime: int
     amount: int
