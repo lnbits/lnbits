@@ -7,15 +7,15 @@ from lnbits.db import open_ext_db
 from .models import AMilk
 
 
-def create_amilk(*, wallet_id: str, url: str, memo: str, amount: int) -> AMilk:
+def create_amilk(*, wallet_id: str, lnurl: str, atime: int, amount: int) -> AMilk:
     with open_ext_db("amilk") as db:
         amilk_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
         db.execute(
             """
-            INSERT INTO amilks (id, wallet, url, memo, amount)
+            INSERT INTO amilks (id, wallet, lnurl, atime, amount)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (amilk_id, wallet_id, url, memo, amount),
+            (amilk_id, wallet_id, lnurl, atime, amount),
         )
 
     return get_amilk(amilk_id)
