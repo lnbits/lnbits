@@ -33,12 +33,12 @@
 
     {% if DEBUG %}
       <script src="{{ url_for('static', filename='vendor/vue@2.6.11/vue.js') }}"></script>
-      <script src="{{ url_for('static', filename='vendor/quasar@1.9.12/quasar.umd.js') }}"></script>
+      <script src="{{ url_for('static', filename='vendor/quasar@1.9.15/quasar.umd.js') }}"></script>
     {% else %}
       {% assets output='__bundle__/vue-print.js',
-        'vendor/quasar@1.9.12/quasar.ie.polyfills.umd.min.js',
+        'vendor/quasar@1.9.15/quasar.ie.polyfills.umd.min.js',
         'vendor/vue@2.6.11/vue.min.js',
-        'vendor/quasar@1.9.12/quasar.umd.min.js' %}
+        'vendor/quasar@1.9.15/quasar.umd.min.js' %}
         <script type="text/javascript" src="{{ ASSET_URL }}"></script>
       {% endassets %}
     {% endif %}
