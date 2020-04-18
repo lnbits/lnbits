@@ -30,7 +30,7 @@
             {% raw %}
             <template v-slot:header="props">
               <q-tr :props="props">
-                <q-th auto-width></q-th>
+
                 <q-th
                   v-for="col in props.cols"
                   :key="col.name"
@@ -38,19 +38,17 @@
                 >
                   {{ col.label }}
                 </q-th>
-                <q-th auto-width></q-th>
+
               </q-tr>
             </template>
             <template v-slot:body="props">
               <q-tr :props="props">
-                <q-td auto-width>
-                  <q-btn unelevated dense size="xs" icon="room_service" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" type="a" :href="props.row.wall" target="_blank"></q-btn>
-                  <q-btn unelevated dense size="xs" icon="link" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" type="a" :href="props.row.url" target="_blank"></q-btn>
-                </q-td>
+
                 <q-td
                   v-for="col in props.cols"
                   :key="col.name"
                   :props="props"
+
                 >
                   {{ col.value }}
                 </q-td>
@@ -129,7 +127,7 @@
               {name: 'id', align: 'left', label: 'ID', field: 'id'},
               {name: 'lnurl', align: 'left', label: 'LNURL', field: 'lnurl'},
               {name: 'atime', align: 'left', label: 'Freq', field: 'atime'},
-              {name: 'amount', align: 'left', label: 'Amount', field: 'amount'},
+              {name: 'amount', align: 'left', label: 'Amount', field: 'amount'}
             ],
             pagination: {
               rowsPerPage: 10
@@ -142,15 +140,37 @@
         };
       },
       methods: {
+
+
+
         getAMilks: function () {
           var self = this;
 
           LNbits.api.request(
             'GET',
-            '/amilk/api/v1/amilks?all_wallets',
+            '/amilk/api/v1/amilk?all_wallets',
             this.g.user.wallets[0].inkey
           ).then(function (response) {
-            self.amilks = response.data.map(function (obj) {
+            self.amilks = response.data.map(function (obj) { 
+              response.data.forEach(MILK);
+              function MILK(item){
+
+              window.setInterval(function(){ 
+                
+             
+                LNbits.api.request(
+                  'GET',
+                  '/amilk/api/v1/amilk/milk/' + item.id,
+                  "Lorem"
+                ).then(function (response) {
+                  self.amilks = response.data.map(function (obj) { 
+                  return mapAMilk(obj);
+                });
+              });
+              }, 
+              item.atime*1000);
+
+              }
               return mapAMilk(obj);
             });
           });
@@ -158,7 +178,7 @@
         createAMilk: function () {
           var data = {
             lnurl: this.amilkDialog.data.lnurl,
-            time: this.amilkDialog.data.time,
+            atime: parseInt(this.amilkDialog.data.atime),
             amount: this.amilkDialog.data.amount
           };
           var self = this;
@@ -167,7 +187,7 @@
 
           LNbits.api.request(
             'POST',
-            '/amilk/api/v1/amilks',
+            '/amilk/api/v1/amilk',
             _.findWhere(this.g.user.wallets, {id: this.amilkDialog.data.wallet}).inkey,
             data
           ).then(function (response) {
