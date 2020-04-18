@@ -106,11 +106,13 @@
               emit-value v-model="formDialog.data.currency"
               :options="currencyOptions"
               label="Currency *"></q-select>
-            <q-btn unelevated
-              color="deep-purple"
-              :disable="formDialog.data.currency == null || formDialog.data.name == null"
-              @click="createTPoS">Create TPoS</q-btn>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            <div class="row q-mt-lg">
+              <q-btn unelevated
+                color="deep-purple"
+                :disable="formDialog.data.currency == null || formDialog.data.name == null"
+                @click="createTPoS">Create TPoS</q-btn>
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            </div>
         </q-form>
       </q-card>
     </q-dialog>
@@ -134,12 +136,85 @@
         return {
           tposs: [],
           currencyOptions: [
-            'USD', 'EUR', 'GBP', 'DZD', 'ARP', 'AUD', 'ATS', 'BSD', 'BBD', 'BEF', 'BMD', 'BRL', 'BGL', 'CAD', 'CLP',
-            'CNY', 'CYP', 'CSK', 'DKK', 'NLG', 'XCD', 'EGP', 'FJD', 'FIM', 'FRF', 'DEM', 'XAU', 'GRD', 'HKD', 'HUF',
-            'ISK', 'INR', 'IDR', 'IEP', 'ILS', 'ITL', 'JMD', 'JPY', 'JOD', 'KRW', 'LBP', 'LUF', 'MYR', 'MXP', 'NLG',
-            'NZD', 'NOK', 'PKR', 'XPD', 'PHP', 'XPT', 'PLZ', 'PTE', 'ROL', 'RUR', 'SAR', 'XAG', 'SGD', 'SKK', 'ZAR',
-            'KRW', 'ESP', 'XDR', 'SDD', 'SEK', 'CHF', 'TWD', 'THB', 'TTD', 'TRL', 'VEB', 'ZMK', 'EUR', 'XCD', 'XDR',
-            'XAG', 'XAU', 'XPD', 'XPT'
+            {value: 'USD', label: 'USD - United States Dollars'},
+            {value: 'EUR', label: 'EUR - Euro'},
+            {value: 'GBP', label: 'GBP - United Kingdom Pounds'},
+            {value: 'DZD', label: 'DZD - Algeria Dinars'},
+            {value: 'ARP', label: 'ARP - Argentina Pesos'},
+            {value: 'AUD', label: 'AUD - Australia Dollars'},
+            {value: 'ATS', label: 'ATS - Austria Schillings'},
+            {value: 'BSD', label: 'BSD - Bahamas Dollars'},
+            {value: 'BBD', label: 'BBD - Barbados Dollars'},
+            {value: 'BEF', label: 'BEF - Belgium Francs'},
+            {value: 'BMD', label: 'BMD - Bermuda Dollars'},
+            {value: 'BRL', label: 'BRL - Brazil Real'},
+            {value: 'BGL', label: 'BGL - Bulgaria Lev'},
+            {value: 'CAD', label: 'CAD - Canada Dollars'},
+            {value: 'CLP', label: 'CLP - Chile Pesos'},
+            {value: 'CNY', label: 'CNY - China Yuan Renmimbi'},
+            {value: 'CYP', label: 'CYP - Cyprus Pounds'},
+            {value: 'CSK', label: 'CSK - Czech Republic Koruna'},
+            {value: 'DKK', label: 'DKK - Denmark Kroner'},
+            {value: 'NLG', label: 'NLG - Dutch Guilders'},
+            {value: 'XCD', label: 'XCD - Eastern Caribbean Dollars'},
+            {value: 'EGP', label: 'EGP - Egypt Pounds'},
+            {value: 'FJD', label: 'FJD - Fiji Dollars'},
+            {value: 'FIM', label: 'FIM - Finland Markka'},
+            {value: 'FRF', label: 'FRF - France Francs'},
+            {value: 'DEM', label: 'DEM - Germany Deutsche Marks'},
+            {value: 'XAU', label: 'XAU - Gold Ounces'},
+            {value: 'GRD', label: 'GRD - Greece Drachmas'},
+            {value: 'HKD', label: 'HKD - Hong Kong Dollars'},
+            {value: 'HUF', label: 'HUF - Hungary Forint'},
+            {value: 'ISK', label: 'ISK - Iceland Krona'},
+            {value: 'INR', label: 'INR - India Rupees'},
+            {value: 'IDR', label: 'IDR - Indonesia Rupiah'},
+            {value: 'IEP', label: 'IEP - Ireland Punt'},
+            {value: 'ILS', label: 'ILS - Israel New Shekels'},
+            {value: 'ITL', label: 'ITL - Italy Lira'},
+            {value: 'JMD', label: 'JMD - Jamaica Dollars'},
+            {value: 'JPY', label: 'JPY - Japan Yen'},
+            {value: 'JOD', label: 'JOD - Jordan Dinar'},
+            {value: 'KRW', label: 'KRW - Korea (South) Won'},
+            {value: 'LBP', label: 'LBP - Lebanon Pounds'},
+            {value: 'LUF', label: 'LUF - Luxembourg Francs'},
+            {value: 'MYR', label: 'MYR - Malaysia Ringgit'},
+            {value: 'MXP', label: 'MXP - Mexico Pesos'},
+            {value: 'NLG', label: 'NLG - Netherlands Guilders'},
+            {value: 'NZD', label: 'NZD - New Zealand Dollars'},
+            {value: 'NOK', label: 'NOK - Norway Kroner'},
+            {value: 'PKR', label: 'PKR - Pakistan Rupees'},
+            {value: 'XPD', label: 'XPD - Palladium Ounces'},
+            {value: 'PHP', label: 'PHP - Philippines Pesos'},
+            {value: 'XPT', label: 'XPT - Platinum Ounces'},
+            {value: 'PLZ', label: 'PLZ - Poland Zloty'},
+            {value: 'PTE', label: 'PTE - Portugal Escudo'},
+            {value: 'ROL', label: 'ROL - Romania Leu'},
+            {value: 'RUR', label: 'RUR - Russia Rubles'},
+            {value: 'SAR', label: 'SAR - Saudi Arabia Riyal'},
+            {value: 'XAG', label: 'XAG - Silver Ounces'},
+            {value: 'SGD', label: 'SGD - Singapore Dollars'},
+            {value: 'SKK', label: 'SKK - Slovakia Koruna'},
+            {value: 'ZAR', label: 'ZAR - South Africa Rand'},
+            {value: 'KRW', label: 'KRW - South Korea Won'},
+            {value: 'ESP', label: 'ESP - Spain Pesetas'},
+            {value: 'XDR', label: 'XDR - Special Drawing Right (IMF)'},
+            {value: 'SDD', label: 'SDD - Sudan Dinar'},
+            {value: 'SEK', label: 'SEK - Sweden Krona'},
+            {value: 'CHF', label: 'CHF - Switzerland Francs'},
+            {value: 'TWD', label: 'TWD - Taiwan Dollars'},
+            {value: 'THB', label: 'THB - Thailand Baht'},
+            {value: 'TTD', label: 'TTD - Trinidad and Tobago Dollars'},
+            {value: 'TRL', label: 'TRL - Turkey Lira'},
+            {value: 'VEB', label: 'VEB - Venezuela Bolivar'},
+            {value: 'ZMK', label: 'ZMK - Zambia Kwacha'},
+            {value: 'EUR', label: 'EUR - Euro'},
+            {value: 'XCD', label: 'XCD - Eastern Caribbean Dollars'},
+            {value: 'XDR', label: 'XDR - Special Drawing Right (IMF)'},
+            {value: 'XAG', label: 'XAG - Silver Ounces'},
+            {value: 'XAU', label: 'XAU - Gold Ounces'},
+            {value: 'XPD', label: 'XPD - Palladium Ounces'},
+            {value: 'XPT', label: 'XPT - Platinum Ounces'}
           ],
           tpossTable: {
             columns: [

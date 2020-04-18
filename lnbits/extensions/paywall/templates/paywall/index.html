@@ -96,11 +96,13 @@
             v-model.trim="paywallDialog.data.memo"
             label="Memo"
             placeholder="LNbits invoice"></q-input>
-          <q-btn unelevated
-            color="deep-purple"
-            :disable="paywallDialog.data.amount == null || paywallDialog.data.amount < 0 || paywallDialog.data.url == null"
-            @click="createPaywall">Create paywall</q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          <div class="row q-mt-lg">
+            <q-btn unelevated
+              color="deep-purple"
+              :disable="paywallDialog.data.amount == null || paywallDialog.data.amount < 0 || paywallDialog.data.url == null"
+              @click="createPaywall">Create paywall</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          </div>
         </q-form>
       </q-card>
     </q-dialog>

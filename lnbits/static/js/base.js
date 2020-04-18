@@ -59,7 +59,7 @@ var LNbits = {
       });
       obj.walletOptions = obj.wallets.map(function (obj) {
         return {
-          label: [obj.name, ' (', obj.id , ')'].join(''),
+          label: [obj.name, ' - ', obj.id].join(''),
           value: obj.id
         };
       });

@@ -154,7 +154,7 @@
           v-model.trim="receive.data.memo"
           label="Memo"
           placeholder="LNbits invoice"></q-input>
-        <div v-if="receive.status == 'pending'" class="row justify-between">
+        <div v-if="receive.status == 'pending'" class="row q-mt-lg">
           <q-btn unelevated
             color="deep-purple"
             :disable="receive.data.amount == null || receive.data.amount <= 0"
@@ -172,9 +172,9 @@
           </q-responsive>
         </a>
       </div>
-      <div class="row justify-between">
+      <div class="row q-mt-lg">
         <q-btn flat color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
-        <q-btn v-close-popup flat color="grey">Close</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
@@ -184,17 +184,16 @@
       <div v-if="!send.invoice">
         <q-form v-if="!sendCamera.show" class="q-gutter-md">
           <q-input filled dense
-              v-model.trim="send.data.bolt11"
-              type="textarea"
-              label="Paste an invoice *"
-            >
-              <template v-slot:after>
-                <q-btn round dense flat icon="photo_camera" @click="showCamera">
-                  <q-tooltip>Use camera to scan an invoice</q-tooltip>
-                </q-btn>
-              </template>
-            </q-input>
-          <div class="row justify-between">
+            v-model.trim="send.data.bolt11"
+            type="textarea"
+            label="Paste an invoice *">
+            <template v-slot:after>
+              <q-btn round dense flat icon="photo_camera" @click="showCamera">
+                <q-tooltip>Use camera to scan an invoice</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
+          <div class="row q-mt-lg">
             <q-btn unelevated
               color="deep-purple"
               :disable="send.data.bolt11 == ''"
@@ -206,7 +205,7 @@
           <q-responsive :ratio="1">
             <qrcode-stream @decode="decodeQR" class="rounded-borders"></qrcode-stream>
           </q-responsive>
-          <div class="row justify-between q-mt-md">
+          <div class="row q-mt-lg">
             <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Cancel</q-btn>
           </div>
         </div>
@@ -221,15 +220,15 @@
             <strong>Hash:</strong> {{ send.invoice.hash }}
           </p>
         {% endraw %}
-        <div v-if="canPay" class="row justify-between">
+        <div v-if="canPay" class="row q-mt-lg">
           <q-btn unelevated
             color="deep-purple"
             @click="payInvoice">Send satoshis</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </div>
-        <div v-else class="row justify-between">
+        <div class="row q-mt-lg">
           <q-btn unelevated disabled color="yellow" text-color="black">Not enough funds!</q-btn>
-          <q-btn v-close-popup flat color="grey">Cancel</q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </div>
       </div>
     </q-card>

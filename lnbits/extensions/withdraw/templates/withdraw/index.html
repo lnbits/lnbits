@@ -138,22 +138,24 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <q-btn v-if="formDialog.data.id" unelevated color="deep-purple" type="submit">Update withdraw link</q-btn>
-          <q-btn v-else unelevated
-            color="deep-purple"
-            :disable="
-              formDialog.data.wallet == null ||
-              formDialog.data.title == null ||
-              (formDialog.data.min_withdrawable == null || formDialog.data.min_withdrawable < 1) ||
-              (
-                formDialog.data.max_withdrawable == null ||
-                formDialog.data.max_withdrawable < 1 ||
-                formDialog.data.max_withdrawable < formDialog.data.min_withdrawable
-              ) ||
-              formDialog.data.uses == null ||
-              formDialog.data.wait_time == null"
-            type="submit">Create withdraw link</q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          <div class="row q-mt-lg">
+            <q-btn v-if="formDialog.data.id" unelevated color="deep-purple" type="submit">Update withdraw link</q-btn>
+            <q-btn v-else unelevated
+              color="deep-purple"
+              :disable="
+                formDialog.data.wallet == null ||
+                formDialog.data.title == null ||
+                (formDialog.data.min_withdrawable == null || formDialog.data.min_withdrawable < 1) ||
+                (
+                  formDialog.data.max_withdrawable == null ||
+                  formDialog.data.max_withdrawable < 1 ||
+                  formDialog.data.max_withdrawable < formDialog.data.min_withdrawable
+                ) ||
+                formDialog.data.uses == null ||
+                formDialog.data.wait_time == null"
+              type="submit">Create withdraw link</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          </div>
         </q-form>
       </q-card>
     </q-dialog>
@@ -172,9 +174,10 @@
             <strong>Withdraws:</strong> {{ qrCodeDialog.data.used }} / {{ qrCodeDialog.data.uses }} <q-linear-progress :value="qrCodeDialog.data.used / qrCodeDialog.data.uses" color="deep-purple" class="q-mt-sm"></q-linear-progress>
           </p>
         {% endraw %}
-        <div class="row q-mt-md">
-          <q-btn flat color="grey" @click="copyText(qrCodeDialog.data.withdraw_url)">Copy link</q-btn>
-          <q-btn v-if="!qrCodeDialog.data.is_unique" flat color="grey" type="a" :href="qrCodeDialog.data.print_url" target="_blank">Print QR codes</q-btn>
+        <div class="row q-mt-lg q-gutter-sm">
+          <q-btn outline color="grey" @click="copyText(qrCodeDialog.data.lnurl, 'LNURL copied to clipboard!')" class="q-ml-sm">Copy LNURL</q-btn>
+          <q-btn outline color="grey" @click="copyText(qrCodeDialog.data.withdraw_url, 'Link copied to clipboard!')">Shareable link</q-btn>
+          <q-btn v-if="!qrCodeDialog.data.is_unique" outline color="grey" icon="print" type="a" :href="qrCodeDialog.data.print_url" target="_blank"></q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
         </div>
       </q-card>

@@ -236,18 +236,20 @@
             label="Quantity"
            ></q-input>
 
-           <q-btn v-if="productDialog.data.id" unelevated color="deep-purple" 
+          <div class="row q-mt-lg">
+           <q-btn v-if="productDialog.data.id" unelevated color="deep-purple"
            type="submit">Update Product</q-btn>
 
-          <q-btn v-else unelevated
-            color="deep-purple"
-            :disable="productDialog.data.image == null 
-            || productDialog.data.product == null
-            || productDialog.data.description == null
-            || productDialog.data.quantity == null" 
-            type="submit">Create Product</q-btn>
+            <q-btn v-else unelevated
+              color="deep-purple"
+              :disable="productDialog.data.image == null
+              || productDialog.data.product == null
+              || productDialog.data.description == null
+              || productDialog.data.quantity == null"
+              type="submit">Create Product</q-btn>
 
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          </div>
         </q-form>
       </q-card>
     </q-dialog>
@@ -267,7 +269,7 @@
             v-model.trim="indexerDialog.data.indexeraddress"
             label="Shop link (LNbits will point to)"></q-input>
             <q-select
-            filled
+            filled dense
              v-model.trim="indexerDialog.data.shippingzone1"
             multiple
             :options="shippingoptions"
@@ -279,7 +281,7 @@
             label="Zone 1 Cost"></q-input>
 
             <q-select
-            filled
+            filled dense
              v-model.trim="indexerDialog.data.shippingzone2"
             multiple
             :options="shippingoptions"
@@ -293,23 +295,24 @@
           <q-input filled dense
             v-model.trim="indexerDialog.data.email"
             label="Email to share with customers"></q-input>
-          
 
-           <q-btn v-if="indexerDialog.data.id" unelevated color="deep-purple" 
+          <div class="row q-mt-lg">
+           <q-btn v-if="indexerDialog.data.id" unelevated color="deep-purple"
            type="submit">Update Indexer</q-btn>
 
             <q-btn v-else unelevated
             color="deep-purple"
-            :disable="indexerDialog.data.shopname == null 
+            :disable="indexerDialog.data.shopname == null
             || indexerDialog.data.shippingzone1 == null
             || indexerDialog.data.indexeraddress == null
             || indexerDialog.data.zone1cost == null
             || indexerDialog.data.shippingzone2 == null
             || indexerDialog.data.zone2cost == null
-            || indexerDialog.data.email == null" 
+            || indexerDialog.data.email == null"
             type="submit">Create Indexer</q-btn>
 
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+          </div>
         </q-form>
       </q-card>
     </q-dialog>

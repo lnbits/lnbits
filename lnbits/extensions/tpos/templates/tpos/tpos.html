@@ -80,7 +80,7 @@
               {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
             </h5>
           </div>
-          <div class="row q-mt-md">
+          <div class="row q-mt-lg">
             <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
           </div>
         </q-card>
@@ -93,8 +93,8 @@
           <div class="text-center q-mb-xl">
             <p style="word-break: break-all"><strong>{{ tpos.name }}</strong><br>{{ request.url }}</p>
           </div>
-          <div class="row q-mt-md">
-            <q-btn flat color="grey" @click="copyText('{{ request.url }}', 'TPoS URL copied to clipboard!')" >Copy URL</q-btn>
+          <div class="row q-mt-lg">
+            <q-btn outline color="grey" @click="copyText('{{ request.url }}', 'TPoS URL copied to clipboard!')">Copy URL</q-btn>
             <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
           </div>
         </q-card>
