@@ -102,7 +102,7 @@ new Vue({
       LNbits.api.request(
         'PUT',
         '/withdraw/api/v1/links/' + data.id,
-        wallet.inkey,
+        wallet.adminkey,
         _.pick(data, 'title', 'min_withdrawable', 'max_withdrawable', 'uses', 'wait_time', 'is_unique')
       ).then(function (response) {
         self.withdrawLinks = _.reject(self.withdrawLinks, function (obj) { return obj.id == data.id; });
@@ -118,7 +118,7 @@ new Vue({
       LNbits.api.request(
         'POST',
         '/withdraw/api/v1/links',
-        wallet.inkey,
+        wallet.adminkey,
         data
       ).then(function (response) {
         self.withdrawLinks.push(mapWithdrawLink(response.data));
@@ -145,7 +145,7 @@ new Vue({
         LNbits.api.request(
           'DELETE',
           '/withdraw/api/v1/links/' + linkId,
-          _.findWhere(self.g.user.wallets, {id: link.wallet}).inkey
+          _.findWhere(self.g.user.wallets, {id: link.wallet}).adminkey
         ).then(function (response) {
           self.withdrawLinks = _.reject(self.withdrawLinks, function (obj) { return obj.id == linkId; });
         }).catch(function (error) {
