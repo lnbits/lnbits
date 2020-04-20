@@ -40,17 +40,10 @@
         <q-card-section>
           <h3 class="q-my-none"><strong>LN</strong>bits</h3>
           <h5 class="q-my-md">Free and open-source lightning wallet</h5>
-          <p>LNbits is a simple, free and open-source lightning-network
-            wallet for bits and bobs. You can run it on your own server,
-            or use it at lnbits.com.</p>
-          <p>The wallet can be used in a variety of ways: an instant wallet for
-            LN demonstrations, a fallback wallet for the LNURL scheme, an
-            accounts system to mitigate the risk of exposing applications to
-            your full balance.</p>
-          <p>The wallet can run on top of LND, LNPay, @lntxbot or OpenNode.</p>
-          <p>Please note that although one of the aims of this wallet is to
-            mitigate exposure of all your funds, it’s still very BETA and may,
-            in fact, do the opposite!</p>
+          <p>Easy to set up and lightweight, LNbits can run on any lightning-network funding source, currently supporting LND, Clightning, Opennode, Lntxbot, Lnpay and even LNbits itself! </p>
+          <p>You can run LNbits for yourself, or easily offer a custodian solution for others.</p>
+          <p>Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool.</p>
+          <p>Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.</p>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat
@@ -66,25 +59,27 @@
 
     <!-- Ads -->
     <div class="col-12 col-md-3 col-lg-3 q-gutter-y-md">
-      <q-btn flat color="deep-purple" label="Advertise here!" type="a" href="mailto:ben@arc.wales" class="full-width"></q-btn>
+      <q-btn flat color="deep-purple" label="Advertising/sponsorship space" type="a" href="mailto:lnbits@pm.me" class="full-width"></q-btn>
       <div>
         <a href="https://where39.com/">
-          <q-img :ratio="16/9" src="{{ url_for('static', filename='images/where39.png') }}" class="rounded-borders">
-            <div class="absolute-top text-center">Where39 anon locations</div>
+          <q-img :ratio="48/9" src="{{ url_for('static', filename='images/where39.png') }}" class="rounded-borders">
+            
           </q-img>
         </a>
       </div>
+      <br/>
       <div>
         <a href="https://github.com/arcbtc/Quickening">
-          <q-img :ratio="16/9" src="{{ url_for('static', filename='images/quick.gif') }}" class="rounded-borders">
-            <div class="absolute-top text-center">The Quickening <$8 PoS</div>
+          <q-img :ratio="65/9" src="{{ url_for('static', filename='images/raspilogo.png') }}" class="rounded-borders">
+ 
           </q-img>
         </a>
       </div>
+      <br/>
       <div>
         <a href="http://jigawatt.co/">
-          <q-img :ratio="16/9" src="{{ url_for('static', filename='images/stamps.jpg') }}" class="rounded-borders">
-            <div class="absolute-top text-center">Buy BTC stamps + electronics</div>
+          <q-img :ratio="65/18" src="{{ url_for('static', filename='images/quickening.png') }}" class="rounded-borders">
+
           </q-img>
         </a>
       </div>
