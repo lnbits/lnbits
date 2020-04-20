@@ -3,6 +3,10 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
+      disclaimerDialog: {  
+        show: false,
+        data: {}
+        },
       walletName: ''
     };
   },
