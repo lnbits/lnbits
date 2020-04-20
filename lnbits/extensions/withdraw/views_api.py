@@ -44,7 +44,7 @@ def api_link_retrieve(link_id):
 
 @withdraw_ext.route("/api/v1/links", methods=["POST"])
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
@@ -79,7 +79,7 @@ def api_link_create(link_id=None):
 
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 def api_link_delete(link_id):
     link = get_withdraw_link(link_id)
 
