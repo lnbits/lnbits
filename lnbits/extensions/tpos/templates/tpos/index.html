@@ -65,7 +65,7 @@
       </q-card>
     </div>
 
-    <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <div class="col-12 col-md-5 q-gutter-y-md">
       <q-card>
         <q-card-section>
           <h6 class="text-subtitle1 q-my-none">LNbits TPoS extension</h6>
@@ -73,22 +73,14 @@
         <q-card-section class="q-pa-none">
           <q-separator></q-separator>
           <q-list>
-            <q-expansion-item
-              group="extras"
-              icon="info"
-              label="Info">
-              <q-card>
-                <q-card-section>
-                  <p><em>Tiago's Point of Sale</em> is an instant and secure point of sale terminal. A merchant can use the PoS to accept payments to their LNbits wallet, without having to expose the wallet itself, which means it can even be shared with others.</p>
-                  <p>For example, a merchant could setup multiple TPoSs for each one of their colleagues, and use TPoS to track which colleague has taken sales. The terminal is optimized for mobile use, and is easily shared as a QR code, via the "#" share function on the TPoS.</p>
-                  <small>Created by <a href="https://github.com/talvasconcelos" target="_blank">Tiago Vasconcelos</a>.</small>
-                </q-card-section>
-              </q-card>
-            </q-expansion-item>
+            {% include "tpos/_api_docs.html" %}
+            <q-separator></q-separator>
+            {% include "tpos/_tpos.html" %}
           </q-list>
         </q-card-section>
       </q-card>
     </div>
+
 
     <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
       <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
