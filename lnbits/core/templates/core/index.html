@@ -30,7 +30,28 @@
                 <q-btn unelevated
                   color="deep-purple"
                   :disable="walletName == ''"
+                  @click="disclaimerDialog.show = true"
                   @click="createWallet">Add a new wallet</q-btn>
+
+
+                 
+
+         <q-dialog v-model="disclaimerDialog.show" position="top">
+            <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+              <p>
+               Login functionality to be released in V0.2, for now make sure you bookmark to save your wallet!<br/>
+               This service is in BETA, and we hold no responsibility for people losing access to funds.<br/>
+               To encourage you to run your own LNbits, any balance on lnbits.com will incur a charge of 1% per week.
+              </p>
+
+              <q-btn unelevated
+                        color="deep-purple"
+                        @click="createWallet">Proceed</q-btn>
+            </q-card>
+          </q-dialog>
+
+
+
               </q-form>
             {% endif %}
         </q-card-section>
