@@ -36,7 +36,7 @@ def api_tpos_create():
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>", methods=["DELETE"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 def api_tpos_delete(tpos_id):
     tpos = get_tpos(tpos_id)
 
