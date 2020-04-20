@@ -207,7 +207,7 @@
             LNbits.api.request(
               'DELETE',
               '/tpos/api/v1/tposs/' + tposId,
-              _.findWhere(self.g.user.wallets, {id: tpos.wallet}).inkey
+              _.findWhere(self.g.user.wallets, {id: tpos.wallet}).adminkey
             ).then(function (response) {
               self.tposs = _.reject(self.tposs, function (obj) { return obj.id == tposId; });
             }).catch(function (error) {
