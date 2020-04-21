@@ -2,7 +2,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 from lnbits.db import open_db
-from lnbits.settings import DEFAULT_WALLET_NAME, FEE_RESERVE
+from lnbits.settings import DEFAULT_WALLET_NAME
 
 from .models import User, Wallet, Payment
 
@@ -34,11 +34,11 @@ def get_user(user_id: str) -> Optional[User]:
             extensions = db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (user_id,))
             wallets = db.fetchall(
                 """
-                SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) * ? AS balance_msat
+                SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
                 FROM wallets
                 WHERE user = ?
                 """,
-                (1 - FEE_RESERVE, user_id),
+                (user_id,),
             )
 
     return (
@@ -96,11 +96,11 @@ def get_wallet(wallet_id: str) -> Optional[Wallet]:
     with open_db() as db:
         row = db.fetchone(
             """
-            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) * ? AS balance_msat
+            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
             FROM wallets
             WHERE id = ?
             """,
-            (1 - FEE_RESERVE, wallet_id),
+            (wallet_id,),
         )
 
     return Wallet(**row) if row else None
@@ -111,11 +111,11 @@ def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
         check_field = "adminkey" if key_type == "admin" else "inkey"
         row = db.fetchone(
             f"""
-            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) * ? AS balance_msat
+            SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
             FROM wallets
             WHERE {check_field} = ?
             """,
-            (1 - FEE_RESERVE, key),
+            (key,),
         )
 
     return Wallet(**row) if row else None

@@ -1,7 +1,7 @@
 from typing import Optional, Tuple
 
 from lnbits.bolt11 import decode as bolt11_decode
-from lnbits.settings import WALLET, FEE_RESERVE
+from lnbits.settings import WALLET
 
 from .crud import create_payment
 from .models import Wallet
@@ -38,11 +38,7 @@ def pay_invoice(*, wallet: Wallet, bolt11: str, max_sat: Optional[int] = None) -
 
         if ok:
             create_payment(
-                wallet_id=wallet.id,
-                checking_id=checking_id,
-                amount=-invoice.amount_msat,
-                memo=invoice.description,
-                fee=-invoice.amount_msat * FEE_RESERVE,
+                wallet_id=wallet.id, checking_id=checking_id, amount=-invoice.amount_msat, memo=invoice.description
             )
 
     except Exception as e:
