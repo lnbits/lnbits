@@ -21,7 +21,7 @@ def api_getticket():
         user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (unireg,))
 
 
-        header = {"Content-Type": "application/json", "Grpc-Metadata-macaroon": user_ev[0][4]}
+        header = {"Content-Type": "application/json", "X-Api-Key": user_ev[0][4]}
         data = {"value": str(user_ev[0][10]), "memo": user_ev[0][6]}
         print(url_for("api_invoices", _external=True))
         r = requests.post(url=url_for("api_invoices", _external=True), headers=header, data=json.dumps(data))

@@ -453,7 +453,7 @@ background-color:
         <!-- Main content -->
         <section class="content"><br/><br/>
           <center><h1 style="font-size:500%">{{ user_ev[0][6] }}</h1></center>
-      
+
 
         <br/><br/><br/>
 
@@ -474,13 +474,13 @@ background-color:
           Scan ticket
         </button>
          </center>
-   
-   
+
+
       <div id="scantickets"></div>
             <br/><br/><br/>
           <div id="qrcodetxt"></div> <br/></center>
       <br/><br/><br/>
-     
+
      <center>
       <div class="row" style="width:80%;margin-top:80px">
 
@@ -578,7 +578,7 @@ function postAjax(url, data, thekey, success) {
       success(xhr.responseText)
     }
   }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('X-Api-Key', thekey)
   xhr.setRequestHeader('Content-Type', 'application/json')
   xhr.send(params)
   return xhr
@@ -594,7 +594,7 @@ function postAjax(url, data, thekey, success) {
       success(xhr.responseText)
     }
   }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('X-Api-Key', thekey)
   xhr.setRequestHeader('Content-Type', 'application/json')
 
   xhr.send()
@@ -666,7 +666,7 @@ function scanQRsend() {
 }
 
 function cancelsend() {
-  location.reload(); 
+  location.reload();
 }
 
 

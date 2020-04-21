@@ -455,7 +455,7 @@ background-color:
            <div id="theform">
           <br/><br/><br/>
                 <center>
-              
+
                 <form role="form">
 
                     <div class="form-group" style="width:300px;">
@@ -497,7 +497,7 @@ function postAjax(url, data, thekey, success) {
       success(xhr.responseText)
     }
   }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('X-Api-Key', thekey)
   xhr.setRequestHeader('Content-Type', 'application/json')
   xhr.send(params)
   return xhr
@@ -513,7 +513,7 @@ function postAjax(url, data, thekey, success) {
       success(xhr.responseText)
     }
   }
-  xhr.setRequestHeader('Grpc-Metadata-macaroon', thekey)
+  xhr.setRequestHeader('X-Api-Key', thekey)
   xhr.setRequestHeader('Content-Type', 'application/json')
 
   xhr.send()
@@ -530,7 +530,7 @@ function submitforticket(){
     JSON.stringify({"unireg": "{{wave }}", "name": nam}),
     "filla",
 
-    function(data) {  
+    function(data) {
       theinvoice = JSON.parse(data).pay_req
       thehash = JSON.parse(data).payment_hash
 
@@ -549,7 +549,7 @@ function submitforticket(){
 
 
       document.getElementById('qrcodetxt').innerHTML = theinvoice + "<br/><br/>"
-      
+
       var refreshId = setInterval(function(){
 
       getAjax('/api/v1/invoice/' + thehash, "{{wave}}", function(datab) {
@@ -559,7 +559,7 @@ function submitforticket(){
            clearInterval(refreshId)
         }
       })}, 3000);
-     
+
 
 })
 }
