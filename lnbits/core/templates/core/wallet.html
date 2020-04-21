@@ -226,7 +226,7 @@
             @click="payInvoice">Send satoshis</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </div>
-        <div class="row q-mt-lg">
+        <div v-else class="row q-mt-lg">
           <q-btn unelevated disabled color="yellow" text-color="black">Not enough funds!</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </div>
