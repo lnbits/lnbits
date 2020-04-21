@@ -241,4 +241,16 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="disclaimerDialog.show">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-deep-purple">Warning</h6>
+      <p>Login functionality to be released in v0.2, for now, <strong>make sure you bookmark this page for future access to your wallet</strong>!</p>
+      <p>This service is in BETA, and we hold no responsibility for people losing access to funds. To encourage you to run your own LNbits installation, any balance on {% raw %}{{ disclaimerDialog.location.host }}{% endraw %} will incur a charge of <strong>1% service fee</strong> per week.</p>
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="copyText(disclaimerDialog.location.href)">Copy wallet URL</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">I understand</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 {% endblock %}

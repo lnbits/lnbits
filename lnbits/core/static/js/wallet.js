@@ -138,6 +138,10 @@ new Vue({
       },
       paymentsChart: {
         show: false
+      },
+      disclaimerDialog: {
+        show: false,
+        location: window.location
       }
     };
   },
@@ -339,5 +343,10 @@ new Vue({
   created: function () {
     this.fetchPayments();
     setTimeout(this.checkPendingPayments(), 1200);
+
+    if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
+      this.disclaimerDialog.show = true;
+      this.$q.localStorage.set('lnbits.disclaimerShown', true);
+    };
   }
 });
