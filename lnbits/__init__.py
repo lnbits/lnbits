@@ -8,7 +8,7 @@ from os import getenv
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .core import core_app, migrations as core_migrations
-from .helpers import ExtensionManager, megajson
+from .helpers import ExtensionManager
 
 
 app = Flask(__name__)
@@ -58,7 +58,6 @@ for ext in valid_extensions:
 app.jinja_env.globals["DEBUG"] = app.config["DEBUG"]
 app.jinja_env.globals["EXTENSIONS"] = valid_extensions
 app.jinja_env.globals["SITE_TITLE"] = getenv("LNBITS_SITE_TITLE", "LNbits")
-app.jinja_env.filters["megajson"] = megajson
 
 
 # assets

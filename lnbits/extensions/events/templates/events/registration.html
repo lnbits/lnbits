@@ -525,8 +525,8 @@ button:focus .ema {
      <script>
 
 
-window.user_ev = {{ user_ev | megajson | safe }}
-window.user_ev_sold = {{ user_ev_sold | megajson | safe }}
+window.user_ev = {{ user_ev | tojson | safe }}
+window.user_ev_sold = {{ user_ev_sold | tojson | safe }}
 console.log(user_ev)
 console.log(user_ev_sold)
 

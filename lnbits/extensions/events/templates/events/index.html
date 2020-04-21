@@ -220,13 +220,13 @@
     $('#datepicker').datepicker({
       autoclose: true
     })
-  
 
 
-    window.user = {{ user | megajson | safe }}
-    window.user_wallets = {{ user_wallets | megajson | safe }}
-    window.user_ext = {{ user_ext | megajson | safe }}
-    window.user_ev = {{ user_ev | megajson | safe }}
+
+    window.user = {{ user | tojson | safe }}
+    window.user_wallets = {{ user_wallets | tojson | safe }}
+    window.user_ext = {{ user_ext | tojson | safe }}
+    window.user_ev = {{ user_ev | tojson | safe }}
 
     const user_ev = window.user_ev
     console.log(user_ev)
