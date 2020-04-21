@@ -11,9 +11,11 @@ from .core import core_app, migrations as core_migrations
 from .helpers import ExtensionManager
 
 
+disabled_extensions = getenv("LNBITS_DISABLED_EXTENSIONS", "").split(",")
+
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-valid_extensions = [ext for ext in ExtensionManager().extensions if ext.is_valid]
+valid_extensions = [ext for ext in ExtensionManager(disabled=disabled_extensions).extensions if ext.is_valid]
 
 
 # optimization & security
