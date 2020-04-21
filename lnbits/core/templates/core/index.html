@@ -22,7 +22,7 @@
                 Press to claim bitcoin
               </q-btn>
             {% else %}
-              <q-form class="q-gutter-md">
+              <q-form @submit="createWallet" class="q-gutter-md">
                 <q-input filled dense
                   v-model="walletName"
                   label="Name your LNbits wallet *"
@@ -30,29 +30,7 @@
                 <q-btn unelevated
                   color="deep-purple"
                   :disable="walletName == ''"
-                  @click="disclaimerDialog.show = true"
-                  @click="createWallet">Add a new wallet</q-btn>
-
-
-                 
-
-         <q-dialog v-model="disclaimerDialog.show" position="top">
-            <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-              <h5 class="q-my-md">WARNING</h5>
-              <p>
-               Login functionality to be released in V0.2, for now make sure you bookmark to save your wallet!<br/><br/>
-               This service is in BETA, and we hold no responsibility for people losing access to funds.<br/><br/>
-               To encourage you to run your own LNbits, any balance on lnbits.com will incur a charge of 1% per week.
-              </p>
-
-              <q-btn unelevated
-                        color="deep-purple"
-                        @click="createWallet">Proceed</q-btn>
-            </q-card>
-          </q-dialog>
-
-
-
+                  type="submit">Add a new wallet</q-btn>
               </q-form>
             {% endif %}
         </q-card-section>
@@ -62,19 +40,19 @@
         <q-card-section>
           <h3 class="q-my-none"><strong>LN</strong>bits</h3>
           <h5 class="q-my-md">Free and open-source lightning wallet</h5>
-          <p>Easy to set up and lightweight, LNbits can run on any lightning-network funding source, currently supporting LND, Clightning, Opennode, Lntxbot, Lnpay and even LNbits itself! </p>
+          <p>Easy to set up and lightweight, LNbits can run on any lightning-network funding source, currently supporting LND, c-lightning, OpenNode, lntxbot, LNPay and even LNbits itself!</p>
           <p>You can run LNbits for yourself, or easily offer a custodian solution for others.</p>
           <p>Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool.</p>
           <p>Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.</p>
+          <div class="row q-mt-md q-gutter-sm">
+            <q-btn outline
+              color="grey"
+              type="a" href="https://github.com/arcbtc/lnbits" target="_blank" rel="noopener">View project in GitHub</q-btn>
+            <q-btn outline
+              color="grey"
+              type="a" href="https://paywall.link/to/f4e4e" target="_blank" rel="noopener">Donate</q-btn>
+          </div>
         </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat
-            color="grey"
-            type="a" href="https://github.com/arcbtc/lnbits" target="_blank" rel="noopener">View project in GitHub</q-btn>
-          <q-btn flat
-            color="grey"
-            type="a" href="https://paywall.link/to/f4e4e" target="_blank" rel="noopener">Donate</q-btn>
-        </q-card-actions>
       </q-card>
 
     </div>
@@ -85,7 +63,7 @@
       <div>
         <a href="https://where39.com/">
           <q-img :ratio="48/9" src="{{ url_for('static', filename='images/where39.png') }}" class="rounded-borders">
-            
+
           </q-img>
         </a>
       </div>
@@ -93,7 +71,7 @@
       <div>
         <a href="https://github.com/rootzoll/raspiblitz">
           <q-img :ratio="65/9" src="{{ url_for('static', filename='images/raspilogo.png') }}" class="rounded-borders">
- 
+
           </q-img>
         </a>
       </div>
@@ -107,4 +85,16 @@
       </div>
     </div>
   </div>
+
+  <q-dialog v-model="disclaimerDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <h5 class="q-my-md">WARNING</h5>
+      <p>
+        Login functionality to be released in V0.2, for now make sure you bookmark to save your wallet!<br/><br/>
+        This service is in BETA, and we hold no responsibility for people losing access to funds.<br/><br/>
+        To encourage you to run your own LNbits, any balance on lnbits.com will incur a charge of 1% per week.
+      </p>
+      <q-btn unelevated color="deep-purple" @click="createWallet">Proceed</q-btn>
+    </q-card>
+  </q-dialog>
 {% endblock %}

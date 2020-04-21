@@ -79,7 +79,7 @@
 
     <q-dialog v-model="amilkDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-        <q-form class="q-gutter-md">
+        <q-form @submit="createAMilk" class="q-gutter-md">
           <q-select filled dense emit-value v-model="amilkDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
           </q-select>
           <q-input filled dense
@@ -98,7 +98,7 @@
           <q-btn unelevated
             color="deep-purple"
             :disable="amilkDialog.data.amount == null || amilkDialog.data.amount < 0 || amilkDialog.data.lnurl == null"
-            @click="createAMilk">Create amilk</q-btn>
+            type="submit">Create amilk</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </q-form>
       </q-card>
@@ -151,23 +151,23 @@
             '/amilk/api/v1/amilk?all_wallets',
             this.g.user.wallets[0].inkey
           ).then(function (response) {
-            self.amilks = response.data.map(function (obj) { 
+            self.amilks = response.data.map(function (obj) {
               response.data.forEach(MILK);
               function MILK(item){
 
-              window.setInterval(function(){ 
-                
-             
+              window.setInterval(function(){
+
+
                 LNbits.api.request(
                   'GET',
                   '/amilk/api/v1/amilk/milk/' + item.id,
                   "Lorem"
                 ).then(function (response) {
-                  self.amilks = response.data.map(function (obj) { 
+                  self.amilks = response.data.map(function (obj) {
                   return mapAMilk(obj);
                 });
               });
-              }, 
+              },
               item.atime*1000);
 
               }

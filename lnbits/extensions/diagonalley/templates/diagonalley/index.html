@@ -11,7 +11,7 @@
           <q-btn unelevated color="deep-purple" @click="productDialog.show = true">New Product</q-btn>
           <q-btn unelevated color="deep-purple" @click="indexerDialog.show = true">New Indexer
           <q-tooltip>
-            Frontend shop your stall will list its products in 
+            Frontend shop your stall will list its products in
           </q-tooltip></q-btn>
         </q-card-section>
       </q-card>
@@ -95,7 +95,7 @@
             {% raw %}
             <template v-slot:header="props">
               <q-tr :props="props">
-                
+
                 <q-th
                   v-for="col in props.cols"
                   :key="col.name"
@@ -150,7 +150,7 @@
             {% raw %}
             <template v-slot:header="props">
               <q-tr :props="props">
-             
+
                 <q-th
                   v-for="col in props.cols"
                   :key="col.name"
@@ -210,7 +210,7 @@
 
     <q-dialog v-model="productDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-        <q-form  @submit="sendProductFormData" class="q-gutter-md">
+        <q-form @submit="sendProductFormData" class="q-gutter-md">
           <q-select filled dense emit-value v-model="productDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
           </q-select>
           <q-input filled dense
@@ -237,8 +237,9 @@
            ></q-input>
 
           <div class="row q-mt-lg">
-           <q-btn v-if="productDialog.data.id" unelevated color="deep-purple"
-           type="submit">Update Product</q-btn>
+            <q-btn v-if="productDialog.data.id" unelevated
+              color="deep-purple"
+              type="submit">Update Product</q-btn>
 
             <q-btn v-else unelevated
               color="deep-purple"
@@ -254,12 +255,9 @@
       </q-card>
     </q-dialog>
 
-
-
-
     <q-dialog v-model="indexerDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-        <q-form  @submit="sendIndexerFormData" class="q-gutter-md">
+        <q-form @submit="sendIndexerFormData" class="q-gutter-md">
           <q-select filled dense emit-value v-model="indexerDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
           </q-select>
           <q-input filled dense
@@ -297,27 +295,26 @@
             label="Email to share with customers"></q-input>
 
           <div class="row q-mt-lg">
-           <q-btn v-if="indexerDialog.data.id" unelevated color="deep-purple"
-           type="submit">Update Indexer</q-btn>
+            <q-btn v-if="indexerDialog.data.id" unelevated
+              color="deep-purple"
+              type="submit">Update Indexer</q-btn>
 
             <q-btn v-else unelevated
-            color="deep-purple"
-            :disable="indexerDialog.data.shopname == null
-            || indexerDialog.data.shippingzone1 == null
-            || indexerDialog.data.indexeraddress == null
-            || indexerDialog.data.zone1cost == null
-            || indexerDialog.data.shippingzone2 == null
-            || indexerDialog.data.zone2cost == null
-            || indexerDialog.data.email == null"
-            type="submit">Create Indexer</q-btn>
+              color="deep-purple"
+              :disable="indexerDialog.data.shopname == null
+              || indexerDialog.data.shippingzone1 == null
+              || indexerDialog.data.indexeraddress == null
+              || indexerDialog.data.zone1cost == null
+              || indexerDialog.data.shippingzone2 == null
+              || indexerDialog.data.zone2cost == null
+              || indexerDialog.data.email == null"
+              type="submit">Create Indexer</q-btn>
 
             <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
           </div>
         </q-form>
       </q-card>
     </q-dialog>
-
-
 
   </div>
 {% endblock %}
@@ -390,7 +387,7 @@
               rowsPerPage: 10
             }
           },
-          productDialog: {  
+          productDialog: {
             show: false,
             data: {}
           },
@@ -404,8 +401,7 @@
           },
         };
       },
-      methods: {  
-
+      methods: {
         getIndexers: function () {
           var self = this;
 
@@ -419,7 +415,6 @@
             });
           });
         },
-
         openIndexerUpdateDialog: function (linkId) {
           var link = _.findWhere(this.indexers, {id: linkId});
 
@@ -439,8 +434,7 @@
             email: this.indexerDialog.data.email
           };}
 
-          if (this.indexerDialog.data.id) { 
-            this.updateIndexer(this.indexerDialog.data); }
+          if (this.indexerDialog.data.id) { this.updateIndexer(this.indexerDialog.data); }
           else { this.createIndexer(data); }
         },
         updateIndexer: function (data) {
@@ -476,7 +470,6 @@
             LNbits.utils.notifyApiError(error);
           });
         },
-
         deleteIndexer: function (indexerId) {
           var self = this;
           var indexer = _.findWhere(this.indexers, {id: indexerId});
@@ -506,9 +499,7 @@
         exportIndexersCSV: function () {
           LNbits.utils.exportCSV(this.indexersTable.columns, this.indexers);
         },
-
-
-       getOrders: function () {
+        getOrders: function () {
           var self = this;
 
           LNbits.api.request(
@@ -521,7 +512,6 @@
             });
           });
         },
-
         createOrder: function () {
           var data = {
             address: this.orderDialog.data.address,
@@ -582,14 +572,11 @@
               return mapDiagonAlley(obj);
             });
           });
-         
-        },
 
+        },
         exportOrdersCSV: function () {
           LNbits.utils.exportCSV(this.ordersTable.columns, this.orders);
         },
-
-
         getProducts: function () {
           var self = this;
 
@@ -603,9 +590,6 @@
             });
           });
         },
-
-
-
         openProductUpdateDialog: function (linkId) {
           var link = _.findWhere(this.products, {id: linkId});
 
@@ -623,7 +607,7 @@
             price: this.productDialog.data.price,
             quantity: this.productDialog.data.quantity
           };}
-          if (this.productDialog.data.id) { 
+          if (this.productDialog.data.id) {
             this.updateProduct(this.productDialog.data); }
           else { this.createProduct(data); }
         },
@@ -658,7 +642,6 @@
             LNbits.utils.notifyApiError(error);
           });
         },
-
         deleteProduct: function (productId) {
           var self = this;
           var product = _.findWhere(this.products, {id: productId});
@@ -694,7 +677,6 @@
           this.getProducts();
           this.getOrders();
           this.getIndexers();
-         // console.log(this);
         }
       }
    });

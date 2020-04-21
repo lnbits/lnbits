@@ -145,7 +145,7 @@
 
   <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
     <q-card v-if="!receive.paymentReq" class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form class="q-gutter-md">
+      <q-form @submit="createInvoice" class="q-gutter-md">
         <q-input filled dense
           v-model.number="receive.data.amount"
           type="number"
@@ -158,7 +158,7 @@
           <q-btn unelevated
             color="deep-purple"
             :disable="receive.data.amount == null || receive.data.amount <= 0"
-            @click="createInvoice">Create invoice</q-btn>
+            type="submit">Create invoice</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </div>
         <q-spinner v-if="receive.status == 'loading'" color="deep-purple" size="2.55em"></q-spinner>
@@ -173,7 +173,7 @@
         </a>
       </div>
       <div class="row q-mt-lg">
-        <q-btn flat color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -182,7 +182,7 @@
   <q-dialog v-model="send.show" position="top" @hide="closeSendDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div v-if="!send.invoice">
-        <q-form v-if="!sendCamera.show" class="q-gutter-md">
+        <q-form v-if="!sendCamera.show" @submit="decodeInvoice" class="q-gutter-md">
           <q-input filled dense
             v-model.trim="send.data.bolt11"
             type="textarea"
@@ -197,7 +197,7 @@
             <q-btn unelevated
               color="deep-purple"
               :disable="send.data.bolt11 == ''"
-              @click="decodeInvoice">Read invoice</q-btn>
+              type="submit">Read invoice</q-btn>
             <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
           </div>
         </q-form>
