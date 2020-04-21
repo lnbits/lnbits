@@ -17,7 +17,7 @@ def api_payments():
         for payment in g.wallet.get_payments(include_all_pending=True):
             if payment.is_out:
                 payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
-            elif payment.is_in:
+            else:
                 payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
 
     return jsonify(g.wallet.get_payments()), Status.OK

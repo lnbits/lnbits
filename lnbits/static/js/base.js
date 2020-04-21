@@ -102,13 +102,13 @@ var LNbits = {
       Quasar.plugins.Notify.create({
         timeout: 5000,
         type: types[error.response.status] || 'warning',
-        message: error.response.data.message || null,
-        caption: [error.response.status, ' ', error.response.statusText].join('').toUpperCase() || null,
+        message: error.response.data.message || null,
+        caption: [error.response.status, ' ', error.response.statusText].join('').toUpperCase() || null,
         icon: null
       });
     },
     search: function (data, q, field, separator) {
-      var field = field || '_q';
+      var field = field || '_q';
 
       try {
         var queries = q.toLowerCase().split(separator || ' ');

@@ -347,6 +347,6 @@ new Vue({
     if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true;
       this.$q.localStorage.set('lnbits.disclaimerShown', true);
-    };
+    }
   }
 });
