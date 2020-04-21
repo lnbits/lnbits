@@ -1,8 +1,10 @@
 from flask import g, jsonify, request
 
-from lnbits.core.crud import get_user
+from lnbits.core.crud import get_user, get_wallet
+from lnbits.core.services import create_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.helpers import Status
+from lnbits.settings import WALLET
 
 from lnbits.extensions.paywall import paywall_ext
 from .crud import create_paywall, get_paywall, get_paywalls, delete_paywall
@@ -21,11 +23,13 @@ def api_paywalls():
 
 @paywall_ext.route("/api/v1/paywalls", methods=["POST"])
 @api_check_wallet_key("invoice")
-@api_validate_post_request(schema={
-    "url": {"type": "string", "empty": False, "required": True},
-    "memo": {"type": "string", "empty": False, "required": True},
-    "amount": {"type": "integer", "min": 0, "required": True},
-})
+@api_validate_post_request(
+    schema={
+        "url": {"type": "string", "empty": False, "required": True},
+        "memo": {"type": "string", "empty": False, "required": True},
+        "amount": {"type": "integer", "min": 0, "required": True},
+    }
+)
 def api_paywall_create():
     paywall = create_paywall(wallet_id=g.wallet.id, **g.data)
 
@@ -46,3 +50,64 @@ def api_paywall_delete(paywall_id):
     delete_paywall(paywall_id)
 
     return "", Status.NO_CONTENT
+
+
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>/invoice", methods=["GET"])
+def api_paywall_get_invoice(paywall_id):
+    paywall = get_paywall(paywall_id)
+
+    try:
+        checking_id, payment_request = create_invoice(
+            wallet_id=paywall.wallet, amount=paywall.amount, memo=paywall.memo
+        )
+    except Exception as e:
+        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
+
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.OK
+
+
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "checking_id": {"type": "string", "empty": False, "required": True},
+        "fingerprint": {"type": "string", "empty": False, "required": True},
+    }
+)
+def api_paywal_check_invoice(paywall_id):
+    paywall = get_paywall(paywall_id)
+
+    if not paywall:
+        return jsonify({"message": "Paywall does not exist."}), Status.NOT_FOUND
+
+    try:
+        is_paid = not WALLET.get_invoice_status(g.data["checking_id"]).pending
+    except Exception:
+        return jsonify({"paid": False}), Status.OK
+
+    if is_paid:
+        wallet = get_wallet(paywall.wallet)
+        payment = wallet.get_payment(g.data["checking_id"])
+        payment.set_pending(False)
+
+        return jsonify({"paid": True, "key": paywall.key_for(g.data["fingerprint"]), "url": paywall.url}), Status.OK
+
+    return jsonify({"paid": False}), Status.OK
+
+
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_access", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "key": {"type": "string", "empty": False, "required": True},
+        "fingerprint": {"type": "string", "empty": False, "required": True},
+    }
+)
+def api_fingerprint_check(paywall_id):
+    paywall = get_paywall(paywall_id)
+
+    if not paywall:
+        return jsonify({"message": "Paywall does not exist."}), Status.NOT_FOUND
+
+    if paywall.key_for(g.data["fingerprint"]) != g.data["key"]:
+        return jsonify({"valid": False}), Status.OK
+
+    return jsonify({"valid": True, "url": paywall.url}), Status.OK

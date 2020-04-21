@@ -11,10 +11,10 @@ def create_paywall(*, wallet_id: str, url: str, memo: str, amount: int) -> Paywa
         paywall_id = urlsafe_short_hash()
         db.execute(
             """
-            INSERT INTO paywalls (id, wallet, url, memo, amount)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO paywalls (id, wallet, secret, url, memo, amount)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (paywall_id, wallet_id, url, memo, amount),
+            (paywall_id, wallet_id, urlsafe_short_hash(), url, memo, amount),
         )
 
     return get_paywall(paywall_id)

@@ -9,6 +9,7 @@ def m001_initial(db):
         CREATE TABLE IF NOT EXISTS paywalls (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
+            secret TEXT NOT NULL,
             url TEXT NOT NULL,
             memo TEXT NOT NULL,
             amount INTEGER NOT NULL,
@@ -18,5 +19,5 @@ def m001_initial(db):
 
 
 def migrate():
-    with open_ext_db("tpos") as db:
+    with open_ext_db("paywall") as db:
         m001_initial(db)
