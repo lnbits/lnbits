@@ -5,7 +5,8 @@ def m001_initial(db):
     """
     Initial paywalls table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS paywalls (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
@@ -15,7 +16,8 @@ def m001_initial(db):
             amount INTEGER NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
-    """)
+    """
+    )
 
 
 def migrate():

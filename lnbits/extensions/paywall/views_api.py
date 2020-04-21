@@ -58,7 +58,7 @@ def api_paywall_get_invoice(paywall_id):
 
     try:
         checking_id, payment_request = create_invoice(
-            wallet_id=paywall.wallet, amount=paywall.amount, memo=paywall.memo
+            wallet_id=paywall.wallet, amount=paywall.amount, memo=f"#paywall {paywall.memo}"
         )
     except Exception as e:
         return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR

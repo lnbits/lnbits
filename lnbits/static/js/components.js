@@ -1,3 +1,18 @@
+Vue.component('lnbits-fsat', {
+  props: {
+    amount: {
+      type: Number,
+      default: 0
+    }
+  },
+  template: '<span>{{ fsat }}</span>',
+  computed: {
+    fsat: function () {
+      return LNbits.utils.formatSat(this.amount);
+    }
+  }
+});
+
 Vue.component('lnbits-wallet-list', {
   data: function () {
     return {
