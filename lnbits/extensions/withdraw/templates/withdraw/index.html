@@ -54,7 +54,7 @@
               <q-tr :props="props">
                 <q-td auto-width>
                   <q-btn unelevated dense size="xs" icon="launch" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" type="a" :href="props.row.withdraw_url" target="_blank"></q-btn>
-                  <q-btn unelevated dense size="xs" icon="crop_free" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" @click="openQrCodeDialog(props.row.id)"></q-btn>
+                  <q-btn unelevated dense size="xs" icon="visibility" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" @click="openQrCodeDialog(props.row.id)"></q-btn>
                 </q-td>
                 <q-td
                   v-for="col in props.cols"
