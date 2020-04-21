@@ -39,5 +39,9 @@
     .q-table--dense .q-table__bottom {
       padding-right: 6px !important; }
 
-video {
-  border-radius: 3px; }
+a.inherit {
+  color: inherit;
+  text-decoration: none; }
+
+  video {
+    border-radius: 3px; }

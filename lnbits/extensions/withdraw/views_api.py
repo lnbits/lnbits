@@ -55,7 +55,7 @@ def api_link_retrieve(link_id):
         "is_unique": {"type": "boolean", "required": True},
     }
 )
-def api_link_create(link_id=None):
+def api_link_create_or_update(link_id=None):
     if g.data["max_withdrawable"] < g.data["min_withdrawable"]:
         return jsonify({"message": "`max_withdrawable` needs to be at least `min_withdrawable`."}), Status.BAD_REQUEST
 
