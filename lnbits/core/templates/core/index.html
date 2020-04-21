@@ -17,7 +17,7 @@
             {% if lnurl %}
               <q-btn unelevated
                 color="deep-purple"
-                @click="notify"
+                @click="processing"
                 type="a" href="{{ url_for('core.lnurlwallet', lightning=lnurl) }}">
                 Press to claim bitcoin
               </q-btn>
