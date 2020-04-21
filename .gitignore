@@ -13,7 +13,6 @@ __pycache__
 .pytest_cache
 .webassets-cache
 htmlcov
-Pipfile.lock
 test-reports
 
 *.swo

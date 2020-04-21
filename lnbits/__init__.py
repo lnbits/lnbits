@@ -5,12 +5,14 @@ from flask_assets import Environment, Bundle
 from flask_compress import Compress
 from flask_talisman import Talisman
 from os import getenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .core import core_app, migrations as core_migrations
 from .helpers import ExtensionManager, megajson
 
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 valid_extensions = [ext for ext in ExtensionManager().extensions if ext.is_valid]
 
 
