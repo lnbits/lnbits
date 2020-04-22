@@ -191,14 +191,21 @@ def api_diagonalleys_order_shipped(order_id):
     return jsonify([order._asdict() for order in get_diagonalleys_orders(order["wallet"])]), Status.OK
 
 
-###List products based on wallet
+###List products based on indexer id
 
-@diagonalley_ext.route("/api/v1/diagonalley/stall/products/<wallet_id>", methods=["GET"])
-def api_diagonalleys_stall_products(wallet_id):
+@diagonalley_ext.route("/api/v1/diagonalley/stall/products/<indexer_id>", methods=["GET"])
+def api_diagonalleys_stall_products(indexer_id):
     with open_ext_db("diagonalley") as db:
-        rows = db.fetchall("SELECT * FROM products WHERE WALLET = ?", (wallet_id,))
+        rows = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
+        print(rows[1])
+        if not rows:
+            return jsonify({"message": "Indexer does not exist."}), Status.NOT_FOUND
 
-    return jsonify([products._asdict() for products in get_diagonalleys_products(wallet_id)]), Status.OK
+        products = db.fetchone("SELECT * FROM products WHERE wallet = ?", (rows[1],))
+        if not products:
+             return jsonify({"message": "No products"}), Status.NOT_FOUND
+
+    return jsonify([products._asdict() for products in get_diagonalleys_products(rows[1])]), Status.OK
 
 ###Check a product has been shipped
 
