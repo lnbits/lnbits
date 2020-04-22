@@ -25,25 +25,25 @@
   <q-expansion-item group="api" dense expand-separator label="Get prodcuts, categorised by wallet">
     <q-card>
       <q-card-section>
-        <code><span class="text-light-blue">GET</span> /api/v1/diagonalley/stall/products/&lt;wallet_id&gt;</code>
+        <code><span class="text-light-blue">GET</span> /api/v1/diagonalley/stall/products/&lt;indexer_id&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>Product JSON list</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET http://127.0.0.1:5000/diagonalley/api/v1/diagonalley/stall/products/&lt;wallet_id&gt;</code>
+        <code>curl -X GET http://127.0.0.1:5000/diagonalley/api/v1/diagonalley/stall/products/&lt;indexer_id&gt;</code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
   <q-expansion-item group="api" dense expand-separator label="Get invoice for product">
     <q-card>
       <q-card-section>
-        <code><span class="text-light-green">POST</span> /api/v1/diagonalley/stall/order/&lt;wallet_id&gt;</code>
+        <code><span class="text-light-green">POST</span> /api/v1/diagonalley/stall/order/&lt;indexer_id&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code>{"id": &lt;string&gt;, "address": &lt;string&gt;, "shippingzone": &lt;integer&gt;, "email": &lt;string&gt;, "quantity": &lt;integer&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"checking_id": &lt;string&gt;,"payment_request": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST http://127.0.0.1:5000/diagonalley/api/v1/diagonalley/stall/order/&lt;wallet_id&gt; -d '{"id": &lt;product_id&&gt;, "email": &lt;customer_email&gt;, "address": &lt;customer_address&gt;, "quantity": 2, "shippingzone": 1}' -H "Content-type: application/json"
+        <code>curl -X POST http://127.0.0.1:5000/diagonalley/api/v1/diagonalley/stall/order/&lt;indexer_id&gt; -d '{"id": &lt;product_id&&gt;, "email": &lt;customer_email&gt;, "address": &lt;customer_address&gt;, "quantity": 2, "shippingzone": 1}' -H "Content-type: application/json"
        </code>
       </q-card-section>
     </q-card>
