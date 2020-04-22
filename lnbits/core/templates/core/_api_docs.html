@@ -15,7 +15,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"checking_id": &lt;string&gt;, "payment_request": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST http://127.0.0.1:5000/api/v1/payments -d '{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H "X-Api-Key: <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code>
+        <code>curl -X POST {{ request.url_root }}api/v1/payments -d '{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;}' -H "X-Api-Key: <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
@@ -30,7 +30,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"checking_id": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST http://127.0.0.1:5000/api/v1/payments -d '{"out": true, "bolt11": &lt;string&gt;}' -H "X-Api-Key: {{ wallet.adminkey }}"</i> -H "Content-type: application/json"</code>
+        <code>curl -X POST {{ request.url_root }}api/v1/payments -d '{"out": true, "bolt11": &lt;string&gt;}' -H "X-Api-Key: {{ wallet.adminkey }}"</i> -H "Content-type: application/json"</code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
@@ -44,7 +44,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK (application/json)</h5>
         <code>{"paid": &lt;bool&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET http://127.0.0.1:5000/api/v1/payments/&lt;checking_id&gt; -H "X-Api-Key: {{ wallet.inkey }}"</i> -H "Content-type: application/json"</code>
+        <code>curl -X GET {{ request.url_root }}api/v1/payments/&lt;checking_id&gt; -H "X-Api-Key: {{ wallet.inkey }}"</i> -H "Content-type: application/json"</code>
       </q-card-section>
     </q-card>
   </q-expansion-item>

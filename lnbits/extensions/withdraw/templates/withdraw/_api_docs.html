@@ -14,7 +14,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET http://127.0.0.1:5000/withdraw/api/v1/links -H "X-Api-Key: &lt;invoice_key&gt;" </code>
+        <code>curl -X GET {{ request.url_root }}withdraw/api/v1/links -H "X-Api-Key: &lt;invoice_key&gt;" </code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
@@ -29,7 +29,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST http://127.0.0.1:5000/withdraw/api/v1/links -d '{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;, "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;, "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key: &lt;admin_key&gt;"
+        <code>curl -X POST {{ request.url_root }}withdraw/api/v1/links -d '{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;, "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;, "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key: &lt;admin_key&gt;"
        </code>
       </q-card-section>
     </q-card>
@@ -45,7 +45,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X PUT http://127.0.0.1:5000/withdraw/api/v1/links/&lt;withdraw_id&gt; -d '{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;, "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;, "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key: &lt;admin_key&gt;"
+        <code>curl -X PUT {{ request.url_root }}withdraw/api/v1/links/&lt;withdraw_id&gt; -d '{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;, "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;, "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key: &lt;admin_key&gt;"
        </code>
       </q-card-section>
     </q-card>
@@ -59,7 +59,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 NO_CONTENT</h5>
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X DELETE http://127.0.0.1:5000/withdraw/api/v1/links/&lt;withdraw_id&gt; -H "X-Api-Key: &lt;admin_key&gt;"
+        <code>curl -X DELETE {{ request.url_root }}withdraw/api/v1/links/&lt;withdraw_id&gt; -H "X-Api-Key: &lt;admin_key&gt;"
        </code>
 
       </q-card-section>

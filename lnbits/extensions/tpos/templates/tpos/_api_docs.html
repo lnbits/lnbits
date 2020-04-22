@@ -14,7 +14,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"currency": &lt;string&gt;, "id": &lt;string&gt;, "name": &lt;string&gt;, "wallet": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET http://127.0.0.1:5000/tpos/api/v1/tposs -H "X-Api-Key: &lt;invoice_key&gt;" </code>
+        <code>curl -X GET {{ request.url_root }}tpos/api/v1/tposs -H "X-Api-Key: &lt;invoice_key&gt;" </code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
@@ -29,7 +29,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 CREATED (application/json)</h5>
         <code>{"currency": &lt;string&gt;, "id": &lt;string&gt;, "name": &lt;string&gt;, "wallet": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST http://127.0.0.1:5000/tpos/api/v1/tposs -d '{"name": &lt;string&gt;, "currency": &lt;string&gt;}' -H "Content-type: application/json" -H "X-Api-Key: &lt;admin_key&gt;"
+        <code>curl -X POST {{ request.url_root }}tpos/api/v1/tposs -d '{"name": &lt;string&gt;, "currency": &lt;string&gt;}' -H "Content-type: application/json" -H "X-Api-Key: &lt;admin_key&gt;"
        </code>
       </q-card-section>
     </q-card>
@@ -44,7 +44,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 NO_CONTENT</h5>
         <code></code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X DELETE http://127.0.0.1:5000/tpos/api/v1/tposs/&lt;tpos_id&gt; -H "X-Api-Key: &lt;admin_key&gt;"
+        <code>curl -X DELETE {{ request.url_root }}tpos/api/v1/tposs/&lt;tpos_id&gt; -H "X-Api-Key: &lt;admin_key&gt;"
        </code>
 
       </q-card-section>
