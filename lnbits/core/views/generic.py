@@ -4,6 +4,7 @@ from os import path
 from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.helpers import Status
+from lnbits.settings import SERVICE_FEE
 
 from ..crud import (
     create_account,
@@ -48,6 +49,7 @@ def wallet():
     user_id = request.args.get("usr", type=str)
     wallet_id = request.args.get("wal", type=str)
     wallet_name = request.args.get("nme", type=str)
+    service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
 
     # just wallet_name: create a new user, then create a new wallet for user with wallet_name
     # just user_id: return the first user wallet or create one if none found (with default wallet_name)
@@ -71,7 +73,7 @@ def wallet():
     if wallet_id not in user.wallet_ids:
         abort(Status.FORBIDDEN, "Not your wallet.")
 
-    return render_template("core/wallet.html", user=user, wallet=user.get_wallet(wallet_id))
+    return render_template("core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee)
 
 
 @core_app.route("/deletewallet")
