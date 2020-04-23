@@ -1,5 +1,5 @@
 
-![Lightning network wallet](https://i.imgur.com/arUWZbH.png)
+![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 # LNbits
 Simple free and open-source Python lightning-network wallet/accounts system. Use https://lnbits.com, or run your own LNbits server!
 
