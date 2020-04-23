@@ -38,7 +38,7 @@ Example use would be an ATM, which utilises LNURL, if the user scans the QR with
 Wallets can be easily generated and given out to people at events (one click multi-wallet generation to be added soon).
 "Go to this  website", has a lot less friction than "Download this app".
 
-![lnurl ATM](https://i.imgur.com/SF5KoIe.png)
+![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
 
 # Running LNbits locally
 Download this repo
