@@ -1,5 +1,6 @@
 from datetime import datetime
 from flask import g, jsonify, request
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import pay_invoice
@@ -25,7 +26,16 @@ def api_links():
     if "all_wallets" in request.args:
         wallet_ids = get_user(g.wallet.user).wallet_ids
 
-    return jsonify([{**link._asdict(), **{"lnurl": link.lnurl}} for link in get_withdraw_links(wallet_ids)]), Status.OK
+    try:
+        return (
+            jsonify([{**link._asdict(), **{"lnurl": link.lnurl}} for link in get_withdraw_links(wallet_ids)]),
+            Status.OK,
+        )
+    except LnurlInvalidUrl:
+        return (
+            jsonify({"message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."}),
+            Status.UPGRADE_REQUIRED,
+        )
 
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["GET"])

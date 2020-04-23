@@ -19,6 +19,7 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
+      checker: null,
       withdrawLinks: [],
       withdrawLinksTable: {
         columns: [
@@ -66,6 +67,9 @@ new Vue({
         self.withdrawLinks = response.data.map(function (obj) {
           return mapWithdrawLink(obj);
         });
+      }).catch(function (error) {
+        clearInterval(self.checker);
+        LNbits.utils.notifyApiError(error);
       });
     },
     closeFormDialog: function () {
@@ -153,7 +157,7 @@ new Vue({
     if (this.g.user.wallets.length) {
       var getWithdrawLinks = this.getWithdrawLinks;
       getWithdrawLinks();
-      setInterval(function () { getWithdrawLinks(); }, 20000);
+      this.checker = setInterval(function () { getWithdrawLinks(); }, 20000);
     }
   }
 });

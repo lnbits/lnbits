@@ -9,6 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .core import core_app, migrations as core_migrations
 from .helpers import ExtensionManager
+from .settings import FORCE_HTTPS
 
 
 disabled_extensions = getenv("LNBITS_DISABLED_EXTENSIONS", "").split(",")
@@ -24,7 +25,7 @@ valid_extensions = [ext for ext in ExtensionManager(disabled=disabled_extensions
 Compress(app)
 Talisman(
     app,
-    force_https=getenv("LNBITS_WITH_ONION", 0) == 0,
+    force_https=FORCE_HTTPS,
     content_security_policy={
         "default-src": [
             "'self'",

@@ -1,7 +1,8 @@
 from flask import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
-from os import getenv
 from typing import NamedTuple
+
+from lnbits.settings import FORCE_HTTPS
 
 
 class WithdrawLink(NamedTuple):
@@ -23,18 +24,14 @@ class WithdrawLink(NamedTuple):
         return self.used >= self.uses
 
     @property
-    def is_onion(self) -> bool:
-        return getenv("LNBITS_WITH_ONION", 1) == 1
-
-    @property
     def lnurl(self) -> Lnurl:
-        scheme = None if self.is_onion else "https"
+        scheme = "https" if FORCE_HTTPS else None
         url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
         return lnurl_encode(url)
 
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
-        scheme = None if self.is_onion else "https"
+        scheme = "https" if FORCE_HTTPS else None
         url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
 
         return LnurlWithdrawResponse(
