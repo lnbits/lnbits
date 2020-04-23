@@ -21,7 +21,7 @@ Each wallet also comes with its own API keys, to help partition the exposure of 
 
 (LNbits M5StackSats available here https://github.com/arcbtc/M5StackSats) 
 
-![lnurl ATM](https://i.imgur.com/ABruzAn.png)
+![lnurl ATM](https://i.imgur.com/WfCg8wY.png)
 
 ## LNbits as an LNURL-withdraw fallback
 LNURL has a fallback scheme, so if scanned by a regular QR code reader it can default to a URL. LNbits exploits this to generate an instant wallet using the LNURL-withdraw.
