@@ -1,7 +1,7 @@
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
-# LNbits
-A free and open-source lightning-network wallet/accounts system. Use https://lnbits.com, or run your own LNbits server!
+# LNbits, free and open-source lightning-network wallet/accounts system. 
+https://lnbits.com, or run your own LNbits server!
 
 LNbits is a very simple Python server that sits on top of any funding source, and can be used as: 
 * Accounts system to mitigate the risk of exposing applications to your full balance, via unique API keys for each wallet!
