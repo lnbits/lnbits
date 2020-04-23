@@ -193,17 +193,9 @@
           var self = this;
           var tpos = _.findWhere(this.tposs, {id: tposId});
 
-          this.$q.dialog({
-            message: 'Are you sure you want to delete this TPoS?',
-            ok: {
-              flat: true,
-              color: 'orange'
-            },
-            cancel: {
-              flat: true,
-              color: 'grey'
-            }
-          }).onOk(function () {
+          LNbits.utils.confirmDialog(
+            'Are you sure you want to delete this TPoS?'
+          ).onOk(function () {
             LNbits.api.request(
               'DELETE',
               '/tpos/api/v1/tposs/' + tposId,

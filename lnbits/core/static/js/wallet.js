@@ -307,7 +307,11 @@ new Vue({
       });
     },
     deleteWallet: function (walletId, user) {
-      LNbits.href.deleteWallet(walletId, user);
+      LNbits.utils.confirmDialog(
+        'Are you sure you want to delete this wallet?'
+      ).onOk(function () {
+        LNbits.href.deleteWallet(walletId, user);
+      });
     },
     fetchPayments: function (checkPending) {
       var self = this;

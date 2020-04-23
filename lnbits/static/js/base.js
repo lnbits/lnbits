@@ -87,6 +87,19 @@ var LNbits = {
     }
   },
   utils: {
+    confirmDialog: function (msg) {
+      return Quasar.plugins.Dialog.create({
+        message: msg,
+        ok: {
+          flat: true,
+          color: 'orange'
+        },
+        cancel: {
+          flat: true,
+          color: 'grey'
+        }
+      });
+    },
     formatCurrency: function (value, currency) {
       return new Intl.NumberFormat(LOCALE, {style: 'currency', currency: currency}).format(value);
     },

@@ -474,17 +474,9 @@
           var self = this;
           var indexer = _.findWhere(this.indexers, {id: indexerId});
 
-          this.$q.dialog({
-            message: 'Are you sure you want to delete this Indexer link?',
-            ok: {
-              flat: true,
-              color: 'orange'
-            },
-            cancel: {
-              flat: true,
-              color: 'grey'
-            }
-          }).onOk(function () {
+          LNbits.utils.confirmDialog(
+            'Are you sure you want to delete this Indexer link?'
+          ).onOk(function () {
             LNbits.api.request(
               'DELETE',
               '/diagonalley/api/v1/diagonalley/indexers/' + indexerId,
@@ -538,17 +530,9 @@
           var self = this;
           var order = _.findWhere(this.orders, {id: orderId});
 
-          this.$q.dialog({
-            message: 'Are you sure you want to delete this order link?',
-            ok: {
-              flat: true,
-              color: 'orange'
-            },
-            cancel: {
-              flat: true,
-              color: 'grey'
-            }
-          }).onOk(function () {
+          LNbits.utils.confirmDialog(
+            'Are you sure you want to delete this order link?'
+          ).onOk(function () {
             LNbits.api.request(
               'DELETE',
               '/diagonalley/api/v1/diagonalley/orders/' + orderId,
@@ -646,17 +630,9 @@
           var self = this;
           var product = _.findWhere(this.products, {id: productId});
 
-          this.$q.dialog({
-            message: 'Are you sure you want to delete this products link?',
-            ok: {
-              flat: true,
-              color: 'orange'
-            },
-            cancel: {
-              flat: true,
-              color: 'grey'
-            }
-          }).onOk(function () {
+          LNbits.utils.confirmDialog(
+            'Are you sure you want to delete this products link?'
+          ).onOk(function () {
             LNbits.api.request(
               'DELETE',
               '/diagonalley/api/v1/diagonalley/products/' + productId,

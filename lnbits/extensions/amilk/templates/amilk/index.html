@@ -202,17 +202,9 @@
           var self = this;
           var amilk = _.findWhere(this.amilks, {id: amilkId});
 
-          this.$q.dialog({
-            message: 'Are you sure you want to delete this AMilk link?',
-            ok: {
-              flat: true,
-              color: 'orange'
-            },
-            cancel: {
-              flat: true,
-              color: 'grey'
-            }
-          }).onOk(function () {
+          LNbits.utils.confirmDialog(
+            'Are you sure you want to delete this AMilk link?'
+          ).onOk(function () {
             LNbits.api.request(
               'DELETE',
               '/amilk/api/v1/amilks/' + amilkId,

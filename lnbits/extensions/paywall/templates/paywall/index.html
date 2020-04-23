@@ -186,17 +186,9 @@
           var self = this;
           var paywall = _.findWhere(this.paywalls, {id: paywallId});
 
-          this.$q.dialog({
-            message: 'Are you sure you want to delete this paywall link?',
-            ok: {
-              flat: true,
-              color: 'orange'
-            },
-            cancel: {
-              flat: true,
-              color: 'grey'
-            }
-          }).onOk(function () {
+          LNbits.utils.confirmDialog(
+            'Are you sure you want to delete this paywall link?'
+          ).onOk(function () {
             LNbits.api.request(
               'DELETE',
               '/paywall/api/v1/paywalls/' + paywallId,

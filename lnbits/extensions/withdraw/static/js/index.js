@@ -131,17 +131,9 @@ new Vue({
       var self = this;
       var link = _.findWhere(this.withdrawLinks, {id: linkId});
 
-      this.$q.dialog({
-        message: 'Are you sure you want to delete this withdraw link?',
-        ok: {
-          flat: true,
-          color: 'orange'
-        },
-        cancel: {
-          flat: true,
-          color: 'grey'
-        }
-      }).onOk(function () {
+      LNbits.utils.confirmDialog(
+        'Are you sure you want to delete this withdraw link?'
+      ).onOk(function () {
         LNbits.api.request(
           'DELETE',
           '/withdraw/api/v1/links/' + linkId,
