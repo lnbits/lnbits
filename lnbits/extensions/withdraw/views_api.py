@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import g, jsonify, request
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
-from lnbits.core.crud import get_user, get_wallet
+from lnbits.core.crud import get_user
 from lnbits.core.services import pay_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.helpers import urlsafe_short_hash, Status
@@ -136,7 +136,7 @@ def api_lnurl_callback(unique_hash):
         return jsonify({"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}), Status.OK
 
     try:
-        pay_invoice(wallet=get_wallet(link.wallet), bolt11=payment_request, max_sat=link.max_withdrawable)
+        pay_invoice(wallet_id=link.wallet, bolt11=payment_request, max_sat=link.max_withdrawable)
 
         changes = {
             "used": link.used + 1,

@@ -45,7 +45,7 @@ def api_payments_create_invoice():
 @api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
 def api_payments_pay_invoice():
     try:
-        checking_id = pay_invoice(wallet=g.wallet, bolt11=g.data["bolt11"])
+        checking_id = pay_invoice(wallet_id=g.wallet.id, bolt11=g.data["bolt11"])
     except ValueError as e:
         return jsonify({"message": str(e)}), Status.BAD_REQUEST
     except PermissionError as e:

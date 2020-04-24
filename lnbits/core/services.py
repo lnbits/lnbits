@@ -1,10 +1,10 @@
 from typing import Optional, Tuple
 
 from lnbits.bolt11 import decode as bolt11_decode
+from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 
-from .crud import create_payment
-from .models import Wallet
+from .crud import get_wallet, create_payment, delete_payment
 
 
 def create_invoice(*, wallet_id: str, amount: int, memo: str) -> Tuple[str, str]:
@@ -22,10 +22,11 @@ def create_invoice(*, wallet_id: str, amount: int, memo: str) -> Tuple[str, str]
     return checking_id, payment_request
 
 
-def pay_invoice(*, wallet: Wallet, bolt11: str, max_sat: Optional[int] = None) -> str:
+def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -> str:
+    temp_id = f"temp_{urlsafe_short_hash()}"
+
     try:
         invoice = bolt11_decode(bolt11)
-        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(bolt11)
 
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
@@ -33,16 +34,21 @@ def pay_invoice(*, wallet: Wallet, bolt11: str, max_sat: Optional[int] = None) -
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
 
-        if invoice.amount_msat > wallet.balance_msat:
+        if invoice.amount_msat > get_wallet(wallet_id).balance_msat:
             raise PermissionError("Insufficient balance.")
+
+        create_payment(wallet_id=wallet_id, checking_id=temp_id, amount=-invoice.amount_msat, memo=temp_id)
+        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(bolt11)
 
         if ok:
             create_payment(
-                wallet_id=wallet.id, checking_id=checking_id, amount=-invoice.amount_msat, memo=invoice.description
+                wallet_id=wallet_id, checking_id=checking_id, amount=-invoice.amount_msat, memo=invoice.description
             )
 
     except Exception as e:
         ok, error_message = False, str(e)
+
+    delete_payment(temp_id)
 
     if not ok:
         raise Exception(error_message or "Unexpected backend error.")
