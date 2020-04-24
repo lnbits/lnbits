@@ -8,7 +8,7 @@ LNbits is a very simple Python server that sits on top of any funding source, an
 * Fallback wallet for the LNURL scheme
 * Instant wallet for LN demonstrations 
 
-The wallet can run on top of any lightning-network funding source such as LND, lntxbot, paywall, opennode, etc. This first BETA release runs on top of lntxbot, other releases coming soon, although if you are impatient, it could be ported to other funding sources relatively easily. Contributors very welcome :)
+The wallet can run on top of any lightning-network funding source such as LND, lntxbot, paywall, opennode, etc. 
 
 LNbits is still in BETA. Please report any vulnerabilities responsibly
 ## LNbits as an account system
