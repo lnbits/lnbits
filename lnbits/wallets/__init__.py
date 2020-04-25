@@ -6,3 +6,4 @@ from .lntxbot import LntxbotWallet
 from .opennode import OpenNodeWallet
 from .lnpay import LNPayWallet
 from .lnbits import LnbitsWallet
+from .lndrest import LndRestWallet
