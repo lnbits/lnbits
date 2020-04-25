@@ -67,12 +67,7 @@ def api_paywall_get_invoice(paywall_id):
 
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "checking_id": {"type": "string", "empty": False, "required": True},
-        "fingerprint": {"type": "string", "empty": False, "required": True},
-    }
-)
+@api_validate_post_request(schema={"checking_id": {"type": "string", "empty": False, "required": True}})
 def api_paywal_check_invoice(paywall_id):
     paywall = get_paywall(paywall_id)
 
@@ -89,25 +84,6 @@ def api_paywal_check_invoice(paywall_id):
         payment = wallet.get_payment(g.data["checking_id"])
         payment.set_pending(False)
 
-        return jsonify({"paid": True, "key": paywall.key_for(g.data["fingerprint"]), "url": paywall.url}), Status.OK
+        return jsonify({"paid": True, "url": paywall.url}), Status.OK
 
     return jsonify({"paid": False}), Status.OK
-
-
-@paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_access", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "key": {"type": "string", "empty": False, "required": True},
-        "fingerprint": {"type": "string", "empty": False, "required": True},
-    }
-)
-def api_fingerprint_check(paywall_id):
-    paywall = get_paywall(paywall_id)
-
-    if not paywall:
-        return jsonify({"message": "Paywall does not exist."}), Status.NOT_FOUND
-
-    if paywall.key_for(g.data["fingerprint"]) != g.data["key"]:
-        return jsonify({"valid": False}), Status.OK
-
-    return jsonify({"valid": True, "url": paywall.url}), Status.OK

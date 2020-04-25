@@ -40,7 +40,6 @@
 {% endblock %}
 
 {% block scripts %}
-  <script src="{{ url_for('paywall.static', filename='vendor/fingerprintjs2@2.1.0/fingerprint2.min.js') }}"></script>
   <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
   <script>
     Vue.component(VueQrcode.name, VueQrcode);
@@ -51,10 +50,6 @@
       data: function () {
         return {
           paymentReq: null,
-          fingerprint: {
-            hash: null,
-            isValid: false
-          },
           redirectUrl: null
         };
       },
@@ -75,13 +70,13 @@
             paymentChecker = setInterval(function () {
               axios.post(
                 '/paywall/api/v1/paywalls/{{ paywall.id }}/check_invoice',
-                {checking_id: response.data.checking_id, fingerprint: self.fingerprint.hash}
+                {checking_id: response.data.checking_id}
               ).then(function (res) {
                 if (res.data.paid) {
                   clearInterval(paymentChecker);
                   dismissMsg();
                   self.redirectUrl = res.data.url;
-                  self.$q.localStorage.set('lnbits.paywall.{{ paywall.id }}', res.data.key);
+                  self.$q.localStorage.set('lnbits.paywall.{{ paywall.id }}', res.data.url);
 
                   self.$q.notify({
                     type: 'positive',
@@ -99,29 +94,13 @@
         }
       },
       created: function () {
-        var self = this;
+        var url = this.$q.localStorage.getItem('lnbits.paywall.{{ paywall.id }}');
 
-        Fingerprint2.get(function (components) {
-          self.fingerprint.hash = Fingerprint2.x64hash128(JSON.stringify(components));
-
-          var key = self.$q.localStorage.getItem('lnbits.paywall.{{ paywall.id }}');
-
-          if (key) {
-            axios.post(
-              '/paywall/api/v1/paywalls/{{ paywall.id }}/check_access',
-              {key: key, fingerprint: self.fingerprint.hash}
-            ).then(function (response) {
-              if (response.data.valid) {
-                self.fingerprint.isValid = true;
-                self.redirectUrl = response.data.url;
-              } else {
-                self.getInvoice();
-              }
-            });
-          } else {
-            self.getInvoice();
-          };
-        });
+        if (url) {
+          this.redirectUrl = url;
+        } else {
+          this.getInvoice();
+        };
       }
     });
   </script>
