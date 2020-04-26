@@ -1,9 +1,9 @@
 import importlib
 
 from flask import Flask
-from flask_assets import Environment, Bundle
-from flask_compress import Compress
-from flask_talisman import Talisman
+from flask_assets import Environment, Bundle  # type: ignore
+from flask_compress import Compress  # type: ignore
+from flask_talisman import Talisman  # type: ignore
 from os import getenv
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -15,7 +15,7 @@ from .settings import FORCE_HTTPS
 disabled_extensions = getenv("LNBITS_DISABLED_EXTENSIONS", "").split(",")
 
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # type: ignore
 valid_extensions = [ext for ext in ExtensionManager(disabled=disabled_extensions).extensions if ext.is_valid]
 
 

@@ -56,7 +56,7 @@ class LndRestWallet(Wallet):
             checking_id = r.json()["payment_hash"]
         else:
             error_message = r.json()["error"]
-        
+
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
 
@@ -71,11 +71,10 @@ class LndRestWallet(Wallet):
         return PaymentStatus(r.json()["settled"])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
- 
-        r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, verify=self.auth_cert, params={"include_incomplete": True, "max_payments": "20"})
-       
+        r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, verify=self.auth_cert, params={"include_incomplete": "True", "max_payments": "20"})
+
         if not r.ok:
-            return PaymentStatus(r, None)
+            return PaymentStatus(None)
 
         payments = [p for p in r.json()["payments"] if p["payment_hash"] == checking_id]
         print(checking_id)

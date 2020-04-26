@@ -1,7 +1,7 @@
 from flask import Blueprint
 
 
-withdraw_ext = Blueprint("withdraw", __name__, static_folder="static", template_folder="templates")
+withdraw_ext: Blueprint = Blueprint("withdraw", __name__, static_folder="static", template_folder="templates")
 
 
 from .views_api import *  # noqa

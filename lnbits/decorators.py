@@ -1,4 +1,4 @@
-from cerberus import Validator
+from cerberus import Validator  # type: ignore
 from flask import g, abort, jsonify, request
 from functools import wraps
 from typing import List, Union
