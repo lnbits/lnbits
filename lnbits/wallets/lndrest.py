@@ -1,12 +1,12 @@
 from os import getenv
 import os
+import base64
 from requests import get, post
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
-
 
     def __init__(self):
 
@@ -37,8 +37,8 @@ class LndRestWallet(Wallet):
         r = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read, verify=self.auth_cert,)
         print(r)
         if r.ok:
-            dataa = r.json()
-            checking_id = dataa["payment_hash"]
+            checking_id = r.json()["payment_hash"].replace("/","_")
+            print(checking_id)
             error_message = None
             ok = True
 
@@ -46,32 +46,42 @@ class LndRestWallet(Wallet):
 
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = post(url=f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, verify=self.auth_cert, json={"type": "ln", "address": bolt11})
+        r = post(
+            url=f"{self.endpoint}/v1/channels/transactions", headers=self.auth_admin, verify=self.auth_cert, json={"payment_request": bolt11}
+        )
         ok, checking_id, fee_msat, error_message = r.ok, None, 0, None
+        r = get(url=f"{self.endpoint}/v1/payreq/{bolt11}", headers=self.auth_admin, verify=self.auth_cert,)
 
         if r.ok:
-            data = r.json()["data"]
-            checking_id, fee_msat = data["id"], data["fee"] * 1000
+            checking_id = r.json()["payment_hash"]
         else:
-            error_message = r.json()["message"]
-
+            error_message = r.json()["error"]
+        
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert)
-
-        if not r.ok:
+        checking_id = checking_id.replace("_","/")
+        print(checking_id)
+        r = get(url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert,)
+        print(r.json()["settled"])
+        if not r or r.json()["settled"] == False:
             return PaymentStatus(None)
 
-        statuses = {0: None, 1: True, -1: False}
-        return PaymentStatus(statuses[r.json()["data"]["status"]])
+        return PaymentStatus(r.json()["settled"])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/v1/withdrawal/{checking_id}", headers=self.auth_admin, verify=self.auth_cert)
-
+ 
+        r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, verify=self.auth_cert, params={"include_incomplete": True, "max_payments": "20"})
+       
         if not r.ok:
-            return PaymentStatus(None)
+            return PaymentStatus(r, None)
 
-        statuses = {0: None, 1: True, -1: False}
-        return PaymentStatus(statuses[r.json()["data"]["status"]])
+        payments = [p for p in r.json()["payments"] if p["payment_hash"] == checking_id]
+        print(checking_id)
+        payment = payments[0] if payments else None
+
+        # check payment.status: https://api.lightning.community/rest/index.html?python#peersynctype
+        statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
+
+        return PaymentStatus(statuses[payment["status"]])
