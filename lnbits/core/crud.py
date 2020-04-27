@@ -16,7 +16,10 @@ def create_account() -> User:
         user_id = uuid4().hex
         db.execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
 
-    return get_account(user_id=user_id)
+    new_account = get_account(user_id=user_id)
+    assert new_account, "Newly created account couldn't be retrieved"
+
+    return new_account
 
 
 def get_account(user_id: str) -> Optional[User]:
@@ -74,7 +77,10 @@ def create_wallet(*, user_id: str, wallet_name: Optional[str] = None) -> Wallet:
             (wallet_id, wallet_name or DEFAULT_WALLET_NAME, user_id, uuid4().hex, uuid4().hex),
         )
 
-    return get_wallet(wallet_id=wallet_id)
+    new_wallet = get_wallet(wallet_id=wallet_id)
+    assert new_wallet, "Newly created wallet couldn't be retrieved"
+
+    return new_wallet
 
 
 def delete_wallet(*, user_id: str, wallet_id: str) -> None:
@@ -175,7 +181,7 @@ def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> N
 
 
 def create_payment(
-    *, wallet_id: str, checking_id: str, amount: str, memo: str, fee: int = 0, pending: bool = True
+    *, wallet_id: str, checking_id: str, amount: int, memo: str, fee: int = 0, pending: bool = True
 ) -> Payment:
     with open_db() as db:
         db.execute(
@@ -186,7 +192,10 @@ def create_payment(
             (wallet_id, checking_id, amount, int(pending), memo, fee),
         )
 
-    return get_wallet_payment(wallet_id, checking_id)
+    new_payment = get_wallet_payment(wallet_id, checking_id)
+    assert new_payment, "Newly created payment couldn't be retrieved"
+
+    return new_payment
 
 
 def update_payment_status(checking_id: str, pending: bool) -> None:

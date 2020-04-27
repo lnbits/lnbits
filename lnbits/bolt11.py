@@ -1,3 +1,5 @@
+# type: ignore
+
 import bitstring
 import re
 from binascii import hexlify

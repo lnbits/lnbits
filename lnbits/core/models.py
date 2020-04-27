@@ -4,8 +4,8 @@ from typing import List, NamedTuple, Optional
 class User(NamedTuple):
     id: str
     email: str
-    extensions: Optional[List[str]] = []
-    wallets: Optional[List["Wallet"]] = []
+    extensions: List[str] = []
+    wallets: List["Wallet"] = []
     password: Optional[str] = None
 
     @property
@@ -27,9 +27,9 @@ class Wallet(NamedTuple):
 
     @property
     def balance(self) -> int:
-        return int(self.balance / 1000)
+        return self.balance // 1000
 
-    def get_payment(self, checking_id: str) -> "Payment":
+    def get_payment(self, checking_id: str) -> Optional["Payment"]:
         from .crud import get_wallet_payment
 
         return get_wallet_payment(self.id, checking_id)
@@ -59,7 +59,7 @@ class Payment(NamedTuple):
 
     @property
     def sat(self) -> int:
-        return self.amount / 1000
+        return self.amount // 1000
 
     @property
     def is_in(self) -> bool:

@@ -1,8 +1,8 @@
 import requests
 
 from flask import abort, redirect, request, url_for
-from lnurl import LnurlWithdrawResponse, handle as handle_lnurl
-from lnurl.exceptions import LnurlException
+from lnurl import LnurlWithdrawResponse, handle as handle_lnurl  # type: ignore
+from lnurl.exceptions import LnurlException   # type: ignore
 from time import sleep
 
 from lnbits.core import core_app
