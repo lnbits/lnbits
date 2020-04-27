@@ -248,8 +248,13 @@ new Vue({
       this.sendCamera.show = false;
     },
     decodeInvoice: function () {
+      if (this.send.data.bolt11.startsWith('lightning:')) {
+        this.send.data.bolt11 = this.send.data.bolt11.slice(10);
+      }
+
+      let invoice;
       try {
-        var invoice = decode(this.send.data.bolt11);
+        invoice = decode(this.send.data.bolt11);
       } catch (error) {
         this.$q.notify({
           timeout: 3000,
@@ -261,7 +266,7 @@ new Vue({
         return;
       }
 
-      var cleanInvoice = {
+      let cleanInvoice = {
         msat: invoice.human_readable_part.amount,
         sat: invoice.human_readable_part.amount / 1000,
         fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000)
