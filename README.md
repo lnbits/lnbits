@@ -1,5 +1,12 @@
+LNbits
+======
+
+[![travis-badge]][travis]
+[![codecov-badge]][codecov]
+[![license-badge]](LICENSE)
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
+
 # LNbits v0.1 BETA, free and open-source lightning-network wallet/accounts system 
 https://lnbits.com, or run your own LNbits server!
 
@@ -73,3 +80,10 @@ if you want to run Flask in debug mode with autoreload
 # Tip me
 If you like this project and might even use or extend it, why not send some tip love!
 https://paywall.link/to/f4e4e
+
+
+[travis]: https://travis-ci.com/lnbits/lnbits?branch=master
+[travis-badge]: https://api.travis-ci.com/lnbits/lnbits.svg?branch=master
+[codecov]: https://codecov.io/gh/lnbits/lnbits
+[codecov-badge]: https://codecov.io/gh/lnbits/lnbits/branch/master/graph/badge.svg
+[license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
