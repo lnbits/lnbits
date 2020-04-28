@@ -1,7 +1,7 @@
 LNbits
 ======
 
-[![travis-badge]][travis]
+[![github-actions-badge]][github-actions]
 [![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
 
@@ -82,8 +82,8 @@ If you like this project and might even use or extend it, why not send some tip 
 https://paywall.link/to/f4e4e
 
 
-[travis]: https://travis-ci.com/lnbits/lnbits?branch=master
-[travis-badge]: https://api.travis-ci.com/lnbits/lnbits.svg?branch=master
+[github-actions]: https://github.com/lnbits/lnbits/actions
+[github-actions-badge]: https://github.com/lnbits/lnbits/workflows/test%20suite/badge.svg
 [codecov]: https://codecov.io/gh/lnbits/lnbits
 [codecov-badge]: https://codecov.io/gh/lnbits/lnbits/branch/master/graph/badge.svg
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
