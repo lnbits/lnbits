@@ -33,10 +33,6 @@ Talisman(
             "'unsafe-inline'",
             "blob:",
             "api.opennode.co",
-            "fonts.googleapis.com",
-            "fonts.gstatic.com",
-            "github.com",
-            "avatars2.githubusercontent.com",
         ]
     },
 )
