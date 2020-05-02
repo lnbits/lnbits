@@ -1,11 +1,21 @@
-from os import getenv
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
-from lightning import LightningRpc # type: ignore
+try:
+    from lightning import LightningRpc  # type: ignore
+except ImportError:  # pragma: nocover
+    LightningRpc = None
+
 import random
+
+from os import getenv
+
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+
 
 class CLightningWallet(Wallet):
 
     def __init__(self):
+        if LightningRpc is None:  # pragma: nocover
+            raise ImportError("The `pylightning` library must be installed to use `CLightningWallet`.")
+
         self.l1 = LightningRpc(getenv("CLIGHTNING_RPC"))
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:

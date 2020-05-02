@@ -1,5 +1,9 @@
+try:
+    import lnd_grpc  # type: ignore
+except ImportError:  # pragma: nocover
+    lnd_grpc = None
+
 import base64
-import lnd_grpc  # type: ignore
 
 from os import getenv
 
@@ -8,6 +12,9 @@ from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 class LndWallet(Wallet):
     def __init__(self):
+        if lnd_grpc is None:  # pragma: nocover
+            raise ImportError("The `lnd-grpc` library must be installed to use `LndWallet`.")
+
         endpoint = getenv("LND_GRPC_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.port = getenv("LND_GRPC_PORT")
@@ -15,10 +22,6 @@ class LndWallet(Wallet):
         self.auth_invoice = getenv("LND_INVOICE_MACAROON")
         self.auth_read = getenv("LND_READ_MACAROON")
         self.auth_cert = getenv("LND_CERT")
-
-        lnd_rpc = lnd_grpc.Client(
-            lnd_dir=None, tls_cert_path=self.auth_cert, network="mainnet", grpc_host=self.endpoint, grpc_port=self.port
-        )
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
         lnd_rpc = lnd_grpc.Client(
