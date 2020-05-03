@@ -1,8 +1,9 @@
-from flask import g, abort, render_template, jsonify
 import json
+
+from flask import g, abort, render_template, jsonify
+
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.extensions.diagonalley import diagonalley_ext
-from lnbits.helpers import Status
 from lnbits.db import open_ext_db
 
 

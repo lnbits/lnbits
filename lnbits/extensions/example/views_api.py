@@ -6,8 +6,8 @@
 # import requests
 
 from flask import jsonify
+from http import HTTPStatus
 
-from lnbits.helpers import Status
 from lnbits.extensions.example import example_ext
 
 
@@ -34,4 +34,4 @@ def api_example():
         }
     ]
 
-    return jsonify(tools), Status.OK
+    return jsonify(tools), HTTPStatus.OK

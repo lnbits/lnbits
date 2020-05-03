@@ -2,7 +2,6 @@ from flask import g, abort, render_template, jsonify
 import json
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.extensions.usermanager import usermanager_ext
-from lnbits.helpers import Status
 from lnbits.db import open_ext_db
 
 

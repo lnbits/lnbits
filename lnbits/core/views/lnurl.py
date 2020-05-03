@@ -1,12 +1,12 @@
 import requests
 
 from flask import abort, redirect, request, url_for
+from http import HTTPStatus
 from lnurl import LnurlWithdrawResponse, handle as handle_lnurl  # type: ignore
 from lnurl.exceptions import LnurlException   # type: ignore
 from time import sleep
 
 from lnbits.core import core_app
-from lnbits.helpers import Status
 from lnbits.settings import WALLET
 
 from ..crud import create_account, get_user, create_wallet, create_payment
@@ -19,7 +19,7 @@ def lnurlwallet():
     try:
         withdraw_res = handle_lnurl(request.args.get("lightning"), response_class=LnurlWithdrawResponse)
     except LnurlException:
-        abort(Status.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
+        abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 
     try:
         ok, checking_id, payment_request, error_message = WALLET.create_invoice(withdraw_res.max_sats, memo)
@@ -27,7 +27,7 @@ def lnurlwallet():
         ok, error_message = False, str(e)
 
     if not ok:
-        abort(Status.INTERNAL_SERVER_ERROR, error_message)
+        abort(HTTPStatus.INTERNAL_SERVER_ERROR, error_message)
 
     r = requests.get(
         withdraw_res.callback.base,
@@ -35,7 +35,7 @@ def lnurlwallet():
     )
 
     if not r.ok:
-        abort(Status.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
+        abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 
     for i in range(10):
         invoice_status = WALLET.get_invoice_status(checking_id)

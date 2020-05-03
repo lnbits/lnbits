@@ -1,8 +1,8 @@
 from flask import g, jsonify, request
+from http import HTTPStatus
 
 from lnbits.core import core_app
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.helpers import Status
 from lnbits.settings import WALLET
 
 from ..services import create_invoice, pay_invoice
@@ -20,7 +20,7 @@ def api_payments():
             else:
                 payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
 
-    return jsonify(g.wallet.get_payments()), Status.OK
+    return jsonify(g.wallet.get_payments()), HTTPStatus.OK
 
 
 @api_check_wallet_key("invoice")
@@ -36,9 +36,9 @@ def api_payments_create_invoice():
             wallet_id=g.wallet.id, amount=g.data["amount"], memo=g.data["memo"]
         )
     except Exception as e:
-        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.CREATED
 
 
 @api_check_wallet_key("admin")
@@ -47,13 +47,13 @@ def api_payments_pay_invoice():
     try:
         checking_id = pay_invoice(wallet_id=g.wallet.id, bolt11=g.data["bolt11"])
     except ValueError as e:
-        return jsonify({"message": str(e)}), Status.BAD_REQUEST
+        return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     except PermissionError as e:
-        return jsonify({"message": str(e)}), Status.FORBIDDEN
+        return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
     except Exception as e:
-        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"checking_id": checking_id}), Status.CREATED
+    return jsonify({"checking_id": checking_id}), HTTPStatus.CREATED
 
 
 @core_app.route("/api/v1/payments", methods=["POST"])
@@ -70,9 +70,9 @@ def api_payment(checking_id):
     payment = g.wallet.get_payment(checking_id)
 
     if not payment:
-        return jsonify({"message": "Payment does not exist."}), Status.NOT_FOUND
+        return jsonify({"message": "Payment does not exist."}), HTTPStatus.NOT_FOUND
     elif not payment.pending:
-        return jsonify({"paid": True}), Status.OK
+        return jsonify({"paid": True}), HTTPStatus.OK
 
     try:
         if payment.is_out:
@@ -80,10 +80,10 @@ def api_payment(checking_id):
         elif payment.is_in:
             is_paid = not WALLET.get_invoice_status(checking_id).pending
     except Exception:
-        return jsonify({"paid": False}), Status.OK
+        return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
         payment.set_pending(False)
-        return jsonify({"paid": True}), Status.OK
+        return jsonify({"paid": True}), HTTPStatus.OK
 
-    return jsonify({"paid": False}), Status.OK
+    return jsonify({"paid": False}), HTTPStatus.OK

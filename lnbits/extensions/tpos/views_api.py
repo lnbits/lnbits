@@ -1,9 +1,9 @@
 from flask import g, jsonify, request
+from http import HTTPStatus
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.helpers import Status
 from lnbits.settings import WALLET
 
 from lnbits.extensions.tpos import tpos_ext
@@ -18,7 +18,7 @@ def api_tposs():
     if "all_wallets" in request.args:
         wallet_ids = get_user(g.wallet.user).wallet_ids
 
-    return jsonify([tpos._asdict() for tpos in get_tposs(wallet_ids)]), Status.OK
+    return jsonify([tpos._asdict() for tpos in get_tposs(wallet_ids)]), HTTPStatus.OK
 
 
 @tpos_ext.route("/api/v1/tposs", methods=["POST"])
@@ -32,7 +32,7 @@ def api_tposs():
 def api_tpos_create():
     tpos = create_tpos(wallet_id=g.wallet.id, **g.data)
 
-    return jsonify(tpos._asdict()), Status.CREATED
+    return jsonify(tpos._asdict()), HTTPStatus.CREATED
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>", methods=["DELETE"])
@@ -41,14 +41,14 @@ def api_tpos_delete(tpos_id):
     tpos = get_tpos(tpos_id)
 
     if not tpos:
-        return jsonify({"message": "TPoS does not exist."}), Status.NOT_FOUND
+        return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
 
     if tpos.wallet != g.wallet.id:
-        return jsonify({"message": "Not your TPoS."}), Status.FORBIDDEN
+        return jsonify({"message": "Not your TPoS."}), HTTPStatus.FORBIDDEN
 
     delete_tpos(tpos_id)
 
-    return "", Status.NO_CONTENT
+    return "", HTTPStatus.NO_CONTENT
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/", methods=["POST"])
@@ -57,16 +57,16 @@ def api_tpos_create_invoice(tpos_id):
     tpos = get_tpos(tpos_id)
 
     if not tpos:
-        return jsonify({"message": "TPoS does not exist."}), Status.NOT_FOUND
+        return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
 
     try:
         checking_id, payment_request = create_invoice(
             wallet_id=tpos.wallet, amount=g.data["amount"], memo=f"#tpos {tpos.name}"
         )
     except Exception as e:
-        return jsonify({"message": str(e)}), Status.INTERNAL_SERVER_ERROR
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), Status.CREATED
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.CREATED
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/<checking_id>", methods=["GET"])
@@ -74,18 +74,18 @@ def api_tpos_check_invoice(tpos_id, checking_id):
     tpos = get_tpos(tpos_id)
 
     if not tpos:
-        return jsonify({"message": "TPoS does not exist."}), Status.NOT_FOUND
+        return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
 
     try:
         is_paid = not WALLET.get_invoice_status(checking_id).pending
     except Exception:
-        return jsonify({"paid": False}), Status.OK
+        return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
         wallet = get_wallet(tpos.wallet)
         payment = wallet.get_payment(checking_id)
         payment.set_pending(False)
 
-        return jsonify({"paid": True}), Status.OK
+        return jsonify({"paid": True}), HTTPStatus.OK
 
-    return jsonify({"paid": False}), Status.OK
+    return jsonify({"paid": False}), HTTPStatus.OK

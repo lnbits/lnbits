@@ -1,9 +1,9 @@
 from flask import g, abort, redirect, request, render_template, send_from_directory, url_for
+from http import HTTPStatus
 from os import path
 
 from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.helpers import Status
 from lnbits.settings import SERVICE_FEE
 
 from ..crud import (
@@ -33,7 +33,7 @@ def extensions():
     extension_to_disable = request.args.get("disable", type=str)
 
     if extension_to_enable and extension_to_disable:
-        abort(Status.BAD_REQUEST, "You can either `enable` or `disable` an extension.")
+        abort(HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension.")
 
     if extension_to_enable:
         update_user_extension(user_id=g.user.id, extension=extension_to_enable, active=1)
@@ -60,7 +60,7 @@ def wallet():
     if not user_id:
         user = get_user(create_account().id)
     else:
-        user = get_user(user_id) or abort(Status.NOT_FOUND, "User does not exist.")
+        user = get_user(user_id) or abort(HTTPStatus.NOT_FOUND, "User does not exist.")
 
     if not wallet_id:
         if user.wallets and not wallet_name:
@@ -71,7 +71,7 @@ def wallet():
         return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
     if wallet_id not in user.wallet_ids:
-        abort(Status.FORBIDDEN, "Not your wallet.")
+        abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
     return render_template("core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee)
 
@@ -84,7 +84,7 @@ def deletewallet():
     user_wallet_ids = g.user.wallet_ids
 
     if wallet_id not in user_wallet_ids:
-        abort(Status.FORBIDDEN, "Not your wallet.")
+        abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
         delete_wallet(user_id=g.user.id, wallet_id=wallet_id)
         user_wallet_ids.remove(wallet_id)
