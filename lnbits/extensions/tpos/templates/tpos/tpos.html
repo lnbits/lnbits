@@ -1,225 +1,265 @@
-{% extends "public.html" %}
-
-
-{% block toolbar_title %}{{ tpos.name }}{% endblock %}
-
-{% block footer %}{% endblock %}
-
-{% block page_container %}
-  <q-page-container>
-    <q-page>
-      <q-page-sticky v-if="exchangeRate" expand position="top">
-        <div class="row justify-center full-width">
-          <div class="col-12 col-sm-8 col-md-6 col-lg-4 text-center">
-            <h3 class="q-mb-md">{% raw %}{{ famount }}{% endraw %}</h3>
-            <h5 class="q-mt-none">
-              {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
-            </h5>
+{% extends "public.html" %} {% block toolbar_title %}{{ tpos.name }}{% endblock
+%} {% block footer %}{% endblock %} {% block page_container %}
+<q-page-container>
+  <q-page>
+    <q-page-sticky v-if="exchangeRate" expand position="top">
+      <div class="row justify-center full-width">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-4 text-center">
+          <h3 class="q-mb-md">{% raw %}{{ famount }}{% endraw %}</h3>
+          <h5 class="q-mt-none">
+            {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+          </h5>
+        </div>
+      </div>
+    </q-page-sticky>
+    <q-page-sticky expand position="bottom">
+      <div class="row justify-center full-width">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-4">
+          <div class="keypad q-pa-sm">
+            <q-btn unelevated @click="stack.push(1)" size="xl" color="grey-8"
+              >1</q-btn
+            >
+            <q-btn unelevated @click="stack.push(2)" size="xl" color="grey-8"
+              >2</q-btn
+            >
+            <q-btn unelevated @click="stack.push(3)" size="xl" color="grey-8"
+              >3</q-btn
+            >
+            <q-btn
+              unelevated
+              @click="stack = []"
+              size="xl"
+              color="pink"
+              class="btn-cancel"
+              >C</q-btn
+            >
+            <q-btn unelevated @click="stack.push(4)" size="xl" color="grey-8"
+              >4</q-btn
+            >
+            <q-btn unelevated @click="stack.push(5)" size="xl" color="grey-8"
+              >5</q-btn
+            >
+            <q-btn unelevated @click="stack.push(6)" size="xl" color="grey-8"
+              >6</q-btn
+            >
+            <q-btn unelevated @click="stack.push(7)" size="xl" color="grey-8"
+              >7</q-btn
+            >
+            <q-btn unelevated @click="stack.push(8)" size="xl" color="grey-8"
+              >8</q-btn
+            >
+            <q-btn unelevated @click="stack.push(9)" size="xl" color="grey-8"
+              >9</q-btn
+            >
+            <q-btn
+              unelevated
+              :disabled="amount == 0"
+              @click="showInvoice()"
+              size="xl"
+              color="green"
+              class="btn-confirm"
+              >OK</q-btn
+            >
+            <q-btn
+              unelevated
+              @click="stack.splice(-1, 1)"
+              size="xl"
+              color="grey-7"
+              >DEL</q-btn
+            >
+            <q-btn unelevated @click="stack.push(0)" size="xl" color="grey-8"
+              >0</q-btn
+            >
+            <q-btn
+              unelevated
+              @click="urlDialog.show = true"
+              size="xl"
+              color="grey-7"
+              >#</q-btn
+            >
           </div>
         </div>
-      </q-page-sticky>
-      <q-page-sticky expand position="bottom">
-        <div class="row justify-center full-width">
-          <div class="col-12 col-sm-8 col-md-6 col-lg-4">
-            <div class="keypad q-pa-sm">
-              <q-btn unelevated
-                @click="stack.push(1)"
-                size="xl" color="grey-8">1</q-btn>
-              <q-btn unelevated
-                @click="stack.push(2)"
-                size="xl" color="grey-8">2</q-btn>
-              <q-btn unelevated
-                @click="stack.push(3)"
-                size="xl" color="grey-8">3</q-btn>
-              <q-btn unelevated
-                @click="stack = []"
-                size="xl" color="pink" class="btn-cancel">C</q-btn>
-              <q-btn unelevated
-                @click="stack.push(4)"
-                size="xl" color="grey-8">4</q-btn>
-              <q-btn unelevated
-                @click="stack.push(5)"
-                size="xl" color="grey-8">5</q-btn>
-              <q-btn unelevated
-                @click="stack.push(6)"
-                size="xl" color="grey-8">6</q-btn>
-              <q-btn unelevated
-                @click="stack.push(7)"
-                size="xl" color="grey-8">7</q-btn>
-              <q-btn unelevated
-                @click="stack.push(8)"
-                size="xl" color="grey-8">8</q-btn>
-              <q-btn unelevated
-                @click="stack.push(9)"
-                size="xl" color="grey-8">9</q-btn>
-              <q-btn unelevated
-                :disabled="amount == 0"
-                @click="showInvoice()"
-                size="xl" color="green" class="btn-confirm">OK</q-btn>
-              <q-btn unelevated
-                @click="stack.splice(-1, 1)"
-                size="xl" color="grey-7">DEL</q-btn>
-              <q-btn unelevated
-                @click="stack.push(0)"
-                size="xl" color="grey-8">0</q-btn>
-              <q-btn unelevated
-                @click="urlDialog.show = true"
-                size="xl" color="grey-7">#</q-btn>
-            </div>
-          </div>
+      </div>
+    </q-page-sticky>
+    <q-dialog
+      v-model="invoiceDialog.show"
+      position="top"
+      @hide="closeInvoiceDialog"
+    >
+      <q-card
+        v-if="invoiceDialog.data"
+        class="q-pa-lg q-pt-xl lnbits__dialog-card"
+      >
+        <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+          <qrcode
+            :value="invoiceDialog.data.payment_request"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+        <div class="text-center">
+          <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
+          <h5 class="q-mt-none">
+            {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+          </h5>
         </div>
-      </q-page-sticky>
-      <q-dialog v-model="invoiceDialog.show" position="top" @hide="closeInvoiceDialog">
-        <q-card v-if="invoiceDialog.data" class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-            <qrcode :value="invoiceDialog.data.payment_request" :options="{width: 800}" class="rounded-borders"></qrcode>
-          </q-responsive>
-          <div class="text-center">
-            <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
-            <h5 class="q-mt-none">
-              {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
-            </h5>
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-          </div>
-        </q-card>
-      </q-dialog>
-      <q-dialog v-model="urlDialog.show" position="top">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-            <qrcode value="{{ request.url }}" :options="{width: 800}" class="rounded-borders"></qrcode>
-          </q-responsive>
-          <div class="text-center q-mb-xl">
-            <p style="word-break: break-all"><strong>{{ tpos.name }}</strong><br>{{ request.url }}</p>
-          </div>
-          <div class="row q-mt-lg">
-            <q-btn outline color="grey" @click="copyText('{{ request.url }}', 'TPoS URL copied to clipboard!')">Copy URL</q-btn>
-            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-          </div>
-        </q-card>
-      </q-dialog>
-    </q-page>
-  </q-page-container>
-{% endblock %}
+        <div class="row q-mt-lg">
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+        </div>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="urlDialog.show" position="top">
+      <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+        <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+          <qrcode
+            value="{{ request.url }}"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+        <div class="text-center q-mb-xl">
+          <p style="word-break: break-all;">
+            <strong>{{ tpos.name }}</strong><br />{{ request.url }}
+          </p>
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn
+            outline
+            color="grey"
+            @click="copyText('{{ request.url }}', 'TPoS URL copied to clipboard!')"
+            >Copy URL</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+        </div>
+      </q-card>
+    </q-dialog>
+  </q-page>
+</q-page-container>
+{% endblock %} {% block styles %}
+<style>
+  .keypad {
+    display: grid;
+    grid-gap: 8px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+  }
+  .keypad .btn {
+    height: 100%;
+  }
+  .btn-cancel,
+  .btn-confirm {
+    grid-row: auto/span 2;
+  }
+</style>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
 
-{% block styles %}
-  <style>
-    .keypad {
-      display: grid;
-      grid-gap: 8px;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(4, 1fr);
-    }
-    .keypad .btn {
-      height: 100%;
-    }
-    .btn-cancel, .btn-confirm {
-      grid-row: auto/span 2;
-    }
-  </style>
-{% endblock %}
-
-{% block scripts %}
-  <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
-  <script>
-    Vue.component(VueQrcode.name, VueQrcode);
-
-    new Vue({
-      el: '#vue',
-      mixins: [windowMixin],
-      data: function () {
-        return {
-          tposId: '{{ tpos.id }}',
-          currency: '{{ tpos.currency }}',
-          exchangeRate: null,
-          stack: [],
-          invoiceDialog: {
-            show: false,
-            data: null,
-            dismissMsg: null,
-            paymentChecker: null
-          },
-          urlDialog: {
-            show: false
-          }
-        };
-      },
-      computed: {
-        amount: function () {
-          if (!this.stack.length) return 0.00;
-          return (Number(this.stack.join('')) / 100).toFixed(2);
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        tposId: '{{ tpos.id }}',
+        currency: '{{ tpos.currency }}',
+        exchangeRate: null,
+        stack: [],
+        invoiceDialog: {
+          show: false,
+          data: null,
+          dismissMsg: null,
+          paymentChecker: null
         },
-        famount: function () {
-          return LNbits.utils.formatCurrency(this.amount, this.currency);
-        },
-        sat: function () {
-          if (!this.exchangeRate) return 0;
-          return Math.ceil((this.amount / this.exchangeRate) * 100000000);
-        },
-        fsat: function () {
-          return LNbits.utils.formatSat(this.sat);
+        urlDialog: {
+          show: false
         }
+      }
+    },
+    computed: {
+      amount: function () {
+        if (!this.stack.length) return 0.0
+        return (Number(this.stack.join('')) / 100).toFixed(2)
       },
-      methods: {
-        closeInvoiceDialog: function () {
-          this.stack = [];
-          var dialog = this.invoiceDialog;
-          setTimeout(function () {
-            clearInterval(dialog.paymentChecker);
-            dialog.dismissMsg();
-          }, 3000);
-        },
-        showInvoice: function () {
-          var self = this;
-          var dialog = this.invoiceDialog;
+      famount: function () {
+        return LNbits.utils.formatCurrency(this.amount, this.currency)
+      },
+      sat: function () {
+        if (!this.exchangeRate) return 0
+        return Math.ceil((this.amount / this.exchangeRate) * 100000000)
+      },
+      fsat: function () {
+        return LNbits.utils.formatSat(this.sat)
+      }
+    },
+    methods: {
+      closeInvoiceDialog: function () {
+        this.stack = []
+        var dialog = this.invoiceDialog
+        setTimeout(function () {
+          clearInterval(dialog.paymentChecker)
+          dialog.dismissMsg()
+        }, 3000)
+      },
+      showInvoice: function () {
+        var self = this
+        var dialog = this.invoiceDialog
 
-          axios.post(
-            '/tpos/api/v1/tposs/' + this.tposId + '/invoices/',
-            {amount: this.sat}
-          ).then(function (response) {
-            dialog.data = response.data;
-            dialog.show = true;
+        axios
+          .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices/', {
+            amount: this.sat
+          })
+          .then(function (response) {
+            dialog.data = response.data
+            dialog.show = true
 
             dialog.dismissMsg = self.$q.notify({
               timeout: 0,
               message: 'Waiting for payment...'
-            });
+            })
 
             dialog.paymentChecker = setInterval(function () {
-              axios.get(
-                '/tpos/api/v1/tposs/' + self.tposId + '/invoices/' + response.data.checking_id
-              ).then(function (res) {
-                if (res.data.paid) {
-                  clearInterval(dialog.paymentChecker);
-                  dialog.dismissMsg();
-                  dialog.show = false;
+              axios
+                .get(
+                  '/tpos/api/v1/tposs/' +
+                    self.tposId +
+                    '/invoices/' +
+                    response.data.checking_id
+                )
+                .then(function (res) {
+                  if (res.data.paid) {
+                    clearInterval(dialog.paymentChecker)
+                    dialog.dismissMsg()
+                    dialog.show = false
 
-                  self.$q.notify({
-                    type: 'positive',
-                    message: self.fsat + ' sat received!',
-                    icon: null
-                  });
-                }
-              });
-            }, 2000);
-
-          }).catch(function (error) {
-            LNbits.utils.notifyApiError(error);
-          });
-        },
-        getRates: function () {
-          var self = this;
-          axios.get("https://api.opennode.co/v1/rates").then(function (response) {
-            self.exchangeRate = response.data.data['BTC' + self.currency][self.currency];
-          });
-        }
+                    self.$q.notify({
+                      type: 'positive',
+                      message: self.fsat + ' sat received!',
+                      icon: null
+                    })
+                  }
+                })
+            }, 2000)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
-      created: function () {
-        var getRates = this.getRates;
-        getRates();
-        setInterval(function () { getRates(); }, 20000);
+      getRates: function () {
+        var self = this
+        axios.get('https://api.opennode.co/v1/rates').then(function (response) {
+          self.exchangeRate =
+            response.data.data['BTC' + self.currency][self.currency]
+        })
       }
-    });
-  </script>
+    },
+    created: function () {
+      var getRates = this.getRates
+      getRates()
+      setInterval(function () {
+        getRates()
+      }, 20000)
+    }
+  })
+</script>
 {% endblock %}

@@ -27,3 +27,5 @@ venv
 .pyre*
 
 __bundle__
+
+node_modules
