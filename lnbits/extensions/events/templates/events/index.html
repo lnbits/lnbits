@@ -10,45 +10,43 @@
   <li class="header"><b>Instant wallet, bookmark to save</b></li>
   <li></li>
 </ul>
-{% endblock %} 
-
-{% block menuitems %}
-  <li class="treeview">
-    <a href="#">
-      <i class="fa fa-bitcoin"></i> <span>Wallets</span>
-      <i class="fa fa-angle-left pull-right"></i>
-    </a>
-    <ul class="treeview-menu">
-      {% for w in user_wallets %}
-      <li>
-        <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"><i class="fa fa-bolt"></i> {{ w.name }}</a>
-      </li>
-      {% endfor %}
-      <li><a onclick="sidebarmake()">Add a wallet +</a></li>
-      <div id="sidebarmake"></div>
-    </ul>
-  </li>
-  <li class="active treeview">
-    <a href="#">
-      <i class="fa fa-th"></i> <span>Extensions</span>
-      <i class="fa fa-angle-left pull-right"></i>
-    </a>
-    <ul class="treeview-menu">
-      {% for extension in EXTENSIONS %}
-        {% if extension.code in user_ext %}
-          <li>
-            <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"><i class="fa fa-plus"></i> {{ extension.name }}</a>
-          </li>
-        {% endif %}
-      {% endfor %}
-      <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}">Manager</a></li>
-    </ul>
-  </li>
-{% endblock %}
-
-
-{% block body %}
+{% endblock %} {% block menuitems %}
+<li class="treeview">
+  <a href="#">
+    <i class="fa fa-bitcoin"></i> <span>Wallets</span>
+    <i class="fa fa-angle-left pull-right"></i>
+  </a>
+  <ul class="treeview-menu">
+    {% for w in user_wallets %}
+    <li>
+      <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"
+        ><i class="fa fa-bolt"></i> {{ w.name }}</a
+      >
+    </li>
+    {% endfor %}
+    <li><a onclick="sidebarmake()">Add a wallet +</a></li>
+    <div id="sidebarmake"></div>
+  </ul>
+</li>
+<li class="active treeview">
+  <a href="#">
+    <i class="fa fa-th"></i> <span>Extensions</span>
+    <i class="fa fa-angle-left pull-right"></i>
+  </a>
+  <ul class="treeview-menu">
+    {% for extension in EXTENSIONS %} {% if extension.code in user_ext %}
+    <li>
+      <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"
+        ><i class="fa fa-plus"></i> {{ extension.name }}</a
+      >
+    </li>
+    {% endif %} {% endfor %}
+    <li>
+      <a href="{{ url_for('core.extensions') }}?usr={{ user }}">Manager</a>
+    </li>
+  </ul>
+</li>
+{% endblock %} {% block body %}
 <!-- Right side column. Contains the navbar and content of the page -->
 <div class="content-wrapper">
   <!-- Content Header (Page header) -->
@@ -56,127 +54,150 @@
     <h1>
       Events
       <small>bitcoin tickets</small>
-
     </h1>
     <ol class="breadcrumb">
       <li>
-        <a href="{{ url_for('wallet') }}?usr={{ user }}"><i class="fa fa-dashboard"></i> Home</a>
+        <a href="{{ url_for('wallet') }}?usr={{ user }}"
+          ><i class="fa fa-dashboard"></i> Home</a
+        >
       </li>
       <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}"><li class="fa fa-dashboard">Extensions</li></a>
+        <a href="{{ url_for('core.extensions') }}?usr={{ user }}"
+          ><li class="fa fa-dashboard">Extensions</li></a
+        >
       </li>
-       <li>
+      <li>
         <i class="active" class="fa fa-dashboard">Lightning tickets</i>
       </li>
     </ol>
     <br /><br />
   </section>
-<style>
-.datepicker-days{
-
-  background-color: #1f2234;
-}
-
-</style>
+  <style>
+    .datepicker-days {
+      background-color: #1f2234;
+    }
+  </style>
   <!-- Main content -->
   <section class="content">
     <!-- Small boxes (Stat box) -->
     <div class="row">
+      <div class="col-md-6">
+        <!-- general form elements -->
+        <div class="box box-primary">
+          <div class="box-header">
+            <h3 class="box-title">Make a ticket wave</h3>
+          </div>
+          <!-- /.box-header -->
 
-            <div class="col-md-6"> 
-              <!-- general form elements -->
-              <div class="box box-primary">
-
-
-                <div class="box-header">
-                  <h3 class="box-title"> Make a ticket wave</h3>
-                </div><!-- /.box-header -->
-
-
-                <!-- form start -->
-                <form role="form">
-                  <div class="box-body">
-
-                    <div class="form-group">
-                      <label for="exampleInputEmail1">Ticket title</label>
-                      <input id="tit" type="text" pattern="^[A-Za-z]+$" class="form-control" >
-                    </div>
-
-                     <div class="form-group">
-                      <label>Description of event</label>
-                      <textarea id="descr" class="form-control" rows="2"></textarea>
-                    </div>
-
-                          <!-- select -->
-                    <div class="form-group">
-                      <label>Select a wallet</label>
-                      <select id="wal" class="form-control">
-                         <option></option>
-                         {% for w in user_wallets %}
-                        <option>{{w.name}}-{{w.id}}</option>
-                         {% endfor %}
-                      </select>
-                    </div>
-
-
-                    <div class="form-group">
-                      <label for="nooftickets">No. of tickets</label>
-                      <input id="notickets" type="number" class="form-control" placeholder="10" max="86400"></input>
-                    </div>
-
-                <div class="form-group">
-                <label>Close date:</label>
-
-                <div class="form-group">
-                  <input type="text" class="form-control" id="datepicker"></input>
-                </div>
- 
-
-                    <div class="form-group">
-                      <label for="prpertick">Price per ticket</label>
-                      <input id="prtickets" type="number" class="form-control" placeholder="10"></input>
-                    </div>
-
-                  </div><!-- /.box-body -->
-
-                  <div class="box-footer">
-
-                    <button onclick="postev()" type="button" class="btn btn-info">Create Wave</button><p style="color:red;" id="error"></p>
-                  </div>
-                </form>
-              </div></div></div>
- 
-
-
-              <div class="col-md-6">
-              <!-- general form elements -->
-              <div class="box box-primary">
-                <div class="box-header">
-                  <h3 class="box-title">Select a link</h3>
-                </div><!-- /.box-header -->
-                <form role="form">
-                  <div class="box-body">
-                     <div class="form-group">
-
-                      <select class="form-control" id="waveselect" onchange="drawwithdraw()">
-                               <option value="none" selected> 
-                                 Select an Option 
-                            </option> 
-                         {% for w in user_ev %}
-                        <option id="{{w.uni}}" value="{{w.tit}}-{{w.unireg}}-{{w.uni}}">{{w.tit}}-{{w.unireg}}-{{w.uni}}</option>
-                         {% endfor %}
-                      </select>
-                    </div>
-
-                   <center> <br/><div id="qrcode" style="width:340px" ></div><br/><div style="width:75%;word-wrap: break-word;" id="qrcodetxt" ></div></center>
-                </div>
-               </form>
-
-              </div><!-- /.box -->
+          <!-- form start -->
+          <form role="form">
+            <div class="box-body">
+              <div class="form-group">
+                <label for="exampleInputEmail1">Ticket title</label>
+                <input
+                  id="tit"
+                  type="text"
+                  pattern="^[A-Za-z]+$"
+                  class="form-control"
+                />
               </div>
 
+              <div class="form-group">
+                <label>Description of event</label>
+                <textarea id="descr" class="form-control" rows="2"></textarea>
+              </div>
 
+              <!-- select -->
+              <div class="form-group">
+                <label>Select a wallet</label>
+                <select id="wal" class="form-control">
+                  <option></option>
+                  {% for w in user_wallets %}
+                  <option>{{w.name}}-{{w.id}}</option>
+                  {% endfor %}
+                </select>
+              </div>
 
+              <div class="form-group">
+                <label for="nooftickets">No. of tickets</label>
+                <input
+                  id="notickets"
+                  type="number"
+                  class="form-control"
+                  placeholder="10"
+                  max="86400"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Close date:</label>
+
+              <div class="form-group">
+                <input type="text" class="form-control" id="datepicker" />
+              </div>
+
+              <div class="form-group">
+                <label for="prpertick">Price per ticket</label>
+                <input
+                  id="prtickets"
+                  type="number"
+                  class="form-control"
+                  placeholder="10"
+                />
+              </div>
+            </div>
+
+            <div class="box-footer">
+              <button onclick="postev()" type="button" class="btn btn-info">
+                Create Wave
+              </button>
+              <p style="color: red;" id="error"></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <!-- general form elements -->
+      <div class="box box-primary">
+        <div class="box-header">
+          <h3 class="box-title">Select a link</h3>
+        </div>
+        <!-- /.box-header -->
+        <form role="form">
+          <div class="box-body">
+            <div class="form-group">
+              <select
+                class="form-control"
+                id="waveselect"
+                onchange="drawwithdraw()"
+              >
+                <option value="none" selected>
+                  Select an Option
+                </option>
+                {% for w in user_ev %}
+                <option id="{{w.uni}}" value="{{w.tit}}-{{w.unireg}}-{{w.uni}}"
+                  >{{w.tit}}-{{w.unireg}}-{{w.uni}}</option
+                >
+                {% endfor %}
+              </select>
+            </div>
+
+            <center>
+              <br />
+              <div id="qrcode" style="width: 340px;"></div>
+              <br />
+              <div
+                style="width: 75%; word-wrap: break-word;"
+                id="qrcodetxt"
+              ></div>
+            </center>
+          </div>
+        </form>
+      </div>
+      <!-- /.box -->
     </div>
 
     <div class="row">
@@ -187,16 +208,19 @@
           </div>
           <!-- /.box-header -->
           <div class="box-body no-padding">
-            <table id="pagnation" class="table table-bswearing anchorordered table-striped">
+            <table
+              id="pagnation"
+              class="table table-bswearing anchorordered table-striped"
+            >
               <tr>
                 <th>Title</th>
-                <th style="width:15%">Amt</th>
-                <th style="width:15%">Sold</th>
-                <th style="width:15%">Closing</th>
-                <th style="width:15%">Price</th>
-                <th style="width:15%">Wallet</th>
-                <th style="width:10%">Edit</th>
-                <th style="width:10%">Del</th>
+                <th style="width: 15%;">Amt</th>
+                <th style="width: 15%;">Sold</th>
+                <th style="width: 15%;">Closing</th>
+                <th style="width: 15%;">Price</th>
+                <th style="width: 15%;">Wallet</th>
+                <th style="width: 10%;">Edit</th>
+                <th style="width: 10%;">Del</th>
               </tr>
               <tbody id="ticketwaves"></tbody>
             </table>
@@ -207,274 +231,271 @@
       </div>
     </div>
 
-
-
-<div id="editlink"></div>
+    <div id="editlink"></div>
 
     <!-- /.content -->
   </section>
 
   <script>
 
-    //Date picker
-    $('#datepicker').datepicker({
-      autoclose: true
-    })
+        //Date picker
+        $('#datepicker').datepicker({
+          autoclose: true
+        })
 
 
 
-    window.user = {{ user | tojson | safe }}
-    window.user_wallets = {{ user_wallets | tojson | safe }}
-    window.user_ext = {{ user_ext | tojson | safe }}
-    window.user_ev = {{ user_ev | tojson | safe }}
+        window.user = {{ user | tojson | safe }}
+        window.user_wallets = {{ user_wallets | tojson | safe }}
+        window.user_ext = {{ user_ext | tojson | safe }}
+        window.user_ev = {{ user_ev | tojson | safe }}
 
-    const user_ev = window.user_ev
-    console.log(user_ev)
+        const user_ev = window.user_ev
+        console.log(user_ev)
 
 
-function drawChart(user_ev) {
-  var transactionsHTML = ''
+    function drawChart(user_ev) {
+      var transactionsHTML = ''
 
-  for (var i = 0; i < user_ev.length; i++) {
-    var ev = user_ev[i]
+      for (var i = 0; i < user_ev.length; i++) {
+        var ev = user_ev[i]
 
-    transactionsHTML =
-      "<tr><td  style='width: 50%'>" +
-      ev.tit +
-      '</td><td>' +
-      ev.notickets    +
-      '</td><td>' +
-      ev.sold    +
-      '</td><td>' +
-      ev.cldate    +
-      '</td><td>' +
-      ev.prtick +
-      '</td><td>' +
-      "<a href='{{ url_for('wallet') }}?usr="+ ev.usr +"'>" + ev.wal.substring(0, 4) + "...</a>" +
-      '</td><td>' +
-      "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
-      '</td><td>' +
-      "<b><a style='color:red;' href='" + "{{ url_for('events.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
-      '</td></tr>' +
-      transactionsHTML
-      document.getElementById('ticketwaves').innerHTML = transactionsHTML
+        transactionsHTML =
+          "<tr><td  style='width: 50%'>" +
+          ev.tit +
+          '</td><td>' +
+          ev.notickets    +
+          '</td><td>' +
+          ev.sold    +
+          '</td><td>' +
+          ev.cldate    +
+          '</td><td>' +
+          ev.prtick +
+          '</td><td>' +
+          "<a href='{{ url_for('wallet') }}?usr="+ ev.usr +"'>" + ev.wal.substring(0, 4) + "...</a>" +
+          '</td><td>' +
+          "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
+          '</td><td>' +
+          "<b><a style='color:red;' href='" + "{{ url_for('events.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
+          '</td></tr>' +
+          transactionsHTML
+          document.getElementById('ticketwaves').innerHTML = transactionsHTML
 
+        }
+      }
+
+    if (user_ev.length) {
+      drawChart(user_ev)
     }
-  }
 
-if (user_ev.length) {
-  drawChart(user_ev)
-}
+    function postev(){
 
-function postev(){
+      wal = document.getElementById('wal').value
+      tit = document.getElementById('tit').value
+      cldate = document.getElementById('datepicker').value
+      notickets = document.getElementById('notickets').value
+      prtickets = document.getElementById('prtickets').value
+      descr = document.getElementById('descr').value
 
-  wal = document.getElementById('wal').value
-  tit = document.getElementById('tit').value
-  cldate = document.getElementById('datepicker').value
-  notickets = document.getElementById('notickets').value
-  prtickets = document.getElementById('prtickets').value
-  descr = document.getElementById('descr').value
+      if (tit == "") {
+        document.getElementById("error").innerHTML = "Only use letters in title"
+        return amt
+      }
+        if (wal == "") {
+        document.getElementById("error").innerHTML = "No wallet selected"
+        return amt
+      }
+          if (cldate == "") {
+        document.getElementById("error").innerHTML = "No date selected"
+        return amt
+      }
 
-  if (tit == "") {
-    document.getElementById("error").innerHTML = "Only use letters in title"
-    return amt
-  }
-    if (wal == "") {
-    document.getElementById("error").innerHTML = "No wallet selected"
-    return amt
-  }
-      if (cldate == "") {
-    document.getElementById("error").innerHTML = "No date selected"
-    return amt
-  }
+      if (isNaN(notickets) || notickets < 1) {
+        document.getElementById("error").innerHTML = "Must be more than 1"
+        return amt
+      }
+      if (isNaN(prtickets) || prtickets < 10) {
+        document.getElementById("error").innerHTML = "Must be higher 10"
+        return amt
+      }
 
-  if (isNaN(notickets) || notickets < 1) {
-    document.getElementById("error").innerHTML = "Must be more than 1"
-    return amt
-  }
-  if (isNaN(prtickets) || prtickets < 10) {
-    document.getElementById("error").innerHTML = "Must be higher 10"
-    return amt
-  }
+      postAjax(
+        "{{ url_for('events.create') }}",
+        JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets, "descr": descr}),
+        "filla",
 
-  postAjax(
-    "{{ url_for('events.create') }}",
-    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets, "descr": descr}),
-    "filla",
-
-    function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
-  })
-
-}
-
-
-function editlink(evnum){
-
-evdetails = user_ev[evnum]
-
-console.log(evdetails.descr)
-wallpick = ""
-
-checkbox = ""
-if (evdetails.uniq == 1){
-  checkbox = "checked"}
-
-document.getElementById('editlink').innerHTML = "<div class='row'>"+
-            "<div class='col-md-6'>"+
-             " <!-- general form elements -->"+
-              "<div class='box box-primary' style='min-height: 300px;'>"+
-                "<div class='box-header'>"+
-                  "<h3 class='box-title'> Edit: <i id='unid'>" + evdetails.tit + "-" + evdetails.uni + "-" + evdetails.unireg + "</i> </h3>"+
-                  "<div class='box-tools pull-right'>" +
-"<button class='btn btn-box-tool' data-widget='remove'><i class='fa fa-times'></i></button>" +
-                  "</div>" +
-               " </div><!-- /.box-header -->"+
-               " <!-- form start -->"+
-                "<form role='form'>"+
-                  "<div class='box-body'>"+
-
-                    "<div class='col-sm-3 col-md-4'>"+
-                    "<div class='form-group'>"+
-                      "<label for='exampleInputEmail1'>Link title</label>"+
-    "<input id='edittit' type='text' class='form-control' value='"+
-         evdetails.tit +
-        "'></input> </div>"+
-                 " </div>"+
-                  
-                         "<div class='col-sm-1 col-md-8'>"+
-                    "<div class='form-group'>"+
-                      "<label for='exampleInputEmail1'>Description of event</label>"+
-    "<textarea id='editdescr' type='textarea' rows='1' class='form-control'>"+evdetails.descr+"</textarea> </div>"+
-                 " </div>"+
-
-
-                 " <div class='col-sm-4 col-md-4'>"+
-                        "  <!-- select -->"+
-                   " <div class='form-group'>"+
-                     " <label>Select a wallet</label>"+
-                      "<select id='editwal' class='form-control'>"+
-                       " <option>" + evdetails.walnme + "-" + evdetails.wal + "</option>"+
-                        " {% for w in user_wallets %}"+
-
-                        " <option>{{w.name}}-{{w.id}}</option>"+
-
-                        " {% endfor %}"+
-                     " </select>"+
-                   " </div>"+
-                   " </div>"+
-                   " <div class='col-sm-3 col-md-4'>"+
-                    "<div class='form-group'>"+
-                     " <label for='exampleInputPassword1'>No of tickets:</label>"+
-        " <input id='editnooftickets' type='number' class='form-control' placeholder='0' max='86400' value='"+
-         evdetails.notickets +
-        "'></input>"+
-                    "</div> </div>"+
-
-                   " <div class='col-sm-3 col-md-4'>"+
-                    "<div class='form-group'>"+
-                      "<label for='exampleInputEmail1'>Price per ticket:</label>"+
-             " <input id='editprtick' type='number' class='form-control' placeholder='1' value='"+
-         evdetails.prtick +
-        "'></input>"+
-                   " </div></div>"+
-                   " <div class='col-sm-3 col-md-4'>"+
-                    "  <div class='input-group date'>"+
-                     " <label for='exampleInputEmail1'>Close date:</label>"+
-           " <input id='datepicker2' type='text' class='form-control' placeholder='1' value='"+
-         evdetails.cldate +
-        "'></input>"+
-                   " </div></div>"+
-
-
-
-                  "   <div class='col-sm-3 col-md-4'>"+
-                   "</div><!-- /.box-body -->"+
-                  " </div><br/>"+
-                 " <div class='box-footer'>"+
-                                    " <div class='col-sm-3 col-md-4'>"+
-                  "<button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button>"+
-                   "</div>"+
-                   "<p style='color:red;' id='error2'>.</p>"+
-                "  </div></form></div><!-- /.box --></div></div>"
-
-
-}
-
-      //Date picker
-    $('#datepicker2').datepicker({
-      autoclose: true
-    })
-    
-function editlinkcont(){
-
-  unid = document.getElementById('unid').innerHTML
-  wal = document.getElementById('editwal').value
-  tit = document.getElementById('edittit').value
-  nooftickets = document.getElementById('editnooftickets').value
-  prtick = document.getElementById('editprtick').value
-  cldate = document.getElementById('datepicker2').value
-  descr = document.getElementById('editdescr').value
-  uni = unid.split("-")[1]
-
-  if (tit == "") {
-    document.getElementById("error2").innerHTML = "Only use letters in title"
-    return amt
-  }
-    if (wal == "") {
-    document.getElementById("error2").innerHTML = "No wallet selected"
-    return amt
-  }
-
-  if (isNaN(nooftickets) || nooftickets < 1 || nooftickets > 1000000) {
-    document.getElementById("error2").innerHTML = "No. of tickets must be between 1 - 1000000"
-    return amt
-  }
-  if (isNaN(prtick) || prtick < 10 ) {
-    document.getElementById("error2").innerHTML = "Ticket pricket must be higher than 10"
-    return amt
-  }
-
-
-  postAjax(
-    "{{ url_for('events.create') }}",
-    JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid, "descr": descr}),
-                    
-    "filla",
-
-    function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
-})
-
-}
-
-//draws withdraw QR code
-function drawwithdraw() {
-
-      document.getElementById("qrcode").innerHTML  = "";
-      walname = document.getElementById("waveselect").value
-
-      thewave = walname.split("-");
-      console.log(window.location.hostname + "-" + thewave[1])
-      toencode = "/events/wave/" + thewave[1]
-      toreg = "/events/registration/" + thewave[2]
-
-      new QRCode(document.getElementById('qrcode'), {
-        text: toencode,
-        width: 300,
-        height: 300,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
+        function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
       })
 
-  
-      document.getElementById('qrcodetxt').innerHTML = "<a href='" + toencode + "'><h2>Payment link</a> , " +
-                                                       "<a href='" + toreg + "'>Registration</h2></a>"
+    }
 
-      document.getElementById("qrcode").style.backgroundColor = "white";
-      document.getElementById("qrcode").style.padding = "20px";
 
-}
+    function editlink(evnum){
 
+    evdetails = user_ev[evnum]
+
+    console.log(evdetails.descr)
+    wallpick = ""
+
+    checkbox = ""
+    if (evdetails.uniq == 1){
+      checkbox = "checked"}
+
+    document.getElementById('editlink').innerHTML = "<div class='row'>"+
+                "<div class='col-md-6'>"+
+                 " <!-- general form elements -->"+
+                  "<div class='box box-primary' style='min-height: 300px;'>"+
+                    "<div class='box-header'>"+
+                      "<h3 class='box-title'> Edit: <i id='unid'>" + evdetails.tit + "-" + evdetails.uni + "-" + evdetails.unireg + "</i> </h3>"+
+                      "<div class='box-tools pull-right'>" +
+    "<button class='btn btn-box-tool' data-widget='remove'><i class='fa fa-times'></i></button>" +
+                      "</div>" +
+                   " </div><!-- /.box-header -->"+
+                   " <!-- form start -->"+
+                    "<form role='form'>"+
+                      "<div class='box-body'>"+
+
+                        "<div class='col-sm-3 col-md-4'>"+
+                        "<div class='form-group'>"+
+                          "<label for='exampleInputEmail1'>Link title</label>"+
+        "<input id='edittit' type='text' class='form-control' value='"+
+             evdetails.tit +
+            "'> </div>"+
+                     " </div>"+
+
+                             "<div class='col-sm-1 col-md-8'>"+
+                        "<div class='form-group'>"+
+                          "<label for='exampleInputEmail1'>Description of event</label>"+
+        "<textarea id='editdescr' type='textarea' rows='1' class='form-control'>"+evdetails.descr+"</textarea> </div>"+
+                     " </div>"+
+
+
+                     " <div class='col-sm-4 col-md-4'>"+
+                            "  <!-- select -->"+
+                       " <div class='form-group'>"+
+                         " <label>Select a wallet</label>"+
+                          "<select id='editwal' class='form-control'>"+
+                           " <option>" + evdetails.walnme + "-" + evdetails.wal + "</option>"+
+                            " {% for w in user_wallets %}"+
+
+                            " <option>{{w.name}}-{{w.id}}</option>"+
+
+                            " {% endfor %}"+
+                         " </select>"+
+                       " </div>"+
+                       " </div>"+
+                       " <div class='col-sm-3 col-md-4'>"+
+                        "<div class='form-group'>"+
+                         " <label for='exampleInputPassword1'>No of tickets:</label>"+
+            " <input id='editnooftickets' type='number' class='form-control' placeholder='0' max='86400' value='"+
+             evdetails.notickets +
+            "'>"+
+                        "</div> </div>"+
+
+                       " <div class='col-sm-3 col-md-4'>"+
+                        "<div class='form-group'>"+
+                          "<label for='exampleInputEmail1'>Price per ticket:</label>"+
+                 " <input id='editprtick' type='number' class='form-control' placeholder='1' value='"+
+             evdetails.prtick +
+            "'>"+
+                       " </div></div>"+
+                       " <div class='col-sm-3 col-md-4'>"+
+                        "  <div class='input-group date'>"+
+                         " <label for='exampleInputEmail1'>Close date:</label>"+
+               " <input id='datepicker2' type='text' class='form-control' placeholder='1' value='"+
+             evdetails.cldate +
+            "'>"+
+                       " </div></div>"+
+
+
+
+                      "   <div class='col-sm-3 col-md-4'>"+
+                       "</div><!-- /.box-body -->"+
+                      " </div><br/>"+
+                     " <div class='box-footer'>"+
+                                        " <div class='col-sm-3 col-md-4'>"+
+                      "<button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button>"+
+                       "</div>"+
+                       "<p style='color:red;' id='error2'>.</p>"+
+                    "  </div></form></div><!-- /.box --></div></div>"
+
+
+    }
+
+          //Date picker
+        $('#datepicker2').datepicker({
+          autoclose: true
+        })
+
+    function editlinkcont(){
+
+      unid = document.getElementById('unid').innerHTML
+      wal = document.getElementById('editwal').value
+      tit = document.getElementById('edittit').value
+      nooftickets = document.getElementById('editnooftickets').value
+      prtick = document.getElementById('editprtick').value
+      cldate = document.getElementById('datepicker2').value
+      descr = document.getElementById('editdescr').value
+      uni = unid.split("-")[1]
+
+      if (tit == "") {
+        document.getElementById("error2").innerHTML = "Only use letters in title"
+        return amt
+      }
+        if (wal == "") {
+        document.getElementById("error2").innerHTML = "No wallet selected"
+        return amt
+      }
+
+      if (isNaN(nooftickets) || nooftickets < 1 || nooftickets > 1000000) {
+        document.getElementById("error2").innerHTML = "No. of tickets must be between 1 - 1000000"
+        return amt
+      }
+      if (isNaN(prtick) || prtick < 10 ) {
+        document.getElementById("error2").innerHTML = "Ticket pricket must be higher than 10"
+        return amt
+      }
+
+
+      postAjax(
+        "{{ url_for('events.create') }}",
+        JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid, "descr": descr}),
+
+        "filla",
+
+        function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
+    })
+
+    }
+
+    //draws withdraw QR code
+    function drawwithdraw() {
+
+          document.getElementById("qrcode").innerHTML  = "";
+          walname = document.getElementById("waveselect").value
+
+          thewave = walname.split("-");
+          console.log(window.location.hostname + "-" + thewave[1])
+          toencode = "/events/wave/" + thewave[1]
+          toreg = "/events/registration/" + thewave[2]
+
+          new QRCode(document.getElementById('qrcode'), {
+            text: toencode,
+            width: 300,
+            height: 300,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          })
+
+
+          document.getElementById('qrcodetxt').innerHTML = "<a href='" + toencode + "'><h2>Payment link</a> , " +
+                                                           "<a href='" + toreg + "'>Registration</h2></a>"
+
+          document.getElementById("qrcode").style.backgroundColor = "white";
+          document.getElementById("qrcode").style.padding = "20px";
+
+    }
   </script>
 </div>
 {% endblock %}

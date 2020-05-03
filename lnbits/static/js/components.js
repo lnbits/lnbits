@@ -8,10 +8,10 @@ Vue.component('lnbits-fsat', {
   template: '<span>{{ fsat }}</span>',
   computed: {
     fsat: function () {
-      return LNbits.utils.formatSat(this.amount);
+      return LNbits.utils.formatSat(this.amount)
     }
   }
-});
+})
 
 Vue.component('lnbits-wallet-list', {
   data: function () {
@@ -70,33 +70,34 @@ Vue.component('lnbits-wallet-list', {
   `,
   computed: {
     wallets: function () {
-      var bal = this.activeBalance;
+      var bal = this.activeBalance
       return this.user.wallets.map(function (obj) {
-        obj.live_fsat = (bal.length && bal[0] == obj.id)
-          ? LNbits.utils.formatSat(bal[1])
-          : obj.fsat;
-        return obj;
-      });
+        obj.live_fsat =
+          bal.length && bal[0] == obj.id
+            ? LNbits.utils.formatSat(bal[1])
+            : obj.fsat
+        return obj
+      })
     }
   },
   methods: {
     createWallet: function () {
-      LNbits.href.createWallet(this.walletName, this.user.id);
+      LNbits.href.createWallet(this.walletName, this.user.id)
     },
     updateWalletBalance: function (payload) {
-      this.activeBalance = payload;
+      this.activeBalance = payload
     }
   },
   created: function () {
     if (window.user) {
-      this.user = LNbits.map.user(window.user);
+      this.user = LNbits.map.user(window.user)
     }
     if (window.wallet) {
-      this.activeWallet = LNbits.map.wallet(window.wallet);
+      this.activeWallet = LNbits.map.wallet(window.wallet)
     }
-    EventHub.$on('update-wallet-balance', this.updateWalletBalance);
+    EventHub.$on('update-wallet-balance', this.updateWalletBalance)
   }
-});
+})
 
 Vue.component('lnbits-extension-list', {
   data: function () {
@@ -140,30 +141,34 @@ Vue.component('lnbits-extension-list', {
   `,
   computed: {
     userExtensions: function () {
-      if (!this.user) return [];
+      if (!this.user) return []
 
-      var path = window.location.pathname;
-      var userExtensions = this.user.extensions;
+      var path = window.location.pathname
+      var userExtensions = this.user.extensions
 
-      return this.extensions.filter(function (obj) {
-        return userExtensions.indexOf(obj.code) !== -1;
-      }).map(function (obj) {
-        obj.isActive = path.startsWith(obj.url);
-        return obj;
-      });
+      return this.extensions
+        .filter(function (obj) {
+          return userExtensions.indexOf(obj.code) !== -1
+        })
+        .map(function (obj) {
+          obj.isActive = path.startsWith(obj.url)
+          return obj
+        })
     }
   },
   created: function () {
     if (window.extensions) {
-      this.extensions = window.extensions.map(function (data) {
-        return LNbits.map.extension(data);
-      }).sort(function (a, b) {
-        return a.name.localeCompare(b.name);
-      });
+      this.extensions = window.extensions
+        .map(function (data) {
+          return LNbits.map.extension(data)
+        })
+        .sort(function (a, b) {
+          return a.name.localeCompare(b.name)
+        })
     }
 
     if (window.user) {
-      this.user = LNbits.map.user(window.user);
+      this.user = LNbits.map.user(window.user)
     }
   }
-});
+})
