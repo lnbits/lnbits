@@ -1,0 +1,25 @@
+name: Run Linters
+
+on: [push, pull_request]
+
+jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Run MyPy python type checker
+        uses: jpetrucciani/mypy-check@master
+        with:
+          path: 'lnbits'
+
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Check JS code formatting convention
+        uses: creyD/prettier_action@v2.2
+        with:
+          dry: True
+          prettier_options: --write lnbits/static/js/** lnbits/core/static/js/** lnbits/extensions/*/templates/**
