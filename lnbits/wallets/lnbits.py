@@ -4,12 +4,13 @@ from requests import get, post
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
-class LnbitsWallet(Wallet):
+class LNbitsWallet(Wallet):
+    """https://github.com/lnbits/lnbits"""
 
     def __init__(self):
         self.endpoint = getenv("LNBITS_ENDPOINT")
-        self.auth_admin = getenv("LNBITS_ADMIN_MACAROON")
-        self.auth_invoice = getenv("LNBITS_INVOICE_MACAROON")
+        self.auth_admin = {"X-Api-Key": getenv("LNBITS_ADMIN_KEY")}
+        self.auth_invoice = {"X-Api-Key": getenv("LNBITS_INVOICE_KEY")}
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
         r = post(

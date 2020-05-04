@@ -1,0 +1,10 @@
+title: "LNbits docs"
+
+remote_theme: pmarsceill/just-the-docs
+logo: "/logos/lnbits-full.png"
+search_enabled: true
+aux_links:
+  "LNbits on GitHub":
+    - "//github.com/lnbits/lnbits"
+  "lnbits.com":
+    - "//lnbits.com"
