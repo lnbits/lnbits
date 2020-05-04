@@ -1,5 +1,5 @@
 /*!
- * Quasar Framework v1.9.15
+ * Quasar Framework v1.10.4
  * (c) 2015-present Razvan Stoenescu
  * Released under the MIT License.
  */
@@ -12,7 +12,7 @@
 
   Vue = Vue && Object.prototype.hasOwnProperty.call(Vue, 'default') ? Vue['default'] : Vue;
 
-  var version = "1.9.15";
+  var version = "1.10.4";
 
   /* eslint-disable no-useless-escape */
 
@@ -88,8 +88,9 @@
     }, obj[ platform ] = true, obj ));
   }
 
-  function getPlatform (userAgent) {
+  function getPlatform (UA) {
     var
+      userAgent = UA.toLowerCase(),
       platformMatch = getPlatformMatch(userAgent),
       matched = getMatch(userAgent, platformMatch),
       browser = {};
@@ -224,35 +225,45 @@
       else if (document.location.href.indexOf('-extension://') > -1) {
         browser.bex = true;
       }
-      else if (window.Capacitor !== void 0) {
-        browser.capacitor = true;
-        browser.nativeMobile = true;
-        browser.nativeMobileWrapper = 'capacitor';
-      }
-      else if (window._cordovaNative !== void 0 || window.cordova !== void 0) {
-        browser.cordova = true;
-        browser.nativeMobile = true;
-        browser.nativeMobileWrapper = 'cordova';
-      }
-      else if (
-        hasTouch === true &&
-        browser.desktop === true &&
-        browser.mac === true &&
-        browser.safari === true
-      ) {
-        /*
-         * Correction needed for iOS since the default
-         * setting on iPad is to request desktop view; if we have
-         * touch support and the user agent says it's a
-         * desktop, we infer that it's an iPhone/iPad with desktop view
-         * so we must fix the false positives
-         */
-        applyIosCorrection(browser);
+      else {
+        if (window.Capacitor !== void 0) {
+          browser.capacitor = true;
+          browser.nativeMobile = true;
+          browser.nativeMobileWrapper = 'capacitor';
+        }
+        else if (window._cordovaNative !== void 0 || window.cordova !== void 0) {
+          browser.cordova = true;
+          browser.nativeMobile = true;
+          browser.nativeMobileWrapper = 'cordova';
+        }
+
+        if (
+          hasTouch === true &&
+          browser.mac === true &&
+          (
+            (browser.desktop === true && browser.safari === true) ||
+            (
+              browser.nativeMobile === true &&
+              browser.android !== true &&
+              browser.ios !== true &&
+              browser.ipad !== true
+            )
+          )
+        ) {
+          /*
+          * Correction needed for iOS since the default
+          * setting on iPad is to request desktop view; if we have
+          * touch support and the user agent says it's a
+          * desktop, we infer that it's an iPhone/iPad with desktop view
+          * so we must fix the false positives
+          */
+          applyIosCorrection(browser);
+        }
       }
 
       fromSSR = browser.nativeMobile === void 0 &&
         browser.electron === void 0 &&
-        !!document.querySelector('[data-server-rendered]');
+        document.querySelector('[data-server-rendered]') !== null;
 
       if (fromSSR === true) {
         onSSR = true;
@@ -262,8 +273,8 @@
     return browser
   }
 
-  var userAgent = isSSR === false
-    ? (navigator.userAgent || navigator.vendor || window.opera).toLowerCase()
+  var userAgent = isSSR !== true
+    ? navigator.userAgent || navigator.vendor || window.opera
     : '';
 
   var ssrClient = {
@@ -343,7 +354,7 @@
 
   if (isSSR === true) {
     Platform.parseSSR = function (/* ssrContext */ ssr) {
-      var userAgent = (ssr.req.headers['user-agent'] || ssr.req.headers['User-Agent'] || '').toLowerCase();
+      var userAgent = ssr.req.headers['user-agent'] || ssr.req.headers['User-Agent'] || '';
       return Object.assign({}, client,
         {userAgent: userAgent,
         is: getPlatform(userAgent)})
@@ -1037,6 +1048,8 @@
     }
   };
 
+  var reRGBA = /^rgb(a)?\((\d{1,3}),(\d{1,3}),(\d{1,3}),?([01]?\.?\d*?)?\)$/;
+
   function rgbToHex (ref) {
     var r = ref.r;
     var g = ref.g;
@@ -1072,27 +1085,6 @@
     var a = ref.a;
 
     return ("rgb" + (a !== void 0 ? 'a' : '') + "(" + r + "," + g + "," + b + (a !== void 0 ? ',' + (a / 100) : '') + ")")
-  }
-
-  function stringToRgb (str) {
-    if (typeof str !== 'string') {
-      throw new TypeError('Expected a string')
-    }
-
-    str = str.replace(/ /g, '');
-
-    if (str.startsWith('#')) {
-      return hexToRgb(str)
-    }
-
-    var model = str.substring(str.indexOf('(') + 1, str.length - 1).split(',');
-
-    return {
-      r: parseInt(model[0], 10),
-      g: parseInt(model[1], 10),
-      b: parseInt(model[2], 10),
-      a: model[3] !== void 0 ? parseFloat(model[3]) * 100 : void 0
-    }
   }
 
   function hexToRgb (hex) {
@@ -1212,8 +1204,6 @@
       a: a
     }
   }
-
-  var reRGBA = /^rgb(a)?\((\d{1,3}),(\d{1,3}),(\d{1,3}),?([01]?\.?\d*?)?\)$/;
 
   function textToRgb (str) {
     if (typeof str !== 'string') {
@@ -1374,6 +1364,23 @@
     return getComputedStyle(element).getPropertyValue(("--q-color-" + color)).trim() || null
   }
 
+  function getPaletteColor (colorName) {
+    if (typeof colorName !== 'string') {
+      throw new TypeError('Expected a string as color')
+    }
+
+    var el = document.createElement('div');
+
+    el.className = "text-" + colorName + " invisible fixed no-pointer-events";
+    document.body.appendChild(el);
+
+    var result = getComputedStyle(el).getPropertyValue('color');
+
+    el.remove();
+
+    return rgbToHex(textToRgb(result))
+  }
+
   var colors = {
     rgbToHex: rgbToHex,
     hexToRgb: hexToRgb,
@@ -1386,7 +1393,8 @@
     blend: blend,
     changeAlpha: changeAlpha,
     setBrand: setBrand,
-    getBrand: getBrand
+    getBrand: getBrand,
+    getPaletteColor: getPaletteColor
   };
 
   var lastKeyCompositionStatus = false;
@@ -1761,7 +1769,7 @@
       ++u;
     }
 
-    return ((bytes.toFixed(1)) + " " + (units[u]))
+    return ("" + (bytes.toFixed(1)) + (units[u]))
   }
 
   function capitalize (str) {
@@ -2100,6 +2108,47 @@
     }
   };
 
+  function cache (vm, key, obj) {
+    if (isSSR === true) { return obj }
+
+    var k = "__qcache_" + key;
+    return vm[k] === void 0
+      ? (vm[k] = obj)
+      : vm[k]
+  }
+
+  function getPropCacheMixin (propName, proxyPropName) {
+    var obj;
+
+    return {
+      data: function data () {
+        var obj;
+
+        return ( obj = {}, obj[proxyPropName] = {}, obj )
+      },
+
+      watch: ( obj = {}, obj[propName] = {
+          immediate: true,
+          handler: function handler (newObj, oldObj) {
+            if (oldObj !== void 0) {
+              // we first delete obsolete keys
+              for (var prop in oldObj) {
+                if (newObj.hasOwnProperty(prop) !== true) {
+                  this.$delete(this[proxyPropName], prop);
+                }
+              }
+            }
+
+            for (var prop$1 in newObj) {
+              this.$set(this[proxyPropName], prop$1, newObj[prop$1]);
+            }
+          }
+        }, obj )
+    }
+  }
+
+  var ListenersMixin = getPropCacheMixin('$listeners', 'qListeners');
+
   function slot (vm, slotName, otherwise) {
     return vm.$scopedSlots[slotName] !== void 0
       ? vm.$scopedSlots[slotName]()
@@ -2140,7 +2189,7 @@
   var QIcon = Vue.extend({
     name: 'QIcon',
 
-    mixins: [ SizeMixin, TagMixin ],
+    mixins: [ ListenersMixin, SizeMixin, TagMixin ],
 
     props: {
       tag: {
@@ -2265,7 +2314,7 @@
       var data = {
         class: this.type.cls,
         style: this.sizeStyle,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           'aria-hidden': 'true',
           role: 'presentation'
@@ -2301,7 +2350,7 @@
   var QAvatar = Vue.extend({
     name: 'QAvatar',
 
-    mixins: [ SizeMixin ],
+    mixins: [ ListenersMixin, SizeMixin ],
 
     props: {
       fontSize: String,
@@ -2336,7 +2385,7 @@
       return h('div', {
         staticClass: 'q-avatar',
         style: this.sizeStyle,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('div', {
           staticClass: 'q-avatar__content row flex-center overflow-hidden',
@@ -2349,6 +2398,8 @@
 
   var QBadge = Vue.extend({
     name: 'QBadge',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       color: String,
@@ -2403,7 +2454,7 @@
         style: this.style,
         class: this.classes,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, this.label !== void 0 ? [ this.label ] : slot(this, 'default'))
     }
   });
@@ -2430,7 +2481,7 @@
   var QBanner = Vue.extend({
     name: 'QBanner',
 
-    mixins: [ DarkMixin ],
+    mixins: [ ListenersMixin, DarkMixin ],
 
     props: {
       inlineActions: Boolean,
@@ -2466,7 +2517,7 @@
           'rounded-borders': this.rounded
         },
         attrs: attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, child)
     }
   });
@@ -2476,7 +2527,7 @@
   var QBar = Vue.extend({
     name: 'QBar',
 
-    mixins: [ DarkMixin ],
+    mixins: [ ListenersMixin, DarkMixin ],
 
     props: {
       dense: Boolean
@@ -2494,7 +2545,7 @@
         staticClass: 'q-bar row no-wrap items-center',
         class: this.classes,
         attrs: attrs$1,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -2533,7 +2584,7 @@
   var QBreadcrumbs = Vue.extend({
     name: 'QBreadcrumbs',
 
-    mixins: [ AlignMixin ],
+    mixins: [ ListenersMixin, AlignMixin ],
 
     props: {
       separator: {
@@ -2608,7 +2659,7 @@
 
       return h('div', {
         staticClass: 'q-breadcrumbs',
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('div', {
           staticClass: 'flex items-center',
@@ -2653,7 +2704,7 @@
   var QBreadcrumbsEl = Vue.extend({
     name: 'QBreadcrumbsEl',
 
-    mixins: [ RouterLinkMixin ],
+    mixins: [ ListenersMixin, RouterLinkMixin ],
 
     props: {
       label: String,
@@ -2678,11 +2729,13 @@
       return h(this.hasRouterLink === true ? 'router-link' : 'span', ( obj = {
         staticClass: 'q-breadcrumbs__el q-link flex inline items-center relative-position',
         props: this.hasRouterLink === true ? this.routerLinkProps : null
-      }, obj[this.hasRouterLink === true ? 'nativeOn' : 'on'] = this.$listeners, obj ), mergeSlot(child, this, 'default'))
+      }, obj[this.hasRouterLink === true ? 'nativeOn' : 'on'] = this.qListeners, obj ), mergeSlot(child, this, 'default'))
     }
   });
 
   var mixin = {
+    mixins: [ ListenersMixin ],
+
     props: {
       color: String,
       size: {
@@ -2722,7 +2775,7 @@
       return h('svg', {
         staticClass: 'q-spinner q-spinner-mat',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -3100,6 +3153,7 @@
 
   var BtnMixin = {
     mixins: [
+      ListenersMixin,
       RippleMixin,
       AlignMixin,
       getSizeMixin({
@@ -3204,7 +3258,7 @@
           attrs.role = 'progressbar';
           attrs['aria-valuemin'] = 0;
           attrs['aria-valuemax'] = 100;
-          attrs['aria-valuenow'] = this.computedPercentage;
+          attrs['aria-valuenow'] = this.percentage;
         }
 
         if (this.disable === true) {
@@ -3290,13 +3344,39 @@
         }
       },
 
-      onLoadingEvents: function onLoadingEvents () {
-        return {
-          mousedown: this.__onLoadingEvt,
-          touchstart: this.__onLoadingEvt,
-          click: this.__onLoadingEvt,
-          keydown: this.__onLoadingEvt,
-          keyup: this.__onLoadingEvt
+      onEvents: function onEvents () {
+        if (this.loading === true) {
+          return {
+            mousedown: this.__onLoadingEvt,
+            touchstart: this.__onLoadingEvt,
+            click: this.__onLoadingEvt,
+            keydown: this.__onLoadingEvt,
+            keyup: this.__onLoadingEvt
+          }
+        }
+        else if (this.isActionable === true) {
+          var on = Object.assign({}, this.qListeners,
+            {click: this.click,
+            keydown: this.__onKeydown,
+            mousedown: this.__onMousedown});
+
+          if (this.$q.platform.has.touch === true) {
+            on.touchstart = this.__onTouchstart;
+          }
+
+          return on
+        }
+
+        return {}
+      },
+
+      directives: function directives () {
+        if (this.disable !== true && this.ripple !== false) {
+          return [{
+            name: 'ripple',
+            value: this.computedRipple,
+            modifiers: { center: this.round }
+          }]
         }
       }
     },
@@ -3493,31 +3573,6 @@
 
     render: function render (h) {
       var inner = [];
-      var data = {
-        staticClass: 'q-btn q-btn-item non-selectable no-outline',
-        class: this.classes,
-        style: this.style,
-        attrs: this.attrs
-      };
-
-      if (this.isActionable === true) {
-        data.on = Object.assign({}, this.$listeners,
-          {click: this.click,
-          keydown: this.__onKeydown,
-          mousedown: this.__onMousedown});
-
-        if (this.$q.platform.has.touch === true) {
-          data.on.touchstart = this.__onTouchstart;
-        }
-      }
-
-      if (this.disable !== true && this.ripple !== false) {
-        data.directives = [{
-          name: 'ripple',
-          value: this.computedRipple,
-          modifiers: { center: this.round }
-        }];
-      }
 
       this.icon !== void 0 && inner.push(
         h(QIcon, {
@@ -3549,11 +3604,8 @@
         })
       ];
 
-      if (this.loading === true) {
-        // stop propagation and ripple
-        data.on = this.onLoadingEvents;
-
-        this.percentage !== void 0 && child.push(
+      if (this.loading === true && this.percentage !== void 0) {
+        child.push(
           h('div', {
             staticClass: 'q-btn__progress absolute-full overflow-hidden'
           }, [
@@ -3588,12 +3640,21 @@
         ] : void 0)
       );
 
-      return h(this.isLink === true ? 'a' : 'button', data, child)
+      return h(this.isLink === true ? 'a' : 'button', {
+        staticClass: 'q-btn q-btn-item non-selectable no-outline',
+        class: this.classes,
+        style: this.style,
+        attrs: this.attrs,
+        on: this.onEvents,
+        directives: this.directives
+      }, child)
     }
   });
 
   var QBtnGroup = Vue.extend({
     name: 'QBtnGroup',
+
+    mixin: [ ListenersMixin ],
 
     props: {
       unelevated: Boolean,
@@ -3621,7 +3682,7 @@
         staticClass: 'q-btn-group row no-wrap ' +
           (this.spread === true ? 'q-btn-group--spread' : 'inline'),
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -3901,7 +3962,7 @@
   };
 
   var ModelToggleMixin = {
-    mixins: [ TimeoutMixin ],
+    mixins: [ TimeoutMixin, ListenersMixin ],
 
     props: {
       value: {
@@ -3938,7 +3999,7 @@
           return
         }
 
-        if (this.$listeners.input !== void 0 && isSSR === false) {
+        if (this.qListeners.input !== void 0 && isSSR === false) {
           this.$emit('input', true);
           this.payload = evt;
           this.$nextTick(function () {
@@ -3947,7 +4008,8 @@
             }
           });
         }
-        if (this.value === void 0 || this.$listeners.input === void 0 || isSSR === true) {
+
+        if (this.value === void 0 || this.qListeners.input === void 0 || isSSR === true) {
           this.__processShow(evt);
         }
       },
@@ -3982,7 +4044,7 @@
           return
         }
 
-        if (this.$listeners.input !== void 0 && isSSR === false) {
+        if (this.qListeners.input !== void 0 && isSSR === false) {
           this.$emit('input', false);
           this.payload = evt;
           this.$nextTick(function () {
@@ -3991,7 +4053,7 @@
             }
           });
         }
-        if (this.value === void 0 || this.$listeners.input === void 0 || isSSR === true) {
+        if (this.value === void 0 || this.qListeners.input === void 0 || isSSR === true) {
           this.__processHide(evt);
         }
       },
@@ -4017,7 +4079,7 @@
 
       __processModelChange: function __processModelChange (val) {
         if (this.disable === true && val === true) {
-          this.$listeners.input !== void 0 && this.$emit('input', false);
+          this.qListeners.input !== void 0 && this.$emit('input', false);
         }
         else if ((val === true) !== this.showing) {
           this[("__process" + (val === true ? 'Show' : 'Hide'))](this.payload);
@@ -4156,15 +4218,7 @@
     }
   };
 
-  function getAllChildren (vm, children) {
-    if ( children === void 0 ) children = [];
-
-    vm.$children.forEach(function (child) {
-      children.push(child);
-      child.$children.length > 0 && getAllChildren(child, children);
-    });
-    return children
-  }
+  var AttrsMixin = getPropCacheMixin('$attrs', 'qAttrs');
 
   function getVmOfNode (el) {
     for (var node = el; node !== null; node = node.parentNode) {
@@ -4185,15 +4239,6 @@
       }
     }
     return false
-  }
-
-  function cache (vm, key, obj) {
-    if (isSSR === true) { return obj }
-
-    var k = "__qcache_" + key;
-    return vm[k] === void 0
-      ? (vm[k] = obj)
-      : vm[k]
   }
 
   var timer;
@@ -4797,7 +4842,14 @@
   var QMenu = Vue.extend({
     name: 'QMenu',
 
-    mixins: [ DarkMixin, AnchorMixin, ModelToggleMixin, PortalMixin, TransitionMixin ],
+    mixins: [
+      AttrsMixin,
+      DarkMixin,
+      AnchorMixin,
+      ModelToggleMixin,
+      PortalMixin,
+      TransitionMixin
+    ],
 
     directives: {
       ClickOutside: ClickOutside
@@ -4871,6 +4923,25 @@
 
       hideOnRouteChange: function hideOnRouteChange () {
         return this.persistent !== true
+      },
+
+      onEvents: function onEvents () {
+        var on = Object.assign({}, this.qListeners,
+          // stop propagating these events from children
+          {input: stop,
+          'popup-show': stop,
+          'popup-hide': stop});
+
+        if (this.autoClose === true) {
+          on.click = this.__onAutoClose;
+        }
+
+        return on
+      },
+
+      attrs: function attrs () {
+        return Object.assign({}, {tabindex: -1},
+          this.qAttrs)
       }
     },
 
@@ -5007,7 +5078,7 @@
         // issues a click should not close the menu
         if (this.__avoidAutoClose !== true) {
           closePortalMenus(this, e);
-          this.$listeners.click !== void 0 && this.$emit('click', e);
+          this.qListeners.click !== void 0 && this.$emit('click', e);
         }
         else {
           this.__avoidAutoClose = false;
@@ -5058,16 +5129,6 @@
       },
 
       __renderPortal: function __renderPortal (h) {
-        var on = Object.assign({}, this.$listeners,
-          // stop propagating these events from children
-          {input: stop,
-          'popup-show': stop,
-          'popup-hide': stop});
-
-        if (this.autoClose === true) {
-          on.click = this.__onAutoClose;
-        }
-
         return h('transition', {
           props: { name: this.transition }
         }, [
@@ -5076,9 +5137,8 @@
             staticClass: 'q-menu q-position-engine scroll' + this.menuClass,
             class: this.contentClass,
             style: this.contentStyle,
-            attrs: Object.assign({}, {tabindex: -1},
-              this.$attrs),
-            on: on,
+            attrs: this.attrs,
+            on: this.onEvents,
             directives: [{
               name: 'click-outside',
               value: this.__onClickOutside,
@@ -5150,7 +5210,20 @@
       var this$1 = this;
 
       var label = slot(this, 'label', []);
-      var attrs = { 'aria-expanded': this.showing === true ? 'true' : 'false', 'aria-haspopup': true };
+      var attrs = {
+        'aria-expanded': this.showing === true ? 'true' : 'false',
+        'aria-haspopup': true
+      };
+
+      if (
+        this.disable === true ||
+        (
+          (this.split === false && this.disableMainBtn === true) ||
+          this.disableDropdown === true
+        )
+      ) {
+        attrs['aria-disabled'] = '';
+      }
 
       var Arrow = [
         h(QIcon, {
@@ -5328,7 +5401,7 @@
   var QBtnToggle = Vue.extend({
     name: 'QBtnToggle',
 
-    mixins: [ RippleMixin, FormMixin ],
+    mixins: [ ListenersMixin, RippleMixin, FormMixin ],
 
     props: {
       value: {
@@ -5455,7 +5528,7 @@
           glossy: this.glossy,
           spread: this.spread
         },
-        on: this.$listeners
+        on: this.qListeners
       }, child)
     }
   });
@@ -5463,7 +5536,7 @@
   var QCard = Vue.extend({
     name: 'QCard',
 
-    mixins: [ DarkMixin, TagMixin ],
+    mixins: [ ListenersMixin, DarkMixin, TagMixin ],
 
     props: {
       square: Boolean,
@@ -5484,7 +5557,7 @@
     render: function render (h) {
       return h(this.tag, {
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -5492,7 +5565,7 @@
   var QCardSection = Vue.extend({
     name: 'QCardSection',
 
-    mixins: [ TagMixin ],
+    mixins: [ ListenersMixin, TagMixin ],
 
     props: {
       horizontal: Boolean
@@ -5508,7 +5581,7 @@
     render: function render (h) {
       return h(this.tag, {
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -5516,7 +5589,7 @@
   var QCardActions = Vue.extend({
     name: 'QCardActions',
 
-    mixins: [ AlignMixin ],
+    mixins: [ ListenersMixin, AlignMixin ],
 
     props: {
       vertical: Boolean
@@ -5532,7 +5605,7 @@
       return h('div', {
         staticClass: 'q-card__actions',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -5811,6 +5884,8 @@
   });
 
   var PanelParentMixin = {
+    mixins: [ ListenersMixin ],
+
     directives: {
       TouchSwipe: TouchSwipe
     },
@@ -6042,6 +6117,8 @@
   };
 
   var PanelChildMixin = {
+    mixins: [ ListenersMixin ],
+
     props: {
       name: {
         required: true
@@ -6445,7 +6522,7 @@
               staticClass: ("q-carousel__control q-carousel__arrow q-carousel__prev-arrow q-carousel__prev-arrow--" + (this.direction) + " absolute flex flex-center")
             }, [
               h(QBtn, {
-                props: Object.assign({ icon: this.arrowIcons[0] }, this.controlProps),
+                props: Object.assign({}, {icon: this.arrowIcons[0]}, this.controlProps),
                 on: cache(this, 'prev', { click: this.previous })
               })
             ]),
@@ -6453,7 +6530,7 @@
               staticClass: ("q-carousel__control q-carousel__arrow q-carousel__next-arrow q-carousel__next-arrow--" + (this.direction) + " absolute flex flex-center")
             }, [
               h(QBtn, {
-                props: Object.assign({ icon: this.arrowIcons[1] }, this.controlProps),
+                props: Object.assign({}, {icon: this.arrowIcons[1]}, this.controlProps),
                 on: cache(this, 'next', { click: this.next })
               })
             ])
@@ -6467,7 +6544,7 @@
         return h('div', {
           style: this.style,
           class: this.classes,
-          on: this.$listeners
+          on: this.qListeners
         }, [
           h('div', {
             staticClass: 'q-carousel__slides-container',
@@ -6499,7 +6576,7 @@
       style: function style () {
         if (this.imgSrc) {
           return {
-            backgroundImage: ("url(" + (this.imgSrc) + ")")
+            backgroundImage: ("url(\"" + (this.imgSrc) + "\")")
           }
         }
       }
@@ -6509,13 +6586,15 @@
       return h('div', {
         staticClass: 'q-carousel__slide',
         style: this.style,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
 
   var QCarouselControl = Vue.extend({
     name: 'QCarouselControl',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       position: {
@@ -6551,13 +6630,15 @@
         staticClass: 'q-carousel__control absolute',
         style: this.style,
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
 
   var QChatMessage = Vue.extend({
     name: 'QChatMessage',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       sent: Boolean,
@@ -6704,7 +6785,7 @@
 
       return h('div', {
         class: ("q-message q-message-" + (this.op)),
-        on: this.$listeners
+        on: this.qListeners
       }, child)
     }
   });
@@ -7061,8 +7142,10 @@
         return this.disable === false && (this.clickable === true || this.selected !== null)
       },
 
-      computedTabindex: function computedTabindex () {
-        return this.disable === true ? -1 : this.tabindex || 0
+      attrs: function attrs () {
+        return this.disable === true
+          ? { tabindex: -1, 'aria-disabled': '' }
+          : { tabindex: this.tabindex || 0 }
       }
     },
 
@@ -7116,15 +7199,15 @@
           })
         );
 
-        this.removable && child.push(
+        this.removable === true && child.push(
           h(QIcon, {
             staticClass: 'q-chip__icon q-chip__icon--remove cursor-pointer',
             props: { name: this.$q.iconSet.chip.remove },
-            attrs: { tabindex: this.computedTabindex },
-            nativeOn: {
+            attrs: this.attrs,
+            on: cache(this, 'non', {
               click: this.__onRemove,
               keyup: this.__onRemove
-            }
+            })
           })
         );
 
@@ -7142,7 +7225,7 @@
       };
 
       this.isClickable === true && Object.assign(data, {
-        attrs: { tabindex: this.computedTabindex },
+        attrs: this.attrs,
         on: cache(this, 'click', {
           click: this.__onClick,
           keyup: this.__onKeyup
@@ -7165,7 +7248,7 @@
   var QCircularProgress = Vue.extend({
     name: 'QCircularProgress',
 
-    mixins: [ SizeMixin ],
+    mixins: [ ListenersMixin, SizeMixin ],
 
     props: {
       value: {
@@ -7204,10 +7287,14 @@
       showValue: Boolean,
       reverse: Boolean,
 
-      instantFeedback: Boolean // used by QKnob, private
+      instantFeedback: Boolean
     },
 
     computed: {
+      normalizedValue: function normalizedValue () {
+        return between(this.value, this.min, this.max)
+      },
+
       svgStyle: function svgStyle () {
         return { transform: ("rotate3d(0, 0, 1, " + (this.angle - 90) + "deg)") }
       },
@@ -7231,7 +7318,7 @@
       },
 
       strokeDashOffset: function strokeDashOffset () {
-        var progress = 1 - (this.value - this.min) / (this.max - this.min);
+        var progress = 1 - (this.normalizedValue - this.min) / (this.max - this.min);
         return (this.dir * progress) * circumference
       },
 
@@ -7244,7 +7331,7 @@
           role: 'progressbar',
           'aria-valuemin': this.min,
           'aria-valuemax': this.max,
-          'aria-valuenow': this.indeterminate === true ? void 0 : this.value
+          'aria-valuenow': this.indeterminate === true ? void 0 : this.normalizedValue
         }
       }
     },
@@ -7323,14 +7410,14 @@
         h('div', {
           staticClass: 'q-circular-progress__text absolute-full row flex-center content-center',
           style: { fontSize: this.fontSize }
-        }, this.$scopedSlots.default !== void 0 ? this.$scopedSlots.default() : [ h('div', [ this.value ]) ])
+        }, this.$scopedSlots.default !== void 0 ? this.$scopedSlots.default() : [ h('div', [ this.normalizedValue ]) ])
       );
 
       return h('div', {
         staticClass: 'q-circular-progress',
         class: ("q-circular-progress--" + (this.indeterminate === true ? 'in' : '') + "determinate"),
         style: this.sizeStyle,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: this.attrs
       }, mergeSlotSafely(child, this, 'internal'))
     }
@@ -7606,7 +7693,7 @@
             document.body.classList.add('non-selectable');
             clearSelection();
 
-            ctx.styleCleanup = function (withDelay) {
+            ctx.styleCleanup = function (withDelayedFn) {
               ctx.styleCleanup = void 0;
 
               document.documentElement.style.cursor = '';
@@ -7617,8 +7704,16 @@
                   document.body.classList.remove('no-pointer-events--children');
                 };
 
-                if (withDelay === true) { setTimeout(remove, 50); }
+                if (withDelayedFn !== void 0) {
+                  setTimeout(function () {
+                    remove();
+                    withDelayedFn();
+                  }, 50);
+                }
                 else { remove(); }
+              }
+              else if (withDelayedFn !== void 0) {
+                withDelayedFn();
               }
             };
           };
@@ -7691,16 +7786,27 @@
 
           cleanEvt(ctx, 'temp');
           client.is.firefox === true && preventDraggable(el, false);
-          ctx.styleCleanup !== void 0 && ctx.styleCleanup(true);
 
           if (abort === true) {
+            ctx.styleCleanup !== void 0 && ctx.styleCleanup();
+
             if (ctx.event.detected !== true && ctx.initialEvent !== void 0) {
               ctx.initialEvent.target.dispatchEvent(ctx.initialEvent.event);
             }
           }
           else if (ctx.event.detected === true) {
             ctx.event.isFirst === true && ctx.handler(getChanges(evt === void 0 ? ctx.lastEvt : evt, ctx).payload);
-            ctx.handler(getChanges(evt === void 0 ? ctx.lastEvt : evt, ctx, true).payload);
+
+            var ref = getChanges(evt === void 0 ? ctx.lastEvt : evt, ctx, true);
+            var payload = ref.payload;
+            var fn = function () { ctx.handler(payload); };
+
+            if (ctx.styleCleanup !== void 0) {
+              ctx.styleCleanup(fn);
+            }
+            else {
+              fn();
+            }
           }
 
           ctx.event = void 0;
@@ -7745,12 +7851,14 @@
   };
 
   // PGDOWN, LEFT, DOWN, PGUP, RIGHT, UP
-  var keyCodes = [34, 37, 40, 33, 39, 38];
+  var keyCodes = [ 34, 37, 40, 33, 39, 38 ];
 
-  function getRatio (evt, dragging, reverse) {
+  function getRatio (evt, dragging, reverse, vertical) {
     var
       pos = position(evt),
-      val = between((pos.left - dragging.left) / dragging.width, 0, 1);
+      val = vertical === true
+        ? between((pos.top - dragging.top) / dragging.height, 0, 1)
+        : between((pos.left - dragging.left) / dragging.width, 0, 1);
 
     return reverse === true ? 1.0 - val : val
   }
@@ -7803,11 +7911,12 @@
       markers: Boolean,
       snap: Boolean,
 
+      vertical: Boolean,
       reverse: Boolean,
 
       disable: Boolean,
       readonly: Boolean,
-      tabindex: [String, Number],
+      tabindex: [ String, Number ],
 
       thumbPath: {
         type: String,
@@ -7824,8 +7933,12 @@
     },
 
     computed: {
+      axis: function axis () {
+        return this.vertical === true ? '--v' : '--h'
+      },
+
       classes: function classes () {
-        return "q-slider q-slider--" + (this.active === true ? '' : 'in') + "active" +
+        return "q-slider q-slider" + (this.axis) + " q-slider--" + (this.active === true ? '' : 'in') + "active" +
           (this.isReversed === true ? ' q-slider--reversed' : '') +
           (this.color !== void 0 ? (" text-" + (this.color)) : '') +
           (this.disable === true ? ' disabled' : '') +
@@ -7834,7 +7947,7 @@
           (this.label || this.labelAlways === true ? ' q-slider--label' : '') +
           (this.labelAlways === true ? ' q-slider--label-always' : '') +
           (this.isDark === true ? ' q-slider--dark' : '') +
-          (this.dense === true ? ' q-slider--dense' : '')
+          (this.dense === true ? ' q-slider--dense q-slider--dense' + this.axis : '')
       },
 
       editable: function editable () {
@@ -7851,7 +7964,9 @@
 
       markerStyle: function markerStyle () {
         return {
-          backgroundSize: 100 * this.computedStep / (this.max - this.min) + '% 2px'
+          backgroundSize: this.vertical === true
+            ? '2px ' + (100 * this.computedStep / (this.max - this.min)) + '%'
+            : (100 * this.computedStep / (this.max - this.min)) + '% 2px'
         }
       },
 
@@ -7860,11 +7975,24 @@
       },
 
       isReversed: function isReversed () {
-        return this.reverse !== (this.$q.lang.rtl === true)
+        return this.vertical === true
+          ? this.reverse === true
+          : this.reverse !== (this.$q.lang.rtl === true)
       },
 
-      horizProp: function horizProp () {
+      positionProp: function positionProp () {
+        if (this.vertical === true) {
+          return this.isReversed === true ? 'bottom' : 'top'
+        }
         return this.isReversed === true ? 'right' : 'left'
+      },
+
+      sizeProp: function sizeProp () {
+        return this.vertical === true ? 'height' : 'width'
+      },
+
+      orientation: function orientation () {
+        return this.vertical === true ? 'vertical' : 'horizontal'
       },
 
       attrs: function attrs () {
@@ -7872,15 +8000,30 @@
           role: 'slider',
           'aria-valuemin': this.min,
           'aria-valuemax': this.max,
-          'aria-orientation': 'horizontal',
+          'aria-orientation': this.orientation,
           'data-step': this.step
         };
 
         if (this.disable === true) {
           attrs['aria-disabled'] = '';
         }
+        else if (this.readonly === true) {
+          attrs['aria-readonly'] = '';
+        }
 
         return attrs
+      },
+
+      panDirectives: function panDirectives () {
+        var obj;
+
+        return this.editable === true
+          ? [{
+            name: 'touch-pan',
+            value: this.__pan,
+            modifiers: ( obj = {}, obj[ this.orientation ] = true, obj.prevent = true, obj.stop = true, obj.mouse = true, obj.mouseAllDir = true, obj )
+          }]
+          : null
       }
     },
 
@@ -7888,7 +8031,12 @@
       __getThumbSvg: function __getThumbSvg (h) {
         return h('svg', {
           staticClass: 'q-slider__thumb absolute',
-          attrs: { focusable: 'false' /* needed for IE11 */, viewBox: '0 0 20 20', width: '20', height: '20' }
+          attrs: {
+            focusable: 'false', /* needed for IE11 */
+            viewBox: '0 0 20 20',
+            width: '20',
+            height: '20'
+          }
         }, [
           h('path', {
             attrs: {
@@ -7900,6 +8048,10 @@
 
       __getPinStyle: function __getPinStyle (percent, ratio) {
         var obj;
+
+        if (this.vertical === true) {
+          return {}
+        }
 
         var offset = (Math.ceil(20 * Math.abs(0.5 - ratio))) + "px";
         return {
@@ -7913,11 +8065,11 @@
 
       __pan: function __pan (event) {
         if (event.isFinal) {
-          if (this.dragging) {
+          if (this.dragging !== void 0) {
             this.__updatePosition(event.evt);
             // only if touch, because we also have mousedown/up:
             event.touch === true && this.__updateValue(true);
-            this.dragging = false;
+            this.dragging = void 0;
           }
           this.active = false;
         }
@@ -7949,7 +8101,10 @@
 
       __deactivate: function __deactivate () {
         this.preventFocus = false;
-        this.active = false;
+
+        if (this.dragging === void 0) {
+          this.active = false;
+        }
 
         this.__updateValue(true);
         this.__blur();
@@ -7986,7 +8141,7 @@
         validator: function (v) { return typeof v === 'number' || v === null; }
       },
 
-      labelValue: [String, Number]
+      labelValue: [ String, Number ]
     },
 
     data: function data () {
@@ -8024,13 +8179,13 @@
       trackStyle: function trackStyle () {
         var obj;
 
-        return ( obj = {}, obj[this.horizProp] = 0, obj.width = 100 * this.ratio + '%', obj )
+        return ( obj = {}, obj[ this.positionProp ] = 0, obj[ this.sizeProp ] = ((100 * this.ratio) + "%"), obj )
       },
 
       thumbStyle: function thumbStyle () {
         var obj;
 
-        return ( obj = {}, obj[this.horizProp] = (100 * this.ratio) + '%', obj )
+        return ( obj = {}, obj[ this.positionProp ] = ((100 * this.ratio) + "%"), obj )
       },
 
       thumbClass: function thumbClass () {
@@ -8094,7 +8249,8 @@
         var ratio = getRatio(
           event,
           dragging,
-          this.isReversed
+          this.isReversed,
+          this.vertical
         );
 
         this.model = getModel(ratio, this.min, this.max, this.step, this.decimals);
@@ -8137,11 +8293,14 @@
       if (this.label === true || this.labelAlways === true) {
         child.push(
           h('div', {
-            staticClass: 'q-slider__pin absolute',
+            staticClass: ("q-slider__pin q-slider__pin" + (this.axis) + " absolute"),
             style: this.pinStyle.pin,
             class: this.pinClass
           }, [
-            h('div', { staticClass: 'q-slider__pin-text-container', style: this.pinStyle.pinTextContainer }, [
+            h('div', {
+              staticClass: ("q-slider__pin-text-container q-slider__pin-text-container" + (this.axis)),
+              style: this.pinStyle.pinTextContainer
+            }, [
               h('span', {
                 staticClass: 'q-slider__pin-text',
                 class: this.pinTextClass
@@ -8152,7 +8311,7 @@
           ]),
 
           h('div', {
-            staticClass: 'q-slider__arrow',
+            staticClass: ("q-slider__arrow q-slider__arrow" + (this.axis)),
             class: this.pinClass
           })
         );
@@ -8164,14 +8323,14 @@
 
       var track = [
         h('div', {
-          staticClass: 'q-slider__track absolute',
+          staticClass: ("q-slider__track q-slider__track" + (this.axis) + " absolute"),
           style: this.trackStyle
         })
       ];
 
       this.markers === true && track.push(
         h('div', {
-          staticClass: 'q-slider__track-markers absolute-full fit',
+          staticClass: ("q-slider__track-markers q-slider__track-markers" + (this.axis) + " absolute-full fit"),
           style: this.markerStyle
         })
       );
@@ -8183,24 +8342,14 @@
           tabindex: this.computedTabindex}),
         class: this.classes,
         on: this.events,
-        directives: this.editable === true ? cache(this, 'dir', [{
-          name: 'touch-pan',
-          value: this.__pan,
-          modifiers: {
-            horizontal: true,
-            prevent: true,
-            stop: true,
-            mouse: true,
-            mouseAllDir: true
-          }
-        }]) : null
+        directives: this.panDirectives
       }, [
         h('div', {
-          staticClass: 'q-slider__track-container absolute'
+          staticClass: ("q-slider__track-container q-slider__track-container" + (this.axis) + " absolute")
         }, track),
 
         h('div', {
-          staticClass: 'q-slider__thumb-container absolute non-selectable',
+          staticClass: ("q-slider__thumb-container q-slider__thumb-container" + (this.axis) + " absolute non-selectable"),
           class: this.thumbClass,
           style: this.thumbStyle
         }, child)
@@ -8377,21 +8526,21 @@
 
   var
     bufferFilters = [
-      function (t) { return t.selected === true && t.exact === true && t.redirected !== true },
-      function (t) { return t.selected === true && t.exact === true },
-      function (t) { return t.selected === true && t.redirected !== true },
-      function (t) { return t.selected === true },
-      function (t) { return t.exact === true && t.redirected !== true },
-      function (t) { return t.redirected !== true },
-      function (t) { return t.exact === true },
-      function (t) { return true }
+      function (t) { return t.selected === true && t.exact === true && t.redirected !== true; },
+      function (t) { return t.selected === true && t.exact === true; },
+      function (t) { return t.selected === true && t.redirected !== true; },
+      function (t) { return t.selected === true; },
+      function (t) { return t.exact === true && t.redirected !== true; },
+      function (t) { return t.redirected !== true; },
+      function (t) { return t.exact === true; },
+      function (t) { return true; }
     ],
     bufferFiltersLen = bufferFilters.length;
 
   var QTabs = Vue.extend({
     name: 'QTabs',
 
-    mixins: [ TimeoutMixin ],
+    mixins: [ TimeoutMixin, ListenersMixin ],
 
     provide: function provide () {
       return {
@@ -8515,6 +8664,11 @@
         return this.vertical === true
           ? { container: 'height', content: 'scrollHeight', posLeft: 'top', posRight: 'bottom' }
           : { container: 'width', content: 'scrollWidth', posLeft: 'left', posRight: 'right' }
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, {input: stop},
+          this.qListeners)
       }
     },
 
@@ -8522,7 +8676,7 @@
       __activateTab: function __activateTab (name, setCurrent, skipEmit) {
         if (this.tabs.current !== name) {
           skipEmit !== true && this.$emit('input', name);
-          if (setCurrent === true || this.$listeners.input === void 0) {
+          if (setCurrent === true || this.qListeners.input === void 0) {
             this.__animate(this.tabs.current, name);
             this.tabs.current = name;
           }
@@ -8757,34 +8911,33 @@
           staticClass: 'q-tabs__arrow q-tabs__arrow--left absolute q-tab__icon',
           class: this.leftArrow === true ? '' : 'q-tabs__arrow--faded',
           props: { name: this.leftIcon || (this.vertical === true ? this.$q.iconSet.tabs.up : this.$q.iconSet.tabs.left) },
-          nativeOn: {
+          on: cache(this, 'onL', {
             mousedown: this.__scrollToStart,
             touchstart: this.__scrollToStart,
             mouseup: this.__stopAnimScroll,
             mouseleave: this.__stopAnimScroll,
             touchend: this.__stopAnimScroll
-          }
+          })
         }),
 
         h(QIcon, {
           staticClass: 'q-tabs__arrow q-tabs__arrow--right absolute q-tab__icon',
           class: this.rightArrow === true ? '' : 'q-tabs__arrow--faded',
           props: { name: this.rightIcon || (this.vertical === true ? this.$q.iconSet.tabs.down : this.$q.iconSet.tabs.right) },
-          nativeOn: {
+          on: cache(this, 'onR', {
             mousedown: this.__scrollToEnd,
             touchstart: this.__scrollToEnd,
             mouseup: this.__stopAnimScroll,
             mouseleave: this.__stopAnimScroll,
             touchend: this.__stopAnimScroll
-          }
+          })
         })
       );
 
       return h('div', {
         staticClass: 'q-tabs row no-wrap items-center',
         class: this.classes,
-        on: Object.assign({}, {input: stop},
-          this.$listeners),
+        on: this.onEvents,
         attrs: { role: 'tablist' }
       }, child)
     }
@@ -8795,7 +8948,7 @@
   var QTab = Vue.extend({
     name: 'QTab',
 
-    mixins: [ RippleMixin ],
+    mixins: [ RippleMixin, ListenersMixin ],
 
     inject: {
       tabs: {
@@ -8838,6 +8991,27 @@
 
       computedTabIndex: function computedTabIndex () {
         return this.disable === true || this.isActive === true ? -1 : this.tabindex || 0
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, {input: stop},
+          this.qListeners,
+          {click: this.__activate,
+          keyup: this.__onKeyup})
+      },
+
+      attrs: function attrs () {
+        var attrs = {
+          tabindex: this.computedTabIndex,
+          role: 'tab',
+          'aria-selected': this.isActive
+        };
+
+        if (this.disable === true) {
+          attrs['aria-disabled'] = '';
+        }
+
+        return attrs
       }
     },
 
@@ -8846,7 +9020,7 @@
         keyboard !== true && this.$refs.blurTarget !== void 0 && this.$refs.blurTarget.focus();
 
         if (this.disable !== true) {
-          this.$listeners.click !== void 0 && this.$emit('click', e);
+          this.qListeners.click !== void 0 && this.$emit('click', e);
           this.__activateTab(this.name);
         }
       },
@@ -8916,19 +9090,12 @@
         var data = {
           staticClass: 'q-tab relative-position self-stretch flex flex-center text-center',
           class: this.classes,
-          attrs: {
-            tabindex: this.computedTabIndex,
-            role: 'tab',
-            'aria-selected': this.isActive
-          },
+          attrs: this.attrs,
           directives: this.ripple !== false && this.disable === true ? null : [
             { name: 'ripple', value: this.ripple }
           ]
         };
-        data[tag === 'div' ? 'on' : 'nativeOn'] = Object.assign({}, {input: stop},
-            this.$listeners,
-            {click: this.__activate,
-            keyup: this.__onKeyup});
+        data[ tag === 'div' ? 'on' : 'nativeOn' ] = this.onEvents;
 
         if (props !== void 0) {
           data.props = props;
@@ -8968,7 +9135,7 @@
         return h('div', {
           class: this.classes,
           directives: this.panelDirectives,
-          on: this.$listeners
+          on: this.qListeners
         }, this.__getPanelContent(h))
       }
     }
@@ -8982,7 +9149,7 @@
     render: function render (h) {
       return h('div', {
         staticClass: 'q-tab-panel',
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -9003,7 +9170,7 @@
   var QColor = Vue.extend({
     name: 'QColor',
 
-    mixins: [ DarkMixin, FormMixin ],
+    mixins: [ ListenersMixin, DarkMixin, FormMixin ],
 
     directives: {
       TouchPan: TouchPan
@@ -9198,7 +9365,7 @@
       return h('div', {
         class: this.classes,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, child)
     },
 
@@ -9817,7 +9984,7 @@
           }
         }
 
-        var model = stringToRgb(v);
+        var model = textToRgb(v);
 
         if (forceAlpha === true && model.a === void 0) {
           model.a = 100;
@@ -10139,7 +10306,7 @@
   }
 
   var DateTimeMixin = {
-    mixins: [ DarkMixin, FormMixin ],
+    mixins: [ DarkMixin, FormMixin, ListenersMixin ],
 
     props: {
       value: {
@@ -11930,7 +12097,7 @@
       return h('div', {
         class: this.classes,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         this.__getHeader(h),
 
@@ -12189,7 +12356,13 @@
   var QDialog = Vue.extend({
     name: 'QDialog',
 
-    mixins: [ HistoryMixin, ModelToggleMixin, PortalMixin, PreventScrollMixin ],
+    mixins: [
+      AttrsMixin,
+      HistoryMixin,
+      ModelToggleMixin,
+      PortalMixin,
+      PreventScrollMixin
+    ],
 
     props: {
       persistent: Boolean,
@@ -12278,6 +12451,20 @@
         return this.persistent !== true &&
           this.noRouteDismiss !== true &&
           this.seamless !== true
+      },
+
+      onEvents: function onEvents () {
+        var on = Object.assign({}, this.qListeners,
+          // stop propagating these events from children
+          {input: stop,
+          'popup-show': stop,
+          'popup-hide': stop});
+
+        if (this.autoClose === true) {
+          on.click = this.__onAutoClose;
+        }
+
+        return on
       }
     },
 
@@ -12348,39 +12535,41 @@
         }
 
         this.__setTimeout(function () {
-          if (this$1.$q.platform.is.ios === true && document.activeElement) {
-            var ref = document.activeElement.getBoundingClientRect();
-            var top = ref.top;
-            var bottom = ref.bottom;
-            var innerHeight = window.innerHeight;
-            var height = window.visualViewport !== void 0
-                ? window.visualViewport.height
-                : innerHeight;
+          if (this$1.$q.platform.is.ios === true) {
+            if (this$1.seamless !== true && document.activeElement) {
+              var ref = document.activeElement.getBoundingClientRect();
+              var top = ref.top;
+              var bottom = ref.bottom;
+              var innerHeight = window.innerHeight;
+              var height = window.visualViewport !== void 0
+                  ? window.visualViewport.height
+                  : innerHeight;
 
-            if (top > 0 && bottom > height / 2) {
-              var scrollTop = Math.min(
-                document.scrollingElement.scrollHeight - height,
-                bottom >= innerHeight
-                  ? Infinity
-                  : Math.ceil(document.scrollingElement.scrollTop + bottom - height / 2)
-              );
+              if (top > 0 && bottom > height / 2) {
+                var scrollTop = Math.min(
+                  document.scrollingElement.scrollHeight - height,
+                  bottom >= innerHeight
+                    ? Infinity
+                    : Math.ceil(document.scrollingElement.scrollTop + bottom - height / 2)
+                );
 
-              var fn = function () {
-                requestAnimationFrame(function () {
-                  document.scrollingElement.scrollTop += Math.ceil((scrollTop - document.scrollingElement.scrollTop) / 8);
-                  if (document.scrollingElement.scrollTop !== scrollTop) {
-                    fn();
-                  }
-                });
-              };
+                var fn = function () {
+                  requestAnimationFrame(function () {
+                    document.scrollingElement.scrollTop += Math.ceil((scrollTop - document.scrollingElement.scrollTop) / 8);
+                    if (document.scrollingElement.scrollTop !== scrollTop) {
+                      fn();
+                    }
+                  });
+                };
 
-              fn();
+                fn();
+              }
+              document.activeElement.scrollIntoView();
             }
-            document.activeElement.scrollIntoView();
-          }
 
-          // required in order to avoid the "double-tap needed" issue
-          this$1.$q.platform.is.ios === true && this$1.__portal.$el.click();
+            // required in order to avoid the "double-tap needed" issue
+            this$1.__portal.$el.click();
+          }
 
           this$1.$emit('show', evt);
         }, 300);
@@ -12447,7 +12636,7 @@
 
       __onAutoClose: function __onAutoClose (e) {
         this.hide(e);
-        this.$listeners.click !== void 0 && this.$emit('click', e);
+        this.qListeners.click !== void 0 && this.$emit('click', e);
       },
 
       __onBackdropClick: function __onBackdropClick (e) {
@@ -12471,21 +12660,11 @@
       },
 
       __renderPortal: function __renderPortal (h) {
-        var on = Object.assign({}, this.$listeners,
-          // stop propagating these events from children
-          {input: stop,
-          'popup-show': stop,
-          'popup-hide': stop});
-
-        if (this.autoClose === true) {
-          on.click = this.__onAutoClose;
-        }
-
         return h('div', {
           staticClass: 'q-dialog fullscreen no-pointer-events',
           class: this.contentClass,
           style: this.contentStyle,
-          attrs: this.$attrs
+          attrs: this.qAttrs
         }, [
           h('transition', {
             props: { name: 'q-transition--fade' }
@@ -12506,7 +12685,7 @@
               staticClass: 'q-dialog__inner flex no-pointer-events',
               class: this.classes,
               attrs: { tabindex: -1 },
-              on: on
+              on: this.onEvents
             }, slot(this, 'default')) : null
           ])
         ])
@@ -12820,7 +12999,7 @@
 
           mouseEvents.forEach(function (name) {
             evt[name] = function (e) {
-              this$1.$listeners[name] !== void 0 && this$1.$emit(name, e);
+              this$1.qListeners[name] !== void 0 && this$1.$emit(name, e);
             };
           });
 
@@ -13104,7 +13283,7 @@
         this.showIfAbove === true &&
         this.value !== true &&
         this.showing === true &&
-        this.$listeners.input !== void 0
+        this.qListeners.input !== void 0
       ) {
         this.$emit('input', true);
       }
@@ -13115,6 +13294,8 @@
 
       this.$emit('on-layout', this.onLayout);
       this.$emit('mini-state', this.isMini);
+
+      this.lastDesktopState = this.showIfAbove === true;
 
       var fn = function () {
         var action = this$1.showing === true ? 'show' : 'hide';
@@ -13238,15 +13419,13 @@
     },
 
     watch: {
-      value: function value (v) {
-        if (this.rules === void 0) {
-          return
+      value: function value () {
+        if (
+          this.hasRules === true &&
+          (this.lazyRules !== true || this.isDirty === true)
+        ) {
+          this.validate();
         }
-        if (this.lazyRules === true && this.isDirty !== true) {
-          return
-        }
-
-        this.validate(v);
       },
 
       focused: function focused (focused$1) {
@@ -13260,6 +13439,12 @@
     },
 
     computed: {
+      hasRules: function hasRules () {
+        return this.rules !== void 0 &&
+          this.rules !== null &&
+          this.rules.length > 0
+      },
+
       hasError: function hasError () {
         return this.error === true || this.innerError === true
       },
@@ -13305,7 +13490,7 @@
         var this$1 = this;
         if ( val === void 0 ) val = this.value;
 
-        if (!this.rules || this.rules.length === 0) {
+        if (this.hasRules !== true) {
           return true
         }
 
@@ -13321,6 +13506,7 @@
           }
 
           var m = msg || void 0;
+
           if (this$1.innerErrorMessage !== m) {
             this$1.innerErrorMessage = m;
           }
@@ -13397,9 +13583,9 @@
       },
 
       __triggerValidation: function __triggerValidation () {
-        if (this.isDirty === false && this.rules !== void 0) {
+        if (this.isDirty === false && this.hasRules === true) {
           this.isDirty = true;
-          this.validate(this.value);
+          this.validate();
         }
       }
     }
@@ -13485,7 +13671,7 @@
   var QField = Vue.extend({
     name: 'QField',
 
-    mixins: [ DarkMixin, ValidateMixin ],
+    mixins: [ DarkMixin, ValidateMixin, AttrsMixin ],
 
     inheritAttrs: false,
 
@@ -13597,7 +13783,7 @@
       shouldRenderBottom: function shouldRenderBottom () {
         return this.bottomSlots === true ||
           this.hint !== void 0 ||
-          this.rules !== void 0 ||
+          this.hasRules === true ||
           this.counter === true ||
           this.error !== null
       },
@@ -13776,10 +13962,14 @@
           }, [ this.prefix ])
         );
 
-        if (this.__getControl !== void 0) {
+        if (this.hasShadow === true && this.__getShadowControl !== void 0) {
           node.push(
-            this.__getControl(h)
+            this.__getShadowControl(h)
           );
+        }
+
+        if (this.__getControl !== void 0) {
+          node.push(this.__getControl(h));
         }
         // internal usage only:
         else if (this.$scopedSlots.rawControl !== void 0) {
@@ -13790,7 +13980,7 @@
             h('div', {
               ref: 'target',
               staticClass: 'q-field__native row',
-              attrs: Object.assign({}, this.$attrs,
+              attrs: Object.assign({}, this.qAttrs,
                 {'data-autofocus': this.autofocus})
             }, this.$scopedSlots.control(this.controlSlotScope))
           );
@@ -13923,6 +14113,8 @@
       },
 
       __clearValue: function __clearValue (e) {
+        this.focused = false;
+
         // prevent activating the field but keep focus on desktop
         stopAndPrevent(e);
         this.$el.focus();
@@ -14738,10 +14930,19 @@
   var QInput = Vue.extend({
     name: 'QInput',
 
-    mixins: [ QField, MaskMixin, CompositionMixin, FormFieldMixin, FileValueMixin ],
+    mixins: [
+      QField,
+      MaskMixin,
+      CompositionMixin,
+      FormFieldMixin,
+      FileValueMixin,
+      ListenersMixin
+    ],
 
     props: {
       value: { required: false },
+
+      shadowText: String,
 
       type: {
         type: String,
@@ -14792,7 +14993,7 @@
           this.$nextTick(this.__adjustHeight);
         }
         // if it has a number of rows set respect it
-        else if (this.$attrs.rows > 0 && this.$refs.input !== void 0) {
+        else if (this.qAttrs.rows > 0 && this.$refs.input !== void 0) {
           var inp = this.$refs.input;
           inp.style.height = 'auto';
         }
@@ -14815,6 +15016,57 @@
       fieldClass: function fieldClass () {
         return "q-" + (this.isTextarea === true ? 'textarea' : 'input') +
           (this.autogrow === true ? ' q-textarea--autogrow' : '')
+      },
+
+      hasShadow: function hasShadow () {
+        return this.type !== 'file' &&
+          typeof this.shadowText === 'string' &&
+          this.shadowText.length > 0
+      },
+
+      onEvents: function onEvents () {
+        var on = Object.assign({}, this.qListeners,
+          {input: this.__onInput,
+          paste: this.__onPaste,
+          // Safari < 10.2 & UIWebView doesn't fire compositionend when
+          // switching focus before confirming composition choice
+          // this also fixes the issue where some browsers e.g. iOS Chrome
+          // fires "change" instead of "input" on autocomplete.
+          change: this.__onChange,
+          blur: this.__onFinishEditing,
+          focus: stop});
+
+        on.compositionstart = on.compositionupdate = on.compositionend = this.__onComposition;
+
+        if (this.hasMask === true) {
+          on.keydown = this.__onMaskedKeydown;
+        }
+
+        if (this.autogrow === true) {
+          on.animationend = this.__adjustHeight;
+        }
+
+        return on
+      },
+
+      inputAttrs: function inputAttrs () {
+        var attrs = Object.assign({}, {tabindex: 0,
+          'data-autofocus': this.autofocus,
+          rows: this.type === 'textarea' ? 6 : void 0,
+          'aria-label': this.label,
+          name: this.nameProp},
+          this.qAttrs,
+          {id: this.targetUid,
+          type: this.type,
+          maxlength: this.maxlength,
+          disabled: this.disable === true,
+          readonly: this.readonly === true});
+
+        if (this.autogrow === true) {
+          attrs.rows = 1;
+        }
+
+        return attrs
       }
     },
 
@@ -14944,61 +15196,31 @@
         });
       },
 
+      __getCurValue: function __getCurValue () {
+        return this.hasOwnProperty('tempValue') === true
+          ? this.tempValue
+          : (this.innerValue !== void 0 ? this.innerValue : '')
+      },
+
+      __getShadowControl: function __getShadowControl (h) {
+        return h('div', {
+          staticClass: 'q-field__native q-field__shadow absolute-full no-pointer-events'
+        }, [
+          h('span', { staticClass: 'invisible' }, this.__getCurValue()),
+          h('span', this.shadowText)
+        ])
+      },
+
       __getControl: function __getControl (h) {
-        var on = Object.assign({}, this.$listeners,
-          {input: this.__onInput,
-          paste: this.__onPaste,
-          // Safari < 10.2 & UIWebView doesn't fire compositionend when
-          // switching focus before confirming composition choice
-          // this also fixes the issue where some browsers e.g. iOS Chrome
-          // fires "change" instead of "input" on autocomplete.
-          change: this.__onChange,
-          blur: this.__onFinishEditing,
-          focus: stop});
-
-        on.compositionstart = on.compositionupdate = on.compositionend = this.__onComposition;
-
-        if (this.hasMask === true) {
-          on.keydown = this.__onMaskedKeydown;
-        }
-
-        var attrs = Object.assign({}, {tabindex: 0,
-          'data-autofocus': this.autofocus,
-          rows: this.type === 'textarea' ? 6 : void 0,
-          'aria-label': this.label,
-          name: this.nameProp},
-          this.$attrs,
-          {id: this.targetUid,
-          type: this.type,
-          maxlength: this.maxlength});
-
-        if (this.disable === true) {
-          attrs.disabled = '';
-          attrs['aria-disabled'] = '';
-        }
-        else if (this.readonly === true) {
-          attrs.readonly = '';
-          attrs['aria-readonly'] = '';
-        }
-
-        if (this.autogrow === true) {
-          attrs.rows = 1;
-          on.animationend = this.__adjustHeight;
-        }
-
         return h(this.isTextarea === true ? 'textarea' : 'input', {
           ref: 'input',
           staticClass: 'q-field__native q-placeholder',
           style: this.inputStyle,
           class: this.inputClass,
-          attrs: attrs,
-          on: on,
+          attrs: this.inputAttrs,
+          on: this.onEvents,
           domProps: this.type !== 'file'
-            ? {
-              value: this.hasOwnProperty('tempValue') === true
-                ? this.tempValue
-                : (this.innerValue !== void 0 ? this.innerValue : '')
-            }
+            ? { value: this.__getCurValue() }
             : this.formDomProps
         })
       }
@@ -15238,7 +15460,7 @@
   var QList = Vue.extend({
     name: 'QList',
 
-    mixins: [ DarkMixin ],
+    mixins: [ ListenersMixin, DarkMixin ],
 
     props: {
       bordered: Boolean,
@@ -15261,7 +15483,7 @@
     render: function render (h) {
       return h('div', {
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -15269,7 +15491,7 @@
   var QItem = Vue.extend({
     name: 'QItem',
 
-    mixins: [ DarkMixin, RouterLinkMixin, TagMixin ],
+    mixins: [ DarkMixin, RouterLinkMixin, TagMixin, ListenersMixin ],
 
     props: {
       active: Boolean,
@@ -15285,13 +15507,15 @@
     },
 
     computed: {
-      isClickable: function isClickable () {
-        return this.disable !== true && (
-          this.clickable === true ||
+      isActionable: function isActionable () {
+        return this.clickable === true ||
           this.hasRouterLink === true ||
           this.tag === 'a' ||
           this.tag === 'label'
-        )
+      },
+
+      isClickable: function isClickable () {
+        return this.disable !== true && this.isActionable === true
       },
 
       classes: function classes () {
@@ -15317,6 +15541,12 @@
           var dir = this.$q.lang.rtl === true ? 'Right' : 'Left';
           return ( obj = {}, obj['padding' + dir] = (16 + this.insetLevel * 56) + 'px', obj )
         }
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {click: this.__onClick,
+          keyup: this.__onKeyup})
       }
     },
 
@@ -15367,15 +15597,16 @@
         class: this.classes,
         style: this.style
       };
-
-      var evtProp = this.hasRouterLink === true ? 'nativeOn' : 'on';
-      data[evtProp] = Object.assign({}, this.$listeners,
-        {click: this.__onClick,
-        keyup: this.__onKeyup});
+      data[ this.hasRouterLink === true ? 'nativeOn' : 'on' ] = this.onEvents;
 
       if (this.isClickable === true) {
         data.attrs = {
           tabindex: this.tabindex || '0'
+        };
+      }
+      else if (this.isActionable === true) {
+        data.attrs = {
+          'aria-disabled': ''
         };
       }
 
@@ -15396,6 +15627,8 @@
 
   var QItemSection = Vue.extend({
     name: 'QItemSection',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       avatar: Boolean,
@@ -15426,7 +15659,7 @@
       return h('div', {
         staticClass: 'q-item__section column',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -16111,7 +16344,7 @@
   var QEditor = Vue.extend({
     name: 'QEditor',
 
-    mixins: [ FullscreenMixin, DarkMixin ],
+    mixins: [ ListenersMixin, FullscreenMixin, DarkMixin ],
 
     props: {
       value: {
@@ -16434,21 +16667,21 @@
 
       __onMouseup: function __onMouseup (e) {
         this.caret.save();
-        if (this.$listeners.mouseup !== void 0) {
+        if (this.qListeners.mouseup !== void 0) {
           this.$emit('mouseup', e);
         }
       },
 
       __onKeyup: function __onKeyup (e) {
         this.caret.save();
-        if (this.$listeners.keyup !== void 0) {
+        if (this.qListeners.keyup !== void 0) {
           this.$emit('keyup', e);
         }
       },
 
       __onTouchend: function __onTouchend (e) {
         this.caret.save();
-        if (this.$listeners.touchend !== void 0) {
+        if (this.qListeners.touchend !== void 0) {
           this.$emit('touchend', e);
         }
       },
@@ -16541,7 +16774,7 @@
         }, bars);
       }
 
-      var on = Object.assign({}, this.$listeners,
+      var on = Object.assign({}, this.qListeners,
         {input: this.__onInput,
         keydown: this.__onKeydown,
         click: this.__onClick,
@@ -16598,11 +16831,13 @@
   var QItemLabel = Vue.extend({
     name: 'QItemLabel',
 
+    mixins: [ ListenersMixin ],
+
     props: {
       overline: Boolean,
       caption: Boolean,
       header: Boolean,
-      lines: [Number, String]
+      lines: [ Number, String ]
     },
 
     computed: {
@@ -16632,7 +16867,7 @@
         staticClass: 'q-item__label',
         style: this.style,
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -16752,7 +16987,7 @@
   var QSeparator = Vue.extend({
     name: 'QSeparator',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     props: {
       spaced: Boolean,
@@ -16796,7 +17031,7 @@
         staticClass: 'q-separator',
         class: this.classes,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       })
     }
   });
@@ -17008,7 +17243,7 @@
           var evtProp = this.hasRouterLink === true ? 'nativeOn' : 'on';
 
           data.props.clickable = true;
-          data[evtProp] = Object.assign({}, this.$listeners,
+          data[evtProp] = Object.assign({}, this.qListeners,
             {click: this.__onHeaderClick});
 
           this.hasRouterLink === true && Object.assign(
@@ -17245,7 +17480,7 @@
       return h('div', {
         staticClass: 'q-fab z-fab row inline justify-center',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('div', {
           staticClass: 'q-fab__actions flex no-wrap inline',
@@ -17282,7 +17517,7 @@
   var QFabAction = Vue.extend({
     name: 'QFabAction',
 
-    mixins: [ FabMixin ],
+    mixins: [ ListenersMixin, FabMixin ],
 
     props: {
       icon: {
@@ -17311,6 +17546,11 @@
       classes: function classes () {
         var align = anchorMap[this.anchor];
         return this.formClass + (align !== void 0 ? (" " + align) : '')
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {click: this.click})
       }
     },
 
@@ -17343,8 +17583,7 @@
           label: void 0,
           noCaps: true,
           fabMini: true}),
-        on: Object.assign({}, this.$listeners,
-          {click: this.click})
+        on: this.onEvents
       }, mergeSlot(child, this, 'default'))
     }
   });
@@ -17415,6 +17654,17 @@
 
         var max = this.maxFiles;
         return ("" + (this.innerValue.length) + (max !== void 0 ? ' / ' + max : '') + " (" + (this.totalSize) + ")")
+      },
+
+      inputAttrs: function inputAttrs () {
+        return Object.assign({}, {tabindex: -1,
+          type: 'file',
+          title: '', // try to remove default tooltip,
+          accept: this.accept,
+          name: this.nameProp},
+          this.qAttrs,
+          {id: this.targetUid,
+          disabled: this.editable !== true})
       }
     },
 
@@ -17528,14 +17778,7 @@
         var data = {
           ref: 'input',
           staticClass: 'q-field__input fit absolute-full cursor-pointer',
-          attrs: Object.assign({}, {tabindex: -1,
-            type: 'file',
-            title: '', // try to remove default tooltip,
-            accept: this.accept,
-            name: this.nameProp},
-            this.$attrs,
-            {id: this.targetUid,
-            disabled: this.editable !== true}),
+          attrs: this.inputAttrs,
           domProps: this.formDomProps,
           on: cache(this, 'input', {
             change: this.__addFiles
@@ -17558,6 +17801,8 @@
 
   var QFooter = Vue.extend({
     name: 'QFooter',
+
+    mixins: [ ListenersMixin ],
 
     inject: {
       layout: {
@@ -17680,6 +17925,12 @@
         }
 
         return css
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {focusin: this.__onFocusin,
+          input: stop})
       }
     },
 
@@ -17701,9 +17952,7 @@
         staticClass: 'q-footer q-layout__section--marginal',
         class: this.classes,
         style: this.style,
-        on: Object.assign({}, this.$listeners,
-          {focusin: this.__onFocusin,
-          input: stop})
+        on: this.onEvents
       }, child)
     },
 
@@ -17771,11 +18020,21 @@
   var QForm = Vue.extend({
     name: 'QForm',
 
+    mixins: [ ListenersMixin ],
+
     props: {
       autofocus: Boolean,
       noErrorFocus: Boolean,
       noResetFocus: Boolean,
       greedy: Boolean
+    },
+
+    computed: {
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {submit: this.submit,
+          reset: this.reset})
+      }
     },
 
     mounted: function mounted () {
@@ -17794,38 +18053,36 @@
 
         this.validateIndex++;
 
-        var components = getAllChildren(this);
+        var components = this.getValidationComponents();
+
         var emit = function (res, ref) {
           this$1.$emit('validation-' + (res === true ? 'success' : 'error'), ref);
         };
 
         var loop = function ( i ) {
           var comp = components[i];
+          var valid = comp.validate();
 
-          if (typeof comp.validate === 'function') {
-            var valid = comp.validate();
+          if (typeof valid.then === 'function') {
+            promises.push(
+              valid.then(
+                function (valid) { return ({ valid: valid, comp: comp }); },
+                function (error) { return ({ valid: false, comp: comp, error: error }); }
+              )
+            );
+          }
+          else if (valid !== true) {
+            if (this$1.greedy === false) {
+              emit(false, comp);
 
-            if (typeof valid.then === 'function') {
-              promises.push(
-                valid.then(
-                  function (valid) { return ({ valid: valid, comp: comp }); },
-                  function (error) { return ({ valid: false, comp: comp, error: error }); }
-                )
-              );
-            }
-            else if (valid !== true) {
-              if (this$1.greedy === false) {
-                emit(false, comp);
-
-                if (focus === true && typeof comp.focus === 'function') {
-                  comp.focus();
-                }
-
-                return { v: Promise.resolve(false) }
+              if (focus === true && typeof comp.focus === 'function') {
+                comp.focus();
               }
 
-              promises.push({ valid: false, comp: comp });
+              return { v: Promise.resolve(false) }
             }
+
+            promises.push({ valid: false, comp: comp });
           }
         };
 
@@ -17875,10 +18132,8 @@
       resetValidation: function resetValidation () {
         this.validateIndex++;
 
-        getAllChildren(this).forEach(function (comp) {
-          if (typeof comp.resetValidation === 'function') {
-            comp.resetValidation();
-          }
+        this.getValidationComponents().forEach(function (comp) {
+          comp.resetValidation();
         });
       },
 
@@ -17889,7 +18144,7 @@
 
         this.validate().then(function (val) {
           if (val === true) {
-            if (this$1.$listeners.submit !== void 0) {
+            if (this$1.qListeners.submit !== void 0) {
               this$1.$emit('submit', evt);
             }
             else if (evt !== void 0 && evt.target !== void 0 && typeof evt.target.submit === 'function') {
@@ -17916,24 +18171,31 @@
 
       focus: function focus () {
         var target = this.$el.querySelector('[autofocus], [data-autofocus]') ||
-          [].find.call(this.$el.querySelectorAll('[tabindex]'), function (el) { return el.tabIndex > -1; });
+          Array.prototype.find.call(this.$el.querySelectorAll('[tabindex]'), function (el) { return el.tabIndex > -1; });
 
         target !== null && target !== void 0 && target.focus();
+      },
+
+      getValidationComponents: function getValidationComponents () {
+        return Array.prototype.map.call(
+          this.$el.getElementsByClassName('q-field'),
+          function (field) { return field.__vue__; }
+        ).filter(function (c) { return c !== void 0 && typeof c.validate === 'function'; })
       }
     },
 
     render: function render (h) {
       return h('form', {
         staticClass: 'q-form',
-        on: Object.assign({}, this.$listeners,
-          {submit: this.submit,
-          reset: this.reset})
+        on: this.onEvents
       }, slot(this, 'default'))
     }
   });
 
   var QHeader = Vue.extend({
     name: 'QHeader',
+
+    mixins: [ ListenersMixin ],
 
     inject: {
       layout: {
@@ -18044,16 +18306,17 @@
         }
 
         return css
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {focusin: this.__onFocusin,
+          input: stop})
       }
     },
 
     render: function render (h) {
-      var child = mergeSlot([
-        h(QResizeObserver, {
-          props: { debounce: 0 },
-          on: cache(this, 'resize', { resize: this.__onResize })
-        })
-      ], this, 'default');
+      var child = uniqueSlot(this, 'default', []);
 
       this.elevated === true && child.push(
         h('div', {
@@ -18061,13 +18324,18 @@
         })
       );
 
+      child.push(
+        h(QResizeObserver, {
+          props: { debounce: 0 },
+          on: cache(this, 'resize', { resize: this.__onResize })
+        })
+      );
+
       return h('header', {
         staticClass: 'q-header q-layout__section--marginal',
         class: this.classes,
         style: this.style,
-        on: Object.assign({}, this.$listeners,
-          {focusin: this.__onFocusin,
-          input: stop})
+        on: this.onEvents
       }, child)
     },
 
@@ -18136,7 +18404,7 @@
   var QImg = Vue.extend({
     name: 'QImg',
 
-    mixins: [ RatioMixin ],
+    mixins: [ ListenersMixin, RatioMixin ],
 
     props: {
       src: String,
@@ -18425,7 +18693,7 @@
         class: this.classes,
         style: this.style,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('div', { style: this.ratioStyle }),
         this.__getImage(h),
@@ -18451,6 +18719,8 @@
 
   var QInfiniteScroll = Vue.extend({
     name: 'QInfiniteScroll',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       offset: {
@@ -18633,7 +18903,7 @@
 
       return h('div', {
         staticClass: 'q-infinite-scroll',
-        on: this.$listeners
+        on: this.qListeners
       }, child)
     }
   });
@@ -18641,7 +18911,7 @@
   var QInnerLoading = Vue.extend({
     name: 'QInnerLoading',
 
-    mixins: [ DarkMixin, TransitionMixin ],
+    mixins: [ ListenersMixin, DarkMixin, TransitionMixin ],
 
     props: {
       showing: Boolean,
@@ -18660,7 +18930,7 @@
             {
               staticClass: 'q-inner-loading absolute-full column flex-center',
               class: this.isDark === true ? 'q-inner-loading--dark' : null,
-              on: this.$listeners
+              on: this.qListeners
             },
             this.$scopedSlots.default !== void 0
               ? this.$scopedSlots.default()
@@ -18777,7 +19047,7 @@
   var QIntersection = Vue.extend({
     name: 'QIntersection',
 
-    mixins: [ TagMixin ],
+    mixins: [ TagMixin, ListenersMixin ],
 
     directives: {
       Intersection: Intersection
@@ -18832,7 +19102,7 @@
         if (this.showing !== entry.isIntersecting) {
           this.showing = entry.isIntersecting;
 
-          if (this.$listeners.visibility !== void 0) {
+          if (this.qListeners.visibility !== void 0) {
             this.$emit('visibility', this.showing);
           }
         }
@@ -18846,7 +19116,7 @@
 
       return h(this.tag, {
         staticClass: 'q-intersection',
-        on: this.$listeners,
+        on: this.qListeners,
         directives: this.directives
       }, this.transition
         ? [
@@ -19235,6 +19505,8 @@
   var QLayout = Vue.extend({
     name: 'QLayout',
 
+    mixins: [ ListenersMixin ],
+
     provide: function provide () {
       return {
         layout: this
@@ -19339,7 +19611,7 @@
       var layout = h('div', {
         class: this.classes,
         style: this.style,
-        on: this.$listeners
+        on: this.qListeners
       }, mergeSlot([
         h(QScrollObserver, {
           on: cache(this, 'scroll', { scroll: this.__onPageScroll })
@@ -19388,7 +19660,7 @@
 
       __onPageScroll: function __onPageScroll (data) {
         this.scroll = data;
-        this.$listeners.scroll !== void 0 && this.$emit('scroll', data);
+        this.qListeners.scroll !== void 0 && this.$emit('scroll', data);
       },
 
       __onPageResize: function __onPageResize (ref) {
@@ -19400,7 +19672,7 @@
         if (this.height !== height) {
           resized = true;
           this.height = height;
-          if (this.$listeners['scroll-height'] !== void 0) {
+          if (this.qListeners['scroll-height'] !== void 0) {
             this.$emit('scroll-height', height);
           }
           this.__updateScrollbarWidth();
@@ -19410,7 +19682,7 @@
           this.width = width;
         }
 
-        if (resized === true && this.$listeners.resize !== void 0) {
+        if (resized === true && this.qListeners.resize !== void 0) {
           this.$emit('resize', { height: height, width: width });
         }
       },
@@ -19441,7 +19713,7 @@
   var QMarkupTable = Vue.extend({
     name: 'QMarkupTable',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     props: {
       dense: Boolean,
@@ -19472,7 +19744,7 @@
       return h('div', {
         staticClass: 'q-markup-table q-table__container q-table__card',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('table', { staticClass: 'q-table' }, slot(this, 'default'))
       ])
@@ -19482,7 +19754,7 @@
   var QNoSsr = Vue.extend({
     name: 'QNoSsr',
 
-    mixins: [ CanRenderMixin, TagMixin ],
+    mixins: [ CanRenderMixin, TagMixin, ListenersMixin ],
 
     props: {
       placeholder: String
@@ -19490,7 +19762,7 @@
 
     render: function render (h) {
       var data = {
-        on: this.$listeners
+        on: this.qListeners
       };
 
       if (this.canRender === true) {
@@ -19754,7 +20026,7 @@
   var QOptionGroup = Vue.extend({
     name: 'QOptionGroup',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     props: {
       value: {
@@ -19841,7 +20113,7 @@
       return h('div', {
         class: this.classes,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, this.options.map(function (opt) { return h('div', [
         h(this$1.component, {
           props: {
@@ -19869,6 +20141,8 @@
 
   var QPage = Vue.extend({
     name: 'QPage',
+
+    mixins: [ ListenersMixin ],
 
     inject: {
       pageContainer: {
@@ -19921,13 +20195,15 @@
         staticClass: 'q-page',
         style: this.style,
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
 
   var QPageContainer = Vue.extend({
     name: 'QPageContainer',
+
+    mixins: [ ListenersMixin ],
 
     inject: {
       layout: {
@@ -19966,13 +20242,15 @@
       return h('div', {
         staticClass: 'q-page-container',
         style: this.style,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
 
   var QPageSticky = Vue.extend({
     name: 'QPageSticky',
+
+    mixins: [ ListenersMixin ],
 
     inject: {
       layout: {
@@ -20090,7 +20368,7 @@
         staticClass: 'q-page-sticky row flex-center',
         class: this.classes,
         style: this.style,
-        on: this.$listeners
+        on: this.qListeners
       },
       this.expand === true
         ? content
@@ -20141,6 +20419,11 @@
         return this.layout.container === true
           ? this.layout.containerHeight
           : this.layout.height
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {click: this.__onClick})
       }
     },
 
@@ -20201,8 +20484,7 @@
         ? [
           h('div', {
             staticClass: 'q-page-scroller',
-            on: Object.assign({}, this.$listeners,
-              {click: this.__onClick})
+            on: this.onEvents
           }, [
             QPageSticky.options.render.call(this, h)
           ])
@@ -20219,7 +20501,7 @@
   var QPagination = Vue.extend({
     name: 'QPagination',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     props: {
       value: {
@@ -20570,7 +20852,7 @@
         staticClass: 'q-pagination row no-wrap items-center',
         class: { disabled: this.disable },
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         contentStart,
 
@@ -20616,6 +20898,8 @@
   var QParallax = Vue.extend({
     name: 'QParallax',
 
+    mixins: [ ListenersMixin ],
+
     props: {
       src: String,
       height: {
@@ -20654,7 +20938,7 @@
     methods: {
       __update: function __update (percentage) {
         this.percentScrolled = percentage;
-        this.$listeners.scroll !== void 0 && this.$emit('scroll', percentage);
+        this.qListeners.scroll !== void 0 && this.$emit('scroll', percentage);
       },
 
       __onResize: function __onResize () {
@@ -20711,7 +20995,7 @@
       return h('div', {
         staticClass: 'q-parallax',
         style: { height: ((this.height) + "px") },
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('div', {
           ref: 'mediaParent',
@@ -20771,6 +21055,8 @@
   var QPopupEdit = Vue.extend({
     name: 'QPopupEdit',
 
+    mixins: [ AttrsMixin ],
+
     props: {
       value: {
         required: true
@@ -20823,6 +21109,12 @@
           set: this.set,
           cancel: this.cancel
         }
+      },
+
+      menuProps: function menuProps () {
+        return Object.assign({}, this.qAttrs,
+          {cover: this.cover,
+          contentClass: this.classes})
       }
     },
 
@@ -20911,9 +21203,7 @@
 
       return h(QMenu, {
         ref: 'menu',
-        props: Object.assign({}, this.$attrs,
-          {cover: this.cover,
-          contentClass: this.classes}),
+        props: this.menuProps,
         on: cache(this, 'menu', {
           'before-show': function () {
             this$1.validated = false;
@@ -20954,7 +21244,7 @@
   var QPopupProxy = Vue.extend({
     name: 'QPopupProxy',
 
-    mixins: [ AnchorMixin ],
+    mixins: [ AttrsMixin, ListenersMixin, AnchorMixin ],
 
     props: {
       breakpoint: {
@@ -20995,6 +21285,11 @@
         if (this.$refs.popup.showing !== true) {
           this.__updateType(this.$q.screen.width, this.$q.screen.height, parseInt(breakpoint$1, 10));
         }
+      },
+
+      onEvents: function onEvents () {
+        return Object.assign({}, this.qListeners,
+          {hide: this.__onHide})
       }
     },
 
@@ -21044,9 +21339,8 @@
 
       var data = {
         ref: 'popup',
-        props: Object.assign(props, this.$attrs),
-        on: Object.assign({}, this.$listeners,
-          {hide: this.__onHide})
+        props: Object.assign(props, this.qAttrs),
+        on: this.onEvents
       };
 
       var component;
@@ -21074,6 +21368,7 @@
     name: 'QLinearProgress',
 
     mixins: [
+      ListenersMixin,
       DarkMixin,
       getSizeMixin({
         xs: 2,
@@ -21137,8 +21432,8 @@
       attrs: function attrs () {
         return {
           role: 'progressbar',
-          'aria-valuemin': this.min,
-          'aria-valuemax': this.max,
+          'aria-valuemin': 0,
+          'aria-valuemax': 1,
           'aria-valuenow': this.indeterminate === true ? void 0 : this.value
         }
       }
@@ -21170,7 +21465,7 @@
         style: this.sizeStyle,
         class: this.classes,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, mergeSlot(child, this, 'default'))
     }
   });
@@ -21181,6 +21476,8 @@
 
   var QPullToRefresh = Vue.extend({
     name: 'QPullToRefresh',
+
+    mixins: [ ListenersMixin ],
 
     directives: {
       TouchPan: TouchPan
@@ -21333,7 +21630,7 @@
     render: function render (h) {
       return h('div', {
         staticClass: 'q-pull-to-refresh overflow-hidden',
-        on: this.$listeners,
+        on: this.qListeners,
         directives: this.disable === true
           ? null
           : cache(this, 'dir#' + this.noMouse, [{
@@ -21412,8 +21709,8 @@
       rightLabelColor: String,
       rightLabelTextColor: String,
 
-      leftLabelValue: [String, Number],
-      rightLabelValue: [String, Number]
+      leftLabelValue: [ String, Number ],
+      rightLabelValue: [ String, Number ]
     },
 
     data: function data () {
@@ -21479,19 +21776,19 @@
       trackStyle: function trackStyle () {
         var obj;
 
-        return ( obj = {}, obj[this.horizProp] = 100 * this.ratioMin + '%', obj.width = 100 * (this.ratioMax - this.ratioMin) + '%', obj )
+        return ( obj = {}, obj[ this.positionProp ] = ((100 * this.ratioMin) + "%"), obj[ this.sizeProp ] = ((100 * (this.ratioMax - this.ratioMin)) + "%"), obj )
       },
 
       minThumbStyle: function minThumbStyle () {
         var obj;
 
-        return ( obj = {}, obj[this.horizProp] = (100 * this.ratioMin) + '%', obj['z-index'] = this.__nextFocus === 'min' ? 2 : void 0, obj )
+        return ( obj = {}, obj[ this.positionProp ] = ((100 * this.ratioMin) + "%"), obj['z-index'] = this.__nextFocus === 'min' ? 2 : void 0, obj )
       },
 
       maxThumbStyle: function maxThumbStyle () {
         var obj;
 
-        return ( obj = {}, obj[this.horizProp] = (100 * this.ratioMax) + '%', obj )
+        return ( obj = {}, obj[ this.positionProp ] = ((100 * this.ratioMax) + "%"), obj )
       },
 
       minThumbClass: function minThumbClass () {
@@ -21623,13 +21920,22 @@
       __getDragging: function __getDragging (event) {
         var ref = this.$el.getBoundingClientRect();
         var left = ref.left;
+        var top = ref.top;
         var width = ref.width;
-        var sensitivity = this.dragOnlyRange ? 0 : this.$refs.minThumb.offsetWidth / (2 * width),
+        var height = ref.height;
+        var sensitivity = this.dragOnlyRange === true
+            ? 0
+            : (this.vertical === true
+              ? this.$refs.minThumb.offsetHeight / (2 * height)
+              : this.$refs.minThumb.offsetWidth / (2 * width)
+            ),
           diff = this.max - this.min;
 
         var dragging = {
           left: left,
+          top: top,
           width: width,
+          height: height,
           valueMin: this.model.min,
           valueMax: this.model.max,
           ratioMin: (this.model.min - this.min) / diff,
@@ -21637,14 +21943,14 @@
         };
 
         var
-          ratio = getRatio(event, dragging, this.isReversed),
+          ratio = getRatio(event, dragging, this.isReversed, this.vertical),
           type;
 
         if (this.dragOnlyRange !== true && ratio < dragging.ratioMin + sensitivity) {
           type = dragType.MIN;
         }
         else if (this.dragOnlyRange === true || ratio < dragging.ratioMax - sensitivity) {
-          if (this.dragRange || this.dragOnlyRange) {
+          if (this.dragRange === true || this.dragOnlyRange === true) {
             type = dragType.RANGE;
             Object.assign(dragging, {
               offsetRatio: ratio,
@@ -21673,7 +21979,7 @@
         if ( dragging === void 0 ) dragging = this.dragging;
 
         var
-          ratio = getRatio(event, dragging, this.isReversed),
+          ratio = getRatio(event, dragging, this.isReversed, this.vertical),
           model = getModel(ratio, this.min, this.max, this.step, this.decimals),
           pos;
 
@@ -21776,7 +22082,9 @@
           offset = [34, 37, 40].includes(evt.keyCode) ? -step : step;
 
         if (this.dragOnlyRange) {
-          var interval = this.dragOnlyRange ? this.model.max - this.model.min : 0;
+          var interval = this.dragOnlyRange
+            ? this.model.max - this.model.min
+            : 0;
 
           var min = between(
             parseFloat((this.model.min + offset).toFixed(this.decimals)),
@@ -21815,11 +22123,14 @@
         if (this.label === true || this.labelAlways === true) {
           child.push(
             h('div', {
-              staticClass: 'q-slider__pin absolute',
+              staticClass: ("q-slider__pin q-slider__pin" + (this.axis) + " absolute"),
               style: this[which + 'PinStyle'].pin,
               class: this[which + 'PinClass']
             }, [
-              h('div', { staticClass: 'q-slider__pin-text-container', style: this[which + 'PinStyle'].pinTextContainer }, [
+              h('div', {
+                staticClass: ("q-slider__pin-text-container q-slider__pin-text-container" + (this.axis)),
+                style: this[which + 'PinStyle'].pinTextContainer
+              }, [
                 h('span', {
                   staticClass: 'q-slider__pin-text',
                   class: this[which + 'PinTextClass']
@@ -21830,7 +22141,7 @@
             ]),
 
             h('div', {
-              staticClass: 'q-slider__arrow',
+              staticClass: ("q-slider__arrow q-slider__arrow" + (this.axis)),
               class: this[which + 'PinClass']
             })
           );
@@ -21838,7 +22149,7 @@
 
         return h('div', {
           ref: which + 'Thumb',
-          staticClass: 'q-slider__thumb-container absolute non-selectable',
+          staticClass: ("q-slider__thumb-container q-slider__thumb-container" + (this.axis) + " absolute non-selectable"),
           style: this[which + 'ThumbStyle'],
           class: this[which + 'ThumbClass'],
           on: this[which + 'Events'],
@@ -21850,21 +22161,21 @@
     render: function render (h) {
       var track = [
         h('div', {
-          staticClass: 'q-slider__track absolute',
+          staticClass: ("q-slider__track q-slider__track" + (this.axis) + " absolute"),
           style: this.trackStyle
         })
       ];
 
       this.markers === true && track.push(
         h('div', {
-          staticClass: 'q-slider__track-markers absolute-full fit',
+          staticClass: ("q-slider__track-markers q-slider__track-markers" + (this.axis) + " absolute-full fit"),
           style: this.markerStyle
         })
       );
 
       var child = [
         h('div', {
-          staticClass: 'q-slider__track-container absolute'
+          staticClass: ("q-slider__track-container q-slider__track-container" + (this.axis) + " absolute")
         }, track),
 
         this.__getThumb(h, 'min'),
@@ -21881,22 +22192,12 @@
           : void 0,
         attrs: Object.assign({}, this.attrs,
           {'aria-valuenow': this.value.min + '|' + this.value.max,
-          tabindex: this.dragOnlyRange && !this.$q.platform.is.mobile
+          tabindex: this.dragOnlyRange === true && this.$q.platform.is.mobile !== true
             ? this.computedTabindex
             : null}),
         class: this.classes,
         on: this.events,
-        directives: this.editable === true ? cache(this, 'dir', [{
-          name: 'touch-pan',
-          value: this.__pan,
-          modifiers: {
-            horizontal: true,
-            prevent: true,
-            stop: true,
-            mouse: true,
-            mouseAllDir: true
-          }
-        }]) : null
+        directives: this.panDirectives
       }, child)
     }
   });
@@ -21904,7 +22205,7 @@
   var QRating = Vue.extend({
     name: 'QRating',
 
-    mixins: [ SizeMixin, FormMixin ],
+    mixins: [ SizeMixin, FormMixin, ListenersMixin ],
 
     props: {
       value: {
@@ -22094,7 +22395,7 @@
         class: this.classes,
         style: this.sizeStyle,
         attrs: this.attrs,
-        on: this.$listeners
+        on: this.qListeners
       }, child)
     }
   });
@@ -22102,12 +22403,12 @@
   var QResponsive = Vue.extend({
     name: 'QResponsive',
 
-    mixins: [ RatioMixin ],
+    mixins: [ RatioMixin, ListenersMixin ],
 
     render: function render (h) {
       return h('div', {
         staticClass: 'q-responsive',
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('div', {
           staticClass: 'q-responsive__filler overflow-hidden'
@@ -22916,7 +23217,7 @@
 
       __emitScroll: function __emitScroll (index) {
         if (this.prevToIndex !== index) {
-          this.$listeners['virtual-scroll'] !== void 0 && this.$emit('virtual-scroll', {
+          this.qListeners['virtual-scroll'] !== void 0 && this.$emit('virtual-scroll', {
             index: index,
             from: this.virtualScrollSliceRange.from,
             to: this.virtualScrollSliceRange.to - 1,
@@ -22945,7 +23246,13 @@
   var QSelect = Vue.extend({
     name: 'QSelect',
 
-    mixins: [ QField, VirtualScroll, CompositionMixin, FormFieldMixin ],
+    mixins: [
+      QField,
+      VirtualScroll,
+      CompositionMixin,
+      FormFieldMixin,
+      ListenersMixin
+    ],
 
     props: {
       value: {
@@ -23314,7 +23621,7 @@
         if (index > -1 && index < this.innerValue.length) {
           if (this.multiple === true) {
             var model = this.value.slice();
-            this.$emit('remove', { index: index, value: model.splice(index, 1) });
+            this.$emit('remove', { index: index, value: model.splice(index, 1)[0] });
             this.$emit('input', model);
           }
           else {
@@ -23383,7 +23690,7 @@
             this.hidePopup();
           }
 
-          if (isDeepEqual(this.getOptionValue(this.innerValue), optValue) !== true) {
+          if (isDeepEqual(this.getOptionValue(this.innerValue[0]), optValue) !== true) {
             this.$emit('input', this.emitValue === true ? optValue : opt);
           }
           return
@@ -23405,7 +23712,7 @@
           index = this.innerOptionsValue.findIndex(function (v) { return isDeepEqual(v, optValue); });
 
         if (index > -1) {
-          this.$emit('remove', { index: index, value: model.splice(index, 1) });
+          this.$emit('remove', { index: index, value: model.splice(index, 1)[0] });
         }
         else {
           if (this.maxValues !== void 0 && model.length >= this.maxValues) {
@@ -23553,7 +23860,7 @@
         }
 
         var newValueModeValid = this.inputValue.length > 0 &&
-          (this.newValueMode !== void 0 || this.$listeners['new-value'] !== void 0);
+          (this.newValueMode !== void 0 || this.qListeners['new-value'] !== void 0);
         var tabShouldSelect = e.shiftKey !== true &&
           this.multiple !== true &&
           (this.optionIndex > -1 || newValueModeValid === true);
@@ -23691,7 +23998,7 @@
             }
           };
 
-          if (this.$listeners['new-value'] !== void 0) {
+          if (this.qListeners['new-value'] !== void 0) {
             this.$emit('new-value', this.inputValue, done);
           }
           else {
@@ -23766,6 +24073,7 @@
             })
           }, [
             h('span', {
+              staticClass: 'ellipsis',
               domProps: ( obj = {}, obj[scope.sanitize === true ? 'textContent' : 'innerHTML'] = this$1.getOptionLabel(scope.opt), obj )
             })
           ]);
@@ -23792,7 +24100,7 @@
           var options = {
             staticClass: 'q-select__autocomplete-input no-outline',
             attrs: {
-              autocomplete: this.$attrs.autocomplete,
+              autocomplete: this.qAttrs.autocomplete,
               tabindex: this.tabindex
             },
             on: this.autocompleteControlEvents
@@ -23823,7 +24131,7 @@
           );
         }
 
-        return h('div', { staticClass: 'q-field__native row items-center', attrs: this.$attrs }, child)
+        return h('div', { staticClass: 'q-field__native row items-center', attrs: this.qAttrs }, child)
       },
 
       __getOptions: function __getOptions (h) {
@@ -23879,7 +24187,7 @@
           class: this.computedInputClass,
           domProps: { value: this.inputValue !== void 0 ? this.inputValue : '' },
           attrs: Object.assign({}, {type: 'search'},
-            this.$attrs,
+            this.qAttrs,
             {id: this.targetUid,
             maxlength: this.maxlength, // this is converted to prop by QField
             tabindex: this.tabindex,
@@ -23923,7 +24231,7 @@
           this.__focus();
         }
 
-        if (this.$listeners.filter !== void 0) {
+        if (this.qListeners.filter !== void 0) {
           this.inputTimer = setTimeout(function () {
             this$1.filter(this$1.inputValue);
           }, this.inputDebounce);
@@ -23954,7 +24262,7 @@
       filter: function filter (val) {
         var this$1 = this;
 
-        if (this.$listeners.filter === void 0 || this.focused !== true) {
+        if (this.qListeners.filter === void 0 || this.focused !== true) {
           return
         }
 
@@ -24132,7 +24440,7 @@
               loading: this.innerLoading,
               filled: true,
               stackLabel: this.inputValue.length > 0}),
-            on: Object.assign({}, this.$listeners,
+            on: Object.assign({}, this.qListeners,
               {focus: this.__onDialogFieldFocus,
               blur: this.__onDialogFieldBlur}),
             scopedSlots: Object.assign({}, this.$scopedSlots,
@@ -24245,7 +24553,7 @@
           this.__focus();
         }
 
-        if (this.$listeners.filter !== void 0) {
+        if (this.qListeners.filter !== void 0) {
           this.filter(this.inputValue);
         }
         else if (this.noOptions !== true || this.$scopedSlots['no-option'] !== void 0) {
@@ -24290,7 +24598,7 @@
           ? false
           : this.behavior !== 'menu' && (
             this.useInput === true
-              ? this.$scopedSlots['no-option'] !== void 0 || this.$listeners.filter !== void 0 || this.noOptions === false
+              ? this.$scopedSlots['no-option'] !== void 0 || this.qListeners.filter !== void 0 || this.noOptions === false
               : true
           );
 
@@ -24330,7 +24638,7 @@
   var QSkeleton = Vue.extend({
     name: 'QSkeleton',
 
-    mixins: [ DarkMixin, TagMixin ],
+    mixins: [ DarkMixin, TagMixin, ListenersMixin ],
 
     props: {
       type: {
@@ -24373,7 +24681,7 @@
         staticClass: 'q-skeleton',
         class: this.classes,
         style: this.style,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -24388,7 +24696,7 @@
   var QSlideItem = Vue.extend({
     name: 'QSlideItem',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     props: {
       leftColor: String,
@@ -24557,7 +24865,7 @@
       return h('div', {
         staticClass: 'q-slide-item q-item-type overflow-hidden',
         class: this.isDark === true ? "q-slide-item--dark q-dark" : '',
-        on: this.$listeners
+        on: this.qListeners
       }, content)
     },
 
@@ -24569,10 +24877,12 @@
   var QSpace = Vue.extend({
     name: 'QSpace',
 
+    mixins: [ ListenersMixin ],
+
     render: function render (h) {
       return h('div', {
         staticClass: 'q-space',
-        on: this.$listeners
+        on: this.qListeners
       })
     }
   });
@@ -24586,7 +24896,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'fill': 'currentColor',
@@ -24690,7 +25000,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'stroke': 'currentColor',
@@ -24812,7 +25122,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'fill': 'currentColor',
@@ -24983,7 +25293,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -25081,7 +25391,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -25239,7 +25549,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'fill': 'currentColor',
@@ -25359,7 +25669,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -25478,7 +25788,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -25547,7 +25857,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'fill': 'currentColor',
@@ -25733,7 +26043,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'fill': 'currentColor',
@@ -25795,7 +26105,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -25934,7 +26244,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -25978,7 +26288,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -26200,7 +26510,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'stroke': 'currentColor',
@@ -26256,7 +26566,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -26351,7 +26661,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'stroke': 'currentColor',
@@ -26446,7 +26756,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -26534,7 +26844,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'stroke': 'currentColor',
@@ -26660,7 +26970,7 @@
       return h('svg', {
         staticClass: 'q-spinner',
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: {
           focusable: 'false' /* needed for IE11 */,
           'width': this.cSize,
@@ -26753,7 +27063,7 @@
   var QSplitter = Vue.extend({
     name: 'QSplitter',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     directives: {
       TouchPan: TouchPan
@@ -26895,6 +27205,7 @@
     },
 
     render: function render (h) {
+      var attrs = this.disable === true ? { 'aria-disabled': '' } : void 0;
       var child = [
         h('div', {
           ref: 'before',
@@ -26907,7 +27218,8 @@
         h('div', {
           staticClass: 'q-splitter__separator',
           style: this.separatorStyle,
-          class: this.separatorClass
+          class: this.separatorClass,
+          attrs: attrs
         }, [
           h('div', {
             staticClass: 'absolute-full q-splitter__separator-area',
@@ -26938,13 +27250,15 @@
       return h('div', {
         staticClass: 'q-splitter no-wrap',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, mergeSlot(child, this, 'default'))
     }
   });
 
   var StepHeader = Vue.extend({
     name: 'StepHeader',
+
+    mixins: [ AttrsMixin ],
 
     directives: {
       Ripple: Ripple
@@ -27066,11 +27380,9 @@
             click: this.activate,
             keyup: this.keyup
           },
-          attrs: {
-            tabindex: this.isDisable === true
-              ? -1
-              : this.$attrs.tabindex || 0
-          }
+          attrs: this.isDisable === true
+            ? { tabindex: -1, 'aria-disabled': '' }
+            : { tabindex: this.qAttrs.tabindex || 0 }
         });
       }
 
@@ -27195,7 +27507,7 @@
         'div',
         {
           staticClass: 'q-stepper__step',
-          on: this.$listeners
+          on: this.qListeners
         },
         vertical === true
           ? [
@@ -27305,7 +27617,7 @@
       __renderPanels: function __renderPanels (h) {
         return h('div', {
           class: this.classes,
-          on: this.$listeners
+          on: this.qListeners
         }, mergeSlot(this.__getContent(h), this, 'navigation'))
       }
     }
@@ -27314,10 +27626,12 @@
   var QStepperNavigation = Vue.extend({
     name: 'QStepperNavigation',
 
+    mixins: [ ListenersMixin ],
+
     render: function render (h) {
       return h('div', {
         staticClass: 'q-stepper__nav',
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -27400,6 +27714,8 @@
   var QTh = Vue.extend({
     name: 'QTh',
 
+    mixins: [ ListenersMixin ],
+
     props: {
       props: Object,
       autoWidth: Boolean
@@ -27408,7 +27724,7 @@
     render: function render (h) {
       var this$1 = this;
 
-      var on = this.$listeners;
+      var on = this.qListeners;
 
       if (this.props === void 0) {
         return h('th', {
@@ -27592,7 +27908,7 @@
 
   var TableBody = {
     methods: {
-      getTableRowBody: function getTableRowBody (row, body) {
+      getTableRowBody: function getTableRowBody (row, body, pageIndex) {
         var
           key = this.getRowKey(row),
           selected = this.isRowSelected(key);
@@ -27600,13 +27916,14 @@
         return body(this.addBodyRowMeta({
           key: key,
           row: row,
+          pageIndex: pageIndex,
           cols: this.computedCols,
           colsMap: this.computedColsMap,
           __trClass: selected ? 'selected' : ''
         }))
       },
 
-      getTableRow: function getTableRow (h, row) {
+      getTableRow: function getTableRow (h, row, pageIndex) {
         var this$1 = this;
 
         var
@@ -27614,11 +27931,11 @@
           key = this.getRowKey(row),
           selected = this.isRowSelected(key),
           child = bodyCell
-            ? this.computedCols.map(function (col) { return bodyCell(this$1.addBodyCellMetaData({ row: row, col: col })); })
+            ? this.computedCols.map(function (col) { return bodyCell(this$1.addBodyCellMetaData({ row: row, pageIndex: pageIndex, col: col })); })
             : this.computedCols.map(function (col) {
               var slot = this$1.$scopedSlots[("body-cell-" + (col.name))];
               return slot !== void 0
-                ? slot(this$1.addBodyCellMetaData({ row: row, col: col }))
+                ? slot(this$1.addBodyCellMetaData({ row: row, pageIndex: pageIndex, col: col }))
                 : h('td', {
                   class: col.__tdClass,
                   style: col.__tdStyle
@@ -27645,14 +27962,14 @@
 
         var data = { key: key, class: { selected: selected }, on: {} };
 
-        if (this.$listeners['row-click'] !== void 0) {
+        if (this.qListeners['row-click'] !== void 0) {
           data.class['cursor-pointer'] = true;
           data.on.click = function (evt) {
             this$1.$emit('row-click', evt, row);
           };
         }
 
-        if (this.$listeners['row-dblclick'] !== void 0) {
+        if (this.qListeners['row-dblclick'] !== void 0) {
           data.class['cursor-pointer'] = true;
           data.on.dblclick = function (evt) {
             this$1.$emit('row-dblclick', evt, row);
@@ -27670,8 +27987,8 @@
           topRow = this.$scopedSlots['top-row'],
           bottomRow = this.$scopedSlots['bottom-row'],
           mapFn = body !== void 0
-            ? function (row) { return this$1.getTableRowBody(row, body); }
-            : function (row) { return this$1.getTableRow(h, row); };
+            ? function (row, pageIndex) { return this$1.getTableRowBody(row, body, pageIndex); }
+            : function (row, pageIndex) { return this$1.getTableRow(h, row, pageIndex); };
 
         var child = this.computedRows.map(mapFn);
 
@@ -27691,12 +28008,14 @@
         var body = this.$scopedSlots.body;
 
         return body !== void 0
-          ? function (props) { return this$1.getTableRowBody(props.item, body); }
-          : function (props) { return this$1.getTableRow(h, props.item); }
+          ? function (props, pageIndex) { return this$1.getTableRowBody(props.item, body, pageIndex); }
+          : function (props, pageIndex) { return this$1.getTableRow(h, props.item, pageIndex); }
       },
 
       addBodyRowMeta: function addBodyRowMeta (data) {
         var this$1 = this;
+
+        data.rowIndex = this.firstRowIndex + data.pageIndex;
 
         this.hasSelectionMode === true && Object.defineProperty(data, 'selected', {
           get: function () { return this$1.isRowSelected(data.key); },
@@ -27731,6 +28050,8 @@
 
       addBodyCellMetaData: function addBodyCellMetaData (data) {
         var this$1 = this;
+
+        data.rowIndex = this.firstRowIndex + data.pageIndex;
 
         Object.defineProperty(data, 'value', {
           get: function () { return this$1.getCellValue(data.col, data.row); },
@@ -27942,17 +28263,17 @@
               on: {}
             };
 
-            if (this$1.$listeners['row-click'] !== void 0 || this$1.$listeners['row-dblclick'] !== void 0) {
+            if (this$1.qListeners['row-click'] !== void 0 || this$1.qListeners['row-dblclick'] !== void 0) {
               data.staticClass += ' cursor-pointer';
             }
 
-            if (this$1.$listeners['row-click'] !== void 0) {
+            if (this$1.qListeners['row-click'] !== void 0) {
               data.on.click = function (evt) {
                 this$1.$emit('row-click', evt, scope.row);
               };
             }
 
-            if (this$1.$listeners['row-dblclick'] !== void 0) {
+            if (this$1.qListeners['row-dblclick'] !== void 0) {
               data.on.dblclick = function (evt) {
                 this$1.$emit('row-dblclick', evt, scope.row);
               };
@@ -27970,7 +28291,7 @@
           staticClass: 'q-table__grid-content row',
           class: this.cardContainerClass,
           style: this.cardContainerStyle
-        }, this.computedRows.map(function (row) {
+        }, this.computedRows.map(function (row, pageIndex) {
           var
             key = this$1.getRowKey(row),
             selected = this$1.isRowSelected(key);
@@ -27978,6 +28299,7 @@
           return item(this$1.addBodyRowMeta({
             key: key,
             row: row,
+            pageIndex: pageIndex,
             cols: this$1.computedCols,
             colsMap: this$1.computedColsMap,
             __trClass: selected ? 'selected' : ''
@@ -28018,7 +28340,7 @@
   var QVirtualScroll = Vue.extend({
     name: 'QVirtualScroll',
 
-    mixins: [ VirtualScroll ],
+    mixins: [ AttrsMixin, ListenersMixin, VirtualScroll ],
 
     props: {
       type: {
@@ -28144,8 +28466,8 @@
         : h(comps[this.type], {
           class: this.classes,
           attrs: this.attrs,
-          props: this.$attrs,
-          on: this.$listeners
+          props: this.qAttrs,
+          on: this.qListeners
         }, child)
     }
   });
@@ -28609,6 +28931,7 @@
 
     mixins: [
       DarkMixin,
+      ListenersMixin,
 
       FullscreenMixin,
       Top,
@@ -28948,6 +29271,8 @@
   var QTr = Vue.extend({
     name: 'QTr',
 
+    mixins: [ ListenersMixin ],
+
     props: {
       props: Object,
       noHover: Boolean
@@ -28962,7 +29287,7 @@
 
     render: function render (h) {
       return h('tr', {
-        on: this.$listeners,
+        on: this.qListeners,
         class: this.classes
       }, slot(this, 'default'))
     }
@@ -28970,6 +29295,8 @@
 
   var QTd = Vue.extend({
     name: 'QTd',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       props: Object,
@@ -28985,7 +29312,7 @@
     },
 
     render: function render (h) {
-      var on = this.$listeners;
+      var on = this.qListeners;
 
       if (this.props === void 0) {
         return h('td', {
@@ -29838,7 +30165,7 @@
 
       return h('div', {
         class: this.classes,
-        on: this.$listeners,
+        on: this.qListeners,
         attrs: { tabindex: -1 }
       }, [
         this.__getHeader(h),
@@ -29850,7 +30177,7 @@
   var QTimeline = Vue.extend({
     name: 'QTimeline',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, ListenersMixin ],
 
     provide: function provide () {
       return {
@@ -29886,7 +30213,7 @@
       return h('ul', {
         staticClass: 'q-timeline',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -29901,6 +30228,8 @@
         }
       }
     },
+
+    mixins: [ ListenersMixin ],
 
     props: {
       heading: Boolean,
@@ -29959,7 +30288,7 @@
 
         return h('div', {
           staticClass: 'q-timeline__heading',
-          on: this.$listeners
+          on: this.qListeners
         }, this.reverse === true ? content$1.reverse() : content$1)
       }
 
@@ -30000,13 +30329,15 @@
       return h('li', {
         staticClass: 'q-timeline__entry',
         class: this.classes,
-        on: this.$listeners
+        on: this.qListeners
       }, this.reverse === true ? content.reverse() : content)
     }
   });
 
   var QToolbar = Vue.extend({
     name: 'QToolbar',
+
+    mixins: [ ListenersMixin ],
 
     props: {
       inset: Boolean
@@ -30016,7 +30347,7 @@
       return h('div', {
         staticClass: 'q-toolbar row no-wrap items-center',
         class: this.inset ? 'q-toolbar--inset' : null,
-        on: this.$listeners
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -30024,15 +30355,23 @@
   var QToolbarTitle = Vue.extend({
     name: 'QToolbarTitle',
 
+    mixins: [ ListenersMixin ],
+
     props: {
       shrink: Boolean
     },
 
+    computed: {
+      classes: function classes () {
+        return 'q-toolbar__title ellipsis' +
+          (this.shrink === true ? ' col-shrink' : '')
+      }
+    },
+
     render: function render (h) {
       return h('div', {
-        staticClass: 'q-toolbar__title ellipsis',
-        class: this.shrink === true ? 'col-shrink' : null,
-        on: this.$listeners
+        class: this.classes,
+        on: this.qListeners
       }, slot(this, 'default'))
     }
   });
@@ -30561,7 +30900,7 @@
                     staticClass: 'q-tree__arrow q-mr-xs',
                     class: { 'q-tree__arrow--rotate': meta.expanded },
                     props: { name: this.computedIcon },
-                    nativeOn: {
+                    on: {
                       click: function (e) {
                         this$1.__onExpandClick(node, meta, e);
                       }
@@ -31063,7 +31402,7 @@
             'q-uploader__file--uploaded': file.__status === 'uploaded'
           },
           style: this$1.noThumbnails !== true && file.__img !== void 0 ? {
-            backgroundImage: 'url(' + file.__img.src + ')'
+            backgroundImage: 'url("' + file.__img.src + '")'
           } : null
         }, [
           h('div', {
@@ -31439,7 +31778,7 @@
   var QVideo = Vue.extend({
     name: 'QVideo',
 
-    mixins: [ RatioMixin ],
+    mixins: [ RatioMixin, ListenersMixin ],
 
     props: {
       src: {
@@ -31469,7 +31808,7 @@
       return h('div', {
         class: this.classes,
         style: this.ratioStyle,
-        on: this.$listeners
+        on: this.qListeners
       }, [
         h('iframe', this.iframeData)
       ])
@@ -32566,7 +32905,7 @@
   var BottomSheet = Vue.extend({
     name: 'BottomSheetPlugin',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, AttrsMixin ],
 
     inheritAttrs: false,
 
@@ -32579,6 +32918,13 @@
 
       cardClass: [String, Array, Object],
       cardStyle: [String, Array, Object]
+    },
+
+    computed: {
+      dialogProps: function dialogProps () {
+        return Object.assign({}, this.qAttrs,
+          {position: 'bottom'})
+      }
     },
 
     methods: {
@@ -32708,8 +33054,7 @@
       return h(QDialog, {
         ref: 'dialog',
 
-        props: Object.assign({}, this.$attrs,
-          {position: 'bottom'}),
+        props: this.dialogProps,
 
         on: cache(this, 'hide', {
           hide: function () {
@@ -33050,7 +33395,7 @@
   var DialogPlugin = Vue.extend({
     name: 'DialogPlugin',
 
-    mixins: [ DarkMixin ],
+    mixins: [ DarkMixin, AttrsMixin ],
 
     inheritAttrs: false,
 
@@ -33294,7 +33639,7 @@
       return h(QDialog, {
         ref: 'dialog',
 
-        props: Object.assign({}, this.$attrs,
+        props: Object.assign({}, this.qAttrs,
           {value: this.value}),
 
         on: cache(this, 'hide', {
@@ -33657,8 +34002,6 @@
     if (ssrTakeover === true) {
       ssrTakeover = false;
       this.$root.__currentMeta = window.__Q_META__;
-      document.body.querySelector('script[data-qmeta-init]').remove();
-      return
     }
 
     var meta = {
@@ -33706,7 +34049,7 @@
     return output
   }
 
-  function getServerMeta (app, html) {
+  function getServerMeta (app, html, ctx) {
     var meta = {
       title: '',
       titleTemplate: null,
@@ -33719,6 +34062,10 @@
 
     parseMeta(app, meta);
     normalize(meta);
+
+    var nonce = ctx !== void 0 && ctx.nonce !== void 0
+      ? (" nonce=\"" + (ctx.nonce) + "\"")
+      : '';
 
     var tokens = {
       '%%Q_HTML_ATTRS%%': Object.keys(meta.htmlAttr)
@@ -33733,7 +34080,7 @@
       '%%Q_BODY_TAGS%%': Object.keys(meta.noscript)
         .map(function (name) { return ("<noscript data-qmeta=\"" + name + "\">" + (meta.noscript[name]) + "</noscript>"); })
         .join('') +
-        "<script data-qmeta-init>window.__Q_META__=" + (delete meta.noscript && JSON.stringify(meta)) + "</script>"
+        "<script" + nonce + ">window.__Q_META__=" + (delete meta.noscript && JSON.stringify(meta)) + "</script>"
     };
 
     Object.keys(tokens).forEach(function (key) {
@@ -33770,7 +34117,10 @@
       var queues = ref.queues;
 
       if (isSSR === true) {
-        Vue.prototype.$getMetaHTML = function (app) { return function (html) { return getServerMeta(app, html); }; };
+        Vue.prototype.$getMetaHTML = function (app) {
+          return function (html, ctx) { return getServerMeta(app, html, ctx); }
+        };
+
         Vue.mixin({ beforeCreate: beforeCreate });
 
         queues.server.push(function (_, ctx) {
