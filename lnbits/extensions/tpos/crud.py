@@ -24,7 +24,7 @@ def get_tpos(tpos_id: str) -> Optional[TPoS]:
     with open_ext_db("tpos") as db:
         row = db.fetchone("SELECT * FROM tposs WHERE id = ?", (tpos_id,))
 
-    return TPoS(**row) if row else None
+    return TPoS.from_row(row) if row else None
 
 
 def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
@@ -35,7 +35,7 @@ def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(f"SELECT * FROM tposs WHERE wallet IN ({q})", (*wallet_ids,))
 
-    return [TPoS(**row) for row in rows]
+    return [TPoS.from_row(row) for row in rows]
 
 
 def delete_tpos(tpos_id: str) -> None:
