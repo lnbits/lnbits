@@ -114,7 +114,21 @@
           dense
           v-model.trim="formDialog.data.url"
           type="url"
-          label="Target URL *"
+          label="Redirect URL *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.memo"
+          label="Title *"
+          placeholder="LNbits paywall"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          autogrow
+          v-model.trim="formDialog.data.description"
+          label="Description"
         ></q-input>
         <q-input
           filled
@@ -122,19 +136,31 @@
           v-model.number="formDialog.data.amount"
           type="number"
           label="Amount (sat) *"
+          hint="This is the minimum amount users can pay/donate."
         ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.memo"
-          label="Memo"
-          placeholder="LNbits invoice"
-        ></q-input>
+        <q-list>
+          <q-item tag="label" class="rounded-borders">
+            <q-item-section avatar>
+              <q-checkbox
+                v-model="formDialog.data.remembers"
+                color="deep-purple"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label
+                >Remember payments</q-item-label
+              >
+              <q-item-label caption
+                >A succesful payment will be registered in the browser's storage, so the user doesn't need to pay again to access the URL.</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </q-list>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
             color="deep-purple"
-            :disable="formDialog.data.amount == null || formDialog.data.amount < 0 || formDialog.data.url == null"
+            :disable="formDialog.data.amount == null || formDialog.data.amount < 0 || formDialog.data.url == null || formDialog.data.memo == null"
             type="submit"
             >Create paywall</q-btn
           >
@@ -169,13 +195,6 @@
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {name: 'memo', align: 'left', label: 'Memo', field: 'memo'},
             {
-              name: 'date',
-              align: 'left',
-              label: 'Date',
-              field: 'date',
-              sortable: true
-            },
-            {
               name: 'amount',
               align: 'right',
               label: 'Amount (sat)',
@@ -184,6 +203,14 @@
               sort: function (a, b, rowA, rowB) {
                 return rowA.amount - rowB.amount
               }
+            },
+            {name: 'remembers', align: 'left', label: 'Remember', field: 'remembers'},
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Date',
+              field: 'date',
+              sortable: true
             }
           ],
           pagination: {
@@ -192,7 +219,9 @@
         },
         formDialog: {
           show: false,
-          data: {}
+          data: {
+            remembers: false
+          }
         }
       }
     },
@@ -216,7 +245,9 @@
         var data = {
           url: this.formDialog.data.url,
           memo: this.formDialog.data.memo,
-          amount: this.formDialog.data.amount
+          amount: this.formDialog.data.amount,
+          description: this.formDialog.data.description,
+          remembers: this.formDialog.data.remembers
         }
         var self = this
 
@@ -231,7 +262,9 @@
           .then(function (response) {
             self.paywalls.push(mapPaywall(response.data))
             self.formDialog.show = false
-            self.formDialog.data = {}
+            self.formDialog.data = {
+              remembers: false
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)

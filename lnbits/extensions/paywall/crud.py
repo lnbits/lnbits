@@ -6,15 +6,17 @@ from lnbits.helpers import urlsafe_short_hash
 from .models import Paywall
 
 
-def create_paywall(*, wallet_id: str, url: str, memo: str, amount: int) -> Paywall:
+def create_paywall(
+    *, wallet_id: str, url: str, memo: str, description: Optional[str] = None, amount: int = 0, remembers: bool = True
+) -> Paywall:
     with open_ext_db("paywall") as db:
         paywall_id = urlsafe_short_hash()
         db.execute(
             """
-            INSERT INTO paywalls (id, wallet, secret, url, memo, amount)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO paywalls (id, wallet, url, memo, description, amount, remembers)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (paywall_id, wallet_id, urlsafe_short_hash(), url, memo, amount),
+            (paywall_id, wallet_id, url, memo, description, amount, int(remembers)),
         )
 
     return get_paywall(paywall_id)
@@ -24,7 +26,7 @@ def get_paywall(paywall_id: str) -> Optional[Paywall]:
     with open_ext_db("paywall") as db:
         row = db.fetchone("SELECT * FROM paywalls WHERE id = ?", (paywall_id,))
 
-    return Paywall(**row) if row else None
+    return Paywall.from_row(row) if row else None
 
 
 def get_paywalls(wallet_ids: Union[str, List[str]]) -> List[Paywall]:
@@ -35,7 +37,7 @@ def get_paywalls(wallet_ids: Union[str, List[str]]) -> List[Paywall]:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(f"SELECT * FROM paywalls WHERE wallet IN ({q})", (*wallet_ids,))
 
-    return [Paywall(**row) for row in rows]
+    return [Paywall.from_row(row) for row in rows]
 
 
 def delete_paywall(paywall_id: str) -> None:

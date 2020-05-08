@@ -27,7 +27,9 @@ def api_paywalls():
     schema={
         "url": {"type": "string", "empty": False, "required": True},
         "memo": {"type": "string", "empty": False, "required": True},
+        "description": {"type": "string", "empty": True, "nullable": True, "required": False},
         "amount": {"type": "integer", "min": 0, "required": True},
+        "remembers": {"type": "boolean", "required": True},
     }
 )
 def api_paywall_create():
@@ -52,18 +54,23 @@ def api_paywall_delete(paywall_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@paywall_ext.route("/api/v1/paywalls/<paywall_id>/invoice", methods=["GET"])
-def api_paywall_get_invoice(paywall_id):
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>/invoice", methods=["POST"])
+@api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
+def api_paywall_create_invoice(paywall_id):
     paywall = get_paywall(paywall_id)
 
+    if g.data["amount"] < paywall.amount:
+        return jsonify({"message": f"Minimum amount is {paywall.amount} sat."}), HTTPStatus.BAD_REQUEST
+
     try:
+        amount = g.data["amount"] if g.data["amount"] > paywall.amount else paywall.amount
         checking_id, payment_request = create_invoice(
-            wallet_id=paywall.wallet, amount=paywall.amount, memo=f"#paywall {paywall.memo}"
+            wallet_id=paywall.wallet, amount=amount, memo=f"#paywall {paywall.memo}"
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.OK
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.CREATED
 
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
@@ -84,6 +91,6 @@ def api_paywal_check_invoice(paywall_id):
         payment = wallet.get_payment(g.data["checking_id"])
         payment.set_pending(False)
 
-        return jsonify({"paid": True, "url": paywall.url}), HTTPStatus.OK
+        return jsonify({"paid": True, "url": paywall.url, "remembers": paywall.remembers}), HTTPStatus.OK
 
     return jsonify({"paid": False}), HTTPStatus.OK
