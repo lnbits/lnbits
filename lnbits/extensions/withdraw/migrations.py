@@ -91,6 +91,7 @@ def m002_change_withdraw_table(db):
                 row[9],  # spent
             ),
         )
+
     db.execute("DROP TABLE withdraws")
 
 

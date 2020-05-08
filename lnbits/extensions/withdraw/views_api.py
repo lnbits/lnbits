@@ -68,7 +68,10 @@ def api_link_retrieve(link_id):
 )
 def api_link_create_or_update(link_id=None):
     if g.data["max_withdrawable"] < g.data["min_withdrawable"]:
-        return jsonify({"message": "`max_withdrawable` needs to be at least `min_withdrawable`."}), HTTPStatus.BAD_REQUEST
+        return (
+            jsonify({"message": "`max_withdrawable` needs to be at least `min_withdrawable`."}),
+            HTTPStatus.BAD_REQUEST,
+        )
 
     if (g.data["max_withdrawable"] * g.data["uses"] * 1000) > g.wallet.balance_msat:
         return jsonify({"message": "Insufficient balance."}), HTTPStatus.FORBIDDEN

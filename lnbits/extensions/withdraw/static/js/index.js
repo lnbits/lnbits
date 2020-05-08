@@ -3,7 +3,6 @@ Vue.component(VueQrcode.name, VueQrcode);
 var locationPath = [window.location.protocol, '//', window.location.hostname, window.location.pathname].join('');
 
 var mapWithdrawLink = function (obj) {
-  obj.is_unique = obj.is_unique == 1;
   obj._data = _.clone(obj);
   obj.date = Quasar.utils.date.formatDate(new Date(obj.time * 1000), 'YYYY-MM-DD HH:mm');
   obj.min_fsat = new Intl.NumberFormat(LOCALE).format(obj.min_withdrawable);

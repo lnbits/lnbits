@@ -1,5 +1,6 @@
 from flask import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
+from sqlite3 import Row
 from typing import NamedTuple
 
 from lnbits.settings import FORCE_HTTPS
@@ -18,6 +19,12 @@ class WithdrawLink(NamedTuple):
     k1: str
     open_time: int
     used: int
+
+    @classmethod
+    def from_row(cls, row: Row) -> "WithdrawLink":
+        data = dict(row)
+        data["is_unique"] = bool(data["is_unique"])
+        return cls(**data)
 
     @property
     def is_spent(self) -> bool:

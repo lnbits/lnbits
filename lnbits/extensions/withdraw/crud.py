@@ -58,14 +58,14 @@ def get_withdraw_link(link_id: str) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         row = db.fetchone("SELECT * FROM withdraw_links WHERE id = ?", (link_id,))
 
-    return WithdrawLink(**row) if row else None
+    return WithdrawLink.from_row(row) if row else None
 
 
 def get_withdraw_link_by_hash(unique_hash: str) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         row = db.fetchone("SELECT * FROM withdraw_links WHERE unique_hash = ?", (unique_hash,))
 
-    return WithdrawLink(**row) if row else None
+    return WithdrawLink.from_row(row) if row else None
 
 
 def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
@@ -76,7 +76,7 @@ def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(f"SELECT * FROM withdraw_links WHERE wallet IN ({q})", (*wallet_ids,))
 
-    return [WithdrawLink(**row) for row in rows]
+    return [WithdrawLink.from_row(row) for row in rows]
 
 
 def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
@@ -86,7 +86,7 @@ def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
         db.execute(f"UPDATE withdraw_links SET {q} WHERE id = ?", (*kwargs.values(), link_id))
         row = db.fetchone("SELECT * FROM withdraw_links WHERE id = ?", (link_id,))
 
-    return WithdrawLink(**row) if row else None
+    return WithdrawLink.from_row(row) if row else None
 
 
 def delete_withdraw_link(link_id: str) -> None:
