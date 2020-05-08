@@ -35,7 +35,7 @@ def api_validate_post_request(*, schema: dict):
                 return jsonify({"message": "Content-Type must be `application/json`."}), HTTPStatus.BAD_REQUEST
 
             v = Validator(schema)
-            g.data = {key: request.json[key] for key in schema.keys()}
+            g.data = {key: (request.json[key] if key in request.json else None) for key in schema.keys()}
 
             if not v.validate(g.data):
                 return jsonify({"message": f"Errors in request data: {v.errors}"}), HTTPStatus.BAD_REQUEST
