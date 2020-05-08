@@ -79,7 +79,7 @@ if you want to run Flask in debug mode with autoreload
 
 # Tip me
 If you like this project and might even use or extend it, why not send some tip love!
-https://paywall.link/to/f4e4e
+https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK
 
 
 [github-actions]: https://github.com/lnbits/lnbits/actions
