@@ -49,7 +49,7 @@ class LntxbotWallet(Wallet):
 
         data = r.json()
 
-        if "preimage" not in data or not data["preimage"]:
+        if "preimage" not in data:
             return PaymentStatus(False)
 
         return PaymentStatus(True)
