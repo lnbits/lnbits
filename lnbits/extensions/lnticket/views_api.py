@@ -88,7 +88,7 @@ def api_ticket_create(form_id, sats):
 
     try:
         checking_id, payment_request = create_invoice(
-            wallet_id=form.wallet, amount=sats, memo=f"#lnticket {form_id}"
+            wallet_id=form.wallet, amount=int(sats), memo=f"#lnticket {form_id}"
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
