@@ -1,6 +1,6 @@
 {
-    "name": "Events",
-    "short_description": "LN tickets for events.",
-    "icon": "local_activity",
-    "contributors": ["arcbtc"]
+	"name": "Events",
+	"short_description": "Sell/register event tickets",
+	"icon": "local_activity",
+	"contributors": ["benarc"]
 }

@@ -1,65 +1,155 @@
-import uuid
-import json
-import requests
+from flask import g, jsonify, request
+from http import HTTPStatus
 
-from flask import jsonify, request, url_for
-from datetime import datetime
+from lnbits.core.crud import get_user, get_wallet
+from lnbits.core.services import create_invoice
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.settings import WALLET
 
-from lnbits.db import open_db, open_ext_db
 from lnbits.extensions.events import events_ext
-
-@events_ext.route("/api/v1/getticket/", methods=["GET","POST"])
-def api_getticket():
-    """."""
-
-    data = request.json
-    unireg = data["unireg"]
-    name = data["name"]
-    email = request.args.get("ema")
-
-    with open_ext_db("events") as events_ext_db:
-        user_ev = events_ext_db.fetchall("SELECT * FROM events WHERE unireg = ?", (unireg,))
+from .crud import create_ticket, get_ticket, get_tickets, delete_ticket, create_event, update_event, get_event, get_events, delete_event, get_event_tickets
 
 
-        header = {"Content-Type": "application/json", "X-Api-Key": user_ev[0][4]}
-        data = {"value": str(user_ev[0][10]), "memo": user_ev[0][6]}
-        print(url_for("api_invoices", _external=True))
-        r = requests.post(url=url_for("api_invoices", _external=True), headers=header, data=json.dumps(data))
-        r_json = r.json()
+#########Events##########
 
-        if "ERROR" in r_json:
-            return jsonify({"status": "ERROR", "reason": r_json["ERROR"]}), 400
 
-        events_ext_db.execute(
-            """
-            INSERT OR IGNORE INTO eventssold
-            (uni, email, name, hash)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                unireg,
-                email,
-                name,
-                r_json["payment_hash"]
-            ),
+@events_ext.route("/api/v1/events", methods=["GET"])
+@api_check_wallet_key("invoice")
+def api_events():
+    wallet_ids = [g.wallet.id]
+
+    if "all_wallets" in request.args:
+        wallet_ids = get_user(g.wallet.user).wallet_ids
+
+    return jsonify([event._asdict() for event in get_events(wallet_ids)]), HTTPStatus.OK
+
+
+@events_ext.route("/api/v1/events", methods=["POST"])
+@events_ext.route("/api/v1/events/<event_id>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+@api_validate_post_request(
+    schema={
+        "wallet": {"type": "string", "empty": False, "required": True},
+        "name": {"type": "string", "empty": False, "required": True},
+        "info": {"type": "string", "min": 0, "required": True},
+        "closing_date": {"type": "string", "empty": False, "required": True},
+        "event_start_date": {"type": "string", "empty": False, "required": True},
+        "event_end_date": {"type": "string", "empty": False, "required": True},
+        "amount_tickets": {"type": "integer", "min": 0, "required": True},
+        "price_per_ticket": {"type": "integer", "min": 0, "required": True}
+    }
+)
+def api_event_create(event_id=None):
+    if event_id:
+        event = get_event(event_id)
+        print(g.data)
+
+        if not event:
+            return jsonify({"message": "Form does not exist."}), HTTPStatus.NOT_FOUND
+
+        if event.wallet != g.wallet.id:
+            return jsonify({"message": "Not your event."}), HTTPStatus.FORBIDDEN
+
+        event = update_event(event_id, **g.data)
+    else:
+        event = create_event(**g.data)
+        print(event)
+    return jsonify(event._asdict()), HTTPStatus.CREATED
+
+
+@events_ext.route("/api/v1/events/<event_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+def api_form_delete(event_id):
+    event = get_event(event_id)
+
+    if not event:
+        return jsonify({"message": "Event does not exist."}), HTTPStatus.NOT_FOUND
+
+    if event.wallet != g.wallet.id:
+        return jsonify({"message": "Not your event."}), HTTPStatus.FORBIDDEN
+
+    delete_event(event_id)
+
+    return "", HTTPStatus.NO_CONTENT
+
+
+#########Tickets##########
+
+@events_ext.route("/api/v1/tickets", methods=["GET"])
+@api_check_wallet_key("invoice")
+def api_tickets():
+    wallet_ids = [g.wallet.id]
+
+    if "all_wallets" in request.args:
+        wallet_ids = get_user(g.wallet.user).wallet_ids
+
+    return jsonify([ticket._asdict() for ticket in get_tickets(wallet_ids)]), HTTPStatus.OK
+
+
+
+@events_ext.route("/api/v1/tickets/<event_id>/<sats>", methods=["GET"])
+def api_ticket_create(event_id, sats):
+    event = get_event(event_id)
+
+    try:
+        checking_id, payment_request = create_invoice(
+            wallet_id=event.wallet, amount=int(sats), memo=f"#lnticket {event_id}"
         )
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"status": "TRUE", "pay_req": r_json["pay_req"], "payment_hash": r_json["payment_hash"]}), 200
+    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.OK
 
 
-@events_ext.route("/api/v1/checkticket/", methods=["GET"])
-def api_checkticket():
-    """."""
-    thehash = request.args.get("thehash")
-    #Check databases
-    with open_ext_db("events") as events_ext_db:
-        eventssold = events_ext_db.fetchall("SELECT * FROM eventssold WHERE hash = ?", (thehash,))
-        if not eventssold:
-        	return jsonify({"status": "ERROR", "reason":"NO TICKET RECORD"}), 200
-    if eventssold[0][4] == 0:
-    	return jsonify({"status": "ERROR", "reason":"NOT PAID"}), 200
 
-    with open_ext_db("events") as events_ext_db:
-        events_ext_db.execute("UPDATE eventssold SET reg = 1 WHERE hash = ?", (thehash,))
+@events_ext.route("/api/v1/tickets/<checking_id>", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "event": {"type": "string", "empty": False, "required": True},
+        "name": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "empty": False, "required": True}
+    })
+def api_ticket_send_ticket(checking_id):
 
-    return jsonify({"status": "TRUE", "name": eventssold[0][3]}), 200
+    event = get_event(g.data['event'])
+    if not event:
+        return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
+    try:
+        is_paid = not WALLET.get_invoice_status(checking_id).pending
+    except Exception:
+        return jsonify({"message": "Not paid."}), HTTPStatus.NOT_FOUND
+
+    if is_paid:
+        wallet = get_wallet(event.wallet)
+        payment = wallet.get_payment(checking_id)
+        payment.set_pending(False)
+        ticket = create_ticket(wallet=event.wallet, **g.data)
+
+        return jsonify({"paid": True, "ticket_id": ticket.id}), HTTPStatus.OK
+
+    return jsonify({"paid": False}), HTTPStatus.OK
+
+
+@events_ext.route("/api/v1/tickets/<ticket_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+def api_ticket_delete(ticket_id):
+    ticket = get_ticket(ticket_id)
+
+    if not ticket:
+        return jsonify({"message": "Ticket does not exist."}), HTTPStatus.NOT_FOUND
+
+    if ticket.wallet != g.wallet.id:
+        return jsonify({"message": "Not your ticket."}), HTTPStatus.FORBIDDEN
+
+    delete_ticket(ticket_id)
+
+    return "", HTTPStatus.NO_CONTENT
+
+
+#########EventTickets##########
+
+@events_ext.route("/api/v1/eventtickets/<wallet_id>/<event_id>", methods=["GET"])
+def api_event_tickets(wallet_id, event_id):
+
+    return jsonify([ticket._asdict() for ticket in get_event_tickets(wallet_id=wallet_id, event_id=event_id)]), HTTPStatus.OK
+

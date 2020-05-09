@@ -1,567 +1,202 @@
-<!-- @format -->
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h3 class="q-my-none">{{ event_name }}</h3>
+        <br />
+        <h5 class="q-my-none">{{ event_info }}</h5>
+        <br />
+        <q-form @submit="Invoice()" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.name"
+            type="name"
+            label="Your name "
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.email"
+            type="email"
+            label="Your email "
+          ></q-input>
 
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>LNBits Wallet</title>
-    <meta
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-      name="viewport"
-    />
-    <!-- Bootstrap 3.3.2 -->
-    <link
-      rel="stylesheet"
-      media="screen"
-      href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}"
-    />
-    <!-- FontAwesome 4.3.0 -->
-    <link
-      href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"
-      rel="stylesheet"
-      type="text/css"
-    />
-    <!-- Ionicons 2.0.0 -->
-    <link
-      href="https://code.ionicframework.com/ionicons/2.0.0/css/ionicons.min.css"
-      rel="stylesheet"
-      type="text/css"
-    />
-
-    <!-- Theme style -->
-    <link
-      rel="stylesheet"
-      media="screen"
-      href="{{ url_for('static', filename='dist/css/AdminLTE.min.css') }}"
-    />
-    <!-- AdminLTE Skins. Choose a skin from the css/skins
-         folder instead of downloading all of them to reduce the load. -->
-
-    <link
-      rel="stylesheet"
-      media="screen"
-      href="{{ url_for('static', filename='dist/css/skins/_all-skins.min.css') }}"
-    />
-
-    <!-- Morris chart -->
-    <link
-      rel="stylesheet"
-      media="screen"
-      href="{{ url_for('static', filename='plugins/morris/morris.css') }}"
-    />
-
-    <!-- jvectormap -->
-    <link
-      rel="stylesheet"
-      media="screen"
-      href="{{ url_for('static', filename='plugins/jvectormap/jquery-jvectormap-1.2.2.css') }}"
-    />
-
-    <!-- bootstrap wysihtml5 - text editor -->
-    <link
-      rel="stylesheet"
-      media="screen"
-      href="{{ url_for('static', filename='plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.min.css') }}"
-    />
-
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
-    <![endif]-->
-
-    <style>
-      .small-box > .small-box-footer {
-        text-align: left;
-        padding-left: 10px;
-      }
-
-      #loadingMessage {
-        text-align: center;
-        padding: 40px;
-        background-color: #eee;
-      }
-
-      #canvas {
-        width: 100%;
-      }
-
-      #output {
-        margin-top: 20px;
-        background: #eee;
-        padding: 10px;
-        padding-bottom: 0;
-      }
-
-      #output div {
-        padding-bottom: 10px;
-        word-wrap: break-word;
-      }
-
-      #noQRFound {
-        text-align: center;
-      }
-    </style>
-
-    <!-- jQuery 2.1.3 -->
-    <script src="{{ url_for('static', filename='plugins/jQuery/jQuery-2.1.3.min.js') }}"></script>
-    <!-- jQuery UI 1.11.2 -->
-    <script
-      src="https://code.jquery.com/ui/1.11.2/jquery-ui.min.js"
-      type="text/javascript"
-    ></script>
-    <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-    <script>
-      $.widget.bridge('uibutton', $.ui.button)
-    </script>
-    <!-- Bootstrap 3.3.2 JS -->
-    <script
-      src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- Morris.js charts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-    <script
-      src="{{ url_for('static', filename='plugins/morris/morris.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- Sparkline -->
-    <script
-      src="{{ url_for('static', filename='plugins/sparkline/jquery.sparkline.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- jvectormap -->
-    <script
-      src="{{ url_for('static', filename='plugins/jvectormap/jquery-jvectormap-1.2.2.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <script
-      src="{{ url_for('static', filename='plugins/jvectormap/jquery-jvectormap-world-mill-en.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- jQuery Knob Chart -->
-    <script
-      src="{{ url_for('static', filename='plugins/knob/jquery.knob.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- Bootstrap WYSIHTML5 -->
-    <script
-      src="{{ url_for('static', filename='plugins/bootstrap-wysihtml5/bootstrap3-wysihtml5.all.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- Slimscroll -->
-    <script
-      src="{{ url_for('static', filename='plugins/slimScroll/jquery.slimscroll.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <!-- FastClick -->
-    <script src="{{ url_for('static', filename='plugins/fastclick/fastclick.min.js') }}"></script>
-    <!-- AdminLTE App -->
-    <script
-      src="{{ url_for('static', filename='dist/js/app.min.js') }}"
-      type="text/javascript"
-    ></script>
-
-    <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
-    <script
-      src="{{ url_for('static', filename='dist/js/pages/dashboard.js') }}"
-      type="text/javascript"
-    ></script>
-
-    <!-- AdminLTE for demo purposes -->
-    <script
-      src="{{ url_for('static', filename='dist/js/demo.js') }}"
-      type="text/javascript"
-    ></script>
-
-    <script
-      src="{{ url_for('static', filename='plugins/datatables/jquery.dataTables.js') }}"
-      type="text/javascript"
-    ></script>
-    <link
-      rel="stylesheet"
-      href="//cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.css"
-    />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.min.js"></script>
-    <script
-      src="{{ url_for('static', filename='plugins/jscam/JS.js') }}"
-      type="text/javascript"
-    ></script>
-    <script
-      src="{{ url_for('static', filename='plugins/jscam/qrcode.min.js') }}"
-      type="text/javascript"
-    ></script>
-    <script
-      src="{{ url_for('static', filename='plugins/bolt11/decoder.js') }}"
-      type="text/javascript"
-    ></script>
-    <script
-      src="{{ url_for('static', filename='plugins/bolt11/utils.js') }}"
-      type="text/javascript"
-    ></script>
-
-    <style>
-      //GOOFY CSS HACK TO GO DARK
-
-      .skin-blue .wrapper {
-        background: #1f2234;
-      }
-
-      body {
-        color: #fff;
-      }
-
-      .skin-blue .sidebar-menu > li.active > a {
-        color: #fff;
-        background: #1f2234;
-        border-left-color: #8964a9;
-      }
-
-      .skin-blue .main-header .navbar {
-        background-color: #2e507d;
-      }
-
-      .content-wrapper,
-      .right-side {
-        background-color: #1f2234;
-      }
-      .skin-blue .main-header .logo {
-        background-color: #1f2234;
-        color: #fff;
-      }
-
-      .skin-blue .sidebar-menu > li.header {
-        color: #4b646f;
-        background: #1f2234;
-      }
-      .skin-blue .wrapper,
-      .skin-blue .main-sidebar,
-      .skin-blue .left-side {
-        background: #1f2234;
-      }
-
-      .skin-blue .sidebar-menu > li > .treeview-menu {
-        margin: 0 1px;
-        background: #1f2234;
-      }
-
-      .skin-blue .sidebar-menu > li > a {
-        border-left: 3px solid transparent;
-        margin-right: 1px;
-      }
-      .skin-blue .sidebar-menu > li > a:hover,
-      .skin-blue .sidebar-menu > li.active > a {
-        color: #fff;
-        background: #3e355a;
-        border-left-color: #8964a9;
-      }
-
-      .skin-blue .main-header .logo:hover {
-        background: #3e355a;
-      }
-
-      .skin-blue .main-header .navbar .sidebar-toggle:hover {
-        background-color: #3e355a;
-      }
-      .main-footer {
-        background-color: #1f2234;
-        padding: 15px;
-        color: #fff;
-        border-top: 0px;
-      }
-
-      .skin-blue .main-header .navbar {
-        background-color: #1f2234;
-      }
-
-      .bg-red,
-      .callout.callout-danger,
-      .alert-danger,
-      .alert-error,
-      .label-danger,
-      .modal-danger .modal-body {
-        background-color: #1f2234 !important;
-      }
-      .alert-danger,
-      .alert-error {
-        border-color: #fff;
-        border: 1px solid #fff;
-        border-radius: 7px;
-      }
-
-      .skin-blue .main-header .navbar .nav > li > a:hover,
-      .skin-blue .main-header .navbar .nav > li > a:active,
-      .skin-blue .main-header .navbar .nav > li > a:focus,
-      .skin-blue .main-header .navbar .nav .open > a,
-      .skin-blue .main-header .navbar .nav .open > a:hover,
-      .skin-blue .main-header .navbar .nav .open > a:focus {
-        color: #f6f6f6;
-        background-color: #3e355a;
-      }
-      .bg-aqua,
-      .callout.callout-info,
-      .alert-info,
-      .label-info,
-      .modal-info .modal-body {
-        background-color: #3e355a !important;
-      }
-
-      .box {
-        position: relative;
-        border-radius: 3px;
-        background-color: #333646;
-        border-top: 3px solid #8964a9;
-        margin-bottom: 20px;
-        width: 100%;
-      }
-      .table-striped > tbody > tr:nth-of-type(2n + 1) {
-        background-color: #333646;
-      }
-
-      .box-header {
-        color: #fff;
-      }
-
-      .box.box-danger {
-        border-top-color: #8964a9;
-      }
-      .box.box-primary {
-        border-top-color: #8964a9;
-      }
-
-      a {
-        color: #8964a9;
-      }
-      .box-header.with-border {
-        border-bottom: none;
-      }
-
-      a:hover,
-      a:active,
-      a:focus {
-        outline: none;
-        text-decoration: none;
-        color: #fff;
-      }
-      // .modal.in .modal-dialog{
-      //  color:#000;
-      // }
-
-      .form-control {
-        background-color: #333646;
-        color: #fff;
-      }
-      .box-footer {
-        border-top: none;
-
-        background-color: #333646;
-      }
-      .modal-footer {
-        border-top: none;
-      }
-      .modal-content {
-        background-color: #333646;
-      }
-      .modal.in .modal-dialog {
-        background-color: #333646;
-      }
-
-      .layout-boxed {
-        background: none;
-        background-color: rgba(0, 0, 0, 0);
-        background-color: #3e355a;
-      }
-
-      .skin-blue .sidebar-menu > li > a:hover,
-      .skin-blue .sidebar-menu > li.active > a {
-        background: none;
-      }
-    </style>
-  </head>
-  <body class="skin-blue layout-boxed sidebar-collapse sidebar-open">
-    <div class="wrapper">
-      <header class="main-header">
-        <!-- Logo -->
-        <a href="{{ url_for('core.home') }}" class="logo"><b>LN</b>bits</a>
-        <!-- Header Navbar: style can be found in header.less -->
-        <nav class="navbar navbar-static-top" role="navigation">
-          <!-- Sidebar toggle button-->
-          <a
-            href="#"
-            class="sidebar-toggle"
-            data-toggle="offcanvas"
-            role="button"
-          >
-            <span class="sr-only">Toggle navigation</span>
-          </a>
-          <div class="navbar-custom-menu">
-            <ul class="nav navbar-nav">
-              <!-- Messages: style can be found in dropdown.less-->
-              <li class="dropdown messages-menu">
-                {% block messages %}{% endblock %}
-              </li>
-            </ul>
+          <p>{% raw %}{{amountWords}}{% endraw %}</p>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="deep-purple"
+              :disable="formDialog.data.name == '' || formDialog.data.email == '' || paymentReq"
+              type="submit"
+              >Submit</q-btn
+            >
+            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
           </div>
-        </nav>
-      </header>
+        </q-form>
+      </q-card-section>
+    </q-card>
 
-      <aside class="main-sidebar">
-        <!-- sidebar: style can be found in sidebar.less -->
-        <section class="sidebar" style="height: auto;"></section>
-        <!-- /.sidebar -->
-      </aside>
-
-      <!-- Right side column. Contains the navbar and content of the page -->
-      <div class="content-wrapper">
-        <!-- Content Header (Page header) -->
-        <section class="content-header">
-          <h1>
-            LNBits Events
-            <small>Lightning powered tickets</small>
-          </h1>
-        </section>
-
-        <!-- Main content -->
-        <section class="content">
-          <br /><br />
-          <center><h1 style="font-size: 500%;">{{ nme }}</h1></center>
-          <center>
-            <h2 style="width: 55%; word-wrap: break-word;">{{ descr }}</h2>
-          </center>
-          <div id="theform">
-            <br /><br /><br />
-            <center>
-              <form role="form">
-                <div class="form-group" style="width: 300px;">
-                  <input
-                    id="Nam"
-                    type="text"
-                    class="form-control"
-                    placeholder="Name"
-                  />
-                  <input
-                    id="Ema"
-                    type="text"
-                    class="form-control"
-                    placeholder="Email"
-                  />
-                </div>
-                <button
-                  onclick="submitforticket()"
-                  type="button"
-                  class="btn btn-info"
-                >
-                  Go to payment
-                </button>
-                <p style="color: red;" id="error"></p>
-              </form>
-            </center>
-          </div>
-          <center>
-            <br /><br />
-            <div id="qrcode" style="width: 340px;"></div>
-            <br /><br />
-            <div
-              style="width: 55%; word-wrap: break-word;"
-              id="qrcodetxt"
-            ></div>
-            <br />
-          </center>
-        </section>
-        <!-- /.content -->
+    <q-card v-show="ticketLink.show" class="q-pa-lg">
+      <div class="text-center q-mb-lg">
+        <a :href="ticketLink.data.link" target="_blank">
+          <q-btn unelevated size="xl" color="deep-purple"
+            >Link to your ticket!</q-btn
+          ></a
+        >
+        <br /><br />
+        <p>You'll be redirected in 5 seconds...</p>
       </div>
-      <!-- /.content-wrapper -->
-    </div>
-  </body>
+    </q-card>
+  </div>
 
-  <script>
-    function postAjax(url, data, thekey, success) {
-      var params =
-        typeof data == 'string'
-          ? data
-          : Object.keys(data)
-              .map(function (k) {
-                return encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
-              })
-              .join('&')
-      var xhr = window.XMLHttpRequest
-        ? new XMLHttpRequest()
-        : new ActiveXObject('Microsoft.XMLHTTP')
-      xhr.open('POST', url)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState > 3 && xhr.status == 200) {
-          success(xhr.responseText)
+  <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
+    <q-card
+      v-if="!receive.paymentReq"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+    </q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="'lightning:' + receive.paymentReq">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="paymentReq"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+          >Copy invoice</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  console.log('{{ form_costpword }}')
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        paymentReq: null,
+        redirectUrl: null,
+        formDialog: {
+          show: false,
+          data: {
+            name: '',
+            email: ''
+          }
+        },
+        ticketLink: {
+          show: false,
+          data: {
+            link: ''
+          }
+        },
+        receive: {
+          show: false,
+          status: 'pending',
+          paymentReq: null
         }
       }
-      xhr.setRequestHeader('X-Api-Key', thekey)
-      xhr.setRequestHeader('Content-Type', 'application/json')
-      xhr.send(params)
-      return xhr
-    }
+    },
 
-    function getAjax(url, thekey, success) {
-      var xhr = window.XMLHttpRequest
-        ? new XMLHttpRequest()
-        : new ActiveXObject('Microsoft.XMLHTTP')
-      xhr.open('GET', url, true)
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState > 3 && xhr.status == 200) {
-          success(xhr.responseText)
-        }
-      }
-      xhr.setRequestHeader('X-Api-Key', thekey)
-      xhr.setRequestHeader('Content-Type', 'application/json')
+    methods: {
+      resetForm: function (e) {
+        e.preventDefault()
+        this.formDialog.data.name = ''
+        this.formDialog.data.email = ''
+      },
 
-      xhr.send()
-      return xhr
-    }
+      closeReceiveDialog: function () {
+        var checker = this.receive.paymentChecker
+        dismissMsg()
 
-    function submitforticket() {
-      nam = document.getElementById('Nam').value
-      ema = document.getElementById('Ema').value
+        clearInterval(paymentChecker)
+        setTimeout(function () {}, 10000)
+      },
+      Invoice: function () {
+        var self = this
+        axios
 
-      postAjax(
-        "{{ url_for('events.api_getticket') }}?ema=" + ema,
-        JSON.stringify({unireg: '{{wave }}', name: nam}),
-        'filla',
+          .get('/events/api/v1/tickets/' + '{{ event_id }}/{{ event_price }}')
 
-        function (data) {
-          theinvoice = JSON.parse(data).pay_req
-          thehash = JSON.parse(data).payment_hash
+          .then(function (response) {
+            self.paymentReq = response.data.payment_request
+            self.paymentCheck = response.data.checking_id
 
-          new QRCode(document.getElementById('qrcode'), {
-            text: theinvoice,
-            width: 300,
-            height: 300,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
-          })
-          document.getElementById('theform').innerHTML = ''
-
-          document.getElementById('qrcode').style.backgroundColor = 'white'
-          document.getElementById('qrcode').style.padding = '20px'
-
-          document.getElementById('qrcodetxt').innerHTML =
-            theinvoice + '<br/><br/>'
-
-          var refreshId = setInterval(function () {
-            getAjax('/api/v1/invoice/' + thehash, '{{wave}}', function (datab) {
-              console.log(JSON.parse(datab).PAID)
-              if (JSON.parse(datab).PAID == 'TRUE') {
-                location.replace(
-                  "{{ url_for('events.ticket') }}?hash=" +
-                    thehash +
-                    '&unireg={{wave}}'
-                )
-                clearInterval(refreshId)
-              }
+            dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
             })
-          }, 3000)
-        }
-      )
+
+            self.receive = {
+              show: true,
+              status: 'pending',
+              paymentReq: self.paymentReq
+            }
+
+            paymentChecker = setInterval(function () {
+              axios
+                .post('/events/api/v1/tickets/' + self.paymentCheck, {
+                  event: '{{ event_id }}',
+                  name: self.formDialog.data.name,
+                  email: self.formDialog.data.email
+                })
+                .then(function (res) {
+                  if (res.data.paid) {
+                    clearInterval(paymentChecker)
+                    dismissMsg()
+                    self.formDialog.data.name = ''
+                    self.formDialog.data.email = ''
+
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Sent, thank you!',
+                      icon: null
+                    })
+                    self.receive = {
+                      show: false,
+                      status: 'complete',
+                      paymentReq: null
+                    }
+
+                    self.ticketLink = {
+                      show: true,
+                      data: {
+                        link: '/events/ticket/' + res.data.ticket_id
+                      }
+                    }
+                    setTimeout(function () {
+                      window.location.href =
+                        '/events/ticket/' + res.data.ticket_id
+                    }, 5000)
+                  }
+                })
+                .catch(function (error) {
+                  LNbits.utils.notifyApiError(error)
+                })
+            }, 2000)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      }
     }
-  </script>
-</html>
+  })
+</script>
+{% endblock %}

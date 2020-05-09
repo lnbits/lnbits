@@ -1,501 +1,512 @@
-<!-- @format -->
-
-{% extends "legacy.html" %} {% block messages %}
-
-<a href="#" class="dropdown-toggle" data-toggle="dropdown">
-  <i class="fa fa-bell-o"></i>
-  <span class="label label-danger">!</span>
-</a>
-<ul class="dropdown-menu">
-  <li class="header"><b>Instant wallet, bookmark to save</b></li>
-  <li></li>
-</ul>
-{% endblock %} {% block menuitems %}
-<li class="treeview">
-  <a href="#">
-    <i class="fa fa-bitcoin"></i> <span>Wallets</span>
-    <i class="fa fa-angle-left pull-right"></i>
-  </a>
-  <ul class="treeview-menu">
-    {% for w in user_wallets %}
-    <li>
-      <a href="{{ url_for('wallet') }}?wal={{ w.id }}&usr={{ w.user }}"
-        ><i class="fa fa-bolt"></i> {{ w.name }}</a
-      >
-    </li>
-    {% endfor %}
-    <li><a onclick="sidebarmake()">Add a wallet +</a></li>
-    <div id="sidebarmake"></div>
-  </ul>
-</li>
-<li class="active treeview">
-  <a href="#">
-    <i class="fa fa-th"></i> <span>Extensions</span>
-    <i class="fa fa-angle-left pull-right"></i>
-  </a>
-  <ul class="treeview-menu">
-    {% for extension in EXTENSIONS %} {% if extension.code in user_ext %}
-    <li>
-      <a href="{{ url_for(extension.code + '.index') }}?usr={{ user }}"
-        ><i class="fa fa-plus"></i> {{ extension.name }}</a
-      >
-    </li>
-    {% endif %} {% endfor %}
-    <li>
-      <a href="{{ url_for('core.extensions') }}?usr={{ user }}">Manager</a>
-    </li>
-  </ul>
-</li>
-{% endblock %} {% block body %}
-<!-- Right side column. Contains the navbar and content of the page -->
-<div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <section class="content-header">
-    <h1>
-      Events
-      <small>bitcoin tickets</small>
-    </h1>
-    <ol class="breadcrumb">
-      <li>
-        <a href="{{ url_for('wallet') }}?usr={{ user }}"
-          ><i class="fa fa-dashboard"></i> Home</a
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+          >New Event</q-btn
         >
-      </li>
-      <li>
-        <a href="{{ url_for('core.extensions') }}?usr={{ user }}"
-          ><li class="fa fa-dashboard">Extensions</li></a
-        >
-      </li>
-      <li>
-        <i class="active" class="fa fa-dashboard">Lightning tickets</i>
-      </li>
-    </ol>
-    <br /><br />
-  </section>
-  <style>
-    .datepicker-days {
-      background-color: #1f2234;
-    }
-  </style>
-  <!-- Main content -->
-  <section class="content">
-    <!-- Small boxes (Stat box) -->
-    <div class="row">
-      <div class="col-md-6">
-        <!-- general form elements -->
-        <div class="box box-primary">
-          <div class="box-header">
-            <h3 class="box-title">Make a ticket wave</h3>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Events</h5>
           </div>
-          <!-- /.box-header -->
-
-          <!-- form start -->
-          <form role="form">
-            <div class="box-body">
-              <div class="form-group">
-                <label for="exampleInputEmail1">Ticket title</label>
-                <input
-                  id="tit"
-                  type="text"
-                  pattern="^[A-Za-z]+$"
-                  class="form-control"
-                />
-              </div>
-
-              <div class="form-group">
-                <label>Description of event</label>
-                <textarea id="descr" class="form-control" rows="2"></textarea>
-              </div>
-
-              <!-- select -->
-              <div class="form-group">
-                <label>Select a wallet</label>
-                <select id="wal" class="form-control">
-                  <option></option>
-                  {% for w in user_wallets %}
-                  <option>{{w.name}}-{{w.id}}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="nooftickets">No. of tickets</label>
-                <input
-                  id="notickets"
-                  type="number"
-                  class="form-control"
-                  placeholder="10"
-                  max="86400"
-                />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Close date:</label>
-
-              <div class="form-group">
-                <input type="text" class="form-control" id="datepicker" />
-              </div>
-
-              <div class="form-group">
-                <label for="prpertick">Price per ticket</label>
-                <input
-                  id="prtickets"
-                  type="number"
-                  class="form-control"
-                  placeholder="10"
-                />
-              </div>
-            </div>
-
-            <div class="box-footer">
-              <button onclick="postev()" type="button" class="btn btn-info">
-                Create Wave
-              </button>
-              <p style="color: red;" id="error"></p>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <!-- general form elements -->
-      <div class="box box-primary">
-        <div class="box-header">
-          <h3 class="box-title">Select a link</h3>
-        </div>
-        <!-- /.box-header -->
-        <form role="form">
-          <div class="box-body">
-            <div class="form-group">
-              <select
-                class="form-control"
-                id="waveselect"
-                onchange="drawwithdraw()"
-              >
-                <option value="none" selected>
-                  Select an Option
-                </option>
-                {% for w in user_ev %}
-                <option id="{{w.uni}}" value="{{w.tit}}-{{w.unireg}}-{{w.uni}}"
-                  >{{w.tit}}-{{w.unireg}}-{{w.uni}}</option
-                >
-                {% endfor %}
-              </select>
-            </div>
-
-            <center>
-              <br />
-              <div id="qrcode" style="width: 340px;"></div>
-              <br />
-              <div
-                style="width: 75%; word-wrap: break-word;"
-                id="qrcodetxt"
-              ></div>
-            </center>
-          </div>
-        </form>
-      </div>
-      <!-- /.box -->
-    </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="box">
-          <div class="box-header">
-            <h3 class="box-title">Ticket Waves<b id="withdraws"></b></h3>
-          </div>
-          <!-- /.box-header -->
-          <div class="box-body no-padding">
-            <table
-              id="pagnation"
-              class="table table-bswearing anchorordered table-striped"
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exporteventsCSV"
+              >Export to CSV</q-btn
             >
-              <tr>
-                <th>Title</th>
-                <th style="width: 15%;">Amt</th>
-                <th style="width: 15%;">Sold</th>
-                <th style="width: 15%;">Closing</th>
-                <th style="width: 15%;">Price</th>
-                <th style="width: 15%;">Wallet</th>
-                <th style="width: 10%;">Edit</th>
-                <th style="width: 10%;">Del</th>
-              </tr>
-              <tbody id="ticketwaves"></tbody>
-            </table>
           </div>
-          <!-- /.box-body -->
         </div>
-        <!-- /.box -->
-      </div>
-    </div>
+        <q-table
+          dense
+          flat
+          :data="events"
+          row-key="id"
+          :columns="eventsTable.columns"
+          :pagination.sync="eventsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
 
-    <div id="editlink"></div>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
 
-    <!-- /.content -->
-  </section>
-
-  <script>
-
-        //Date picker
-        $('#datepicker').datepicker({
-          autoclose: true
-        })
-
-
-
-        window.user = {{ user | tojson | safe }}
-        window.user_wallets = {{ user_wallets | tojson | safe }}
-        window.user_ext = {{ user_ext | tojson | safe }}
-        window.user_ev = {{ user_ev | tojson | safe }}
-
-        const user_ev = window.user_ev
-        console.log(user_ev)
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
 
 
-    function drawChart(user_ev) {
-      var transactionsHTML = ''
+                  <q-btn
+                    unelevated
+                    dense
+                    size="xs"
+                    icon="how_to_reg"
+                    :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                    type="a"
+                    :href="'/events/register/' + props.row.id"
+                    target="_blank"
+                  ></q-btn>
+                </q-td>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateformDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteEvent(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
 
-      for (var i = 0; i < user_ev.length; i++) {
-        var ev = user_ev[i]
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Tickets</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportticketsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="tickets"
+          row-key="id"
+          :columns="ticketsTable.columns"
+          :pagination.sync="ticketsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="local_activity"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'/events/ticket/' + props.row.id"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
 
-        transactionsHTML =
-          "<tr><td  style='width: 50%'>" +
-          ev.tit +
-          '</td><td>' +
-          ev.notickets    +
-          '</td><td>' +
-          ev.sold    +
-          '</td><td>' +
-          ev.cldate    +
-          '</td><td>' +
-          ev.prtick +
-          '</td><td>' +
-          "<a href='{{ url_for('wallet') }}?usr="+ ev.usr +"'>" + ev.wal.substring(0, 4) + "...</a>" +
-          '</td><td>' +
-          "<i onclick='editlink("+ i +")'' class='fa fa-edit'></i>" +
-          '</td><td>' +
-          "<b><a style='color:red;' href='" + "{{ url_for('events.index') }}?del=" + ev.uni + "&usr=" + ev.usr +"'>" + "<i class='fa fa-trash'></i>" + "</a></b>" +
-          '</td></tr>' +
-          transactionsHTML
-          document.getElementById('ticketwaves').innerHTML = transactionsHTML
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
 
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteTicket(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits Events extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>
+          {% include "events/_api_docs.html" %}
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="formDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendEventData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.name"
+          type="name"
+          label="Name of event "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.info"
+          type="textarea"
+          label="Info about the event "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.closing_date"
+          type="date"
+          label="Closing for tickets "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.event_start_date"
+          type="date"
+          label="Event begins "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.event_end_date"
+          type="date"
+          label="Event ends "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="formDialog.data.amount_tickets"
+          type="number"
+          label="Amount of tickets "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="formDialog.data.price_per_ticket"
+          type="number"
+          label="Price per ticket "
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialog.data.id"
+            unelevated
+            color="deep-purple"
+            type="submit"
+            >Update Event</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="deep-purple"
+            :disable="formDialog.data.wallet == null || formDialog.data.name == null || formDialog.data.info == null || formDialog.data.closing_date == null || formDialog.data.event_start_date == null || formDialog.data.event_end_date == null || formDialog.data.amount_tickets == null || formDialog.data.price_per_ticket == null"
+            type="submit"
+            >Create Event</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapEvents = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.displayUrl = ['/events/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        events: [],
+        tickets: [],
+        eventsTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'name', align: 'left', label: 'Name', field: 'name'},
+            {name: 'info', align: 'left', label: 'Info', field: 'info'},
+            {
+              name: 'event_start_date',
+              align: 'left',
+              label: 'Start date',
+              field: 'event_start_date'
+            },
+            {
+              name: 'event_end_date',
+              align: 'left',
+              label: 'End date',
+              field: 'event_end_date'
+            },
+            {
+              name: 'closing_date',
+              align: 'left',
+              label: 'Ticket close',
+              field: 'closing_date'
+            },
+            {
+              name: 'price_per_ticket',
+              align: 'left',
+              label: 'Price',
+              field: 'price_per_ticket'
+            },
+            {
+              name: 'amount_tickets',
+              align: 'left',
+              label: 'No tickets',
+              field: 'amount_tickets'
+            },
+            {
+              name: 'sold',
+              align: 'left',
+              label: 'Sold',
+              field: 'sold'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        ticketsTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'event', align: 'left', label: 'Event', field: 'event'},
+            {name: 'name', align: 'left', label: 'Name', field: 'name'},
+            {name: 'email', align: 'left', label: 'Email', field: 'email'},
+            {
+              name: 'registered',
+              align: 'left',
+              label: 'Registered',
+              field: 'registered'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        formDialog: {
+          show: false,
+          data: {}
         }
       }
-
-    if (user_ev.length) {
-      drawChart(user_ev)
-    }
-
-    function postev(){
-
-      wal = document.getElementById('wal').value
-      tit = document.getElementById('tit').value
-      cldate = document.getElementById('datepicker').value
-      notickets = document.getElementById('notickets').value
-      prtickets = document.getElementById('prtickets').value
-      descr = document.getElementById('descr').value
-
-      if (tit == "") {
-        document.getElementById("error").innerHTML = "Only use letters in title"
-        return amt
-      }
-        if (wal == "") {
-        document.getElementById("error").innerHTML = "No wallet selected"
-        return amt
-      }
-          if (cldate == "") {
-        document.getElementById("error").innerHTML = "No date selected"
-        return amt
-      }
-
-      if (isNaN(notickets) || notickets < 1) {
-        document.getElementById("error").innerHTML = "Must be more than 1"
-        return amt
-      }
-      if (isNaN(prtickets) || prtickets < 10) {
-        document.getElementById("error").innerHTML = "Must be higher 10"
-        return amt
-      }
-
-      postAjax(
-        "{{ url_for('events.create') }}",
-        JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": notickets,"cldate": cldate, "prtickets": prtickets, "descr": descr}),
-        "filla",
-
-        function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
-      })
-
-    }
-
-
-    function editlink(evnum){
-
-    evdetails = user_ev[evnum]
-
-    console.log(evdetails.descr)
-    wallpick = ""
-
-    checkbox = ""
-    if (evdetails.uniq == 1){
-      checkbox = "checked"}
-
-    document.getElementById('editlink').innerHTML = "<div class='row'>"+
-                "<div class='col-md-6'>"+
-                 " <!-- general form elements -->"+
-                  "<div class='box box-primary' style='min-height: 300px;'>"+
-                    "<div class='box-header'>"+
-                      "<h3 class='box-title'> Edit: <i id='unid'>" + evdetails.tit + "-" + evdetails.uni + "-" + evdetails.unireg + "</i> </h3>"+
-                      "<div class='box-tools pull-right'>" +
-    "<button class='btn btn-box-tool' data-widget='remove'><i class='fa fa-times'></i></button>" +
-                      "</div>" +
-                   " </div><!-- /.box-header -->"+
-                   " <!-- form start -->"+
-                    "<form role='form'>"+
-                      "<div class='box-body'>"+
-
-                        "<div class='col-sm-3 col-md-4'>"+
-                        "<div class='form-group'>"+
-                          "<label for='exampleInputEmail1'>Link title</label>"+
-        "<input id='edittit' type='text' class='form-control' value='"+
-             evdetails.tit +
-            "'> </div>"+
-                     " </div>"+
-
-                             "<div class='col-sm-1 col-md-8'>"+
-                        "<div class='form-group'>"+
-                          "<label for='exampleInputEmail1'>Description of event</label>"+
-        "<textarea id='editdescr' type='textarea' rows='1' class='form-control'>"+evdetails.descr+"</textarea> </div>"+
-                     " </div>"+
-
-
-                     " <div class='col-sm-4 col-md-4'>"+
-                            "  <!-- select -->"+
-                       " <div class='form-group'>"+
-                         " <label>Select a wallet</label>"+
-                          "<select id='editwal' class='form-control'>"+
-                           " <option>" + evdetails.walnme + "-" + evdetails.wal + "</option>"+
-                            " {% for w in user_wallets %}"+
-
-                            " <option>{{w.name}}-{{w.id}}</option>"+
-
-                            " {% endfor %}"+
-                         " </select>"+
-                       " </div>"+
-                       " </div>"+
-                       " <div class='col-sm-3 col-md-4'>"+
-                        "<div class='form-group'>"+
-                         " <label for='exampleInputPassword1'>No of tickets:</label>"+
-            " <input id='editnooftickets' type='number' class='form-control' placeholder='0' max='86400' value='"+
-             evdetails.notickets +
-            "'>"+
-                        "</div> </div>"+
-
-                       " <div class='col-sm-3 col-md-4'>"+
-                        "<div class='form-group'>"+
-                          "<label for='exampleInputEmail1'>Price per ticket:</label>"+
-                 " <input id='editprtick' type='number' class='form-control' placeholder='1' value='"+
-             evdetails.prtick +
-            "'>"+
-                       " </div></div>"+
-                       " <div class='col-sm-3 col-md-4'>"+
-                        "  <div class='input-group date'>"+
-                         " <label for='exampleInputEmail1'>Close date:</label>"+
-               " <input id='datepicker2' type='text' class='form-control' placeholder='1' value='"+
-             evdetails.cldate +
-            "'>"+
-                       " </div></div>"+
-
-
-
-                      "   <div class='col-sm-3 col-md-4'>"+
-                       "</div><!-- /.box-body -->"+
-                      " </div><br/>"+
-                     " <div class='box-footer'>"+
-                                        " <div class='col-sm-3 col-md-4'>"+
-                      "<button onclick='editlinkcont()' type='button' style='margin: 24px;' class='btn btn-info'>Edit link(s)</button>"+
-                       "</div>"+
-                       "<p style='color:red;' id='error2'>.</p>"+
-                    "  </div></form></div><!-- /.box --></div></div>"
-
-
-    }
-
-          //Date picker
-        $('#datepicker2').datepicker({
-          autoclose: true
-        })
-
-    function editlinkcont(){
-
-      unid = document.getElementById('unid').innerHTML
-      wal = document.getElementById('editwal').value
-      tit = document.getElementById('edittit').value
-      nooftickets = document.getElementById('editnooftickets').value
-      prtick = document.getElementById('editprtick').value
-      cldate = document.getElementById('datepicker2').value
-      descr = document.getElementById('editdescr').value
-      uni = unid.split("-")[1]
-
-      if (tit == "") {
-        document.getElementById("error2").innerHTML = "Only use letters in title"
-        return amt
-      }
-        if (wal == "") {
-        document.getElementById("error2").innerHTML = "No wallet selected"
-        return amt
-      }
-
-      if (isNaN(nooftickets) || nooftickets < 1 || nooftickets > 1000000) {
-        document.getElementById("error2").innerHTML = "No. of tickets must be between 1 - 1000000"
-        return amt
-      }
-      if (isNaN(prtick) || prtick < 10 ) {
-        document.getElementById("error2").innerHTML = "Ticket pricket must be higher than 10"
-        return amt
-      }
-
-
-      postAjax(
-        "{{ url_for('events.create') }}",
-        JSON.stringify({"tit": tit, "usr": user, "wal": wal, "notickets": nooftickets,"cldate": cldate, "prtickets": prtick, "id": unid, "descr": descr}),
-
-        "filla",
-
-        function(data) {  location.replace("{{ url_for('events.index') }}?usr=" + user)
-    })
-
-    }
-
-    //draws withdraw QR code
-    function drawwithdraw() {
-
-          document.getElementById("qrcode").innerHTML  = "";
-          walname = document.getElementById("waveselect").value
-
-          thewave = walname.split("-");
-          console.log(window.location.hostname + "-" + thewave[1])
-          toencode = "/events/wave/" + thewave[1]
-          toreg = "/events/registration/" + thewave[2]
-
-          new QRCode(document.getElementById('qrcode'), {
-            text: toencode,
-            width: 300,
-            height: 300,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+    },
+    methods: {
+      getTickets: function () {
+        var self = this
+        console.log('obj')
+        LNbits.api
+          .request(
+            'GET',
+            '/events/api/v1/tickets?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.tickets = response.data.map(function (obj) {
+              console.log(obj)
+              return mapEvents(obj)
+            })
           })
+      },
+      deleteTicket: function (ticketId) {
+        var self = this
+        var tickets = _.findWhere(this.tickets, {id: ticketId})
 
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this ticket')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/events/api/v1/tickets/' + ticketId,
+                _.findWhere(self.g.user.wallets, {id: tickets.wallet}).inkey
+              )
+              .then(function (response) {
+                self.tickets = _.reject(self.tickets, function (obj) {
+                  return obj.id == ticketId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportticketsCSV: function () {
+        LNbits.utils.exportCSV(this.ticketsTable.columns, this.tickets)
+      },
 
-          document.getElementById('qrcodetxt').innerHTML = "<a href='" + toencode + "'><h2>Payment link</a> , " +
-                                                           "<a href='" + toreg + "'>Registration</h2></a>"
+      getEvents: function () {
+        var self = this
 
-          document.getElementById("qrcode").style.backgroundColor = "white";
-          document.getElementById("qrcode").style.padding = "20px";
+        LNbits.api
+          .request(
+            'GET',
+            '/events/api/v1/events?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.events = response.data.map(function (obj) {
+              return mapEvents(obj)
+            })
+          })
+      },
+      sendEventData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.formDialog.data.wallet
+        })
+        var data = this.formDialog.data
 
+        if (data.id) {
+          this.updateEvent(wallet, data)
+        } else {
+          this.createEvent(wallet, data)
+        }
+      },
+
+      createEvent: function (wallet, data) {
+        var self = this
+        LNbits.api
+          .request('POST', '/events/api/v1/events', wallet.inkey, data)
+          .then(function (response) {
+            self.events.push(mapEvents(response.data))
+            self.formDialog.show = false
+            self.formDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateformDialog: function (formId) {
+        var link = _.findWhere(this.events, {id: formId})
+        console.log(link.id)
+        this.formDialog.data.id = link.id
+        this.formDialog.data.wallet = link.wallet
+        this.formDialog.data.name = link.name
+        this.formDialog.data.info = link.info
+        this.formDialog.data.closing_date = link.closing_date
+        this.formDialog.data.event_start_date = link.event_start_date
+        this.formDialog.data.event_end_date = link.event_end_date
+        this.formDialog.data.amount_tickets = link.amount_tickets
+        this.formDialog.data.price_per_ticket = link.price_per_ticket
+        this.formDialog.show = true
+      },
+      updateEvent: function (wallet, data) {
+        var self = this
+        console.log(data)
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/events/api/v1/events/' + data.id,
+            wallet.inkey,
+            data
+          )
+          .then(function (response) {
+            self.events = _.reject(self.events, function (obj) {
+              return obj.id == data.id
+            })
+            self.events.push(mapEvents(response.data))
+            self.formDialog.show = false
+            self.formDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteEvent: function (eventsId) {
+        var self = this
+        var events = _.findWhere(this.events, {id: eventsId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this form link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/events/api/v1/events/' + eventsId,
+                _.findWhere(self.g.user.wallets, {id: events.wallet}).inkey
+              )
+              .then(function (response) {
+                self.events = _.reject(self.events, function (obj) {
+                  return obj.id == eventsId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exporteventsCSV: function () {
+        LNbits.utils.exportCSV(this.eventsTable.columns, this.events)
+      }
+    },
+
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getTickets()
+        this.getEvents()
+      }
     }
-  </script>
-</div>
+  })
+</script>
 {% endblock %}
