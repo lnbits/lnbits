@@ -2,6 +2,7 @@ from cerberus import Validator  # type: ignore
 from flask import g, abort, jsonify, request
 from functools import wraps
 from http import HTTPStatus
+from os import getenv
 from typing import List, Union
 from uuid import UUID
 
@@ -51,7 +52,12 @@ def check_user_exists(param: str = "usr"):
     def wrap(view):
         @wraps(view)
         def wrapped_view(**kwargs):
-            g.user = get_user(request.args.get(param, type=str)) or abort(HTTPStatus.NOT_FOUND, "User not found.")
+            g.user = get_user(request.args.get(param, type=str)) or abort(HTTPStatus.NOT_FOUND, "User  does not exist.")
+            allowed_users = getenv("LNBITS_ALLOWED_USERS", "all")
+
+            if allowed_users != "all" and g.user.id not in allowed_users.split(","):
+                abort(HTTPStatus.UNAUTHORIZED, f"User not authorized.")
+
             return view(**kwargs)
 
         return wrapped_view
