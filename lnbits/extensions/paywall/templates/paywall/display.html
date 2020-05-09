@@ -19,7 +19,7 @@
               :hint="'Minimum ' + paywallAmount + ' sat'"
             >
               <template v-slot:after>
-                <q-btn round dense flat icon="check" color="deep-purple" type="submit" @click="createInvoice" :disabled="userAmount < paywallAmount"></q-btn>
+                <q-btn round dense flat icon="check" color="deep-purple" type="submit" @click="createInvoice" :disabled="userAmount < paywallAmount || paymentReq"></q-btn>
               </template>
             </q-input>
           </q-form>
