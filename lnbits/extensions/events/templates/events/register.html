@@ -1,4 +1,5 @@
 {% extends "public.html" %} {% block page %}
+
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card class="q-pa-lg">
@@ -60,6 +61,22 @@
       </q-card-section>
     </q-card>
   </div>
+
+  <q-dialog v-model="sendCamera.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <div class="text-center q-mb-lg">
+        <qrcode-stream
+          @decode="decodeQR"
+          class="rounded-borders"
+        ></qrcode-stream>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block styles %}
 <link
@@ -69,9 +86,18 @@
 />
 {% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+{% assets filters='rjsmin', output='__bundle__/core/chart.js',
+'vendor/moment@2.25.1/moment.min.js', 'vendor/chart.js@2.9.3/chart.min.js' %}
+<script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %} {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
+'vendor/bolt11/utils.js', 'vendor/bolt11/decoder.js',
+'vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.js' %}
+<script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %}
+
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
-
+  Vue.use(VueQrcodeReader)
   var mapEvents = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -103,7 +129,7 @@
           }
         },
         sendCamera: {
-          show: true,
+          show: false,
           camera: 'auto'
         }
       }
@@ -115,6 +141,23 @@
       showCamera: function () {
         this.sendCamera.show = true
       },
+      decodeQR: function (res) {
+        this.sendCamera.show = false
+        var self = this
+        
+        LNbits.api
+          .request('GET', '/events/api/v1/register/ticket/' + res)
+          .then(function (response) {
+            self.tickets = response.data.map(function (obj) {
+              self.$q.notify({
+                timeout: 5,
+                type: 'positive',
+                message: 'Registered!'
+               })
+              return mapEvents(obj)
+            })
+          })
+      },
       getEventTickets: function () {
         var self = this
         console.log('obj')
@@ -125,7 +168,6 @@
           )
           .then(function (response) {
             self.tickets = response.data.map(function (obj) {
-              console.log(obj)
               return mapEvents(obj)
             })
           })
@@ -136,11 +178,4 @@
     }
   })
 </script>
-{% assets filters='rjsmin', output='__bundle__/core/chart.js',
-'vendor/moment@2.25.1/moment.min.js', 'vendor/chart.js@2.9.3/chart.min.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
-'vendor/bolt11/utils.js', 'vendor/bolt11/decoder.js',
-'vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% endblock %}
+{% endblock %}

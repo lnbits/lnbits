@@ -114,3 +114,12 @@ def get_event_tickets(event_id: str, wallet_id: str) -> Tickets:
         print(rows)
 
     return [Tickets(**row) for row in rows]
+
+def reg_ticket(ticket_id: str) -> Tickets:
+    with open_ext_db("events") as db:
+        db.execute("UPDATE tickets SET registered = ? WHERE id = ?", (True, ticket_id))
+        ticket = db.fetchone("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
+        print(ticket[2])
+        rows = db.fetchall("SELECT * FROM tickets WHERE event = ?", (ticket[2],))
+
+    return [Tickets(**row) for row in rows]

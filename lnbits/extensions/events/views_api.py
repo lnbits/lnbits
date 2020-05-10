@@ -7,7 +7,7 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET
 
 from lnbits.extensions.events import events_ext
-from .crud import create_ticket, get_ticket, get_tickets, delete_ticket, create_event, update_event, get_event, get_events, delete_event, get_event_tickets
+from .crud import create_ticket, get_ticket, get_tickets, delete_ticket, create_event, update_event, get_event, get_events, delete_event, get_event_tickets, reg_ticket
 
 
 #########Events##########
@@ -152,4 +152,9 @@ def api_ticket_delete(ticket_id):
 def api_event_tickets(wallet_id, event_id):
 
     return jsonify([ticket._asdict() for ticket in get_event_tickets(wallet_id=wallet_id, event_id=event_id)]), HTTPStatus.OK
+
+@events_ext.route("/api/v1/register/ticket/<ticket_id>", methods=["GET"])
+def api_event_register_ticket(ticket_id):
+
+    return jsonify([ticket._asdict() for ticket in reg_ticket(ticket_id)]), HTTPStatus.OK
 
