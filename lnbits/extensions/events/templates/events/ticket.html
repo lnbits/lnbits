@@ -7,7 +7,7 @@
           <h3 class="q-my-none">{{ ticket_name }} Ticket</h3>
           <br />
           <h5 class="q-my-none">
-            Bookmark or screenshot this page,<br />
+            Bookmark, print or screenshot this page,<br />
             and present it for registration!
           </h5>
           <br />
@@ -17,6 +17,10 @@
             :options="{width: 340}"
             class="rounded-borders"
           ></qrcode>
+          <br />
+          <q-btn @click="printWindow" color="grey" class="q-ml-auto">
+            <q-icon left size="3em" name="print"></q-icon> Print</q-btn
+          >
         </center>
       </q-card-section>
     </q-card>
@@ -28,7 +32,15 @@
   Vue.component(VueQrcode.name, VueQrcode)
   new Vue({
     el: '#vue',
-    mixins: [windowMixin]
+    mixins: [windowMixin],
+    data: function () {
+      return {}
+    },
+    methods: {
+      printWindow: function () {
+        window.print()
+      }
+    }
   })
 </script>
 {% endblock %}

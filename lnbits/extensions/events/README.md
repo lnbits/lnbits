@@ -1,11 +1,3 @@
-<h1>Example Extension</h1>
-<h2>*tagline*</h2>
-This is an example extension to help you organise and build you own.
-
-Try to include an image
-<img src="https://i.imgur.com/9i4xcQB.png">
-
-
-<h2>If your extension has API endpoints, include useful ones here</h2>
-
-<code>curl -H "Content-type: application/json" -X POST https://YOUR-LNBITS/YOUR-EXTENSION/api/v1/EXAMPLE -d '{"amount":"100","memo":"example"}' -H "X-Api-Key: YOUR_WALLET-ADMIN/INVOICE-KEY"</code>
+<h1>Events</h1>
+<h2>Events: Sell and register event tickets</h2>
+Events alows you to make a wave of tickets for an event, each ticket is in the form of a unqiue QRcode, which the user presents at registration. Events comes with a shareable ticket scanner, which can be used to register attendees.
