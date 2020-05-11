@@ -155,6 +155,15 @@ def api_event_tickets(wallet_id, event_id):
 
 @events_ext.route("/api/v1/register/ticket/<ticket_id>", methods=["GET"])
 def api_event_register_ticket(ticket_id):
+    
+    ticket = get_ticket(ticket_id)
+
+    if not ticket:
+        return jsonify({"message": "Ticket does not exist."}), HTTPStatus.FORBIDDEN
+
+    if ticket.registered == True:
+        return jsonify({"message": "Ticket already registered"}), HTTPStatus.FORBIDDEN
+
 
     return jsonify([ticket._asdict() for ticket in reg_ticket(ticket_id)]), HTTPStatus.OK
 

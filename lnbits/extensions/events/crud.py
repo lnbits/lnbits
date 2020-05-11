@@ -9,7 +9,7 @@ from .models import Tickets, Events
 #######TICKETS########
 
 
-def create_ticket(wallet: str, event: str,  name: str,  email: str) -> Tickets:
+def create_ticket(wallet: str, event: str, name: str,  email: str) -> Tickets:
     with open_ext_db("events") as db:
         eventdata = get_event(event)
         sold = eventdata.sold + 1
@@ -78,6 +78,7 @@ def update_event(event_id: str, **kwargs) -> Events:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     with open_ext_db("events") as db:
         db.execute(f"UPDATE events SET {q} WHERE id = ?", (*kwargs.values(), event_id))
+
         row = db.fetchone("SELECT * FROM events WHERE id = ?", (event_id,))
 
     return Events(**row) if row else None

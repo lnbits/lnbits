@@ -154,6 +154,7 @@
               axios
                 .post('/events/api/v1/tickets/' + self.paymentCheck, {
                   event: '{{ event_id }}',
+                  event_name: '{{ event_name }}',
                   name: self.formDialog.data.name,
                   email: self.formDialog.data.email
                 })
