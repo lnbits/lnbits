@@ -1,6 +1,0 @@
-{
-    "name": "LNTicket",
-    "short_description": "Pay-per-word LN ticket system",
-    "icon": "contact_support",
-    "contributors": ["benarc"]
-}
