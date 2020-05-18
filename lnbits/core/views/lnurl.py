@@ -17,9 +17,13 @@ def lnurlwallet():
     memo = "LNbits LNURL funding"
 
     try:
-        withdraw_res = handle_lnurl(request.args.get("lightning"), response_class=LnurlWithdrawResponse)
+        withdraw_res = handle_lnurl(request.args.get("lightning"))
+        if not withdraw_res.ok:
+            abort(HTTPStatus.BAD_REQUEST, f"Could not process LNURL-withdraw: {withdraw_res.error_msg}")
+        if not isinstance(withdraw_res, LnurlWithdrawResponse):
+            abort(HTTPStatus.BAD_REQUEST, "Not a valid LNURL-withdraw.")
     except LnurlException:
-        abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
+        abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process LNURL-withdraw.")
 
     try:
         ok, checking_id, payment_request, error_message = WALLET.create_invoice(withdraw_res.max_sats, memo)
@@ -35,7 +39,7 @@ def lnurlwallet():
     )
 
     if not r.ok:
-        abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
+        abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process LNURL-withdraw.")
 
     for i in range(10):
         invoice_status = WALLET.get_invoice_status(checking_id)
