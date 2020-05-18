@@ -3,6 +3,7 @@ import importlib
 from flask import Flask
 from flask_assets import Environment, Bundle  # type: ignore
 from flask_compress import Compress  # type: ignore
+from flask_cors import CORS  # type: ignore
 from flask_talisman import Talisman  # type: ignore
 from os import getenv
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -23,6 +24,7 @@ valid_extensions = [ext for ext in ExtensionManager(disabled=disabled_extensions
 # -----------------------
 
 Compress(app)
+CORS(app)
 Talisman(
     app,
     force_https=FORCE_HTTPS,
