@@ -1,5 +1,6 @@
 from flask import g, jsonify, request
 from http import HTTPStatus
+from binascii import unhexlify
 
 from lnbits.core import core_app
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -27,13 +28,21 @@ def api_payments():
 @api_validate_post_request(
     schema={
         "amount": {"type": "integer", "min": 1, "required": True},
-        "memo": {"type": "string", "empty": False, "required": True},
+        "memo": {"type": "string", "empty": False, "required": False},
+        "description_hash": {"type": "string", "empty": False, "required": False},
     }
 )
 def api_payments_create_invoice():
+    if "description_hash" in g.data:
+        description_hash = unhexlify(g.data["description_hash"])
+        memo = ""
+    else:
+        description_hash = b""
+        memo = g.data["memo"]
+
     try:
         checking_id, payment_request = create_invoice(
-            wallet_id=g.wallet.id, amount=g.data["amount"], memo=g.data["memo"]
+            wallet_id=g.wallet.id, amount=g.data["amount"], memo=memo, description_hash=description_hash
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR

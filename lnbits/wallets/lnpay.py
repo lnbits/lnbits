@@ -1,3 +1,4 @@
+import base64
 from os import getenv
 from requests import get, post
 
@@ -15,11 +16,15 @@ class LNPayWallet(Wallet):
         self.auth_read = getenv("LNPAY_READ_KEY")
         self.auth_api = {"X-Api-Key": getenv("LNPAY_API_KEY")}
 
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
         r = post(
             url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice",
             headers=self.auth_api,
-            json={"num_satoshis": f"{amount}", "memo": memo},
+            json={
+                "num_satoshis": f"{amount}",
+                "memo": memo,
+                "description_hash": base64.b64encode(description_hash).decode("ascii"),
+            },
         )
         ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, None
 

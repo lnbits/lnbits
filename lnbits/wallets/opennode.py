@@ -1,7 +1,7 @@
 from os import getenv
 from requests import get, post
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
 
 class OpenNodeWallet(Wallet):
@@ -13,7 +13,10 @@ class OpenNodeWallet(Wallet):
         self.auth_admin = {"Authorization": getenv("OPENNODE_ADMIN_KEY")}
         self.auth_invoice = {"Authorization": getenv("OPENNODE_INVOICE_KEY")}
 
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+        if description_hash:
+            raise Unsupported("description_hash")
+
         r = post(
             url=f"{self.endpoint}/v1/charges",
             headers=self.auth_invoice,

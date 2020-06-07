@@ -7,20 +7,22 @@ import random
 
 from os import getenv
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
 
 class CLightningWallet(Wallet):
-
     def __init__(self):
         if LightningRpc is None:  # pragma: nocover
             raise ImportError("The `pylightning` library must be installed to use `CLightningWallet`.")
 
         self.l1 = LightningRpc(getenv("CLIGHTNING_RPC"))
 
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+        if description_hash:
+            raise Unsupported("description_hash")
+
         label = "lbl{}".format(random.random())
-        r = self.l1.invoice(amount*1000, label, memo, exposeprivatechannels=True)
+        r = self.l1.invoice(amount * 1000, label, memo, exposeprivatechannels=True)
         ok, checking_id, payment_request, error_message = True, r["payment_hash"], r["bolt11"], None
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
@@ -31,7 +33,7 @@ class CLightningWallet(Wallet):
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = self.l1.listinvoices(checking_id)
-        if r['invoices'][0]['status'] == 'unpaid':
+        if r["invoices"][0]["status"] == "unpaid":
             return PaymentStatus(False)
         return PaymentStatus(True)
 

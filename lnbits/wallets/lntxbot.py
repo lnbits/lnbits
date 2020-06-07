@@ -1,5 +1,6 @@
 from os import getenv
 from requests import post
+from binascii import hexlify
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -13,8 +14,12 @@ class LntxbotWallet(Wallet):
         self.auth_admin = {"Authorization": f"Basic {getenv('LNTXBOT_ADMIN_KEY')}"}
         self.auth_invoice = {"Authorization": f"Basic {getenv('LNTXBOT_INVOICE_KEY')}"}
 
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
-        r = post(url=f"{self.endpoint}/addinvoice", headers=self.auth_invoice, json={"amt": str(amount), "memo": memo})
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+        r = post(
+            url=f"{self.endpoint}/addinvoice",
+            headers=self.auth_invoice,
+            json={"amt": str(amount), "memo": memo, "description_hash": hexlify(description_hash).decode("ascii")},
+        )
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
         if r.ok:
