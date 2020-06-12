@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "prettier": "^2.0.5"
+  },
+  "scripts": {
+    "lint": "prettier --write lnbits/static/js/** lnbits/core/static/js/** lnbits/extensions/*/templates/**"
   }
 }

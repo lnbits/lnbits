@@ -55,19 +55,16 @@
                   :href="props.row.displayUrl"
                   target="_blank"
                 ></q-btn>
-
-
-                  <q-btn
-                    unelevated
-                    dense
-                    size="xs"
-                    icon="how_to_reg"
-                    :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                    type="a"
-                    :href="'/events/register/' + props.row.id"
-                    target="_blank"
-                  ></q-btn>
-                </q-td>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="how_to_reg"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'/events/register/' + props.row.id"
+                  target="_blank"
+                ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}

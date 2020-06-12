@@ -5,7 +5,7 @@
       <q-card-section class="q-pa-none">
         <h5 class="text-subtitle1 q-mt-none q-mb-sm">{{ paywall.memo }}</h5>
         {% if paywall.description %}
-          <p>{{ paywall.description }}</p>
+        <p>{{ paywall.description }}</p>
         {% endif %}
         <div v-if="!this.redirectUrl" class="q-mt-lg">
           <q-form v-if="">
@@ -19,7 +19,16 @@
               :hint="'Minimum ' + paywallAmount + ' sat'"
             >
               <template v-slot:after>
-                <q-btn round dense flat icon="check" color="deep-purple" type="submit" @click="createInvoice" :disabled="userAmount < paywallAmount || paymentReq"></q-btn>
+                <q-btn
+                  round
+                  dense
+                  flat
+                  icon="check"
+                  color="deep-purple"
+                  type="submit"
+                  @click="createInvoice"
+                  :disabled="userAmount < paywallAmount || paymentReq"
+                ></q-btn>
               </template>
             </q-input>
           </q-form>
@@ -37,7 +46,9 @@
               <q-btn outline color="grey" @click="copyText(paymentReq)"
                 >Copy invoice</q-btn
               >
-              <q-btn @click="cancelPayment" flat color="grey" class="q-ml-auto">Cancel</q-btn>
+              <q-btn @click="cancelPayment" flat color="grey" class="q-ml-auto"
+                >Cancel</q-btn
+              >
             </div>
           </div>
         </div>

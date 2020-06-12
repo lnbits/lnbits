@@ -147,11 +147,11 @@
               ></q-checkbox>
             </q-item-section>
             <q-item-section>
-              <q-item-label
-                >Remember payments</q-item-label
-              >
+              <q-item-label>Remember payments</q-item-label>
               <q-item-label caption
-                >A succesful payment will be registered in the browser's storage, so the user doesn't need to pay again to access the URL.</q-item-label
+                >A succesful payment will be registered in the browser's
+                storage, so the user doesn't need to pay again to access the
+                URL.</q-item-label
               >
             </q-item-section>
           </q-item>
@@ -204,7 +204,12 @@
                 return rowA.amount - rowB.amount
               }
             },
-            {name: 'remembers', align: 'left', label: 'Remember', field: 'remembers'},
+            {
+              name: 'remembers',
+              align: 'left',
+              label: 'Remember',
+              field: 'remembers'
+            },
             {
               name: 'date',
               align: 'left',
