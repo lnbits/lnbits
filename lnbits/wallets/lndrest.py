@@ -9,7 +9,6 @@ class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
     def __init__(self):
-
         endpoint = getenv("LND_REST_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         print(self.endpoint)
@@ -20,7 +19,6 @@ class LndRestWallet(Wallet):
 
 
     def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
-
         r = post(
             url=f"{self.endpoint}/v1/invoices",
             headers=self.auth_invoice, verify=self.auth_cert,
@@ -64,11 +62,15 @@ class LndRestWallet(Wallet):
         checking_id = checking_id.replace("_","/")
         print(checking_id)
         r = get(url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert,)
-        print(r.json()["settled"])
-        if not r or r.json()["settled"] == False:
+
+        if not r.ok:
+            return PaymentStatus(None)
+        data = r.json()
+
+        if data["settled"] == False:
             return PaymentStatus(None)
 
-        return PaymentStatus(r.json()["settled"])
+        return PaymentStatus(data["settled"])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = get(url=f"{self.endpoint}/v1/payments", headers=self.auth_admin, verify=self.auth_cert, params={"include_incomplete": "True", "max_payments": "20"})
