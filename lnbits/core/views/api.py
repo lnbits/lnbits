@@ -28,8 +28,8 @@ def api_payments():
 @api_validate_post_request(
     schema={
         "amount": {"type": "integer", "min": 1, "required": True},
-        "memo": {"type": "string", "empty": False, "required": False},
-        "description_hash": {"type": "string", "empty": False, "required": False},
+        "memo": {"type": "string", "empty": False, "required": True, "excludes": "description_hash"},
+        "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
     }
 )
 def api_payments_create_invoice():

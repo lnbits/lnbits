@@ -115,7 +115,7 @@ def get_wallet(wallet_id: str) -> Optional[Wallet]:
 def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
     with open_db() as db:
         row = db.fetchone(
-            f"""
+            """
             SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
             FROM wallets
             WHERE adminkey = ? OR inkey = ?

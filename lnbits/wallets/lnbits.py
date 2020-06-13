@@ -1,6 +1,5 @@
 from os import getenv
 from requests import get, post
-from binascii import hexlify
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -17,12 +16,7 @@ class LNbitsWallet(Wallet):
         r = post(
             url=f"{self.endpoint}/api/v1/payments",
             headers=self.auth_invoice,
-            json={
-                "out": False,
-                "amount": amount,
-                "memo": memo,
-                "description_hash": hexlify(description_hash).decode("ascii"),
-            },
+            json={"out": False, "amount": amount, "memo": memo, "description_hash": description_hash.hex(),},
         )
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
