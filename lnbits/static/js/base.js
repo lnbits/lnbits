@@ -2,6 +2,12 @@ var LOCALE = 'en'
 
 var EventHub = new Vue()
 
+var socket = io()
+
+socket.on('connect', function() {
+  console.debug('Websocket connected')
+})
+
 var LNbits = {
   api: {
     request: function (method, url, apiKey, data) {

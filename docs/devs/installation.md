@@ -49,3 +49,17 @@ Frontend
 --------
 
 The views are build using [Vue.js and Quasar](https://quasar.dev/start/how-to-use-vue).
+
+Adding dependencies
+-------------------
+
+If you need to add a dependency, add it to the `Pipfile` and run
+
+```bash
+pipenv install
+pipenv update --dev && pipenv lock -r
+```
+
+The last command gives you an output of dependencies and their versions.
+Replace the content of `requirements.txt` with this updated output.
+

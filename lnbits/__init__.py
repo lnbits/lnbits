@@ -4,25 +4,24 @@ from flask import Flask
 from flask_assets import Environment, Bundle  # type: ignore
 from flask_compress import Compress  # type: ignore
 from flask_cors import CORS  # type: ignore
+from flask_socketio import SocketIO  # type: ignore
 from flask_talisman import Talisman  # type: ignore
 from os import getenv
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .core import core_app, migrations as core_migrations
 from .helpers import ExtensionManager
-from .settings import FORCE_HTTPS
-
+from .settings import FORCE_HTTPS, SECRET_KEY
 
 disabled_extensions = getenv("LNBITS_DISABLED_EXTENSIONS", "").split(",")
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = SECRET_KEY
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # type: ignore
 valid_extensions = [ext for ext in ExtensionManager(disabled=disabled_extensions).extensions if ext.is_valid]
 
-
 # optimization & security
 # -----------------------
-
 Compress(app)
 CORS(app)
 Talisman(
@@ -84,9 +83,14 @@ def migrate_databases():
         except Exception:
             raise ImportError(f"Please make sure that the extension `{ext.code}` has a migrations file.")
 
+# socket
+# ------
+
+socketio = SocketIO(app)
+
 
 # init
 # ----
 
 if __name__ == "__main__":
-    app.run()
+    socketio.run(app)
