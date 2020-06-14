@@ -11,7 +11,6 @@ class LndRestWallet(Wallet):
     def __init__(self):
         endpoint = getenv("LND_REST_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        print(self.endpoint)
         self.auth_admin = {"Grpc-Metadata-macaroon": getenv("LND_REST_ADMIN_MACAROON")}
         self.auth_invoice = {"Grpc-Metadata-macaroon": getenv("LND_REST_INVOICE_MACAROON")}
         self.auth_read = {"Grpc-Metadata-macaroon": getenv("LND_REST_READ_MACAROON")}
@@ -24,21 +23,20 @@ class LndRestWallet(Wallet):
             headers=self.auth_invoice, verify=self.auth_cert,
             json={"value": amount, "memo": memo, "private": True},
         )
-        print(self.auth_invoice)
 
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
-        if r.ok:
+        if ok:
             data = r.json()
             payment_request = data["payment_request"]
-
-        r = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read, verify=self.auth_cert,)
-        print(r)
-        if r.ok:
-            checking_id = r.json()["payment_hash"].replace("/","_")
-            print(checking_id)
-            error_message = None
-            ok = True
+            r = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read, verify=self.auth_cert,)
+            ok = r.ok
+            if ok:
+                checking_id = r.json()["payment_hash"].replace("/","_")
+            else:
+                error_message = r.json()["message"]
+        else:
+            error_message = r.json()["message"]
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
