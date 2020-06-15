@@ -59,7 +59,7 @@ def api_usermanager_activate_extension():
     user = get_user(g.data["userid"])
     if not user:
         return jsonify({"error": "no such user"}), HTTPStatus.NO_CONTENT
-    user = update_user_extension(user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"])
+    update_user_extension(user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"])
     return jsonify({"extension": "updated"}), HTTPStatus.CREATED
 
 ###Wallets
