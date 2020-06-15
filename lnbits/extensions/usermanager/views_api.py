@@ -11,6 +11,9 @@ from base64 import urlsafe_b64encode
 from uuid import uuid4
 from lnbits.db import open_ext_db
 
+from ...core import (
+    update_user_extension,
+)
 
 
 ###Users
@@ -37,13 +40,27 @@ def api_usermanager_users_create():
 @usermanager_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
 def api_usermanager_users_delete(user_id):
-    print("cunt")
     user = get_usermanager_user(user_id)
     if not user:
         return jsonify({"message": "User does not exist."}), HTTPStatus.NOT_FOUND
     delete_usermanager_user(user_id)
     return "", HTTPStatus.NO_CONTENT
 
+###Activate Extension
+
+@usermanager_ext.route("/api/v1/extensions", methods=["POST"])
+@api_check_wallet_key(key_type="invoice")
+@api_validate_post_request(schema={
+    "extension": {"type": "string", "empty": False, "required": True},
+    "userid": {"type": "string", "empty": False, "required": True},
+    "active": {"type": "boolean", "required": True}
+})
+def api_usermanager_activate_extension():
+    user = get_user(g.data["userid"])
+    if not user:
+        return jsonify({"error": "no such user"}), HTTPStatus.NO_CONTENT
+    user = update_user_extension(user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"])
+    return jsonify({"extension": "updated"}), HTTPStatus.CREATED
 
 ###Wallets
 
