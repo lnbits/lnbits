@@ -20,7 +20,7 @@ While in development, you will need to install all dependencies:
 $ pipenv shell
 $ pipenv install --dev
 ```
-If you wish to use a python 3.8:
+If you wish to use a version of Python higher than 3.7:
 ```sh
 $ pipenv --python 3.8 install --dev
 ```
