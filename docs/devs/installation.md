@@ -20,7 +20,10 @@ While in development, you will need to install all dependencies:
 $ pipenv shell
 $ pipenv install --dev
 ```
-
+If you wish to use a python 3.8:
+```sh
+$ pipenv --python 3.8 install --dev
+```
 You will need to set the variables in `.env.example`, and rename the file to `.env`.
 
 ![Files](https://i.imgur.com/ri2zOe8.png)
