@@ -1,6 +1,6 @@
 Vue.component(VueQrcode.name, VueQrcode);
 
-var locationPath = [window.location.protocol, '//', window.location.hostname, window.location.pathname].join('');
+var locationPath = [window.location.protocol, '//', window.location.host, window.location.pathname].join('');
 
 var mapWithdrawLink = function (obj) {
   obj._data = _.clone(obj);
