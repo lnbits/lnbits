@@ -91,11 +91,8 @@ def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(f"SELECT * FROM withdraw_links WHERE wallet IN ({q})", (*wallet_ids,))
-        
-    links = []
-    for x in rows:
-        links.append(WithdrawLink.from_row(row) for row in rows)
-    return links
+
+    return [WithdrawLink.from_row(row) for row in rows]
 
 
 def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
