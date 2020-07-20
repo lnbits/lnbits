@@ -1,58 +1,79 @@
-{% extends "print.html" %} {% block page %}
+<!DOCTYPE html>
+{% block page %}
+
 <div class="row justify-center">
-  <div class="col-12 col-sm-8 col-lg-6 text-center">
-    {% for i in range(link.uses) %}
-    <div class="zimbabwe">
-      <div class="qr">
-        <qrcode value="{{ link.lnurl }}" :options="{width: 150}"></qrcode>
-        <br /><br />
-        <strong>{{ SITE_TITLE }}</strong><br />
-        <strong>{{ link.max_withdrawable }} FREE SATS</strong><br />
-        <small>Scan and follow link<br />or use Lightning wallet</small>
-      </div>
-      <img src="{{ url_for('static', filename='images/note.jpg') }}" />
-    </div>
+  <div class="col-12 col-sm-8 col-lg-6 text-center" id="vue">
+    {% for page in link %}
+    <page size="A4" id="pdfprint">
+      <table style="width: 100%;">
+        {% for threes in page %}
+        <tr style="height: 37.125mm;">
+          {% for one in threes %}
+          <td style="width: 52.5mm;">
+            <center>
+              <h3 class="q-mb-md"></h3>
+              <qrcode
+                :value="theurl + '/lnurlwallet?lightning={{one.lnurl}}'"
+                :options="{width: 110}"
+              ></qrcode>
+            </center>
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+    </page>
     {% endfor %}
   </div>
 </div>
 {% endblock %} {% block styles %}
 <style>
-  .zimbabwe {
-    page-break-inside: avoid;
-    height: 7cm;
-    width: 16cm;
-    position: relative;
-    margin-bottom: 10px;
-    overflow: hidden;
+  body {
+    background: rgb(204, 204, 204);
   }
-  .zimbabwe img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    width: 100%;
+  page {
+    background: white;
+    display: block;
+    margin: 0 auto;
+    margin-bottom: 0.5cm;
+    box-shadow: 0 0 0.5cm rgba(0, 0, 0, 0.5);
   }
-  .zimbabwe .qr {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    z-index: 10;
-    background: rgb(255, 255, 255, 0.7);
-    padding: 10px;
-    text-align: center;
-    line-height: 1.1;
+  page[size='A4'] {
+    width: 21cm;
+    height: 29.7cm;
+  }
+  @media print {
+    body,
+    page {
+      margin: 0;
+      box-shadow: 0;
+    }
   }
 </style>
 {% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue@2.6.11/vue.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/vue-router@3.1.6/vue-router.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/vuex@3.1.3/vuex.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/quasar@1.10.4/quasar.umd.js') }}"></script>
+<script
+  type="text/javascript"
+  src="/static/__bundle__/base.js?a52a989e"
+></script>
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
     el: '#vue',
-    created: function () {
-      window.print()
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        theurl: location.host,
+        printDialog: {
+          show: true,
+          data: null
+        }
+      }
     }
   })
 </script>

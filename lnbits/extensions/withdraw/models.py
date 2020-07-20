@@ -19,11 +19,14 @@ class WithdrawLink(NamedTuple):
     k1: str
     open_time: int
     used: int
+    usescsv: str
+    multihash: str
 
     @classmethod
     def from_row(cls, row: Row) -> "WithdrawLink":
         data = dict(row)
         data["is_unique"] = bool(data["is_unique"])
+        data["multihash"] = ""
         return cls(**data)
 
     @property
@@ -33,14 +36,20 @@ class WithdrawLink(NamedTuple):
     @property
     def lnurl(self) -> Lnurl:
         scheme = "https" if FORCE_HTTPS else None
-        url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
+        print(self.is_unique)
+        if self.is_unique:
+            url = url_for("withdraw.api_lnurl_multi_response", unique_hash=self.unique_hash, id_unique_hash=self.multihash, _external=True, _scheme=scheme)
+        else:
+            url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
+
         return lnurl_encode(url)
 
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
         scheme = "https" if FORCE_HTTPS else None
-        url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
 
+        url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
+        print(url)
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,

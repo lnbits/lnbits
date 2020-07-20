@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Union
-
+import shortuuid # type: ignore
 from lnbits.db import open_ext_db
 from lnbits.helpers import urlsafe_short_hash
 
@@ -17,6 +17,7 @@ def create_withdraw_link(
     wait_time: int,
     is_unique: bool,
 ) -> WithdrawLink:
+
     with open_ext_db("withdraw") as db:
         link_id = urlsafe_short_hash()
         db.execute(
@@ -32,9 +33,10 @@ def create_withdraw_link(
                 is_unique,
                 unique_hash,
                 k1,
-                open_time
+                open_time,
+                usescsv
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 link_id,
@@ -48,24 +50,36 @@ def create_withdraw_link(
                 urlsafe_short_hash(),
                 urlsafe_short_hash(),
                 int(datetime.now().timestamp()) + wait_time,
+                usescsv,
             ),
         )
+    return get_withdraw_link(link_id, uses)
 
-    return get_withdraw_link(link_id)
 
-
-def get_withdraw_link(link_id: str) -> Optional[WithdrawLink]:
+def get_withdraw_link(link_id: str, num=None) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         row = db.fetchone("SELECT * FROM withdraw_links WHERE id = ?", (link_id,))
+        link = []
+        for item in row:
+           link.append(item) 
+    tohash = row["id"] + row["unique_hash"] + str(num)
+    link.append(shortuuid.uuid(name=tohash))
+    return WithdrawLink._make(link)
 
-    return WithdrawLink.from_row(row) if row else None
 
-
-def get_withdraw_link_by_hash(unique_hash: str) -> Optional[WithdrawLink]:
+def get_withdraw_link_by_hash(unique_hash: str, num=None) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         row = db.fetchone("SELECT * FROM withdraw_links WHERE unique_hash = ?", (unique_hash,))
-
-    return WithdrawLink.from_row(row) if row else None
+        link = []
+        for item in row:
+           link.append(item) 
+        if not num:
+            link.append("")
+            return WithdrawLink._make(link)
+    tohash = row["id"] + row["unique_hash"] + str(num)
+    link.append(shortuuid.uuid(name=tohash))
+    return WithdrawLink._make(link)
+    
 
 
 def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
@@ -75,13 +89,15 @@ def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(f"SELECT * FROM withdraw_links WHERE wallet IN ({q})", (*wallet_ids,))
-
-    return [WithdrawLink.from_row(row) for row in rows]
+        
+    links = []
+    for x in rows:
+        links.append(WithdrawLink.from_row(row) for row in rows)
+    return links
 
 
 def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-
     with open_ext_db("withdraw") as db:
         db.execute(f"UPDATE withdraw_links SET {q} WHERE id = ?", (*kwargs.values(), link_id))
         row = db.fetchone("SELECT * FROM withdraw_links WHERE id = ?", (link_id,))
@@ -92,3 +108,7 @@ def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
 def delete_withdraw_link(link_id: str) -> None:
     with open_ext_db("withdraw") as db:
         db.execute("DELETE FROM withdraw_links WHERE id = ?", (link_id,))
+
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
