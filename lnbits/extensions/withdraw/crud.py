@@ -16,9 +16,11 @@ def create_withdraw_link(
     uses: int,
     wait_time: int,
     is_unique: bool,
+    usescsv: str,
 ) -> WithdrawLink:
 
     with open_ext_db("withdraw") as db:
+
         link_id = urlsafe_short_hash()
         db.execute(
             """
