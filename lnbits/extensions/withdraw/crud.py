@@ -24,7 +24,7 @@ def create_withdraw_link(
         link_id = urlsafe_short_hash()
         db.execute(
             """
-            INSERT INTO withdraw_links (
+            INSERT INTO withdraw_link (
                 id,
                 wallet,
                 title,
@@ -60,7 +60,7 @@ def create_withdraw_link(
 
 def get_withdraw_link(link_id: str, num=None) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
-        row = db.fetchone("SELECT * FROM withdraw_links WHERE id = ?", (link_id,))
+        row = db.fetchone("SELECT * FROM withdraw_link WHERE id = ?", (link_id,))
         link = []
         for item in row:
            link.append(item) 
@@ -71,7 +71,7 @@ def get_withdraw_link(link_id: str, num=None) -> Optional[WithdrawLink]:
 
 def get_withdraw_link_by_hash(unique_hash: str, num=None) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
-        row = db.fetchone("SELECT * FROM withdraw_links WHERE unique_hash = ?", (unique_hash,))
+        row = db.fetchone("SELECT * FROM withdraw_link WHERE unique_hash = ?", (unique_hash,))
         link = []
         for item in row:
            link.append(item) 
@@ -90,7 +90,7 @@ def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
 
     with open_ext_db("withdraw") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM withdraw_links WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(f"SELECT * FROM withdraw_link WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [WithdrawLink.from_row(row) for row in rows]
 
@@ -98,15 +98,15 @@ def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
 def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     with open_ext_db("withdraw") as db:
-        db.execute(f"UPDATE withdraw_links SET {q} WHERE id = ?", (*kwargs.values(), link_id))
-        row = db.fetchone("SELECT * FROM withdraw_links WHERE id = ?", (link_id,))
+        db.execute(f"UPDATE withdraw_link SET {q} WHERE id = ?", (*kwargs.values(), link_id))
+        row = db.fetchone("SELECT * FROM withdraw_link WHERE id = ?", (link_id,))
 
     return WithdrawLink.from_row(row) if row else None
 
 
 def delete_withdraw_link(link_id: str) -> None:
     with open_ext_db("withdraw") as db:
-        db.execute("DELETE FROM withdraw_links WHERE id = ?", (link_id,))
+        db.execute("DELETE FROM withdraw_link WHERE id = ?", (link_id,))
 
 def chunks(lst, n):
     for i in range(0, len(lst), n):
