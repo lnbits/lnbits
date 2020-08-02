@@ -34,7 +34,7 @@ def lnurlwallet():
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, error_message)
 
     r = requests.get(
-        withdraw_res.callback.base,
+        withdraw_res.callback,
         params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": payment_request}},
     )
 

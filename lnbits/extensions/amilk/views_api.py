@@ -45,7 +45,7 @@ def api_amilkit(amilk_id):
         error_message = False, str(e)
 
     r = requests.get(
-        withdraw_res.callback.base,
+        withdraw_res.callback,
         params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": payment_request}},
     )
 
