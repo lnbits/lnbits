@@ -68,12 +68,12 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        theurl: location.host,
+        theurl: location.protocol + '//' + location.host,
         printDialog: {
           show: true,
           data: null
         }
-      }
+      };
     }
   })
 </script>
