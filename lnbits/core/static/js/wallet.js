@@ -258,18 +258,27 @@ new Vue({
         .then(function (response) {
           self.receive.status = 'success'
           self.receive.paymentReq = response.data.payment_request
+          const id = response.data.checking_id
+          socket.once(id, data => {
+            console.log('ola', data)
+            if (data.paid) {
+              self.fetchPayments()
+              self.receive.show = false
+            }
+          })
+          socket.emit('wait_invoice', { id })
 
-          self.receive.paymentChecker = setInterval(function () {
-            LNbits.api
-              .getPayment(self.g.wallet, response.data.checking_id)
-              .then(function (response) {
-                if (response.data.paid) {
-                  self.fetchPayments()
-                  self.receive.show = false
-                  clearInterval(self.receive.paymentChecker)
-                }
-              })
-          }, 2000)
+          // self.receive.paymentChecker = setInterval(function () {
+          //   LNbits.api
+          //     .getPayment(self.g.wallet, response.data.checking_id)
+          //     .then(function (response) {
+          //       if (response.data.paid) {
+          //         self.fetchPayments()
+          //         self.receive.show = false
+          //         clearInterval(self.receive.paymentChecker)
+          //       }
+          //     })
+          // }, 2000)
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

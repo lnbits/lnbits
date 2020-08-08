@@ -7,6 +7,9 @@ var socket = io()
 socket.on('connect', function() {
   console.debug('Websocket connected')
 })
+socket.on('message', console.info)
+socket.on('wait_invoice', console.info)
+socket.send('wait_invoice', { data: 'test' })
 
 var LNbits = {
   api: {

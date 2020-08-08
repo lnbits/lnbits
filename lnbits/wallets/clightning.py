@@ -7,7 +7,7 @@ import random
 
 from os import getenv
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import InvoiceResponse, PaymentStatus, PaymentResponse, Wallet
 
 
 class CLightningWallet(Wallet):
@@ -22,7 +22,7 @@ class CLightningWallet(Wallet):
         label = "lbl{}".format(random.random())
         r = self.l1.invoice(amount*1000, label, memo, exposeprivatechannels=True)
         ok, checking_id, payment_request, error_message = True, r["payment_hash"], r["bolt11"], None
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+        return InvoiceResponse(ok, label, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = self.l1.pay(bolt11)
@@ -43,3 +43,8 @@ class CLightningWallet(Wallet):
         payment = payments[0] if payments else None
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
         return PaymentStatus(statuses[payment["status"]] if payment else None)
+
+    # Should be used with websocket only.
+    def wait_invoice(self, checking_id: str) -> PaymentStatus:
+        r = self.l1.waitinvoice(checking_id)
+        return PaymentStatus(r["status"] == "paid")
