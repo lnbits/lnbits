@@ -23,7 +23,7 @@ The wallet can run on top of any lightning-network funding source, currently the
 
 See [lnbits.org](https://lnbits.org) for more detailed documentation.
 
-LNbits is heavily inspired by all the great work of [opennode.com/](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for Lnbits!
+LNbits is heavily inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for Lnbits!
 
 ## LNbits as an account system
 
