@@ -23,6 +23,9 @@ def create_ticket(checking_id: str, wallet: str, event: str, name: str,  email: 
 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("events") as db:
+        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (checking_id,))
+        if row[1] == True:
+            return get_ticket(checking_id)
         db.execute(
             """
             UPDATE tickets
@@ -31,7 +34,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             """,
             (paid, checking_id),
         )
-        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (checking_id,))
+        
         eventdata = get_event(row[3])
         sold = eventdata.sold + 1
         amount_tickets = eventdata.amount_tickets - 1
