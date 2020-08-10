@@ -48,7 +48,6 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
         )
     return get_ticket(checking_id)
 
-
 def get_ticket(ticket_id: str) -> Optional[Tickets]:
     with open_ext_db("lnticket") as db:
         row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (ticket_id,))

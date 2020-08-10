@@ -66,9 +66,6 @@ def api_form_delete(form_id):
 
     return "", HTTPStatus.NO_CONTENT
 
-
-
-
 #########tickets##########
 
 @lnticket_ext.route("/api/v1/tickets", methods=["GET"])
@@ -129,8 +126,6 @@ def api_ticket_send_ticket(checking_id):
         return jsonify({"paid": True, "ticket_id": ticket.id}), HTTPStatus.OK
 
     return jsonify({"paid": False}), HTTPStatus.OK
-
-
 
 @lnticket_ext.route("/api/v1/tickets/<ticket_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
