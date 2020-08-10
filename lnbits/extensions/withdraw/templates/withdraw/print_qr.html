@@ -7,14 +7,13 @@
     <page size="A4" id="pdfprint">
       <table style="width: 100%;">
         {% for threes in page %}
-        <tr style="height: 37.125mm;">
+        <tr style="height: 59.4mm;">
           {% for one in threes %}
-          <td style="width: 52.5mm;">
+          <td style="width: 105mm;">
             <center>
-              <h3 class="q-mb-md"></h3>
               <qrcode
                 :value="theurl + '/lnurlwallet?lightning={{one.lnurl}}'"
-                :options="{width: 110}"
+                :options="{width: 150}"
               ></qrcode>
             </center>
           </td>
@@ -73,7 +72,7 @@
           show: true,
           data: null
         }
-      };
+      }
     }
   })
 </script>
