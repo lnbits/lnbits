@@ -2,15 +2,6 @@ var LOCALE = 'en'
 
 var EventHub = new Vue()
 
-var socket = io()
-
-socket.on('connect', function() {
-  console.debug('Websocket connected')
-})
-socket.on('message', console.info)
-socket.on('wait_invoice', console.info)
-socket.send('wait_invoice', { data: 'test' })
-
 var LNbits = {
   api: {
     request: function (method, url, apiKey, data) {
@@ -228,7 +219,8 @@ var windowMixin = {
         extensions: [],
         user: null,
         wallet: null,
-        payments: []
+        payments: [],
+        socket: null,
       }
     }
   },
@@ -254,6 +246,14 @@ var windowMixin = {
     }
     if (window.wallet) {
       this.g.wallet = Object.freeze(LNbits.map.wallet(window.wallet))
+      var socket
+      socket = io({
+        query: {
+          'X-Api-Key': this.g.wallet.inkey
+        }
+      })
+
+      this.g.socket = socket
     }
     if (window.extensions) {
       var user = this.g.user

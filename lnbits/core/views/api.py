@@ -27,7 +27,7 @@ def api_payments():
 @api_validate_post_request(
     schema={
         "amount": {"type": "integer", "min": 1, "required": True},
-        "memo": {"type": "string", "default": "lnbits-memo"},
+        "memo": {"type": "string", "empty": False, "required": True},
     }
 )
 def api_payments_create_invoice():

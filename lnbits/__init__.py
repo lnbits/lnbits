@@ -4,7 +4,6 @@ from flask import Flask
 from flask_assets import Environment, Bundle  # type: ignore
 from flask_compress import Compress  # type: ignore
 from flask_cors import CORS  # type: ignore
-from flask_socketio import SocketIO  # type: ignore
 from flask_talisman import Talisman  # type: ignore
 from os import getenv
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -12,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .core import core_app, migrations as core_migrations
 from .helpers import ExtensionManager
 from .settings import FORCE_HTTPS, SECRET_KEY
-from .core.views.socket import attach_socket_methods
+from .core.views.socket import socket
 
 disabled_extensions = getenv("LNBITS_DISABLED_EXTENSIONS", "").split(",")
 
@@ -87,8 +86,7 @@ def migrate_databases():
 # socket
 # ------
 
-socketio = SocketIO(app)
-attach_socket_methods(socketio)
+socketio = socket(app)
 
 
 # init

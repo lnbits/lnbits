@@ -259,26 +259,18 @@ new Vue({
           self.receive.status = 'success'
           self.receive.paymentReq = response.data.payment_request
           const id = response.data.checking_id
-          socket.once(id, data => {
-            console.log('ola', data)
+          console.log('waiting for ', `wait_invoice_${id}`)
+          self.g.socket.once(`wait_invoice_${id}`, data => {
+            console.log('Waited invoice: ' + id, data, self.fetchPayments)
             if (data.paid) {
               self.fetchPayments()
               self.receive.show = false
             }
           })
-          socket.emit('wait_invoice', { id })
-
-          // self.receive.paymentChecker = setInterval(function () {
-          //   LNbits.api
-          //     .getPayment(self.g.wallet, response.data.checking_id)
-          //     .then(function (response) {
-          //       if (response.data.paid) {
-          //         self.fetchPayments()
-          //         self.receive.show = false
-          //         clearInterval(self.receive.paymentChecker)
-          //       }
-          //     })
-          // }, 2000)
+          self.g.socket.emit('wait_invoice', {
+            checking_id: id,
+            "X-Api-Key": self.g.wallet.inkey
+          })
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
