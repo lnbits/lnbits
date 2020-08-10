@@ -20,6 +20,7 @@ def m001_initial(db):
         """
         CREATE TABLE IF NOT EXISTS tickets (
             id TEXT PRIMARY KEY,
+            paid BOOLEAN NOT NULL,
             form TEXT NOT NULL,
             email TEXT NOT NULL,
             ltext TEXT NOT NULL,

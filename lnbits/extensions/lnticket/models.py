@@ -13,6 +13,7 @@ class Forms(NamedTuple):
 
 class Tickets(NamedTuple):
     id: str
+    paid: bool
     form: str
     email: str
     ltext: str

@@ -10,28 +10,43 @@ from .models import Tickets, Forms
 
 #######TICKETS########
 
-
-def create_ticket(wallet: str, form: str,  name: str,  email: str, ltext: str, sats: int) -> Tickets:
-    formdata = get_form(form)
-    amount = formdata.amountmade + sats
+def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: str, ltext: str, sats: int) -> Tickets:
     with open_ext_db("lnticket") as db:
-        ticket_id = urlsafe_short_hash()
         db.execute(
             """
-            INSERT INTO tickets (id, form, email, ltext, name, wallet, sats)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO tickets (id, paid, form, email, ltext, name, wallet, sats)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (ticket_id, form, email, ltext, name, wallet, sats),
+            (checking_id, False, form, email, ltext, name, wallet, sats),
         )
+
+    return get_ticket(checking_id)
+
+def update_ticket(paid: bool, checking_id: str) -> Tickets:
+    with open_ext_db("lnticket") as db:
+        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (checking_id,))
+        if row[1] == True:
+            return get_ticket(checking_id)
+        db.execute(
+            """
+            UPDATE tickets
+            SET paid = ?
+            WHERE id = ?
+            """,
+            (paid, checking_id),
+        )
+        
+        formdata = get_form(row[2])
+        amount = formdata.amountmade + row[7]
         db.execute(
             """
             UPDATE forms
             SET amountmade = ?
             WHERE id = ?
             """,
-            (amount, form),
+            (amount, row[2]),
         )
-    return get_ticket(ticket_id)
+    return get_ticket(checking_id)
 
 
 def get_ticket(ticket_id: str) -> Optional[Tickets]:
