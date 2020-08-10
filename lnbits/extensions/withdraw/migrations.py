@@ -6,34 +6,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 def m001_initial(db):
     """
-    Initial withdraw table.
-    """
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS withdraws (
-            key INTEGER PRIMARY KEY AUTOINCREMENT,
-            usr TEXT,
-            wal TEXT,
-            walnme TEXT,
-            adm INTEGER,
-            uni TEXT,
-            tit TEXT,
-            maxamt INTEGER,
-            minamt INTEGER,
-            spent INTEGER,
-            inc INTEGER,
-            tme INTEGER,
-            uniq INTEGER DEFAULT 0,
-            withdrawals TEXT,
-            tmestmp INTEGER,
-            rand TEXT
-        );
-        """
-    )
-
-
-def m002_change_withdraw_table(db):
-    """
     Creates an improved withdraw table and migrates the existing data.
     """
     db.execute(
@@ -50,17 +22,49 @@ def m002_change_withdraw_table(db):
             unique_hash TEXT UNIQUE,
             k1 TEXT,
             open_time INTEGER,
-            used INTEGER DEFAULT 0
+            used INTEGER DEFAULT 0,
+            usescsv TEXT
+        );
+    """)
+ 
+def m002_change_withdraw_table(db):
+    """
+    Creates an improved withdraw table and migrates the existing data.
+    """
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS withdraw_link (
+            id TEXT PRIMARY KEY,
+            wallet TEXT,
+            title TEXT,
+            min_withdrawable INTEGER DEFAULT 1,
+            max_withdrawable INTEGER DEFAULT 1,
+            uses INTEGER DEFAULT 1,
+            wait_time INTEGER,
+            is_unique INTEGER DEFAULT 0,
+            unique_hash TEXT UNIQUE,
+            k1 TEXT,
+            open_time INTEGER,
+            used INTEGER DEFAULT 0,
+            usescsv TEXT
         );
         """
     )
-    db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON withdraw_links (wallet)")
-    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_links (unique_hash)")
+    db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON withdraw_link (wallet)")
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_link (unique_hash)")
 
-    for row in [list(row) for row in db.fetchall("SELECT * FROM withdraws")]:
+    for row in [list(row) for row in db.fetchall("SELECT * FROM withdraw_links")]:
+        usescsv = ""
+
+        for i in range(row[5]):
+            if row[7]:
+                usescsv += "," + str(i + 1)
+            else:
+                usescsv += "," + str(1)
+        usescsv = usescsv[1:]  
         db.execute(
             """
-            INSERT INTO withdraw_links (
+            INSERT INTO withdraw_link (
                 id,
                 wallet,
                 title,
@@ -72,30 +76,35 @@ def m002_change_withdraw_table(db):
                 unique_hash,
                 k1,
                 open_time,
-                used
+                used,
+                usescsv
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                row[5],  # uni
-                row[2],  # wal
-                row[6],  # tit
-                row[8],  # minamt
-                row[7],  # maxamt
-                row[10],  # inc
-                row[11],  # tme
-                row[12],  # uniq
-                urlsafe_short_hash(),
-                urlsafe_short_hash(),
-                int(datetime.now().timestamp()) + row[11],
-                row[9],  # spent
+                row[0], 
+                row[1],  
+                row[2], 
+                row[3], 
+                row[4],
+                row[5], 
+                row[6], 
+                row[7], 
+                row[8],
+                row[9],
+                row[10],
+                row[11],  
+                usescsv,
             ),
         )
-
-    db.execute("DROP TABLE withdraws")
-
+    db.execute("DROP TABLE withdraw_links")
 
 def migrate():
     with open_ext_db("withdraw") as db:
         m001_initial(db)
         m002_change_withdraw_table(db)
+
+
+
+
+

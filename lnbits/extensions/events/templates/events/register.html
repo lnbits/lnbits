@@ -156,9 +156,9 @@
               type: 'positive',
               message: 'Registered!'
             })
-            self.tickets = response.data.map(function (obj) {
-              return mapEvents(obj)
-            })
+            setTimeout(function () {
+               window.location.reload()
+            }, 2000)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)

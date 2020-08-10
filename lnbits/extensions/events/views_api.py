@@ -7,7 +7,7 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET
 
 from lnbits.extensions.events import events_ext
-from .crud import create_ticket, get_ticket, get_tickets, delete_ticket, create_event, update_event, get_event, get_events, delete_event, get_event_tickets, reg_ticket
+from .crud import create_ticket, update_ticket, get_ticket, get_tickets, delete_ticket, create_event, update_event, get_event, get_events, delete_event, get_event_tickets, reg_ticket
 
 
 #########Events##########
@@ -86,11 +86,18 @@ def api_tickets():
     return jsonify([ticket._asdict() for ticket in get_tickets(wallet_ids)]), HTTPStatus.OK
 
 
+@events_ext.route("/api/v1/tickets/<event_id>/<sats>", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "name": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "empty": False, "required": True}
+    })
+def api_ticket_make_ticket(event_id, sats):
 
-@events_ext.route("/api/v1/tickets/<event_id>/<sats>", methods=["GET"])
-def api_ticket_create(event_id, sats):
     event = get_event(event_id)
 
+    if not event:
+        return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
     try:
         checking_id, payment_request = create_invoice(
             wallet_id=event.wallet, amount=int(sats), memo=f"#lnticket {event_id}"
@@ -98,32 +105,27 @@ def api_ticket_create(event_id, sats):
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
+    ticket = create_ticket(checking_id=checking_id, wallet=event.wallet, event=event_id, **g.data)
+
+    if not ticket:
+        return jsonify({"message": "LNTicket could not be fetched."}), HTTPStatus.NOT_FOUND
+
     return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.OK
 
 
-
-@events_ext.route("/api/v1/tickets/<checking_id>", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "event": {"type": "string", "empty": False, "required": True},
-        "name": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "empty": False, "required": True}
-    })
+@events_ext.route("/api/v1/tickets/<checking_id>", methods=["GET"])
 def api_ticket_send_ticket(checking_id):
-
-    event = get_event(g.data['event'])
-    if not event:
-        return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
+    theticket = get_ticket(checking_id)
     try:
         is_paid = not WALLET.get_invoice_status(checking_id).pending
     except Exception:
         return jsonify({"message": "Not paid."}), HTTPStatus.NOT_FOUND
 
     if is_paid:
-        wallet = get_wallet(event.wallet)
+        wallet = get_wallet(theticket.wallet)
         payment = wallet.get_payment(checking_id)
         payment.set_pending(False)
-        ticket = create_ticket(wallet=event.wallet, **g.data)
+        ticket = update_ticket(paid=True, checking_id=checking_id)
 
         return jsonify({"paid": True, "ticket_id": ticket.id}), HTTPStatus.OK
 

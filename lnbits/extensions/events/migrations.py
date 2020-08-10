@@ -24,6 +24,7 @@ def m001_initial(db):
         """
         CREATE TABLE IF NOT EXISTS tickets (
             id TEXT PRIMARY KEY,
+            paid BOOLEAN NOT NULL,
             wallet TEXT NOT NULL,
             event TEXT NOT NULL,
             name TEXT NOT NULL,
