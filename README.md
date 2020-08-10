@@ -23,7 +23,7 @@ The wallet can run on top of any lightning-network funding source, currently the
 
 See [lnbits.org](https://lnbits.org) for more detailed documentation.
 
-Checkout the [LNbits](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) Youtube playlist as well.
+Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) as well.
 
 LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for LNbits!
 
