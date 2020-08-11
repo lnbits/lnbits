@@ -1,6 +1,5 @@
 from flask import g, jsonify, request
-from flask_socketio import send, emit
-from flask_socketio import SocketIO  # type: ignore
+from flask_socketio import send, emit, SocketIO  # type: ignore
 
 from lnbits.settings import WALLET
 from lnbits.core.crud import get_wallet_for_key
@@ -9,7 +8,7 @@ from ..services import create_invoice, pay_invoice
 
 # Did not have success creating decorator out of this.
 def socket_validate_request(key_type: str = "invoice"):
-    key = False
+    key = ""
     try:
         key = request.body["X-Api-Key"]
     except:
