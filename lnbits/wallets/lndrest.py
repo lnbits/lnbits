@@ -2,6 +2,8 @@ from os import getenv
 import os
 import base64
 from requests import get, post
+from json import loads
+from lnbits.bolt11 import decode
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
@@ -12,7 +14,6 @@ class LndRestWallet(Wallet):
 
         endpoint = getenv("LND_REST_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        print(self.endpoint)
         self.auth_admin = {"Grpc-Metadata-macaroon": getenv("LND_REST_ADMIN_MACAROON")}
         self.auth_invoice = {"Grpc-Metadata-macaroon": getenv("LND_REST_INVOICE_MACAROON")}
         self.auth_read = {"Grpc-Metadata-macaroon": getenv("LND_REST_READ_MACAROON")}
@@ -26,7 +27,6 @@ class LndRestWallet(Wallet):
             headers=self.auth_invoice, verify=self.auth_cert,
             json={"value": amount, "memo": memo, "private": True},
         )
-        print(self.auth_invoice)
 
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
@@ -35,10 +35,8 @@ class LndRestWallet(Wallet):
             payment_request = data["payment_request"]
 
         r = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read, verify=self.auth_cert,)
-        print(r)
         if r.ok:
             checking_id = r.json()["payment_hash"].replace("/","_")
-            print(checking_id)
             error_message = None
             ok = True
 
@@ -62,9 +60,7 @@ class LndRestWallet(Wallet):
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_","/")
-        print(checking_id)
         r = get(url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert,)
-        print(r.json()["settled"])
         if not r or r.json()["settled"] == False:
             return PaymentStatus(None)
 
@@ -77,10 +73,32 @@ class LndRestWallet(Wallet):
             return PaymentStatus(None)
 
         payments = [p for p in r.json()["payments"] if p["payment_hash"] == checking_id]
-        print(checking_id)
         payment = payments[0] if payments else None
 
         # check payment.status: https://api.lightning.community/rest/index.html?python#peersynctype
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
 
         return PaymentStatus(statuses[payment["status"]])
+
+
+    # Should be used with websocket only.
+    def wait_invoice(self, checking_id: str) -> PaymentStatus:
+        checking_id = checking_id.replace("_","/")
+
+        # TODO: Not sure about these. No explanations given https://api.lightning.community/?python#invoiceinvoicestate
+        statuses = {"UNKNOWN": None,"SETTLED": True, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False, "CANCELED": False}
+
+        # v2/invoices/subscribe/<id> is only for "hold invoices", whatever those are?
+        r = get(url=f"{self.endpoint}/v1/invoices/subscribe", headers=self.auth_invoice, verify=self.auth_cert, stream=True)
+        for raw_response in r.iter_lines():
+            try:
+                response = loads(raw_response)
+                invoice = response["result"]
+            except:
+                continue
+            hash = decode(invoice["payment_request"]).payment_hash
+            if hash == checking_id:
+                r = None # Is this how I stop listening?
+                return PaymentStatus(statuses[invoice["state"]])
+
+        return PaymentStatus(False)
