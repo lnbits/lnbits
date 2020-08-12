@@ -9,7 +9,6 @@ from os import getenv
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
-
 class LndWallet(Wallet):
     def __init__(self):
         if lnd_grpc is None:  # pragma: nocover
@@ -64,7 +63,6 @@ class LndWallet(Wallet):
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
 
         check_id = base64.b64decode(checking_id.replace("_", "/"))
-        print(check_id)
         lnd_rpc = lnd_grpc.Client(
             lnd_dir=None,
             macaroon_path=self.auth_invoice,
@@ -83,3 +81,22 @@ class LndWallet(Wallet):
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
 
         return PaymentStatus(True)
+
+    # Should be used with websocket only.
+    def wait_invoice(self, checking_id: str) -> PaymentStatus:
+
+        lnd_rpc = lnd_grpc.Client(
+            lnd_dir=None,
+            macaroon_path=self.auth_invoice,
+            tls_cert_path=self.auth_cert,
+            network="mainnet",
+            grpc_host=self.endpoint,
+            grpc_port=self.port,
+        )
+
+        checking_id = base64.b64decode(checking_id.replace("_", "/"))
+
+        for _response in lnd_rpc.subscribe_single_invoice(checking_id):
+            if _response.state == 1:
+                return PaymentStatus(True)
+        return PaymentStatus(False)
