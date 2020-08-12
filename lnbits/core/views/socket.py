@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from flask import g, request
 from flask_socketio import send, emit, SocketIO  # type: ignore
 
 from lnbits.settings import WALLET
@@ -45,7 +45,7 @@ def socket(app) -> SocketIO:
         except:
             emit(id_to_emit, {"paid": False, "error": "No such invoice."})
             return
-        # Trying to listen in in someone else's payment.
+        # Trying to listen in on someone else's payment.
         if not payment:
             emit(id_to_emit, {"paid": False, "error": "No such invoice."})
             return
