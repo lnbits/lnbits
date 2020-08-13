@@ -13,10 +13,10 @@ def create_ticket(checking_id: str, wallet: str, event: str, name: str,  email: 
     with open_ext_db("events") as db:
         db.execute(
             """
-            INSERT INTO ticket (id, paid, wallet, event, name, email, registered)
+            INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (checking_id, False, wallet, event, name, email, False),
+            (checking_id, wallet, event, name, email, False, False),
         )
 
     return get_ticket(checking_id)
@@ -24,7 +24,7 @@ def create_ticket(checking_id: str, wallet: str, event: str, name: str,  email: 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("events") as db:
         row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
-        if row[1] == True:
+        if row[6] == True:
             return get_ticket(checking_id)
         db.execute(
             """
@@ -35,7 +35,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             (paid, checking_id),
         )
         
-        eventdata = get_event(row[3])
+        eventdata = get_event(row[2])
         sold = eventdata.sold + 1
         amount_tickets = eventdata.amount_tickets - 1
         db.execute(
@@ -44,7 +44,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             SET sold = ?, amount_tickets = ?
             WHERE id = ?
             """,
-            (sold, amount_tickets, row[3]),
+            (sold, amount_tickets, row[2]),
         )
     return get_ticket(checking_id)
 
@@ -136,7 +136,7 @@ def reg_ticket(ticket_id: str) -> Tickets:
     with open_ext_db("events") as db:
         db.execute("UPDATE ticket SET registered = ? WHERE id = ?", (True, ticket_id))
         ticket = db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
-        print(ticket[2])
-        rows = db.fetchall("SELECT * FROM ticket WHERE event = ?", (ticket[2],))
+        print(ticket[1])
+        rows = db.fetchall("SELECT * FROM ticket WHERE event = ?", (ticket[1],))
 
     return [Tickets(**row) for row in rows]

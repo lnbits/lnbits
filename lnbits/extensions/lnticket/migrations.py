@@ -20,7 +20,6 @@ def m001_initial(db):
         """
         CREATE TABLE IF NOT EXISTS tickets (
             id TEXT PRIMARY KEY,
-            paid BOOLEAN NOT NULL,
             form TEXT NOT NULL,
             email TEXT NOT NULL,
             ltext TEXT NOT NULL,
@@ -39,18 +38,19 @@ def m002_changed(db):
         """
         CREATE TABLE IF NOT EXISTS ticket (
             id TEXT PRIMARY KEY,
-            paid BOOLEAN NOT NULL,
             form TEXT NOT NULL,
             email TEXT NOT NULL,
             ltext TEXT NOT NULL,
             name TEXT NOT NULL,
             wallet TEXT NOT NULL,
             sats INTEGER NOT NULL,
+            paid BOOLEAN NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
     )
-    
+
+
     for row in [list(row) for row in db.fetchall("SELECT * FROM tickets")]:
         usescsv = ""
 
@@ -64,28 +64,25 @@ def m002_changed(db):
             """
             INSERT INTO ticket (
                 id,
-                paid,
-                title,
                 form,
                 email,
                 ltext,
                 name,
                 wallet,
-                sats
+                sats,
+                paid
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                row[0], 
-                True,  
+                row[0],  
                 row[1], 
                 row[2], 
                 row[3],
                 row[4], 
                 row[5], 
                 row[6], 
-                row[7],
-                row[8],
+                True, 
             ),
         )
     db.execute("DROP TABLE tickets")

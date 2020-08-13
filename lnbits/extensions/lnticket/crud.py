@@ -14,10 +14,10 @@ def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: 
     with open_ext_db("lnticket") as db:
         db.execute(
             """
-            INSERT INTO ticket (id, paid, form, email, ltext, name, wallet, sats)
+            INSERT INTO ticket (id, form, email, ltext, name, wallet, sats, paid)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (checking_id, False, form, email, ltext, name, wallet, sats),
+            (checking_id, form, email, ltext, name, wallet, sats, False),
         )
 
     return get_ticket(checking_id)
@@ -25,7 +25,7 @@ def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("lnticket") as db:
         row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
-        if row[1] == True:
+        if row[7] == True:
             return get_ticket(checking_id)
         db.execute(
             """
@@ -36,7 +36,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             (paid, checking_id),
         )
         
-        formdata = get_form(row[2])
+        formdata = get_form(row[1])
         amount = formdata.amountmade + row[7]
         db.execute(
             """
@@ -44,7 +44,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             SET amountmade = ?
             WHERE id = ?
             """,
-            (amount, row[2]),
+            (amount, row[1]),
         )
     return get_ticket(checking_id)
 
