@@ -14,7 +14,7 @@ def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: 
     with open_ext_db("lnticket") as db:
         db.execute(
             """
-            INSERT INTO tickets (id, paid, form, email, ltext, name, wallet, sats)
+            INSERT INTO ticket (id, paid, form, email, ltext, name, wallet, sats)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (checking_id, False, form, email, ltext, name, wallet, sats),
@@ -24,12 +24,12 @@ def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: 
 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("lnticket") as db:
-        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (checking_id,))
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
         if row[1] == True:
             return get_ticket(checking_id)
         db.execute(
             """
-            UPDATE tickets
+            UPDATE ticket
             SET paid = ?
             WHERE id = ?
             """,
@@ -50,7 +50,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
 
 def get_ticket(ticket_id: str) -> Optional[Tickets]:
     with open_ext_db("lnticket") as db:
-        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
 
     return Tickets(**row) if row else None
 
@@ -61,14 +61,14 @@ def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
 
     with open_ext_db("lnticket") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM tickets WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [Tickets(**row) for row in rows]
 
 
 def delete_ticket(ticket_id: str) -> None:
     with open_ext_db("lnticket") as db:
-        db.execute("DELETE FROM tickets WHERE id = ?", (ticket_id,))
+        db.execute("DELETE FROM ticket WHERE id = ?", (ticket_id,))
 
 
 
