@@ -59,7 +59,6 @@ def socket(app) -> SocketIO:
         socket_validate_request("invoice", json)
 
         checking_id = json["checking_id"]
-        id_to_emit = "get_invoice_" + checking_id
         if not checking_id:
             return {"error": "No such invoice"}
         checking_id, payment_request = g.wallet.get_payment(checking_id=checking_id)
