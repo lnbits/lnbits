@@ -2,6 +2,20 @@ var LOCALE = 'en'
 
 var EventHub = new Vue()
 
+const _socketHelper = function (wallet, emit, data, socket) {
+  data['X-Api-Key'] = wallet.inkey
+  return new Promise((resolve, reject) => {
+    socket.emit(emit, data, response => {
+      response = {
+        data: response
+      }
+      if (response.data.error) {
+        reject(response)
+      }
+      resolve(response)
+    })
+  })
+}
 var LNbits = {
   api: {
     request: function (method, url, apiKey, data) {
@@ -14,7 +28,24 @@ var LNbits = {
         data: data
       })
     },
-    createInvoice: function (wallet, amount, memo) {
+    waitInvoice: async function (wallet, checking_id, socket) {
+      if (!socket) {
+        throw new Error('Need socket to wait invoices, got', socket)
+      }
+      return _socketHelper(wallet, 'wait_invoice', {checking_id}, socket)
+    },
+    createInvoice: function (wallet, amount, memo, socket) {
+      if (socket) {
+        return _socketHelper(
+          wallet,
+          'create_invoice',
+          {
+            memo,
+            amount
+          },
+          socket
+        )
+      }
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
@@ -220,7 +251,7 @@ var windowMixin = {
         user: null,
         wallet: null,
         payments: [],
-        socket: null,
+        socket: null
       }
     }
   },

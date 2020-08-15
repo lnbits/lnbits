@@ -3,7 +3,7 @@ import os
 import base64
 from requests import get, post
 from json import loads
-from lnbits.bolt11 import decode
+from lnbits.bolt11 import decode # type: ignore
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 

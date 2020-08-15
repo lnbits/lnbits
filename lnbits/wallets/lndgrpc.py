@@ -94,9 +94,9 @@ class LndWallet(Wallet):
             grpc_port=self.port,
         )
 
-        checking_id = base64.b64decode(checking_id.replace("_", "/"))
+        check_id = base64.b64decode(checking_id.replace("_", "/"))
 
-        for _response in lnd_rpc.subscribe_single_invoice(checking_id):
+        for _response in lnd_rpc.subscribe_single_invoice(check_id):
             if _response.state == 1:
                 return PaymentStatus(True)
         return PaymentStatus(False)

@@ -253,24 +253,25 @@ new Vue({
         .createInvoice(
           this.g.wallet,
           this.receive.data.amount,
-          this.receive.data.memo
+          this.receive.data.memo,
+          this.g.socket
         )
         .then(function (response) {
           self.receive.status = 'success'
           self.receive.paymentReq = response.data.payment_request
-          const id = response.data.checking_id
-          console.log('waiting for ', `wait_invoice_${id}`)
-          self.g.socket.once(`wait_invoice_${id}`, data => {
-            console.log('Waited invoice: ' + id, data, self.fetchPayments)
-            if (data.paid) {
-              self.fetchPayments()
-              self.receive.show = false
-            }
-          })
-          self.g.socket.emit('wait_invoice', {
-            checking_id: id,
-            "X-Api-Key": self.g.wallet.inkey
-          })
+
+          return LNbits.api
+            .waitInvoice(
+              self.g.wallet,
+              response.data.checking_id,
+              self.g.socket
+            )
+            .then(response => {
+              if (response.data.paid) {
+                self.fetchPayments()
+                self.receive.show = false
+              }
+            })
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
