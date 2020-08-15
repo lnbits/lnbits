@@ -98,7 +98,7 @@ class LndRestWallet(Wallet):
                 continue
             hash = decode(invoice["payment_request"]).payment_hash
             if hash == checking_id:
-                r = None # Is this how I stop listening?
+                r = None # type: ignore # Is this how I stop listening?
                 return PaymentStatus(statuses[invoice["state"]])
 
         return PaymentStatus(False)
