@@ -13,29 +13,29 @@ def create_ticket(checking_id: str, wallet: str, event: str, name: str,  email: 
     with open_ext_db("events") as db:
         db.execute(
             """
-            INSERT INTO tickets (id, paid, wallet, event, name, email, registered)
+            INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (checking_id, False, wallet, event, name, email, False),
+            (checking_id, wallet, event, name, email, False, False),
         )
 
     return get_ticket(checking_id)
 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (checking_id,))
-        if row[1] == True:
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
+        if row[6] == True:
             return get_ticket(checking_id)
         db.execute(
             """
-            UPDATE tickets
+            UPDATE ticket
             SET paid = ?
             WHERE id = ?
             """,
             (paid, checking_id),
         )
         
-        eventdata = get_event(row[3])
+        eventdata = get_event(row[2])
         sold = eventdata.sold + 1
         amount_tickets = eventdata.amount_tickets - 1
         db.execute(
@@ -44,14 +44,14 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             SET sold = ?, amount_tickets = ?
             WHERE id = ?
             """,
-            (sold, amount_tickets, row[3]),
+            (sold, amount_tickets, row[2]),
         )
     return get_ticket(checking_id)
 
 
 def get_ticket(checking_id: str) -> Optional[Tickets]:
     with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (checking_id,))
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
 
     return Tickets(**row) if row else None
 
@@ -62,14 +62,14 @@ def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
 
     with open_ext_db("events") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM tickets WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
     print("scrum")
     return [Tickets(**row) for row in rows]
 
 
 def delete_ticket(checking_id: str) -> None:
     with open_ext_db("events") as db:
-        db.execute("DELETE FROM tickets WHERE id = ?", (checking_id,))
+        db.execute("DELETE FROM ticket WHERE id = ?", (checking_id,))
 
 
 
@@ -127,16 +127,16 @@ def delete_event(event_id: str) -> None:
 def get_event_tickets(event_id: str, wallet_id: str) -> Tickets:
 
     with open_ext_db("events") as db:
-        rows = db.fetchall("SELECT * FROM tickets WHERE wallet = ? AND event = ?", (wallet_id, event_id))
+        rows = db.fetchall("SELECT * FROM ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id))
         print(rows)
 
     return [Tickets(**row) for row in rows]
 
 def reg_ticket(ticket_id: str) -> Tickets:
     with open_ext_db("events") as db:
-        db.execute("UPDATE tickets SET registered = ? WHERE id = ?", (True, ticket_id))
-        ticket = db.fetchone("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
-        print(ticket[2])
-        rows = db.fetchall("SELECT * FROM tickets WHERE event = ?", (ticket[2],))
+        db.execute("UPDATE ticket SET registered = ? WHERE id = ?", (True, ticket_id))
+        ticket = db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
+        print(ticket[1])
+        rows = db.fetchall("SELECT * FROM ticket WHERE event = ?", (ticket[1],))
 
     return [Tickets(**row) for row in rows]

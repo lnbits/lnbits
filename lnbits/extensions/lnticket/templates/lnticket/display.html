@@ -138,14 +138,18 @@
       Invoice: function () {
         var self = this
         axios
-
-          .get(
+          .post(
             '/lnticket/api/v1/tickets/' +
-              '{{ form_id }}' +
-              '/' +
-              self.formDialog.data.sats
+              '{{ form_id }}/' +
+              self.formDialog.data.sats,
+            {
+              form: '{{ form_id }}',
+              name: self.formDialog.data.name,
+              email: self.formDialog.data.email,
+              ltext: self.formDialog.data.text,
+              sats: self.formDialog.data.sats
+            }
           )
-
           .then(function (response) {
             self.paymentReq = response.data.payment_request
             self.paymentCheck = response.data.checking_id
@@ -160,21 +164,10 @@
               status: 'pending',
               paymentReq: self.paymentReq
             }
-            if (self.formDialog.data.email == '') {
-              daemail = 'null'
-            } else {
-              daemail = self.formDialog.data.email
-            }
 
             paymentChecker = setInterval(function () {
               axios
-                .post('/lnticket/api/v1/tickets/' + self.paymentCheck, {
-                  form: '{{ form_id }}',
-                  name: self.formDialog.data.name,
-                  email: daemail,
-                  ltext: self.formDialog.data.text,
-                  sats: self.formDialog.data.sats
-                })
+                .get('/lnticket/api/v1/tickets/' + self.paymentCheck)
                 .then(function (res) {
                   if (res.data.paid) {
                     clearInterval(paymentChecker)

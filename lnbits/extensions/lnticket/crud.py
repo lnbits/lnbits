@@ -10,33 +10,47 @@ from .models import Tickets, Forms
 
 #######TICKETS########
 
-
-def create_ticket(wallet: str, form: str,  name: str,  email: str, ltext: str, sats: int) -> Tickets:
-    formdata = get_form(form)
-    amount = formdata.amountmade + sats
+def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: str, ltext: str, sats: int) -> Tickets:
     with open_ext_db("lnticket") as db:
-        ticket_id = urlsafe_short_hash()
         db.execute(
             """
-            INSERT INTO tickets (id, form, email, ltext, name, wallet, sats)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO ticket (id, form, email, ltext, name, wallet, sats, paid)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (ticket_id, form, email, ltext, name, wallet, sats),
+            (checking_id, form, email, ltext, name, wallet, sats, False),
         )
+
+    return get_ticket(checking_id)
+
+def update_ticket(paid: bool, checking_id: str) -> Tickets:
+    with open_ext_db("lnticket") as db:
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
+        if row[7] == True:
+            return get_ticket(checking_id)
+        db.execute(
+            """
+            UPDATE ticket
+            SET paid = ?
+            WHERE id = ?
+            """,
+            (paid, checking_id),
+        )
+        
+        formdata = get_form(row[1])
+        amount = formdata.amountmade + row[7]
         db.execute(
             """
             UPDATE forms
             SET amountmade = ?
             WHERE id = ?
             """,
-            (amount, form),
+            (amount, row[1]),
         )
-    return get_ticket(ticket_id)
-
+    return get_ticket(checking_id)
 
 def get_ticket(ticket_id: str) -> Optional[Tickets]:
     with open_ext_db("lnticket") as db:
-        row = db.fetchone("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
 
     return Tickets(**row) if row else None
 
@@ -47,14 +61,14 @@ def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
 
     with open_ext_db("lnticket") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM tickets WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [Tickets(**row) for row in rows]
 
 
 def delete_ticket(ticket_id: str) -> None:
     with open_ext_db("lnticket") as db:
-        db.execute("DELETE FROM tickets WHERE id = ?", (ticket_id,))
+        db.execute("DELETE FROM ticket WHERE id = ?", (ticket_id,))
 
 
 

@@ -19,5 +19,6 @@ class Tickets(NamedTuple):
     name: str
     wallet: str
     sats: int
+    paid: bool
     time: int
 

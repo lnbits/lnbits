@@ -31,6 +31,6 @@ def print_qr(link_id):
     for x in link.usescsv.split(","):
         linkk = get_withdraw_link(link_id, x) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
         links.append(linkk)
-    page_link = list(chunks(links, 4))
-    linked = list(chunks(page_link, 8))
+    page_link = list(chunks(links, 2))
+    linked = list(chunks(page_link, 5))
     return render_template("withdraw/print_qr.html", link=linked, unique=True)
