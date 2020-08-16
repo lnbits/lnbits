@@ -9,8 +9,14 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
+        <q-btn
+          unelevated
+          color="deep-purple"
+          @click="simpleformDialog.show = true"
+          >Quick vouchers</q-btn
+        >
         <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
-          >New withdraw link</q-btn
+          >Advanced withdraw link(s)</q-btn
         >
       </q-card-section>
     </q-card>
@@ -220,6 +226,59 @@
                 formDialog.data.wait_time == null"
             type="submit"
             >Create withdraw link</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog
+    v-model="simpleformDialog.show"
+    position="top"
+    @hide="simplecloseFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="simplesendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="simpleformDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.number="simpleformDialog.data.max_withdrawable"
+          type="number"
+          label="Withdraw amount"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="simpleformDialog.data.uses"
+          type="number"
+          :default="1"
+          label="Amount of uses *"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="deep-purple"
+            :disable="
+                simpleformDialog.data.wallet == null ||
+                
+                  simpleformDialog.data.max_withdrawable == null ||
+                  simpleformDialog.data.max_withdrawable < 1 ||
+                simpleformDialog.data.uses == null"
+            type="submit"
+            >Create vouchers</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
