@@ -33,7 +33,7 @@ class LNPayWallet(Wallet):
         r = post(
             url=f"{self.endpoint}/user/wallet/{self.auth_admin}/withdraw",
             headers=self.auth_api,
-            json={"payment_request": bolt11},
+            json={"payment_request": bolt11, "allow_self_payment": True},
         )
         ok, checking_id, fee_msat, error_message = r.status_code == 201, None, 0, None
 

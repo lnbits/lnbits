@@ -32,7 +32,7 @@ class LNbitsWallet(Wallet):
         r = post(
             url=f"{self.endpoint}/api/v1/payments",
             headers=self.auth_admin,
-            json={"out": True, "bolt11": bolt11}
+            json={"out": True, "bolt11": bolt11, "allow_self_payment": True}
         )
         ok, checking_id, fee_msat, error_message = True, None, 0, None
 
