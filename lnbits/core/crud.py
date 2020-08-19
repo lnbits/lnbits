@@ -186,15 +186,15 @@ def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> N
 
 
 def create_payment(
-    *, wallet_id: str, checking_id: str, amount: int, memo: str, fee: int = 0, pending: bool = True
+    *, wallet_id: str, checking_id: str, payment_hash: str, amount: int, memo: str, fee: int = 0, pending: bool = True
 ) -> Payment:
     with open_db() as db:
         db.execute(
             """
-            INSERT INTO apipayments (wallet, payhash, amount, pending, memo, fee)
+            INSERT INTO apipayments (wallet, id, payment_hash, amount, pending, memo, fee)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (wallet_id, checking_id, amount, int(pending), memo, fee),
+            (wallet_id, checking_id, payment_hash, amount, int(pending), memo, fee),
         )
 
     new_payment = get_wallet_payment(wallet_id, checking_id)
@@ -205,9 +205,18 @@ def create_payment(
 
 def update_payment_status(checking_id: str, pending: bool) -> None:
     with open_db() as db:
-        db.execute("UPDATE apipayments SET pending = ? WHERE payhash = ?", (int(pending), checking_id,))
+        db.execute("UPDATE apipayments SET pending = ? WHERE id = ?", (int(pending), checking_id,))
 
 
 def delete_payment(checking_id: str) -> None:
     with open_db() as db:
-        db.execute("DELETE FROM apipayments WHERE payhash = ?", (checking_id,))
+        db.execute("DELETE FROM apipayments WHERE id = ?", (checking_id,))
+
+
+def check_internal(payment_hash: str) -> None:
+    with open_db() as db:
+        row = db.fetchone("SELECT * FROM apipayments WHERE payment_hash = ?", (payment_hash,))
+        if not row:
+            return False
+        else:
+            return row['id']
