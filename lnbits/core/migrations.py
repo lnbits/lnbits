@@ -51,6 +51,7 @@ def m001_initial(db):
         );
     """
     )
+
     db.execute(
         """
         CREATE VIEW IF NOT EXISTS balances AS
@@ -68,8 +69,74 @@ def m001_initial(db):
         GROUP BY wallet;
     """
     )
+    db.execute("DROP VIEW balances")
+    db.execute(
+        """
+        CREATE VIEW IF NOT EXISTS balances AS
+        SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
+            SELECT wallet, SUM(amount) AS s  -- incoming
+            FROM apipayment
+            WHERE amount > 0 AND pending = 0  -- don't sum pending
+            GROUP BY wallet
+            UNION ALL
+            SELECT wallet, SUM(amount + fee) AS s  -- outgoing, sum fees
+            FROM apipayment
+            WHERE amount < 0  -- do sum pending
+            GROUP BY wallet
+        )
+        GROUP BY wallet;
+    """
+    )
 
+def m002_changed(db):
+
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS apipayment (
+            id TEXT NOT NULL,
+            payment_hash TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            fee INTEGER NOT NULL DEFAULT 0,
+            wallet TEXT NOT NULL,
+            pending BOOLEAN NOT NULL,
+            memo TEXT,
+            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now')),
+
+            UNIQUE (wallet, id)
+        );
+    """
+    )
+
+
+    for row in [list(row) for row in db.fetchall("SELECT * FROM apipayments")]:
+        db.execute(
+            """
+            INSERT INTO apipayment (
+                id,
+                payment_hash,
+                amount,
+                fee,
+                wallet,
+                pending,
+                memo,
+                time
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                row[0], 
+                "oldinvoice",
+                row[1], 
+                row[2], 
+                row[3],
+                row[4], 
+                row[5], 
+                row[6],
+            ),
+        )
+    db.execute("DROP TABLE apipayments")
 
 def migrate():
     with open_db() as db:
         m001_initial(db)
+        m002_changed(db)

@@ -4,7 +4,7 @@ from lnbits.bolt11 import decode as bolt11_decode  # type: ignore
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 
-from .crud import get_wallet, create_payment, delete_payment
+from .crud import get_wallet, create_payment, delete_payment, check_internal, update_payment_status
 
 
 def create_invoice(*, wallet_id: str, amount: int, memo: str, description_hash: bytes = None) -> Tuple[str, str]:
@@ -18,9 +18,10 @@ def create_invoice(*, wallet_id: str, amount: int, memo: str, description_hash: 
 
     if not ok:
         raise Exception(error_message or "Unexpected backend error.")
+    invoice = bolt11_decode(payment_request)
 
     amount_msat = amount * 1000
-    create_payment(wallet_id=wallet_id, checking_id=checking_id, amount=amount_msat, memo=memo)
+    create_payment(wallet_id=wallet_id, checking_id=checking_id, payment_hash=invoice.payment_hash, amount=amount_msat, memo=memo)
 
     return checking_id, payment_request
 
@@ -29,6 +30,7 @@ def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -
     temp_id = f"temp_{urlsafe_short_hash()}"
     try:
         invoice = bolt11_decode(bolt11)
+        internal = check_internal(invoice.payment_hash)
 
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
@@ -37,21 +39,41 @@ def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -
             raise ValueError("Amount in invoice is too high.")
 
         fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
-        create_payment(
-            wallet_id=wallet_id, checking_id=temp_id, amount=-invoice.amount_msat, fee=-fee_reserve, memo=temp_id,
-        )
+
+        if not internal:
+            create_payment(
+                wallet_id=wallet_id,
+                checking_id=temp_id,
+                payment_hash=invoice.payment_hash,
+                amount=-invoice.amount_msat,
+                fee=-fee_reserve,
+                memo=temp_id,
+            )
 
         wallet = get_wallet(wallet_id)
         assert wallet, "invalid wallet id"
         if wallet.balance_msat < 0:
             raise PermissionError("Insufficient balance.")
 
-        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(bolt11)
+        if internal:
+            create_payment(
+                wallet_id=wallet_id,
+                checking_id=temp_id,
+                payment_hash=invoice.payment_hash,
+                amount=-invoice.amount_msat,
+                fee=0,
+                pending=False,
+                memo=invoice.description,
+            )
+            update_payment_status(checking_id=internal, pending=False)
+            return temp_id
 
+        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(bolt11)
         if ok:
             create_payment(
                 wallet_id=wallet_id,
                 checking_id=checking_id,
+                payment_hash=invoice.payment_hash,
                 amount=-invoice.amount_msat,
                 fee=fee_msat,
                 memo=invoice.description,
