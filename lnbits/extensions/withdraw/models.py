@@ -2,7 +2,7 @@ from flask import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
 from sqlite3 import Row
 from typing import NamedTuple
-
+import shortuuid # type: ignore
 from lnbits.settings import FORCE_HTTPS
 
 
@@ -20,13 +20,13 @@ class WithdrawLink(NamedTuple):
     open_time: int
     used: int
     usescsv: str
-    multihash: str
+    number: int
 
     @classmethod
     def from_row(cls, row: Row) -> "WithdrawLink":
         data = dict(row)
         data["is_unique"] = bool(data["is_unique"])
-        data["multihash"] = ""
+        data["number"] = 0
         return cls(**data)
 
     @property
@@ -36,9 +36,11 @@ class WithdrawLink(NamedTuple):
     @property
     def lnurl(self) -> Lnurl:
         scheme = "https" if FORCE_HTTPS else None
-        print(self.is_unique)
         if self.is_unique:
-            url = url_for("withdraw.api_lnurl_multi_response", unique_hash=self.unique_hash, id_unique_hash=self.multihash, _external=True, _scheme=scheme)
+            usescssv = self.usescsv.split(",")
+            tohash = self.id + self.unique_hash + usescssv[self.number]
+            multihash = shortuuid.uuid(name=tohash)
+            url = url_for("withdraw.api_lnurl_multi_response", unique_hash=self.unique_hash, id_unique_hash=multihash, _external=True, _scheme=scheme)
         else:
             url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
 
@@ -49,7 +51,6 @@ class WithdrawLink(NamedTuple):
         scheme = "https" if FORCE_HTTPS else None
 
         url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
-        print(url)
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,

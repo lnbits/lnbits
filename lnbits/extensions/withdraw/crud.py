@@ -55,31 +55,26 @@ def create_withdraw_link(
                 usescsv,
             ),
         )
-    return get_withdraw_link(link_id, uses)
+    return get_withdraw_link(link_id, 0)
 
 
-def get_withdraw_link(link_id: str, num=None) -> Optional[WithdrawLink]:
+def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         row = db.fetchone("SELECT * FROM withdraw_link WHERE id = ?", (link_id,))
-        link = []
-        for item in row:
-           link.append(item) 
-    tohash = row["id"] + row["unique_hash"] + str(num)
-    link.append(shortuuid.uuid(name=tohash))
+    link = []
+    for item in row:
+        link.append(item) 
+    link.append(num)
     return WithdrawLink._make(link)
 
 
-def get_withdraw_link_by_hash(unique_hash: str, num=None) -> Optional[WithdrawLink]:
+def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[WithdrawLink]:
     with open_ext_db("withdraw") as db:
         row = db.fetchone("SELECT * FROM withdraw_link WHERE unique_hash = ?", (unique_hash,))
         link = []
         for item in row:
            link.append(item) 
-        if not num:
-            link.append("")
-            return WithdrawLink._make(link)
-    tohash = row["id"] + row["unique_hash"] + str(num)
-    link.append(shortuuid.uuid(name=tohash))
+    link.append(num)
     return WithdrawLink._make(link)
     
 

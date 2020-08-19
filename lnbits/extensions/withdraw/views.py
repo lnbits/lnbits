@@ -16,10 +16,8 @@ def index():
 
 @withdraw_ext.route("/<link_id>")
 def display(link_id):
-    link = get_withdraw_link(link_id) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
-    link = get_withdraw_link(link_id, len(link.usescsv.split(","))) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
-
-    return render_template("withdraw/display.html", link=link)
+    link = get_withdraw_link(link_id, 0) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
+    return render_template("withdraw/display.html", link=link, unique=True)
 
 
 @withdraw_ext.route("/print/<link_id>")
@@ -28,9 +26,11 @@ def print_qr(link_id):
     if link.uses == 0:
         return render_template("withdraw/print_qr.html", link=link, unique=False)
     links = []
+    count = 0
     for x in link.usescsv.split(","):
-        linkk = get_withdraw_link(link_id, x) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
-        links.append(linkk)
+        linkk = get_withdraw_link(link_id, count) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
+        links.append(str(linkk.lnurl))
+        count = count + 1
     page_link = list(chunks(links, 2))
     linked = list(chunks(page_link, 5))
     return render_template("withdraw/print_qr.html", link=linked, unique=True)

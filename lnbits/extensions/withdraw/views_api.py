@@ -42,7 +42,7 @@ def api_links():
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 def api_link_retrieve(link_id):
-    link = get_withdraw_link(link_id)
+    link = get_withdraw_link(link_id, 0)
 
     if not link:
         return jsonify({"message": "Withdraw link does not exist."}), HTTPStatus.NOT_FOUND
@@ -72,12 +72,9 @@ def api_link_create_or_update(link_id=None):
             jsonify({"message": "`max_withdrawable` needs to be at least `min_withdrawable`."}),
             HTTPStatus.BAD_REQUEST,
         )
-
     if (g.data["max_withdrawable"] * g.data["uses"] * 1000) > g.wallet.balance_msat:
         return jsonify({"message": "Insufficient balance."}), HTTPStatus.FORBIDDEN
-
     usescsv = ""
-
     for i in range(g.data["uses"]):
         if g.data["is_unique"]:
             usescsv += "," + str(i + 1)
@@ -86,18 +83,14 @@ def api_link_create_or_update(link_id=None):
     usescsv = usescsv[1:]   
 
     if link_id:
-        link = get_withdraw_link(link_id)
-
+        link = get_withdraw_link(link_id, 0)
         if not link:
             return jsonify({"message": "Withdraw link does not exist."}), HTTPStatus.NOT_FOUND
-
         if link.wallet != g.wallet.id:
             return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
-
         link = update_withdraw_link(link_id, **g.data, usescsv=usescsv, used=0)
     else:
         link = create_withdraw_link(wallet_id=g.wallet.id, **g.data, usescsv=usescsv)
-
     return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK if link_id else HTTPStatus.CREATED
 
 

@@ -113,7 +113,10 @@ new Vue({
     },
     openQrCodeDialog: function (linkId) {
       var link = _.findWhere(this.withdrawLinks, {id: linkId})
+      
       this.qrCodeDialog.data = _.clone(link)
+      console.log(this.qrCodeDialog.data)
+      this.qrCodeDialog.data.url = window.location.hostname
       this.qrCodeDialog.show = true
     },
     openUpdateDialog: function (linkId) {
