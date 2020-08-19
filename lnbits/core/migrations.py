@@ -51,6 +51,7 @@ def m001_initial(db):
         );
     """
     )
+
     db.execute(
         """
         CREATE VIEW IF NOT EXISTS balances AS
@@ -68,7 +69,24 @@ def m001_initial(db):
         GROUP BY wallet;
     """
     )
-
+    db.execute("DROP VIEW balances")
+    db.execute(
+        """
+        CREATE VIEW IF NOT EXISTS balances AS
+        SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
+            SELECT wallet, SUM(amount) AS s  -- incoming
+            FROM apipayment
+            WHERE amount > 0 AND pending = 0  -- don't sum pending
+            GROUP BY wallet
+            UNION ALL
+            SELECT wallet, SUM(amount + fee) AS s  -- outgoing, sum fees
+            FROM apipayment
+            WHERE amount < 0  -- do sum pending
+            GROUP BY wallet
+        )
+        GROUP BY wallet;
+    """
+    )
 
 def m002_changed(db):
 
