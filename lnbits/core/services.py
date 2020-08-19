@@ -4,7 +4,7 @@ from lnbits.bolt11 import decode as bolt11_decode # type: ignore
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 
-from .crud import get_wallet, create_payment, delete_payment, check_internal
+from .crud import get_wallet, create_payment, delete_payment, check_internal, update_payment_status
 
 
 def create_invoice(*, wallet_id: str, amount: int, memo: str) -> Tuple[str, str]:
@@ -15,9 +15,10 @@ def create_invoice(*, wallet_id: str, amount: int, memo: str) -> Tuple[str, str]
 
     if not ok:
         raise Exception(error_message or "Unexpected backend error.")
+    invoice = bolt11_decode(payment_request)
 
     amount_msat = amount * 1000
-    create_payment(wallet_id=wallet_id, checking_id=checking_id, amount=amount_msat, memo=memo)
+    create_payment(wallet_id=wallet_id, checking_id=checking_id, payment_hash=invoice.payment_hash, amount=amount_msat, memo=memo)
 
     return checking_id, payment_request
 

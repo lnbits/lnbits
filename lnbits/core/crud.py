@@ -192,7 +192,7 @@ def create_payment(
         db.execute(
             """
             INSERT INTO apipayment (wallet, id, payment_hash, amount, pending, memo, fee)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (wallet_id, checking_id, payment_hash, amount, int(pending), memo, fee),
         )
