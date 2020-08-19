@@ -27,7 +27,6 @@ def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -
     temp_id = f"temp_{urlsafe_short_hash()}"
     try:
         invoice = bolt11_decode(bolt11)
-        print(invoice.payment_hash)
         internal = check_internal(invoice.payment_hash)
 
         if invoice.amount_msat == 0:
@@ -51,7 +50,6 @@ def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -
         assert wallet, "invalid wallet id"
         if wallet.balance_msat < 0:
             raise PermissionError("Insufficient balance.")
-        print(internal)
         if internal:
             create_payment(
                 wallet_id=wallet_id,
