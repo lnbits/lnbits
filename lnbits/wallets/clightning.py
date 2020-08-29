@@ -28,20 +28,26 @@ class CLightningWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = self.l1.pay(bolt11)
-        ok, checking_id, fee_msat, error_message = True, None, 0, None
+        ok, checking_id, fee_msat, error_message = True, r["payment_hash"], r["msatoshi_sent"] - r["msatoshi"], None
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = self.l1.listinvoices(checking_id)
-        if r["invoices"][0]["status"] == "unpaid":
+        if not r["invoices"]:
             return PaymentStatus(False)
-        return PaymentStatus(True)
+        if r["invoices"][0]["label"] == checking_id:
+            return PaymentStatus(r["pays"][0]["status"] == "paid")
+        raise KeyError("supplied an invalid checking_id")
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = self.l1.listsendpays(checking_id)
-        if not r.ok:
+        r = self.l1.listpays(payment_hash=checking_id)
+        if not r["pays"]:
+            return PaymentStatus(False)
+        if r["pays"][0]["payment_hash"] == checking_id:
+            status = r["pays"][0]["status"]
+            if status == "complete":
+                return PaymentStatus(True)
+            elif status == "failed":
+                return PaymentStatus(False)
             return PaymentStatus(None)
-        payments = [p for p in r.json()["payments"] if p["payment_hash"] == checking_id]
-        payment = payments[0] if payments else None
-        statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
-        return PaymentStatus(statuses[payment["status"]] if payment else None)
+        raise KeyError("supplied an invalid checking_id")

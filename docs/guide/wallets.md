@@ -21,6 +21,11 @@ Using this wallet requires the installation of the `pylightning` Python package.
 - `LNBITS_BACKEND_WALLET_CLASS`: **CLightningWallet**
 - `CLIGHTNING_RPC`: /file/path/lightning-rpc
 
+### Spark (c-lightning)
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **SparkWallet**
+- `SPARK_URL`: http://10.147.17.230:9737/rpc
+- `SPARK_TOKEN`: secret_access_key
 
 ### LND (gRPC)
 
