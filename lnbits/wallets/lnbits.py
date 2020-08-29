@@ -12,11 +12,11 @@ class LNbitsWallet(Wallet):
         self.auth_admin = {"X-Api-Key": getenv("LNBITS_ADMIN_KEY")}
         self.auth_invoice = {"X-Api-Key": getenv("LNBITS_INVOICE_KEY")}
 
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
         r = post(
             url=f"{self.endpoint}/api/v1/payments",
             headers=self.auth_invoice,
-            json={"out": False, "amount": amount, "memo": memo}
+            json={"out": False, "amount": amount, "memo": memo, "description_hash": description_hash.hex(),},
         )
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
@@ -29,11 +29,7 @@ class LNbitsWallet(Wallet):
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = post(
-            url=f"{self.endpoint}/api/v1/payments",
-            headers=self.auth_admin,
-            json={"out": True, "bolt11": bolt11}
-        )
+        r = post(url=f"{self.endpoint}/api/v1/payments", headers=self.auth_admin, json={"out": True, "bolt11": bolt11})
         ok, checking_id, fee_msat, error_message = True, None, 0, None
 
         if r.ok:
@@ -50,7 +46,7 @@ class LNbitsWallet(Wallet):
         if not r.ok:
             return PaymentStatus(None)
 
-        return PaymentStatus(r.json()['paid'])
+        return PaymentStatus(r.json()["paid"])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.auth_invoice)
@@ -58,4 +54,4 @@ class LNbitsWallet(Wallet):
         if not r.ok:
             return PaymentStatus(None)
 
-        return PaymentStatus(r.json()['paid'])
+        return PaymentStatus(r.json()["paid"])

@@ -26,7 +26,7 @@ class PaymentStatus(NamedTuple):
 
 class Wallet(ABC):
     @abstractmethod
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
         pass
 
     @abstractmethod
@@ -40,3 +40,7 @@ class Wallet(ABC):
     @abstractmethod
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         pass
+
+
+class Unsupported(Exception):
+    pass

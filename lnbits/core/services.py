@@ -1,15 +1,18 @@
 from typing import Optional, Tuple
 
-from lnbits.bolt11 import decode as bolt11_decode # type: ignore
+from lnbits.bolt11 import decode as bolt11_decode  # type: ignore
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 
 from .crud import get_wallet, create_payment, delete_payment
 
 
-def create_invoice(*, wallet_id: str, amount: int, memo: str) -> Tuple[str, str]:
+def create_invoice(*, wallet_id: str, amount: int, memo: str, description_hash: bytes) -> Tuple[str, str]:
+
     try:
-        ok, checking_id, payment_request, error_message = WALLET.create_invoice(amount=amount, memo=memo)
+        ok, checking_id, payment_request, error_message = WALLET.create_invoice(
+            amount=amount, memo=memo, description_hash=description_hash
+        )
     except Exception as e:
         ok, error_message = False, str(e)
 
@@ -35,11 +38,7 @@ def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -
 
         fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
         create_payment(
-            wallet_id=wallet_id,
-            checking_id=temp_id,
-            amount=-invoice.amount_msat,
-            fee=-fee_reserve,
-            memo=temp_id,
+            wallet_id=wallet_id, checking_id=temp_id, amount=-invoice.amount_msat, fee=-fee_reserve, memo=temp_id,
         )
 
         wallet = get_wallet(wallet_id)

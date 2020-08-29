@@ -13,8 +13,12 @@ class LntxbotWallet(Wallet):
         self.auth_admin = {"Authorization": f"Basic {getenv('LNTXBOT_ADMIN_KEY')}"}
         self.auth_invoice = {"Authorization": f"Basic {getenv('LNTXBOT_INVOICE_KEY')}"}
 
-    def create_invoice(self, amount: int, memo: str = "") -> InvoiceResponse:
-        r = post(url=f"{self.endpoint}/addinvoice", headers=self.auth_invoice, json={"amt": str(amount), "memo": memo})
+    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+        r = post(
+            url=f"{self.endpoint}/addinvoice",
+            headers=self.auth_invoice,
+            json={"amt": str(amount), "memo": memo, "description_hash": description_hash.hex()},
+        )
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
         if r.ok:

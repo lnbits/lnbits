@@ -1,0 +1,28 @@
+{% extends "print.html" %} {% block page %}
+<div class="row justify-center">
+  <div class="qr">
+    <qrcode value="{{ link.lnurl }}" :options="{width}"></qrcode>
+  </div>
+</div>
+{% endblock %} {% block styles %}
+<style>
+  .qr {
+    margin: auto;
+  }
+</style>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    created: function () {
+      window.print()
+    },
+    data: function () {
+      return {width: window.innerWidth * 0.5}
+    }
+  })
+</script>
+{% endblock %}
