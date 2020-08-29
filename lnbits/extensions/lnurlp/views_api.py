@@ -1,3 +1,4 @@
+import hashlib
 from flask import g, jsonify, request, url_for
 from http import HTTPStatus
 from lnurl import LnurlPayResponse, LnurlPayActionResponse
@@ -118,7 +119,10 @@ def api_lnurl_callback(link_id):
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
     _, payment_request = create_invoice(
-        wallet_id=link.wallet, amount=link.amount, memo=None, description_hash=link.lnurlpay_metadata.encode("utf-8"),
+        wallet_id=link.wallet,
+        amount=link.amount,
+        memo=None,
+        description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
     )
     resp = LnurlPayActionResponse(pr=payment_request, success_action=None, routes=[])
 
