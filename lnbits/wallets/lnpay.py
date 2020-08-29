@@ -26,7 +26,7 @@ class LNPayWallet(Wallet):
                 "description_hash": base64.b64encode(description_hash).decode("ascii"),
             },
         )
-        ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, None
+        ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, r.text
 
         if ok:
             data = r.json()

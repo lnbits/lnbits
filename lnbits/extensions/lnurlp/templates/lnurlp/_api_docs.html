@@ -1,0 +1,130 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="List pay links">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">GET</span> /pay/api/v1/links</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;pay_link_object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}pay/api/v1/links -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Get a pay link">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /pay/api/v1/links/&lt;pay_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code>{"lnurl": &lt;string&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}pay/api/v1/links/&lt;pay_id&gt; -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create a pay link"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-green">POST</span> /pay/api/v1/links</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code>{"description": &lt;string&gt; "amount": &lt;integer&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code>{"lnurl": &lt;string&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.url_root }}pay/api/v1/links -d
+          '{"description": &lt;string&gt;, "amount": &lt;integer&gt;}' -H
+          "Content-type: application/json" -H "X-Api-Key: {{
+          g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Update a pay link"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-green">PUT</span>
+          /pay/api/v1/links/&lt;pay_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code>{"description": &lt;string&gt;, "amount": &lt;integer&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{"lnurl": &lt;string&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X PUT {{ request.url_root }}pay/api/v1/links/&lt;pay_id&gt; -d
+          '{"description": &lt;string&gt;, "amount": &lt;integer&gt;}' -H
+          "Content-type: application/json" -H "X-Api-Key: {{
+          g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete a pay link"
+    class="q-pb-md"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-pink">DELETE</span>
+          /pay/api/v1/links/&lt;pay_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 204 NO CONTENT</h5>
+        <code></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.url_root }}pay/api/v1/links/&lt;pay_id&gt;
+          -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>
