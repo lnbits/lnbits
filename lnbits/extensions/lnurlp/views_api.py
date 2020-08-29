@@ -121,7 +121,7 @@ def api_lnurl_callback(link_id):
     _, payment_request = create_invoice(
         wallet_id=link.wallet,
         amount=link.amount,
-        memo=None,
+        memo=link.description,
         description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
     )
     resp = LnurlPayActionResponse(pr=payment_request, success_action=None, routes=[])
