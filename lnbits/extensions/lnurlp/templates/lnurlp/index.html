@@ -206,8 +206,7 @@
     </q-card>
   </q-dialog>
 </div>
-{% endblock %}
-{% block scripts %} {{ window_vars(user) }}
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -219,7 +218,7 @@
     window.location.pathname
   ].join('')
 
-  var mapPayLink = function(obj) {
+  var mapPayLink = function (obj) {
     obj._data = _.clone(obj)
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -234,7 +233,7 @@
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
-    data: function() {
+    data: function () {
       return {
         checker: null,
         payLinks: [],
@@ -273,7 +272,7 @@
       }
     },
     methods: {
-      getPayLinks: function() {
+      getPayLinks: function () {
         var self = this
 
         LNbits.api
@@ -282,32 +281,32 @@
             '/lnurlp/api/v1/links?all_wallets',
             this.g.user.wallets[0].inkey
           )
-          .then(function(response) {
-            self.payLinks = response.data.map(function(obj) {
+          .then(function (response) {
+            self.payLinks = response.data.map(function (obj) {
               return mapPayLink(obj)
             })
           })
-          .catch(function(error) {
+          .catch(function (error) {
             clearInterval(self.checker)
             LNbits.utils.notifyApiError(error)
           })
       },
-      closeFormDialog: function() {
+      closeFormDialog: function () {
         this.formDialog.data = {
           is_unique: false
         }
       },
-      openQrCodeDialog: function(linkId) {
+      openQrCodeDialog: function (linkId) {
         var link = _.findWhere(this.payLinks, {id: linkId})
         this.qrCodeDialog.data = _.clone(link)
         this.qrCodeDialog.show = true
       },
-      openUpdateDialog: function(linkId) {
+      openUpdateDialog: function (linkId) {
         var link = _.findWhere(this.payLinks, {id: linkId})
         this.formDialog.data = _.clone(link._data)
         this.formDialog.show = true
       },
-      sendFormData: function() {
+      sendFormData: function () {
         var wallet = _.findWhere(this.g.user.wallets, {
           id: this.formDialog.data.wallet
         })
@@ -327,7 +326,7 @@
           this.createPayLink(wallet, data)
         }
       },
-      updatePayLink: function(wallet, data) {
+      updatePayLink: function (wallet, data) {
         var self = this
 
         LNbits.api
@@ -337,62 +336,62 @@
             wallet.adminkey,
             _.pick(data, 'description', 'amount')
           )
-          .then(function(response) {
-            self.payLinks = _.reject(self.payLinks, function(obj) {
+          .then(function (response) {
+            self.payLinks = _.reject(self.payLinks, function (obj) {
               return obj.id === data.id
             })
             self.payLinks.push(mapPayLink(response.data))
             self.formDialog.show = false
           })
-          .catch(function(error) {
+          .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      createPayLink: function(wallet, data) {
+      createPayLink: function (wallet, data) {
         var self = this
 
         LNbits.api
           .request('POST', '/lnurlp/api/v1/links', wallet.adminkey, data)
-          .then(function(response) {
+          .then(function (response) {
             self.payLinks.push(mapPayLink(response.data))
             self.formDialog.show = false
           })
-          .catch(function(error) {
+          .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      deletePayLink: function(linkId) {
+      deletePayLink: function (linkId) {
         var self = this
         var link = _.findWhere(this.payLinks, {id: linkId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function() {
+          .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
                 '/lnurlp/api/v1/links/' + linkId,
                 _.findWhere(self.g.user.wallets, {id: link.wallet}).adminkey
               )
-              .then(function(response) {
-                self.payLinks = _.reject(self.payLinks, function(obj) {
+              .then(function (response) {
+                self.payLinks = _.reject(self.payLinks, function (obj) {
                   return obj.id === linkId
                 })
               })
-              .catch(function(error) {
+              .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
       },
-      exportCSV: function() {
+      exportCSV: function () {
         LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
       }
     },
-    created: function() {
+    created: function () {
       if (this.g.user.wallets.length) {
         var getPayLinks = this.getPayLinks
         getPayLinks()
-        this.checker = setInterval(function() {
+        this.checker = setInterval(function () {
           getPayLinks()
         }, 20000)
       }
