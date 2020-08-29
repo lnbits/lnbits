@@ -1,3 +1,5 @@
+/* global Vue, LNbits, EventHub */
+
 Vue.component('lnbits-fsat', {
   props: {
     amount: {
@@ -28,11 +30,11 @@ Vue.component('lnbits-wallet-list', {
       <q-item-label header>Wallets</q-item-label>
       <q-item v-for="wallet in wallets" :key="wallet.id"
         clickable
-        :active="activeWallet && activeWallet.id == wallet.id"
+        :active="activeWallet && activeWallet.id === wallet.id"
         tag="a" :href="wallet.url">
         <q-item-section side>
           <q-avatar size="md"
-            :color="(activeWallet && activeWallet.id == wallet.id)
+            :color="(activeWallet && activeWallet.id === wallet.id)
               ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
               : 'grey-5'">
             <q-icon name="flash_on" :size="($q.dark.isActive) ? '21px' : '20px'"
@@ -43,7 +45,7 @@ Vue.component('lnbits-wallet-list', {
           <q-item-label lines="1">{{ wallet.name }}</q-item-label>
           <q-item-label caption>{{ wallet.live_fsat }} sat</q-item-label>
         </q-item-section>
-        <q-item-section side v-show="activeWallet && activeWallet.id == wallet.id">
+        <q-item-section side v-show="activeWallet && activeWallet.id === wallet.id">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
         </q-item-section>
       </q-item>
@@ -60,7 +62,7 @@ Vue.component('lnbits-wallet-list', {
           <q-form @submit="createWallet">
             <q-input filled dense v-model="walletName" label="Name wallet *">
               <template v-slot:append>
-                <q-btn round dense flat icon="send" size="sm" @click="createWallet" :disable="walletName == ''"></q-btn>
+                <q-btn round dense flat icon="send" size="sm" @click="createWallet" :disable="walletName === ''"></q-btn>
               </template>
             </q-input>
           </q-form>
@@ -73,7 +75,7 @@ Vue.component('lnbits-wallet-list', {
       var bal = this.activeBalance
       return this.user.wallets.map(function (obj) {
         obj.live_fsat =
-          bal.length && bal[0] == obj.id
+          bal.length && bal[0] === obj.id
             ? LNbits.utils.formatSat(bal[1])
             : obj.fsat
         return obj

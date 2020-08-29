@@ -1,107 +1,128 @@
-<!doctype html>
+<!DOCTYPE html>
 
 <html lang="en">
   <head>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='vendor/quasar@1.10.4/quasar.min.css') }}">
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='vendor/quasar@1.10.4/quasar.min.css') }}"
+    />
     {% assets 'base_css' %}
-      <link rel="stylesheet" type="text/css" href="{{ ASSET_URL }}">
-    {% endassets %}
-    {% block styles %}{% endblock %}
+    <link rel="stylesheet" type="text/css" href="{{ ASSET_URL }}" />
+    {% endassets %} {% block styles %}{% endblock %}
     <title>
-      {% block title %}
-        {% if SITE_TITLE != 'LNbits' %}{{ SITE_TITLE }}{% else %}LNbits{% endif %}
-      {% endblock %}
+      {% block title %} {% if SITE_TITLE != 'LNbits' %}{{ SITE_TITLE }}{% else
+      %}LNbits{% endif %} {% endblock %}
     </title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
     {% block head_scripts %}{% endblock %}
   </head>
 
   <body>
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
-
       <q-header bordered class="bg-lnbits-dark">
         <q-toolbar>
           {% block drawer_toggle %}
-            <q-btn dense flat round icon="menu" @click="g.visibleDrawer = !g.visibleDrawer"></q-btn>
+          <q-btn
+            dense
+            flat
+            round
+            icon="menu"
+            @click="g.visibleDrawer = !g.visibleDrawer"
+          ></q-btn>
           {% endblock %}
           <q-toolbar-title>
-            {% block toolbar_title %}
-              {% if SITE_TITLE != 'LNbits' %}
-                {{ SITE_TITLE }}
-              {% else %}
-                <strong>LN</strong>bits
-              {% endif %}
-            {% endblock %}
+            {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
+            SITE_TITLE }} {% else %}
+            <strong>LN</strong>bits {% endif %} {% endblock %}
           </q-toolbar-title>
           {% block beta %}
-            <q-badge color="yellow" text-color="black">
-              <span><span v-show="$q.screen.gt.sm">USE WITH CAUTION - LNbits wallet is still in </span>BETA</span>
-            </q-badge>
+          <q-badge color="yellow" text-color="black">
+            <span
+              ><span v-show="$q.screen.gt.sm"
+                >USE WITH CAUTION - LNbits wallet is still in </span
+              >BETA</span
+            >
+          </q-badge>
           {% endblock %}
-          <q-btn dense flat round @click="toggleDarkMode" :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'" class="q-ml-lg" size="sm">
+          <q-btn
+            dense
+            flat
+            round
+            @click="toggleDarkMode"
+            :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
+            class="q-ml-lg"
+            size="sm"
+          >
             <q-tooltip>Toggle Dark Mode</q-tooltip>
           </q-btn>
         </q-toolbar>
       </q-header>
 
       {% block drawer %}
-        <q-drawer v-model="g.visibleDrawer" side="left" :width="($q.screen.lt.md) ? 260 : 230" show-if-above :elevated="$q.screen.lt.md">
-          <lnbits-wallet-list></lnbits-wallet-list>
-          <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
-        </q-drawer>
+      <q-drawer
+        v-model="g.visibleDrawer"
+        side="left"
+        :width="($q.screen.lt.md) ? 260 : 230"
+        show-if-above
+        :elevated="$q.screen.lt.md"
+      >
+        <lnbits-wallet-list></lnbits-wallet-list>
+        <lnbits-extension-list class="q-pb-xl"></lnbits-extension-list>
+      </q-drawer>
+      {% endblock %} {% block page_container %}
+      <q-page-container>
+        <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
+          {% block page %}{% endblock %}
+        </q-page>
+      </q-page-container>
+      {% endblock %} {% block footer %}
+      <q-footer
+        class="bg-transparent q-px-lg q-py-md"
+        :class="{'text-dark': !$q.dark.isActive}"
+      >
+        <q-toolbar>
+          <q-toolbar-title class="text-caption">
+            <strong>LN</strong>bits, free and open-source lightning
+            wallet/accounts system
+          </q-toolbar-title>
+          <q-space></q-space>
+          <q-btn
+            flat
+            dense
+            :color="($q.dark.isActive) ? 'white' : 'deep-purple'"
+            icon="code"
+            type="a"
+            href="https://github.com/lnbits/lnbits"
+            target="_blank"
+            rel="noopener"
+          >
+            <q-tooltip>View project in GitHub</q-tooltip>
+          </q-btn>
+        </q-toolbar>
+      </q-footer>
       {% endblock %}
-
-      {% block page_container %}
-        <q-page-container>
-          <q-page class="q-px-md q-py-lg" :class="{'q-px-lg': $q.screen.gt.xs}">
-            {% block page %}{% endblock %}
-          </q-page>
-        </q-page-container>
-      {% endblock %}
-
-      {% block footer %}
-        <q-footer class="bg-transparent q-px-lg q-py-md" :class="{'text-dark': !$q.dark.isActive}">
-          <q-toolbar>
-            <q-toolbar-title class="text-caption">
-              <strong>LN</strong>bits, free and open-source lightning wallet/accounts system
-            </q-toolbar-title>
-            <q-space></q-space>
-            <q-btn flat dense :color="($q.dark.isActive) ? 'white' : 'deep-purple'" icon="code" type="a" href="https://github.com/lnbits/lnbits" target="_blank" rel="noopener">
-              <q-tooltip>View project in GitHub</q-tooltip>
-            </q-btn>
-          </q-toolbar>
-        </q-footer>
-      {% endblock %}
-
     </q-layout>
 
-    {% block vue_templates %}{% endblock %}
-
-    {% if DEBUG %}
-      <script src="{{ url_for('static', filename='vendor/vue@2.6.11/vue.js') }}"></script>
-      <script src="{{ url_for('static', filename='vendor/vue-router@3.1.6/vue-router.js') }}"></script>
-      <script src="{{ url_for('static', filename='vendor/vuex@3.1.3/vuex.js') }}"></script>
-      <script src="{{ url_for('static', filename='vendor/quasar@1.10.4/quasar.umd.js') }}"></script>
-    {% else %}
-      {% assets output='__bundle__/vue.js',
-        'vendor/quasar@1.10.4/quasar.ie.polyfills.umd.min.js',
-        'vendor/vue@2.6.11/vue.min.js',
-        'vendor/vue-router@3.1.6/vue-router.min.js',
-        'vendor/vuex@3.1.3/vuex.min.js',
-        'vendor/quasar@1.10.4/quasar.umd.min.js' %}
-        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-      {% endassets %}
-    {% endif %}
-
-    {% assets filters='rjsmin', output='__bundle__/base.js',
-      'vendor/axios@0.19.2/axios.min.js',
-      'vendor/underscore@1.10.2/underscore.min.js',
-      'js/base.js',
-      'js/components.js' %}
-      <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %}
-
-    {% block scripts %}{% endblock %}
+    {% block vue_templates %}{% endblock %} {% if DEBUG %}
+    <script src="{{ url_for('static', filename='vendor/vue@2.6.11/vue.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/vue-router@3.1.6/vue-router.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/vuex@3.1.3/vuex.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/quasar@1.10.4/quasar.umd.js') }}"></script>
+    {% else %} {% assets output='__bundle__/vue.js',
+    'vendor/quasar@1.10.4/quasar.ie.polyfills.umd.min.js',
+    'vendor/vue@2.6.11/vue.min.js', 'vendor/vue-router@3.1.6/vue-router.min.js',
+    'vendor/vuex@3.1.3/vuex.min.js', 'vendor/quasar@1.10.4/quasar.umd.min.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %} {% endif %} {% assets filters='rjsmin',
+    output='__bundle__/base.js', 'vendor/axios@0.19.2/axios.min.js',
+    'vendor/underscore@1.10.2/underscore.min.js', 'js/base.js',
+    'js/components.js' %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+    {% endassets %} {% block scripts %}{% endblock %}
   </body>
 </html>

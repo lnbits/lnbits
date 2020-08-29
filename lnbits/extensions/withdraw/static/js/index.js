@@ -59,15 +59,6 @@ new Vue({
           is_unique: false
         }
       },
-      simpleformDialog: {
-        show: false,
-        data: {
-          is_unique: false,
-          title: 'Vouchers',
-          min_withdrawable: 0,
-          wait_time: 1
-        }
-      },
       qrCodeDialog: {
         show: false,
         data: null
@@ -106,17 +97,9 @@ new Vue({
         is_unique: false
       }
     },
-    simplecloseFormDialog: function () {
-      this.simpleformDialog.data = {
-        is_unique: false
-      }
-    },
     openQrCodeDialog: function (linkId) {
       var link = _.findWhere(this.withdrawLinks, {id: linkId})
-      
       this.qrCodeDialog.data = _.clone(link)
-      console.log(this.qrCodeDialog.data)
-      this.qrCodeDialog.data.url = window.location.hostname
       this.qrCodeDialog.show = true
     },
     openUpdateDialog: function (linkId) {
@@ -137,23 +120,6 @@ new Vue({
           minutes: 60,
           hours: 3600
         }[this.formDialog.secondMultiplier]
-
-      if (data.id) {
-        this.updateWithdrawLink(wallet, data)
-      } else {
-        this.createWithdrawLink(wallet, data)
-      }
-    },
-    simplesendFormData: function () {
-      var wallet = _.findWhere(this.g.user.wallets, {
-        id: this.simpleformDialog.data.wallet
-      })
-      var data = _.omit(this.simpleformDialog.data, 'wallet')
-
-      data.wait_time = 1
-      data.min_withdrawable = data.max_withdrawable
-      data.title = 'vouchers'
-      data.is_unique = true
 
       if (data.id) {
         this.updateWithdrawLink(wallet, data)
@@ -198,7 +164,6 @@ new Vue({
         .then(function (response) {
           self.withdrawLinks.push(mapWithdrawLink(response.data))
           self.formDialog.show = false
-          self.simpleformDialog.show = false
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

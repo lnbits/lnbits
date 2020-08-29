@@ -1,72 +1,111 @@
-{% extends "public.html" %}
+{% extends "public.html" %} {% block scripts %} {% assets filters='rjsmin',
+output='__bundle__/core/index.js', 'core/js/index.js' %}
+<script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %} {% endblock %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        {% if lnurl %}
+        <q-btn
+          unelevated
+          color="deep-purple"
+          @click="processing"
+          type="a"
+          href="{{ url_for('core.lnurlwallet', lightning=lnurl) }}"
+        >
+          Press to claim bitcoin
+        </q-btn>
+        {% else %}
+        <q-form @submit="createWallet" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model="walletName"
+            label="Name your LNbits wallet *"
+          ></q-input>
+          <q-btn
+            unelevated
+            color="deep-purple"
+            :disable="walletName == ''"
+            type="submit"
+            >Add a new wallet</q-btn
+          >
+        </q-form>
+        {% endif %}
+      </q-card-section>
+    </q-card>
 
-
-{% block scripts %}
-  {% assets filters='rjsmin', output='__bundle__/core/index.js',
-    'core/js/index.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-  {% endassets %}
-{% endblock %}
-
-{% block page %}
-  <div class="row q-col-gutter-md justify-center">
-    <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-
-      <q-card>
-        <q-card-section>
-            {% if lnurl %}
-              <q-btn unelevated
-                color="deep-purple"
-                @click="processing"
-                type="a" href="{{ url_for('core.lnurlwallet', lightning=lnurl) }}">
-                Press to claim bitcoin
-              </q-btn>
-            {% else %}
-              <q-form @submit="createWallet" class="q-gutter-md">
-                <q-input filled dense
-                  v-model="walletName"
-                  label="Name your LNbits wallet *"
-                ></q-input>
-                <q-btn unelevated
-                  color="deep-purple"
-                  :disable="walletName == ''"
-                  type="submit">Add a new wallet</q-btn>
-              </q-form>
-            {% endif %}
-        </q-card-section>
-      </q-card>
-
-      <q-card>
-        <q-card-section>
-          <h3 class="q-my-none"><strong>LN</strong>bits</h3>
-          <h5 class="q-my-md">Free and open-source lightning wallet</h5>
-          <p>Easy to set up and lightweight, LNbits can run on any lightning-network funding source, currently supporting LND, c-lightning, OpenNode, lntxbot, LNPay and even LNbits itself!</p>
-          <p>You can run LNbits for yourself, or easily offer a custodian solution for others.</p>
-          <p>Each wallet has its own API keys and there is no limit to the number of wallets you can make. Being able to partition funds makes LNbits a useful tool for money management and as a development tool.</p>
-          <p>Extensions add extra functionality to LNbits so you can experiment with a range of cutting-edge technologies on the lightning network. We have made developing extensions as easy as possible, and as a free and open-source project, we encourage people to develop and submit their own.</p>
-          <div class="row q-mt-md q-gutter-sm">
-            <q-btn outline
-              color="grey"
-              type="a" href="https://github.com/lnbits/lnbits" target="_blank" rel="noopener">View project in GitHub</q-btn>
-            <q-btn outline
-              color="grey"
-              type="a" href="https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK" target="_blank" rel="noopener">Donate</q-btn>
-          </div>
-        </q-card-section>
-      </q-card>
-
-    </div>
-
-    <!-- Ads -->
-    <div class="col-12 col-md-3 col-lg-3">
-      <div class="row q-col-gutter-lg justify-center">
-        <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
-          <q-btn flat color="purple" label="Supporters" type="a" href="mailto:lnbits@pm.me" class="full-width"></q-btn>
-          <a href="https://github.com/rootzoll/raspiblitz">
-            <q-img contain :src="($q.dark.isActive) ? '{{ url_for('static', filename='images/raspiblitz-negative.svg') }}' : '{{ url_for('static', filename='images/raspiblitz.svg') }}'" style="height: 90px;"></q-img>
-          </a>
+    <q-card>
+      <q-card-section>
+        <h3 class="q-my-none"><strong>LN</strong>bits</h3>
+        <h5 class="q-my-md">Free and open-source lightning wallet</h5>
+        <p>
+          Easy to set up and lightweight, LNbits can run on any
+          lightning-network funding source, currently supporting LND,
+          c-lightning, OpenNode, lntxbot, LNPay and even LNbits itself!
+        </p>
+        <p>
+          You can run LNbits for yourself, or easily offer a custodian solution
+          for others.
+        </p>
+        <p>
+          Each wallet has its own API keys and there is no limit to the number
+          of wallets you can make. Being able to partition funds makes LNbits a
+          useful tool for money management and as a development tool.
+        </p>
+        <p>
+          Extensions add extra functionality to LNbits so you can experiment
+          with a range of cutting-edge technologies on the lightning network. We
+          have made developing extensions as easy as possible, and as a free and
+          open-source project, we encourage people to develop and submit their
+          own.
+        </p>
+        <div class="row q-mt-md q-gutter-sm">
+          <q-btn
+            outline
+            color="grey"
+            type="a"
+            href="https://github.com/lnbits/lnbits"
+            target="_blank"
+            rel="noopener"
+            >View project in GitHub</q-btn
+          >
+          <q-btn
+            outline
+            color="grey"
+            type="a"
+            href="https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
+            target="_blank"
+            rel="noopener"
+            >Donate</q-btn
+          >
         </div>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <!-- Ads -->
+  <div class="col-12 col-md-3 col-lg-3">
+    <div class="row q-col-gutter-lg justify-center">
+      <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
+        <q-btn
+          flat
+          color="purple"
+          label="Supporters"
+          type="a"
+          href="mailto:lnbits@pm.me"
+          class="full-width"
+        ></q-btn>
+        <a href="https://github.com/rootzoll/raspiblitz">
+          <q-img
+            contain
+            :src="($q.dark.isActive) ? '{{ url_for('static', filename='images/raspiblitz-negative.svg') }}' : '{{ url_for('static', filename='images/raspiblitz.svg') }}'"
+            style="height: 90px;"
+          ></q-img>
+        </a>
       </div>
     </div>
   </div>
+</div>
 {% endblock %}

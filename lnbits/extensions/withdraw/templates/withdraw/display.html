@@ -18,7 +18,6 @@
           </a>
         </div>
         <div class="row q-mt-lg">
-
           <q-btn outline color="grey" @click="copyText('{{ link.lnurl }}')"
             >Copy LNURL</q-btn
           >
@@ -57,11 +56,8 @@
     data: function () {
       return {
         theurl: location.protocol + '//' + location.host
-
       }
-    },
-
-
+    }
   })
 </script>
 {% endblock %}

@@ -1,17 +1,7 @@
-{% extends "base.html" %}
-
-
-{% block beta %}{% endblock %}
-{% block drawer_toggle %}{% endblock %}
-{% block drawer %}{% endblock %}
-
-
-{% block toolbar_title %}
-  <a href="/" class="inherit">
-    {% if SITE_TITLE != 'LNbits' %}
-      {{ SITE_TITLE }}
-    {% else %}
-      <strong>LN</strong>bits
-    {% endif %}
-  </a>
+{% extends "base.html" %} {% block beta %}{% endblock %} {% block drawer_toggle
+%}{% endblock %} {% block drawer %}{% endblock %} {% block toolbar_title %}
+<a href="/" class="inherit">
+  {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else %}
+  <strong>LN</strong>bits {% endif %}
+</a>
 {% endblock %}
