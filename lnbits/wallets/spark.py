@@ -40,7 +40,7 @@ class SparkWallet(Wallet):
 
     def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
         label = "lbs{}".format(random.random())
-        print(description_hash, len(description_hash))
+        checking_id = label
 
         try:
             if description_hash:
@@ -49,9 +49,9 @@ class SparkWallet(Wallet):
                 )
             else:
                 r = self.invoice(msatoshi=amount * 1000, label=label, description=memo, exposeprivatechannels=True)
-            ok, checking_id, payment_request, error_message = True, label, r["bolt11"], None
+            ok, payment_request, error_message = True, r["bolt11"], ""
         except (SparkError, UnknownError) as e:
-            ok, checking_id, payment_request, error_message = False, None, None, str(e)
+            ok, payment_request, error_message = False, None, str(e)
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
