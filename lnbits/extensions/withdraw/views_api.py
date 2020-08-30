@@ -2,12 +2,11 @@ from datetime import datetime
 from flask import g, jsonify, request
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
-import shortuuid # type: ignore
+import shortuuid  # type: ignore
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import pay_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.helpers import urlsafe_short_hash
 
 from lnbits.extensions.withdraw import withdraw_ext
 from .crud import (
@@ -49,7 +48,7 @@ def api_link_retrieve(link_id):
 
     if link.wallet != g.wallet.id:
         return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
-    
+
     return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK
 
 
@@ -80,7 +79,7 @@ def api_link_create_or_update(link_id=None):
             usescsv += "," + str(i + 1)
         else:
             usescsv += "," + str(1)
-    usescsv = usescsv[1:]   
+    usescsv = usescsv[1:]
 
     if link_id:
         link = get_withdraw_link(link_id, 0)
@@ -109,7 +108,9 @@ def api_link_delete(link_id):
 
     return "", HTTPStatus.NO_CONTENT
 
-#FOR LNURLs WHICH ARE NOT UNIQUE
+
+# FOR LNURLs WHICH ARE NOT UNIQUE
+
 
 @withdraw_ext.route("/api/v1/lnurl/<unique_hash>", methods=["GET"])
 def api_lnurl_response(unique_hash):
@@ -123,13 +124,14 @@ def api_lnurl_response(unique_hash):
     usescsv = ""
     for x in range(1, link.uses - link.used):
         usescsv += "," + str(1)
-    usescsv = usescsv[1:] 
+    usescsv = usescsv[1:]
     link = update_withdraw_link(link.id, used=link.used + 1, usescsv=usescsv)
-
 
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
-#FOR LNURLs WHICH ARE UNIQUE
+
+# FOR LNURLs WHICH ARE UNIQUE
+
 
 @withdraw_ext.route("/api/v1/lnurl/<unique_hash>/<id_unique_hash>", methods=["GET"])
 def api_lnurl_multi_response(unique_hash, id_unique_hash):
@@ -139,11 +141,7 @@ def api_lnurl_multi_response(unique_hash, id_unique_hash):
         return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
     useslist = link.usescsv.split(",")
     usescsv = ""
-    hashed = []
     found = False
-    print(link.uses - link.used)
-    print("link.uses - link.used")
-    print("svfsfv")
     if link.is_unique == 0:
         for x in range(link.uses - link.used):
             usescsv += "," + str(1)
@@ -159,10 +157,10 @@ def api_lnurl_multi_response(unique_hash, id_unique_hash):
     if not found:
         return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
 
-    usescsv = usescsv[1:] 
+    usescsv = usescsv[1:]
     link = update_withdraw_link(link.id, used=link.used + 1, usescsv=usescsv)
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
-        
+
 
 @withdraw_ext.route("/api/v1/lnurl/cb/<unique_hash>", methods=["GET"])
 def api_lnurl_callback(unique_hash):
