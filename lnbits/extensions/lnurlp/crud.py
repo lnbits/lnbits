@@ -7,21 +7,21 @@ from .models import PayLink
 
 def create_pay_link(*, wallet_id: str, description: str, amount: int) -> PayLink:
     with open_ext_db("lnurlp") as db:
-        with db.cursor() as c:
-            c.execute(
-                """
-                INSERT INTO pay_links (
-                    wallet,
-                    description,
-                    amount,
-                    served_meta,
-                    served_pr
-                )
-                VALUES (?, ?, ?, 0, 0)
-                """,
-                (wallet_id, description, amount),
+        db.execute(
+            """
+            INSERT INTO pay_links (
+                wallet,
+                description,
+                amount,
+                served_meta,
+                served_pr
             )
-            return get_pay_link(c.lastrowid)
+            VALUES (?, ?, ?, 0, 0)
+            """,
+            (wallet_id, description, amount),
+        )
+        link_id = db.cursor.lastrowid
+    return get_pay_link(link_id)
 
 
 def get_pay_link(link_id: str) -> Optional[PayLink]:
