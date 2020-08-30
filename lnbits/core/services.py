@@ -7,7 +7,7 @@ from lnbits.settings import WALLET
 from .crud import get_wallet, create_payment, delete_payment
 
 
-def create_invoice(*, wallet_id: str, amount: int, memo: str) -> Tuple[str, str]:
+def create_invoice(*, wallet_id: str, amount: int, memo: str, description_hash: bytes = ''.encode()) -> Tuple[str, str]:
     try:
         ok, checking_id, payment_request, error_message = WALLET.create_invoice(amount=amount, memo=memo)
     except Exception as e:
