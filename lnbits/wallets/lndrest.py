@@ -87,10 +87,16 @@ class LndRestWallet(Wallet):
             return PaymentStatus(None)
 
         payments = [p for p in r.json()["payments"] if p["payment_hash"] == checking_id]
-        print(checking_id)
-        payment = payments[0] if payments else None
+        payment = None
+        if payments:
+            for p in payments:
+                if 'status' in p:
+                    payment = p
+                    break
 
         # check payment.status: https://api.lightning.community/rest/index.html?python#peersynctype
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
-
-        return PaymentStatus(statuses[payment["status"]])
+        if payment:
+            return PaymentStatus(statuses[payment["status"]])
+        else:
+            return PaymentStatus(None)
