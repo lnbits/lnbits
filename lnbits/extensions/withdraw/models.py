@@ -2,7 +2,7 @@ from flask import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
 from sqlite3 import Row
 from typing import NamedTuple
-import shortuuid # type: ignore
+import shortuuid  # type: ignore
 from lnbits.settings import FORCE_HTTPS
 
 
@@ -40,7 +40,13 @@ class WithdrawLink(NamedTuple):
             usescssv = self.usescsv.split(",")
             tohash = self.id + self.unique_hash + usescssv[self.number]
             multihash = shortuuid.uuid(name=tohash)
-            url = url_for("withdraw.api_lnurl_multi_response", unique_hash=self.unique_hash, id_unique_hash=multihash, _external=True, _scheme=scheme)
+            url = url_for(
+                "withdraw.api_lnurl_multi_response",
+                unique_hash=self.unique_hash,
+                id_unique_hash=multihash,
+                _external=True,
+                _scheme=scheme,
+            )
         else:
             url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
 

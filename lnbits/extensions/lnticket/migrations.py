@@ -1,5 +1,6 @@
 from lnbits.db import open_ext_db
 
+
 def m001_initial(db):
 
     db.execute(
@@ -50,7 +51,6 @@ def m002_changed(db):
     """
     )
 
-
     for row in [list(row) for row in db.fetchall("SELECT * FROM tickets")]:
         usescsv = ""
 
@@ -59,7 +59,7 @@ def m002_changed(db):
                 usescsv += "," + str(i + 1)
             else:
                 usescsv += "," + str(1)
-        usescsv = usescsv[1:]  
+        usescsv = usescsv[1:]
         db.execute(
             """
             INSERT INTO ticket (
@@ -74,20 +74,11 @@ def m002_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                row[0],  
-                row[1], 
-                row[2], 
-                row[3],
-                row[4], 
-                row[5], 
-                row[6], 
-                True, 
-            ),
+            (row[0], row[1], row[2], row[3], row[4], row[5], row[6], True,),
         )
     db.execute("DROP TABLE tickets")
 
-        
+
 def migrate():
     with open_ext_db("lnticket") as db:
         m001_initial(db)

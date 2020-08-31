@@ -14,6 +14,7 @@ class Events(NamedTuple):
     sold: int
     time: int
 
+
 class Tickets(NamedTuple):
     id: str
     wallet: str

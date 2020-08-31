@@ -1,6 +1,6 @@
 import json
 import os
-import shortuuid # type: ignore
+import shortuuid  # type: ignore
 
 from typing import List, NamedTuple, Optional
 
@@ -34,14 +34,16 @@ class ExtensionManager:
                 config = {}
                 is_valid = False
 
-            output.append(Extension(
-                extension,
-                is_valid,
-                config.get('name'),
-                config.get('short_description'),
-                config.get('icon'),
-                config.get('contributors')
-            ))
+            output.append(
+                Extension(
+                    extension,
+                    is_valid,
+                    config.get("name"),
+                    config.get("short_description"),
+                    config.get("icon"),
+                    config.get("contributors"),
+                )
+            )
 
         return output
 

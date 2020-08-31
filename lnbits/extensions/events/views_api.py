@@ -7,7 +7,20 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET
 
 from lnbits.extensions.events import events_ext
-from .crud import create_ticket, update_ticket, get_ticket, get_tickets, delete_ticket, create_event, update_event, get_event, get_events, delete_event, get_event_tickets, reg_ticket
+from .crud import (
+    create_ticket,
+    update_ticket,
+    get_ticket,
+    get_tickets,
+    delete_ticket,
+    create_event,
+    update_event,
+    get_event,
+    get_events,
+    delete_event,
+    get_event_tickets,
+    reg_ticket,
+)
 
 
 #########Events##########
@@ -36,7 +49,7 @@ def api_events():
         "event_start_date": {"type": "string", "empty": False, "required": True},
         "event_end_date": {"type": "string", "empty": False, "required": True},
         "amount_tickets": {"type": "integer", "min": 0, "required": True},
-        "price_per_ticket": {"type": "integer", "min": 0, "required": True}
+        "price_per_ticket": {"type": "integer", "min": 0, "required": True},
     }
 )
 def api_event_create(event_id=None):
@@ -75,6 +88,7 @@ def api_form_delete(event_id):
 
 #########Tickets##########
 
+
 @events_ext.route("/api/v1/tickets", methods=["GET"])
 @api_check_wallet_key("invoice")
 def api_tickets():
@@ -90,8 +104,9 @@ def api_tickets():
 @api_validate_post_request(
     schema={
         "name": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "empty": False, "required": True}
-    })
+        "email": {"type": "string", "empty": False, "required": True},
+    }
+)
 def api_ticket_make_ticket(event_id, sats):
 
     event = get_event(event_id)
@@ -150,14 +165,19 @@ def api_ticket_delete(ticket_id):
 
 #########EventTickets##########
 
+
 @events_ext.route("/api/v1/eventtickets/<wallet_id>/<event_id>", methods=["GET"])
 def api_event_tickets(wallet_id, event_id):
 
-    return jsonify([ticket._asdict() for ticket in get_event_tickets(wallet_id=wallet_id, event_id=event_id)]), HTTPStatus.OK
+    return (
+        jsonify([ticket._asdict() for ticket in get_event_tickets(wallet_id=wallet_id, event_id=event_id)]),
+        HTTPStatus.OK,
+    )
+
 
 @events_ext.route("/api/v1/register/ticket/<ticket_id>", methods=["GET"])
 def api_event_register_ticket(ticket_id):
-    
+
     ticket = get_ticket(ticket_id)
 
     if not ticket:
@@ -166,6 +186,4 @@ def api_event_register_ticket(ticket_id):
     if ticket.registered == True:
         return jsonify({"message": "Ticket already registered"}), HTTPStatus.FORBIDDEN
 
-
     return jsonify([ticket._asdict() for ticket in reg_ticket(ticket_id)]), HTTPStatus.OK
-

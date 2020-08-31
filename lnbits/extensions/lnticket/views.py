@@ -19,4 +19,10 @@ def display(form_id):
     form = get_form(form_id) or abort(HTTPStatus.NOT_FOUND, "LNTicket does not exist.")
     print(form.id)
 
-    return render_template("lnticket/display.html", form_id=form.id, form_name=form.name, form_desc=form.description, form_costpword=form.costpword)
+    return render_template(
+        "lnticket/display.html",
+        form_id=form.id,
+        form_name=form.name,
+        form_desc=form.description,
+        form_costpword=form.costpword,
+    )

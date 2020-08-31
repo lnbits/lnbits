@@ -5,7 +5,8 @@ def m001_initial(db):
     """
     Initial products table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS products (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
@@ -16,13 +17,14 @@ def m001_initial(db):
             price INTEGER NOT NULL,
             quantity INTEGER NOT NULL
         );
-    """)
-
+    """
+    )
 
     """
     Initial indexers table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS indexers (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
@@ -36,13 +38,14 @@ def m001_initial(db):
             zone2cost INTEGER NOT NULL,
             email TEXT NOT NULL
         );
-    """)
-
+    """
+    )
 
     """
     Initial orders table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS orders (
             id TEXT PRIMARY KEY,
             productid TEXT NOT NULL,
@@ -56,9 +59,10 @@ def m001_initial(db):
             paid BOOLEAN NOT NULL,
             shipped BOOLEAN NOT NULL
         );
-    """)
+    """
+    )
+
 
 def migrate():
     with open_ext_db("diagonalley") as db:
         m001_initial(db)
-

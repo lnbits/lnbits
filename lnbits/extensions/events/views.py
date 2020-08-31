@@ -20,12 +20,19 @@ def display(event_id):
     event = get_event(event_id) or abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
     if event.amount_tickets < 1:
         return render_template("events/error.html", event_name=event.name, event_error="Sorry, tickets are sold out :(")
-    datetime_object = datetime.strptime(event.closing_date, '%Y-%m-%d').date()
+    datetime_object = datetime.strptime(event.closing_date, "%Y-%m-%d").date()
     if date.today() > datetime_object:
-    	return render_template("events/error.html", event_name=event.name, event_error="Sorry, ticket closing date has passed :(")
+        return render_template(
+            "events/error.html", event_name=event.name, event_error="Sorry, ticket closing date has passed :("
+        )
 
-
-    return render_template("events/display.html", event_id=event_id, event_name=event.name, event_info=event.info, event_price=event.price_per_ticket)
+    return render_template(
+        "events/display.html",
+        event_id=event_id,
+        event_name=event.name,
+        event_info=event.info,
+        event_price=event.price_per_ticket,
+    )
 
 
 @events_ext.route("/ticket/<ticket_id>")
@@ -38,8 +45,5 @@ def ticket(ticket_id):
 @events_ext.route("/register/<event_id>")
 def register(event_id):
     event = get_event(event_id) or abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
-    
+
     return render_template("events/register.html", event_id=event_id, event_name=event.name, wallet_id=event.wallet)
-
-
-

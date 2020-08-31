@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Optional, Union
-import shortuuid # type: ignore
 from lnbits.db import open_ext_db
 from lnbits.helpers import urlsafe_short_hash
 
@@ -63,7 +62,7 @@ def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
         row = db.fetchone("SELECT * FROM withdraw_link WHERE id = ?", (link_id,))
     link = []
     for item in row:
-        link.append(item) 
+        link.append(item)
     link.append(num)
     return WithdrawLink._make(link)
 
@@ -73,10 +72,9 @@ def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[WithdrawLink]
         row = db.fetchone("SELECT * FROM withdraw_link WHERE unique_hash = ?", (unique_hash,))
         link = []
         for item in row:
-           link.append(item) 
+            link.append(item)
     link.append(num)
     return WithdrawLink._make(link)
-    
 
 
 def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
@@ -103,6 +101,7 @@ def delete_withdraw_link(link_id: str) -> None:
     with open_ext_db("withdraw") as db:
         db.execute("DELETE FROM withdraw_link WHERE id = ?", (link_id,))
 
+
 def chunks(lst, n):
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i : i + n]

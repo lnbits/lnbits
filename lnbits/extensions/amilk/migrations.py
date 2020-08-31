@@ -5,7 +5,8 @@ def m001_initial(db):
     """
     Initial amilks table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS amilks (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
@@ -13,7 +14,8 @@ def m001_initial(db):
             atime INTEGER NOT NULL,
             amount INTEGER NOT NULL
         );
-    """)
+    """
+    )
 
 
 def migrate():

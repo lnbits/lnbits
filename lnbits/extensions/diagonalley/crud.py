@@ -6,19 +6,25 @@ from lnbits.db import open_ext_db
 from lnbits.settings import WALLET
 from .models import Products, Orders, Indexers
 import re
+
 regex = re.compile(
-        r'^(?:http|ftp)s?://' # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' 
-        r'localhost|' 
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' 
-        r'(?::\d+)?' 
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    r"^(?:http|ftp)s?://"  # http:// or https://
+    r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
+    r"localhost|"
+    r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    r"(?::\d+)?"
+    r"(?:/?|[/?]\S+)$",
+    re.IGNORECASE,
+)
 
 ###Products
 
-def create_diagonalleys_product(*, wallet_id: str, product: str,  categories: str, description: str, image: str, price: int, quantity: int) -> Products:
+
+def create_diagonalleys_product(
+    *, wallet_id: str, product: str, categories: str, description: str, image: str, price: int, quantity: int
+) -> Products:
     with open_ext_db("diagonalley") as db:
-        product_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
+        product_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
             INSERT INTO products (id, wallet, product, categories, description, image, price, quantity)
@@ -63,19 +69,39 @@ def delete_diagonalleys_product(product_id: str) -> None:
         db.execute("DELETE FROM products WHERE id = ?", (product_id,))
 
 
-
-
 ###Indexers
 
-def create_diagonalleys_indexer(wallet_id: str, shopname: str,  indexeraddress: str, shippingzone1: str, shippingzone2: str, zone1cost: int, zone2cost: int, email: str) -> Indexers:
+
+def create_diagonalleys_indexer(
+    wallet_id: str,
+    shopname: str,
+    indexeraddress: str,
+    shippingzone1: str,
+    shippingzone2: str,
+    zone1cost: int,
+    zone2cost: int,
+    email: str,
+) -> Indexers:
     with open_ext_db("diagonalley") as db:
-        indexer_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
+        indexer_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
             INSERT INTO indexers (id, wallet, shopname, indexeraddress, online, rating, shippingzone1, shippingzone2, zone1cost, zone2cost, email)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (indexer_id, wallet_id, shopname, indexeraddress, False, 0, shippingzone1, shippingzone2, zone1cost, zone2cost, email),
+            (
+                indexer_id,
+                wallet_id,
+                shopname,
+                indexeraddress,
+                False,
+                0,
+                shippingzone1,
+                shippingzone2,
+                zone1cost,
+                zone2cost,
+                email,
+            ),
         )
     return get_diagonalleys_indexer(indexer_id)
 
@@ -104,7 +130,7 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
             with open_ext_db("diagonalley") as db:
                 db.execute("UPDATE indexers SET online = ? WHERE id = ?", (False, indexer_id,))
     except:
-        print("An exception occurred")     
+        print("An exception occurred")
     with open_ext_db("diagonalley") as db:
         row = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
     return Indexers(**row) if row else None
@@ -128,7 +154,7 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
                     with open_ext_db("diagonalley") as db:
                         db.execute("UPDATE indexers SET online = ? WHERE id = ?", (False, r["id"],))
             except:
-                print("An exception occurred")     
+                print("An exception occurred")
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,))
@@ -140,12 +166,24 @@ def delete_diagonalleys_indexer(indexer_id: str) -> None:
         db.execute("DELETE FROM indexers WHERE id = ?", (indexer_id,))
 
 
-
 ###Orders
- 
-def create_diagonalleys_order(*, productid: str, wallet: str,  product: str, quantity: int, shippingzone: str, address: str, email: str, invoiceid: str, paid: bool, shipped: bool) -> Indexers:
+
+
+def create_diagonalleys_order(
+    *,
+    productid: str,
+    wallet: str,
+    product: str,
+    quantity: int,
+    shippingzone: str,
+    address: str,
+    email: str,
+    invoiceid: str,
+    paid: bool,
+    shipped: bool,
+) -> Indexers:
     with open_ext_db("diagonalley") as db:
-        order_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
+        order_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
             INSERT INTO orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
@@ -153,7 +191,7 @@ def create_diagonalleys_order(*, productid: str, wallet: str,  product: str, qua
             """,
             (order_id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, False, False),
         )
-    
+
     return get_diagonalleys_order(order_id)
 
 

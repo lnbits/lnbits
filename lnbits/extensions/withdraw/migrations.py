@@ -1,7 +1,4 @@
-from datetime import datetime
-
 from lnbits.db import open_ext_db
-from lnbits.helpers import urlsafe_short_hash
 
 
 def m001_initial(db):
@@ -25,8 +22,10 @@ def m001_initial(db):
             used INTEGER DEFAULT 0,
             usescsv TEXT
         );
-    """)
- 
+    """
+    )
+
+
 def m002_change_withdraw_table(db):
     """
     Creates an improved withdraw table and migrates the existing data.
@@ -61,7 +60,7 @@ def m002_change_withdraw_table(db):
                 usescsv += "," + str(i + 1)
             else:
                 usescsv += "," + str(1)
-        usescsv = usescsv[1:]  
+        usescsv = usescsv[1:]
         db.execute(
             """
             INSERT INTO withdraw_link (
@@ -82,29 +81,25 @@ def m002_change_withdraw_table(db):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                row[0], 
-                row[1],  
-                row[2], 
-                row[3], 
+                row[0],
+                row[1],
+                row[2],
+                row[3],
                 row[4],
-                row[5], 
-                row[6], 
-                row[7], 
+                row[5],
+                row[6],
+                row[7],
                 row[8],
                 row[9],
                 row[10],
-                row[11],  
+                row[11],
                 usescsv,
             ),
         )
     db.execute("DROP TABLE withdraw_links")
 
+
 def migrate():
     with open_ext_db("withdraw") as db:
         m001_initial(db)
         m002_change_withdraw_table(db)
-
-
-
-
-

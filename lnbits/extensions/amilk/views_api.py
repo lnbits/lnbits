@@ -15,6 +15,7 @@ from time import sleep
 import requests
 from lnbits.settings import WALLET
 
+
 @amilk_ext.route("/api/v1/amilk", methods=["GET"])
 @api_check_wallet_key("invoice")
 def api_amilks():
@@ -37,10 +38,9 @@ def api_amilkit(amilk_id):
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
     print(withdraw_res.max_sats)
 
-
     try:
         checking_id, payment_request = create_invoice(wallet_id=milk.wallet, amount=withdraw_res.max_sats, memo=memo)
-        #print(payment_request)
+        # print(payment_request)
     except Exception as e:
         error_message = False, str(e)
 
@@ -67,11 +67,13 @@ def api_amilkit(amilk_id):
 
 @amilk_ext.route("/api/v1/amilk", methods=["POST"])
 @api_check_wallet_key("invoice")
-@api_validate_post_request(schema={
-    "lnurl": {"type": "string", "empty": False, "required": True},
-    "atime": {"type": "integer", "min": 0, "required": True},
-    "amount": {"type": "integer", "min": 0, "required": True},
-})
+@api_validate_post_request(
+    schema={
+        "lnurl": {"type": "string", "empty": False, "required": True},
+        "atime": {"type": "integer", "min": 0, "required": True},
+        "amount": {"type": "integer", "min": 0, "required": True},
+    }
+)
 def api_amilk_create():
     amilk = create_amilk(wallet_id=g.wallet.id, lnurl=g.data["lnurl"], atime=g.data["atime"], amount=g.data["amount"])
 

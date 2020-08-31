@@ -6,11 +6,10 @@ from lnbits.helpers import urlsafe_short_hash
 from .models import Tickets, Forms
 
 
-
-
 #######TICKETS########
 
-def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: str, ltext: str, sats: int) -> Tickets:
+
+def create_ticket(checking_id: str, wallet: str, form: str, name: str, email: str, ltext: str, sats: int) -> Tickets:
     with open_ext_db("lnticket") as db:
         db.execute(
             """
@@ -21,6 +20,7 @@ def create_ticket(checking_id: str, wallet: str, form: str,  name: str,  email: 
         )
 
     return get_ticket(checking_id)
+
 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("lnticket") as db:
@@ -35,7 +35,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             """,
             (paid, checking_id),
         )
-        
+
         formdata = get_form(row[1])
         amount = formdata.amountmade + row[7]
         db.execute(
@@ -47,6 +47,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             (amount, row[1]),
         )
     return get_ticket(checking_id)
+
 
 def get_ticket(ticket_id: str) -> Optional[Tickets]:
     with open_ext_db("lnticket") as db:
@@ -71,8 +72,6 @@ def delete_ticket(ticket_id: str) -> None:
         db.execute("DELETE FROM ticket WHERE id = ?", (ticket_id,))
 
 
-
-
 ########FORMS#########
 
 
@@ -84,10 +83,11 @@ def create_form(*, wallet: str, name: str, description: str, costpword: int) -> 
             INSERT INTO forms (id, wallet, name, description, costpword, amountmade)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (form_id, wallet, name, description, costpword, 0 ),
+            (form_id, wallet, name, description, costpword, 0),
         )
 
     return get_form(form_id)
+
 
 def update_form(form_id: str, **kwargs) -> Forms:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])

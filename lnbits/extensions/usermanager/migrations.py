@@ -5,7 +5,8 @@ def m001_initial(db):
     """
     Initial users table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -13,13 +14,14 @@ def m001_initial(db):
             email TEXT,
             password TEXT
         );
-    """)
-
+    """
+    )
 
     """
     Initial wallets table.
     """
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS wallets (
             id TEXT PRIMARY KEY,
             admin TEXT NOT NULL,
@@ -28,9 +30,10 @@ def m001_initial(db):
             adminkey TEXT NOT NULL,
             inkey TEXT NOT NULL
         );
-    """)
+    """
+    )
+
 
 def migrate():
     with open_ext_db("usermanager") as db:
         m001_initial(db)
-

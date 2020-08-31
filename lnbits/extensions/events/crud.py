@@ -9,7 +9,7 @@ from .models import Tickets, Events
 #######TICKETS########
 
 
-def create_ticket(checking_id: str, wallet: str, event: str, name: str,  email: str) -> Tickets:
+def create_ticket(checking_id: str, wallet: str, event: str, name: str, email: str) -> Tickets:
     with open_ext_db("events") as db:
         db.execute(
             """
@@ -20,6 +20,7 @@ def create_ticket(checking_id: str, wallet: str, event: str, name: str,  email: 
         )
 
     return get_ticket(checking_id)
+
 
 def update_ticket(paid: bool, checking_id: str) -> Tickets:
     with open_ext_db("events") as db:
@@ -34,7 +35,7 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             """,
             (paid, checking_id),
         )
-        
+
         eventdata = get_event(row[2])
         sold = eventdata.sold + 1
         amount_tickets = eventdata.amount_tickets - 1
@@ -72,11 +73,20 @@ def delete_ticket(checking_id: str) -> None:
         db.execute("DELETE FROM ticket WHERE id = ?", (checking_id,))
 
 
-
 ########EVENTS#########
 
 
-def create_event(*, wallet: str, name: str, info: str, closing_date: str, event_start_date: str, event_end_date: str, amount_tickets: int, price_per_ticket: int) -> Events:
+def create_event(
+    *,
+    wallet: str,
+    name: str,
+    info: str,
+    closing_date: str,
+    event_start_date: str,
+    event_end_date: str,
+    amount_tickets: int,
+    price_per_ticket: int,
+) -> Events:
     with open_ext_db("events") as db:
         event_id = urlsafe_short_hash()
         db.execute(
@@ -84,11 +94,23 @@ def create_event(*, wallet: str, name: str, info: str, closing_date: str, event_
             INSERT INTO events (id, wallet, name, info, closing_date, event_start_date, event_end_date, amount_tickets, price_per_ticket, sold)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (event_id, wallet, name, info, closing_date, event_start_date, event_end_date, amount_tickets, price_per_ticket, 0),
+            (
+                event_id,
+                wallet,
+                name,
+                info,
+                closing_date,
+                event_start_date,
+                event_end_date,
+                amount_tickets,
+                price_per_ticket,
+                0,
+            ),
         )
         print(event_id)
 
     return get_event(event_id)
+
 
 def update_event(event_id: str, **kwargs) -> Events:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
@@ -122,7 +144,9 @@ def delete_event(event_id: str) -> None:
     with open_ext_db("events") as db:
         db.execute("DELETE FROM events WHERE id = ?", (event_id,))
 
+
 ########EVENTTICKETS#########
+
 
 def get_event_tickets(event_id: str, wallet_id: str) -> Tickets:
 
@@ -131,6 +155,7 @@ def get_event_tickets(event_id: str, wallet_id: str) -> Tickets:
         print(rows)
 
     return [Tickets(**row) for row in rows]
+
 
 def reg_ticket(ticket_id: str) -> Tickets:
     with open_ext_db("events") as db:

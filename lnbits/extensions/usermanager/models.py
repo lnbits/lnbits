@@ -1,11 +1,13 @@
 from typing import NamedTuple
 
+
 class Users(NamedTuple):
     id: str
     name: str
     admin: str
     email: str
     password: str
+
 
 class Wallets(NamedTuple):
     id: str
@@ -14,5 +16,3 @@ class Wallets(NamedTuple):
     user: str
     adminkey: str
     inkey: str
-
-

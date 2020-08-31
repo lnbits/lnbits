@@ -7,10 +7,22 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET
 
 from lnbits.extensions.lnticket import lnticket_ext
-from .crud import create_ticket, update_ticket, get_ticket, get_tickets, delete_ticket, create_form, update_form, get_form, get_forms, delete_form
+from .crud import (
+    create_ticket,
+    update_ticket,
+    get_ticket,
+    get_tickets,
+    delete_ticket,
+    create_form,
+    update_form,
+    get_form,
+    get_forms,
+    delete_form,
+)
 
 
 #########FORMS##########
+
 
 @lnticket_ext.route("/api/v1/forms", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -31,7 +43,7 @@ def api_forms():
         "wallet": {"type": "string", "empty": False, "required": True},
         "name": {"type": "string", "empty": False, "required": True},
         "description": {"type": "string", "min": 0, "required": True},
-        "costpword": {"type": "integer", "min": 0, "required": True}
+        "costpword": {"type": "integer", "min": 0, "required": True},
     }
 )
 def api_form_create(form_id=None):
@@ -66,7 +78,9 @@ def api_form_delete(form_id):
 
     return "", HTTPStatus.NO_CONTENT
 
+
 #########tickets##########
+
 
 @lnticket_ext.route("/api/v1/tickets", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -86,8 +100,9 @@ def api_tickets():
         "name": {"type": "string", "empty": False, "required": True},
         "email": {"type": "string", "empty": False, "required": True},
         "ltext": {"type": "string", "empty": False, "required": True},
-        "sats": {"type": "integer", "min": 0, "required": True}
-    })
+        "sats": {"type": "integer", "min": 0, "required": True},
+    }
+)
 def api_ticket_make_ticket(form_id, sats):
 
     event = get_form(form_id)
@@ -126,6 +141,7 @@ def api_ticket_send_ticket(checking_id):
         return jsonify({"paid": True, "ticket_id": ticket.id}), HTTPStatus.OK
 
     return jsonify({"paid": False}), HTTPStatus.OK
+
 
 @lnticket_ext.route("/api/v1/tickets/<ticket_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")

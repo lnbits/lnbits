@@ -9,7 +9,7 @@ from .models import AMilk
 
 def create_amilk(*, wallet_id: str, lnurl: str, atime: int, amount: int) -> AMilk:
     with open_ext_db("amilk") as db:
-        amilk_id = urlsafe_b64encode(uuid4().bytes_le).decode('utf-8')
+        amilk_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
             INSERT INTO amilks (id, wallet, lnurl, atime, amount)

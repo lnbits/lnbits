@@ -1,5 +1,6 @@
 from typing import NamedTuple
 
+
 class Indexers(NamedTuple):
     id: str
     wallet: str
@@ -13,6 +14,7 @@ class Indexers(NamedTuple):
     zone2cost: int
     email: str
 
+
 class Products(NamedTuple):
     id: str
     wallet: str
@@ -22,6 +24,7 @@ class Products(NamedTuple):
     image: str
     price: int
     quantity: int
+
 
 class Orders(NamedTuple):
     id: str
@@ -35,5 +38,3 @@ class Orders(NamedTuple):
     invoiceid: str
     paid: bool
     shipped: bool
-
-
