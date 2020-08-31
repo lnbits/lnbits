@@ -1,0 +1,2 @@
+def migrate():
+    pass

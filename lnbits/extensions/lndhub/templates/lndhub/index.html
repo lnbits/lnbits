@@ -1,0 +1,28 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<q-card>
+  <q-card-section>
+    <h5 class="text-subtitle1 q-mt-none q-mb-md"></h5>
+    {% for wallet in g.user.wallets %}
+    <q-card>
+      <code class="text-caption">
+        lndhub://admin:{{wallet.adminkey}}@{% raw %}{{baseURL}}{% endraw %}/lndhub/ext/
+</code>
+    </q-card>
+    {% endfor %}
+    <q-separator class="q-my-lg"></q-separator>
+  </q-card-section>
+</q-card>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        baseURL: location.protocol + '//' + location.hostname
+      }
+    }
+  })
+</script>
+{% endblock %}
