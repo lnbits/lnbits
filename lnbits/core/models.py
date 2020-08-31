@@ -34,10 +34,12 @@ class Wallet(NamedTuple):
 
         return get_wallet_payment(self.id, checking_id)
 
-    def get_payments(self, *, include_all_pending: bool = False) -> List["Payment"]:
+    def get_payments(
+        self, *, complete: bool = True, pending: bool = False, outgoing: bool = True, incoming: bool = True
+    ) -> List["Payment"]:
         from .crud import get_wallet_payments
 
-        return get_wallet_payments(self.id, include_all_pending=include_all_pending)
+        return get_wallet_payments(self.id, complete=complete, pending=pending, outgoing=outgoing, incoming=incoming)
 
     def delete_expired_payments(self, seconds: int = 86400) -> None:
         from .crud import delete_wallet_payments_expired

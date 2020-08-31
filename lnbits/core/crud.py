@@ -150,18 +150,38 @@ def get_wallet_payment(wallet_id: str, checking_id: str) -> Optional[Payment]:
     return Payment(**row) if row else None
 
 
-def get_wallet_payments(wallet_id: str, *, include_all_pending: bool = False) -> List[Payment]:
-    with open_db() as db:
-        if include_all_pending:
-            clause = "pending = 1"
-        else:
-            clause = "((amount > 0 AND pending = 0) OR amount < 0)"
+def get_wallet_payments(
+    wallet_id: str, *, complete: bool = False, pending: bool = False, outgoing: bool = False, incoming: bool = False
+) -> List[Payment]:
+    """
+    Filters payments to be returned by complete | pending | outgoing | incoming.
+    """
 
+    clause = ""
+    if complete and pending:
+        clause += ""
+    elif complete:
+        clause += "AND ((amount > 0 AND pending = 0) OR amount < 0)"
+    elif pending:
+        clause += "AND pending = 1"
+    else:
+        raise TypeError("at least one of [complete, pending] must be True.")
+
+    if outgoing and incoming:
+        clause += ""
+    elif outgoing:
+        clause += "AND amount < 0"
+    elif incoming:
+        clause += "AND amount > 0"
+    else:
+        raise TypeError("at least one of [outgoing, incoming] must be True.")
+
+    with open_db() as db:
         rows = db.fetchall(
             f"""
             SELECT payhash as checking_id, amount, fee, pending, memo, time
             FROM apipayments
-            WHERE wallet = ? AND {clause}
+            WHERE wallet = ? {clause}
             ORDER BY time DESC
             """,
             (wallet_id,),

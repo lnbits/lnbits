@@ -1,12 +1,10 @@
 from lnbits.db import open_ext_db
-from lnbits.settings import WALLET
 from .models import Users, Wallets
-from typing import List, Optional, Union
+from typing import Optional
 
 from ...core.crud import (
     create_account,
     get_user,
-    update_user_extension,
     get_wallet_payments,
     create_wallet,
     delete_wallet,
@@ -103,7 +101,7 @@ def get_usermanager_wallets(user_id: str) -> Wallets:
 
 
 def get_usermanager_wallet_transactions(wallet_id: str) -> Users:
-    return get_wallet_payments(wallet_id=wallet_id, include_all_pending=False)
+    return get_wallet_payments(wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True)
 
 
 def get_usermanager_wallet_balances(user_id: str) -> Users:

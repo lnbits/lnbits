@@ -15,7 +15,7 @@ def api_payments():
     if "check_pending" in request.args:
         g.wallet.delete_expired_payments()
 
-        for payment in g.wallet.get_payments(include_all_pending=True):
+        for payment in g.wallet.get_payments(pending=True):
             if payment.is_out:
                 payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
             else:
