@@ -27,7 +27,7 @@ class Wallet(NamedTuple):
 
     @property
     def balance(self) -> int:
-        return self.balance // 1000
+        return self.balance_msat // 1000
 
     def get_payment(self, checking_id: str) -> Optional["Payment"]:
         from .crud import get_wallet_payment
