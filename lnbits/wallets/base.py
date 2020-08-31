@@ -26,7 +26,9 @@ class PaymentStatus(NamedTuple):
 
 class Wallet(ABC):
     @abstractmethod
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
         pass
 
     @abstractmethod

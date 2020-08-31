@@ -1,4 +1,5 @@
 from os import getenv
+from typing import Optional, Dict
 import base64
 from requests import get, post
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
@@ -17,19 +18,19 @@ class LndRestWallet(Wallet):
         self.auth_read = {"Grpc-Metadata-macaroon": getenv("LND_REST_READ_MACAROON")}
         self.auth_cert = getenv("LND_REST_CERT")
 
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
-        r = post(
-            url=f"{self.endpoint}/v1/invoices",
-            headers=self.auth_invoice,
-            verify=self.auth_cert,
-            json={
-                "value": amount,
-                "memo": memo,
-                "description_hash": base64.b64encode(description_hash).decode("ascii"),
-                "private": True,
-            },
-        )
-        print(self.auth_invoice)
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
+        data: Dict = {
+            "value": amount,
+            "private": True,
+        }
+        if description_hash:
+            data["description_hash"] = base64.b64encode(description_hash).decode("ascii")
+        else:
+            data["memo"] = memo or ""
+
+        r = post(url=f"{self.endpoint}/v1/invoices", headers=self.auth_invoice, verify=self.auth_cert, json=data,)
 
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 

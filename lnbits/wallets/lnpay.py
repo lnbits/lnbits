@@ -1,4 +1,5 @@
 from os import getenv
+from typing import Optional, Dict
 from requests import get, post
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
@@ -15,12 +16,16 @@ class LNPayWallet(Wallet):
         self.auth_read = getenv("LNPAY_READ_KEY")
         self.auth_api = {"X-Api-Key": getenv("LNPAY_API_KEY")}
 
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
-        r = post(
-            url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice",
-            headers=self.auth_api,
-            json={"num_satoshis": f"{amount}", "memo": memo, "description_hash": description_hash.hex(),},
-        )
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
+        data: Dict = {"num_satoshis": f"{amount}"}
+        if description_hash:
+            data["description_hash"] = description_hash.hex()
+        else:
+            data["memo"] = memo or ""
+
+        r = post(url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice", headers=self.auth_api, json=data,)
         ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, r.text
 
         if ok:

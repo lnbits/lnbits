@@ -1,4 +1,5 @@
 from os import getenv
+from typing import Optional
 from requests import get, post
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
@@ -13,7 +14,9 @@ class OpenNodeWallet(Wallet):
         self.auth_admin = {"Authorization": getenv("OPENNODE_ADMIN_KEY")}
         self.auth_invoice = {"Authorization": getenv("OPENNODE_INVOICE_KEY")}
 
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
         if description_hash:
             raise Unsupported("description_hash")
 

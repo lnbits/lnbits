@@ -6,7 +6,7 @@ except ImportError:  # pragma: nocover
 import random
 
 from os import getenv
-
+from typing import Optional
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
 
@@ -17,7 +17,9 @@ class CLightningWallet(Wallet):
 
         self.l1 = LightningRpc(getenv("CLIGHTNING_RPC"))
 
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
         if description_hash:
             raise Unsupported("description_hash")
 

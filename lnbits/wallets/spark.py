@@ -1,6 +1,7 @@
 import random
 import requests
 from os import getenv
+from typing import Optional
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -38,7 +39,9 @@ class SparkWallet(Wallet):
 
         return call
 
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
         label = "lbs{}".format(random.random())
         checking_id = label
 
@@ -48,7 +51,9 @@ class SparkWallet(Wallet):
                     msatoshi=amount * 1000, label=label, description_hash=description_hash.hex(),
                 )
             else:
-                r = self.invoice(msatoshi=amount * 1000, label=label, description=memo, exposeprivatechannels=True)
+                r = self.invoice(
+                    msatoshi=amount * 1000, label=label, description=memo or "", exposeprivatechannels=True
+                )
             ok, payment_request, error_message = True, r["bolt11"], ""
         except (SparkError, UnknownError) as e:
             ok, payment_request, error_message = False, None, str(e)

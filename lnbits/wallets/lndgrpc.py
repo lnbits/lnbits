@@ -4,8 +4,8 @@ except ImportError:  # pragma: nocover
     lnd_grpc = None
 
 import base64
-
 from os import getenv
+from typing import Optional, Dict
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -23,7 +23,9 @@ class LndWallet(Wallet):
         self.auth_read = getenv("LND_READ_MACAROON")
         self.auth_cert = getenv("LND_CERT")
 
-    def create_invoice(self, amount: int, memo: str = "", description_hash: bytes = b"") -> InvoiceResponse:
+    def create_invoice(
+        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    ) -> InvoiceResponse:
         lnd_rpc = lnd_grpc.Client(
             lnd_dir=None,
             macaroon_path=self.auth_invoice,
@@ -33,20 +35,17 @@ class LndWallet(Wallet):
             grpc_port=self.port,
         )
 
-        lndResponse = lnd_rpc.add_invoice(
-            memo=memo,
-            description_hash=base64.b64encode(description_hash).decode("ascii"),
-            value=amount,
-            expiry=600,
-            private=True,
-        )
+        params: Dict = {"value": amount, "expiry": 600, "private": True}
+        if description_hash:
+            params["description_hash"] = description_hash  # as bytes directly
+        else:
+            params["memo"] = memo or ""
+        lndResponse = lnd_rpc.add_invoice(**params)
         decoded_hash = base64.b64encode(lndResponse.r_hash).decode("utf-8").replace("/", "_")
-        print(lndResponse.r_hash)
         ok, checking_id, payment_request, error_message = True, decoded_hash, str(lndResponse.payment_request), None
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-
         lnd_rpc = lnd_grpc.Client(
             lnd_dir=None,
             macaroon_path=self.auth_admin,

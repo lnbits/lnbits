@@ -6,5 +6,5 @@ prettier: $(shell find lnbits -name "*.js" -name ".html")
 mypy: $(shell find lnbits -name "*.py")
 	mypy lnbits
 
-mypy: $(shell find lnbits -name "*.py")
+black: $(shell find lnbits -name "*.py")
 	black lnbits
