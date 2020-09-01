@@ -1,14 +1,20 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
-from lnbits.bolt11 import decode as bolt11_decode  # type: ignore
+from lnbits import bolt11
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 
-from .crud import get_wallet, create_payment, delete_payment, check_internal, update_payment_status
+from .crud import get_wallet, create_payment, delete_payment, check_internal, update_payment_status, get_wallet_payment
 
 
-def create_invoice(*, wallet_id: str, amount: int, memo: str, description_hash: bytes = None) -> Tuple[str, str]:
-
+def create_invoice(
+    *,
+    wallet_id: str,
+    amount: int,
+    memo: Optional[str] = None,
+    description_hash: Optional[bytes] = None,
+    extra: Optional[Dict] = None,
+) -> Tuple[str, str]:
     try:
         ok, checking_id, payment_request, error_message = WALLET.create_invoice(
             amount=amount, memo=memo, description_hash=description_hash
@@ -18,77 +24,81 @@ def create_invoice(*, wallet_id: str, amount: int, memo: str, description_hash: 
 
     if not ok:
         raise Exception(error_message or "Unexpected backend error.")
-    invoice = bolt11_decode(payment_request)
+
+    invoice = bolt11.decode(payment_request)
 
     amount_msat = amount * 1000
-    create_payment(wallet_id=wallet_id, checking_id=checking_id, payment_hash=invoice.payment_hash, amount=amount_msat, memo=memo)
+    create_payment(
+        wallet_id=wallet_id,
+        checking_id=checking_id,
+        payment_request=payment_request,
+        payment_hash=invoice.payment_hash,
+        amount=amount_msat,
+        memo=memo,
+        extra=extra,
+    )
 
-    return checking_id, payment_request
+    return invoice.payment_hash, payment_request
 
 
-def pay_invoice(*, wallet_id: str, bolt11: str, max_sat: Optional[int] = None) -> str:
+def pay_invoice(
+    *, wallet_id: str, payment_request: str, max_sat: Optional[int] = None, extra: Optional[Dict] = None
+) -> str:
     temp_id = f"temp_{urlsafe_short_hash()}"
     try:
-        invoice = bolt11_decode(bolt11)
-        internal = check_internal(invoice.payment_hash)
-
+        invoice = bolt11.decode(payment_request)
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
-
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
 
-        fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
+        # put all parameters that don't change here
+        payment_kwargs = dict(
+            wallet_id=wallet_id,
+            payment_request=payment_request,
+            payment_hash=invoice.payment_hash,
+            amount=-invoice.amount_msat,
+            memo=invoice.description,
+            extra=extra,
+        )
 
-        if not internal:
-            create_payment(
-                wallet_id=wallet_id,
-                checking_id=temp_id,
-                payment_hash=invoice.payment_hash,
-                amount=-invoice.amount_msat,
-                fee=-fee_reserve,
-                memo=temp_id,
-            )
+        # check_internal() returns the checking_id of the invoice we're waiting for
+        internal = check_internal(invoice.payment_hash)
+        if internal:
+            # create a new payment from this wallet
+            create_payment(checking_id=temp_id, fee=0, pending=False, **payment_kwargs)
+        else:
+            # create a temporary payment here so we can check if
+            # the balance is enough in the next step
+            fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
+            create_payment(checking_id=temp_id, fee=-fee_reserve, **payment_kwargs)
 
+        # do the balance check
         wallet = get_wallet(wallet_id)
         assert wallet, "invalid wallet id"
         if wallet.balance_msat < 0:
             raise PermissionError("Insufficient balance.")
 
         if internal:
-            create_payment(
-                wallet_id=wallet_id,
-                checking_id=temp_id,
-                payment_hash=invoice.payment_hash,
-                amount=-invoice.amount_msat,
-                fee=0,
-                pending=False,
-                memo=invoice.description,
-            )
+            # mark the invoice from the other side as not pending anymore
+            # so the other side only has access to his new money when we are sure
+            # the payer has enough to deduct from
             update_payment_status(checking_id=internal, pending=False)
-            return temp_id
-
-        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(bolt11)
-        if ok:
-            create_payment(
-                wallet_id=wallet_id,
-                checking_id=checking_id,
-                payment_hash=invoice.payment_hash,
-                amount=-invoice.amount_msat,
-                fee=fee_msat,
-                memo=invoice.description,
-            )
+        else:
+            # actually pay the external invoice
+            ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(payment_request)
+            if ok:
+                create_payment(checking_id=checking_id, fee=fee_msat, **payment_kwargs)
+                delete_payment(temp_id)
 
     except Exception as e:
         ok, error_message = False, str(e)
-
-    delete_payment(temp_id)
-
     if not ok:
         raise Exception(error_message or "Unexpected backend error.")
 
-    return checking_id
+    return invoice.payment_hash
 
 
-def check_payment(*, checking_id: str) -> str:
-    pass
+def check_invoice_status(wallet_id: str, payment_hash: str) -> str:
+    payment = get_wallet_payment(wallet_id, payment_hash)
+    return WALLET.get_invoice_status(payment.checking_id)

@@ -1,4 +1,6 @@
-from typing import List, NamedTuple, Optional
+import json
+from typing import List, NamedTuple, Optional, Dict
+from sqlite3 import Row
 
 
 class User(NamedTuple):
@@ -29,10 +31,10 @@ class Wallet(NamedTuple):
     def balance(self) -> int:
         return self.balance_msat // 1000
 
-    def get_payment(self, checking_id: str) -> Optional["Payment"]:
+    def get_payment(self, payment_hash: str) -> Optional["Payment"]:
         from .crud import get_wallet_payment
 
-        return get_wallet_payment(self.id, checking_id)
+        return get_wallet_payment(self.id, payment_hash)
 
     def get_payments(
         self, *, complete: bool = True, pending: bool = False, outgoing: bool = True, incoming: bool = True
@@ -54,6 +56,29 @@ class Payment(NamedTuple):
     fee: int
     memo: str
     time: int
+    bolt11: str
+    preimage: str
+    payment_hash: str
+    extra: Dict
+
+    @classmethod
+    def from_row(cls, row: Row):
+        return cls(
+            checking_id=row["checking_id"],
+            payment_hash=row["hash"],
+            bolt11=row["bolt11"],
+            preimage=row["preimage"],
+            extra=json.loads(row["extra"] or "{}"),
+            pending=row["pending"],
+            amount=row["amount"],
+            fee=row["fee"],
+            memo=row["memo"],
+            time=row["time"],
+        )
+
+    @property
+    def tag(self) -> Optional[str]:
+        return self.extra.get("tag")
 
     @property
     def msat(self) -> int:

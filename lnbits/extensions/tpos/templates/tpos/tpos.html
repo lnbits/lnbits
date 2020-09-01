@@ -224,7 +224,7 @@
                   '/tpos/api/v1/tposs/' +
                     self.tposId +
                     '/invoices/' +
-                    response.data.checking_id
+                    response.data.payment_hash
                 )
                 .then(function (res) {
                   if (res.data.paid) {

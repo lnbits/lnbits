@@ -1,19 +1,16 @@
-from flask import g, jsonify, request
+import requests
+from flask import g, jsonify, request, abort
 from http import HTTPStatus
-
-from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-
-from lnbits.extensions.amilk import amilk_ext
-from .crud import create_amilk, get_amilk, get_amilks, delete_amilk
-from lnbits.core.services import create_invoice
-
-from flask import abort, redirect, request, url_for
 from lnurl import LnurlWithdrawResponse, handle as handle_lnurl
 from lnurl.exceptions import LnurlException
 from time import sleep
-import requests
-from lnbits.settings import WALLET
+
+from lnbits.core.crud import get_user
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.core.services import create_invoice, check_invoice_status
+
+from lnbits.extensions.amilk import amilk_ext
+from .crud import create_amilk, get_amilk, get_amilks, delete_amilk
 
 
 @amilk_ext.route("/api/v1/amilk", methods=["GET"])
@@ -36,13 +33,8 @@ def api_amilkit(amilk_id):
         withdraw_res = handle_lnurl(milk.lnurl, response_class=LnurlWithdrawResponse)
     except LnurlException:
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
-    print(withdraw_res.max_sats)
 
-    try:
-        checking_id, payment_request = create_invoice(wallet_id=milk.wallet, amount=withdraw_res.max_sats, memo=memo)
-        # print(payment_request)
-    except Exception as e:
-        error_message = False, str(e)
+    payment_hash, payment_request = create_invoice(wallet_id=milk.wallet, amount=withdraw_res.max_sats, memo=memo)
 
     r = requests.get(
         withdraw_res.callback.base,
@@ -50,19 +42,17 @@ def api_amilkit(amilk_id):
     )
 
     if not r.ok:
-
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 
     for i in range(10):
-        invoice_status = WALLET.get_invoice_status(checking_id)
         sleep(i)
-        if not invoice_status.paid:
-            continue
+        invoice_status = check_invoice_status(milk.wallet, payment_hash)
+        if invoice_status.paid:
+            return jsonify({"paid": True}), HTTPStatus.OK
         else:
-            return jsonify({"paid": False}), HTTPStatus.OK
-        break
+            continue
 
-    return jsonify({"paid": True}), HTTPStatus.OK
+    return jsonify({"paid": False}), HTTPStatus.OK
 
 
 @amilk_ext.route("/api/v1/amilk", methods=["POST"])

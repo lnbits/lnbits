@@ -9,31 +9,31 @@ from .models import Tickets, Events
 #######TICKETS########
 
 
-def create_ticket(checking_id: str, wallet: str, event: str, name: str, email: str) -> Tickets:
+def create_ticket(payment_hash: str, wallet: str, event: str, name: str, email: str) -> Tickets:
     with open_ext_db("events") as db:
         db.execute(
             """
             INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (checking_id, wallet, event, name, email, False, False),
+            (payment_hash, wallet, event, name, email, False, False),
         )
 
-    return get_ticket(checking_id)
+    return get_ticket(payment_hash)
 
 
-def update_ticket(paid: bool, checking_id: str) -> Tickets:
+def update_ticket(paid: bool, payment_hash: str) -> Tickets:
     with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
         if row[6] == True:
-            return get_ticket(checking_id)
+            return get_ticket(payment_hash)
         db.execute(
             """
             UPDATE ticket
             SET paid = ?
             WHERE id = ?
             """,
-            (paid, checking_id),
+            (paid, payment_hash),
         )
 
         eventdata = get_event(row[2])
@@ -47,12 +47,12 @@ def update_ticket(paid: bool, checking_id: str) -> Tickets:
             """,
             (sold, amount_tickets, row[2]),
         )
-    return get_ticket(checking_id)
+    return get_ticket(payment_hash)
 
 
-def get_ticket(checking_id: str) -> Optional[Tickets]:
+def get_ticket(payment_hash: str) -> Optional[Tickets]:
     with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (checking_id,))
+        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
 
     return Tickets(**row) if row else None
 
@@ -68,9 +68,9 @@ def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
     return [Tickets(**row) for row in rows]
 
 
-def delete_ticket(checking_id: str) -> None:
+def delete_ticket(payment_hash: str) -> None:
     with open_ext_db("events") as db:
-        db.execute("DELETE FROM ticket WHERE id = ?", (checking_id,))
+        db.execute("DELETE FROM ticket WHERE id = ?", (payment_hash,))
 
 
 ########EVENTS#########

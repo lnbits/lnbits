@@ -182,14 +182,13 @@ def api_lnurl_callback(unique_hash):
         return jsonify({"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}), HTTPStatus.OK
 
     try:
-        pay_invoice(wallet_id=link.wallet, bolt11=payment_request, max_sat=link.max_withdrawable)
+        pay_invoice(wallet_id=link.wallet, payment_request=payment_request, max_sat=link.max_withdrawable)
 
         changes = {
             "open_time": link.wait_time + now,
         }
 
         update_withdraw_link(link.id, **changes)
-
     except ValueError as e:
         return jsonify({"status": "ERROR", "reason": str(e)}), HTTPStatus.OK
     except PermissionError:

@@ -64,7 +64,7 @@ def wallet():
         allowed_users = getenv("LNBITS_ALLOWED_USERS", "all")
 
         if allowed_users != "all" and user_id not in allowed_users.split(","):
-            abort(HTTPStatus.UNAUTHORIZED, f"User not authorized.")
+            abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
 
     if not wallet_id:
         if user.wallets and not wallet_name:

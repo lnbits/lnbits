@@ -2,9 +2,8 @@ from flask import g, jsonify, request
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.settings import WALLET
 
 from lnbits.extensions.tpos import tpos_ext
 from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
@@ -60,30 +59,31 @@ def api_tpos_create_invoice(tpos_id):
         return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
 
     try:
-        checking_id, payment_request = create_invoice(
+        payment_hash, payment_request = create_invoice(
             wallet_id=tpos.wallet, amount=g.data["amount"], memo=f"#tpos {tpos.name}"
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.CREATED
+    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.CREATED
 
 
-@tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/<checking_id>", methods=["GET"])
-def api_tpos_check_invoice(tpos_id, checking_id):
+@tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/<payment_hash>", methods=["GET"])
+def api_tpos_check_invoice(tpos_id, payment_hash):
     tpos = get_tpos(tpos_id)
 
     if not tpos:
         return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
 
     try:
-        is_paid = not WALLET.get_invoice_status(checking_id).pending
-    except Exception:
+        is_paid = not check_invoice_status(tpos.wallet, payment_hash).pending
+    except Exception as exc:
+        print(exc)
         return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
         wallet = get_wallet(tpos.wallet)
-        payment = wallet.get_payment(checking_id)
+        payment = wallet.get_payment(payment_hash)
         payment.set_pending(False)
 
         return jsonify({"paid": True}), HTTPStatus.OK

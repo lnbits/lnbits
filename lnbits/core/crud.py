@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from uuid import uuid4
 
 from lnbits.db import open_db
@@ -136,18 +136,18 @@ def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
 # ---------------
 
 
-def get_wallet_payment(wallet_id: str, checking_id: str) -> Optional[Payment]:
+def get_wallet_payment(wallet_id: str, payment_hash: str) -> Optional[Payment]:
     with open_db() as db:
         row = db.fetchone(
             """
-            SELECT id as checking_id, amount, fee, pending, memo, time
-            FROM apipayment
-            WHERE wallet = ? AND id = ?
+            SELECT *
+            FROM apipayments
+            WHERE wallet = ? AND hash = ?
             """,
-            (wallet_id, checking_id),
+            (wallet_id, payment_hash),
         )
 
-    return Payment(**row) if row else None
+    return Payment.from_row(row) if row else None
 
 
 def get_wallet_payments(
@@ -179,7 +179,7 @@ def get_wallet_payments(
     with open_db() as db:
         rows = db.fetchall(
             f"""
-            SELECT id as checking_id, amount, fee, pending, memo, time
+            SELECT *
             FROM apipayments
             WHERE wallet = ? {clause}
             ORDER BY time DESC
@@ -187,7 +187,7 @@ def get_wallet_payments(
             (wallet_id,),
         )
 
-    return [Payment(**row) for row in rows]
+    return [Payment.from_row(row) for row in rows]
 
 
 def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> None:
@@ -195,7 +195,7 @@ def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> N
         db.execute(
             """
             DELETE
-            FROM apipayment WHERE wallet = ? AND pending = 1 AND time < strftime('%s', 'now') - ?
+            FROM apipayments WHERE wallet = ? AND pending = 1 AND time < strftime('%s', 'now') - ?
             """,
             (wallet_id, seconds),
         )
@@ -206,18 +206,30 @@ def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> N
 
 
 def create_payment(
-    *, wallet_id: str, checking_id: str, payment_hash: str, amount: int, memo: str, fee: int = 0, pending: bool = True
+    *,
+    wallet_id: str,
+    checking_id: str,
+    payment_request: str,
+    payment_hash: str,
+    amount: int,
+    memo: str,
+    fee: int = 0,
+    preimage: Optional[str] = None,
+    pending: bool = True,
+    extra: Optional[Dict] = None,
 ) -> Payment:
     with open_db() as db:
         db.execute(
             """
-            INSERT INTO apipayment (wallet, id, payment_hash, amount, pending, memo, fee)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO apipayments
+              (wallet, checking_id, bolt11, hash, preimage,
+               amount, pending, memo, fee, extra)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (wallet_id, checking_id, payment_hash, amount, int(pending), memo, fee),
+            (wallet_id, checking_id, payment_request, payment_hash, preimage, amount, int(pending), memo, fee, extra),
         )
 
-    new_payment = get_wallet_payment(wallet_id, checking_id)
+    new_payment = get_wallet_payment(wallet_id, payment_hash)
     assert new_payment, "Newly created payment couldn't be retrieved"
 
     return new_payment
@@ -225,18 +237,18 @@ def create_payment(
 
 def update_payment_status(checking_id: str, pending: bool) -> None:
     with open_db() as db:
-        db.execute("UPDATE apipayment SET pending = ? WHERE id = ?", (int(pending), checking_id,))
+        db.execute("UPDATE apipayments SET pending = ? WHERE checking_id = ?", (int(pending), checking_id,))
 
 
 def delete_payment(checking_id: str) -> None:
     with open_db() as db:
-        db.execute("DELETE FROM apipayment WHERE id = ?", (checking_id,))
+        db.execute("DELETE FROM apipayments WHERE checking_id = ?", (checking_id,))
 
 
 def check_internal(payment_hash: str) -> None:
     with open_db() as db:
-        row = db.fetchone("SELECT * FROM apipayment WHERE payment_hash = ?", (payment_hash,))
+        row = db.fetchone("SELECT checking_id FROM apipayments WHERE hash = ?", (payment_hash,))
         if not row:
             return False
         else:
-            return row['id']
+            return row["checking_id"]
