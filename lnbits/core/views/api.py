@@ -5,6 +5,7 @@ from binascii import unhexlify
 from lnbits import bolt11
 from lnbits.core import core_app
 from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.crud import delete_expired_invoices
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET
 
@@ -13,7 +14,7 @@ from lnbits.settings import WALLET
 @api_check_wallet_key("invoice")
 def api_payments():
     if "check_pending" in request.args:
-        g.wallet.delete_expired_payments()
+        delete_expired_invoices()
 
         for payment in g.wallet.get_payments(complete=False, pending=True):
             if payment.is_uncheckable:

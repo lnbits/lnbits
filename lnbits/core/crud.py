@@ -1,7 +1,9 @@
-from typing import List, Optional, Dict
+import datetime
 from uuid import uuid4
+from typing import List, Optional, Dict
 
 from lnbits.db import open_db
+from lnbits import bolt11
 from lnbits.settings import DEFAULT_WALLET_NAME
 
 from .models import User, Wallet, Payment
@@ -190,15 +192,32 @@ def get_wallet_payments(
     return [Payment.from_row(row) for row in rows]
 
 
-def delete_wallet_payments_expired(wallet_id: str, *, seconds: int = 86400) -> None:
+def delete_expired_invoices() -> None:
     with open_db() as db:
-        db.execute(
+        rows = db.fetchall(
             """
-            DELETE
-            FROM apipayments WHERE wallet = ? AND pending = 1 AND time < strftime('%s', 'now') - ?
-            """,
-            (wallet_id, seconds),
+            SELECT bolt11
+            FROM apipayments
+            WHERE pending = 1 AND amount > 0 AND time < strftime('%s', 'now') - 86400
+        """
         )
+        for (payment_request,) in rows:
+            try:
+                invoice = bolt11.decode(payment_request)
+            except:
+                continue
+
+            expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
+            if expiration_date > datetime.datetime.utcnow():
+                continue
+
+            db.execute(
+                """
+                DELETE FROM apipayments
+                WHERE pending = 1 AND payment_hash = ?
+                """,
+                (invoice.payment_hash,),
+            )
 
 
 # payments
