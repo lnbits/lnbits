@@ -106,15 +106,15 @@
     computed: {
       amountWords() {
         var regex = /\s+/gi
-        var char = this.formDialog.data.text
+        var nwords = this.formDialog.data.text
           .trim()
           .replace(regex, ' ')
           .split(' ').length
-        this.formDialog.data.sats = char * parseInt('{{ form_costpword }}')
-        if (this.formDialog.data.sats == parseInt('{{ form_costpword }}')) {
+        var sats = nwords * parseInt('{{ form_costpword }}')
+        if (sats === parseInt('{{ form_costpword }}')) {
           return '0 Sats to pay'
         } else {
-          return this.formDialog.data.sats + ' Sats to pay'
+          return sats + ' Sats to pay'
         }
       }
     },
@@ -125,7 +125,6 @@
         this.formDialog.data.name = ''
         this.formDialog.data.email = ''
         this.formDialog.data.text = ''
-        this.formDialog.data.sats = 0
       },
 
       closeReceiveDialog: function () {
@@ -139,15 +138,12 @@
         var self = this
         axios
           .post(
-            '/lnticket/api/v1/tickets/' +
-              '{{ form_id }}/' +
-              self.formDialog.data.sats,
+            '/lnticket/api/v1/tickets/{{ form_id }}',
             {
               form: '{{ form_id }}',
               name: self.formDialog.data.name,
               email: self.formDialog.data.email,
               ltext: self.formDialog.data.text,
-              sats: self.formDialog.data.sats
             }
           )
           .then(function (response) {
@@ -175,7 +171,6 @@
                     self.formDialog.data.name = ''
                     self.formDialog.data.email = ''
                     self.formDialog.data.text = ''
-                    self.formDialog.data.sats = 0
 
                     self.$q.notify({
                       type: 'positive',

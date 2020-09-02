@@ -60,7 +60,7 @@ def api_tpos_create_invoice(tpos_id):
 
     try:
         payment_hash, payment_request = create_invoice(
-            wallet_id=tpos.wallet, amount=g.data["amount"], memo=f"#tpos {tpos.name}"
+            wallet_id=tpos.wallet, amount=g.data["amount"], memo=f"{tpos.name}", extra={"tag": "tpos"}
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR

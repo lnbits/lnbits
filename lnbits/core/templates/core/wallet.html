@@ -8,7 +8,7 @@
 {% endblock %} {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 {% assets filters='rjsmin', output='__bundle__/core/chart.js',
-'vendor/moment@2.25.1/moment.min.js', 'vendor/chart.js@2.9.3/chart.min.js' %}
+'vendor/moment@2.27.0/moment.min.js', 'vendor/chart.js@2.9.3/chart.min.js' %}
 <script type="text/javascript" src="{{ ASSET_URL }}"></script>
 {% endassets %} {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
 'vendor/bolt11/utils.js', 'vendor/bolt11/decoder.js',
@@ -76,7 +76,7 @@
           clearable
           v-model="paymentsTable.filter"
           debounce="300"
-          placeholder="Search by memo, amount"
+          placeholder="Search by tag, memo, amount"
           class="q-mb-md"
         >
         </q-input>
@@ -84,7 +84,7 @@
           dense
           flat
           :data="filteredPayments"
-          row-key="checking_id"
+          row-key="payment_hash"
           :columns="paymentsTable.columns"
           :pagination.sync="paymentsTable.pagination"
         >
@@ -111,6 +111,11 @@
                 </q-icon>
               </q-td>
               <q-td key="memo" :props="props">
+                <q-badge v-if="props.row.tag" color="yellow" text-color="black">
+<a class="inherit" :href="['/', props.row.tag, '?usr=', user.id].join('')">
+              #{{ props.row.tag }}
+    </a>
+            </q-badge>
                 {{ props.row.memo }}
               </q-td>
               <q-td auto-width key="date" :props="props">

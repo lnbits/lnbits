@@ -109,10 +109,10 @@ def api_tickets():
 def api_ticket_make_ticket(event_id, sats):
     event = get_event(event_id)
     if not event:
-        return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
+        return jsonify({"message": "Event does not exist."}), HTTPStatus.NOT_FOUND
     try:
         payment_hash, payment_request = create_invoice(
-            wallet_id=event.wallet, amount=int(sats), memo=f"#lnticket {event_id}"
+            wallet_id=event.wallet, amount=int(sats), memo=f"{event_id}", extra={"tag": "events"}
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -120,7 +120,7 @@ def api_ticket_make_ticket(event_id, sats):
     ticket = create_ticket(payment_hash=payment_hash, wallet=event.wallet, event=event_id, **g.data)
 
     if not ticket:
-        return jsonify({"message": "LNTicket could not be fetched."}), HTTPStatus.NOT_FOUND
+        return jsonify({"message": "Event could not be fetched."}), HTTPStatus.NOT_FOUND
 
     return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.OK
 

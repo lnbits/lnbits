@@ -64,7 +64,7 @@ def api_paywall_create_invoice(paywall_id):
     try:
         amount = g.data["amount"] if g.data["amount"] > paywall.amount else paywall.amount
         payment_hash, payment_request = create_invoice(
-            wallet_id=paywall.wallet, amount=amount, memo=f"#paywall {paywall.memo}"
+            wallet_id=paywall.wallet, amount=amount, memo=f"{paywall.memo}", extra={'tag': 'paywall'}
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR

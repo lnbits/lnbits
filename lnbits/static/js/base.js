@@ -94,7 +94,18 @@ var LNbits = {
     },
     payment: function(data) {
       var obj = _.object(
-        ['checking_id', 'pending', 'amount', 'fee', 'memo', 'time'],
+        [
+          'checking_id',
+          'pending',
+          'amount',
+          'fee',
+          'memo',
+          'time',
+          'bolt11',
+          'preimage',
+          'payment_hash',
+          'extra'
+        ],
         data
       )
       obj.date = Quasar.utils.date.formatDate(
@@ -103,6 +114,7 @@ var LNbits = {
       )
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
+      obj.tag = obj.extra.tag
       obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0

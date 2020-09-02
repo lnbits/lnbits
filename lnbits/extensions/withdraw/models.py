@@ -62,5 +62,5 @@ class WithdrawLink(NamedTuple):
             k1=self.k1,
             min_withdrawable=self.min_withdrawable * 1000,
             max_withdrawable=self.max_withdrawable * 1000,
-            default_description="#withdraw LNbits LNURL",
+            default_description="LNbits voucher",
         )

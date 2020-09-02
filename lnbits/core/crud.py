@@ -1,3 +1,4 @@
+import json
 import datetime
 from uuid import uuid4
 from typing import List, Optional, Dict
@@ -245,7 +246,18 @@ def create_payment(
                amount, pending, memo, fee, extra)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (wallet_id, checking_id, payment_request, payment_hash, preimage, amount, int(pending), memo, fee, extra),
+            (
+                wallet_id,
+                checking_id,
+                payment_request,
+                payment_hash,
+                preimage,
+                amount,
+                int(pending),
+                memo,
+                fee,
+                json.dumps(extra) if extra and extra != {} and type(extra) is dict else None,
+            ),
         )
 
     new_payment = get_wallet_payment(wallet_id, payment_hash)

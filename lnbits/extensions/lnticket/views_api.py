@@ -1,3 +1,4 @@
+import re
 from flask import g, jsonify, request
 from http import HTTPStatus
 
@@ -48,7 +49,6 @@ def api_forms():
 def api_form_create(form_id=None):
     if form_id:
         form = get_form(form_id)
-        print(g.data)
 
         if not form:
             return jsonify({"message": "Form does not exist."}), HTTPStatus.NOT_FOUND
@@ -92,29 +92,32 @@ def api_tickets():
     return jsonify([form._asdict() for form in get_tickets(wallet_ids)]), HTTPStatus.OK
 
 
-@lnticket_ext.route("/api/v1/tickets/<form_id>/<sats>", methods=["POST"])
+@lnticket_ext.route("/api/v1/tickets/<form_id>", methods=["POST"])
 @api_validate_post_request(
     schema={
         "form": {"type": "string", "empty": False, "required": True},
         "name": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "empty": True, "required": True},
         "ltext": {"type": "string", "empty": False, "required": True},
-        "sats": {"type": "integer", "min": 0, "required": True},
     }
 )
-def api_ticket_make_ticket(form_id, sats):
-    event = get_form(form_id)
-
-    if not event:
+def api_ticket_make_ticket(form_id):
+    form = get_form(form_id)
+    if not form:
         return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
     try:
+        nwords = len(re.split(r"\s+", g.data["ltext"]))
+        sats = nwords * form.costpword
         payment_hash, payment_request = create_invoice(
-            wallet_id=event.wallet, amount=int(sats), memo=f"#lnticket {form_id}"
+            wallet_id=form.wallet,
+            amount=sats,
+            memo=f"ticket with {nwords} words on {form_id}",
+            extra={"tag": "lnticket"},
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    ticket = create_ticket(payment_hash=payment_hash, wallet=event.wallet, **g.data)
+    ticket = create_ticket(payment_hash=payment_hash, wallet=form.wallet, sats=sats, **g.data)
 
     if not ticket:
         return jsonify({"message": "LNTicket could not be fetched."}), HTTPStatus.NOT_FOUND

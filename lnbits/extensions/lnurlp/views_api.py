@@ -123,6 +123,7 @@ def api_lnurl_callback(link_id):
         amount=link.amount,
         memo=link.description,
         description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
+        extra={"tag": "lnurlp"},
     )
     resp = LnurlPayActionResponse(pr=payment_request, success_action=None, routes=[])
 

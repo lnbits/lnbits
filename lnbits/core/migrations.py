@@ -83,6 +83,26 @@ def m002_add_fields_to_apipayments(db):
     db.execute("ALTER TABLE apipayments ADD COLUMN bolt11 TEXT")
     db.execute("ALTER TABLE apipayments ADD COLUMN extra TEXT")
 
+    import json
+
+    rows = db.fetchall("SELECT * FROM apipayments")
+    for row in rows:
+        if not row["memo"] or not row["memo"].startswith("#"):
+            continue
+
+        for ext in ["withdraw", "events", "lnticket", "paywall", "tpos"]:
+            prefix = "#" + ext + " "
+            if row["memo"].startswith(prefix):
+                new = row["memo"][len(prefix) :]
+                db.execute(
+                    """
+                    UPDATE apipayments SET extra = ?, memo = ?
+                    WHERE checking_id = ? AND memo = ?
+                    """,
+                    (json.dumps({"tag": ext}), new, row["checking_id"], row["memo"]),
+                )
+                break
+
 
 def migrate():
     with open_db() as db:
