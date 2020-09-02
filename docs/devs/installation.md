@@ -5,10 +5,12 @@ title: Installation
 nav_order: 1
 ---
 
+
 Installation
 ============
 
 Download this repo and install the dependencies.
+
 
 Application dependencies
 ------------------------
@@ -29,9 +31,10 @@ You will need to set the variables in `.env.example`, and rename the file to `.e
 ![Files](https://i.imgur.com/ri2zOe8.png)
 
 You might also need to install additional packages, depending on the [backend wallets](../guide/wallets.md) you configured.
-E.g. when you want to use LND you have to `pipenv install lnd-grpc`.
+E.g. when you want to use LND you have to `pipenv run pip install lnd-grpc`.
 
 Take a look at [Polar](https://lightningpolar.com/) for an excellent way of spinning up a Lightning Network dev environment.
+
 
 Running the server
 ------------------
@@ -47,6 +50,7 @@ There is an environment variable called `FLASK_ENV` that has to be set to `devel
 if you want to run Flask in debug mode with autoreload
 
 [pipenv]: https://pipenv.pypa.io/
+
 
 Frontend
 --------
