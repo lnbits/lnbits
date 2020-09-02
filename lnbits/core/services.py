@@ -45,6 +45,8 @@ def pay_invoice(
     *, wallet_id: str, payment_request: str, max_sat: Optional[int] = None, extra: Optional[Dict] = None
 ) -> str:
     temp_id = f"temp_{urlsafe_short_hash()}"
+    internal_id = f"internal_{urlsafe_short_hash()}"
+
     try:
         invoice = bolt11.decode(payment_request)
         if invoice.amount_msat == 0:
@@ -66,7 +68,7 @@ def pay_invoice(
         internal = check_internal(invoice.payment_hash)
         if internal:
             # create a new payment from this wallet
-            create_payment(checking_id=temp_id, fee=0, pending=False, **payment_kwargs)
+            create_payment(checking_id=internal_id, fee=0, pending=False, **payment_kwargs)
         else:
             # create a temporary payment here so we can check if
             # the balance is enough in the next step

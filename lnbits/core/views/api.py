@@ -16,7 +16,9 @@ def api_payments():
         g.wallet.delete_expired_payments()
 
         for payment in g.wallet.get_payments(complete=False, pending=True):
-            if payment.is_out:
+            if payment.is_uncheckable:
+                pass
+            elif payment.is_out:
                 payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
             else:
                 payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
@@ -104,7 +106,9 @@ def api_payment(payment_hash):
         return jsonify({"paid": True}), HTTPStatus.OK
 
     try:
-        if payment.is_out:
+        if payment.is_uncheckable:
+            pass
+        elif payment.is_out:
             is_paid = not WALLET.get_payment_status(payment.checking_id).pending
         elif payment.is_in:
             is_paid = not WALLET.get_invoice_status(payment.checking_id).pending

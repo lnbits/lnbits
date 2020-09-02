@@ -96,6 +96,10 @@ class Payment(NamedTuple):
     def is_out(self) -> bool:
         return self.amount < 0
 
+    @property
+    def is_uncheckable(self) -> bool:
+        return self.checking_id.startswith("temp_") or self.checking_id.startswith("internal_")
+
     def set_pending(self, pending: bool) -> None:
         from .crud import update_payment_status
 
