@@ -137,15 +137,12 @@
       Invoice: function () {
         var self = this
         axios
-          .post(
-            '/lnticket/api/v1/tickets/{{ form_id }}',
-            {
-              form: '{{ form_id }}',
-              name: self.formDialog.data.name,
-              email: self.formDialog.data.email,
-              ltext: self.formDialog.data.text,
-            }
-          )
+          .post('/lnticket/api/v1/tickets/{{ form_id }}', {
+            form: '{{ form_id }}',
+            name: self.formDialog.data.name,
+            email: self.formDialog.data.email,
+            ltext: self.formDialog.data.text
+          })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
             self.paymentCheck = response.data.payment_hash

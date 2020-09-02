@@ -103,19 +103,28 @@
                 <q-icon
                   v-if="props.row.isPaid"
                   size="14px"
-                  :name="(props.row.sat < 0) ? 'call_made' : 'call_received'"
-                  :color="(props.row.sat < 0) ? 'pink' : 'green'"
+                  :name="props.row.isOut ? 'call_made' : 'call_received'"
+                  :color="props.row.isOut ? 'pink' : 'green'"
+                  @click="props.expand = !props.expand"
                 ></q-icon>
-                <q-icon v-else name="settings_ethernet" color="grey">
+                <q-icon
+                  v-else
+                  name="settings_ethernet"
+                  color="grey"
+                  @click="props.expand = !props.expand"
+                >
                   <q-tooltip>Pending</q-tooltip>
                 </q-icon>
               </q-td>
               <q-td key="memo" :props="props">
                 <q-badge v-if="props.row.tag" color="yellow" text-color="black">
-<a class="inherit" :href="['/', props.row.tag, '?usr=', user.id].join('')">
-              #{{ props.row.tag }}
-    </a>
-            </q-badge>
+                  <a
+                    class="inherit"
+                    :href="['/', props.row.tag, '?usr=', user.id].join('')"
+                  >
+                    #{{ props.row.tag }}
+                  </a>
+                </q-badge>
                 {{ props.row.memo }}
               </q-td>
               <q-td auto-width key="date" :props="props">
@@ -125,6 +134,64 @@
                 {{ props.row.fsat }}
               </q-td>
             </q-tr>
+
+            <q-dialog v-model="props.expand" :props="props">
+              <q-card
+                v-if="props.row.amount > 0 && props.row.pending"
+                class="q-pa-lg q-pt-xl lnbits__dialog-card"
+              >
+                <div class="text-center q-mb-lg">
+                  <a :href="'lightning:' + receive.paymentReq">
+                    <q-responsive :ratio="1" class="q-mx-xl">
+                      <qrcode
+                        :value="receive.paymentReq"
+                        :options="{width: 340}"
+                        class="rounded-borders"
+                      ></qrcode>
+                    </q-responsive>
+                  </a>
+                </div>
+                <div class="row q-mt-lg">
+                  <q-btn
+                    outline
+                    color="grey"
+                    @click="copyText(receive.paymentReq)"
+                    >Copy invoice</q-btn
+                  >
+                  <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                    >Close</q-btn
+                  >
+                </div>
+              </q-card>
+              <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+                <div class="text-center q-mb-lg">
+                  <div v-if="props.row.isPaid && props.row.isIn">
+                    <q-icon
+                      size="18px"
+                      :name="'call_received'"
+                      :color="'green'"
+                    ></q-icon>
+                    Payment Received
+                  </div>
+                  <div v-else-if="props.row.isPaid && props.row.isOut">
+                    <q-icon
+                      size="18px"
+                      :name="'call_made'"
+                      :color="'pink'"
+                    ></q-icon>
+                    Payment Sent
+                  </div>
+                  <div v-else>
+                    <q-icon name="settings_ethernet" color="grey"></q-icon>
+                    Outgoing payment pending
+                  </div>
+                  <q-tooltip>Payment Hash</q-tooltip>
+                  <div class="text-wrap mono q-pa-md">
+                    {{ props.row.payment_hash }}
+                  </div>
+                </div>
+              </q-card>
+            </q-dialog>
           </template>
           {% endraw %}
         </q-table>

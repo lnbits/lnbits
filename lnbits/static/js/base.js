@@ -6,7 +6,7 @@ var EventHub = new Vue()
 
 var LNbits = {
   api: {
-    request: function(method, url, apiKey, data) {
+    request: function (method, url, apiKey, data) {
       return axios({
         method: method,
         url: url,
@@ -16,20 +16,20 @@ var LNbits = {
         data: data
       })
     },
-    createInvoice: function(wallet, amount, memo) {
+    createInvoice: function (wallet, amount, memo) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
         memo: memo
       })
     },
-    payInvoice: function(wallet, bolt11) {
+    payInvoice: function (wallet, bolt11) {
       return this.request('post', '/api/v1/payments', wallet.adminkey, {
         out: true,
         bolt11: bolt11
       })
     },
-    getPayments: function(wallet, checkPending) {
+    getPayments: function (wallet, checkPending) {
       var query_param = checkPending ? '?check_pending' : ''
       return this.request(
         'get',
@@ -37,7 +37,7 @@ var LNbits = {
         wallet.inkey
       )
     },
-    getPayment: function(wallet, paymentHash) {
+    getPayment: function (wallet, paymentHash) {
       return this.request(
         'get',
         '/api/v1/payments/' + paymentHash,
@@ -46,16 +46,16 @@ var LNbits = {
     }
   },
   href: {
-    createWallet: function(walletName, userId) {
+    createWallet: function (walletName, userId) {
       window.location.href =
         '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName
     },
-    deleteWallet: function(walletId, userId) {
+    deleteWallet: function (walletId, userId) {
       window.location.href = '/deletewallet?usr=' + userId + '&wal=' + walletId
     }
   },
   map: {
-    extension: function(data) {
+    extension: function (data) {
       var obj = _.object(
         ['code', 'isValid', 'name', 'shortDescription', 'icon'],
         data
@@ -63,17 +63,17 @@ var LNbits = {
       obj.url = ['/', obj.code, '/'].join('')
       return obj
     },
-    user: function(data) {
+    user: function (data) {
       var obj = _.object(['id', 'email', 'extensions', 'wallets'], data)
       var mapWallet = this.wallet
       obj.wallets = obj.wallets
-        .map(function(obj) {
+        .map(function (obj) {
           return mapWallet(obj)
         })
-        .sort(function(a, b) {
+        .sort(function (a, b) {
           return a.name.localeCompare(b.name)
         })
-      obj.walletOptions = obj.wallets.map(function(obj) {
+      obj.walletOptions = obj.wallets.map(function (obj) {
         return {
           label: [obj.name, ' - ', obj.id].join(''),
           value: obj.id
@@ -81,7 +81,7 @@ var LNbits = {
       })
       return obj
     },
-    wallet: function(data) {
+    wallet: function (data) {
       var obj = _.object(
         ['id', 'name', 'user', 'adminkey', 'inkey', 'balance'],
         data
@@ -92,7 +92,7 @@ var LNbits = {
       obj.url = ['/wallet?usr=', obj.user, '&wal=', obj.id].join('')
       return obj
     },
-    payment: function(data) {
+    payment: function (data) {
       var obj = _.object(
         [
           'checking_id',
@@ -124,7 +124,7 @@ var LNbits = {
     }
   },
   utils: {
-    confirmDialog: function(msg) {
+    confirmDialog: function (msg) {
       return Quasar.plugins.Dialog.create({
         message: msg,
         ok: {
@@ -137,16 +137,16 @@ var LNbits = {
         }
       })
     },
-    formatCurrency: function(value, currency) {
+    formatCurrency: function (value, currency) {
       return new Intl.NumberFormat(LOCALE, {
         style: 'currency',
         currency: currency
       }).format(value)
     },
-    formatSat: function(value) {
+    formatSat: function (value) {
       return new Intl.NumberFormat(LOCALE).format(value)
     },
-    notifyApiError: function(error) {
+    notifyApiError: function (error) {
       var types = {
         400: 'warning',
         401: 'warning',
@@ -163,12 +163,12 @@ var LNbits = {
         icon: null
       })
     },
-    search: function(data, q, field, separator) {
+    search: function (data, q, field, separator) {
       try {
         var queries = q.toLowerCase().split(separator || ' ')
-        return data.filter(function(obj) {
+        return data.filter(function (obj) {
           var matches = 0
-          _.each(queries, function(q) {
+          _.each(queries, function (q) {
             if (obj[field].indexOf(q) !== -1) matches++
           })
           return matches === queries.length
@@ -177,8 +177,8 @@ var LNbits = {
         return data
       }
     },
-    exportCSV: function(columns, data) {
-      var wrapCsvValue = function(val, formatFn) {
+    exportCSV: function (columns, data) {
+      var wrapCsvValue = function (val, formatFn) {
         var formatted = formatFn !== void 0 ? formatFn(val) : val
 
         formatted =
@@ -190,14 +190,14 @@ var LNbits = {
       }
 
       var content = [
-        columns.map(function(col) {
+        columns.map(function (col) {
           return wrapCsvValue(col.label)
         })
       ]
         .concat(
-          data.map(function(row) {
+          data.map(function (row) {
             return columns
-              .map(function(col) {
+              .map(function (col) {
                 return wrapCsvValue(
                   typeof col.field === 'function'
                     ? col.field(row)
@@ -228,7 +228,7 @@ var LNbits = {
 }
 
 var windowMixin = {
-  data: function() {
+  data: function () {
     return {
       g: {
         visibleDrawer: false,
@@ -240,13 +240,13 @@ var windowMixin = {
     }
   },
   methods: {
-    toggleDarkMode: function() {
+    toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
     },
-    copyText: function(text, message, position) {
+    copyText: function (text, message, position) {
       var notify = this.$q.notify
-      Quasar.utils.copyToClipboard(text).then(function() {
+      Quasar.utils.copyToClipboard(text).then(function () {
         notify({
           message: message || 'Copied to clipboard!',
           position: position || 'bottom'
@@ -254,7 +254,7 @@ var windowMixin = {
       })
     }
   },
-  created: function() {
+  created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
     if (window.user) {
       this.g.user = Object.freeze(LNbits.map.user(window.user))
@@ -266,10 +266,10 @@ var windowMixin = {
       var user = this.g.user
       this.g.extensions = Object.freeze(
         window.extensions
-          .map(function(data) {
+          .map(function (data) {
             return LNbits.map.extension(data)
           })
-          .map(function(obj) {
+          .map(function (obj) {
             if (user) {
               obj.isEnabled = user.extensions.indexOf(obj.code) !== -1
             } else {
@@ -277,7 +277,7 @@ var windowMixin = {
             }
             return obj
           })
-          .sort(function(a, b) {
+          .sort(function (a, b) {
             return a.name > b.name
           })
       )

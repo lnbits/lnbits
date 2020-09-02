@@ -66,3 +66,12 @@ a.inherit {
         direction: ltr;
         -moz-font-feature-settings: 'liga';
         -moz-osx-font-smoothing: grayscale; }
+
+.text-wrap {
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+.mono {
+  font-family: monospace;
+}
