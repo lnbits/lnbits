@@ -39,11 +39,11 @@
     </q-layout>
 
     {% if DEBUG %}
-    <script src="{{ url_for('static', filename='vendor/vue@2.6.11/vue.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/quasar@1.10.4/quasar.umd.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/vue@2.6.12/vue.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.umd.js') }}"></script>
     {% else %} {% assets output='__bundle__/vue-print.js',
-    'vendor/quasar@1.10.4/quasar.ie.polyfills.umd.min.js',
-    'vendor/vue@2.6.11/vue.min.js', 'vendor/quasar@1.10.4/quasar.umd.min.js' %}
+    'vendor/quasar@1.13.2/quasar.ie.polyfills.umd.min.js',
+    'vendor/vue@2.6.12/vue.min.js', 'vendor/quasar@1.13.2/quasar.umd.min.js' %}
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %} {% endif %} {% block scripts %}{% endblock %}
   </body>

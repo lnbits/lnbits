@@ -1,5 +1,5 @@
-/**
- * vuex v3.1.3
+/*!
+ * vuex v3.5.1
  * (c) 2020 Evan You
  * @license MIT
  */
@@ -7,7 +7,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = global || self, global.Vuex = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
   function applyMixin (Vue) {
     var version = Number(Vue.version.split('.')[0]);
@@ -65,7 +65,11 @@
 
     store.subscribe(function (mutation, state) {
       devtoolHook.emit('vuex:mutation', mutation, state);
-    });
+    }, { prepend: true });
+
+    store.subscribeAction(function (action, state) {
+      devtoolHook.emit('vuex:action', action, state);
+    }, { prepend: true });
   }
 
   /**
@@ -76,6 +80,47 @@
    * @param {Function} f
    * @return {*}
    */
+  function find (list, f) {
+    return list.filter(f)[0]
+  }
+
+  /**
+   * Deep copy the given object considering circular structure.
+   * This function caches all nested objects and its copies.
+   * If it detects circular structure, use cached copy to avoid infinite loop.
+   *
+   * @param {*} obj
+   * @param {Array<Object>} cache
+   * @return {*}
+   */
+  function deepCopy (obj, cache) {
+    if ( cache === void 0 ) cache = [];
+
+    // just return if obj is immutable value
+    if (obj === null || typeof obj !== 'object') {
+      return obj
+    }
+
+    // if obj is hit, it is in circular structure
+    var hit = find(cache, function (c) { return c.original === obj; });
+    if (hit) {
+      return hit.copy
+    }
+
+    var copy = Array.isArray(obj) ? [] : {};
+    // put the copy into cache at first
+    // because we want to refer it in recursive deepCopy
+    cache.push({
+      original: obj,
+      copy: copy
+    });
+
+    Object.keys(obj).forEach(function (key) {
+      copy[key] = deepCopy(obj[key], cache);
+    });
+
+    return copy
+  }
 
   /**
    * forEach for object
@@ -131,6 +176,10 @@
 
   Module.prototype.getChild = function getChild (key) {
     return this._children[key]
+  };
+
+  Module.prototype.hasChild = function hasChild (key) {
+    return key in this._children
   };
 
   Module.prototype.update = function update (rawModule) {
@@ -220,9 +269,30 @@
   ModuleCollection.prototype.unregister = function unregister (path) {
     var parent = this.get(path.slice(0, -1));
     var key = path[path.length - 1];
-    if (!parent.getChild(key).runtime) { return }
+    var child = parent.getChild(key);
+
+    if (!child) {
+      {
+        console.warn(
+          "[vuex] trying to unregister module '" + key + "', which is " +
+          "not registered"
+        );
+      }
+      return
+    }
+
+    if (!child.runtime) {
+      return
+    }
 
     parent.removeChild(key);
+  };
+
+  ModuleCollection.prototype.isRegistered = function isRegistered (path) {
+    var parent = this.get(path.slice(0, -1));
+    var key = path[path.length - 1];
+
+    return parent.hasChild(key)
   };
 
   function update (path, targetModule, newModule) {
@@ -404,6 +474,7 @@
       .forEach(function (sub) { return sub(mutation, this$1.state); });
 
     if (
+      
       options && options.silent
     ) {
       console.warn(
@@ -446,28 +517,42 @@
       ? Promise.all(entry.map(function (handler) { return handler(payload); }))
       : entry[0](payload);
 
-    return result.then(function (res) {
-      try {
-        this$1._actionSubscribers
-          .filter(function (sub) { return sub.after; })
-          .forEach(function (sub) { return sub.after(action, this$1.state); });
-      } catch (e) {
-        {
-          console.warn("[vuex] error in after action subscribers: ");
-          console.error(e);
+    return new Promise(function (resolve, reject) {
+      result.then(function (res) {
+        try {
+          this$1._actionSubscribers
+            .filter(function (sub) { return sub.after; })
+            .forEach(function (sub) { return sub.after(action, this$1.state); });
+        } catch (e) {
+          {
+            console.warn("[vuex] error in after action subscribers: ");
+            console.error(e);
+          }
         }
-      }
-      return res
+        resolve(res);
+      }, function (error) {
+        try {
+          this$1._actionSubscribers
+            .filter(function (sub) { return sub.error; })
+            .forEach(function (sub) { return sub.error(action, this$1.state, error); });
+        } catch (e) {
+          {
+            console.warn("[vuex] error in error action subscribers: ");
+            console.error(e);
+          }
+        }
+        reject(error);
+      });
     })
   };
 
-  Store.prototype.subscribe = function subscribe (fn) {
-    return genericSubscribe(fn, this._subscribers)
+  Store.prototype.subscribe = function subscribe (fn, options) {
+    return genericSubscribe(fn, this._subscribers, options)
   };
 
-  Store.prototype.subscribeAction = function subscribeAction (fn) {
+  Store.prototype.subscribeAction = function subscribeAction (fn, options) {
     var subs = typeof fn === 'function' ? { before: fn } : fn;
-    return genericSubscribe(subs, this._actionSubscribers)
+    return genericSubscribe(subs, this._actionSubscribers, options)
   };
 
   Store.prototype.watch = function watch (getter, cb, options) {
@@ -520,6 +605,16 @@
     resetStore(this);
   };
 
+  Store.prototype.hasModule = function hasModule (path) {
+    if (typeof path === 'string') { path = [path]; }
+
+    {
+      assert(Array.isArray(path), "module path must be a string or an Array.");
+    }
+
+    return this._modules.isRegistered(path)
+  };
+
   Store.prototype.hotUpdate = function hotUpdate (newOptions) {
     this._modules.update(newOptions);
     resetStore(this, true);
@@ -534,9 +629,11 @@
 
   Object.defineProperties( Store.prototype, prototypeAccessors$1 );
 
-  function genericSubscribe (fn, subs) {
+  function genericSubscribe (fn, subs, options) {
     if (subs.indexOf(fn) < 0) {
-      subs.push(fn);
+      options && options.prepend
+        ? subs.unshift(fn)
+        : subs.push(fn);
     }
     return function () {
       var i = subs.indexOf(fn);
@@ -614,7 +711,7 @@
 
     // register in namespace map
     if (module.namespaced) {
-      if (store._modulesNamespaceMap[namespace] && "development" !== 'production') {
+      if (store._modulesNamespaceMap[namespace] && true) {
         console.error(("[vuex] duplicate namespace " + namespace + " for the namespaced module " + (path.join('/'))));
       }
       store._modulesNamespaceMap[namespace] = module;
@@ -675,7 +772,7 @@
 
         if (!options || !options.root) {
           type = namespace + type;
-          if (!store._actions[type]) {
+          if ( !store._actions[type]) {
             console.error(("[vuex] unknown local action type: " + (args.type) + ", global type: " + type));
             return
           }
@@ -692,7 +789,7 @@
 
         if (!options || !options.root) {
           type = namespace + type;
-          if (!store._mutations[type]) {
+          if ( !store._mutations[type]) {
             console.error(("[vuex] unknown local mutation type: " + (args.type) + ", global type: " + type));
             return
           }
@@ -839,7 +936,7 @@
    */
   var mapState = normalizeNamespace(function (namespace, states) {
     var res = {};
-    if (!isValidMap(states)) {
+    if ( !isValidMap(states)) {
       console.error('[vuex] mapState: mapper parameter must be either an Array or an Object');
     }
     normalizeMap(states).forEach(function (ref) {
@@ -875,7 +972,7 @@
    */
   var mapMutations = normalizeNamespace(function (namespace, mutations) {
     var res = {};
-    if (!isValidMap(mutations)) {
+    if ( !isValidMap(mutations)) {
       console.error('[vuex] mapMutations: mapper parameter must be either an Array or an Object');
     }
     normalizeMap(mutations).forEach(function (ref) {
@@ -911,7 +1008,7 @@
    */
   var mapGetters = normalizeNamespace(function (namespace, getters) {
     var res = {};
-    if (!isValidMap(getters)) {
+    if ( !isValidMap(getters)) {
       console.error('[vuex] mapGetters: mapper parameter must be either an Array or an Object');
     }
     normalizeMap(getters).forEach(function (ref) {
@@ -924,7 +1021,7 @@
         if (namespace && !getModuleByNamespace(this.$store, 'mapGetters', namespace)) {
           return
         }
-        if (!(val in this.$store.getters)) {
+        if ( !(val in this.$store.getters)) {
           console.error(("[vuex] unknown getter: " + val));
           return
         }
@@ -944,7 +1041,7 @@
    */
   var mapActions = normalizeNamespace(function (namespace, actions) {
     var res = {};
-    if (!isValidMap(actions)) {
+    if ( !isValidMap(actions)) {
       console.error('[vuex] mapActions: mapper parameter must be either an Array or an Object');
     }
     normalizeMap(actions).forEach(function (ref) {
@@ -1035,23 +1132,115 @@
    */
   function getModuleByNamespace (store, helper, namespace) {
     var module = store._modulesNamespaceMap[namespace];
-    if (!module) {
+    if ( !module) {
       console.error(("[vuex] module namespace not found in " + helper + "(): " + namespace));
     }
     return module
   }
 
-  var index = {
+  // Credits: borrowed code from fcomb/redux-logger
+
+  function createLogger (ref) {
+    if ( ref === void 0 ) ref = {};
+    var collapsed = ref.collapsed; if ( collapsed === void 0 ) collapsed = true;
+    var filter = ref.filter; if ( filter === void 0 ) filter = function (mutation, stateBefore, stateAfter) { return true; };
+    var transformer = ref.transformer; if ( transformer === void 0 ) transformer = function (state) { return state; };
+    var mutationTransformer = ref.mutationTransformer; if ( mutationTransformer === void 0 ) mutationTransformer = function (mut) { return mut; };
+    var actionFilter = ref.actionFilter; if ( actionFilter === void 0 ) actionFilter = function (action, state) { return true; };
+    var actionTransformer = ref.actionTransformer; if ( actionTransformer === void 0 ) actionTransformer = function (act) { return act; };
+    var logMutations = ref.logMutations; if ( logMutations === void 0 ) logMutations = true;
+    var logActions = ref.logActions; if ( logActions === void 0 ) logActions = true;
+    var logger = ref.logger; if ( logger === void 0 ) logger = console;
+
+    return function (store) {
+      var prevState = deepCopy(store.state);
+
+      if (typeof logger === 'undefined') {
+        return
+      }
+
+      if (logMutations) {
+        store.subscribe(function (mutation, state) {
+          var nextState = deepCopy(state);
+
+          if (filter(mutation, prevState, nextState)) {
+            var formattedTime = getFormattedTime();
+            var formattedMutation = mutationTransformer(mutation);
+            var message = "mutation " + (mutation.type) + formattedTime;
+
+            startMessage(logger, message, collapsed);
+            logger.log('%c prev state', 'color: #9E9E9E; font-weight: bold', transformer(prevState));
+            logger.log('%c mutation', 'color: #03A9F4; font-weight: bold', formattedMutation);
+            logger.log('%c next state', 'color: #4CAF50; font-weight: bold', transformer(nextState));
+            endMessage(logger);
+          }
+
+          prevState = nextState;
+        });
+      }
+
+      if (logActions) {
+        store.subscribeAction(function (action, state) {
+          if (actionFilter(action, state)) {
+            var formattedTime = getFormattedTime();
+            var formattedAction = actionTransformer(action);
+            var message = "action " + (action.type) + formattedTime;
+
+            startMessage(logger, message, collapsed);
+            logger.log('%c action', 'color: #03A9F4; font-weight: bold', formattedAction);
+            endMessage(logger);
+          }
+        });
+      }
+    }
+  }
+
+  function startMessage (logger, message, collapsed) {
+    var startMessage = collapsed
+      ? logger.groupCollapsed
+      : logger.group;
+
+    // render
+    try {
+      startMessage.call(logger, message);
+    } catch (e) {
+      logger.log(message);
+    }
+  }
+
+  function endMessage (logger) {
+    try {
+      logger.groupEnd();
+    } catch (e) {
+      logger.log('—— log end ——');
+    }
+  }
+
+  function getFormattedTime () {
+    var time = new Date();
+    return (" @ " + (pad(time.getHours(), 2)) + ":" + (pad(time.getMinutes(), 2)) + ":" + (pad(time.getSeconds(), 2)) + "." + (pad(time.getMilliseconds(), 3)))
+  }
+
+  function repeat (str, times) {
+    return (new Array(times + 1)).join(str)
+  }
+
+  function pad (num, maxLength) {
+    return repeat('0', maxLength - num.toString().length) + num
+  }
+
+  var index_cjs = {
     Store: Store,
     install: install,
-    version: '3.1.3',
+    version: '3.5.1',
     mapState: mapState,
     mapMutations: mapMutations,
     mapGetters: mapGetters,
     mapActions: mapActions,
-    createNamespacedHelpers: createNamespacedHelpers
+    createNamespacedHelpers: createNamespacedHelpers,
+    createLogger: createLogger
   };
 
-  return index;
+  return index_cjs;
 
-}));
+})));
