@@ -25,7 +25,11 @@ class LNPayWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = post(url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice", headers=self.auth_api, json=data,)
+        r = post(
+            url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice",
+            headers=self.auth_api,
+            json=data,
+        )
         ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, r.text
 
         if ok:

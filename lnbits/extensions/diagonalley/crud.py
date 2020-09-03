@@ -125,10 +125,22 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
             print(x)
             print("poo")
             with open_ext_db("diagonalley") as db:
-                db.execute("UPDATE indexers SET online = ? WHERE id = ?", (True, indexer_id,))
+                db.execute(
+                    "UPDATE indexers SET online = ? WHERE id = ?",
+                    (
+                        True,
+                        indexer_id,
+                    ),
+                )
         else:
             with open_ext_db("diagonalley") as db:
-                db.execute("UPDATE indexers SET online = ? WHERE id = ?", (False, indexer_id,))
+                db.execute(
+                    "UPDATE indexers SET online = ? WHERE id = ?",
+                    (
+                        False,
+                        indexer_id,
+                    ),
+                )
     except:
         print("An exception occurred")
     with open_ext_db("diagonalley") as db:
@@ -149,10 +161,22 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
                 x = requests.get(r["indexeraddress"] + "/" + r["ratingkey"])
                 if x.status_code == 200:
                     with open_ext_db("diagonalley") as db:
-                        db.execute("UPDATE indexers SET online = ? WHERE id = ?", (True, r["id"],))
+                        db.execute(
+                            "UPDATE indexers SET online = ? WHERE id = ?",
+                            (
+                                True,
+                                r["id"],
+                            ),
+                        )
                 else:
                     with open_ext_db("diagonalley") as db:
-                        db.execute("UPDATE indexers SET online = ? WHERE id = ?", (False, r["id"],))
+                        db.execute(
+                            "UPDATE indexers SET online = ? WHERE id = ?",
+                            (
+                                False,
+                                r["id"],
+                            ),
+                        )
             except:
                 print("An exception occurred")
     with open_ext_db("diagonalley") as db:
@@ -213,7 +237,13 @@ def get_diagonalleys_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
         PAID = WALLET.get_invoice_status(r["invoiceid"]).paid
         if PAID:
             with open_ext_db("diagonalley") as db:
-                db.execute("UPDATE orders SET paid = ? WHERE id = ?", (True, r["id"],))
+                db.execute(
+                    "UPDATE orders SET paid = ? WHERE id = ?",
+                    (
+                        True,
+                        r["id"],
+                    ),
+                )
                 rows = db.fetchall(f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,))
     return [Orders(**row) for row in rows]
 

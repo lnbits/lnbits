@@ -268,7 +268,13 @@ def create_payment(
 
 def update_payment_status(checking_id: str, pending: bool) -> None:
     with open_db() as db:
-        db.execute("UPDATE apipayments SET pending = ? WHERE checking_id = ?", (int(pending), checking_id,))
+        db.execute(
+            "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
+            (
+                int(pending),
+                checking_id,
+            ),
+        )
 
 
 def delete_payment(checking_id: str) -> None:

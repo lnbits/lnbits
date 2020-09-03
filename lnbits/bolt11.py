@@ -2,7 +2,7 @@ import bitstring  # type: ignore
 import re
 import hashlib
 from typing import List, NamedTuple, Optional
-from bech32 import bech32_decode, CHARSET
+from bech32 import bech32_decode, CHARSET  # type: ignore
 from ecdsa import SECP256k1, VerifyingKey  # type: ignore
 from ecdsa.util import sigdecode_string  # type: ignore
 from binascii import unhexlify
@@ -115,8 +115,7 @@ def decode(pr: str) -> Invoice:
 
 
 def _unshorten_amount(amount: str) -> int:
-    """ Given a shortened amount, return millisatoshis
-    """
+    """Given a shortened amount, return millisatoshis"""
     # BOLT #11:
     # The following `multiplier` letters are defined:
     #

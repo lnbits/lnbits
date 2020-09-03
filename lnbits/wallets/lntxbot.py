@@ -23,7 +23,11 @@ class LntxbotWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = post(url=f"{self.endpoint}/addinvoice", headers=self.auth_invoice, json=data,)
+        r = post(
+            url=f"{self.endpoint}/addinvoice",
+            headers=self.auth_invoice,
+            json=data,
+        )
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
         if r.ok:

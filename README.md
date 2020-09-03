@@ -1,7 +1,8 @@
 LNbits
 ======
 
-[![github-actions-badge]][github-actions]
+[![github-tests-badge]][github-tests]
+[![github-mypy-badge]][github-mypy]
 [![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
@@ -70,8 +71,10 @@ If you like this project and might even use or extend it, why not [send some tip
 
 [docs]: https://lnbits.org/
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
-[github-actions]: https://github.com/lnbits/lnbits/actions
-[github-actions-badge]: https://github.com/lnbits/lnbits/workflows/test%20suite/badge.svg
+[github-mypy]: https://github.com/lnbits/lnbits/actions?query=workflow%3Amypy
+[github-mypy-badge]: https://github.com/lnbits/lnbits/workflows/mypy/badge.svg
+[github-tests]: https://github.com/lnbits/lnbits/actions?query=workflow%3Atests
+[github-tests-badge]: https://github.com/lnbits/lnbits/workflows/tests/badge.svg
 [codecov]: https://codecov.io/gh/lnbits/lnbits
 [codecov-badge]: https://codecov.io/gh/lnbits/lnbits/branch/master/graph/badge.svg
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg

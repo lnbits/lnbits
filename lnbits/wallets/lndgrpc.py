@@ -55,7 +55,9 @@ class LndWallet(Wallet):
             grpc_port=self.port,
         )
 
-        payinvoice = lnd_rpc.pay_invoice(payment_request=bolt11,)
+        payinvoice = lnd_rpc.pay_invoice(
+            payment_request=bolt11,
+        )
 
         ok, checking_id, fee_msat, error_message = True, None, 0, None
 

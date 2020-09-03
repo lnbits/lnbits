@@ -16,7 +16,10 @@ def api_check_wallet_key(key_type: str = "invoice"):
             try:
                 g.wallet = get_wallet_for_key(request.headers["X-Api-Key"], key_type)
             except KeyError:
-                return jsonify({"message": "`X-Api-Key` header missing."}), HTTPStatus.BAD_REQUEST
+                return (
+                    jsonify({"message": "`X-Api-Key` header missing."}),
+                    HTTPStatus.BAD_REQUEST,
+                )
 
             if not g.wallet:
                 return jsonify({"message": "Wrong keys."}), HTTPStatus.UNAUTHORIZED
@@ -33,13 +36,19 @@ def api_validate_post_request(*, schema: dict):
         @wraps(view)
         def wrapped_view(**kwargs):
             if "application/json" not in request.headers["Content-Type"]:
-                return jsonify({"message": "Content-Type must be `application/json`."}), HTTPStatus.BAD_REQUEST
+                return (
+                    jsonify({"message": "Content-Type must be `application/json`."}),
+                    HTTPStatus.BAD_REQUEST,
+                )
 
             v = Validator(schema)
             g.data = {key: request.json[key] for key in schema.keys() if key in request.json}
 
             if not v.validate(g.data):
-                return jsonify({"message": f"Errors in request data: {v.errors}"}), HTTPStatus.BAD_REQUEST
+                return (
+                    jsonify({"message": f"Errors in request data: {v.errors}"}),
+                    HTTPStatus.BAD_REQUEST,
+                )
 
             return view(**kwargs)
 

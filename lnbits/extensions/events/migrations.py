@@ -75,7 +75,15 @@ def m002_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (row[0], row[1], row[2], row[3], row[4], row[5], True,),
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                True,
+            ),
         )
     db.execute("DROP TABLE tickets")
 

@@ -29,7 +29,13 @@ Talisman(
     app,
     force_https=FORCE_HTTPS,
     content_security_policy={
-        "default-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'", "blob:", "api.opennode.co",]
+        "default-src": [
+            "'self'",
+            "'unsafe-eval'",
+            "'unsafe-inline'",
+            "blob:",
+            "api.opennode.co",
+        ]
     },
 )
 

@@ -106,7 +106,10 @@ def api_lnurl_response(link_id):
     url = url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True, _scheme=scheme)
 
     resp = LnurlPayResponse(
-        callback=url, min_sendable=link.amount * 1000, max_sendable=link.amount * 1000, metadata=link.lnurlpay_metadata,
+        callback=url,
+        min_sendable=link.amount * 1000,
+        max_sendable=link.amount * 1000,
+        metadata=link.lnurlpay_metadata,
     )
 
     return jsonify(resp.dict()), HTTPStatus.OK

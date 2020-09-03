@@ -30,7 +30,12 @@ class LndRestWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = post(url=f"{self.endpoint}/v1/invoices", headers=self.auth_invoice, verify=self.auth_cert, json=data,)
+        r = post(
+            url=f"{self.endpoint}/v1/invoices",
+            headers=self.auth_invoice,
+            verify=self.auth_cert,
+            json=data,
+        )
 
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
@@ -38,7 +43,11 @@ class LndRestWallet(Wallet):
             data = r.json()
             payment_request = data["payment_request"]
 
-        r = get(url=f"{self.endpoint}/v1/payreq/{payment_request}", headers=self.auth_read, verify=self.auth_cert,)
+        r = get(
+            url=f"{self.endpoint}/v1/payreq/{payment_request}",
+            headers=self.auth_read,
+            verify=self.auth_cert,
+        )
         print(r)
         if r.ok:
             checking_id = r.json()["payment_hash"].replace("/", "_")
@@ -56,7 +65,11 @@ class LndRestWallet(Wallet):
             json={"payment_request": bolt11},
         )
         ok, checking_id, fee_msat, error_message = r.ok, None, 0, None
-        r = get(url=f"{self.endpoint}/v1/payreq/{bolt11}", headers=self.auth_admin, verify=self.auth_cert,)
+        r = get(
+            url=f"{self.endpoint}/v1/payreq/{bolt11}",
+            headers=self.auth_admin,
+            verify=self.auth_cert,
+        )
 
         if r.ok:
             checking_id = r.json()["payment_hash"]
@@ -68,7 +81,11 @@ class LndRestWallet(Wallet):
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
         print(checking_id)
-        r = get(url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert,)
+        r = get(
+            url=f"{self.endpoint}/v1/invoice/{checking_id}",
+            headers=self.auth_invoice,
+            verify=self.auth_cert,
+        )
         print(r.json()["settled"])
         if not r or r.json()["settled"] == False:
             return PaymentStatus(None)

@@ -48,7 +48,9 @@ class SparkWallet(Wallet):
         try:
             if description_hash:
                 r = self.invoicewithdescriptionhash(
-                    msatoshi=amount * 1000, label=label, description_hash=description_hash.hex(),
+                    msatoshi=amount * 1000,
+                    label=label,
+                    description_hash=description_hash.hex(),
                 )
             else:
                 r = self.invoice(

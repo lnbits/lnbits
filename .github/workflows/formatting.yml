@@ -1,4 +1,4 @@
-name: Linters
+name: formatting
 
 on:
   push:
@@ -21,13 +21,3 @@ jobs:
       - uses: actions/checkout@v2
       - run: npm install
       - run: make checkprettier
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: sudo apt-get install python3-venv
-      - run: sudo apt-get install libev-dev
-      - run: python3 -m venv venv
-      - run: ./venv/bin/pip install -r requirements.txt
-      - run: ./venv/bin/pip install mypy
-      - run: make mypy

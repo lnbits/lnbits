@@ -198,7 +198,13 @@ def api_diagonalley_order_delete(order_id):
 @api_check_wallet_key(key_type="invoice")
 def api_diagonalleys_order_paid(order_id):
     with open_ext_db("diagonalley") as db:
-        db.execute("UPDATE orders SET paid = ? WHERE id = ?", (True, order_id,))
+        db.execute(
+            "UPDATE orders SET paid = ? WHERE id = ?",
+            (
+                True,
+                order_id,
+            ),
+        )
     return "", HTTPStatus.OK
 
 
@@ -206,7 +212,13 @@ def api_diagonalleys_order_paid(order_id):
 @api_check_wallet_key(key_type="invoice")
 def api_diagonalleys_order_shipped(order_id):
     with open_ext_db("diagonalley") as db:
-        db.execute("UPDATE orders SET shipped = ? WHERE id = ?", (True, order_id,))
+        db.execute(
+            "UPDATE orders SET shipped = ? WHERE id = ?",
+            (
+                True,
+                order_id,
+            ),
+        )
         order = db.fetchone("SELECT * FROM orders WHERE id = ?", (order_id,))
 
     return jsonify([order._asdict() for order in get_diagonalleys_orders(order["wallet"])]), HTTPStatus.OK

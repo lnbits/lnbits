@@ -1,0 +1,12 @@
+name: mypy
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: jpetrucciani/mypy-check@master
+        with:
+          path: lnbits
