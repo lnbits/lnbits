@@ -2,9 +2,8 @@ from flask import g, jsonify, request
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.settings import WALLET
 
 from lnbits.extensions.paywall import paywall_ext
 from .crud import create_paywall, get_paywall, get_paywalls, delete_paywall
@@ -64,17 +63,17 @@ def api_paywall_create_invoice(paywall_id):
 
     try:
         amount = g.data["amount"] if g.data["amount"] > paywall.amount else paywall.amount
-        checking_id, payment_request = create_invoice(
-            wallet_id=paywall.wallet, amount=amount, memo=f"#paywall {paywall.memo}"
+        payment_hash, payment_request = create_invoice(
+            wallet_id=paywall.wallet, amount=amount, memo=f"{paywall.memo}", extra={"tag": "paywall"}
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.CREATED
+    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.CREATED
 
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
-@api_validate_post_request(schema={"checking_id": {"type": "string", "empty": False, "required": True}})
+@api_validate_post_request(schema={"payment_hash": {"type": "string", "empty": False, "required": True}})
 def api_paywal_check_invoice(paywall_id):
     paywall = get_paywall(paywall_id)
 
@@ -82,13 +81,13 @@ def api_paywal_check_invoice(paywall_id):
         return jsonify({"message": "Paywall does not exist."}), HTTPStatus.NOT_FOUND
 
     try:
-        is_paid = not WALLET.get_invoice_status(g.data["checking_id"]).pending
+        is_paid = not check_invoice_status(paywall.wallet, g.data["payment_hash"]).pending
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
         wallet = get_wallet(paywall.wallet)
-        payment = wallet.get_payment(g.data["checking_id"])
+        payment = wallet.get_payment(g.data["payment_hash"])
         payment.set_pending(False)
 
         return jsonify({"paid": True, "url": paywall.url, "remembers": paywall.remembers}), HTTPStatus.OK

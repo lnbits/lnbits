@@ -23,7 +23,7 @@
           Returns 201 CREATED (application/json)
         </h5>
         <code
-          >{"checking_id": &lt;string&gt;, "payment_request":
+          >{"payment_hash": &lt;string&gt;, "payment_request":
           &lt;string&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
@@ -51,7 +51,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
         </h5>
-        <code>{"checking_id": &lt;string&gt;}</code>
+        <code>{"payment_hash": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.url_root }}api/v1/payments -d '{"out": true,
@@ -73,7 +73,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /api/v1/payments/&lt;checking_id&gt;</code
+          /api/v1/payments/&lt;payment_hash&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": "{{ wallet.inkey }}"}</code>
@@ -83,9 +83,9 @@
         <code>{"paid": &lt;bool&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/payments/&lt;checking_id&gt;
-          -H "X-Api-Key: <i>{{ wallet.inkey }}"</i> -H "Content-type:
-          application/json"</code
+          >curl -X GET {{ request.url_root
+          }}api/v1/payments/&lt;payment_hash&gt; -H "X-Api-Key:
+          <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
         >
       </q-card-section>
     </q-card>

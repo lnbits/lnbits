@@ -144,7 +144,7 @@
           )
           .then(function (response) {
             self.paymentReq = response.data.payment_request
-            self.paymentCheck = response.data.checking_id
+            self.paymentCheck = response.data.payment_hash
 
             dismissMsg = self.$q.notify({
               timeout: 0,

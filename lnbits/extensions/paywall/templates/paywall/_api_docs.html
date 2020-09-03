@@ -75,7 +75,7 @@
           Returns 201 CREATED (application/json)
         </h5>
         <code
-          >{"checking_id": &lt;string&gt;, "payment_request":
+          >{"payment_hash": &lt;string&gt;, "payment_request":
           &lt;string&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
@@ -100,7 +100,7 @@
           /paywall/api/v1/paywalls/&lt;paywall_id&gt;/check_invoice</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-        <code>{"checking_id": &lt;string&gt;}</code>
+        <code>{"payment_hash": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
@@ -113,7 +113,7 @@
         <code
           >curl -X POST {{ request.url_root
           }}paywall/api/v1/paywalls/&lt;paywall_id&gt;/check_invoice -d
-          '{"checking_id": &lt;string&gt;}' -H "Content-type: application/json"
+          '{"payment_hash": &lt;string&gt;}' -H "Content-type: application/json"
         </code>
       </q-card-section>
     </q-card>

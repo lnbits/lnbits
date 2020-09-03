@@ -1,3 +1,5 @@
+/* globals Vue, EventHub, axios, Quasar, _ */
+
 var LOCALE = 'en'
 
 var EventHub = new Vue()
@@ -35,8 +37,12 @@ var LNbits = {
         wallet.inkey
       )
     },
-    getPayment: function (wallet, payhash) {
-      return this.request('get', '/api/v1/payments/' + payhash, wallet.inkey)
+    getPayment: function (wallet, paymentHash) {
+      return this.request(
+        'get',
+        '/api/v1/payments/' + paymentHash,
+        wallet.inkey
+      )
     }
   },
   href: {
@@ -88,7 +94,18 @@ var LNbits = {
     },
     payment: function (data) {
       var obj = _.object(
-        ['payhash', 'pending', 'amount', 'fee', 'memo', 'time'],
+        [
+          'checking_id',
+          'pending',
+          'amount',
+          'fee',
+          'memo',
+          'time',
+          'bolt11',
+          'preimage',
+          'payment_hash',
+          'extra'
+        ],
         data
       )
       obj.date = Quasar.utils.date.formatDate(
@@ -97,10 +114,11 @@ var LNbits = {
       )
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
+      obj.tag = obj.extra.tag
       obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
-      obj.isPaid = obj.pending == 0
+      obj.isPaid = obj.pending === 0
       obj._q = [obj.memo, obj.sat].join(' ').toLowerCase()
       return obj
     }
@@ -146,8 +164,6 @@ var LNbits = {
       })
     },
     search: function (data, q, field, separator) {
-      var field = field || '_q'
-
       try {
         var queries = q.toLowerCase().split(separator || ' ')
         return data.filter(function (obj) {
@@ -155,7 +171,7 @@ var LNbits = {
           _.each(queries, function (q) {
             if (obj[field].indexOf(q) !== -1) matches++
           })
-          return matches == queries.length
+          return matches === queries.length
         })
       } catch (err) {
         return data
@@ -255,7 +271,7 @@ var windowMixin = {
           })
           .map(function (obj) {
             if (user) {
-              obj.isEnabled = user.extensions.indexOf(obj.code) != -1
+              obj.isEnabled = user.extensions.indexOf(obj.code) !== -1
             } else {
               obj.isEnabled = false
             }

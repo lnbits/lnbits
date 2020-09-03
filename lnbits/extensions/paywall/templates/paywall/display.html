@@ -121,7 +121,7 @@
               axios
                 .post(
                   '/paywall/api/v1/paywalls/{{ paywall.id }}/check_invoice',
-                  {checking_id: response.data.checking_id}
+                  {payment_hash: response.data.payment_hash}
                 )
                 .then(function (res) {
                   if (res.data.paid) {

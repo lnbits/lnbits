@@ -1,3 +1,5 @@
+/* globals decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart */
+
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
 
@@ -115,6 +117,7 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
+      user: LNbits.map.user(window.user),
       receive: {
         show: false,
         status: 'pending',
@@ -138,7 +141,12 @@ new Vue({
       payments: [],
       paymentsTable: {
         columns: [
-          {name: 'memo', align: 'left', label: 'Memo', field: 'memo'},
+          {
+            name: 'memo',
+            align: 'left',
+            label: 'Memo',
+            field: 'memo'
+          },
           {
             name: 'date',
             align: 'left',
@@ -171,7 +179,7 @@ new Vue({
   computed: {
     filteredPayments: function () {
       var q = this.paymentsTable.filter
-      if (!q || q == '') return this.payments
+      if (!q || q === '') return this.payments
 
       return LNbits.utils.search(this.payments, q)
     },
@@ -261,7 +269,7 @@ new Vue({
 
           self.receive.paymentChecker = setInterval(function () {
             LNbits.api
-              .getPayment(self.g.wallet, response.data.checking_id)
+              .getPayment(self.g.wallet, response.data.payment_hash)
               .then(function (response) {
                 if (response.data.paid) {
                   self.fetchPayments()
@@ -308,11 +316,11 @@ new Vue({
 
       _.each(invoice.data.tags, function (tag) {
         if (_.isObject(tag) && _.has(tag, 'description')) {
-          if (tag.description == 'payment_hash') {
+          if (tag.description === 'payment_hash') {
             cleanInvoice.hash = tag.value
-          } else if (tag.description == 'description') {
+          } else if (tag.description === 'description') {
             cleanInvoice.description = tag.value
-          } else if (tag.description == 'expiry') {
+          } else if (tag.description === 'expiry') {
             var expireDate = new Date(
               (invoice.data.time_stamp + tag.value) * 1000
             )
@@ -330,7 +338,7 @@ new Vue({
     payInvoice: function () {
       var self = this
 
-      dismissPaymentMsg = this.$q.notify({
+      let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
         message: 'Processing payment...',
         icon: null
@@ -341,7 +349,7 @@ new Vue({
         .then(function (response) {
           self.send.paymentChecker = setInterval(function () {
             LNbits.api
-              .getPayment(self.g.wallet, response.data.checking_id)
+              .getPayment(self.g.wallet, response.data.payment_hash)
               .then(function (res) {
                 if (res.data.paid) {
                   self.send.show = false
