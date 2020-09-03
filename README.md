@@ -4,6 +4,8 @@ LNbits
 [![github-actions-badge]][github-actions]
 [![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
+[![docs-badge]][docs]
+
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
@@ -65,6 +67,9 @@ See the [development docs](docs/devs/installation.md) for details on installatio
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
+
+[docs]: https://lnbits.org/
+[docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
 [github-actions]: https://github.com/lnbits/lnbits/actions
 [github-actions-badge]: https://github.com/lnbits/lnbits/workflows/test%20suite/badge.svg
 [codecov]: https://codecov.io/gh/lnbits/lnbits

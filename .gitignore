@@ -21,6 +21,7 @@ test-reports
 *.pyc
 *.env
 .env
+.venv
 venv
 
 *.sqlite3

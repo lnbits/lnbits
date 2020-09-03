@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Backend wallets
-nav_order: 2
+nav_order: 3
 ---
 
 
@@ -53,7 +53,7 @@ Using this wallet requires the installation of the `lnd-grpc` Python package.
 ### LNbits
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNbitsWallet**
-- `LNBITS_ENDPOINT`: ex. https://lnbits.com
+- `LNBITS_ENDPOINT`: e.g. https://lnbits.com
 - `LNBITS_ADMIN_KEY`: apiKey
 - `LNBITS_INVOICE_KEY`: apiKey
 
@@ -61,7 +61,7 @@ Using this wallet requires the installation of the `lnd-grpc` Python package.
 ### LNPay
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNPayWallet**
-- `LNPAY_API_ENDPOINT`: ex. https://lnpay.co/v1/
+- `LNPAY_API_ENDPOINT`: https://lnpay.co/v1/
 - `LNPAY_API_KEY`: apiKey
 - `LNPAY_ADMIN_KEY`: apiKey
 - `LNPAY_INVOICE_KEY`: apiKey
@@ -71,7 +71,7 @@ Using this wallet requires the installation of the `lnd-grpc` Python package.
 ### lntxbot
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LntxbotWallet**
-- `LNTXBOT_API_ENDPOINT`: ex. https://lntxbot.bigsun.xyz/
+- `LNTXBOT_API_ENDPOINT`: https://lntxbot.bigsun.xyz/
 - `LNTXBOT_ADMIN_KEY`: apiKey
 - `LNTXBOT_INVOICE_KEY`: apiKey
 
@@ -79,6 +79,6 @@ Using this wallet requires the installation of the `lnd-grpc` Python package.
 ### OpenNode
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **OpenNodeWallet**
-- `OPENNODE_API_ENDPOINT`: ex. https://api.opennode.com/
+- `OPENNODE_API_ENDPOINT`: https://api.opennode.com/
 - `OPENNODE_ADMIN_KEY`: apiKey
 - `OPENNODE_INVOICE_KEY`: apiKey
