@@ -21,7 +21,7 @@ class Invoice(object):
     amount_msat: int = 0
     description: Optional[str] = None
     description_hash: Optional[str] = None
-    payee: str
+    payee: Optional[str] = None
     date: int
     expiry: int = 3600
     secret: Optional[str] = None
