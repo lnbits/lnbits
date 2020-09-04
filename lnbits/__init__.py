@@ -95,7 +95,8 @@ def migrate_databases():
         def run_migration(db, migrations_module):
             db_name = migrations_module.__name__.split(".")[-2]
             for key, run_migration in migrations_module.__dict__.items():
-                if match := matcher.match(key):
+                match = match = matcher.match(key)
+                if match:
                     version = int(match.group(1))
                     if version > current_versions.get(db_name, 0):
                         print(f"running migration {db_name}.{version}")
