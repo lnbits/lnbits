@@ -1,4 +1,9 @@
-from typing import Optional, Tuple, Dict, TypedDict
+from typing import Optional, Tuple, Dict
+
+try:
+    from typing import TypedDict  # type: ignore
+except ImportError:  # pragma: nocover
+    from typing_extensions import TypedDict
 
 from lnbits import bolt11
 from lnbits.helpers import urlsafe_short_hash
