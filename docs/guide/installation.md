@@ -19,11 +19,10 @@ $ source ./.venv/bin/activate
 
 You will need to set the variables in `.env.example`, and rename the file to `.env`.
 
-Run the migrations and the Flask server:
+Run the server:
 
 ```sh
-(.venv) $ flask migrate
-(.venv) $ flask run
+(.venv) $ python main.py
 ```
 
 You might also need to install additional packages, depending on the [backend wallet](./wallets.md) you use.

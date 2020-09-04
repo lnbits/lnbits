@@ -45,8 +45,7 @@ Running the server
 LNbits uses [Flask][flask] as an application server.
 
 ```sh
-$ pipenv run flask migrate
-$ pipenv run flask run
+$ pipenv run python main.py
 ```
 
 There is an environment variable called `FLASK_ENV` that has to be set to `development`

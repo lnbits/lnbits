@@ -1,6 +1,3 @@
-from lnbits.db import open_ext_db
-
-
 def m001_initial(db):
 
     db.execute(
@@ -86,9 +83,3 @@ def m002_changed(db):
             ),
         )
     db.execute("DROP TABLE tickets")
-
-
-def migrate():
-    with open_ext_db("lnticket") as db:
-        m001_initial(db)
-        m002_changed(db)

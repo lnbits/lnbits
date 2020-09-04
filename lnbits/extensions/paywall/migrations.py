@@ -1,7 +1,5 @@
 from sqlite3 import OperationalError
 
-from lnbits.db import open_ext_db
-
 
 def m001_initial(db):
     """
@@ -65,9 +63,3 @@ def m002_redux(db):
             )
 
         db.execute("DROP TABLE paywalls_old")
-
-
-def migrate():
-    with open_ext_db("paywall") as db:
-        m001_initial(db)
-        m002_redux(db)
