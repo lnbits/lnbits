@@ -1,6 +1,3 @@
-from lnbits.db import open_ext_db
-
-
 def m001_initial(db):
     """
     Initial pay table.
@@ -17,8 +14,3 @@ def m001_initial(db):
         );
         """
     )
-
-
-def migrate():
-    with open_ext_db("lnurlp") as db:
-        m001_initial(db)

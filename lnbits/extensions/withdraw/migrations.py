@@ -1,6 +1,3 @@
-from lnbits.db import open_ext_db
-
-
 def m001_initial(db):
     """
     Creates an improved withdraw table and migrates the existing data.
@@ -97,9 +94,3 @@ def m002_change_withdraw_table(db):
             ),
         )
     db.execute("DROP TABLE withdraw_links")
-
-
-def migrate():
-    with open_ext_db("withdraw") as db:
-        m001_initial(db)
-        m002_change_withdraw_table(db)

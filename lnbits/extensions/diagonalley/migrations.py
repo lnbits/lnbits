@@ -1,6 +1,3 @@
-from lnbits.db import open_ext_db
-
-
 def m001_initial(db):
     """
     Initial products table.
@@ -61,8 +58,3 @@ def m001_initial(db):
         );
     """
     )
-
-
-def migrate():
-    with open_ext_db("diagonalley") as db:
-        m001_initial(db)
