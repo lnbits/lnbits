@@ -1,5 +1,6 @@
 # flake8: noqa
 
+from .void import VoidWallet
 from .clightning import CLightningWallet
 from .lndgrpc import LndWallet
 from .lntxbot import LntxbotWallet

@@ -3,7 +3,7 @@ import os
 
 
 wallets_module = importlib.import_module("lnbits.wallets")
-wallet_class = getattr(wallets_module, os.getenv("LNBITS_BACKEND_WALLET_CLASS", "LntxbotWallet"))
+wallet_class = getattr(wallets_module, os.getenv("LNBITS_BACKEND_WALLET_CLASS", "VoidWallet"))
 
 LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
 LNBITS_DATA_FOLDER = os.getenv("LNBITS_DATA_FOLDER", os.path.join(LNBITS_PATH, "data"))
