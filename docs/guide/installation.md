@@ -22,7 +22,7 @@ You will need to set the variables in `.env.example`, and rename the file to `.e
 Run the server:
 
 ```sh
-(.venv) $ python main.py
+(.venv) $ python -m lnbits
 ```
 
 You might also need to install additional packages, depending on the [backend wallet](./wallets.md) you use.
