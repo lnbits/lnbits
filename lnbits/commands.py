@@ -9,7 +9,7 @@ from .helpers import get_valid_extensions
 
 
 @click.command("migrate")
-def legacy_migrate():
+def flask_migrate():
     migrate_databases()
 
 
