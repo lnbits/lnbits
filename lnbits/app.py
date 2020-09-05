@@ -6,7 +6,7 @@ from flask_cors import CORS  # type: ignore
 from flask_talisman import Talisman  # type: ignore
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from .commands import legacy_migrate
+from .commands import flask_migrate
 from .core import core_app
 from .ext import assets, compress
 from .helpers import get_valid_extensions
@@ -42,7 +42,7 @@ def register_blueprints(app) -> None:
 
 def register_commands(app):
     """Register Click commands."""
-    app.cli.add_command(legacy_migrate)
+    app.cli.add_command(flask_migrate)
 
 
 def register_flask_extensions(app):
