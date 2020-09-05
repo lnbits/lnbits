@@ -1,10 +1,10 @@
 from flask import g, abort, redirect, request, render_template, send_from_directory, url_for
 from http import HTTPStatus
-from os import getenv, path
+from os import path
 
 from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.settings import SERVICE_FEE
+from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE
 
 from ..crud import (
     create_account,
@@ -61,9 +61,8 @@ def wallet():
         user = get_user(create_account().id)
     else:
         user = get_user(user_id) or abort(HTTPStatus.NOT_FOUND, "User does not exist.")
-        allowed_users = getenv("LNBITS_ALLOWED_USERS", "all")
 
-        if allowed_users != "all" and user_id not in allowed_users.split(","):
+        if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
             abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
 
     if not wallet_id:

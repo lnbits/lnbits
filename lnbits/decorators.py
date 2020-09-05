@@ -2,11 +2,11 @@ from cerberus import Validator  # type: ignore
 from flask import g, abort, jsonify, request
 from functools import wraps
 from http import HTTPStatus
-from os import getenv
 from typing import List, Union
 from uuid import UUID
 
 from lnbits.core.crud import get_user, get_wallet_for_key
+from lnbits.settings import LNBITS_ALLOWED_USERS
 
 
 def api_check_wallet_key(key_type: str = "invoice"):
@@ -62,9 +62,8 @@ def check_user_exists(param: str = "usr"):
         @wraps(view)
         def wrapped_view(**kwargs):
             g.user = get_user(request.args.get(param, type=str)) or abort(HTTPStatus.NOT_FOUND, "User  does not exist.")
-            allowed_users = getenv("LNBITS_ALLOWED_USERS", "all")
 
-            if allowed_users != "all" and g.user.id not in allowed_users.split(","):
+            if LNBITS_ALLOWED_USERS and g.user.id not in LNBITS_ALLOWED_USERS:
                 abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
 
             return view(**kwargs)

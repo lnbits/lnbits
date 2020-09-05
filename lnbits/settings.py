@@ -1,14 +1,26 @@
 import importlib
-import os
 
+from environs import Env  # type: ignore
+from os import path
+from typing import List
+
+
+env = Env()
+env.read_env()
 
 wallets_module = importlib.import_module("lnbits.wallets")
-wallet_class = getattr(wallets_module, os.getenv("LNBITS_BACKEND_WALLET_CLASS", "VoidWallet"))
+wallet_class = getattr(wallets_module, env.str("LNBITS_BACKEND_WALLET_CLASS", default="VoidWallet"))
 
-LNBITS_PATH = os.path.dirname(os.path.realpath(__file__))
-LNBITS_DATA_FOLDER = os.getenv("LNBITS_DATA_FOLDER", os.path.join(LNBITS_PATH, "data"))
+ENV = env.str("FLASK_ENV", default="production")
+DEBUG = ENV == "development"
+
+LNBITS_PATH = path.dirname(path.realpath(__file__))
+LNBITS_DATA_FOLDER = env.str("LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data"))
+LNBITS_ALLOWED_USERS: List[str] = env.list("LNBITS_ALLOWED_USERS", default=[], subcast=str)
+LNBITS_DISABLED_EXTENSIONS: List[str] = env.list("LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str)
+LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
 
 WALLET = wallet_class()
-DEFAULT_WALLET_NAME = os.getenv("LNBITS_DEFAULT_WALLET_NAME", "LNbits wallet")
-FORCE_HTTPS = os.getenv("LNBITS_FORCE_HTTPS", "1") == "1"
-SERVICE_FEE = float(os.getenv("LNBITS_SERVICE_FEE", "0.0"))
+DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
+FORCE_HTTPS = env.bool("LNBITS_FORCE_HTTPS", default=True)
+SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
