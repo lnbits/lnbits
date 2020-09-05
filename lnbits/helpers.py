@@ -4,7 +4,7 @@ import shortuuid  # type: ignore
 
 from typing import List, NamedTuple, Optional
 
-from .settings import LNBITS_PATH
+from .settings import LNBITS_DISABLED_EXTENSIONS, LNBITS_PATH
 
 
 class Extension(NamedTuple):
@@ -17,8 +17,8 @@ class Extension(NamedTuple):
 
 
 class ExtensionManager:
-    def __init__(self, *, disabled: list = []):
-        self._disabled = disabled
+    def __init__(self):
+        self._disabled: List[str] = LNBITS_DISABLED_EXTENSIONS
         self._extension_folders: List[str] = [x[1] for x in os.walk(os.path.join(LNBITS_PATH, "extensions"))][0]
 
     @property
@@ -46,6 +46,10 @@ class ExtensionManager:
             )
 
         return output
+
+
+def get_valid_extensions() -> List[Extension]:
+    return [extension for extension in ExtensionManager().extensions if extension.is_valid]
 
 
 def urlsafe_short_hash() -> str:
