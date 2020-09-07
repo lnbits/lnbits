@@ -215,7 +215,7 @@ def delete_expired_invoices() -> None:
             db.execute(
                 """
                 DELETE FROM apipayments
-                WHERE pending = 1 AND payment_hash = ?
+                WHERE pending = 1 AND hash = ?
                 """,
                 (invoice.payment_hash,),
             )
