@@ -284,7 +284,13 @@ def delete_payment(checking_id: str) -> None:
 
 def check_internal(payment_hash: str) -> Optional[str]:
     with open_db() as db:
-        row = db.fetchone("SELECT checking_id FROM apipayments WHERE hash = ?", (payment_hash,))
+        row = db.fetchone(
+            """
+        SELECT checking_id FROM apipayments
+        WHERE hash = ? AND pending AND amount > 0 
+        """,
+            (payment_hash,),
+        )
         if not row:
             return None
         else:
