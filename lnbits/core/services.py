@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, Dict
+from flask import g
 
 try:
     from typing import TypedDict  # type: ignore
@@ -94,6 +95,7 @@ def pay_invoice(
     wallet = get_wallet(wallet_id)
     assert wallet, "invalid wallet id"
     if wallet.balance_msat < 0:
+        g.db.rollback()
         raise PermissionError("Insufficient balance.")
 
     if internal:
@@ -108,7 +110,7 @@ def pay_invoice(
             create_payment(checking_id=checking_id, fee=fee_msat, **payment_kwargs)
             delete_payment(temp_id)
         else:
-            raise Exception(error_message or "Unexpected backend error.")
+            raise Exception(error_message or "Failed to pay_invoice on backend.")
 
     return invoice.payment_hash
 

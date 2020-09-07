@@ -15,9 +15,20 @@ class Database:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_val:
+            self.connection.rollback()
+            self.cursor.close()
+            self.cursor.close()
+        else:
+            self.connection.commit()
+            self.cursor.close()
+            self.connection.close()
+
+    def commit(self):
         self.connection.commit()
-        self.cursor.close()
-        self.connection.close()
+
+    def rollback(self):
+        self.connection.rollback()
 
     def fetchall(self, query: str, values: tuple = ()) -> list:
         """Given a query, return cursor.fetchall() rows."""

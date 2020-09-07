@@ -48,6 +48,7 @@ def api_payments_create_invoice():
             wallet_id=g.wallet.id, amount=g.data["amount"], memo=memo, description_hash=description_hash
         )
     except Exception as e:
+        g.db.rollback()
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     invoice = bolt11.decode(payment_request)
@@ -75,6 +76,7 @@ def api_payments_pay_invoice():
         return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
     except Exception as e:
         print(e)
+        g.db.rollback()
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     return (
