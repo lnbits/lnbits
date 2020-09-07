@@ -74,6 +74,7 @@ def api_payments_pay_invoice():
     except PermissionError as e:
         return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
     except Exception as e:
+        print(e)
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     return (

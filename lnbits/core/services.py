@@ -107,9 +107,8 @@ def pay_invoice(
         if ok:
             create_payment(checking_id=checking_id, fee=fee_msat, **payment_kwargs)
             delete_payment(temp_id)
-
-    if not ok:
-        raise Exception(error_message or "Unexpected backend error.")
+        else:
+            raise Exception(error_message or "Unexpected backend error.")
 
     return invoice.payment_hash
 
