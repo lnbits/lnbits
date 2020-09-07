@@ -1,6 +1,6 @@
 import importlib
 
-from flask import Flask
+from flask import Flask, g
 from flask_assets import Bundle  # type: ignore
 from flask_cors import CORS  # type: ignore
 from flask_talisman import Talisman  # type: ignore
@@ -8,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .commands import flask_migrate
 from .core import core_app
+from .db import open_db
 from .ext import assets, compress
 from .helpers import get_valid_extensions
 
@@ -24,6 +25,7 @@ def create_app(config_object="lnbits.settings") -> Flask:
     register_blueprints(app)
     register_filters(app)
     register_commands(app)
+    register_request_hooks(app)
 
     return app
 
@@ -73,3 +75,16 @@ def register_filters(app):
     app.jinja_env.globals["DEBUG"] = app.config["DEBUG"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
+
+
+def register_request_hooks(app):
+    """Open the core db for each request so everything happens in a big transaction"""
+
+    @app.before_request
+    def before_request():
+        g.db = open_db()
+
+    @app.teardown_request
+    def after_request(exc):
+        print("after", exc)
+        g.db.__exit__(type(exc), exc, None)
