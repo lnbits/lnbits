@@ -30,6 +30,10 @@ Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbS
 
 LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for LNbits.
 
+## Running LNbits locally
+
+See the [development docs](docs/devs/installation.md) for details on installation and setup.
+
 ## LNbits as an account system
 
 LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv + more to come..
@@ -59,10 +63,6 @@ Wallets can be easily generated and given out to people at events (one click mul
 "Go to this  website", has a lot less friction than "Download this app".
 
 ![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
-
-## Running LNbits locally
-
-See the [development docs](docs/devs/installation.md) for details on installation and setup.
 
 ## Tip me
 
