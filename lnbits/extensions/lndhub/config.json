@@ -1,5 +1,5 @@
 {
-    "name": "lndhub",
+    "name": "LndHub",
     "short_description": "Access lnbits from BlueWallet or Zeus.",
     "icon": "navigation",
     "contributors": ["fiatjaf"]
