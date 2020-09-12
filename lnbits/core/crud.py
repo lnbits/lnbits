@@ -145,7 +145,13 @@ def get_wallet_payment(wallet_id: str, payment_hash: str) -> Optional[Payment]:
 
 
 def get_wallet_payments(
-    wallet_id: str, *, complete: bool = False, pending: bool = False, outgoing: bool = False, incoming: bool = False
+    wallet_id: str,
+    *,
+    complete: bool = False,
+    pending: bool = False,
+    outgoing: bool = False,
+    incoming: bool = False,
+    exclude_uncheckable: bool = False,
 ) -> List[Payment]:
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
@@ -161,6 +167,8 @@ def get_wallet_payments(
     else:
         raise TypeError("at least one of [complete, pending] must be True.")
 
+    clause += " "
+
     if outgoing and incoming:
         clause += ""
     elif outgoing:
@@ -169,6 +177,12 @@ def get_wallet_payments(
         clause += "AND amount > 0"
     else:
         raise TypeError("at least one of [outgoing, incoming] must be True.")
+
+    clause += " "
+
+    if exclude_uncheckable:  # checkable means it has a checking_id that isn't internal
+        clause += "AND checking_id NOT LIKE 'temp_%' "
+        clause += "AND checking_id NOT LIKE 'internal_%' "
 
     rows = g.db.fetchall(
         f"""

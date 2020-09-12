@@ -3,7 +3,9 @@ from base64 import urlsafe_b64encode
 from flask import jsonify, g, request
 
 from lnbits.core.services import pay_invoice, create_invoice
+from lnbits.core.crud import delete_expired_invoices
 from lnbits.decorators import api_validate_post_request
+from lnbits.settings import WALLET
 from lnbits import bolt11
 
 from lnbits.extensions.lndhub import lndhub_ext
@@ -48,6 +50,7 @@ def lndhub_addinvoice():
             wallet_id=g.wallet.id,
             amount=int(g.data["amt"]),
             memo=g.data["memo"],
+            extra={"tag": "lndhub"},
         )
     except Exception as e:
         return jsonify(
@@ -75,7 +78,11 @@ def lndhub_addinvoice():
 @api_validate_post_request(schema={"invoice": {"type": "string", "required": True}})
 def lndhub_payinvoice():
     try:
-        pay_invoice(wallet_id=g.wallet.id, payment_request=g.data["invoice"])
+        pay_invoice(
+            wallet_id=g.wallet.id,
+            payment_request=g.data["invoice"],
+            extra={"tag": "lndhub"},
+        )
     except Exception as e:
         return jsonify(
             {
@@ -112,8 +119,12 @@ def lndhub_balance():
 @lndhub_ext.route("/ext/gettxs", methods=["GET"])
 @check_wallet()
 def lndhub_gettxs():
-    limit = int(request.args.get("limit", 200))
+    for payment in g.wallet.get_payments(
+        complete=False, pending=True, outgoing=True, incoming=False, exclude_uncheckable=True
+    ):
+        payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
 
+    limit = int(request.args.get("limit", 200))
     return jsonify(
         [
             {
@@ -126,9 +137,9 @@ def lndhub_gettxs():
                 "timestamp": payment.time,
                 "memo": payment.memo if not payment.pending else "Payment in transition",
             }
-            for payment in g.wallet.get_payments(
-                pending=True, complete=True, outgoing=True, incoming=False, order="ASC"
-            )[0:limit]
+            for payment in reversed(
+                g.wallet.get_payments(pending=True, complete=True, outgoing=True, incoming=False)[:limit]
+            )
         ]
     )
 
@@ -136,8 +147,13 @@ def lndhub_gettxs():
 @lndhub_ext.route("/ext/getuserinvoices", methods=["GET"])
 @check_wallet()
 def lndhub_getuserinvoices():
-    limit = int(request.args.get("limit", 200))
+    delete_expired_invoices()
+    for invoice in g.wallet.get_payments(
+        complete=False, pending=True, outgoing=False, incoming=True, exclude_uncheckable=True
+    ):
+        invoice.set_pending(WALLET.get_invoice_status(invoice.checking_id).pending)
 
+    limit = int(request.args.get("limit", 200))
     return jsonify(
         [
             {
@@ -152,9 +168,9 @@ def lndhub_getuserinvoices():
                 "timestamp": invoice.time,
                 "type": "user_invoice",
             }
-            for invoice in g.wallet.get_payments(
-                pending=True, complete=True, incoming=True, outgoing=False, order="ASC"
-            )[:limit]
+            for invoice in reversed(
+                g.wallet.get_payments(pending=True, complete=True, incoming=True, outgoing=False)[:limit]
+            )
         ]
     )
 
