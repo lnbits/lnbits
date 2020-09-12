@@ -37,11 +37,24 @@ class Wallet(NamedTuple):
         return get_wallet_payment(self.id, payment_hash)
 
     def get_payments(
-        self, *, complete: bool = True, pending: bool = False, outgoing: bool = True, incoming: bool = True
+        self,
+        *,
+        complete: bool = True,
+        pending: bool = False,
+        outgoing: bool = True,
+        incoming: bool = True,
+        exclude_uncheckable: bool = False
     ) -> List["Payment"]:
         from .crud import get_wallet_payments
 
-        return get_wallet_payments(self.id, complete=complete, pending=pending, outgoing=outgoing, incoming=incoming)
+        return get_wallet_payments(
+            self.id,
+            complete=complete,
+            pending=pending,
+            outgoing=outgoing,
+            incoming=incoming,
+            exclude_uncheckable=exclude_uncheckable,
+        )
 
 
 class Payment(NamedTuple):
@@ -60,9 +73,9 @@ class Payment(NamedTuple):
     def from_row(cls, row: Row):
         return cls(
             checking_id=row["checking_id"],
-            payment_hash=row["hash"],
-            bolt11=row["bolt11"],
-            preimage=row["preimage"],
+            payment_hash=row["hash"] or "0" * 64,
+            bolt11=row["bolt11"] or "",
+            preimage=row["preimage"] or "0" * 64,
             extra=json.loads(row["extra"] or "{}"),
             pending=row["pending"],
             amount=row["amount"],

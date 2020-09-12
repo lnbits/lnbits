@@ -16,10 +16,8 @@ def api_payments():
     if "check_pending" in request.args:
         delete_expired_invoices()
 
-        for payment in g.wallet.get_payments(complete=False, pending=True):
-            if payment.is_uncheckable:
-                pass
-            elif payment.is_out:
+        for payment in g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
+            if payment.is_out:
                 payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
             else:
                 payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
