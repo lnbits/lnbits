@@ -44,6 +44,7 @@ def create_invoice(
         extra=extra,
     )
 
+    g.db.commit()
     return invoice.payment_hash, payment_request
 
 
@@ -97,6 +98,8 @@ def pay_invoice(
     if wallet.balance_msat < 0:
         g.db.rollback()
         raise PermissionError("Insufficient balance.")
+    else:
+        g.db.commit()
 
     if internal:
         # mark the invoice from the other side as not pending anymore
@@ -112,6 +115,7 @@ def pay_invoice(
         else:
             raise Exception(error_message or "Failed to pay_invoice on backend.")
 
+    g.db.commit()
     return invoice.payment_hash
 
 
