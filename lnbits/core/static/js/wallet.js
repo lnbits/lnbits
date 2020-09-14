@@ -127,6 +127,12 @@ new Vue({
           memo: ''
         }
       },
+      update: {
+        show: false,
+        data: {
+          amount: null
+        }
+      },
       send: {
         show: false,
         invoice: null,
@@ -241,6 +247,14 @@ new Vue({
         paymentChecker: null
       }
     },
+    showUpdateDialog: function () {
+      this.update = {
+        show: true,
+        data: {
+          amount: null
+        }
+      }
+    },
     closeReceiveDialog: function () {
       var checker = this.receive.paymentChecker
       setTimeout(function () {
@@ -278,6 +292,20 @@ new Vue({
                 }
               })
           }, 2000)
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+          self.receive.status = 'pending'
+        })
+    },
+    updateBalance: function () {
+      var self = this
+      self.receive.status = 'loading'
+      LNbits.api
+        .updateBalance(self.g.wallet, self.update.data.amount)
+        .then(function (response) {
+          self.fetchPayments()
+          self.update.show = false
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

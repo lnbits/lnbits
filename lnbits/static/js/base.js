@@ -43,6 +43,11 @@ var LNbits = {
         '/api/v1/payments/' + paymentHash,
         wallet.inkey
       )
+    },
+    updateBalance: function (wallet, amount) {
+      return this.request('post', '/api/v1/balance', wallet.adminkey, {
+        amount: amount
+      })
     }
   },
   href: {

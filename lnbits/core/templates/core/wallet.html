@@ -25,8 +25,14 @@
             <h3 class="q-my-none">
               <strong>{% raw %}{{ fbalance }}{% endraw %}</strong> sat {% if
               admin %}
-              <q-btn round size="10px" color="purple" icon="add">
-                <q-tooltip> Update balance </q-tooltip>
+              <q-btn
+                round
+                size="10px"
+                color="purple"
+                icon="add"
+                @click="showUpdateDialog"
+              >
+                <q-tooltip> Admin top up </q-tooltip>
               </q-btn>
               {% endif %}
             </h3>
@@ -250,6 +256,30 @@
     </q-card>
   </div>
 </div>
+
+<q-dialog v-model="update.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-form @submit="updateBalance" class="q-gutter-md">
+      <q-input
+        filled
+        dense
+        v-model.number="update.data.amount"
+        type="number"
+        label="Amount (sat) *"
+      ></q-input>
+      <div class="row q-mt-lg">
+        <q-btn
+          unelevated
+          color="deep-purple"
+          :disable="update.data.amount == null || update.data.amount <= 0"
+          type="submit"
+          >Top up</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-form>
+  </q-card>
+</q-dialog>
 
 <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
   <q-card
