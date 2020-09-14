@@ -11,9 +11,6 @@ env.read_env()
 wallets_module = importlib.import_module("lnbits.wallets")
 wallet_class = getattr(wallets_module, env.str("LNBITS_BACKEND_WALLET_CLASS", default="VoidWallet"))
 
-ENV = env.str("FLASK_ENV", default="production")
-DEBUG = ENV == "development"
-
 LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str("LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data"))
 LNBITS_ALLOWED_USERS: List[str] = env.list("LNBITS_ALLOWED_USERS", default=[], subcast=str)

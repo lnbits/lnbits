@@ -5,11 +5,15 @@
     <link
       rel="stylesheet"
       type="text/css"
-      href="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.min.css') }}"
+      href="/static/vendor/quasar@1.13.2/quasar.min.css"
     />
-    {% assets 'base_css' %}
-    <link rel="stylesheet" type="text/css" href="{{ ASSET_URL }}" />
-    {% endassets %} {% block styles %}{% endblock %}
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="/static/vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.css"
+    />
+    <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
+    {% block styles %}{% endblock %}
     <title>
       {% block title %} {% if SITE_TITLE != 'LNbits' %}{{ SITE_TITLE }}{% else
       %}LNbits{% endif %} {% endblock %}
@@ -108,21 +112,21 @@
       {% endblock %}
     </q-layout>
 
-    {% block vue_templates %}{% endblock %} {% if DEBUG %}
-    <script src="{{ url_for('static', filename='vendor/vue@2.6.12/vue.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/vuex@3.5.1/vuex.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/vue-router@3.4.3/vue-router.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.umd.js') }}"></script>
-    {% else %} {% assets output='__bundle__/vue.js',
-    'vendor/quasar@1.13.2/quasar.ie.polyfills.umd.min.js',
-    'vendor/vue@2.6.12/vue.min.js', 'vendor/vue-router@3.4.3/vue-router.min.js',
-    'vendor/vuex@3.5.1/vuex.min.js', 'vendor/quasar@1.13.2/quasar.umd.min.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %} {% endif %} {% assets filters='rjsmin',
-    output='__bundle__/base.js', 'vendor/axios@0.20.0/axios.min.js',
-    'vendor/underscore@1.10.2/underscore.min.js', 'js/base.js',
-    'js/components.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %} {% block scripts %}{% endblock %}
+    {% block vue_templates %}{% endblock %}
+    <script src="/static/vendor/vue@2.6.12/vue.js"></script>
+    <script src="/static/vendor/vuex@3.5.1/vuex.js"></script>
+    <script src="/static/vendor/vue-router@3.4.3/vue-router.js"></script>
+    <script src="/static/vendor/quasar@1.13.2/quasar.umd.js"></script>
+    <script src="/static/vendor/axios@0.20.0/axios.min.js"></script>
+    <script src="/static/vendor/underscore@1.10.2/underscore.min.js"></script>
+    <script src="/static/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script>
+    <script src="/static/vendor/moment@2.27.0/moment.min.js"></script>
+    <script src="/static/vendor/chart.js@2.9.3/chart.min.js"></script>
+    <script src="/static/vendor/bolt11/utils.js"></script>
+    <script src="/static/vendor/bolt11/decoder.js"></script>
+    <script src="/static/vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/components.js"></script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

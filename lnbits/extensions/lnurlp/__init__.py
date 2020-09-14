@@ -1,4 +1,4 @@
-from flask import Blueprint
+from quart import Blueprint
 
 
 lnurlp_ext: Blueprint = Blueprint("lnurlp", __name__, static_folder="static", template_folder="templates")

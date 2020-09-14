@@ -38,13 +38,12 @@
       </q-page-container>
     </q-layout>
 
-    {% if DEBUG %}
-    <script src="{{ url_for('static', filename='vendor/vue@2.6.12/vue.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.umd.js') }}"></script>
-    {% else %} {% assets output='__bundle__/vue-print.js',
-    'vendor/quasar@1.13.2/quasar.ie.polyfills.umd.min.js',
-    'vendor/vue@2.6.12/vue.min.js', 'vendor/quasar@1.13.2/quasar.umd.min.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %} {% endif %} {% block scripts %}{% endblock %}
+    <script src="/static/vendor/quasar@1.13.2/quasar.ie.polyfills.umd.min.js"></script>
+    <script src="/static/vendor/vue@2.6.12/vue.min.js"></script>
+    <script src="/static/vendor/vuex@3.5.1/vuex.js"></script>
+    <script src="/static/vendor/vue-router@3.4.3/vue-router.js"></script>
+    <script src="/static/vendor/quasar@1.13.2/quasar.umd.min.js"></script>
+    <script src="/static/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

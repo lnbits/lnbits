@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from quart import g, jsonify, request
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user, get_wallet
@@ -11,7 +11,7 @@ from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
 
 @tpos_ext.route("/api/v1/tposs", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_tposs():
+async def api_tposs():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -28,7 +28,7 @@ def api_tposs():
         "currency": {"type": "string", "empty": False, "required": True},
     }
 )
-def api_tpos_create():
+async def api_tpos_create():
     tpos = create_tpos(wallet_id=g.wallet.id, **g.data)
 
     return jsonify(tpos._asdict()), HTTPStatus.CREATED
@@ -36,7 +36,7 @@ def api_tpos_create():
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>", methods=["DELETE"])
 @api_check_wallet_key("admin")
-def api_tpos_delete(tpos_id):
+async def api_tpos_delete(tpos_id):
     tpos = get_tpos(tpos_id)
 
     if not tpos:
@@ -52,7 +52,7 @@ def api_tpos_delete(tpos_id):
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/", methods=["POST"])
 @api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
-def api_tpos_create_invoice(tpos_id):
+async def api_tpos_create_invoice(tpos_id):
     tpos = get_tpos(tpos_id)
 
     if not tpos:
@@ -69,7 +69,7 @@ def api_tpos_create_invoice(tpos_id):
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/<payment_hash>", methods=["GET"])
-def api_tpos_check_invoice(tpos_id, payment_hash):
+async def api_tpos_check_invoice(tpos_id, payment_hash):
     tpos = get_tpos(tpos_id)
 
     if not tpos:

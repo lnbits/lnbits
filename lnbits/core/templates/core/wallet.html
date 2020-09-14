@@ -1,21 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block styles %}
-<link
-  rel="stylesheet"
-  type="text/css"
-  href="{{ url_for('static', filename='vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.css') }}"
-/>
-{% endblock %} {% block scripts %} {{ window_vars(user, wallet) }}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
-{% assets filters='rjsmin', output='__bundle__/core/chart.js',
-'vendor/moment@2.27.0/moment.min.js', 'vendor/chart.js@2.9.3/chart.min.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
-'vendor/bolt11/utils.js', 'vendor/bolt11/decoder.js',
-'vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.js', 'core/js/wallet.js'
-%}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% endblock %} {% block page %}
+%} {% block scripts %} {{ window_vars(user, wallet) }}
+<script src="/core/static/js/wallet.js"></script>
+{% endblock %} {% block page %}
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>

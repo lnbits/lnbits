@@ -1,4 +1,4 @@
-from flask import url_for
+from quart import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
 from sqlite3 import Row
 from typing import NamedTuple

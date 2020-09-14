@@ -1,5 +1,5 @@
 import hashlib
-from flask import g, jsonify, request, url_for
+from quart import g, jsonify, request, url_for
 from http import HTTPStatus
 from lnurl import LnurlPayResponse, LnurlPayActionResponse
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
@@ -22,7 +22,7 @@ from .crud import (
 
 @lnurlp_ext.route("/api/v1/links", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_links():
+async def api_links():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -42,7 +42,7 @@ def api_links():
 
 @lnurlp_ext.route("/api/v1/links/<link_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_link_retrieve(link_id):
+async def api_link_retrieve(link_id):
     link = get_pay_link(link_id)
 
     if not link:
@@ -63,7 +63,7 @@ def api_link_retrieve(link_id):
         "amount": {"type": "integer", "min": 1, "required": True},
     }
 )
-def api_link_create_or_update(link_id=None):
+async def api_link_create_or_update(link_id=None):
     if link_id:
         link = get_pay_link(link_id)
 
@@ -82,7 +82,7 @@ def api_link_create_or_update(link_id=None):
 
 @lnurlp_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-def api_link_delete(link_id):
+async def api_link_delete(link_id):
     link = get_pay_link(link_id)
 
     if not link:
@@ -97,7 +97,7 @@ def api_link_delete(link_id):
 
 
 @lnurlp_ext.route("/api/v1/lnurl/<link_id>", methods=["GET"])
-def api_lnurl_response(link_id):
+async def api_lnurl_response(link_id):
     link = increment_pay_link(link_id, served_meta=1)
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
@@ -116,7 +116,7 @@ def api_lnurl_response(link_id):
 
 
 @lnurlp_ext.route("/api/v1/lnurl/cb/<link_id>", methods=["GET"])
-def api_lnurl_callback(link_id):
+async def api_lnurl_callback(link_id):
     link = increment_pay_link(link_id, served_pr=1)
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK

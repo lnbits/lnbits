@@ -1,7 +1,6 @@
-{% extends "public.html" %} {% block scripts %} {% assets filters='rjsmin',
-output='__bundle__/core/index.js', 'core/js/index.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% endblock %} {% block page %}
+{% extends "public.html" %} {% block scripts %}
+<script src="/core/static/js/index.js"></script>
+{% endblock %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card>

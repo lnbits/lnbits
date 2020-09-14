@@ -76,7 +76,6 @@
 </div>
 
 {% endblock %} {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <script>
   console.log('{{ form_costpword }}')
   Vue.component(VueQrcode.name, VueQrcode)

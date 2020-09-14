@@ -5,7 +5,7 @@
 # import json
 # import requests
 
-from flask import jsonify
+from quart import jsonify
 from http import HTTPStatus
 
 from lnbits.extensions.example import example_ext
@@ -15,7 +15,7 @@ from lnbits.extensions.example import example_ext
 
 
 @example_ext.route("/api/v1/tools", methods=["GET"])
-def api_example():
+async def api_example():
     """Try to add descriptions for others."""
     tools = [
         {

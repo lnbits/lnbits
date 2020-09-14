@@ -1,5 +1,5 @@
 import requests
-from flask import g, jsonify, request, abort
+from quart import g, jsonify, request, abort
 from http import HTTPStatus
 from lnurl import LnurlWithdrawResponse, handle as handle_lnurl
 from lnurl.exceptions import LnurlException
@@ -15,7 +15,7 @@ from .crud import create_amilk, get_amilk, get_amilks, delete_amilk
 
 @amilk_ext.route("/api/v1/amilk", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_amilks():
+async def api_amilks():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -25,7 +25,7 @@ def api_amilks():
 
 
 @amilk_ext.route("/api/v1/amilk/milk/<amilk_id>", methods=["GET"])
-def api_amilkit(amilk_id):
+async def api_amilkit(amilk_id):
     milk = get_amilk(amilk_id)
     memo = milk.id
 
@@ -66,7 +66,7 @@ def api_amilkit(amilk_id):
         "amount": {"type": "integer", "min": 0, "required": True},
     }
 )
-def api_amilk_create():
+async def api_amilk_create():
     amilk = create_amilk(wallet_id=g.wallet.id, lnurl=g.data["lnurl"], atime=g.data["atime"], amount=g.data["amount"])
 
     return jsonify(amilk._asdict()), HTTPStatus.CREATED
@@ -74,7 +74,7 @@ def api_amilk_create():
 
 @amilk_ext.route("/api/v1/amilk/<amilk_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-def api_amilk_delete(amilk_id):
+async def api_amilk_delete(amilk_id):
     amilk = get_amilk(amilk_id)
 
     if not amilk:

@@ -1,5 +1,5 @@
 from typing import Optional, Tuple, Dict
-from flask import g
+from quart import g
 
 try:
     from typing import TypedDict  # type: ignore
