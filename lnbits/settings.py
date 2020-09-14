@@ -17,6 +17,7 @@ DEBUG = ENV == "development"
 LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str("LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data"))
 LNBITS_ALLOWED_USERS: List[str] = env.list("LNBITS_ALLOWED_USERS", default=[], subcast=str)
+LNBITS_ADMIN_USERS: List[str] = env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list("LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str)
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
 
