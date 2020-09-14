@@ -135,7 +135,7 @@ def update_wallet_balance(wallet_id: str, amount: int) -> str:
         payment_request="admin_internal",
         payment_hash="admin_internal",
         amount=amount*1000,
-        memo="admin_internal",
+        memo="Admin top up",
         pending=False,
     )
     return "admin_internal"
