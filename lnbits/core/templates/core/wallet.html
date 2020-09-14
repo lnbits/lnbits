@@ -20,25 +20,17 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-         <div class="row q-pb-md q-px-md q-col-gutter-md">
+        <div class="row q-pb-md q-px-md q-col-gutter-md">
           <div class="col">
-        <h3 class="q-my-none">
-          <strong>{% raw %}{{ fbalance }}{% endraw %}</strong> sat
-          {% if admin %}
-           <q-btn  
-             round 
-             size="10px" 
-             color="purple" 
-             icon="add"
-            >
-            <q-tooltip>
-             Update balance
-            </q-tooltip>
-           </q-btn>
-          {% endif %}
-        </h3>
-        </div>
-
+            <h3 class="q-my-none">
+              <strong>{% raw %}{{ fbalance }}{% endraw %}</strong> sat {% if
+              admin %}
+              <q-btn round size="10px" color="purple" icon="add">
+                <q-tooltip> Update balance </q-tooltip>
+              </q-btn>
+              {% endif %}
+            </h3>
+          </div>
         </div>
       </q-card-section>
       <div class="row q-pb-md q-px-md q-col-gutter-md">
@@ -60,9 +52,6 @@
             >Receive</q-btn
           >
         </div>
-       
-
-        
       </div>
     </q-card>
 
@@ -372,7 +361,7 @@
       {% raw %}
       <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
       <q-separator class="q-my-sm"></q-separator>
-      <p style="word-break: break-all;">
+      <p style="word-break: break-all">
         <strong>Memo:</strong> {{ send.invoice.description }}<br />
         <strong>Expire date:</strong> {{ send.invoice.expireDate }}<br />
         <strong>Hash:</strong> {{ send.invoice.hash }}
@@ -395,7 +384,7 @@
 </q-dialog>
 
 <q-dialog v-model="paymentsChart.show" position="top">
-  <q-card class="q-pa-sm" style="width: 800px; max-width: unset;">
+  <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
     <q-card-section>
       <canvas ref="canvas" width="600" height="400"></canvas>
     </q-card-section>
