@@ -1,3 +1,5 @@
+/* global Vue, VueQrcode, _, Quasar, LOCALE, windowMixin, LNbits */
+
 Vue.component(VueQrcode.name, VueQrcode)
 
 var locationPath = [
@@ -116,7 +118,7 @@ new Vue({
 
       this.qrCodeDialog.data = _.clone(link)
       console.log(this.qrCodeDialog.data)
-      this.qrCodeDialog.data.url = window.location.hostname
+      this.qrCodeDialog.data.url = window.location.host
       this.qrCodeDialog.show = true
     },
     openUpdateDialog: function (linkId) {
@@ -181,7 +183,7 @@ new Vue({
         )
         .then(function (response) {
           self.withdrawLinks = _.reject(self.withdrawLinks, function (obj) {
-            return obj.id == data.id
+            return obj.id === data.id
           })
           self.withdrawLinks.push(mapWithdrawLink(response.data))
           self.formDialog.show = false
@@ -219,7 +221,7 @@ new Vue({
             )
             .then(function (response) {
               self.withdrawLinks = _.reject(self.withdrawLinks, function (obj) {
-                return obj.id == linkId
+                return obj.id === linkId
               })
             })
             .catch(function (error) {
