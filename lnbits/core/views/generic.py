@@ -78,7 +78,9 @@ def wallet():
     if wallet_id not in user.wallet_ids:
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
-    return render_template("core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee, admin=admin)
+    return render_template(
+        "core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee, admin=admin
+    )
 
 
 @core_app.route("/deletewallet")
