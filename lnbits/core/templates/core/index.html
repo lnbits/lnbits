@@ -100,8 +100,8 @@ output='__bundle__/core/index.js', 'core/js/index.js' %}
         <a href="https://github.com/rootzoll/raspiblitz">
           <q-img
             contain
-            :src="($q.dark.isActive) ? '/static/images/raspiblitz-negative.svg' : '/static/images/raspiblitz.svg'"
-            style="height: 90px"
+            :src="($q.dark.isActive) ? '{{ url_for('static', filename='images/raspiblitz-negative.svg') }}' : '{{ url_for('static', filename='images/raspiblitz.svg') }}'"
+            style="height: 90px;"
           ></q-img>
         </a>
       </div>

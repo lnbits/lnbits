@@ -59,7 +59,9 @@
                   :href="props.row.wallet"
                   target="_blank"
                 ></q-btn>
-                <q-tooltip> Link to pass to stall indexer </q-tooltip>
+                <q-tooltip>
+                  Link to pass to stall indexer
+                </q-tooltip>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -192,7 +194,9 @@
                   icon="add_shopping_cart"
                   color="green"
                 >
-                  <q-tooltip> Product shipped? </q-tooltip>
+                  <q-tooltip>
+                    Product shipped?
+                  </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td auto-width>
@@ -220,13 +224,15 @@
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "diagonalley/_api_docs.html" %} </q-list>
+        <q-list>
+          {% include "diagonalley/_api_docs.html" %}
+        </q-list>
       </q-card-section>
     </q-card>
   </div>
 
   <q-dialog v-model="productDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px;">
       <q-form @submit="sendProductFormData" class="q-gutter-md">
         <q-select
           filled
@@ -308,7 +314,7 @@
   </q-dialog>
 
   <q-dialog v-model="indexerDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px;">
       <q-form @submit="sendIndexerFormData" class="q-gutter-md">
         <q-select
           filled

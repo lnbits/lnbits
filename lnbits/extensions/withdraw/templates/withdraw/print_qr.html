@@ -5,11 +5,11 @@
   <div class="col-12 col-sm-8 col-lg-6 text-center" id="vue">
     {% for page in link %}
     <page size="A4" id="pdfprint">
-      <table style="width: 100%">
+      <table style="width: 100%;">
         {% for threes in page %}
-        <tr style="height: 59.4mm">
+        <tr style="height: 59.4mm;">
           {% for one in threes %}
-          <td style="width: 105mm">
+          <td style="width: 105mm;">
             <center>
               <qrcode
                 :value="theurl + '/?lightning={{one}}'"

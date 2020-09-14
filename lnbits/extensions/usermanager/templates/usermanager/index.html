@@ -107,7 +107,9 @@
                   :href="props.row.walllink"
                   target="_blank"
                 ></q-btn>
-                <q-tooltip> Link to wallet </q-tooltip>
+                <q-tooltip>
+                  Link to wallet
+                </q-tooltip>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -137,13 +139,15 @@
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "usermanager/_api_docs.html" %} </q-list>
+        <q-list>
+          {% include "usermanager/_api_docs.html" %}
+        </q-list>
       </q-card-section>
     </q-card>
   </div>
 
   <q-dialog v-model="userDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px;">
       <q-form @submit="sendUserFormData" class="q-gutter-md">
         <q-input
           filled
@@ -171,7 +175,7 @@
   </q-dialog>
 
   <q-dialog v-model="walletDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px;">
       <q-form @submit="sendWalletFormData" class="q-gutter-md">
         <q-select
           filled
