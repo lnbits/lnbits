@@ -86,5 +86,4 @@ def register_request_hooks(app):
 
     @app.teardown_request
     def after_request(exc):
-        print("after", exc)
         g.db.__exit__(type(exc), exc, None)
