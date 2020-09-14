@@ -352,7 +352,7 @@
       {% raw %}
       <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
       <q-separator class="q-my-sm"></q-separator>
-      <p style="word-break: break-all;">
+      <p style="word-break: break-all">
         <strong>Memo:</strong> {{ send.invoice.description }}<br />
         <strong>Expire date:</strong> {{ send.invoice.expireDate }}<br />
         <strong>Hash:</strong> {{ send.invoice.hash }}
@@ -375,7 +375,7 @@
 </q-dialog>
 
 <q-dialog v-model="paymentsChart.show" position="top">
-  <q-card class="q-pa-sm" style="width: 800px; max-width: unset;">
+  <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
     <q-card-section>
       <canvas ref="canvas" width="600" height="400"></canvas>
     </q-card-section>
