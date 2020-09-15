@@ -5,4 +5,4 @@ from .commands import migrate_databases
 migrate_databases()
 
 app = create_app()
-app.run()
+app.run(host=app.config["HOST"], port=app.config["PORT"])
