@@ -9,6 +9,7 @@ from .commands import db_migrate
 from .core import core_app
 from .db import open_db
 from .helpers import get_valid_extensions
+from .proxy_fix import ProxyFix
 
 secure_headers = SecureHeaders(hsts=False)
 
@@ -22,6 +23,7 @@ def create_app(config_object="lnbits.settings") -> Quart:
 
     cors(app)
     Compress(app)
+    ProxyFix(app)
 
     register_blueprints(app)
     register_filters(app)
