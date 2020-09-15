@@ -18,6 +18,29 @@ def m001_initial(db):
     """
     db.execute(
         """
+        CREATE TABLE IF NOT EXISTS admin (
+            user TEXT NOT NULL,
+            site_title TEXT NOT NULL,
+            primary_color TEXT NOT NULL,
+            secondary_color TEXT NOT NULL,
+            allowed_users TEXT NOT NULL,
+            admin_user TEXT NOT NULL,
+            default_wallet_name TEXT NOT NULL,
+            data_folder TEXT NOT NULL,
+            disabled_ext TEXT NOT NULL,
+            force_https TEXT NOT NULL,
+            service_fee TEXT NOT NULL,
+            backend_wallet TEXT NOT NULL,
+            read_key TEXT NOT NULL,
+            invoice_key TEXT NOT NULL,
+            admin_key TEXT NOT NULL,
+            cert TEXT NOT NULL
+        );
+    """
+    )
+
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS accounts (
             id TEXT PRIMARY KEY,
             email TEXT,
