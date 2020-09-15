@@ -23,7 +23,7 @@ def create_app(config_object="lnbits.settings") -> Quart:
 
     cors(app)
     Compress(app)
-    ProxyFix(app)
+    ProxyFix(app, x_proto=1, x_host=1)
 
     register_assets(app)
     register_blueprints(app)
