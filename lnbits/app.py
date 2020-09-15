@@ -8,7 +8,7 @@ from secure import SecureHeaders  # type: ignore
 from .commands import db_migrate
 from .core import core_app
 from .db import open_db
-from .helpers import get_valid_extensions
+from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ProxyFix
 
 secure_headers = SecureHeaders(hsts=False)
@@ -25,6 +25,7 @@ def create_app(config_object="lnbits.settings") -> Quart:
     Compress(app)
     ProxyFix(app)
 
+    register_assets(app)
     register_blueprints(app)
     register_filters(app)
     register_commands(app)
@@ -50,10 +51,23 @@ def register_commands(app):
     app.cli.add_command(db_migrate)
 
 
+def register_assets(app):
+    """Serve each vendored asset separately or a bundle."""
+
+    @app.before_request
+    async def vendored_assets_variable():
+        if app.config["DEBUG"]:
+            g.VENDORED_JS = map(url_for_vendored, get_js_vendored())
+            g.VENDORED_CSS = map(url_for_vendored, get_css_vendored())
+        else:
+            g.VENDORED_JS = ["/static/bundle.js"]
+            g.VENDORED_CSS = ["/static/bundle.css"]
+
+
 def register_filters(app):
     """Jinja filters."""
-    app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
+    app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
 
 
 def register_request_hooks(app):

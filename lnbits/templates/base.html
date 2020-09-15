@@ -2,16 +2,10 @@
 
 <html lang="en">
   <head>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="/static/vendor/quasar@1.13.2/quasar.min.css"
-    />
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="/static/vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.css"
-    />
+    {% for url in g.VENDORED_CSS %}
+    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    {% endfor %}
+    <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
     {% block styles %}{% endblock %}
     <title>
@@ -113,18 +107,11 @@
     </q-layout>
 
     {% block vue_templates %}{% endblock %}
-    <script src="/static/vendor/vue@2.6.12/vue.js"></script>
-    <script src="/static/vendor/vuex@3.5.1/vuex.js"></script>
-    <script src="/static/vendor/vue-router@3.4.3/vue-router.js"></script>
-    <script src="/static/vendor/quasar@1.13.2/quasar.umd.js"></script>
-    <script src="/static/vendor/axios@0.20.0/axios.min.js"></script>
-    <script src="/static/vendor/underscore@1.10.2/underscore.min.js"></script>
-    <script src="/static/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script>
-    <script src="/static/vendor/moment@2.27.0/moment.min.js"></script>
-    <script src="/static/vendor/chart.js@2.9.3/chart.min.js"></script>
-    <script src="/static/vendor/bolt11/utils.js"></script>
-    <script src="/static/vendor/bolt11/decoder.js"></script>
-    <script src="/static/vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.js"></script>
+    <!---->
+    {% for url in g.VENDORED_JS %}
+    <script src="{{ url }}"></script>
+    {% endfor %}
+    <!---->
     <script src="/static/js/base.js"></script>
     <script src="/static/js/components.js"></script>
     {% block scripts %}{% endblock %}

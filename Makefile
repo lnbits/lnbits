@@ -1,4 +1,4 @@
-all: format check lnbits/static/css/base.css requirements.txt
+all: format check requirements.txt
 
 format: prettier black
 
@@ -18,9 +18,6 @@ checkprettier: $(shell find lnbits -name "*.js" -name ".html")
 
 checkblack: $(shell find lnbits -name "*.py")
 	./venv/bin/black --check lnbits
-
-lnbits/static/css/base.css: lnbits/static/scss/base.scss
-	./venv/bin/pyscss -o lnbits/static/css/base.css lnbits/static/scss/base.scss
 
 requirements.txt: Pipfile.lock
 	cat Pipfile.lock | jq -r '.default | map_values(.version) | to_entries | map("\(.key)\(.value)") | join("\n")' > requirements.txt
