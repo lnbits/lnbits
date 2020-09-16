@@ -1,0 +1,453 @@
+{% extends "public.html" %} {% block scripts %} {% assets filters='rjsmin',
+output='__bundle__/core/admin.js', 'core/js/admin.js' %}
+<script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %} {% endblock %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+	<div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+		<q-card>
+			<q-card-section>
+				<h3 class="q-my-none">
+					<center><strong>Welcome to LNbits</strong></center>
+				</h3>
+				<h6 class="q-my-md">
+					Fill in the information below to setup you LNbits instance. Details
+					can be changed later.
+				</h6>
+				<p></p>
+				<!--
+  Forked from:
+  https://quasar.dev/vue-components/form#Example--Basic
+-->
+
+				<div class="q-pa-md">
+					<q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
+						<h6 class="q-my-md">Branding</h6>
+						<div class="row">
+							<div class="col">
+								<q-input
+									filled
+									v-model="name"
+									label="Site title"
+									class="q-pr-md"
+									hint="To replace the default 'LNbits' name and tagline"
+								></q-input>
+							</div>
+							<div class="col">
+								<q-input filled v-model="name" label="Tagline"></q-input>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col">
+								<q-input
+									filled
+									v-model="primaryColor"
+									class="q-pr-md"
+									class="my-input"
+									label="Primary Color"
+									hint="Color theme your LNbits"
+								>
+									<template v-slot:append>
+										<q-icon name="colorize" class="cursor-pointer">
+											<q-popup-proxy
+												transition-show="scale"
+												transition-hide="scale"
+											>
+												<q-color v-model="primaryColor"></q-color>
+											</q-popup-proxy>
+										</q-icon>
+									</template>
+								</q-input>
+							</div>
+							<div class="col">
+								<q-input
+									filled
+									v-model="secondColor"
+									:rules="['anyColor']"
+									class="my-input"
+									label="Secondary Color"
+								>
+									<template v-slot:append>
+										<q-icon name="colorize" class="cursor-pointer">
+											<q-popup-proxy
+												transition-show="scale"
+												transition-hide="scale"
+											>
+												<q-color v-model="secondColor"></q-color>
+											</q-popup-proxy>
+										</q-icon>
+									</template>
+								</q-input>
+							</div>
+						</div>
+
+						<h6 class="q-my-md">Service settings</h6>
+						<div class="row">
+							<div class="col">
+								<q-input
+									filled
+									class="q-pr-md"
+									type="number"
+									v-model="name"
+									label="Sevice fee"
+									hint="What percentage to charge per transaction *default 0"
+								></q-input>
+							</div>
+							<div class="col">
+								<q-input
+									filled
+									v-model="name"
+									label="Default Wallet Name"
+									hint="Default name for wallets generated without being named"
+								></q-input>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col">
+								<q-input
+									filled
+									class="q-pr-md"
+									v-model="name"
+									label="Data folder"
+									hint="Where your database will be saved ie '~/lnbits/lnbits/data'"
+								></q-input>
+							</div>
+							<div class="col">
+								<q-select
+									filled
+									v-model="multiple"
+									multiple
+									hint="Extensions to be accessible"
+									:options="options"
+									label="Extensions"
+								></q-select>
+							</div>
+						</div>
+						<h6>Funding source information (at least one required).</h6>
+
+						<q-list bordered class="rounded-borders">
+							<q-expansion-item
+								expand-separator
+								icon="cast"
+								label="CLightning GRPC"
+							>
+								<q-card>
+									<q-card-section>
+										<q-input
+											filled
+											v-model="name"
+											label="GRPC Endpoint"
+											class="q-pr-md"
+											hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
+										></q-input>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+
+							<q-expansion-item expand-separator icon="cast" label="LND REST">
+								<q-card>
+									<q-card-section>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND REST Endpoint"
+													class="q-pr-md"
+													hint="default 127.0.0.1"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND REST port"
+													class="q-pr-md"
+													hint="Deafault 8080"
+												></q-input>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND self-signed cert"
+													class="q-pr-md"
+													hint="Location of your ssl cert"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND admin macaroon"
+													class="q-pr-md"
+													hint="Your admin macaroon as hex or location"
+												></q-input>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND invoice macaroon"
+													class="q-pr-md"
+													hint="Your invoice macaroon as hex or location"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND read macaroon"
+													class="q-pr-md"
+													hint="Your read macaroon as hex or location"
+												></q-input>
+											</div>
+										</div>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+
+							<q-expansion-item expand-separator icon="cast" label="LND GRPC">
+								<q-card>
+									<q-card-section>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND GRPC Endpoint"
+													class="q-pr-md"
+													hint="default 127.0.0.1"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND GRPC port"
+													class="q-pr-md"
+													hint="Deafault 11009"
+												></q-input>
+											</div>
+										</div>
+
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND self-signed cert"
+													class="q-pr-md"
+													hint="Location of your ssl cert"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND admin macaroon"
+													class="q-pr-md"
+													hint="Your admin macaroon as hex or location"
+												></q-input>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND invoice macaroon"
+													class="q-pr-md"
+													hint="Your invoice macaroon as hex or location"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LND read macaroon"
+													class="q-pr-md"
+													hint="Your read macaroon as hex or location"
+												></q-input>
+											</div>
+										</div>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+
+							<q-expansion-item expand-separator icon="cast" label="LNTXBOT">
+								<q-card>
+									<q-card-section>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Admin key"
+													class="q-pr-md"
+													hint="use /api in LNTXBOT"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Invoice key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+										</div>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+
+							<q-expansion-item expand-separator icon="cast" label="LNpay">
+								<q-card>
+									<q-card-section>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="API key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Admin key"
+													class="q-pr-md q-pb-md"
+												></q-input>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Invoice key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Read key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+										</div>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+
+							<q-expansion-item expand-separator icon="cast" label="LNBits">
+								<q-card>
+									<q-card-section>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="LNbits endpoint"
+													class="q-pr-md"
+													hint="ie https://lnbits.com, default 127.0.0.1"
+												></q-input>
+											</div>
+											<div class="col"></div>
+										</div>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Admin key"
+													class="q-pr-md q-pb-md"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Invoice key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+										</div>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+
+							<q-expansion-item expand-separator icon="cast" label="OpenNode">
+								<q-card>
+									<q-card-section>
+										<div class="row">
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Admin key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+											<div class="col">
+												<q-input
+													filled
+													v-model="name"
+													label="Invoice key"
+													class="q-pr-md"
+												></q-input>
+											</div>
+										</div>
+									</q-card-section>
+								</q-card>
+							</q-expansion-item>
+						</q-list>
+
+						<div>
+							<q-btn
+								label="Launch LNbits!"
+								type="submit"
+								color="deep-purple"
+							></q-btn>
+							<q-btn
+								label="Reset"
+								type="reset"
+								color="primary"
+								flat
+								class="q-ml-sm"
+							></q-btn>
+						</div>
+					</q-form>
+				</div>
+				<div class="row q-mt-md q-gutter-sm">
+					<q-btn
+						outline
+						color="grey"
+						type="a"
+						href="https://github.com/lnbits/lnbits"
+						target="_blank"
+						rel="noopener"
+						>View project in GitHub</q-btn
+					>
+					<q-btn
+						outline
+						color="grey"
+						type="a"
+						href="https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
+						target="_blank"
+						rel="noopener"
+						>Donate</q-btn
+					>
+				</div>
+			</q-card-section>
+		</q-card>
+	</div>
+</div>
+{% endblock %}

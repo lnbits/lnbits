@@ -100,3 +100,7 @@ def deletewallet():
         return redirect(url_for("core.wallet", usr=g.user.id, wal=user_wallet_ids[0]))
 
     return redirect(url_for("core.home"))
+
+@core_app.route("/admin")
+def admin_setup():
+    return render_template("core/admin.html")
