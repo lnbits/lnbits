@@ -4,7 +4,7 @@ import re
 import os
 import sqlite3
 
-from scss.compiler import compile_string
+from scss.compiler import compile_string  # type: ignore
 
 from .core import migrations as core_migrations
 from .db import open_db, open_ext_db

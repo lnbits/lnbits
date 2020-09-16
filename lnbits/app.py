@@ -34,7 +34,7 @@ def create_app(config_object="lnbits.settings") -> Quart:
     return app
 
 
-def register_blueprints(app) -> None:
+def register_blueprints(app: Quart) -> None:
     """Register Flask blueprints / LNbits extensions."""
     app.register_blueprint(core_app)
 
@@ -46,12 +46,12 @@ def register_blueprints(app) -> None:
             raise ImportError(f"Please make sure that the extension `{ext.code}` follows conventions.")
 
 
-def register_commands(app):
+def register_commands(app: Quart):
     """Register Click commands."""
     app.cli.add_command(db_migrate)
 
 
-def register_assets(app):
+def register_assets(app: Quart):
     """Serve each vendored asset separately or a bundle."""
 
     @app.before_request
@@ -64,13 +64,13 @@ def register_assets(app):
             g.VENDORED_CSS = ["/static/bundle.css"]
 
 
-def register_filters(app):
+def register_filters(app: Quart):
     """Jinja filters."""
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
 
 
-def register_request_hooks(app):
+def register_request_hooks(app: Quart):
     """Open the core db for each request so everything happens in a big transaction"""
 
     @app.before_request
