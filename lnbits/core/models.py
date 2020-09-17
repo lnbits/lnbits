@@ -18,6 +18,7 @@ class User(NamedTuple):
         w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
         return w[0] if w else None
 
+
 class Admin(NamedTuple):
     user: str
     site_title: str
@@ -30,6 +31,7 @@ class Admin(NamedTuple):
     disabled_ext: str
     force_https: bool
     service_fee: int
+
 
 class Funding(NamedTuple):
     id: str

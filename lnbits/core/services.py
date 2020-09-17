@@ -15,12 +15,7 @@ from .crud import get_wallet, create_payment, delete_payment, check_internal, up
 
 
 def create_invoice(
-    *,
-    wallet_id: str,
-    amount: int,
-    memo: str,
-    description_hash: Optional[bytes] = None,
-    extra: Optional[Dict] = None,
+    *, wallet_id: str, amount: int, memo: str, description_hash: Optional[bytes] = None, extra: Optional[Dict] = None
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
     storeable_memo = memo

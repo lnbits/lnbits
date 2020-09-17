@@ -6,15 +6,7 @@ from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE, LNBITS_ADMIN_USERS
 
-from ..crud import (
-    create_account,
-    get_user,
-    get_admin,
-    get_funding,
-    update_user_extension,
-    create_wallet,
-    delete_wallet,
-)
+from ..crud import create_account, get_user, get_admin, get_funding, update_user_extension, create_wallet, delete_wallet
 
 
 @core_app.route("/favicon.ico")
@@ -103,6 +95,7 @@ def deletewallet():
 
     return redirect(url_for("core.home"))
 
+
 @core_app.route("/admin")
 def admin_setup():
     user_id = request.args.get("usr", type=str)
@@ -114,7 +107,7 @@ def admin_setup():
         admin_user = get_user(create_account().id).id
     else:
         admin_user = admin[0]
-    
+
     if admin.user != None and admin.user != user_id:
         abort(HTTPStatus.FORBIDDEN, "Admin only")
 

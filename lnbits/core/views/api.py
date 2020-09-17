@@ -135,8 +135,7 @@ def api_update_balance():
 
 @core_app.route("/api/v1/admin", methods=["POST"])
 @api_validate_post_request(
-        schema={
-        
+    schema={
         "user": {"type": "string", "empty": False, "required": True},
         "site_title": {"type": "string", "empty": False, "required": True},
         "tagline": {"type": "string", "empty": False, "required": True},
@@ -147,7 +146,8 @@ def api_update_balance():
         "data_folder": {"type": "string", "empty": False, "required": True},
         "disabled_ext": {"type": "string", "empty": False, "required": True},
         "service_fee": {"type": "integer", "min": 0, "max": 90, "required": True},
-    })
+    }
+)
 def api_admin():
 
     admin = get_admin(None)
