@@ -33,8 +33,12 @@ def extensions():
         update_user_extension(user_id=g.user.id, extension=extension_to_enable, active=1)
     elif extension_to_disable:
         update_user_extension(user_id=g.user.id, extension=extension_to_disable, active=0)
-
-    return render_template("core/extensions.html", user=get_user(g.user.id))
+    
+    admin = get_admin()
+    is_admin = None
+    if g.user.id == admin[0]:
+        is_admin = admin[0]
+    return render_template("core/extensions.html", user=get_user(g.user.id), admin=is_admin)
 
 
 @core_app.route("/wallet")
