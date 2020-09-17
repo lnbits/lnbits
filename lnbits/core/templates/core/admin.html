@@ -1,7 +1,5 @@
-{% extends "public.html" %} {% block scripts %} {% assets filters='rjsmin',
-output='__bundle__/core/admin.js', 'core/js/admin.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% endblock %} {% block page %}
+{% extends "public.html" %} {% from "macros.jinja" import window_vars with
+context %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
 	<div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
 		<q-card>
@@ -20,27 +18,31 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 -->
 
 				<div class="q-pa-md">
-					<q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
+					<q-form @submit="LaunchLNbits" @reset="cancelAdmin" class="q-gutter-md">
 						<h6 class="q-my-md">Branding</h6>
 						<div class="row">
 							<div class="col">
 								<q-input
 									filled
-									v-model="name"
+									v-model="data.admin.site_title"
 									label="Site title"
 									class="q-pr-md"
 									hint="To replace the default 'LNbits' name and tagline"
 								></q-input>
 							</div>
 							<div class="col">
-								<q-input filled v-model="name" label="Tagline"></q-input>
+								<q-input
+									filled
+									v-model="data.admin.tagline"
+									label="Tagline"
+								></q-input>
 							</div>
 						</div>
 						<div class="row">
 							<div class="col">
 								<q-input
 									filled
-									v-model="primaryColor"
+									v-model="data.admin.primary_color"
 									class="q-pr-md"
 									class="my-input"
 									label="Primary Color"
@@ -52,7 +54,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 												transition-show="scale"
 												transition-hide="scale"
 											>
-												<q-color v-model="primaryColor"></q-color>
+												<q-color v-model="data.admin.primary_color"></q-color>
 											</q-popup-proxy>
 										</q-icon>
 									</template>
@@ -61,7 +63,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 							<div class="col">
 								<q-input
 									filled
-									v-model="secondColor"
+									v-model="data.admin.secondary_color"
 									:rules="['anyColor']"
 									class="my-input"
 									label="Secondary Color"
@@ -72,7 +74,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 												transition-show="scale"
 												transition-hide="scale"
 											>
-												<q-color v-model="secondColor"></q-color>
+												<q-color v-model="data.admin.secondary_color"></q-color>
 											</q-popup-proxy>
 										</q-icon>
 									</template>
@@ -87,7 +89,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 									filled
 									class="q-pr-md"
 									type="number"
-									v-model="name"
+									v-model="data.admin.service_fee"
 									label="Sevice fee"
 									hint="What percentage to charge per transaction *default 0"
 								></q-input>
@@ -95,8 +97,8 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 							<div class="col">
 								<q-input
 									filled
-									v-model="name"
-									label="Default Wallet Name"
+									v-model="data.admin.default_wallet_name"
+									label="Default wallet name"
 									hint="Default name for wallets generated without being named"
 								></q-input>
 							</div>
@@ -106,35 +108,35 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 								<q-input
 									filled
 									class="q-pr-md"
-									v-model="name"
+									v-model="data.admin.data_folder"
 									label="Data folder"
-									hint="Where your database will be saved ie '~/lnbits/lnbits/data'"
+									hint="Where your databases will be saved"
 								></q-input>
 							</div>
 							<div class="col">
 								<q-select
 									filled
-									v-model="multiple"
+									v-model="data.admin.disabled_ext"
 									multiple
-									hint="Extensions to be accessible"
+									hint="Disable extensions *amilk disabled by default as resource heavy"
 									:options="options"
-									label="Extensions"
+									label="Disable extensions"
 								></q-select>
 							</div>
 						</div>
-						<h6>Funding source information (at least one required).</h6>
+						<h6 class="q-my-md">Funding source information (at least one required)<small><br/>*if installed through RaspiBlitz, MyNode, etc, details should be filled in for you</small></h6>
 
 						<q-list bordered class="rounded-borders">
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								label="CLightning GRPC"
+								:label="data.clightning.label"
 							>
 								<q-card>
 									<q-card-section>
 										<q-input
 											filled
-											v-model="name"
+											v-model="data.clightning.endpoint"
 											label="GRPC Endpoint"
 											class="q-pr-md"
 											hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
@@ -146,7 +148,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								label="LND REST"
+								:label="data.lndrest.label"
 							>
 								<q-card>
 									<q-card-section>
@@ -154,7 +156,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndrest.endpoint"
 													label="LND REST Endpoint"
 													class="q-pr-md"
 													hint="default 127.0.0.1"
@@ -163,7 +165,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndrest.port"
 													label="LND REST port"
 													class="q-pr-md"
 													hint="Deafault 8080"
@@ -174,7 +176,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndrest.cert"
 													label="LND self-signed cert"
 													class="q-pr-md"
 													hint="Location of your ssl cert"
@@ -183,7 +185,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndrest.admin"
 													label="LND admin macaroon"
 													class="q-pr-md"
 													hint="Your admin macaroon as hex or location"
@@ -194,7 +196,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndrest.invoice"
 													label="LND invoice macaroon"
 													class="q-pr-md"
 													hint="Your invoice macaroon as hex or location"
@@ -203,7 +205,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndrest.read"
 													label="LND read macaroon"
 													class="q-pr-md"
 													hint="Your read macaroon as hex or location"
@@ -217,7 +219,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								label="LND GRPC"
+								:label="data.lndgrpc.label"
 							>
 								<q-card>
 									<q-card-section>
@@ -225,7 +227,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndgrpc.endpoint"
 													label="LND GRPC Endpoint"
 													class="q-pr-md"
 													hint="default 127.0.0.1"
@@ -234,7 +236,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndgrpc.port"
 													label="LND GRPC port"
 													class="q-pr-md"
 													hint="Deafault 11009"
@@ -246,7 +248,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndgrpc.cert"
 													label="LND self-signed cert"
 													class="q-pr-md"
 													hint="Location of your ssl cert"
@@ -255,7 +257,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndgrpc.admin"
 													label="LND admin macaroon"
 													class="q-pr-md"
 													hint="Your admin macaroon as hex or location"
@@ -266,7 +268,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndgrpc.invoice"
 													label="LND invoice macaroon"
 													class="q-pr-md"
 													hint="Your invoice macaroon as hex or location"
@@ -275,7 +277,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lndgrpc.read"
 													label="LND read macaroon"
 													class="q-pr-md"
 													hint="Your read macaroon as hex or location"
@@ -289,7 +291,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								label="LNTXBOT"
+								:label="data.lntxbot.label"
 							>
 								<q-card>
 									<q-card-section>
@@ -297,7 +299,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lntxbot.admin"
 													label="Admin key"
 													class="q-pr-md"
 													hint="use /api in LNTXBOT"
@@ -306,7 +308,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lntxbot.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -316,14 +318,14 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 								</q-card>
 							</q-expansion-item>
 
-							<q-expansion-item expand-separator icon="payments" label="LNpay">
+							<q-expansion-item expand-separator icon="payments" :label="data.lnpay.label">
 								<q-card>
 									<q-card-section>
 										<div class="row">
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnpay.cert"
 													label="API key"
 													class="q-pr-md"
 												></q-input>
@@ -331,7 +333,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnpay.admin"
 													label="Admin key"
 													class="q-pr-md q-pb-md"
 												></q-input>
@@ -341,7 +343,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnpay.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -349,7 +351,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnpay.read"
 													label="Read key"
 													class="q-pr-md"
 												></q-input>
@@ -359,14 +361,14 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 								</q-card>
 							</q-expansion-item>
 
-							<q-expansion-item expand-separator icon="payments" label="LNBits">
+							<q-expansion-item expand-separator icon="payments" :label="data.lnbits.label">
 								<q-card>
 									<q-card-section>
 										<div class="row">
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnbits.endpoint"
 													label="LNbits endpoint"
 													class="q-pr-md"
 													hint="ie https://lnbits.com, default 127.0.0.1"
@@ -378,7 +380,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnbits.admin"
 													label="Admin key"
 													class="q-pr-md q-pb-md"
 												></q-input>
@@ -386,7 +388,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.lnbits.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -399,7 +401,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								label="OpenNode"
+								:label="data.opennode.label"
 							>
 								<q-card>
 									<q-card-section>
@@ -407,7 +409,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.opennode.admin"
 													label="Admin key"
 													class="q-pr-md"
 												></q-input>
@@ -415,7 +417,7 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="name"
+													v-model="data.opennode.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -433,7 +435,8 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 								color="deep-purple"
 							></q-btn>
 							<q-btn
-								label="Reset"
+							    v-if="cancel.on"
+								label="Cancel"
 								type="reset"
 								color="primary"
 								flat
@@ -466,4 +469,175 @@ output='__bundle__/core/admin.js', 'core/js/admin.js' %}
 		</q-card>
 	</div>
 </div>
+{% endblock %} {% block scripts %} {{ window_vars(funding) }}
+<script>
+const queryString = window.location.search
+const urlParams = new URLSearchParams(queryString)
+const usr = urlParams.get('usr')
+	new Vue({
+		el: '#vue',
+		mixins: [windowMixin],
+		data: function () {
+			return {
+            cancel: {},
+			data: {
+					admin: {},
+					clightning: {endpoint: ''},
+					lndrest: {endpoint: '', invoice: '', read: '', admin: '', cert: ''},
+					lndgrpc: {
+						endpoint: '',
+						port: '',
+						invoice: '',
+						read: '',
+						admin: '',
+						cert: ''
+					},
+					lntxbot: {invoice: '', admin: ''},
+					lnpay: {endpoint: '', invoice: '', read: '', admin: '', cert: ''},
+					lnbits: {endpoint: '', invoice: '', read: '', admin: ''},
+					opennode: {invoice: '', read: '', admin: ''}
+			},
+
+				options: [
+					'lnurlw',
+					'lnurlp',
+					'usermanager',
+					'events',
+					'lndhub',
+					'lntickets',
+					'paywall',
+					'tpos',
+					'amilk'
+				]
+			}
+		},
+		created: function () {
+			var self = this
+			self.data.admin.user = '{{ admin_user }}',
+			self.data.admin.allowed_users ='',
+			self.data.admin.site_title ='{{admin.site_title}}',
+			self.data.admin.tagline = '{{admin.tagline}}',
+			self.data.admin.primary_color = '{{admin.primary_color}}',
+			self.data.admin.secondary_color = '{{admin.secondary_color}}',
+			self.data.admin.service_fee = parseInt('{{admin.service_fee}}'),
+			self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}',
+			self.data.admin.data_folder = '{{admin.data_folder}}',
+            self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(",")
+
+			if (usr  != null){
+		        self.cancel.on = true
+		    }
+			funding = JSON.parse('{{ funding  | tojson }}')
+			self.data.lndrest.label = 'LND REST'
+            self.data.clightning.label = 'CLightning GRPC'
+            self.data.lndgrpc.label = 'LND GRPC'
+            self.data.lntxbot.label = 'LNTXBOT'
+            self.data.lnpay.label = 'LNpay'
+            self.data.lnbits.label = 'LNbits'
+            self.data.opennode.label = 'Opennode'
+			var i;
+            for (i = 0; i < funding.length; i++) {
+            if (funding[i][1] == "CLightningWallet"){
+              self.data.clightning.endpoint = funding[i][2]
+              if(funding[i][8] == 1){
+              	self.data.clightning.label = 'CLightning GRPC (main funding source)'
+              }
+	        }
+            if (funding[i][1] == "LndRestWallet"){
+              self.data.lndrest.endpoint = funding[i][2]
+              self.data.lndrest.read = funding[i][4]
+              self.data.lndrest.invoice = funding[i][5]
+              self.data.lndrest.admin = funding[i][6]
+              self.data.lndrest.cert = funding[i][7]
+              if(funding[i][8] == 1){
+              	self.data.lndrest.label = 'LND REST (main funding source)'
+              }
+	        }
+            if (funding[i][1] == "LndWallet"){
+              self.data.lndgrpc.endpoint = funding[i][2]
+              self.data.lndgrpc.port = funding[i][3]
+              self.data.lndgrpc.read = funding[i][4]
+              self.data.lndgrpc.invoice = funding[i][5]
+              self.data.lndgrpc.admin = funding[i][6]
+              self.data.lndgrpc.cert = funding[i][7]
+              if(funding[i][8] == 1){
+              	self.data.lndgrpc.label = 'LND GRPC (main funding source)'
+              }
+	        }
+            if (funding[i][1] == "LntxbotWallet"){
+              self.data.lntxbot.invoice = funding[i][5]
+              self.data.lntxbot.admin = funding[i][6]
+              
+              if(funding[i][8] == 1){
+              	self.data.lntxbot.label = 'LNTXBOT (main funding source)'
+              }
+	        }
+            if (funding[i][1] == "LNPayWallet"){
+              self.data.lnpay.read = funding[i][4]
+              self.data.lnpay.invoice = funding[i][5]
+              self.data.lnpay.admin = funding[i][6]
+              self.data.lnpay.cert = funding[i][7]
+              
+              if(funding[i][8] == 1){
+              	self.data.lnpay.label = 'LNpay (main funding source)'
+              }
+	        }
+            if (funding[i][1] == "LnbitsWallet"){
+              self.data.lnbits.endpoint = funding[i][2]
+              self.data.lnbits.read = funding[i][4]
+              self.data.lnbits.invoice = funding[i][5]
+              self.data.lnbits.admin = funding[i][6]
+              
+              if(funding[i][8] == 1){
+              	self.data.lnbits.label = 'LNbits (main funding source)'
+              }
+	        }
+            if (funding[i][1] == "OpenNodeWallet"){
+              self.data.opennode.read = funding[i][4]
+              self.data.opennode.invoice = funding[i][5]
+              self.data.opennode.admin = funding[i][6]
+              
+              if(funding[i][8] == 1){
+              	self.data.opennode.label = 'Opennode (main funding source)'
+              }
+	        }
+
+            }
+		},
+		methods: {
+			createWallet: function () {
+				LNbits.href.createWallet(this.walletName)
+			},
+			LaunchLNbits: function () {
+		        var self = this
+		        var data = self.data
+		        data.admin.disabled_ext = data.admin.disabled_ext.toString()
+		        console.log(data.admin.disabled_ext)
+		        LNbits.api
+		          .request('POST', '/api/v1/admin', "wallet.inkey", 
+		          data.admin)
+		          .then(function (response) {
+		            console.log(response.data)
+		            window.location.href = "/wallet?usr=" + response.data[0]
+		          })
+		          .catch(function (error) {
+		            LNbits.utils.notifyApiError(error)
+		          })
+		      },
+		      cancelAdmin: function () {
+		        if (usr  != null){
+		        	window.location.href = "/wallet?usr=" + usr
+		        }
+		      },
+
+			processing: function () {
+				this.$q.notify({
+					timeout: 0,
+					message: 'Processing...',
+					icon: null
+				})
+			}
+		}
+	})
+</script>
 {% endblock %}

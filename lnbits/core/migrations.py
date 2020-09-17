@@ -1,5 +1,10 @@
 import sqlite3
-
+from os import getenv
+from lnbits.helpers import urlsafe_short_hash
+from .crud import (
+    create_account,
+    get_user,
+)
 
 def m000_create_migrations_table(db):
     db.execute(
@@ -16,28 +21,6 @@ def m001_initial(db):
     """
     Initial LNbits tables.
     """
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS admin (
-            user TEXT NOT NULL,
-            site_title TEXT NOT NULL,
-            primary_color TEXT NOT NULL,
-            secondary_color TEXT NOT NULL,
-            allowed_users TEXT NOT NULL,
-            admin_user TEXT NOT NULL,
-            default_wallet_name TEXT NOT NULL,
-            data_folder TEXT NOT NULL,
-            disabled_ext TEXT NOT NULL,
-            force_https TEXT NOT NULL,
-            service_fee TEXT NOT NULL,
-            backend_wallet TEXT NOT NULL,
-            read_key TEXT NOT NULL,
-            invoice_key TEXT NOT NULL,
-            admin_key TEXT NOT NULL,
-            cert TEXT NOT NULL
-        );
-    """
-    )
 
     db.execute(
         """
@@ -143,3 +126,172 @@ def m002_add_fields_to_apipayments(db):
         # catching errors like this won't be necessary in anymore now that we
         # keep track of db versions so no migration ever runs twice.
         pass
+
+
+
+def m003_create_admin_table(db):
+    user = None
+    site_title = None
+    tagline = ""
+    primary_color = "#673ab7"
+    secondary_color = "#9c27b0"
+    allowed_users = None
+    default_wallet_name = None
+    data_folder = None
+    disabled_ext = None
+    force_https = True
+    service_fee = 0
+
+    if getenv("LNBITS_SITE_TITLE"):
+        site_title = getenv("LNBITS_SITE_TITLE")
+
+    if getenv("LNBITS_ALLOWED_USERS"):
+        allowed_users = getenv("LNBITS_ALLOWED_USERS")
+
+    if getenv("LNBITS_DEFAULT_WALLET_NAME"):
+        default_wallet_name = getenv("LNBITS_DEFAULT_WALLET_NAME")
+
+    if getenv("LNBITS_DATA_FOLDER"):
+        data_folder = getenv("LNBITS_DATA_FOLDER")
+
+    if getenv("LNBITS_DISABLED_EXTENSIONS"):
+        disabled_ext = getenv("LNBITS_DISABLED_EXTENSIONS")
+
+    if getenv("LNBITS_FORCE_HTTPS"):
+        force_https = getenv("LNBITS_FORCE_HTTPS")
+
+    if getenv("LNBITS_SERVICE_FEE"):
+        service_fee = getenv("LNBITS_SERVICE_FEE")
+
+
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin (
+            user TEXT,
+            site_title TEXT NOT NULL,
+            tagline TEXT,
+            primary_color TEXT NOT NULL,
+            secondary_color TEXT NOT NULL,
+            allowed_users TEXT,
+            default_wallet_name TEXT,
+            data_folder TEXT,
+            disabled_ext TEXT,
+            force_https BOOLEAN NOT NULL,
+            service_fee INT NOT NULL
+        );
+    """
+    )
+    db.execute(
+        """
+        INSERT INTO admin (user, site_title, tagline, primary_color, secondary_color, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (user, site_title, tagline, primary_color, secondary_color, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee),
+    )
+
+def m003_create_funding_table(db):
+
+
+    # Make the funding table,  if it does not already exist
+
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS funding (
+            id TEXT PRIMARY KEY,
+            backend_wallet TEXT,
+            endpoint TEXT,
+            port INT,
+            read_key TEXT,
+            invoice_key TEXT,
+            admin_key TEXT,
+            cert TEXT,
+            active BOOLEAN DEFAULT 0
+        );
+    """
+    )
+
+    # Get the funding source rows back if they exist
+
+    CLightningWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("CLightningWallet",))
+    LnbitsWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LnbitsWallet",))
+    LndWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LndWallet",))
+    LndRestWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LndRestWallet",))
+    LNPayWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LNPayWallet",))
+    LntxbotWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LntxbotWallet",))
+    OpenNodeWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("OpenNodeWallet",))
+
+    #If the funding source rows do not exist and there is data in env for them, return the data and put it in a row
+
+    if getenv("CLIGHTNING_RPC") and CLightningWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint)
+            VALUES (?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "CLightningWallet",getenv("CLIGHTNING_RPC")),
+        )
+    if getenv("LNBITS_INVOICE_MACAROON") and LnbitsWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "LnbitsWallet",getenv("LNBITS_ENDPOINT"),getenv("LNBITS_INVOICE_MACAROON"),getenv("LNBITS_ADMIN_MACAROON")),
+        )
+    if getenv("LND_GRPC_ENDPOINT") and LndWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint, port, read_key, invoice_key, admin_key, cert)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "LndWallet",getenv("LND_GRPC_ENDPOINT"),getenv("LND_GRPC_PORT"),getenv("LND_READ_MACAROON"),getenv("LND_INVOICE_MACAROON"),getenv("LND_ADMIN_MACAROON"),getenv("LND_CERT")),
+        )
+
+    if getenv("LND_REST_ENDPOINT") and LndRestWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint, read_key, invoice_key, admin_key, cert)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "LndRestWallet",getenv("LND_REST_ENDPOINT"),getenv("LND_REST_READ_MACAROON"),getenv("LND_REST_INVOICE_MACAROON"),getenv("LND_REST_ADMIN_MACAROON"),getenv("LND_REST_CERT")),
+        )
+
+    if getenv("LNPAY_INVOICE_KEY") and LNPayWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint, read_key, invoice_key, admin_key, cert)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "LNPayWallet",getenv("LNPAY_API_ENDPOINT"),getenv("LNPAY_READ_KEY"),getenv("LNPAY_INVOICE_KEY"),getenv("LNPAY_ADMIN_KEY"),getenv("LNPAY_API_KEY")),
+        )
+
+    if getenv("LNTXBOT_INVOICE_KEY") and LntxbotWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "LntxbotWallet",getenv("LNTXBOT_API_ENDPOINT"),getenv("LNTXBOT_INVOICE_KEY"),getenv("LNTXBOT_ADMIN_KEY")),
+        )
+
+    if getenv("OPENNODE_INVOICE_KEY") and OpenNodeWallet != None:
+        db.execute(
+            """
+            INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (urlsafe_short_hash(), "OpenNodeWallet",getenv("OPENNODE_API_ENDPOINT"),getenv("OPENNODE_INVOICE_KEY"),getenv("OPENNODE_ADMIN_KEY")),
+        )
+
+
+    if getenv("LNBITS_BACKEND_WALLET_CLASS"):
+        db.execute(
+            """
+            UPDATE funding
+            SET active = ?
+            WHERE backend_wallet = ?
+            """,
+            (
+                1, getenv("LNBITS_BACKEND_WALLET_CLASS")
+            ),
+        )

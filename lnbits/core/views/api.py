@@ -5,7 +5,7 @@ from binascii import unhexlify
 from lnbits import bolt11
 from lnbits.core import core_app
 from lnbits.core.services import create_invoice, pay_invoice, update_wallet_balance
-from lnbits.core.crud import delete_expired_invoices
+from lnbits.core.crud import delete_expired_invoices, get_admin, get_account
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET, LNBITS_ADMIN_USERS
 
@@ -131,3 +131,32 @@ def api_update_balance():
     if g.wallet.user in LNBITS_ADMIN_USERS:
         return update_wallet_balance(g.wallet.id, g.data["amount"])
     return jsonify({"message": "Not an admin wallet"}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@core_app.route("/api/v1/admin", methods=["POST"])
+@api_validate_post_request(
+        schema={
+        
+        "user": {"type": "string", "empty": False, "required": True},
+        "site_title": {"type": "string", "empty": False, "required": True},
+        "tagline": {"type": "string", "empty": False, "required": True},
+        "primary_color": {"type": "string", "empty": False, "required": True},
+        "secondary_color": {"type": "string", "empty": False, "required": True},
+        "allowed_users": {"type": "string"},
+        "default_wallet_name": {"type": "string", "empty": False, "required": True},
+        "data_folder": {"type": "string", "empty": False, "required": True},
+        "disabled_ext": {"type": "string", "empty": False, "required": True},
+        "service_fee": {"type": "integer", "min": 0, "max": 90, "required": True},
+    })
+def api_admin():
+
+    admin = get_admin(None)
+
+    if admin.user != None and admin.user != g.data["user"]:
+        return jsonify({"message": "Admin exists and it isnt you!"}), HTTPStatus.FORBIDDEN
+    if admin.user == None:
+        account = get_account(g.data["user"])
+        if not account:
+            return jsonify({"message": "Admin doesnt exist and neither do you!"}), HTTPStatus.FORBIDDEN
+    admin = get_admin(**g.data)
+    return jsonify(admin)

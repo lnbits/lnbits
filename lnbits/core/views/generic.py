@@ -1,4 +1,4 @@
-from flask import g, abort, redirect, request, render_template, send_from_directory, url_for
+from flask import g, abort, redirect, request, render_template, send_from_directory, url_for, jsonify
 from http import HTTPStatus
 from os import path
 
@@ -9,6 +9,8 @@ from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE, LNBITS_ADMIN_USER
 from ..crud import (
     create_account,
     get_user,
+    get_admin,
+    get_funding,
     update_user_extension,
     create_wallet,
     delete_wallet,
@@ -103,4 +105,17 @@ def deletewallet():
 
 @core_app.route("/admin")
 def admin_setup():
-    return render_template("core/admin.html")
+    user_id = request.args.get("usr", type=str)
+    admin = get_admin()
+    if admin.user != user_id:
+        abort(HTTPStatus.FORBIDDEN, "Admin only")
+    funding = get_funding()
+    if admin[0] == None:
+        admin_user = get_user(create_account().id).id
+    else:
+        admin_user = admin[0]
+    
+    if admin.user != None and admin.user != user_id:
+        abort(HTTPStatus.FORBIDDEN, "Admin only")
+
+    return render_template("core/admin.html", admin=admin, funding=funding, admin_user=admin_user)
