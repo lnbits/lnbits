@@ -15,12 +15,7 @@ from .crud import get_wallet, create_payment, delete_payment, check_internal, up
 
 
 def create_invoice(
-    *,
-    wallet_id: str,
-    amount: int,
-    memo: str,
-    description_hash: Optional[bytes] = None,
-    extra: Optional[Dict] = None,
+    *, wallet_id: str, amount: int, memo: str, description_hash: Optional[bytes] = None, extra: Optional[Dict] = None
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
     storeable_memo = memo
@@ -125,3 +120,18 @@ def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStatus:
         return PaymentStatus(None)
 
     return WALLET.get_invoice_status(payment.checking_id)
+
+
+def update_wallet_balance(wallet_id: str, amount: int) -> str:
+    temp_id = f"temp_{urlsafe_short_hash()}"
+    internal_id = f"internal_{urlsafe_short_hash()}"
+    create_payment(
+        wallet_id=wallet_id,
+        checking_id=internal_id,
+        payment_request="admin_internal",
+        payment_hash="admin_internal",
+        amount=amount * 1000,
+        memo="Admin top up",
+        pending=False,
+    )
+    return "admin_internal"

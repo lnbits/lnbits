@@ -7,7 +7,7 @@ from flask import g
 from lnbits import bolt11
 from lnbits.settings import DEFAULT_WALLET_NAME
 
-from .models import User, Wallet, Payment
+from .models import User, Wallet, Payment, Admin, Funding
 
 
 # accounts
@@ -22,7 +22,6 @@ def create_account() -> User:
     assert new_account, "Newly created account couldn't be retrieved"
 
     return new_account
-
 
 def get_account(user_id: str) -> Optional[User]:
     row = g.db.fetchone("SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,))
@@ -294,3 +293,53 @@ def check_internal(payment_hash: str) -> Optional[str]:
         return None
     else:
         return row["checking_id"]
+
+# admin
+# --------
+
+def get_admin(
+    user: Optional[str] = None, 
+    site_title: Optional[str] = None,
+    tagline: Optional[str] = None,
+    primary_color: Optional[str] = None, 
+    secondary_color: Optional[str] = None,
+    allowed_users: Optional[str] = None, 
+    default_wallet_name: Optional[str] = None,
+    data_folder: Optional[str] = None, 
+    disabled_ext: Optional[str] = "amilk",
+    force_https: Optional[bool] = True, 
+    service_fee: Optional[int] = 0,
+    ) -> Optional[Admin]:
+    row = g.db.fetchone("SELECT * FROM admin WHERE 1")
+    if not user:
+        return Admin(**row) if row else None
+    if not row[0] or user != None:
+        g.db.execute(
+            """
+            UPDATE admin
+            SET user = ?, site_title = ?, tagline = ?, primary_color = ?, secondary_color = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?
+            WHERE 1
+            """,
+            (
+                user,
+                site_title,
+                tagline,
+                primary_color,
+                secondary_color,
+                allowed_users,
+                default_wallet_name,
+                data_folder,
+                disabled_ext,
+                force_https,
+                service_fee,
+           ),
+        )
+        row = g.db.fetchone("SELECT * FROM admin WHERE 1")
+    return Admin(**row) if row else None
+
+def get_funding() -> List[Funding]:
+    rows = g.db.fetchall("SELECT * FROM funding")
+    return [Funding(**row) for row in rows]
+
+
+
