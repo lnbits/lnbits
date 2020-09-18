@@ -213,7 +213,8 @@ def m003_create_funding_table(db):
             invoice_key TEXT,
             admin_key TEXT,
             cert TEXT,
-            active BOOLEAN DEFAULT 0
+            active BOOLEAN DEFAULT 0,
+            balance int
         );
     """
     )

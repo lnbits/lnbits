@@ -454,6 +454,12 @@
 
 
      <div class="col">
+        <q-card class="q-mr-md q-mb-md">
+          <div class="q-px-md q-py-md" @submit="topupWallet">
+          <div class="text-h6" class="q-px-md"> Main funding source: <strong>{{balance[1]}} ({{balance[0]}}sats)</strong></div>
+
+      </div>
+        </q-card>
           <q-card class="q-mr-md">
           <q-form class="q-px-md q-py-md" @submit="topupWallet">
           <div class="text-h6" class="q-px-md">Wallet topup</div>
@@ -486,6 +492,8 @@
       </div></div>
       </q-form>
         </q-card>
+
+
     </div>
 
 
@@ -502,7 +510,6 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        tab: 'branding',
         wallet: {
           data:{}
         },
@@ -540,16 +547,16 @@
     },
     created: function () {
       var self = this
-      ;(self.data.admin.user = '{{ admin_user }}'),
-        (self.data.admin.allowed_users = ''),
-        (self.data.admin.site_title = '{{admin.site_title}}'),
-        (self.data.admin.tagline = '{{admin.tagline}}'),
-        (self.data.admin.primary_color = '{{admin.primary_color}}'),
-        (self.data.admin.secondary_color = '{{admin.secondary_color}}'),
-        (self.data.admin.service_fee = parseInt('{{admin.service_fee}}')),
-        (self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}'),
-        (self.data.admin.data_folder = '{{admin.data_folder}}'),
-        (self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(','))
+      self.data.admin.user = '{{ admin_user }}'
+      self.data.admin.allowed_users = ''
+      self.data.admin.site_title = '{{admin.site_title}}'
+      self.data.admin.tagline = '{{admin.tagline}}'
+      self.data.admin.primary_color = '{{admin.primary_color}}'
+      self.data.admin.secondary_color = '{{admin.secondary_color}}'
+      self.data.admin.service_fee = parseInt('{{admin.service_fee}}')
+      self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}'
+      self.data.admin.data_folder = '{{admin.data_folder}}'
+      self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(',')
 
       if (usr != null) {
         self.cancel.on = true
@@ -568,6 +575,7 @@
           self.data.clightning.endpoint = funding[i][2]
           if (funding[i][8] == 1) {
             self.data.clightning.label = 'CLightning GRPC (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
         if (funding[i][1] == 'LndRestWallet') {
@@ -578,6 +586,7 @@
           self.data.lndrest.cert = funding[i][7]
           if (funding[i][8] == 1) {
             self.data.lndrest.label = 'LND REST (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
         if (funding[i][1] == 'LndWallet') {
@@ -589,6 +598,7 @@
           self.data.lndgrpc.cert = funding[i][7]
           if (funding[i][8] == 1) {
             self.data.lndgrpc.label = 'LND GRPC (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
         if (funding[i][1] == 'LntxbotWallet') {
@@ -597,6 +607,7 @@
 
           if (funding[i][8] == 1) {
             self.data.lntxbot.label = 'LNTXBOT (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
         if (funding[i][1] == 'LNPayWallet') {
@@ -607,6 +618,7 @@
 
           if (funding[i][8] == 1) {
             self.data.lnpay.label = 'LNpay (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
         if (funding[i][1] == 'LnbitsWallet') {
@@ -617,6 +629,7 @@
 
           if (funding[i][8] == 1) {
             self.data.lnbits.label = 'LNbits (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
         if (funding[i][1] == 'OpenNodeWallet') {
@@ -626,6 +639,7 @@
 
           if (funding[i][8] == 1) {
             self.data.opennode.label = 'Opennode (main funding source)'
+            self.funding_source.name = funding[i][1]
           }
         }
       }

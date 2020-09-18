@@ -43,6 +43,7 @@ class Funding(NamedTuple):
     admin_key: str
     cert: str
     active: bool
+    balance: int
 
 
 class Wallet(NamedTuple):

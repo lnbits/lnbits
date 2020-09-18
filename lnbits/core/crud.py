@@ -342,4 +342,3 @@ def get_funding() -> List[Funding]:
     return [Funding(**row) for row in rows]
 
 
-

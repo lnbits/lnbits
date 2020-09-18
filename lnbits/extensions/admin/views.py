@@ -3,7 +3,7 @@ from flask import g, render_template, request
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.extensions.admin import admin_ext
 from lnbits.core.crud import get_admin, get_funding
-
+from lnbits.settings import WALLET
 
 
 @admin_ext.route("/")
@@ -19,4 +19,8 @@ def index():
         admin_user = admin[0]
     if admin.user != None and admin.user != user_id:
         abort(HTTPStatus.FORBIDDEN, "Admin only")
-    return render_template("admin/index.html", user=g.user, admin=admin, funding=funding)
+    balance = [WALLET.get_balance()]
+    for source in funding:
+        if source[8] == 1:
+            balance.append(source[1])
+    return render_template("admin/index.html", user=g.user, admin=admin, funding=funding, balance=balance)
