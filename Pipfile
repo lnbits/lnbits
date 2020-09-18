@@ -23,7 +23,7 @@ typing-extensions = "*"
 
 [dev-packages]
 black = "==20.8b1"
-flake8 = "*"
-flake8-mypy = "*"
 pytest = "*"
 pytest-cov = "*"
+pytest-asyncio = "*"
+mypy = "==0.761"
