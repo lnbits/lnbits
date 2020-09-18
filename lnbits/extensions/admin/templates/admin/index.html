@@ -2,35 +2,20 @@
 %} {% block page %}
 
     <h3 class="q-my-none">
-      Admin panel
+      Admin
     </h3>
     <p></p>
     <!--
   Forked from:
   https://quasar.dev/vue-components/form#Example--Basic
 -->
-    <q-card>
-      <q-tabs
-        v-model="tab"
-        dense
-        class="text-grey"
-        active-color="primary"
-        indicator-color="primary"
-        align="justify"
-        narrow-indicator
-      >
-        <q-tab name="branding" label="Branding"></q-tab>
-        <q-tab name="service" label="Service Settings"></q-tab>
-        <q-tab name="wallet" label="Wallet Management"></q-tab>
-        <q-tab name="funding" label="Funding Sources"></q-tab>
-      </q-tabs>
+<div class="row">
+   <div class="col">
 
-      <q-separator></q-separator>
-
-      <q-tab-panels v-model="tab" animated>
-        <q-tab-panel name="branding">
-          <div class="text-h6">Branding</div>
-               <div class="row">
+          <q-card class="q-mr-md">
+          <q-form class="q-px-md q-py-md">
+       <div class="text-h6">Branding</div>
+         <div class="row">
           <div class="col">
             <q-input
               filled
@@ -48,6 +33,8 @@
             ></q-input>
           </div>
         </div>
+
+
         <div class="row">
           <div class="col">
             <q-input
@@ -89,13 +76,10 @@
                 </q-icon>
               </template>
             </q-input>
-          </div>
-        </div>
-        </q-tab-panel>
+          </div> </div>
 
-        <q-tab-panel name="service">
           <div class="text-h6">Service Settings</div>
-              <div class="row">
+        <div class="row">
           <div class="col">
             <q-input
               filled
@@ -134,16 +118,12 @@
               :options="options"
               label="Disable extensions"
             ></q-select>
-          </div>
-        </div>
-        </q-tab-panel>
+          </div></div>
 
-        <q-tab-panel name="wallet">
-          <div class="text-h6">Wallet Management</div>
-          </q-tab-panel>
-        <q-tab-panel name="funding">
           <div class="text-h6">Funding Sources</div>
            <q-list bordered class="rounded-borders">
+          
+
           <q-expansion-item
             expand-separator
             icon="payments"
@@ -452,10 +432,6 @@
             </q-card>
           </q-expansion-item>
         </q-list>
-        </q-tab-panel>
-      </q-tab-panels>
-    </q-card>
-     
         <div class="q-pt-md">
           <q-btn
             label="Save"
@@ -472,6 +448,49 @@
           ></q-btn>
         </div>
       </q-form>
+    </q-card>
+
+     </div>
+
+
+     <div class="col">
+          <q-card class="q-mr-md">
+          <q-form class="q-px-md q-py-md" @submit="topupWallet">
+          <div class="text-h6" class="q-px-md">Wallet topup</div>
+          <div class="row">
+             <div class="col-6">
+             <q-input
+              type="text"
+              filled
+              v-model="wallet.id"
+              label="Wallet ID"
+              class="q-pr-md"
+              hint="Use the wallet ID to topup any wallet"
+            ></q-input>
+           </div>
+           <div class="col-3">
+            <q-input
+              type="number"
+              filled
+              v-model="wallet.data.amount"
+              label="Topup amount"
+            ></q-input>
+                   </div>
+           <div class="col-3">
+          <q-btn
+          class="q-ml-md"
+            label="Topup"
+            type="submit"
+            color="deep-purple"
+          ></q-btn>
+      </div></div>
+      </q-form>
+        </q-card>
+    </div>
+
+
+  </div>
+
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -484,6 +503,9 @@
     data: function () {
       return {
         tab: 'branding',
+        wallet: {
+          data:{}
+        },
         cancel: {},
         data: {
           admin: {},
@@ -609,9 +631,24 @@
       }
     },
     methods: {
-      createWallet: function () {
-        LNbits.href.createWallet(this.walletName)
-      },
+      topupWallet: function () {
+        var self = this
+        LNbits.api
+          .request('POST', '/admin/api/v1/admin/' + self.wallet.id, self.g.user.wallets[0].adminkey, self.wallet.data )
+          .then(function (response) {
+
+            self.$q.notify({
+                type: 'positive',
+                message: 'Success! Added ' + self.wallet.amount + ' to ' + self.wallet.id,
+                icon: null
+            })
+          })
+
+
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },  
       LaunchLNbits: function () {
         var self = this
         var data = self.data

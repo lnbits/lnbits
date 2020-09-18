@@ -4,7 +4,7 @@ from binascii import unhexlify
 
 from lnbits import bolt11
 from lnbits.core import core_app
-from lnbits.core.services import create_invoice, pay_invoice, update_wallet_balance
+from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.core.crud import delete_expired_invoices, get_admin, get_account
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET, LNBITS_ADMIN_USERS
@@ -123,14 +123,6 @@ def api_payment(payment_hash):
 
     return jsonify({"paid": False}), HTTPStatus.OK
 
-
-@core_app.route("/api/v1/balance", methods=["POST"])
-@api_check_wallet_key("admin")
-@api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
-def api_update_balance():
-    if g.wallet.user in LNBITS_ADMIN_USERS:
-        return update_wallet_balance(g.wallet.id, g.data["amount"])
-    return jsonify({"message": "Not an admin wallet"}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @core_app.route("/api/v1/admin", methods=["POST"])
