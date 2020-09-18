@@ -1,6 +1,6 @@
 import requests
 
-from flask import abort, redirect, request, url_for
+from quart import abort, redirect, request, url_for
 from http import HTTPStatus
 from lnurl import LnurlWithdrawResponse, handle as handle_lnurl  # type: ignore
 from lnurl.exceptions import LnurlException  # type: ignore
@@ -13,7 +13,7 @@ from ..crud import create_account, get_user, create_wallet, create_payment
 
 
 @core_app.route("/lnurlwallet")
-def lnurlwallet():
+async def lnurlwallet():
     memo = "LNbits LNURL funding"
 
     try:

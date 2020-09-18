@@ -1,5 +1,5 @@
 import json
-from flask import url_for
+from quart import url_for
 from lnurl import Lnurl, encode as lnurl_encode
 from lnurl.types import LnurlPayMetadata
 from sqlite3 import Row

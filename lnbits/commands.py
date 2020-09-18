@@ -1,16 +1,45 @@
 import click
 import importlib
 import re
+import os
 import sqlite3
+
+from scss.compiler import compile_string  # type: ignore
 
 from .core import migrations as core_migrations
 from .db import open_db, open_ext_db
-from .helpers import get_valid_extensions
+from .helpers import get_valid_extensions, get_css_vendored, get_js_vendored, url_for_vendored
+from .settings import LNBITS_PATH
 
 
 @click.command("migrate")
-def flask_migrate():
+def db_migrate():
     migrate_databases()
+
+
+@click.command("assets")
+def handle_assets():
+    transpile_scss()
+    bundle_vendored()
+
+
+def transpile_scss():
+    with open(os.path.join(LNBITS_PATH, "static/scss/base.scss")) as scss:
+        with open(os.path.join(LNBITS_PATH, "static/css/base.css"), "w") as css:
+            css.write(compile_string(scss.read()))
+
+
+def bundle_vendored():
+    for getfiles, outputpath in [
+        (get_js_vendored, os.path.join(LNBITS_PATH, "static/bundle.js")),
+        (get_css_vendored, os.path.join(LNBITS_PATH, "static/bundle.css")),
+    ]:
+        output = ""
+        for path in getfiles():
+            with open(path) as f:
+                output += "/* " + url_for_vendored(path) + " */\n" + f.read() + ";\n"
+        with open(outputpath, "w") as f:
+            f.write(output)
 
 
 def migrate_databases():

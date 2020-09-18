@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 import shortuuid  # type: ignore
 
 from typing import List, NamedTuple, Optional
@@ -54,3 +55,54 @@ def get_valid_extensions() -> List[Extension]:
 
 def urlsafe_short_hash() -> str:
     return shortuuid.uuid()
+
+
+def get_js_vendored(prefer_minified: bool = False) -> List[str]:
+    paths = get_vendored(".js", prefer_minified)
+
+    def sorter(key: str):
+        if "moment@" in key:
+            return 1
+        if "vue@" in key:
+            return 2
+        if "vue-router@" in key:
+            return 3
+        if "polyfills" in key:
+            return 4
+        return 9
+
+    return sorted(paths, key=sorter)
+
+
+def get_css_vendored(prefer_minified: bool = False) -> List[str]:
+    return get_vendored(".css", prefer_minified)
+
+
+def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
+    paths: List[str] = []
+    for path in glob.glob(os.path.join(LNBITS_PATH, "static/vendor/**"), recursive=True):
+        if path.endswith(".min" + ext):
+            # path is minified
+            unminified = path.replace(".min" + ext, ext)
+            if prefer_minified:
+                paths.append(path)
+                if unminified in paths:
+                    paths.remove(unminified)
+            elif unminified not in paths:
+                paths.append(path)
+
+        elif path.endswith(ext):
+            # path is not minified
+            minified = path.replace(ext, ".min" + ext)
+            if not prefer_minified:
+                paths.append(path)
+                if minified in paths:
+                    paths.remove(minified)
+            elif minified not in paths:
+                paths.append(path)
+
+    return paths
+
+
+def url_for_vendored(abspath: str) -> str:
+    return "/" + os.path.relpath(abspath, LNBITS_PATH)

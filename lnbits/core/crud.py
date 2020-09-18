@@ -2,7 +2,7 @@ import json
 import datetime
 from uuid import uuid4
 from typing import List, Optional, Dict
-from flask import g
+from quart import g
 
 from lnbits import bolt11
 from lnbits.settings import DEFAULT_WALLET_NAME

@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from quart import g, jsonify, request
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user, get_wallet
@@ -27,7 +27,7 @@ from .crud import (
 
 @events_ext.route("/api/v1/events", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_events():
+async def api_events():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -51,7 +51,7 @@ def api_events():
         "price_per_ticket": {"type": "integer", "min": 0, "required": True},
     }
 )
-def api_event_create(event_id=None):
+async def api_event_create(event_id=None):
     if event_id:
         event = get_event(event_id)
         print(g.data)
@@ -71,7 +71,7 @@ def api_event_create(event_id=None):
 
 @events_ext.route("/api/v1/events/<event_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-def api_form_delete(event_id):
+async def api_form_delete(event_id):
     event = get_event(event_id)
 
     if not event:
@@ -90,7 +90,7 @@ def api_form_delete(event_id):
 
 @events_ext.route("/api/v1/tickets", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_tickets():
+async def api_tickets():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -106,7 +106,7 @@ def api_tickets():
         "email": {"type": "string", "empty": False, "required": True},
     }
 )
-def api_ticket_make_ticket(event_id, sats):
+async def api_ticket_make_ticket(event_id, sats):
     event = get_event(event_id)
     if not event:
         return jsonify({"message": "Event does not exist."}), HTTPStatus.NOT_FOUND
@@ -126,7 +126,7 @@ def api_ticket_make_ticket(event_id, sats):
 
 
 @events_ext.route("/api/v1/tickets/<payment_hash>", methods=["GET"])
-def api_ticket_send_ticket(payment_hash):
+async def api_ticket_send_ticket(payment_hash):
     ticket = get_ticket(payment_hash)
     try:
         is_paid = not check_invoice_status(ticket.wallet, payment_hash).pending
@@ -146,7 +146,7 @@ def api_ticket_send_ticket(payment_hash):
 
 @events_ext.route("/api/v1/tickets/<ticket_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-def api_ticket_delete(ticket_id):
+async def api_ticket_delete(ticket_id):
     ticket = get_ticket(ticket_id)
 
     if not ticket:
@@ -164,7 +164,7 @@ def api_ticket_delete(ticket_id):
 
 
 @events_ext.route("/api/v1/eventtickets/<wallet_id>/<event_id>", methods=["GET"])
-def api_event_tickets(wallet_id, event_id):
+async def api_event_tickets(wallet_id, event_id):
 
     return (
         jsonify([ticket._asdict() for ticket in get_event_tickets(wallet_id=wallet_id, event_id=event_id)]),
@@ -173,7 +173,7 @@ def api_event_tickets(wallet_id, event_id):
 
 
 @events_ext.route("/api/v1/register/ticket/<ticket_id>", methods=["GET"])
-def api_event_register_ticket(ticket_id):
+async def api_event_register_ticket(ticket_id):
 
     ticket = get_ticket(ticket_id)
 

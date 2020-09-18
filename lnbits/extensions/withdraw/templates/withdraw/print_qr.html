@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-{% block page %}
+{% extends "print.html" %} {% block page %}
 
 <div class="row justify-center">
   <div class="col-12 col-sm-8 col-lg-6 text-center" id="vue">
@@ -50,15 +49,6 @@
   }
 </style>
 {% endblock %} {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/vue@2.6.12/vue.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/vuex@3.5.1/vuex.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/vue-router@3.4.3/vue-router.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.umd.js') }}"></script>
-<script
-  type="text/javascript"
-  src="/static/__bundle__/base.js?a52a989e"
-></script>
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 

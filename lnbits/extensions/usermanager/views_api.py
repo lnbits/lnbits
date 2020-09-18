@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from quart import g, jsonify
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user
@@ -17,20 +17,15 @@ from .crud import (
     get_usermanager_wallets,
     delete_usermanager_wallet,
 )
-from lnbits.core.services import create_invoice
-from base64 import urlsafe_b64encode
-from uuid import uuid4
-from lnbits.db import open_ext_db
-
-from ...core import update_user_extension
+from lnbits.core import update_user_extension
 
 
-###Users
+### Users
 
 
 @usermanager_ext.route("/api/v1/users", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_usermanager_users():
+async def api_usermanager_users():
     user_id = g.wallet.user
     return jsonify([user._asdict() for user in get_usermanager_users(user_id)]), HTTPStatus.OK
 
@@ -44,14 +39,14 @@ def api_usermanager_users():
         "wallet_name": {"type": "string", "empty": False, "required": True},
     }
 )
-def api_usermanager_users_create():
+async def api_usermanager_users_create():
     user = create_usermanager_user(g.data["user_name"], g.data["wallet_name"], g.data["admin_id"])
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 
 @usermanager_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-def api_usermanager_users_delete(user_id):
+async def api_usermanager_users_delete(user_id):
     user = get_usermanager_user(user_id)
     if not user:
         return jsonify({"message": "User does not exist."}), HTTPStatus.NOT_FOUND
@@ -71,7 +66,7 @@ def api_usermanager_users_delete(user_id):
         "active": {"type": "boolean", "required": True},
     }
 )
-def api_usermanager_activate_extension():
+async def api_usermanager_activate_extension():
     user = get_user(g.data["userid"])
     if not user:
         return jsonify({"error": "no such user"}), HTTPStatus.NO_CONTENT
@@ -84,7 +79,7 @@ def api_usermanager_activate_extension():
 
 @usermanager_ext.route("/api/v1/wallets", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_usermanager_wallets():
+async def api_usermanager_wallets():
     user_id = g.wallet.user
     return jsonify([wallet._asdict() for wallet in get_usermanager_wallets(user_id)]), HTTPStatus.OK
 
@@ -98,27 +93,27 @@ def api_usermanager_wallets():
         "admin_id": {"type": "string", "empty": False, "required": True},
     }
 )
-def api_usermanager_wallets_create():
+async def api_usermanager_wallets_create():
     user = create_usermanager_wallet(g.data["user_id"], g.data["wallet_name"], g.data["admin_id"])
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 
 @usermanager_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_usermanager_wallet_transactions(wallet_id):
+async def api_usermanager_wallet_transactions(wallet_id):
 
     return jsonify(get_usermanager_wallet_transactions(wallet_id)), HTTPStatus.OK
 
 
 @usermanager_ext.route("/api/v1/wallets/<user_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_usermanager_wallet_balances(user_id):
+async def api_usermanager_wallet_balances(user_id):
     return jsonify(get_usermanager_wallet_balances(user_id)), HTTPStatus.OK
 
 
 @usermanager_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-def api_usermanager_wallets_delete(wallet_id):
+async def api_usermanager_wallets_delete(wallet_id):
     wallet = get_usermanager_wallet(wallet_id)
     print(wallet.id)
     if not wallet:

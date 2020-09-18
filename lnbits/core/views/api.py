@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from quart import g, jsonify, request
 from http import HTTPStatus
 from binascii import unhexlify
 
@@ -12,7 +12,7 @@ from lnbits.settings import WALLET
 
 @core_app.route("/api/v1/payments", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_payments():
+async def api_payments():
     if "check_pending" in request.args:
         delete_expired_invoices()
 
@@ -33,7 +33,7 @@ def api_payments():
         "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
     }
 )
-def api_payments_create_invoice():
+async def api_payments_create_invoice():
     if "description_hash" in g.data:
         description_hash = unhexlify(g.data["description_hash"])
         memo = ""
@@ -65,7 +65,7 @@ def api_payments_create_invoice():
 
 @api_check_wallet_key("admin")
 @api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
-def api_payments_pay_invoice():
+async def api_payments_pay_invoice():
     try:
         payment_hash = pay_invoice(wallet_id=g.wallet.id, payment_request=g.data["bolt11"])
     except ValueError as e:
@@ -91,15 +91,15 @@ def api_payments_pay_invoice():
 
 @core_app.route("/api/v1/payments", methods=["POST"])
 @api_validate_post_request(schema={"out": {"type": "boolean", "required": True}})
-def api_payments_create():
+async def api_payments_create():
     if g.data["out"] is True:
-        return api_payments_pay_invoice()
-    return api_payments_create_invoice()
+        return await api_payments_pay_invoice()
+    return await api_payments_create_invoice()
 
 
 @core_app.route("/api/v1/payments/<payment_hash>", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_payment(payment_hash):
+async def api_payment(payment_hash):
     payment = g.wallet.get_payment(payment_hash)
 
     if not payment:

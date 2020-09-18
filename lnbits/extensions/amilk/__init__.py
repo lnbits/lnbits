@@ -1,4 +1,4 @@
-from flask import Blueprint
+from quart import Blueprint
 
 
 amilk_ext: Blueprint = Blueprint("amilk", __name__, static_folder="static", template_folder="templates")

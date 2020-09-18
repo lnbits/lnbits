@@ -1,7 +1,5 @@
 {
   "scripts": {
-    "dokku": {
-      "predeploy": "flask migrate"
-    }
+    "dokku": {}
   }
 }

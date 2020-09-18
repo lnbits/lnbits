@@ -1,4 +1,4 @@
-from flask import g, abort, render_template
+from quart import g, abort, render_template
 from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids
@@ -10,12 +10,12 @@ from .crud import get_tpos
 @tpos_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-def index():
-    return render_template("tpos/index.html", user=g.user)
+async def index():
+    return await render_template("tpos/index.html", user=g.user)
 
 
 @tpos_ext.route("/<tpos_id>")
-def tpos(tpos_id):
+async def tpos(tpos_id):
     tpos = get_tpos(tpos_id) or abort(HTTPStatus.NOT_FOUND, "TPoS does not exist.")
 
-    return render_template("tpos/tpos.html", tpos=tpos)
+    return await render_template("tpos/tpos.html", tpos=tpos)

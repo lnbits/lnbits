@@ -1,6 +1,6 @@
 import time
 from base64 import urlsafe_b64encode
-from flask import jsonify, g, request
+from quart import jsonify, g, request
 
 from lnbits.core.services import pay_invoice, create_invoice
 from lnbits.core.crud import delete_expired_invoices
@@ -14,7 +14,7 @@ from .utils import to_buffer, decoded_as_lndhub
 
 
 @lndhub_ext.route("/ext/getinfo", methods=["GET"])
-def lndhub_getinfo():
+async def lndhub_getinfo():
     return jsonify({"error": True, "code": 1, "message": "bad auth"})
 
 
@@ -26,7 +26,7 @@ def lndhub_getinfo():
         "refresh_token": {"type": "string", "required": True, "excludes": ["login", "password"]},
     }
 )
-def lndhub_auth():
+async def lndhub_auth():
     token = (
         g.data["token"]
         if "token" in g.data and g.data["token"]
@@ -44,7 +44,7 @@ def lndhub_auth():
         "preimage": {"type": "string", "required": False},
     }
 )
-def lndhub_addinvoice():
+async def lndhub_addinvoice():
     try:
         _, pr = create_invoice(
             wallet_id=g.wallet.id,
@@ -76,7 +76,7 @@ def lndhub_addinvoice():
 @lndhub_ext.route("/ext/payinvoice", methods=["POST"])
 @check_wallet(requires_admin=True)
 @api_validate_post_request(schema={"invoice": {"type": "string", "required": True}})
-def lndhub_payinvoice():
+async def lndhub_payinvoice():
     try:
         pay_invoice(
             wallet_id=g.wallet.id,
@@ -112,13 +112,13 @@ def lndhub_payinvoice():
 
 @lndhub_ext.route("/ext/balance", methods=["GET"])
 @check_wallet()
-def lndhub_balance():
+async def lndhub_balance():
     return jsonify({"BTC": {"AvailableBalance": g.wallet.balance}})
 
 
 @lndhub_ext.route("/ext/gettxs", methods=["GET"])
 @check_wallet()
-def lndhub_gettxs():
+async def lndhub_gettxs():
     for payment in g.wallet.get_payments(
         complete=False, pending=True, outgoing=True, incoming=False, exclude_uncheckable=True
     ):
@@ -146,7 +146,7 @@ def lndhub_gettxs():
 
 @lndhub_ext.route("/ext/getuserinvoices", methods=["GET"])
 @check_wallet()
-def lndhub_getuserinvoices():
+async def lndhub_getuserinvoices():
     delete_expired_invoices()
     for invoice in g.wallet.get_payments(
         complete=False, pending=True, outgoing=False, incoming=True, exclude_uncheckable=True
@@ -177,26 +177,26 @@ def lndhub_getuserinvoices():
 
 @lndhub_ext.route("/ext/getbtc", methods=["GET"])
 @check_wallet()
-def lndhub_getbtc():
+async def lndhub_getbtc():
     "load an address for incoming onchain btc"
     return jsonify([])
 
 
 @lndhub_ext.route("/ext/getpending", methods=["GET"])
 @check_wallet()
-def lndhub_getpending():
+async def lndhub_getpending():
     "pending onchain transactions"
     return jsonify([])
 
 
 @lndhub_ext.route("/ext/decodeinvoice", methods=["GET"])
-def lndhub_decodeinvoice():
+async def lndhub_decodeinvoice():
     invoice = request.args.get("invoice")
     inv = bolt11.decode(invoice)
     return jsonify(decoded_as_lndhub(inv))
 
 
 @lndhub_ext.route("/ext/checkrouteinvoice", methods=["GET"])
-def lndhub_checkrouteinvoice():
+async def lndhub_checkrouteinvoice():
     "not implemented on canonical lndhub"
     pass

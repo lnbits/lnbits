@@ -2,14 +2,12 @@
 
 <html lang="en">
   <head>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.min.css') }}"
-    />
-    {% assets 'base_css' %}
-    <link rel="stylesheet" type="text/css" href="{{ ASSET_URL }}" />
-    {% endassets %} {% block styles %}{% endblock %}
+    {% for url in g.VENDORED_CSS %}
+    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    {% endfor %}
+    <!---->
+    <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
+    {% block styles %}{% endblock %}
     <title>
       {% block title %} {% if SITE_TITLE != 'LNbits' %}{{ SITE_TITLE }}{% else
       %}LNbits{% endif %} {% endblock %}
@@ -108,21 +106,14 @@
       {% endblock %}
     </q-layout>
 
-    {% block vue_templates %}{% endblock %} {% if DEBUG %}
-    <script src="{{ url_for('static', filename='vendor/vue@2.6.12/vue.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/vuex@3.5.1/vuex.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/vue-router@3.4.3/vue-router.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.umd.js') }}"></script>
-    {% else %} {% assets output='__bundle__/vue.js',
-    'vendor/quasar@1.13.2/quasar.ie.polyfills.umd.min.js',
-    'vendor/vue@2.6.12/vue.min.js', 'vendor/vue-router@3.4.3/vue-router.min.js',
-    'vendor/vuex@3.5.1/vuex.min.js', 'vendor/quasar@1.13.2/quasar.umd.min.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %} {% endif %} {% assets filters='rjsmin',
-    output='__bundle__/base.js', 'vendor/axios@0.20.0/axios.min.js',
-    'vendor/underscore@1.10.2/underscore.min.js', 'js/base.js',
-    'js/components.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %} {% block scripts %}{% endblock %}
+    {% block vue_templates %}{% endblock %}
+    <!---->
+    {% for url in g.VENDORED_JS %}
+    <script src="{{ url }}"></script>
+    {% endfor %}
+    <!---->
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/components.js"></script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

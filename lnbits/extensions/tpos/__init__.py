@@ -1,4 +1,4 @@
-from flask import Blueprint
+from quart import Blueprint
 
 
 tpos_ext: Blueprint = Blueprint("tpos", __name__, static_folder="static", template_folder="templates")

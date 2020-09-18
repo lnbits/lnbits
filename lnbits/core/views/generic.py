@@ -1,4 +1,4 @@
-from flask import g, abort, redirect, request, render_template, send_from_directory, url_for
+from quart import g, abort, redirect, request, render_template, send_from_directory, url_for
 from http import HTTPStatus
 from os import path
 
@@ -16,19 +16,19 @@ from ..crud import (
 
 
 @core_app.route("/favicon.ico")
-def favicon():
-    return send_from_directory(path.join(core_app.root_path, "static"), "favicon.ico")
+async def favicon():
+    return await send_from_directory(path.join(core_app.root_path, "static"), "favicon.ico")
 
 
 @core_app.route("/")
-def home():
-    return render_template("core/index.html", lnurl=request.args.get("lightning", None))
+async def home():
+    return await render_template("core/index.html", lnurl=request.args.get("lightning", None))
 
 
 @core_app.route("/extensions")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-def extensions():
+async def extensions():
     extension_to_enable = request.args.get("enable", type=str)
     extension_to_disable = request.args.get("disable", type=str)
 
@@ -40,12 +40,12 @@ def extensions():
     elif extension_to_disable:
         update_user_extension(user_id=g.user.id, extension=extension_to_disable, active=0)
 
-    return render_template("core/extensions.html", user=get_user(g.user.id))
+    return await render_template("core/extensions.html", user=get_user(g.user.id))
 
 
 @core_app.route("/wallet")
 @validate_uuids(["usr", "wal"])
-def wallet():
+async def wallet():
     user_id = request.args.get("usr", type=str)
     wallet_id = request.args.get("wal", type=str)
     wallet_name = request.args.get("nme", type=str)
@@ -76,13 +76,15 @@ def wallet():
     if wallet_id not in user.wallet_ids:
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
-    return render_template("core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee)
+    return await render_template(
+        "core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee
+    )
 
 
 @core_app.route("/deletewallet")
 @validate_uuids(["usr", "wal"], required=True)
 @check_user_exists()
-def deletewallet():
+async def deletewallet():
     wallet_id = request.args.get("wal", type=str)
     user_wallet_ids = g.user.wallet_ids
 

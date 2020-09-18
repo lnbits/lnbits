@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from quart import g, jsonify, request
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user, get_wallet
@@ -11,7 +11,7 @@ from .crud import create_paywall, get_paywall, get_paywalls, delete_paywall
 
 @paywall_ext.route("/api/v1/paywalls", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_paywalls():
+async def api_paywalls():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -31,7 +31,7 @@ def api_paywalls():
         "remembers": {"type": "boolean", "required": True},
     }
 )
-def api_paywall_create():
+async def api_paywall_create():
     paywall = create_paywall(wallet_id=g.wallet.id, **g.data)
 
     return jsonify(paywall._asdict()), HTTPStatus.CREATED
@@ -39,7 +39,7 @@ def api_paywall_create():
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-def api_paywall_delete(paywall_id):
+async def api_paywall_delete(paywall_id):
     paywall = get_paywall(paywall_id)
 
     if not paywall:
@@ -55,7 +55,7 @@ def api_paywall_delete(paywall_id):
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/invoice", methods=["POST"])
 @api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
-def api_paywall_create_invoice(paywall_id):
+async def api_paywall_create_invoice(paywall_id):
     paywall = get_paywall(paywall_id)
 
     if g.data["amount"] < paywall.amount:
@@ -74,7 +74,7 @@ def api_paywall_create_invoice(paywall_id):
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
 @api_validate_post_request(schema={"payment_hash": {"type": "string", "empty": False, "required": True}})
-def api_paywal_check_invoice(paywall_id):
+async def api_paywal_check_invoice(paywall_id):
     paywall = get_paywall(paywall_id)
 
     if not paywall:

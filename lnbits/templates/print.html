@@ -2,11 +2,9 @@
 
 <html lang="en">
   <head>
-    <link
-      rel="stylesheet"
-      href="//fonts.googleapis.com/css?family=Material+Icons"
-      type="text/css"
-    />
+    {% for url in g.VENDORED_CSS %}
+    <link rel="stylesheet" type="text/css" href="{{ url }}" />
+    {% endfor %}
     <style>
       @page {
         size: A4 portrait;
@@ -38,13 +36,10 @@
       </q-page-container>
     </q-layout>
 
-    {% if DEBUG %}
-    <script src="{{ url_for('static', filename='vendor/vue@2.6.12/vue.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/quasar@1.13.2/quasar.umd.js') }}"></script>
-    {% else %} {% assets output='__bundle__/vue-print.js',
-    'vendor/quasar@1.13.2/quasar.ie.polyfills.umd.min.js',
-    'vendor/vue@2.6.12/vue.min.js', 'vendor/quasar@1.13.2/quasar.umd.min.js' %}
-    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
-    {% endassets %} {% endif %} {% block scripts %}{% endblock %}
+    {% for url in g.VENDORED_JS %}
+    <script src="{{ url }}"></script>
+    {% endfor %}
+    <!---->
+    {% block scripts %}{% endblock %}
   </body>
 </html>

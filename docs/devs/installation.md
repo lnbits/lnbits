@@ -42,15 +42,11 @@ Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Ne
 Running the server
 ------------------
 
-LNbits uses [Flask][flask] as an application server.
+LNbits uses [Quart][quart] as an application server.
 
 ```sh
 $ pipenv run python -m lnbits
 ```
-
-There is an environment variable called `FLASK_ENV` that has to be set to `development`
-if you want to run Flask in debug mode with autoreload
-
 
 Frontend
 --------
@@ -58,7 +54,7 @@ Frontend
 The frontend uses [Vue.js and Quasar][quasar].
 
 
-[flask]: http://flask.pocoo.org/
+[quart]: https://pgjones.gitlab.io/
 [pipenv]: https://pipenv.pypa.io/
 [polar]: https://lightningpolar.com/
 [quasar]: https://quasar.dev/start/how-to-use-vue

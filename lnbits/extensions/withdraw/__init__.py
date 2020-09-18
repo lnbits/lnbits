@@ -1,4 +1,4 @@
-from flask import Blueprint
+from quart import Blueprint
 
 
 withdraw_ext: Blueprint = Blueprint("withdraw", __name__, static_folder="static", template_folder="templates")

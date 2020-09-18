@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import g, jsonify, request
+from quart import g, jsonify, request
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 import shortuuid  # type: ignore
@@ -21,7 +21,7 @@ from .crud import (
 
 @withdraw_ext.route("/api/v1/links", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_links():
+async def api_links():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -40,7 +40,7 @@ def api_links():
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
-def api_link_retrieve(link_id):
+async def api_link_retrieve(link_id):
     link = get_withdraw_link(link_id, 0)
 
     if not link:
@@ -65,7 +65,7 @@ def api_link_retrieve(link_id):
         "is_unique": {"type": "boolean", "required": True},
     }
 )
-def api_link_create_or_update(link_id=None):
+async def api_link_create_or_update(link_id=None):
     if g.data["max_withdrawable"] < g.data["min_withdrawable"]:
         return (
             jsonify({"message": "`max_withdrawable` needs to be at least `min_withdrawable`."}),
@@ -95,7 +95,7 @@ def api_link_create_or_update(link_id=None):
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
 @api_check_wallet_key("admin")
-def api_link_delete(link_id):
+async def api_link_delete(link_id):
     link = get_withdraw_link(link_id)
 
     if not link:
@@ -113,7 +113,7 @@ def api_link_delete(link_id):
 
 
 @withdraw_ext.route("/api/v1/lnurl/<unique_hash>", methods=["GET"])
-def api_lnurl_response(unique_hash):
+async def api_lnurl_response(unique_hash):
     link = get_withdraw_link_by_hash(unique_hash)
 
     if not link:
@@ -134,7 +134,7 @@ def api_lnurl_response(unique_hash):
 
 
 @withdraw_ext.route("/api/v1/lnurl/<unique_hash>/<id_unique_hash>", methods=["GET"])
-def api_lnurl_multi_response(unique_hash, id_unique_hash):
+async def api_lnurl_multi_response(unique_hash, id_unique_hash):
     link = get_withdraw_link_by_hash(unique_hash)
 
     if not link:
@@ -163,7 +163,7 @@ def api_lnurl_multi_response(unique_hash, id_unique_hash):
 
 
 @withdraw_ext.route("/api/v1/lnurl/cb/<unique_hash>", methods=["GET"])
-def api_lnurl_callback(unique_hash):
+async def api_lnurl_callback(unique_hash):
     link = get_withdraw_link_by_hash(unique_hash)
     k1 = request.args.get("k1", type=str)
     payment_request = request.args.get("pr", type=str)

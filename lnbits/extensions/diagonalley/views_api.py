@@ -1,4 +1,4 @@
-from flask import g, jsonify, request
+from quart import g, jsonify, request
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user
@@ -18,19 +18,19 @@ from .crud import (
     create_diagonalleys_order,
     get_diagonalleys_order,
     get_diagonalleys_orders,
-    delete_diagonalleys_order,
+    update_diagonalleys_product,
 )
 from lnbits.core.services import create_invoice
 from base64 import urlsafe_b64encode
 from uuid import uuid4
 from lnbits.db import open_ext_db
 
-###Products
+### Products
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/products", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalley_products():
+async def api_diagonalley_products():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -52,7 +52,7 @@ def api_diagonalley_products():
         "quantity": {"type": "integer", "min": 0, "required": True},
     }
 )
-def api_diagonalley_product_create(product_id=None):
+async def api_diagonalley_product_create(product_id=None):
 
     if product_id:
         product = get_diagonalleys_indexer(product_id)
@@ -72,7 +72,7 @@ def api_diagonalley_product_create(product_id=None):
 
 @diagonalley_ext.route("/api/v1/diagonalley/products/<product_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalley_products_delete(product_id):
+async def api_diagonalley_products_delete(product_id):
     product = get_diagonalleys_product(product_id)
 
     if not product:
@@ -91,7 +91,7 @@ def api_diagonalley_products_delete(product_id):
 
 @diagonalley_ext.route("/api/v1/diagonalley/indexers", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalley_indexers():
+async def api_diagonalley_indexers():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -114,7 +114,7 @@ def api_diagonalley_indexers():
         "zone2cost": {"type": "integer", "min": 0, "required": True},
     }
 )
-def api_diagonalley_indexer_create(indexer_id=None):
+async def api_diagonalley_indexer_create(indexer_id=None):
 
     if indexer_id:
         indexer = get_diagonalleys_indexer(indexer_id)
@@ -134,7 +134,7 @@ def api_diagonalley_indexer_create(indexer_id=None):
 
 @diagonalley_ext.route("/api/v1/diagonalley/indexers/<indexer_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalley_indexer_delete(indexer_id):
+async def api_diagonalley_indexer_delete(indexer_id):
     indexer = get_diagonalleys_indexer(indexer_id)
 
     if not indexer:
@@ -153,7 +153,7 @@ def api_diagonalley_indexer_delete(indexer_id):
 
 @diagonalley_ext.route("/api/v1/diagonalley/orders", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalley_orders():
+async def api_diagonalley_orders():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -173,14 +173,14 @@ def api_diagonalley_orders():
         "shippingzone": {"type": "integer", "empty": False, "required": True},
     }
 )
-def api_diagonalley_order_create():
+async def api_diagonalley_order_create():
     order = create_diagonalleys_order(wallet_id=g.wallet.id, **g.data)
     return jsonify(order._asdict()), HTTPStatus.CREATED
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/orders/<order_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalley_order_delete(order_id):
+async def api_diagonalley_order_delete(order_id):
     order = get_diagonalleys_order(order_id)
 
     if not order:
@@ -196,7 +196,7 @@ def api_diagonalley_order_delete(order_id):
 
 @diagonalley_ext.route("/api/v1/diagonalley/orders/paid/<order_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalleys_order_paid(order_id):
+async def api_diagonalleys_order_paid(order_id):
     with open_ext_db("diagonalley") as db:
         db.execute(
             "UPDATE orders SET paid = ? WHERE id = ?",
@@ -210,7 +210,7 @@ def api_diagonalleys_order_paid(order_id):
 
 @diagonalley_ext.route("/api/v1/diagonalley/orders/shipped/<order_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-def api_diagonalleys_order_shipped(order_id):
+async def api_diagonalleys_order_shipped(order_id):
     with open_ext_db("diagonalley") as db:
         db.execute(
             "UPDATE orders SET shipped = ? WHERE id = ?",
@@ -228,7 +228,7 @@ def api_diagonalleys_order_shipped(order_id):
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/stall/products/<indexer_id>", methods=["GET"])
-def api_diagonalleys_stall_products(indexer_id):
+async def api_diagonalleys_stall_products(indexer_id):
     with open_ext_db("diagonalley") as db:
         rows = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
         print(rows[1])
@@ -246,7 +246,7 @@ def api_diagonalleys_stall_products(indexer_id):
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/stall/checkshipped/<checking_id>", methods=["GET"])
-def api_diagonalleys_stall_checkshipped(checking_id):
+async def api_diagonalleys_stall_checkshipped(checking_id):
     with open_ext_db("diagonalley") as db:
         rows = db.fetchone("SELECT * FROM orders WHERE invoiceid = ?", (checking_id,))
 
@@ -266,7 +266,7 @@ def api_diagonalleys_stall_checkshipped(checking_id):
         "shippingzone": {"type": "integer", "empty": False, "required": True},
     }
 )
-def api_diagonalley_stall_order(indexer_id):
+async def api_diagonalley_stall_order(indexer_id):
     product = get_diagonalleys_product(g.data["id"])
     shipping = get_diagonalleys_indexer(indexer_id)
 

@@ -78,24 +78,7 @@
     </q-card>
   </q-dialog>
 </div>
-{% endblock %} {% block styles %}
-<link
-  rel="stylesheet"
-  type="text/css"
-  href="{{ url_for('static', filename='vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.css') }}"
-/>
-
 {% endblock %} {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
-{% assets filters='rjsmin', output='__bundle__/core/chart.js',
-'vendor/moment@2.27.0/moment.min.js', 'vendor/chart.js@2.9.3/chart.min.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %} {% assets filters='rjsmin', output='__bundle__/core/wallet.js',
-'vendor/bolt11/utils.js', 'vendor/bolt11/decoder.js',
-'vendor/vue-qrcode-reader@2.2.0/vue-qrcode-reader.min.js' %}
-<script type="text/javascript" src="{{ ASSET_URL }}"></script>
-{% endassets %}
-
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)

@@ -67,25 +67,26 @@
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <script>
-    Vue.component(VueQrcode.name, VueQrcode)
+  Vue.component(VueQrcode.name, VueQrcode)
 
-      new Vue({
-        el: '#vue',
-        mixins: [windowMixin],
-        data: function () {
-  var wallets = ({{ g.user.wallets | tojson }}).map(LNbits.map.wallet).map(wallet => ({
-              label: wallet.name,
-              admin: `lndhub://admin:${wallet.adminkey}@${location.protocol}//${location.host}/lndhub/ext/`,
-              invoice: `lndhub://invoice:${wallet.inkey}@${location.protocol}//${location.host}/lndhub/ext/`
-            }))
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      var wallets = JSON.parse('{{ g.user.wallets | tojson }}')
+        .map(LNbits.map.wallet)
+        .map(wallet => ({
+          label: wallet.name,
+          admin: `lndhub://admin:${wallet.adminkey}@${location.protocol}//${location.host}/lndhub/ext/`,
+          invoice: `lndhub://invoice:${wallet.inkey}@${location.protocol}//${location.host}/lndhub/ext/`
+        }))
 
-          return {
-            wallets: wallets,
-              selectedWallet: wallets[0]
-          }
-        },
-      })
+      return {
+        wallets: wallets,
+        selectedWallet: wallets[0]
+      }
+    }
+  })
 </script>
 {% endblock %}

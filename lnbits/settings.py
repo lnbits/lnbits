@@ -11,8 +11,10 @@ env.read_env()
 wallets_module = importlib.import_module("lnbits.wallets")
 wallet_class = getattr(wallets_module, env.str("LNBITS_BACKEND_WALLET_CLASS", default="VoidWallet"))
 
-ENV = env.str("FLASK_ENV", default="production")
-DEBUG = ENV == "development"
+ENV = env.str("QUART_ENV", default="production")
+DEBUG = env.bool("QUART_DEBUG", default=False) or ENV == "development"
+HOST = env.str("HOST", default="127.0.0.1")
+PORT = env.int("PORT", default=5000)
 
 LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str("LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data"))
