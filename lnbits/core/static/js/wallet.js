@@ -1,4 +1,4 @@
-/* globals moment, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart */
+/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart */
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
@@ -132,8 +132,9 @@ new Vue({
       send: {
         show: false,
         invoice: null,
+        lnurl: {},
         data: {
-          bolt11: ''
+          request: ''
         }
       },
       theCamera: {
@@ -206,12 +207,6 @@ new Vue({
     }
   },
   methods: {
-    //    closeCamera: function () {
-    //      this.sendCamera.show = false
-    //    },
-    //   showCamera: function () {
-    //     this.sendCamera.show = true
-    //   },
     closeCamera: function () {
       this.theCamera.show = false
     },
@@ -240,8 +235,9 @@ new Vue({
       this.send = {
         show: true,
         invoice: null,
+        lnurl: {},
         data: {
-          bolt11: ''
+          request: ''
         },
         paymentChecker: null
       }
@@ -253,7 +249,6 @@ new Vue({
       }, 10000)
     },
     closeSendDialog: function () {
-      //     this.sendCamera.show = false
       var checker = this.send.paymentChecker
       setTimeout(function () {
         clearInterval(checker)
@@ -290,29 +285,32 @@ new Vue({
         })
     },
     decodeQR: function (res) {
-      if (res.substring(0, 4) == 'lnurl') {
-        console.log(res)
-        var self = this
+      this.send.data.request = res
+      this.decodeRequest()
+      this.sendCamera.show = false
+    },
+    decodeRequest: function () {
+      if (this.send.data.request.startsWith('lightning:')) {
+        this.send.data.request = this.send.data.request.slice(10)
+      }
+      if (this.send.data.request.startsWith('lnurl:')) {
+        this.send.data.request = this.send.data.request.slice(6)
+      }
 
+      if (this.send.data.request.toLowerCase().startsWith('lnurl1')) {
         LNbits.api
-          .request('GET', '/lnurlscan/' + res, this.g.user.wallets[0].adminkey)
+          .request(
+            'GET',
+            '/api/v1/lnurlscan/' + this.send.data.request,
+            this.g.user.wallets[0].adminkey
+          )
           .then(function (response) {
-            console.log(response.data)
+            this.send.lnurl[response.kind] = Object.freeze(response)
           })
           .catch(function (error) {
-            clearInterval(self.checker)
             LNbits.utils.notifyApiError(error)
           })
-      } else {
-        this.send.data.bolt11 = res
-        this.decodeInvoice()
-        this.theCamera.show = false
-      }
-    },
-
-    decodeInvoice: function () {
-      if (this.send.data.bolt11.startsWith('lightning:')) {
-        this.send.data.bolt11 = this.send.data.bolt11.slice(10)
+        return
       }
 
       let invoice

@@ -17,7 +17,7 @@
             color="deep-purple"
             class="full-width"
             @click="showSendDialog"
-            >Send</q-btn
+            >Paste Request</q-btn
           >
         </div>
         <div class="col">
@@ -26,7 +26,7 @@
             color="deep-purple"
             class="full-width"
             @click="showReceiveDialog"
-            >Receive</q-btn
+            >Create Invoice</q-btn
           >
         </div>
         <div class="col">
@@ -141,7 +141,9 @@
                   <div v-if="props.row.isIn && props.row.pending">
                     <q-icon name="settings_ethernet" color="grey"></q-icon>
                     Invoice waiting to be paid
-                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
+                    <lnbits-payment-details
+                      :payment="props.row"
+                    ></lnbits-payment-details>
                     <div v-if="props.row.bolt11" class="text-center q-mb-lg">
                       <a :href="'lightning:' + props.row.bolt11">
                         <q-responsive :ratio="1" class="q-mx-xl">
@@ -172,7 +174,9 @@
                       :color="'green'"
                     ></q-icon>
                     Payment Received
-                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
+                    <lnbits-payment-details
+                      :payment="props.row"
+                    ></lnbits-payment-details>
                   </div>
                   <div v-else-if="props.row.isPaid && props.row.isOut">
                     <q-icon
@@ -181,12 +185,16 @@
                       :color="'pink'"
                     ></q-icon>
                     Payment Sent
-                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
+                    <lnbits-payment-details
+                      :payment="props.row"
+                    ></lnbits-payment-details>
                   </div>
                   <div v-else-if="props.row.isOut && props.row.pending">
                     <q-icon name="settings_ethernet" color="grey"></q-icon>
                     Outgoing payment pending
-                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
+                    <lnbits-payment-details
+                      :payment="props.row"
+                    ></lnbits-payment-details>
                   </div>
                 </div>
               </q-card>
@@ -199,47 +207,46 @@
   </div>
 </div>
 
-  <div class="col-12 col-md-5 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <q-btn flat color="grey" @click="exportCSV" class="float-right"
-          >Renew keys</q-btn
-        >
-        <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
-        <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
-        <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
-        <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
-        <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
-      </q-card-section>
-      <q-card-section class="q-pa-none">
+<div class="col-12 col-md-5 q-gutter-y-md">
+  <q-card>
+    <q-card-section>
+      <q-btn flat color="grey" @click="exportCSV" class="float-right"
+        >Renew keys</q-btn
+      >
+      <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
+      <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
+      <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
+      <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
+      <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <q-separator></q-separator>
+      <q-list>
+        {% include "core/_api_docs.html" %}
         <q-separator></q-separator>
-        <q-list>
-          {% include "core/_api_docs.html" %}
-          <q-separator></q-separator>
-          <q-expansion-item
-            group="extras"
-            icon="remove_circle"
-            label="Delete wallet"
-          >
-            <q-card>
-              <q-card-section>
-                <p>
-                  This whole wallet will be deleted, the funds will be
-                  <strong>UNRECOVERABLE</strong>.
-                </p>
-                <q-btn
-                  unelevated
-                  color="red-10"
-                  @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
-                  >Delete wallet</q-btn
-                >
-              </q-card-section>
-            </q-card>
-          </q-expansion-item>
-        </q-list>
-      </q-card-section>
-    </q-card>
-  </div>
+        <q-expansion-item
+          group="extras"
+          icon="remove_circle"
+          label="Delete wallet"
+        >
+          <q-card>
+            <q-card-section>
+              <p>
+                This whole wallet will be deleted, the funds will be
+                <strong>UNRECOVERABLE</strong>.
+              </p>
+              <q-btn
+                unelevated
+                color="red-10"
+                @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
+                >Delete wallet</q-btn
+              >
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+      </q-list>
+    </q-card-section>
+  </q-card>
 </div>
 
 <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
@@ -304,25 +311,25 @@
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <div v-if="!send.invoice">
       <q-form
-        v-if="!sendCamera.show"
+        v-if="!theCamera.show"
         @submit="decodeInvoice"
         class="q-gutter-md"
       >
         <q-input
           filled
           dense
-          v-model.trim="send.data.bolt11"
+          v-model.trim="send.data.request"
           type="textarea"
-          label="Paste an invoice *"
+          label="Paste an invoice, payment request or lnurl code *"
         >
         </q-input>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
             color="deep-purple"
-            :disable="send.data.bolt11 == ''"
+            :disable="send.data.request == ''"
             type="submit"
-            >Read invoice</q-btn
+            >Read</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -341,6 +348,29 @@
             >Cancel</q-btn
           >
         </div>
+      </div>
+    </div>
+    <div v-else-if="send.lnurl.withdraw">
+      {% raw %}
+      <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
+      <q-separator class="q-my-sm"></q-separator>
+      <p style="word-break: break-all">
+        <strong>Description:</strong> {{ send.invoice.description }}<br />
+        <strong>Payment hash:</strong> {{ send.invoice.hash }}<br />
+        <strong>Expire date:</strong> {{ send.invoice.expireDate }}
+      </p>
+      {% endraw %}
+      <div v-if="canPay" class="row q-mt-lg">
+        <q-btn unelevated color="deep-purple" @click="payInvoice"
+          >Send satoshis</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+      <div v-else class="row q-mt-lg">
+        <q-btn unelevated disabled color="yellow" text-color="black"
+          >Not enough funds!</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </div>
     <div v-else>
@@ -383,7 +413,7 @@
 </q-dialog>
 
 <q-dialog v-model="paymentsChart.show" position="top">
-  <q-card class="q-pa-sm" style="width: 800px; max-width: unset;">
+  <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
     <q-card-section>
       <canvas ref="canvas" width="600" height="400"></canvas>
     </q-card-section>

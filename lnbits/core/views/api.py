@@ -1,9 +1,15 @@
+<<<<<<< HEAD
 import trio  # type: ignore
 import json
 import traceback
 from quart import g, jsonify, request, make_response
+=======
+import lnurl
+from quart import g, jsonify, request
+>>>>>>> da8fd9a... send/create buttons wip.
 from http import HTTPStatus
 from binascii import unhexlify
+from urllib.parse import urlparse
 
 from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -131,6 +137,7 @@ async def api_payment(payment_hash):
     return jsonify({"paid": not payment.pending}), HTTPStatus.OK
 
 
+<<<<<<< HEAD
 @core_app.route("/api/v1/payments/sse", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments_sse():
@@ -183,3 +190,36 @@ async def api_payments_sse():
     )
     response.timeout = None
     return response
+=======
+    return jsonify({"paid": False}), HTTPStatus.OK
+
+
+@core_app.route("/api/v1/lnurlscan/<code>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_lnurlscan(code: str):
+    try:
+        url = lnurl.Lnurl(code)
+    except ValueError:
+        return jsonify({"error": "invalid lnurl"}), HTTPStatus.BAD_REQUEST
+
+    domain = urlparse(url.url).netloc
+    if url.is_login:
+        return jsonify({"domain": domain, "kind": "auth", "error": "unsupported"})
+
+    data: lnurl.LnurlResponseModel = lnurl.get(url.url)
+    if not data.ok:
+        return jsonify({"domain": domain, "error": "failed to get parameters"})
+
+    if type(data) is lnurl.LnurlChannelResponse:
+        return jsonify({"domain": domain, "kind": "channel", "error": "unsupported"})
+
+    params = data.dict()
+    if type(data) is lnurl.LnurlWithdrawResponse:
+        params.update(kind="withdraw", fixed=data.min_withdrawable == data.max_withdrawable)
+
+    if type(data) is lnurl.LnurlPayResponse:
+        params.update(kind="pay", fixed=data.min_sendable == data.max_sendable)
+
+    params.update(domain=domain)
+    return jsonify(params)
+>>>>>>> da8fd9a... send/create buttons wip.
