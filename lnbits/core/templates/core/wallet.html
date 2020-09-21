@@ -14,7 +14,7 @@
         <div class="col">
           <q-btn
             unelevated
-            color="purple"
+            color="deep-purple"
             class="full-width"
             @click="showSendDialog"
             >Send</q-btn
@@ -28,6 +28,16 @@
             @click="showReceiveDialog"
             >Receive</q-btn
           >
+        </div>
+        <div class="col">
+          <q-btn
+            unelevated
+            color="purple"
+            icon="photo_camera"
+            @click="showCamera"
+            >scan
+            <q-tooltip>Use camera to scan an invoice/QR</q-tooltip>
+          </q-btn>
         </div>
       </div>
     </q-card>
@@ -187,6 +197,7 @@
       </q-card-section>
     </q-card>
   </div>
+</div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
@@ -304,11 +315,6 @@
           type="textarea"
           label="Paste an invoice *"
         >
-          <template v-slot:after>
-            <q-btn round dense flat icon="photo_camera" @click="showCamera">
-              <q-tooltip>Use camera to scan an invoice</q-tooltip>
-            </q-btn>
-          </template>
         </q-input>
         <div class="row q-mt-lg">
           <q-btn
@@ -342,7 +348,7 @@
       <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
       <q-separator class="q-my-sm"></q-separator>
       <p style="word-break: break-all">
-        <strong>Memo:</strong> {{ send.invoice.description }}<br />
+        <strong>Description:</strong> {{ send.invoice.description }}<br />
         <strong>Expire date:</strong> {{ send.invoice.expireDate }}<br />
         <strong>Hash:</strong> {{ send.invoice.hash }}
       </p>
@@ -363,8 +369,21 @@
   </q-card>
 </q-dialog>
 
+<q-dialog v-model="theCamera.show" position="top">
+  <q-card class="q-pa-lg q-pt-xl">
+    <div class="text-center q-mb-lg">
+      <qrcode-stream @decode="decodeQR" class="rounded-borders"></qrcode-stream>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
+        >Cancel</q-btn
+      >
+    </div>
+  </q-card>
+</q-dialog>
+
 <q-dialog v-model="paymentsChart.show" position="top">
-  <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
+  <q-card class="q-pa-sm" style="width: 800px; max-width: unset;">
     <q-card-section>
       <canvas ref="canvas" width="600" height="400"></canvas>
     </q-card-section>

@@ -136,7 +136,7 @@ new Vue({
           bolt11: ''
         }
       },
-      sendCamera: {
+      theCamera: {
         show: false,
         camera: 'auto'
       },
@@ -206,11 +206,17 @@ new Vue({
     }
   },
   methods: {
+    //    closeCamera: function () {
+    //      this.sendCamera.show = false
+    //    },
+    //   showCamera: function () {
+    //     this.sendCamera.show = true
+    //   },
     closeCamera: function () {
-      this.sendCamera.show = false
+      this.theCamera.show = false
     },
     showCamera: function () {
-      this.sendCamera.show = true
+      this.theCamera.show = true
     },
     showChart: function () {
       this.paymentsChart.show = true
@@ -247,7 +253,7 @@ new Vue({
       }, 10000)
     },
     closeSendDialog: function () {
-      this.sendCamera.show = false
+      //     this.sendCamera.show = false
       var checker = this.send.paymentChecker
       setTimeout(function () {
         clearInterval(checker)
@@ -284,10 +290,26 @@ new Vue({
         })
     },
     decodeQR: function (res) {
-      this.send.data.bolt11 = res
-      this.decodeInvoice()
-      this.sendCamera.show = false
+      if (res.substring(0, 4) == 'lnurl') {
+        console.log(res)
+        var self = this
+
+        LNbits.api
+          .request('GET', '/lnurlscan/' + res, this.g.user.wallets[0].adminkey)
+          .then(function (response) {
+            console.log(response.data)
+          })
+          .catch(function (error) {
+            clearInterval(self.checker)
+            LNbits.utils.notifyApiError(error)
+          })
+      } else {
+        this.send.data.bolt11 = res
+        this.decodeInvoice()
+        this.theCamera.show = false
+      }
     },
+
     decodeInvoice: function () {
       if (this.send.data.bolt11.startsWith('lightning:')) {
         this.send.data.bolt11 = this.send.data.bolt11.slice(10)
