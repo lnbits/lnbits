@@ -3,7 +3,6 @@ from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
 from sqlite3 import Row
 from typing import NamedTuple
 import shortuuid  # type: ignore
-from lnbits.settings import FORCE_HTTPS
 
 
 class WithdrawLink(NamedTuple):
@@ -35,7 +34,6 @@ class WithdrawLink(NamedTuple):
 
     @property
     def lnurl(self) -> Lnurl:
-        scheme = "https" if FORCE_HTTPS else None
         if self.is_unique:
             usescssv = self.usescsv.split(",")
             tohash = self.id + self.unique_hash + usescssv[self.number]
@@ -45,18 +43,15 @@ class WithdrawLink(NamedTuple):
                 unique_hash=self.unique_hash,
                 id_unique_hash=multihash,
                 _external=True,
-                _scheme=scheme,
             )
         else:
-            url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
+            url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True)
 
         return lnurl_encode(url)
 
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
-        scheme = "https" if FORCE_HTTPS else None
-
-        url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True, _scheme=scheme)
+        url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True)
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,

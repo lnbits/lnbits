@@ -5,8 +5,6 @@ from lnurl.types import LnurlPayMetadata
 from sqlite3 import Row
 from typing import NamedTuple
 
-from lnbits.settings import FORCE_HTTPS
-
 
 class PayLink(NamedTuple):
     id: str
@@ -23,8 +21,7 @@ class PayLink(NamedTuple):
 
     @property
     def lnurl(self) -> Lnurl:
-        scheme = "https" if FORCE_HTTPS else None
-        url = url_for("lnurlp.api_lnurl_response", link_id=self.id, _external=True, _scheme=scheme)
+        url = url_for("lnurlp.api_lnurl_response", link_id=self.id, _external=True)
         return lnurl_encode(url)
 
     @property
