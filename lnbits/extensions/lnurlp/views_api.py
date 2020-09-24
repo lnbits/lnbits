@@ -7,7 +7,6 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.settings import FORCE_HTTPS
 
 from lnbits.extensions.lnurlp import lnurlp_ext
 from .crud import (
@@ -102,8 +101,7 @@ async def api_lnurl_response(link_id):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
-    scheme = "https" if FORCE_HTTPS else None
-    url = url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True, _scheme=scheme)
+    url = url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True)
 
     resp = LnurlPayResponse(
         callback=url,
