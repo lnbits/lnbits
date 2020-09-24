@@ -10,7 +10,7 @@
           <a href="{{ link.lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
-                :value="this.theurl+'/?lightning={{link.lnurl }}'"
+                :value="this.here + '/?lightning={{link.lnurl }}'"
                 :options="{width: 800}"
                 class="rounded-borders"
               ></qrcode>
@@ -51,7 +51,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        theurl: location.protocol + '//' + location.host
+        here: location.protocol + '//' + location.host
       }
     }
   })
