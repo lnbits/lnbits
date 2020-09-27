@@ -139,13 +139,14 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.clightning.label"
+								:label="data.admin.CLightningWallet.label"
+								@click="addSource('CLightningWallet')"
 							>
 								<q-card>
 									<q-card-section>
 										<q-input
 											filled
-											v-model="data.clightning.endpoint"
+											v-model="data.admin.CLightningWallet.endpoint"
 											label="GRPC Endpoint"
 											class="q-pr-md"
 											hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
@@ -157,7 +158,8 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.lndrest.label"
+								:label="data.admin.LndRestWallet.label"
+								@click="addSource('LndRestWallet')"
 							>
 								<q-card>
 									<q-card-section>
@@ -165,27 +167,21 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndrest.endpoint"
+													v-model="data.admin.LndRestWallet.endpoint"
 													label="LND REST Endpoint"
 													class="q-pr-md"
 													hint="default 127.0.0.1"
 												></q-input>
 											</div>
 											<div class="col">
-												<q-input
-													filled
-													v-model="data.lndrest.port"
-													label="LND REST port"
-													class="q-pr-md"
-													hint="Deafault 8080"
-												></q-input>
+	
 											</div>
 										</div>
 										<div class="row">
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndrest.cert"
+													v-model="data.admin.LndRestWallet.cert"
 													label="LND self-signed cert"
 													class="q-pr-md"
 													hint="Location of your ssl cert"
@@ -194,7 +190,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndrest.admin"
+													v-model="data.admin.LndRestWallet.admin"
 													label="LND admin macaroon"
 													class="q-pr-md"
 													hint="Your admin macaroon as hex or location"
@@ -205,7 +201,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndrest.invoice"
+													v-model="data.admin.LndRestWallet.invoice"
 													label="LND invoice macaroon"
 													class="q-pr-md"
 													hint="Your invoice macaroon as hex or location"
@@ -214,7 +210,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndrest.read"
+													v-model="data.admin.LndRestWallet.read"
 													label="LND read macaroon"
 													class="q-pr-md"
 													hint="Your read macaroon as hex or location"
@@ -228,7 +224,8 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.lndgrpc.label"
+								:label="data.admin.LndWallet.label"
+								@click="addSource('LndWallet')"
 							>
 								<q-card>
 									<q-card-section>
@@ -236,7 +233,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndgrpc.endpoint"
+													v-model="data.admin.LndWallet.endpoint"
 													label="LND GRPC Endpoint"
 													class="q-pr-md"
 													hint="default 127.0.0.1"
@@ -245,7 +242,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndgrpc.port"
+													v-model="data.admin.LndWallet.port"
 													label="LND GRPC port"
 													class="q-pr-md"
 													hint="Deafault 11009"
@@ -257,7 +254,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndgrpc.cert"
+													v-model="data.admin.LndWallet.cert"
 													label="LND self-signed cert"
 													class="q-pr-md"
 													hint="Location of your ssl cert"
@@ -266,7 +263,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndgrpc.admin"
+													v-model="data.admin.LndWallet.admin"
 													label="LND admin macaroon"
 													class="q-pr-md"
 													hint="Your admin macaroon as hex or location"
@@ -277,7 +274,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndgrpc.invoice"
+													v-model="data.admin.LndWallet.invoice"
 													label="LND invoice macaroon"
 													class="q-pr-md"
 													hint="Your invoice macaroon as hex or location"
@@ -286,7 +283,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lndgrpc.read"
+													v-model="data.admin.LndWallet.read"
 													label="LND read macaroon"
 													class="q-pr-md"
 													hint="Your read macaroon as hex or location"
@@ -300,7 +297,8 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.lntxbot.label"
+								:label="data.admin.LntxbotWallet.label"
+								@click="addSource('LntxbotWallet')"
 							>
 								<q-card>
 									<q-card-section>
@@ -308,7 +306,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lntxbot.admin"
+													v-model="data.admin.LntxbotWallet.admin"
 													label="Admin key"
 													class="q-pr-md"
 													hint="use /api in LNTXBOT"
@@ -317,7 +315,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lntxbot.invoice"
+													v-model="data.admin.LntxbotWallet.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -330,7 +328,8 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.lnpay.label"
+								:label="data.admin.LNPayWallet.label"
+								@click="addSource('LNPayWallet')"
 							>
 								<q-card>
 									<q-card-section>
@@ -338,7 +337,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnpay.cert"
+													v-model="data.admin.LNPayWallet.cert"
 													label="API key"
 													class="q-pr-md"
 												></q-input>
@@ -346,7 +345,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnpay.admin"
+													v-model="data.admin.LNPayWallet.admin"
 													label="Admin key"
 													class="q-pr-md q-pb-md"
 												></q-input>
@@ -356,7 +355,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnpay.invoice"
+													v-model="data.admin.LNPayWallet.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -364,7 +363,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnpay.read"
+													v-model="data.admin.LNPayWallet.read"
 													label="Read key"
 													class="q-pr-md"
 												></q-input>
@@ -377,7 +376,8 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.lnbits.label"
+								:label="data.admin.LnbitsWallet.label"
+								@click="addSource('LnbitsWallet')"
 							>
 								<q-card>
 									<q-card-section>
@@ -385,7 +385,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnbits.endpoint"
+													v-model="data.admin.LnbitsWallet.endpoint"
 													label="LNbits endpoint"
 													class="q-pr-md"
 													hint="ie https://lnbits.com, default 127.0.0.1"
@@ -397,7 +397,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnbits.admin"
+													v-model="data.admin.LnbitsWallet.admin"
 													label="Admin key"
 													class="q-pr-md q-pb-md"
 												></q-input>
@@ -405,7 +405,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.lnbits.invoice"
+													v-model="data.admin.LnbitsWallet.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -418,7 +418,8 @@ context %} {% block page %}
 							<q-expansion-item
 								expand-separator
 								icon="payments"
-								:label="data.opennode.label"
+								:label="data.admin.OpenNodeWallet.label"
+								@click="addSource('OpenNodeWallet')"
 							>
 								<q-card>
 									<q-card-section>
@@ -426,7 +427,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.opennode.admin"
+													v-model="data.admin.OpenNodeWallet.admin"
 													label="Admin key"
 													class="q-pr-md"
 												></q-input>
@@ -434,7 +435,7 @@ context %} {% block page %}
 											<div class="col">
 												<q-input
 													filled
-													v-model="data.opennode.invoice"
+													v-model="data.admin.OpenNodeWallet.invoice"
 													label="Invoice key"
 													class="q-pr-md"
 												></q-input>
@@ -444,12 +445,12 @@ context %} {% block page %}
 								</q-card>
 							</q-expansion-item>
 						</q-list>
-
+                       <q-select outlined v-model="data.admin.funding_source_primary" label="Select main funding source" :options="data.funding_source" label="Outlined"></q-select>
 						<div>
 							<q-btn
 								label="Launch LNbits!"
 								type="submit"
-								color="deep-purple"
+								color="primary"
 							></q-btn>
 							<q-btn
 								v-if="cancel.on"
@@ -496,23 +497,30 @@ context %} {% block page %}
 		mixins: [windowMixin],
 		data: function () {
 			return {
+
 				cancel: {},
 				data: {
-					admin: {},
-					clightning: {endpoint: ''},
-					lndrest: {endpoint: '', invoice: '', read: '', admin: '', cert: ''},
-					lndgrpc: {
-						endpoint: '',
-						port: '',
-						invoice: '',
-						read: '',
-						admin: '',
-						cert: ''
-					},
-					lntxbot: {invoice: '', admin: ''},
-					lnpay: {endpoint: '', invoice: '', read: '', admin: '', cert: ''},
-					lnbits: {endpoint: '', invoice: '', read: '', admin: ''},
-					opennode: {invoice: '', read: '', admin: ''}
+					funding_source: ['CLightningWallet', 'LndRestWallet', 'LndWallet', 'LntxbotWallet', 'LNPayWallet', 'LnbitsWallet', 'OpenNodeWallet'],
+					
+					admin: {
+						site_title: 'LNbits',
+						tagline: 'Free and open source wallet system',
+						primary_color:'#FF00FF',
+						secondary_color:'#FF00FF',
+                        funding_source_primary: '',
+                        funding_source_edited: '',
+                        service_fee: 0,
+                        disabled_ext: '',
+                        edited: [],
+                        CLightningWallet: {endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+					    LndRestWallet:{endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+					    LndWallet: {endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+					    LntxbotWallet:{endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+					    LNPayWallet:{endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+					    LnbitsWallet:{endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+					    OpenNodeWallet:{endpoint: '', port: '', invoice: '', read: '', admin: '', cert: ''},
+				    },
+					
 				},
 
 				options: [
@@ -530,92 +538,94 @@ context %} {% block page %}
 		},
 		created: function () {
 			var self = this
-			;(self.data.admin.user = '{{ admin_user }}'),
-				(self.data.admin.allowed_users = ''),
-				(self.data.admin.site_title = '{{admin.site_title}}'),
-				(self.data.admin.tagline = '{{admin.tagline}}'),
-				(self.data.admin.primary_color = '{{admin.primary_color}}'),
-				(self.data.admin.secondary_color = '{{admin.secondary_color}}'),
-				(self.data.admin.service_fee = parseInt('{{admin.service_fee}}')),
-				(self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}'),
-				(self.data.admin.data_folder = '{{admin.data_folder}}'),
-				(self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(','))
+
 
 			if (usr != null) {
 				self.cancel.on = true
 			}
+			self.data.admin.user = '{{ admin_user }}'
+			self.data.admin.allowed_users = ''
+			self.data.admin.site_title = '{{admin.site_title}}'
+			self.data.admin.tagline = '{{admin.tagline}}'
+			self.data.admin.primary_color = '{{admin.primary_color}}'
+			self.data.admin.secondary_color = '{{admin.secondary_color}}'
+			self.data.admin.service_fee = parseInt('{{admin.service_fee}}')
+			self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}'
+			self.data.admin.data_folder = '{{admin.data_folder}}'
+			self.data.admin.funding_source_primary = '{{admin.funding_source}}'
+			self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(',')
 			funding = JSON.parse('{{ funding  | tojson }}')
-			self.data.lndrest.label = 'LND REST'
-			self.data.clightning.label = 'CLightning GRPC'
-			self.data.lndgrpc.label = 'LND GRPC'
-			self.data.lntxbot.label = 'LNTXBOT'
-			self.data.lnpay.label = 'LNpay'
-			self.data.lnbits.label = 'LNbits'
-			self.data.opennode.label = 'Opennode'
+			self.data.admin.LndRestWallet.label = 'LndRestWallet'
+			self.data.admin.CLightningWallet.label = 'CLightningWallet'
+			self.data.admin.LndWallet.label = 'LndWallet'
+			self.data.admin.LntxbotWallet.label = 'LntxbotWallet'
+			self.data.admin.LNPayWallet.label = 'LNPayWallet'
+			self.data.admin.LnbitsWallet.label = 'LnbitsWallet'
+			self.data.admin.OpenNodeWallet.label = 'OpenNodeWallet'
 			var i
 			for (i = 0; i < funding.length; i++) {
 				if (funding[i][1] == 'CLightningWallet') {
-					self.data.clightning.endpoint = funding[i][2]
-					if (funding[i][8] == 1) {
-						self.data.clightning.label = 'CLightning GRPC (main funding source)'
+					self.data.admin.CLightningWallet.endpoint = funding[i][2]
+					if (self.data.admin.funding_source_primary == 'CLightningWallet') {
+						self.data.admin.CLightningWallet.label = 'CLightningWallet (main funding source)'
 					}
 				}
 				if (funding[i][1] == 'LndRestWallet') {
-					self.data.lndrest.endpoint = funding[i][2]
-					self.data.lndrest.read = funding[i][4]
-					self.data.lndrest.invoice = funding[i][5]
-					self.data.lndrest.admin = funding[i][6]
-					self.data.lndrest.cert = funding[i][7]
-					if (funding[i][8] == 1) {
-						self.data.lndrest.label = 'LND REST (main funding source)'
+					self.data.admin.LndRestWallet.endpoint = funding[i][2]
+					self.data.admin.LndRestWallet.read = funding[i][4]
+					self.data.admin.LndRestWallet.invoice = funding[i][5]
+					self.data.admin.LndRestWallet.admin = funding[i][6]
+					self.data.admin.LndRestWallet.cert = funding[i][7]
+					if (self.data.admin.funding_source_primary == 'LndRestWallet') {
+						self.data.admin.LndRestWallet.label = 'LndRestWallet (main funding source)'
 					}
 				}
 				if (funding[i][1] == 'LndWallet') {
-					self.data.lndgrpc.endpoint = funding[i][2]
-					self.data.lndgrpc.port = funding[i][3]
-					self.data.lndgrpc.read = funding[i][4]
-					self.data.lndgrpc.invoice = funding[i][5]
-					self.data.lndgrpc.admin = funding[i][6]
-					self.data.lndgrpc.cert = funding[i][7]
-					if (funding[i][8] == 1) {
-						self.data.lndgrpc.label = 'LND GRPC (main funding source)'
+					self.data.admin.LndWallet.endpoint = funding[i][2]
+					self.data.admin.LndWallet.port = funding[i][3]
+					self.data.admin.LndWallet.read = funding[i][4]
+					self.data.admin.LndWallet.invoice = funding[i][5]
+					self.data.admin.LndWallet.admin = funding[i][6]
+					self.data.admin.LndWallet.cert = funding[i][7]
+					if (self.data.admin.funding_source_primary == 'LndWallet') {
+						self.data.admin.LndWallet.label = 'LndWallet (main funding source)'
 					}
 				}
 				if (funding[i][1] == 'LntxbotWallet') {
-					self.data.lntxbot.invoice = funding[i][5]
-					self.data.lntxbot.admin = funding[i][6]
+					self.data.admin.LntxbotWallet.invoice = funding[i][5]
+					self.data.admin.LntxbotWallet.admin = funding[i][6]
 
-					if (funding[i][8] == 1) {
-						self.data.lntxbot.label = 'LNTXBOT (main funding source)'
+					if (self.data.admin.funding_source_primary == 'LntxbotWallet') {
+						self.data.admin.LntxbotWallet.label = 'LntxbotWallet (main funding source)'
 					}
 				}
 				if (funding[i][1] == 'LNPayWallet') {
-					self.data.lnpay.read = funding[i][4]
-					self.data.lnpay.invoice = funding[i][5]
-					self.data.lnpay.admin = funding[i][6]
-					self.data.lnpay.cert = funding[i][7]
+					self.data.admin.LNPayWallet.read = funding[i][4]
+					self.data.admin.LNPayWallet.invoice = funding[i][5]
+					self.data.admin.LNPayWallet.admin = funding[i][6]
+					self.data.admin.LNPayWallet.cert = funding[i][7]
 
-					if (funding[i][8] == 1) {
-						self.data.lnpay.label = 'LNpay (main funding source)'
+					if (self.data.admin.funding_source_primary == 'LNPayWallet') {
+						self.data.admin.LNPayWallet.label = 'LNPayWallet (main funding source)'
 					}
 				}
 				if (funding[i][1] == 'LnbitsWallet') {
-					self.data.lnbits.endpoint = funding[i][2]
-					self.data.lnbits.read = funding[i][4]
-					self.data.lnbits.invoice = funding[i][5]
-					self.data.lnbits.admin = funding[i][6]
+					self.data.admin.LnbitsWallet.endpoint = funding[i][2]
+					self.data.admin.LnbitsWallet.read = funding[i][4]
+					self.data.admin.LnbitsWallet.invoice = funding[i][5]
+					self.data.admin.LnbitsWallet.admin = funding[i][6]
 
-					if (funding[i][8] == 1) {
-						self.data.lnbits.label = 'LNbits (main funding source)'
+					if (self.data.admin.funding_source_primary == 'LnbitsWallet') {
+						self.data.admin.LnbitsWallet.label = 'LnbitsWallet (main funding source)'
 					}
 				}
 				if (funding[i][1] == 'OpenNodeWallet') {
-					self.data.opennode.read = funding[i][4]
-					self.data.opennode.invoice = funding[i][5]
-					self.data.opennode.admin = funding[i][6]
+					self.data.admin.OpenNodeWallet.read = funding[i][4]
+					self.data.admin.OpenNodeWallet.invoice = funding[i][5]
+					self.data.admin.OpenNodeWallet.admin = funding[i][6]
 
-					if (funding[i][8] == 1) {
-						self.data.opennode.label = 'Opennode (main funding source)'
+					if (self.data.admin.funding_source_primary == 'OpenNodeWallet') {
+						self.data.admin.OpenNodeWallet.label = 'OpenNodeWallet (main funding source)'
 					}
 				}
 			}
@@ -624,16 +634,22 @@ context %} {% block page %}
 			createWallet: function () {
 				LNbits.href.createWallet(this.walletName)
 			},
+			addSource: function (source) {
+				var self = this
+				self.data.admin.edited.push(source)
+				console.log(self.data.admin.edited)
+			},
 			LaunchLNbits: function () {
 				var self = this
 				var data = self.data
 				data.admin.disabled_ext = data.admin.disabled_ext.toString()
-				console.log(data.admin.disabled_ext)
+				data.admin.service_fee = parseInt(data.admin.service_fee)
+				data.admin.edited = data.admin.edited.toString()
 				LNbits.api
 					.request('POST', '/api/v1/admin', 'wallet.inkey', data.admin)
 					.then(function (response) {
 						console.log(response.data)
-						window.location.href = '/wallet?usr=' + response.data[0]
+					    window.location.href = '/wallet?usr=' + response.data[0]
 					})
 					.catch(function (error) {
 						LNbits.utils.notifyApiError(error)

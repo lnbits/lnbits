@@ -133,15 +133,24 @@ def api_payment(payment_hash):
         "tagline": {"type": "string", "empty": False, "required": True},
         "primary_color": {"type": "string", "empty": False, "required": True},
         "secondary_color": {"type": "string", "empty": False, "required": True},
-        "allowed_users": {"type": "string"},
+        "allowed_users": {"type": "string", "required": True},
         "default_wallet_name": {"type": "string", "empty": False, "required": True},
         "data_folder": {"type": "string", "empty": False, "required": True},
         "disabled_ext": {"type": "string", "empty": False, "required": True},
         "service_fee": {"type": "integer", "min": 0, "max": 90, "required": True},
+        "funding_source_primary": {"type": "string", "empty": False, "required": True},
+        "edited": {"type": "string", "required": True},
+        "CLightningWallet": {"type": "list", "required": True},
+        "LndRestWallet": {"type": "list", "required": True},
+        "LndWallet": {"type": "list", "required": True},
+        "LNPayWallet": {"type": "list", "required": True},
+        "LntxbotWallet": {"type": "list", "required": True},
+        "LnbitsWallet": {"type": "list", "required": True},
+        "OpenNodeWallet": {"type": "list", "required": True},
     }
 )
 def api_admin():
-
+    print(g.data)
     admin = get_admin(None)
 
     if admin.user != None and admin.user != g.data["user"]:

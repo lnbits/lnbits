@@ -307,8 +307,18 @@ def get_admin(
     default_wallet_name: Optional[str] = None,
     data_folder: Optional[str] = None, 
     disabled_ext: Optional[str] = "amilk",
-    force_https: Optional[bool] = True, 
+    force_https: Optional[bool] = True,     
     service_fee: Optional[int] = 0,
+    funding_source_primary: Optional[str] = "",
+    edited: Optional[str] = "",
+    CLightningWallet: Optional[str] =  '',
+    LndRestWallet: Optional[str] =  '',
+    LndWallet: Optional[str] =  '',
+    LntxbotWallet: Optional[str] =  '',
+    LNPayWallet: Optional[str] =  '',
+    LnbitsWallet: Optional[str] =  '',
+    OpenNodeWallet: Optional[str] =  '',
+
     ) -> Optional[Admin]:
     row = g.db.fetchone("SELECT * FROM admin WHERE 1")
     if not user:
@@ -317,7 +327,7 @@ def get_admin(
         g.db.execute(
             """
             UPDATE admin
-            SET user = ?, site_title = ?, tagline = ?, primary_color = ?, secondary_color = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?
+            SET user = ?, site_title = ?, tagline = ?, primary_color = ?, secondary_color = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?, funding_source = ?
             WHERE 1
             """,
             (
@@ -332,12 +342,33 @@ def get_admin(
                 disabled_ext,
                 force_https,
                 service_fee,
+                funding_source_primary,
            ),
         )
         row = g.db.fetchone("SELECT * FROM admin WHERE 1")
     return Admin(**row) if row else None
 
-def get_funding() -> List[Funding]:
+def get_funding(
+    edited: Optional[str] = "",
+    CLightningWallet: Optional[str] =  '',
+    LndRestWallet: Optional[str] =  '',
+    LndWallet: Optional[str] =  '',
+    LntxbotWallet: Optional[str] =  '',
+    LNPayWallet: Optional[str] =  '',
+    LnbitsWallet: Optional[str] =  '',
+    OpenNodeWallet: Optional[str] =  '',
+    ) -> List[Funding]:
+    if edited:
+        edited.split(",")
+        CLightningWallet.split(",")
+        LndRestWallet.split(",")
+        LndWallet.split(",")
+        LntxbotWallet.split(",")
+        LNPayWallet.split(",")
+        LnbitsWallet.split(",")
+        OpenNodeWallet.split(",")
+        print(OpenNodeWallet)
+
     rows = g.db.fetchall("SELECT * FROM funding")
     return [Funding(**row) for row in rows]
 

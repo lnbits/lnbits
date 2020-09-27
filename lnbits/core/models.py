@@ -31,6 +31,7 @@ class Admin(NamedTuple):
     disabled_ext: str
     force_https: bool
     service_fee: int
+    funding_source: str
 
 
 class Funding(NamedTuple):
@@ -42,7 +43,6 @@ class Funding(NamedTuple):
     invoice_key: str
     admin_key: str
     cert: str
-    active: bool
     balance: int
 
 

@@ -138,9 +138,13 @@ def m003_create_admin_table(db):
     disabled_ext = None
     force_https = True
     service_fee = 0
+    funding_source = ''
 
     if getenv("LNBITS_SITE_TITLE"):
         site_title = getenv("LNBITS_SITE_TITLE")
+
+    if getenv("LNBITS_TAGLINE"):
+        tagline = getenv("LNBITS_TAGLINE")
 
     if getenv("LNBITS_ALLOWED_USERS"):
         allowed_users = getenv("LNBITS_ALLOWED_USERS")
@@ -160,6 +164,9 @@ def m003_create_admin_table(db):
     if getenv("LNBITS_SERVICE_FEE"):
         service_fee = getenv("LNBITS_SERVICE_FEE")
 
+    if getenv("LNBITS_BACKEND_WALLET_CLASS"):
+        funding_source = getenv("LNBITS_BACKEND_WALLET_CLASS")
+
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS admin (
@@ -173,14 +180,15 @@ def m003_create_admin_table(db):
             data_folder TEXT,
             disabled_ext TEXT,
             force_https BOOLEAN NOT NULL,
-            service_fee INT NOT NULL
+            service_fee INT NOT NULL,
+            funding_source TEXT
         );
     """
     )
     db.execute(
         """
-        INSERT INTO admin (user, site_title, tagline, primary_color, secondary_color, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO admin (user, site_title, tagline, primary_color, secondary_color, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user,
@@ -194,6 +202,7 @@ def m003_create_admin_table(db):
             disabled_ext,
             force_https,
             service_fee,
+            funding_source,
         ),
     )
 
@@ -213,7 +222,6 @@ def m003_create_funding_table(db):
             invoice_key TEXT,
             admin_key TEXT,
             cert TEXT,
-            active BOOLEAN DEFAULT 0,
             balance int
         );
     """
@@ -333,14 +341,4 @@ def m003_create_funding_table(db):
                 getenv("OPENNODE_INVOICE_KEY"),
                 getenv("OPENNODE_ADMIN_KEY"),
             ),
-        )
-
-    if getenv("LNBITS_BACKEND_WALLET_CLASS"):
-        db.execute(
-            """
-            UPDATE funding
-            SET active = ?
-            WHERE backend_wallet = ?
-            """,
-            (1, getenv("LNBITS_BACKEND_WALLET_CLASS")),
         )
