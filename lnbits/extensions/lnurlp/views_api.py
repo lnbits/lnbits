@@ -4,6 +4,7 @@ from http import HTTPStatus
 from lnurl import LnurlPayResponse, LnurlPayActionResponse
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
+from lnbits import bolt11
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -126,6 +127,10 @@ async def api_lnurl_callback(link_id):
         description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
         extra={"tag": "lnurlp"},
     )
+
+    inv = bolt11.decode(payment_request)
+    inv.payment_hash
+
     resp = LnurlPayActionResponse(pr=payment_request, success_action=None, routes=[])
 
     return jsonify(resp.dict()), HTTPStatus.OK

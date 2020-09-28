@@ -7,12 +7,15 @@ from typing import NamedTuple
 
 
 class PayLink(NamedTuple):
-    id: str
+    id: int
     wallet: str
     description: str
     amount: int
     served_meta: int
     served_pr: int
+    webhook_url: str
+    success_text: str
+    success_url: str
 
     @classmethod
     def from_row(cls, row: Row) -> "PayLink":
@@ -27,3 +30,9 @@ class PayLink(NamedTuple):
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.description]]))
+
+
+class Invoice(NamedTuple):
+    payment_hash: str
+    link_id: int
+    webhook_sent: bool

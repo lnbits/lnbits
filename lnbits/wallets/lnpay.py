@@ -1,6 +1,9 @@
+import asyncio
+import aiohttp
 from os import getenv
-from typing import Optional, Dict
+from typing import Optional, Dict, AsyncGenerator
 from requests import get, post
+from quart import request
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -15,9 +18,13 @@ class LNPayWallet(Wallet):
         self.auth_invoice = getenv("LNPAY_INVOICE_KEY")
         self.auth_read = getenv("LNPAY_READ_KEY")
         self.auth_api = {"X-Api-Key": getenv("LNPAY_API_KEY")}
+        self.queue = asyncio.Queue()
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
@@ -30,7 +37,12 @@ class LNPayWallet(Wallet):
             headers=self.auth_api,
             json=data,
         )
-        ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, r.text
+        ok, checking_id, payment_request, error_message = (
+            r.status_code == 201,
+            None,
+            None,
+            r.text,
+        )
 
         if ok:
             data = r.json()
@@ -55,10 +67,30 @@ class LNPayWallet(Wallet):
         return self.get_payment_status(checking_id)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/user/lntx/{checking_id}", headers=self.auth_api)
+        r = get(
+            url=f"{self.endpoint}/user/lntx/{checking_id}?fields=settled",
+            headers=self.auth_api,
+        )
 
         if not r.ok:
             return PaymentStatus(None)
 
         statuses = {0: None, 1: True, -1: False}
         return PaymentStatus(statuses[r.json()["settled"]])
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        while True:
+            yield await self.queue.get()
+            self.queue.task_done()
+
+    async def webhook_listener(self):
+        data = await request.get_json()
+        if "event" not in data or data["event"].get("name") != "wallet_receive":
+            return ""
+
+        lntx_id = data["data"]["wtx"]["lnTx"]["id"]
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{self.endpoint}/user/lntx/{lntx_id}?fields=settled") as resp:
+                data = await resp.json()
+                if data["settled"]:
+                    self.queue.put_nowait(lntx_id)

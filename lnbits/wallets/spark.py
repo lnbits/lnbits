@@ -1,7 +1,9 @@
 import random
 import requests
+import json
+from aiohttp_sse_client import client as sse_client
 from os import getenv
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -16,7 +18,7 @@ class UnknownError(Exception):
 
 class SparkWallet(Wallet):
     def __init__(self):
-        self.url = getenv("SPARK_URL")
+        self.url = getenv("SPARK_URL").replace("/rpc", "")
         self.token = getenv("SPARK_TOKEN")
 
     def __getattr__(self, key):
@@ -28,7 +30,9 @@ class SparkWallet(Wallet):
             elif kwargs:
                 params = kwargs
 
-            r = requests.post(self.url, headers={"X-Access": self.token}, json={"method": key, "params": params})
+            r = requests.post(
+                self.url + "/rpc", headers={"X-Access": self.token}, json={"method": key, "params": params}
+            )
             try:
                 data = r.json()
             except:
@@ -91,3 +95,15 @@ class SparkWallet(Wallet):
                 return PaymentStatus(False)
             return PaymentStatus(None)
         raise KeyError("supplied an invalid checking_id")
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        url = self.url + "/stream?access-key=" + self.token
+        conn = sse_client.EventSource(url)
+        async with conn as es:
+            async for event in es:
+                try:
+                    if event.type == "inv-paid":
+                        data = json.loads(event.data)
+                        yield data["label"]
+                except ConnectionError:
+                    pass

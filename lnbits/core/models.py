@@ -2,6 +2,8 @@ import json
 from typing import List, NamedTuple, Optional, Dict
 from sqlite3 import Row
 
+from lnbits.settings import WALLET
+
 
 class User(NamedTuple):
     id: str
@@ -112,6 +114,17 @@ class Payment(NamedTuple):
         from .crud import update_payment_status
 
         update_payment_status(self.checking_id, pending)
+
+    def check_pending(self) -> None:
+        if self.is_uncheckable:
+            return
+
+        if self.is_out:
+            pending = WALLET.get_payment_status(self.checking_id)
+        else:
+            pending = WALLET.get_invoice_status(self.checking_id)
+
+        self.set_pending(pending.pending)
 
     def delete(self) -> None:
         from .crud import delete_payment

@@ -7,7 +7,6 @@ from lnbits.core import core_app
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.core.crud import delete_expired_invoices
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.settings import WALLET
 
 
 @core_app.route("/api/v1/wallet", methods=["GET"])
@@ -32,10 +31,7 @@ async def api_payments():
         delete_expired_invoices()
 
         for payment in g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
-            if payment.is_out:
-                payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
-            else:
-                payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
+            payment.check_pending()
 
     return jsonify(g.wallet.get_payments(pending=True)), HTTPStatus.OK
 
@@ -123,17 +119,8 @@ async def api_payment(payment_hash):
         return jsonify({"paid": True}), HTTPStatus.OK
 
     try:
-        if payment.is_uncheckable:
-            pass
-        elif payment.is_out:
-            is_paid = not WALLET.get_payment_status(payment.checking_id).pending
-        elif payment.is_in:
-            is_paid = not WALLET.get_invoice_status(payment.checking_id).pending
+        payment.check_pending()
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK
 
-    if is_paid:
-        payment.set_pending(False)
-        return jsonify({"paid": True}), HTTPStatus.OK
-
-    return jsonify({"paid": False}), HTTPStatus.OK
+    return jsonify({"paid": not payment.pending}), HTTPStatus.OK

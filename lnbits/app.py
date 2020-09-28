@@ -1,4 +1,5 @@
 import importlib
+import asyncio
 
 from quart import Quart, g
 from quart_cors import cors  # type: ignore
@@ -30,6 +31,7 @@ def create_app(config_object="lnbits.settings") -> Quart:
     register_filters(app)
     register_commands(app)
     register_request_hooks(app)
+    register_async_tasks(app)
 
     return app
 
@@ -86,3 +88,20 @@ def register_request_hooks(app: Quart):
     @app.teardown_request
     async def after_request(exc):
         g.db.__exit__(type(exc), exc, None)
+
+
+def register_async_tasks(app):
+    from lnbits.core.tasks import invoice_listener, webhook_handler
+
+    @app.route("/wallet/webhook")
+    async def webhook_listener():
+        return await webhook_handler()
+
+    @app.before_serving
+    async def listeners():
+        loop = asyncio.get_event_loop()
+        loop.create_task(invoice_listener(app))
+
+    @app.after_serving
+    async def stop_listeners():
+        pass
