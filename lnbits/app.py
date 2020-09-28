@@ -5,7 +5,7 @@ from quart_cors import cors  # type: ignore
 from quart_compress import Compress  # type: ignore
 from secure import SecureHeaders  # type: ignore
 
-from .commands import db_migrate
+from .commands import db_migrate, handle_assets
 from .core import core_app
 from .db import open_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
@@ -49,6 +49,7 @@ def register_blueprints(app: Quart) -> None:
 def register_commands(app: Quart):
     """Register Click commands."""
     app.cli.add_command(db_migrate)
+    app.cli.add_command(handle_assets)
 
 
 def register_assets(app: Quart):
