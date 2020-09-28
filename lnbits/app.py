@@ -9,7 +9,7 @@ from .commands import db_migrate
 from .core import core_app
 from .db import open_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
-from .proxy_fix import ProxyFix
+from .proxy_fix import ASGIProxyFix
 
 secure_headers = SecureHeaders(hsts=False)
 
@@ -20,10 +20,10 @@ def create_app(config_object="lnbits.settings") -> Quart:
     """
     app = Quart(__name__, static_folder="static")
     app.config.from_object(config_object)
+    app.asgi_http_class = ASGIProxyFix
 
     cors(app)
     Compress(app)
-    ProxyFix(app, x_proto=1, x_host=1)
 
     register_assets(app)
     register_blueprints(app)
