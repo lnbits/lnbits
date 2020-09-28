@@ -237,108 +237,105 @@ def m003_create_funding_table(db):
     LntxbotWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LntxbotWallet",))
     OpenNodeWallet = db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("OpenNodeWallet",))
 
-    # If the funding source rows do not exist and there is data in env for them, return the data and put it in a row
 
-    if getenv("CLIGHTNING_RPC") and CLightningWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint)
-            VALUES (?, ?, ?)
-            """,
-            (urlsafe_short_hash(), "CLightningWallet", getenv("CLIGHTNING_RPC")),
-        )
-    if getenv("LNBITS_INVOICE_MACAROON") and LnbitsWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                urlsafe_short_hash(),
-                "LnbitsWallet",
-                getenv("LNBITS_ENDPOINT"),
-                getenv("LNBITS_INVOICE_MACAROON"),
-                getenv("LNBITS_ADMIN_MACAROON"),
-            ),
-        )
-    if getenv("LND_GRPC_ENDPOINT") and LndWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint, port, read_key, invoice_key, admin_key, cert)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                urlsafe_short_hash(),
-                "LndWallet",
-                getenv("LND_GRPC_ENDPOINT"),
-                getenv("LND_GRPC_PORT"),
-                getenv("LND_READ_MACAROON"),
-                getenv("LND_INVOICE_MACAROON"),
-                getenv("LND_ADMIN_MACAROON"),
-                getenv("LND_CERT"),
-            ),
-        )
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint)
+        VALUES (?, ?, ?)
+        """,
+        (urlsafe_short_hash(), "CLightningWallet", getenv("CLIGHTNING_RPC")),
+    )
 
-    if getenv("LND_REST_ENDPOINT") and LndRestWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint, read_key, invoice_key, admin_key, cert)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                urlsafe_short_hash(),
-                "LndRestWallet",
-                getenv("LND_REST_ENDPOINT"),
-                getenv("LND_REST_READ_MACAROON"),
-                getenv("LND_REST_INVOICE_MACAROON"),
-                getenv("LND_REST_ADMIN_MACAROON"),
-                getenv("LND_REST_CERT"),
-            ),
-        )
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "LnbitsWallet",
+            getenv("LNBITS_ENDPOINT"),
+            getenv("LNBITS_INVOICE_MACAROON"),
+            getenv("LNBITS_ADMIN_MACAROON"),
+        ),
+    )
 
-    if getenv("LNPAY_INVOICE_KEY") and LNPayWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint, read_key, invoice_key, admin_key, cert)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                urlsafe_short_hash(),
-                "LNPayWallet",
-                getenv("LNPAY_API_ENDPOINT"),
-                getenv("LNPAY_READ_KEY"),
-                getenv("LNPAY_INVOICE_KEY"),
-                getenv("LNPAY_ADMIN_KEY"),
-                getenv("LNPAY_API_KEY"),
-            ),
-        )
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, port, read_key, invoice_key, admin_key, cert)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "LndWallet",
+            getenv("LND_GRPC_ENDPOINT"),
+            getenv("LND_GRPC_PORT"),
+            getenv("LND_READ_MACAROON"),
+            getenv("LND_INVOICE_MACAROON"),
+            getenv("LND_ADMIN_MACAROON"),
+            getenv("LND_CERT"),
+        ),
+    )
 
-    if getenv("LNTXBOT_INVOICE_KEY") and LntxbotWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                urlsafe_short_hash(),
-                "LntxbotWallet",
-                getenv("LNTXBOT_API_ENDPOINT"),
-                getenv("LNTXBOT_INVOICE_KEY"),
-                getenv("LNTXBOT_ADMIN_KEY"),
-            ),
-        )
 
-    if getenv("OPENNODE_INVOICE_KEY") and OpenNodeWallet != None:
-        db.execute(
-            """
-            INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                urlsafe_short_hash(),
-                "OpenNodeWallet",
-                getenv("OPENNODE_API_ENDPOINT"),
-                getenv("OPENNODE_INVOICE_KEY"),
-                getenv("OPENNODE_ADMIN_KEY"),
-            ),
-        )
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, read_key, invoice_key, admin_key, cert)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "LndRestWallet",
+            getenv("LND_REST_ENDPOINT"),
+            getenv("LND_REST_READ_MACAROON"),
+            getenv("LND_REST_INVOICE_MACAROON"),
+            getenv("LND_REST_ADMIN_MACAROON"),
+            getenv("LND_REST_CERT"),
+        ),
+    )
+
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, read_key, invoice_key, admin_key, cert)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "LNPayWallet",
+            getenv("LNPAY_API_ENDPOINT"),
+            getenv("LNPAY_READ_KEY"),
+            getenv("LNPAY_INVOICE_KEY"),
+            getenv("LNPAY_ADMIN_KEY"),
+            getenv("LNPAY_API_KEY"),
+        ),
+    )
+
+
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "LntxbotWallet",
+            getenv("LNTXBOT_API_ENDPOINT"),
+            getenv("LNTXBOT_INVOICE_KEY"),
+            getenv("LNTXBOT_ADMIN_KEY"),
+        ),
+    )
+
+
+    db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "OpenNodeWallet",
+            getenv("OPENNODE_API_ENDPOINT"),
+            getenv("OPENNODE_INVOICE_KEY"),
+            getenv("OPENNODE_ADMIN_KEY"),
+        ),
+    )

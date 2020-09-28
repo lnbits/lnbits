@@ -345,11 +345,11 @@ def get_admin(
                 funding_source_primary,
            ),
         )
+
         row = g.db.fetchone("SELECT * FROM admin WHERE 1")
     return Admin(**row) if row else None
 
 def get_funding(
-    edited: Optional[str] = "",
     CLightningWallet: Optional[str] =  '',
     LndRestWallet: Optional[str] =  '',
     LndWallet: Optional[str] =  '',
@@ -358,16 +358,32 @@ def get_funding(
     LnbitsWallet: Optional[str] =  '',
     OpenNodeWallet: Optional[str] =  '',
     ) -> List[Funding]:
-    if edited:
-        edited.split(",")
-        CLightningWallet.split(",")
-        LndRestWallet.split(",")
-        LndWallet.split(",")
-        LntxbotWallet.split(",")
-        LNPayWallet.split(",")
-        LnbitsWallet.split(",")
-        OpenNodeWallet.split(",")
-        print(OpenNodeWallet)
+    sources = [CLightningWallet, LndRestWallet, LndWallet, LntxbotWallet, LNPayWallet, LnbitsWallet, OpenNodeWallet]
+    for source in sources:
+        fsource = ['1','1','1','1','1','1','1','1','1','1']
+        tsource = source.split(',')
+        num = 0 
+        for ttsource in tsource:
+            fsource[num] = ttsource
+            num = num + 1
+        print(fsource)
+        if int(fsource[7]) == 1:
+            g.db.execute(
+                """
+                UPDATE funding
+                SET endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?
+                WHERE backend_wallet = ?
+                """,
+            (
+                fsource[0],
+                fsource[1],
+                fsource[2],
+                fsource[3],
+                fsource[4],
+                fsource[5],
+                fsource[8],
+           ),
+        )
 
     rows = g.db.fetchall("SELECT * FROM funding")
     return [Funding(**row) for row in rows]

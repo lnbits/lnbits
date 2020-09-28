@@ -5,7 +5,7 @@ from binascii import unhexlify
 from lnbits import bolt11
 from lnbits.core import core_app
 from lnbits.core.services import create_invoice, pay_invoice
-from lnbits.core.crud import delete_expired_invoices, get_admin, get_account
+from lnbits.core.crud import delete_expired_invoices, get_admin, get_account, get_funding
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET, LNBITS_ADMIN_USERS
 
@@ -139,18 +139,16 @@ def api_payment(payment_hash):
         "disabled_ext": {"type": "string", "empty": False, "required": True},
         "service_fee": {"type": "integer", "min": 0, "max": 90, "required": True},
         "funding_source_primary": {"type": "string", "empty": False, "required": True},
-        "edited": {"type": "string", "required": True},
-        "CLightningWallet": {"type": "list", "required": True},
-        "LndRestWallet": {"type": "list", "required": True},
-        "LndWallet": {"type": "list", "required": True},
-        "LNPayWallet": {"type": "list", "required": True},
-        "LntxbotWallet": {"type": "list", "required": True},
-        "LnbitsWallet": {"type": "list", "required": True},
-        "OpenNodeWallet": {"type": "list", "required": True},
+        "CLightningWallet": {"type": "string", "required": True},
+        "LndRestWallet": {"type": "string", "required": True},
+        "LndWallet": {"type": "string", "required": True},
+        "LNPayWallet": {"type": "string", "required": True},
+        "LntxbotWallet": {"type": "string", "required": True},
+        "LnbitsWallet": {"type": "string", "required": True},
+        "OpenNodeWallet": {"type": "string", "required": True},
     }
 )
 def api_admin():
-    print(g.data)
     admin = get_admin(None)
 
     if admin.user != None and admin.user != g.data["user"]:
@@ -160,4 +158,5 @@ def api_admin():
         if not account:
             return jsonify({"message": "Admin doesnt exist and neither do you!"}), HTTPStatus.FORBIDDEN
     admin = get_admin(**g.data)
-    return jsonify(admin)
+    funding = get_funding(g.data['CLightningWallet'],g.data['LndRestWallet'],g.data['LndWallet'],g.data['LNPayWallet'],g.data['LntxbotWallet'],g.data['LnbitsWallet'],g.data['OpenNodeWallet'])
+    return jsonify({"admin": admin, "funding":funding})
