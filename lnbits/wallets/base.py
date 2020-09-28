@@ -43,10 +43,6 @@ class Wallet(ABC):
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         pass
 
-    @abstractmethod
-    def get_balance(self):
-        pass
-
 
 class Unsupported(Exception):
     pass

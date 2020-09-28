@@ -19,8 +19,5 @@ def index():
         admin_user = admin[0]
     if admin.user != None and admin.user != user_id:
         abort(HTTPStatus.FORBIDDEN, "Admin only")
-    balance = [WALLET.get_balance()]
-    for source in funding:
-        if source[8] == 1:
-            balance.append(source[1])
-    return render_template("admin/index.html", user=g.user, admin=admin, funding=funding, balance=balance)
+
+    return render_template("admin/index.html", user=g.user, admin=admin, funding=funding)

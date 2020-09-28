@@ -111,13 +111,3 @@ class LndRestWallet(Wallet):
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
 
         return PaymentStatus(statuses[payment["status"]])
-
-    def get_balance(self):
-        r = get(
-            url=f"{self.endpoint}/v1/balance/channels",
-            headers=self.auth_admin,
-            verify=self.auth_cert
-        )
-        if not r.ok:
-            return None
-        return r.json()["balance"]

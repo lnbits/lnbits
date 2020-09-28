@@ -12,13 +12,13 @@
 <div class="row">
    <div class="col">
 
-        <div class="q-pa-md">
+    <q-card class="q-mr-md">
           <q-form
             @submit="LaunchLNbits"
             @reset="cancelAdmin"
-            class="q-gutter-md"
+            class="q-px-md q-py-md" 
           >
-            <h6 class="q-my-md">Branding</h6>
+            <h6 class="q-my-md">Settings</h6>
             <div class="row">
               <div class="col">
                 <q-input
@@ -81,7 +81,7 @@
               </div>
             </div>
 
-            <h6 class="q-my-md">Service settings</h6>
+
             <div class="row">
               <div class="col">
                 <q-input
@@ -123,12 +123,7 @@
                 ></q-select>
               </div>
             </div>
-            <h6 class="q-my-md">
-              Funding source information (at least one required)<small
-                ><br />*if installed through RaspiBlitz, MyNode, etc, details
-                should be filled in for you</small
-              >
-            </h6>
+             <br/>
 
             <q-list bordered class="rounded-borders">
               <q-expansion-item
@@ -439,8 +434,8 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-            </q-list>
-                       <q-select outlined v-model="data.admin.funding_source_primary" label="Select main funding source" :options="data.funding_source" label="Outlined"></q-select>
+            </q-list><br/>
+                       <q-select outlined v-model="data.admin.funding_source_primary" style="max-width:300px;" class="q-pr-md" label="Select main funding source" :options="data.funding_source" label="Outlined"></q-select><br/>
             <div>
               <q-btn
                 label="Update"
@@ -450,40 +445,11 @@
 
             </div>
           </q-form>
-        </div>
-        <div class="row q-mt-md q-gutter-sm">
-          <q-btn
-            outline
-            color="grey"
-            type="a"
-            href="https://github.com/lnbits/lnbits"
-            target="_blank"
-            rel="noopener"
-            >View project in GitHub</q-btn
-          >
-          <q-btn
-            outline
-            color="grey"
-            type="a"
-            href="https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK"
-            target="_blank"
-            rel="noopener"
-            >Donate</q-btn
-          >
-        </div>
-      </q-card-section>
-    </q-card>
-
-     </div>
-
+</q-card>
+</div>
 
      <div class="col">
-        <q-card class="q-mr-md q-mb-md">
-          <div class="q-px-md q-py-md" @submit="topupWallet">
-          <div class="text-h6" class="q-px-md"> Main funding source: <strong>{{balance[1]}} ({{balance[0]}}sats)</strong></div>
 
-      </div>
-        </q-card>
           <q-card class="q-mr-md">
           <q-form class="q-px-md q-py-md" @submit="topupWallet">
           <div class="text-h6" class="q-px-md">Wallet topup</div>
@@ -544,20 +510,20 @@
             tagline: 'Free and open source wallet system',
             primary_color:'#FF00FF',
             secondary_color:'#FF00FF',
-                        funding_source_primary: '',
-                        funding_source_edited: '',
-                        service_fee: 0,
-                        disabled_ext: '',
-                        edited: [],
-                        CLightningWallet: ['', '', '', '', '', '', '', 0, 'CLightningWallet'],
-              LndRestWallet: ['', '', '', '', '', '', '', 0, 'LndRestWallet'],
-              LndWallet: ['', '', '', '', '', '', '', 0, 'LndWallet'],
-              LntxbotWallet: ['', '', '', '', '', '', '', 0, 'LntxbotWallet'],
-              LNPayWallet: ['', '', '', '', '', '', '', 0, 'LNPayWallet'],
-              LnbitsWallet: ['', '', '', '', '', '', '', 0, 'LnbitsWallet'],
-              OpenNodeWallet: ['', '', '', '', '', '', '', 0, 'OpenNodeWallet'],
-              senddata: {},
-            },
+            funding_source_primary: '',
+            funding_source_edited: '',
+            service_fee: 0,
+            disabled_ext: '',
+            edited: [],
+            CLightningWallet: ['', '', '', '', '', '', '', 0, 'CLightningWallet'],
+            LndRestWallet: ['', '', '', '', '', '', '', 0, 'LndRestWallet'],
+            LndWallet: ['', '', '', '', '', '', '', 0, 'LndWallet'],
+            LntxbotWallet: ['', '', '', '', '', '', '', 0, 'LntxbotWallet'],
+            LNPayWallet: ['', '', '', '', '', '', '', 0, 'LNPayWallet'],
+            LnbitsWallet: ['', '', '', '', '', '', '', 0, 'LnbitsWallet'],
+            OpenNodeWallet: ['', '', '', '', '', '', '', 0, 'OpenNodeWallet'],
+            senddata: {},
+          },
           
         },
 

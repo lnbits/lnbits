@@ -62,12 +62,3 @@ class LNPayWallet(Wallet):
 
         statuses = {0: None, 1: True, -1: False}
         return PaymentStatus(statuses[r.json()["settled"]])
-
-    def get_balance(self):
-        r = get(
-            url=f"{self.endpoint}/wallet/{self.auth_read}",
-            headers=self.auth_api
-        )
-        if not r.ok:
-            return None
-        return r.json()["balance"]
