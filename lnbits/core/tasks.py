@@ -40,13 +40,13 @@ def run_on_pseudo_request(awaitable: Awaitable):
 invoice_listeners: List[Tuple[str, Callable[[Payment], Awaitable[None]]]] = []
 
 
-def register_invoice_listener(ext_name: str, callback: Callable[[Payment], Awaitable[None]]):
+def register_invoice_listener(ext_name: str, cb: Callable[[Payment], Awaitable[None]]):
     """
     A method intended for extensions to call when they want to be notified about
     new invoice payments incoming.
     """
-    print("registering callback", callback)
-    invoice_listeners.append((ext_name, callback))
+    print(f"registering {ext_name} invoice_listener callback: {cb}")
+    invoice_listeners.append((ext_name, cb))
 
 
 async def webhook_handler():
@@ -61,7 +61,6 @@ async def invoice_listener(app):
 
 async def _invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        # do this just so the g object is available
         g.db = await open_db()
         payment = await get_standalone_payment(checking_id)
         if payment.is_in:
