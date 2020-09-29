@@ -175,21 +175,19 @@ new Vue({
       disclaimerDialog: {
         show: false,
         location: window.location
-      }
+      },
+      balance: 0
     }
   },
   computed: {
+    formattedBalance: function () {
+      return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+    },
     filteredPayments: function () {
       var q = this.paymentsTable.filter
       if (!q || q === '') return this.payments
 
       return LNbits.utils.search(this.payments, q)
-    },
-    balance: function () {
-      return this.apiBalance || this.g.wallet.sat
-    },
-    fbalance: function () {
-      return LNbits.utils.formatSat(this.balance)
     },
     canPay: function () {
       if (!this.send.invoice) return false
@@ -382,6 +380,16 @@ new Vue({
             })
         })
     },
+    fetchBalance: function () {
+      var self = this
+      LNbits.api.getWallet(self.g.wallet).then(function (response) {
+        self.balance = Math.round(response.data.balance / 1000)
+        EventHub.$emit('update-wallet-balance', [
+          self.g.wallet.id,
+          self.balance
+        ])
+      })
+    },
     checkPendingPayments: function () {
       var dismissMsg = this.$q.notify({
         timeout: 0,
@@ -399,18 +407,11 @@ new Vue({
   },
   watch: {
     payments: function () {
-      var self = this
-
-      LNbits.api.getWallet(self.g.wallet).then(function (response) {
-        self.apiBalance = Math.round(response.data.balance / 1000)
-        EventHub.$emit('update-wallet-balance', [
-          self.g.wallet.id,
-          self.balance
-        ])
-      })
+      this.fetchBalance()
     }
   },
   created: function () {
+    this.fetchBalance()
     this.fetchPayments()
     setTimeout(this.checkPendingPayments(), 1200)
   },
