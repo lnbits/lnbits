@@ -1,6 +1,8 @@
-from quart import g, abort, redirect, request, render_template, send_from_directory, url_for
-from http import HTTPStatus
+import httpx
 from os import path
+from http import HTTPStatus
+from quart import g, abort, redirect, request, render_template, send_from_directory, url_for
+from lnurl import LnurlResponse, LnurlWithdrawResponse, decode as decode_lnurl  # type: ignore
 
 from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
@@ -13,6 +15,8 @@ from ..crud import (
     create_wallet,
     delete_wallet,
 )
+from ..services import redeem_lnurl_withdraw
+from ..tasks import run_on_pseudo_request
 
 
 @core_app.route("/favicon.ico")
@@ -73,12 +77,11 @@ async def wallet():
 
         return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
-    if wallet_id not in user.wallet_ids:
+    wallet = user.get_wallet(wallet_id)
+    if not wallet:
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
-    return await render_template(
-        "core/wallet.html", user=user, wallet=user.get_wallet(wallet_id), service_fee=service_fee
-    )
+    return await render_template("core/wallet.html", user=user, wallet=wallet, service_fee=service_fee)
 
 
 @core_app.route("/deletewallet")
@@ -98,3 +101,28 @@ async def deletewallet():
         return redirect(url_for("core.wallet", usr=g.user.id, wal=user_wallet_ids[0]))
 
     return redirect(url_for("core.home"))
+
+
+@core_app.route("/lnurlwallet")
+async def lnurlwallet():
+    async with httpx.AsyncClient() as client:
+        try:
+            lnurl = decode_lnurl(request.args.get("lightning"))
+            r = await client.get(str(lnurl))
+            withdraw_res = LnurlResponse.from_dict(r.json())
+
+            if not withdraw_res.ok:
+                return f"Could not process lnurl-withdraw: {withdraw_res.error_msg}", HTTPStatus.BAD_REQUEST
+
+            if not isinstance(withdraw_res, LnurlWithdrawResponse):
+                return f"Expected an lnurl-withdraw code, got {withdraw_res.tag}", HTTPStatus.BAD_REQUEST
+        except Exception as exc:
+            return f"Could not process lnurl-withdraw: {exc}", HTTPStatus.INTERNAL_SERVER_ERROR
+
+    account = create_account()
+    user = get_user(account.id)
+    wallet = create_wallet(user_id=user.id)
+
+    run_on_pseudo_request(redeem_lnurl_withdraw(wallet.id, withdraw_res, "LNbits initial funding: voucher redeem."))
+
+    return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))

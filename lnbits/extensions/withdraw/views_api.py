@@ -152,8 +152,6 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
                 found = True
             else:
                 usescsv += "," + x
-                print(x)
-                print("usescsv: " + usescsv)
     if not found:
         return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
 

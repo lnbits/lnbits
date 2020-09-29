@@ -1,5 +1,7 @@
+import httpx
 from typing import Optional, Tuple, Dict
 from quart import g
+from lnurl import LnurlWithdrawResponse
 
 try:
     from typing import TypedDict  # type: ignore
@@ -94,7 +96,7 @@ def pay_invoice(
 
     # do the balance check
     wallet = get_wallet(wallet_id)
-    assert wallet, "invalid wallet id"
+    assert wallet
     if wallet.balance_msat < 0:
         g.db.rollback()
         raise PermissionError("Insufficient balance.")
@@ -117,6 +119,24 @@ def pay_invoice(
 
     g.db.commit()
     return invoice.payment_hash
+
+
+async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo: Optional[str] = None) -> None:
+    if not memo:
+        memo = res.default_description
+
+    _, payment_request = create_invoice(
+        wallet_id=wallet_id,
+        amount=res.max_sats,
+        memo=memo,
+        extra={"tag": "lnurlwallet"},
+    )
+
+    async with httpx.AsyncClient() as client:
+        await client.get(
+            res.callback.base,
+            params={**res.callback.query_params, **{"k1": res.k1, "pr": payment_request}},
+        )
 
 
 def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStatus:

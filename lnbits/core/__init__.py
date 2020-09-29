@@ -8,4 +8,6 @@ core_app: Blueprint = Blueprint(
 
 from .views.api import *  # noqa
 from .views.generic import *  # noqa
-from .views.lnurl import *  # noqa
+from .tasks import grab_app_for_later
+
+core_app.record(grab_app_for_later)
