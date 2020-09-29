@@ -1,1 +1,1 @@
-web: hypercorn --bind 0.0.0.0:5000 lnbits:app
+web: hypercorn --bind 0.0.0.0:5000 lnbits.app:create_app()
