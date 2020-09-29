@@ -1,5 +1,6 @@
 import asyncio
-from typing import Optional, List, Awaitable, Tuple, Callable
+from http import HTTPStatus
+from typing import Optional, Tuple, List, Callable, Awaitable
 from quart import Quart, Request, g
 from werkzeug.datastructures import Headers
 
@@ -52,7 +53,8 @@ def register_invoice_listener(ext_name: str, cb: Callable[[Payment], Awaitable[N
 async def webhook_handler():
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
-        await handler()
+        return await handler()
+    return "", HTTPStatus.NO_CONTENT
 
 
 async def invoice_listener(app):

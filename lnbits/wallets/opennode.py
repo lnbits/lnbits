@@ -1,6 +1,11 @@
+import json
+import asyncio
+import hmac
+from http import HTTPStatus
 from os import getenv
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from requests import get, post
+from quart import request, url_for
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
@@ -23,13 +28,18 @@ class OpenNodeWallet(Wallet):
         r = post(
             url=f"{self.endpoint}/v1/charges",
             headers=self.auth_invoice,
-            json={"amount": f"{amount}", "description": memo},  # , "private": True},
+            json={
+                "amount": amount,
+                "description": memo or "",
+                "callback_url": url_for("webhook_listener", _external=True),
+            },
         )
         ok, checking_id, payment_request, error_message = r.ok, None, None, None
 
         if r.ok:
             data = r.json()["data"]
-            checking_id, payment_request = data["id"], data["lightning_invoice"]["payreq"]
+            checking_id = data["id"]
+            payment_request = data["lightning_invoice"]["payreq"]
         else:
             error_message = r.json()["message"]
 
@@ -64,3 +74,31 @@ class OpenNodeWallet(Wallet):
 
         statuses = {"initial": None, "pending": None, "confirmed": True, "error": False, "failed": False}
         return PaymentStatus(statuses[r.json()["data"]["status"]])
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        self.queue: asyncio.Queue = asyncio.Queue()
+        while True:
+            item = await self.queue.get()
+            yield item
+            self.queue.task_done()
+
+    async def webhook_listener(self):
+        print("a request!")
+        text: str = await request.get_data()
+        print("text", text)
+        data = json.loads(text)
+        if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
+            return "", HTTPStatus.NO_CONTENT
+
+        charge_id = data["id"]
+        if data["status"] != "paid":
+            return "", HTTPStatus.NO_CONTENT
+
+        x = hmac.new(self.auth_invoice["Authorization"], digestmod="sha256")
+        x.update(charge_id)
+        if x.hexdigest() != data["hashed_order"]:
+            print("invalid webhook, not from opennode")
+            return "", HTTPStatus.NO_CONTENT
+
+        self.queue.put_nowait(charge_id)
+        return "", HTTPStatus.NO_CONTENT

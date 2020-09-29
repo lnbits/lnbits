@@ -93,7 +93,7 @@ def register_request_hooks(app: Quart):
 def register_async_tasks(app):
     from lnbits.core.tasks import invoice_listener, webhook_handler
 
-    @app.route("/wallet/webhook")
+    @app.route("/wallet/webhook", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
     async def webhook_listener():
         return await webhook_handler()
 
