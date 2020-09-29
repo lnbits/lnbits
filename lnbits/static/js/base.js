@@ -29,6 +29,9 @@ var LNbits = {
         bolt11: bolt11
       })
     },
+    getWallet: function (wallet) {
+      return this.request('get', '/api/v1/wallet', wallet.inkey)
+    },
     getPayments: function (wallet, checkPending) {
       var query_param = checkPending ? '?check_pending' : ''
       return this.request(

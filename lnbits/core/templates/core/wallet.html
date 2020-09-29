@@ -127,10 +127,10 @@
                 class="q-pa-lg q-pt-xl lnbits__dialog-card"
               >
                 <div class="text-center q-mb-lg">
-                  <a :href="'lightning:' + receive.paymentReq">
+                  <a :href="'lightning:' + props.row.bolt11">
                     <q-responsive :ratio="1" class="q-mx-xl">
                       <qrcode
-                        :value="receive.paymentReq"
+                        :value="props.row.bolt11"
                         :options="{width: 340}"
                         class="rounded-borders"
                       ></qrcode>
@@ -141,7 +141,7 @@
                   <q-btn
                     outline
                     color="grey"
-                    @click="copyText(receive.paymentReq)"
+                    @click="copyText(props.row.bolt11)"
                     >Copy invoice</q-btn
                   >
                   <q-btn v-close-popup flat color="grey" class="q-ml-auto"
@@ -172,7 +172,7 @@
                     Outgoing payment pending
                   </div>
                   <q-tooltip>Payment Hash</q-tooltip>
-                  <div class="text-wrap mono q-pa-md">
+                  <div class="text-wrap mono q-pt-sm text-body1">
                     {{ props.row.payment_hash }}
                   </div>
                 </div>

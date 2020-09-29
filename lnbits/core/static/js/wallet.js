@@ -14,9 +14,11 @@ function generateChart(canvas, payments) {
   }
 
   _.each(
-    payments.slice(0).sort(function (a, b) {
-      return a.time - b.time
-    }),
+    payments
+      .filter(p => !p.pending)
+      .sort(function (a, b) {
+        return a.time - b.time
+      }),
     function (tx) {
       txs.push({
         hour: Quasar.utils.date.formatDate(tx.date, 'YYYY-MM-DDTHH:00'),
@@ -184,14 +186,7 @@ new Vue({
       return LNbits.utils.search(this.payments, q)
     },
     balance: function () {
-      if (this.payments.length) {
-        return (
-          _.pluck(this.payments, 'amount').reduce(function (a, b) {
-            return a + b
-          }, 0) / 1000
-        )
-      }
-      return this.g.wallet.sat
+      return this.apiBalance || this.g.wallet.sat
     },
     fbalance: function () {
       return LNbits.utils.formatSat(this.balance)
@@ -404,7 +399,15 @@ new Vue({
   },
   watch: {
     payments: function () {
-      EventHub.$emit('update-wallet-balance', [this.g.wallet.id, this.balance])
+      var self = this
+
+      LNbits.api.getWallet(self.g.wallet).then(function (response) {
+        self.apiBalance = Math.round(response.data.balance / 1000)
+        EventHub.$emit('update-wallet-balance', [
+          self.g.wallet.id,
+          self.balance
+        ])
+      })
     }
   },
   created: function () {

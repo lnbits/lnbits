@@ -8,6 +8,32 @@
     group="api"
     dense
     expand-separator
+    label="Get wallet details"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-light-green">GET</span> /api/v1/wallet</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": "<i>{{ wallet.adminkey }}</i>"}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code
+          >{"id": &lt;string&gt;, "name": &lt;string&gt;, "balance":
+          &lt;int&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl {{ request.url_root }}api/v1/wallet -H "X-Api-Key:
+          <i>{{ wallet.inkey }}</i>"</code
+        >
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
     label="Create an invoice (incoming)"
   >
     <q-card>

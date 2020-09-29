@@ -10,6 +10,21 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.settings import WALLET
 
 
+@core_app.route("/api/v1/wallet", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_wallet():
+    return (
+        jsonify(
+            {
+                "id": g.wallet.id,
+                "name": g.wallet.name,
+                "balance": g.wallet.balance_msat,
+            }
+        ),
+        HTTPStatus.OK,
+    )
+
+
 @core_app.route("/api/v1/payments", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments():
@@ -22,7 +37,7 @@ async def api_payments():
             else:
                 payment.set_pending(WALLET.get_invoice_status(payment.checking_id).pending)
 
-    return jsonify(g.wallet.get_payments()), HTTPStatus.OK
+    return jsonify(g.wallet.get_payments(pending=True)), HTTPStatus.OK
 
 
 @api_check_wallet_key("invoice")

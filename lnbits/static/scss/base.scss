@@ -101,3 +101,8 @@ video {
   -moz-font-feature-settings: 'liga';
   -moz-osx-font-smoothing: grayscale;
 }
+
+// text-wrap
+.text-wrap {
+  word-break: break-word;
+}
