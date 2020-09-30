@@ -10,7 +10,7 @@
   https://quasar.dev/vue-components/form#Example--Basic
 -->
 <div class="row">
-   <div class="col">
+   <div class="col-8">
 
     <q-card class="q-mr-md">
           <q-form
@@ -448,13 +448,13 @@
 </q-card>
 </div>
 
-     <div class="col">
+     <div class="col-4">
 
           <q-card class="q-mr-md">
           <q-form class="q-px-md q-py-md" @submit="topupWallet">
           <div class="text-h6" class="q-px-md">Wallet topup</div>
           <div class="row">
-             <div class="col-6">
+             <div class="col-8">
              <q-input
               type="text"
               filled
@@ -464,7 +464,7 @@
               hint="Use the wallet ID to topup any wallet"
             ></q-input>
            </div>
-           <div class="col-3">
+           <div class="col-4">
             <q-input
               type="number"
               filled
@@ -472,14 +472,15 @@
               label="Topup amount"
             ></q-input>
                    </div>
-           <div class="col-3">
+          </div>
+           <div>
           <q-btn
           class="q-ml-md"
             label="Topup"
             type="submit"
             color="deep-purple"
           ></q-btn>
-      </div></div>
+      </div>
       </q-form>
         </q-card>
 
@@ -547,7 +548,7 @@
       if (usr != null) {
         self.cancel.on = true
       }
-      self.data.admin.user = '{{ admin_user }}'
+      self.data.admin.user = '{{ user.id }}'
       self.data.admin.allowed_users = ''
       self.data.admin.site_title = '{{admin.site_title}}'
       self.data.admin.tagline = '{{admin.tagline}}'
@@ -688,17 +689,19 @@
         LNbits.api
           .request('POST', '/api/v1/admin', 'wallet.inkey', data.admin.senddata)
           .then(function (response) {
-              window.location.href = '/wallet?usr=' + response.data.admin[0]
+
+            self.$q.notify({
+                type: 'positive',
+                message: 'Updated',
+                icon: 'thumb_up'
+            })
+
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      cancelAdmin: function () {
-        if (usr != null) {
-          window.location.href = '/wallet?usr=' + usr
-        }
-      },
+
 
       processing: function () {
         this.$q.notify({
