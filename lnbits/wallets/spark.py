@@ -1,7 +1,6 @@
 import random
-import requests
 import json
-from aiohttp_sse_client import client as sse_client
+import httpx
 from os import getenv
 from typing import Optional, AsyncGenerator
 
@@ -30,9 +29,7 @@ class SparkWallet(Wallet):
             elif kwargs:
                 params = kwargs
 
-            r = requests.post(
-                self.url + "/rpc", headers={"X-Access": self.token}, json={"method": key, "params": params}
-            )
+            r = httpx.post(self.url + "/rpc", headers={"X-Access": self.token}, json={"method": key, "params": params})
             try:
                 data = r.json()
             except:
@@ -98,12 +95,11 @@ class SparkWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = self.url + "/stream?access-key=" + self.token
-        conn = sse_client.EventSource(url)
-        async with conn as es:
-            async for event in es:
-                try:
-                    if event.type == "inv-paid":
-                        data = json.loads(event.data)
-                        yield data["label"]
-                except ConnectionError:
-                    pass
+
+        async with httpx.AsyncClient() as client:
+            async with client.stream("GET", url) as r:
+                async for line in r.aiter_lines():
+                    if line.startswith("data:"):
+                        data = json.loads(line[5:])
+                        if "pay_index" in data and data.get("status") == "paid":
+                            yield data["label"]

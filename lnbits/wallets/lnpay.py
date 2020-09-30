@@ -1,6 +1,6 @@
 import json
 import asyncio
-import aiohttp
+import httpx
 from os import getenv
 from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
@@ -93,12 +93,12 @@ class LNPayWallet(Wallet):
             return "", HTTPStatus.NO_CONTENT
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
-        async with aiohttp.ClientSession() as session:
-            resp = await session.get(
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
                 f"{self.endpoint}/user/lntx/{lntx_id}?fields=settled",
                 headers=self.auth_api,
             )
-            data = await resp.json()
+            data = r.json()
             if data["settled"]:
                 self.queue.put_nowait(lntx_id)
 

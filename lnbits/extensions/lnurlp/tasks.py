@@ -1,4 +1,4 @@
-import aiohttp
+import httpx
 
 from lnbits.core.models import Payment
 
@@ -13,9 +13,9 @@ async def on_invoice_paid(payment: Payment) -> None:
             # no pay_link or this webhook has already been sent
             return
         if pay_link.webhook_url:
-            async with aiohttp.ClientSession() as session:
+            async with httpx.AsyncClient() as client:
                 try:
-                    r = await session.post(
+                    r = await client.post(
                         pay_link.webhook_url,
                         json={
                             "payment_hash": payment.payment_hash,
@@ -23,8 +23,8 @@ async def on_invoice_paid(payment: Payment) -> None:
                             "amount": payment.amount,
                             "lnurlp": pay_link.id,
                         },
-                        timeout=60,
+                        timeout=40,
                     )
-                    mark_webhook_sent(payment.payment_hash, r.status)
-                except aiohttp.client_exceptions.ClientError:
+                    mark_webhook_sent(payment.payment_hash, r.status_code)
+                except httpx.RequestError:
                     mark_webhook_sent(payment.payment_hash, -1)
