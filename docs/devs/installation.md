@@ -9,7 +9,7 @@ nav_order: 1
 Installation
 ============
 
-Download this repo and install the dependencies.
+Download the latest stable release https://github.com/lnbits/lnbits/releases
 
 
 Application dependencies
