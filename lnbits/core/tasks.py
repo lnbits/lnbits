@@ -63,10 +63,10 @@ async def invoice_listener(app):
 
 async def _invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        g.db = await open_db()
-        payment = await get_standalone_payment(checking_id)
+        g.db = open_db()
+        payment = get_standalone_payment(checking_id)
         if payment.is_in:
-            await payment.set_pending(False)
+            payment.set_pending(False)
             for ext_name, cb in invoice_listeners:
-                g.ext_db = await open_ext_db(ext_name)
-                cb(payment)
+                g.ext_db = open_ext_db(ext_name)
+                await cb(payment)
