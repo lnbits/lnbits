@@ -5,7 +5,7 @@ from typing import List, Optional, Dict
 from flask import g
 
 from lnbits import bolt11
-from lnbits.settings import DEFAULT_WALLET_NAME
+
 
 from .models import User, Wallet, Payment, Admin, Funding
 
@@ -66,12 +66,13 @@ def update_user_extension(*, user_id: str, extension: str, active: int) -> None:
 
 def create_wallet(*, user_id: str, wallet_name: Optional[str] = None) -> Wallet:
     wallet_id = uuid4().hex
+    admin = get_admin()
     g.db.execute(
         """
         INSERT INTO wallets (id, name, user, adminkey, inkey)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (wallet_id, wallet_name or DEFAULT_WALLET_NAME, user_id, uuid4().hex, uuid4().hex),
+        (wallet_id, wallet_name or admin[6], user_id, uuid4().hex, uuid4().hex),
     )
 
     new_wallet = get_wallet(wallet_id=wallet_id)
