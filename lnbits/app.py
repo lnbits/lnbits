@@ -1,5 +1,5 @@
-import importlib
 import asyncio
+import importlib
 
 from quart import Quart, g
 from quart_cors import cors  # type: ignore
@@ -8,7 +8,7 @@ from secure import SecureHeaders  # type: ignore
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
-from .db import open_db
+from .db import open_db, open_ext_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
 
@@ -43,7 +43,17 @@ def register_blueprints(app: Quart) -> None:
     for ext in get_valid_extensions():
         try:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
-            app.register_blueprint(getattr(ext_module, f"{ext.code}_ext"), url_prefix=f"/{ext.code}")
+            bp = getattr(ext_module, f"{ext.code}_ext")
+
+            @bp.before_request
+            async def before_request():
+                g.ext_db = open_ext_db(ext.code)
+
+            @bp.teardown_request
+            async def after_request(exc):
+                g.ext_db.__exit__(type(exc), exc, None)
+
+            app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
             raise ImportError(f"Please make sure that the extension `{ext.code}` follows conventions.")
 
@@ -99,8 +109,8 @@ def register_async_tasks(app):
 
     @app.before_serving
     async def listeners():
-        loop = asyncio.get_event_loop()
-        loop.create_task(invoice_listener(app))
+        loop = asyncio.get_running_loop()
+        loop.create_task(invoice_listener())
 
     @app.after_serving
     async def stop_listeners():

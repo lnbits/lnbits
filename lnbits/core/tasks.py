@@ -31,8 +31,8 @@ def run_on_pseudo_request(awaitable: Awaitable):
             send_push_promise=lambda x, h: None,
         )
         async with main_app.request_context(fk):
-            g.db = open_db()
-            await awaitable
+            with open_db() as g.db:
+                await awaitable
 
     loop = asyncio.get_event_loop()
     loop.create_task(run(awaitable))
@@ -57,16 +57,15 @@ async def webhook_handler():
     return "", HTTPStatus.NO_CONTENT
 
 
-async def invoice_listener(app):
-    run_on_pseudo_request(_invoice_listener())
-
-
-async def _invoice_listener():
+async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        g.db = open_db()
-        payment = get_standalone_payment(checking_id)
-        if payment.is_in:
-            payment.set_pending(False)
-            for ext_name, cb in invoice_listeners:
-                g.ext_db = open_ext_db(ext_name)
+        run_on_pseudo_request(invoice_callback_dispatcher(checking_id))
+
+
+async def invoice_callback_dispatcher(checking_id: str):
+    payment = get_standalone_payment(checking_id)
+    if payment and payment.is_in:
+        payment.set_pending(False)
+        for ext_name, cb in invoice_listeners:
+            with open_ext_db(ext_name) as g.ext_db:  # type: ignore
                 await cb(payment)
