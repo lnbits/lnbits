@@ -29,7 +29,7 @@ If you wish to use a version of Python higher than 3.7:
 $ pipenv --python 3.8 install --dev
 ```
 
-You will need to set the variables in `.env.example`, and rename the file to `.env`.
+You will need to copy `.env.example` to `.env`, then set variables there.
 
 ![Files](https://i.imgur.com/ri2zOe8.png)
 
