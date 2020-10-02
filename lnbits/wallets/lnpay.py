@@ -4,7 +4,6 @@ import httpx
 from os import getenv
 from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
-from requests import get, post
 from quart import request
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
@@ -14,11 +13,9 @@ class LNPayWallet(Wallet):
     """https://docs.lnpay.co/"""
 
     def __init__(self):
-        endpoint = getenv("LNPAY_API_ENDPOINT")
+        endpoint = getenv("LNPAY_API_ENDPOINT", "https://lnpay.co/v1")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth_admin = getenv("LNPAY_ADMIN_KEY")
-        self.auth_invoice = getenv("LNPAY_INVOICE_KEY")
-        self.auth_read = getenv("LNPAY_READ_KEY")
         self.auth_api = {"X-Api-Key": getenv("LNPAY_API_KEY")}
 
     def create_invoice(
@@ -33,8 +30,8 @@ class LNPayWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = post(
-            url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice",
+        r = httpx.post(
+            url=f"{self.endpoint}/user/wallet/{self.auth_admin}/invoice",
             headers=self.auth_api,
             json=data,
         )
@@ -52,7 +49,7 @@ class LNPayWallet(Wallet):
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = post(
+        r = httpx.post(
             url=f"{self.endpoint}/user/wallet/{self.auth_admin}/withdraw",
             headers=self.auth_api,
             json={"payment_request": bolt11},
@@ -68,12 +65,12 @@ class LNPayWallet(Wallet):
         return self.get_payment_status(checking_id)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = get(
+        r = httpx.get(
             url=f"{self.endpoint}/user/lntx/{checking_id}?fields=settled",
             headers=self.auth_api,
         )
 
-        if not r.ok:
+        if r.is_error:
             return PaymentStatus(None)
 
         statuses = {0: None, 1: True, -1: False}
@@ -82,8 +79,7 @@ class LNPayWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue()
         while True:
-            item = await self.queue.get()
-            yield item
+            yield await self.queue.get()
             self.queue.task_done()
 
     async def webhook_listener(self):

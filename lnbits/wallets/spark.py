@@ -34,7 +34,7 @@ class SparkWallet(Wallet):
                 data = r.json()
             except:
                 raise UnknownError(r.text)
-            if not r.ok:
+            if r.is_error:
                 raise SparkError(data["message"])
             return data
 
@@ -96,7 +96,7 @@ class SparkWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = self.url + "/stream?access-key=" + self.token
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             async with client.stream("GET", url) as r:
                 async for line in r.aiter_lines():
                     if line.startswith("data:"):

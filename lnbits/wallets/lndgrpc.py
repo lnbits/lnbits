@@ -5,9 +5,25 @@ except ImportError:  # pragma: nocover
 
 import base64
 from os import getenv
-from typing import Optional, Dict
+from typing import Optional, Dict, AsyncGenerator
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+
+
+def parse_checking_id(checking_id: str) -> bytes:
+    return base64.b64decode(
+        checking_id.replace("_", "/"),
+    )
+
+
+def stringify_checking_id(r_hash: bytes) -> str:
+    return (
+        base64.b64encode(
+            r_hash,
+        )
+        .decode("utf-8")
+        .replace("/", "_")
+    )
 
 
 class LndWallet(Wallet):
@@ -16,77 +32,67 @@ class LndWallet(Wallet):
             raise ImportError("The `lnd-grpc` library must be installed to use `LndWallet`.")
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.port = getenv("LND_GRPC_PORT")
-        self.auth_admin = getenv("LND_ADMIN_MACAROON")
-        self.auth_invoice = getenv("LND_INVOICE_MACAROON")
-        self.auth_read = getenv("LND_READ_MACAROON")
-        self.auth_cert = getenv("LND_CERT")
+        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        port = getenv("LND_GRPC_PORT")
+        cert = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
+        auth_admin = getenv("LND_ADMIN_MACAROON")
+        auth_invoices = getenv("LND_INVOICE_MACAROON")
+        network = getenv("LND_GRPC_NETWORK", "mainnet")
+
+        self.admin_rpc = lnd_grpc.Client(
+            lnd_dir=None,
+            macaroon_path=auth_admin,
+            tls_cert_path=cert,
+            network=network,
+            grpc_host=endpoint,
+            grpc_port=port,
+        )
+
+        self.invoices_rpc = lnd_grpc.Client(
+            lnd_dir=None,
+            macaroon_path=auth_invoices,
+            tls_cert_path=cert,
+            network=network,
+            grpc_host=endpoint,
+            grpc_port=port,
+        )
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
     ) -> InvoiceResponse:
-        lnd_rpc = lnd_grpc.Client(
-            lnd_dir=None,
-            macaroon_path=self.auth_invoice,
-            tls_cert_path=self.auth_cert,
-            network="mainnet",
-            grpc_host=self.endpoint,
-            grpc_port=self.port,
-        )
-
         params: Dict = {"value": amount, "expiry": 600, "private": True}
         if description_hash:
             params["description_hash"] = description_hash  # as bytes directly
         else:
             params["memo"] = memo or ""
-        lndResponse = lnd_rpc.add_invoice(**params)
-        decoded_hash = base64.b64encode(lndResponse.r_hash).decode("utf-8").replace("/", "_")
-        ok, checking_id, payment_request, error_message = True, decoded_hash, str(lndResponse.payment_request), None
-        return InvoiceResponse(ok, checking_id, payment_request, error_message)
+        resp = self.invoices_rpc.add_invoice(**params)
+
+        checking_id = stringify_checking_id(resp.r_hash)
+        payment_request = str(resp.payment_request)
+        return InvoiceResponse(True, checking_id, payment_request, None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        lnd_rpc = lnd_grpc.Client(
-            lnd_dir=None,
-            macaroon_path=self.auth_admin,
-            tls_cert_path=self.auth_cert,
-            network="mainnet",
-            grpc_host=self.endpoint,
-            grpc_port=self.port,
-        )
+        resp = self.admin_rpc.pay_invoice(payment_request=bolt11)
 
-        payinvoice = lnd_rpc.pay_invoice(
-            payment_request=bolt11,
-        )
+        if resp.payment_error:
+            return PaymentResponse(False, "", 0, resp.payment_error)
 
-        ok, checking_id, fee_msat, error_message = True, None, 0, None
-
-        if payinvoice.payment_error:
-            ok, error_message = False, payinvoice.payment_error
-        else:
-            checking_id = base64.b64encode(payinvoice.payment_hash).decode("utf-8").replace("/", "_")
-
-        return PaymentResponse(ok, checking_id, fee_msat, error_message)
+        checking_id = stringify_checking_id(resp.payment_hash)
+        return PaymentResponse(True, checking_id, 0, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-
-        check_id = base64.b64decode(checking_id.replace("_", "/"))
-        print(check_id)
-        lnd_rpc = lnd_grpc.Client(
-            lnd_dir=None,
-            macaroon_path=self.auth_invoice,
-            tls_cert_path=self.auth_cert,
-            network="mainnet",
-            grpc_host=self.endpoint,
-            grpc_port=self.port,
-        )
-
-        for _response in lnd_rpc.subscribe_single_invoice(check_id):
+        r_hash = parse_checking_id(checking_id)
+        for _response in self.invoices_rpc.subscribe_single_invoice(r_hash):
             if _response.state == 1:
                 return PaymentStatus(True)
 
         return PaymentStatus(None)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-
         return PaymentStatus(True)
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        for paid in self.invoices_rpc.SubscribeInvoices():
+            print("PAID", paid)
+            checking_id = stringify_checking_id(paid.r_hash)
+            yield checking_id

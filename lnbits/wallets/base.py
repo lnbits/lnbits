@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, AsyncGenerator
 
 
 class InvoiceResponse(NamedTuple):
@@ -41,6 +41,15 @@ class Wallet(ABC):
 
     @abstractmethod
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        pass
+
+    @abstractmethod
+    def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        """
+        this is an async function, but here it is noted without the 'async'
+        prefix because mypy has a bug identifying the signature of abstract
+        methods.
+        """
         pass
 
 

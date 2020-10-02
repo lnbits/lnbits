@@ -1,5 +1,5 @@
 from os import getenv
-from typing import Optional, Dict
+from typing import Optional, Dict, AsyncGenerator
 from requests import get, post
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
@@ -64,3 +64,7 @@ class LNbitsWallet(Wallet):
             return PaymentStatus(None)
 
         return PaymentStatus(r.json()["paid"])
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        print("lnbits does not support paid invoices stream yet")
+        yield ""

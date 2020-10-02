@@ -6,6 +6,7 @@ from .crud import get_pay_link_by_invoice, mark_webhook_sent
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+    print(payment)
     islnurlp = "lnurlp" == payment.extra.get("tag")
     if islnurlp:
         pay_link = get_pay_link_by_invoice(payment.payment_hash)
