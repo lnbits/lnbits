@@ -31,5 +31,5 @@ You might also need to install additional packages, depending on the chosen back
 E.g. when you want to use LND you have to run:
 
 ```sh
-./venv/bin/pip install lnd-grpc
+./venv/bin/pip install lndgrpc
 ```

@@ -1,9 +1,12 @@
 try:
-    import lnd_grpc  # type: ignore
+    import lndgrpc  # type: ignore
+    from lndgrpc.common import ln  # type: ignore
 except ImportError:  # pragma: nocover
-    lnd_grpc = None
+    lndgrpc = None
 
+import binascii
 import base64
+import hashlib
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
@@ -28,63 +31,82 @@ def stringify_checking_id(r_hash: bytes) -> str:
 
 class LndWallet(Wallet):
     def __init__(self):
-        if lnd_grpc is None:  # pragma: nocover
-            raise ImportError("The `lnd-grpc` library must be installed to use `LndWallet`.")
+        if lndgrpc is None:  # pragma: nocover
+            raise ImportError("The `lndgrpc` library must be installed to use `LndWallet`.")
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         port = getenv("LND_GRPC_PORT")
         cert = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
-        auth_admin = getenv("LND_ADMIN_MACAROON")
-        auth_invoices = getenv("LND_INVOICE_MACAROON")
+        auth_admin = getenv("LND_GRPC_ADMIN_MACAROON") or getenv("LND_ADMIN_MACAROON")
+        auth_invoices = getenv("LND_GRPC_INVOICE_MACAROON") or getenv("LND_INVOICE_MACAROON")
         network = getenv("LND_GRPC_NETWORK", "mainnet")
 
-        self.admin_rpc = lnd_grpc.Client(
-            lnd_dir=None,
-            macaroon_path=auth_admin,
-            tls_cert_path=cert,
+        self.admin_rpc = lndgrpc.LNDClient(
+            endpoint + ":" + port,
+            cert_filepath=cert,
             network=network,
-            grpc_host=endpoint,
-            grpc_port=port,
+            macaroon_filepath=auth_admin,
         )
 
-        self.invoices_rpc = lnd_grpc.Client(
-            lnd_dir=None,
-            macaroon_path=auth_invoices,
-            tls_cert_path=cert,
+        self.invoices_rpc = lndgrpc.LNDClient(
+            endpoint + ":" + port,
+            cert_filepath=cert,
             network=network,
-            grpc_host=endpoint,
-            grpc_port=port,
+            macaroon_filepath=auth_invoices,
+        )
+
+        self.async_rpc = lndgrpc.AsyncLNDClient(
+            endpoint + ":" + port,
+            cert_filepath=cert,
+            network=network,
+            macaroon_filepath=auth_invoices,
         )
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
     ) -> InvoiceResponse:
         params: Dict = {"value": amount, "expiry": 600, "private": True}
+
         if description_hash:
             params["description_hash"] = description_hash  # as bytes directly
         else:
             params["memo"] = memo or ""
-        resp = self.invoices_rpc.add_invoice(**params)
+
+        try:
+            req = ln.Invoice(**params)
+            resp = self.invoices_rpc._ln_stub.AddInvoice(req)
+        except Exception as exc:
+            error_message = str(exc)
+            return InvoiceResponse(False, None, None, error_message)
 
         checking_id = stringify_checking_id(resp.r_hash)
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        resp = self.admin_rpc.pay_invoice(payment_request=bolt11)
+        resp = self.admin_rpc.send_payment(payment_request=bolt11)
 
         if resp.payment_error:
             return PaymentResponse(False, "", 0, resp.payment_error)
 
-        checking_id = stringify_checking_id(resp.payment_hash)
+        r_hash = hashlib.sha256(resp.payment_preimage).digest()
+        checking_id = stringify_checking_id(r_hash)
         return PaymentResponse(True, checking_id, 0, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r_hash = parse_checking_id(checking_id)
-        for _response in self.invoices_rpc.subscribe_single_invoice(r_hash):
-            if _response.state == 1:
-                return PaymentStatus(True)
+        try:
+            r_hash = parse_checking_id(checking_id)
+            if len(r_hash) != 32:
+                raise binascii.Error
+        except binascii.Error:
+            # this may happen if we switch between backend wallets
+            # that use different checking_id formats
+            return PaymentStatus(None)
+
+        resp = self.invoices_rpc.lookup_invoice(r_hash.hex())
+        if resp.settled:
+            return PaymentStatus(True)
 
         return PaymentStatus(None)
 
@@ -92,7 +114,9 @@ class LndWallet(Wallet):
         return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        for paid in self.invoices_rpc.SubscribeInvoices():
-            print("PAID", paid)
-            checking_id = stringify_checking_id(paid.r_hash)
+        async for inv in self.async_rpc._ln_stub.SubscribeInvoices(ln.InvoiceSubscription()):
+            if not inv.settled:
+                continue
+
+            checking_id = stringify_checking_id(inv.r_hash)
             yield checking_id

@@ -15,8 +15,12 @@ class LndRestWallet(Wallet):
 
         endpoint = getenv("LND_REST_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth_admin = {"Grpc-Metadata-macaroon": getenv("LND_REST_ADMIN_MACAROON")}
-        self.auth_invoice = {"Grpc-Metadata-macaroon": getenv("LND_REST_INVOICE_MACAROON")}
+        self.auth_admin = {
+            "Grpc-Metadata-macaroon": getenv("LND_ADMIN_MACAROON") or getenv("LND_REST_ADMIN_MACAROON"),
+        }
+        self.auth_invoice = {
+            "Grpc-Metadata-macaroon": getenv("LND_INVOICE_MACAROON") or getenv("LND_REST_INVOICE_MACAROON")
+        }
         self.auth_cert = getenv("LND_REST_CERT")
 
     def create_invoice(
@@ -111,17 +115,13 @@ class LndRestWallet(Wallet):
 
         async with httpx.AsyncClient(timeout=None, headers=self.auth_admin, verify=self.auth_cert) as client:
             async with client.stream("GET", url) as r:
-                print("ok")
-                print(r)
-                print(r.is_error)
-                print("ok")
                 async for line in r.aiter_lines():
-                    print("line", line)
                     try:
-                        event = json.loads(line)["result"]
-                        print(event)
+                        inv = json.loads(line)["result"]
+                        if not inv["settled"]:
+                            continue
                     except:
                         continue
 
-                    payment_hash = bolt11.decode(event["payment_request"]).payment_hash
+                    payment_hash = base64.b64decode(inv["r_hash"]).hex()
                     yield payment_hash
