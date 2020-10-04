@@ -1,4 +1,4 @@
-import asyncio
+import trio  # type: ignore
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 from requests import post
@@ -79,5 +79,5 @@ class LntxbotWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         print("lntxbot does not support paid invoices stream yet")
-        await asyncio.sleep(5)
+        await trio.sleep(5)
         yield ""

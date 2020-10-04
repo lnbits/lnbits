@@ -3,7 +3,7 @@ try:
 except ImportError:  # pragma: nocover
     LightningRpc = None
 
-import asyncio
+import trio  # type: ignore
 import random
 import json
 
@@ -86,7 +86,7 @@ class CLightningWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        reader, writer = await asyncio.open_unix_connection(self.rpc)
+        stream = await trio.open_unix_socket(self.rpc)
 
         i = 0
         while True:
@@ -98,12 +98,9 @@ class CLightningWallet(Wallet):
                 }
             )
 
-            print(call)
-            writer.write(call.encode("ascii"))
-            await writer.drain()
+            await stream.send_all(call.encode("utf-8"))
 
-            data = await reader.readuntil(b"\n\n")
-            print(data)
+            data = await stream.receive_some()
             paid = json.loads(data.decode("ascii"))
 
             paid = self.ln.waitanyinvoice(self.last_pay_index)

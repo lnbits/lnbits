@@ -4,7 +4,6 @@ from lnbits.app import create_app
 
 
 @pytest.fixture
-@pytest.mark.asyncio
 async def client():
     app = create_app()
     app.config["TESTING"] = True

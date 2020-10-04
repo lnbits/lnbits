@@ -1,5 +1,5 @@
 import json
-import asyncio
+import trio  # type: ignore
 import hmac
 import httpx
 from http import HTTPStatus
@@ -77,15 +77,12 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue()
-        while True:
-            yield await self.queue.get()
-            self.queue.task_done()
+        self.send, receive = trio.open_memory_channel(0)
+        async for value in receive:
+            yield value
 
     async def webhook_listener(self):
-        print("a request!")
         text: str = await request.get_data()
-        print("text", text)
         data = json.loads(text)
         if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
             return "", HTTPStatus.NO_CONTENT
@@ -100,5 +97,5 @@ class OpenNodeWallet(Wallet):
             print("invalid webhook, not from opennode")
             return "", HTTPStatus.NO_CONTENT
 
-        self.queue.put_nowait(charge_id)
+        self.send.send(charge_id)
         return "", HTTPStatus.NO_CONTENT

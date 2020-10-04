@@ -10,19 +10,25 @@ class Database:
         self.connection = sqlite3.connect(db_path)
         self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
+        self.closed = False
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.closed:
+            return
+
         if exc_val:
             self.connection.rollback()
             self.cursor.close()
-            self.cursor.close()
+            self.connection.close()
         else:
             self.connection.commit()
             self.cursor.close()
             self.connection.close()
+
+        self.closed = True
 
     def commit(self):
         self.connection.commit()

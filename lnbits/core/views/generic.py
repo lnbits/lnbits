@@ -123,6 +123,6 @@ async def lnurlwallet():
     user = get_user(account.id)
     wallet = create_wallet(user_id=user.id)
 
-    run_on_pseudo_request(redeem_lnurl_withdraw(wallet.id, withdraw_res, "LNbits initial funding: voucher redeem."))
+    run_on_pseudo_request(redeem_lnurl_withdraw, wallet.id, withdraw_res, "LNbits initial funding: voucher redeem.")
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
