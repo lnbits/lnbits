@@ -4,7 +4,6 @@ import base64
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from lnbits import bolt11
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 

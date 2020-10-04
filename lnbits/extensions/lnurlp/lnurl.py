@@ -2,11 +2,10 @@ import hashlib
 from http import HTTPStatus
 from quart import jsonify, url_for
 from lnurl import LnurlPayResponse, LnurlPayActionResponse
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
 from lnbits.core.services import create_invoice
 
-from lnbits.extensions.lnurlp import lnurlp_ext
+from . import lnurlp_ext
 from .crud import increment_pay_link, save_link_invoice
 
 
