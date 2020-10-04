@@ -32,4 +32,5 @@ E.g. when you want to use LND you have to run:
 
 ```sh
 ./venv/bin/pip install lndgrpc
+./venv/bin/pip install purerpc
 ```

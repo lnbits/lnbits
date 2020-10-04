@@ -34,7 +34,7 @@ You will need to copy `.env.example` to `.env`, then set variables there.
 ![Files](https://i.imgur.com/ri2zOe8.png)
 
 You might also need to install additional packages, depending on the [backend wallet](../guide/wallets.md) you use.
-E.g. when you want to use LND you have to `pipenv run pip install lndgrpc`.
+E.g. when you want to use LND you have to `pipenv run pip install lndgrpc` and `pipenv run pip install pureprc`.
 
 Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Network dev environment.
 

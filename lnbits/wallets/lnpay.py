@@ -95,6 +95,6 @@ class LNPayWallet(Wallet):
             )
             data = r.json()
             if data["settled"]:
-                self.send.send(lntx_id)
+                await self.send.send(lntx_id)
 
         return "", HTTPStatus.NO_CONTENT

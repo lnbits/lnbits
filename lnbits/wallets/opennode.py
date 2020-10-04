@@ -97,5 +97,5 @@ class OpenNodeWallet(Wallet):
             print("invalid webhook, not from opennode")
             return "", HTTPStatus.NO_CONTENT
 
-        self.send.send(charge_id)
+        await self.send.send(charge_id)
         return "", HTTPStatus.NO_CONTENT

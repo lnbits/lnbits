@@ -4,6 +4,12 @@ try:
 except ImportError:  # pragma: nocover
     lndgrpc = None
 
+try:
+    import purerpc  # type: ignore
+except ImportError:  # pragma: nocover
+    purerpc = None
+
+import trio  # type: ignore
 import binascii
 import base64
 import hashlib
@@ -34,33 +40,31 @@ class LndWallet(Wallet):
         if lndgrpc is None:  # pragma: nocover
             raise ImportError("The `lndgrpc` library must be installed to use `LndWallet`.")
 
+        if purerpc is None:
+            import warnings
+
+            warnings.warn("To enable invoices subscription on `LndWallet` the `purerpc` library must be nistalled.")
+
         endpoint = getenv("LND_GRPC_ENDPOINT")
-        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        port = getenv("LND_GRPC_PORT")
-        cert = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
-        auth_admin = getenv("LND_GRPC_ADMIN_MACAROON") or getenv("LND_ADMIN_MACAROON")
-        auth_invoices = getenv("LND_GRPC_INVOICE_MACAROON") or getenv("LND_INVOICE_MACAROON")
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.port = int(getenv("LND_GRPC_PORT"))
+        self.cert_path = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
+        self.auth_admin = getenv("LND_GRPC_ADMIN_MACAROON") or getenv("LND_ADMIN_MACAROON")
+        self.auth_invoices = getenv("LND_GRPC_INVOICE_MACAROON") or getenv("LND_INVOICE_MACAROON")
         network = getenv("LND_GRPC_NETWORK", "mainnet")
 
         self.admin_rpc = lndgrpc.LNDClient(
-            endpoint + ":" + port,
-            cert_filepath=cert,
+            f"{self.endpoint}:{self.port}",
+            cert_filepath=self.cert_path,
             network=network,
-            macaroon_filepath=auth_admin,
+            macaroon_filepath=self.auth_admin,
         )
 
         self.invoices_rpc = lndgrpc.LNDClient(
-            endpoint + ":" + port,
-            cert_filepath=cert,
+            f"{self.endpoint}:{self.port}",
+            cert_filepath=self.cert_path,
             network=network,
-            macaroon_filepath=auth_invoices,
-        )
-
-        self.async_rpc = lndgrpc.AsyncLNDClient(
-            endpoint + ":" + port,
-            cert_filepath=cert,
-            network=network,
-            macaroon_filepath=auth_invoices,
+            macaroon_filepath=self.auth_invoices,
         )
 
     def create_invoice(
@@ -114,9 +118,71 @@ class LndWallet(Wallet):
         return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        async for inv in self.async_rpc._ln_stub.SubscribeInvoices(ln.InvoiceSubscription()):
-            if not inv.settled:
-                continue
+        if not purerpc:
+            trio.sleep(5)
+            yield ""
 
-            checking_id = stringify_checking_id(inv.r_hash)
-            yield checking_id
+        async with purerpc.secure_channel(
+            self.endpoint,
+            self.port,
+            get_ssl_context(self.cert_path),
+        ) as channel:
+            client = purerpc.Client("lnrpc.Lightning", channel)
+            subscribe_invoices = client.get_method_stub(
+                "SubscribeInvoices",
+                purerpc.RPCSignature(
+                    purerpc.Cardinality.UNARY_STREAM,
+                    ln.InvoiceSubscription,
+                    ln.Invoice,
+                ),
+            )
+            macaroon = load_macaroon(self.auth_admin)
+
+            async for inv in subscribe_invoices(
+                ln.InvoiceSubscription(),
+                metadata=[("macaroon", macaroon)],
+            ):
+                if not inv.settled:
+                    continue
+
+                checking_id = stringify_checking_id(inv.r_hash)
+                yield checking_id
+
+
+def get_ssl_context(cert_path: str):
+    import ssl
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    context.options |= ssl.OP_NO_SSLv2
+    context.options |= ssl.OP_NO_SSLv3
+    context.options |= ssl.OP_NO_TLSv1
+    context.options |= ssl.OP_NO_TLSv1_1
+    context.options |= ssl.OP_NO_COMPRESSION
+    context.set_ciphers(
+        ":".join(
+            [
+                "ECDHE+AESGCM",
+                "ECDHE+CHACHA20",
+                "DHE+AESGCM",
+                "DHE+CHACHA20",
+                "ECDH+AESGCM",
+                "DH+AESGCM",
+                "ECDH+AES",
+                "DH+AES",
+                "RSA+AESGCM",
+                "RSA+AES",
+                "!aNULL",
+                "!eNULL",
+                "!MD5",
+                "!DSS",
+            ]
+        )
+    )
+    context.load_verify_locations(capath=cert_path)
+    return context
+
+
+def load_macaroon(macaroon_path: str):
+    with open(macaroon_path, "rb") as f:
+        macaroon_bytes = f.read()
+        return macaroon_bytes.hex()
