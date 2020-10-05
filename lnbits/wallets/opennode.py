@@ -42,7 +42,7 @@ class OpenNodeWallet(Wallet):
         data = r.json()["data"]
         checking_id = data["id"]
         payment_request = data["lightning_invoice"]["payreq"]
-        return InvoiceResponse(True, checking_id, payment_request, error_message)
+        return InvoiceResponse(True, checking_id, payment_request, None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = httpx.post(
@@ -54,9 +54,9 @@ class OpenNodeWallet(Wallet):
             return PaymentResponse(False, None, 0, error_message)
 
         data = r.json()["data"]
-        checking_id, fee_msat = data["id"]
+        checking_id = data["id"]
         fee_msat = data["fee"] * 1000
-        return PaymentResponse(True, checking_id, fee_msat, error_message)
+        return PaymentResponse(True, checking_id, fee_msat, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth_invoice)
