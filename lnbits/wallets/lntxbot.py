@@ -1,5 +1,6 @@
+import trio  # type: ignore
 from os import getenv
-from typing import Optional, Dict
+from typing import Optional, Dict, AsyncGenerator
 from requests import post
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
@@ -75,3 +76,8 @@ class LntxbotWallet(Wallet):
 
         statuses = {"complete": True, "failed": False, "pending": None, "unknown": None}
         return PaymentStatus(statuses[r.json().get("status", "unknown")])
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        print("lntxbot does not support paid invoices stream yet")
+        await trio.sleep(5)
+        yield ""

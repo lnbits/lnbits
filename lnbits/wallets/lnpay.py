@@ -1,6 +1,10 @@
+import json
+import trio  # type: ignore
+import httpx
 from os import getenv
-from typing import Optional, Dict
-from requests import get, post
+from http import HTTPStatus
+from typing import Optional, Dict, AsyncGenerator
+from quart import request
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -9,15 +13,16 @@ class LNPayWallet(Wallet):
     """https://docs.lnpay.co/"""
 
     def __init__(self):
-        endpoint = getenv("LNPAY_API_ENDPOINT")
+        endpoint = getenv("LNPAY_API_ENDPOINT", "https://lnpay.co/v1")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.auth_admin = getenv("LNPAY_ADMIN_KEY")
-        self.auth_invoice = getenv("LNPAY_INVOICE_KEY")
-        self.auth_read = getenv("LNPAY_READ_KEY")
         self.auth_api = {"X-Api-Key": getenv("LNPAY_API_KEY")}
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
@@ -25,12 +30,17 @@ class LNPayWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = post(
-            url=f"{self.endpoint}/user/wallet/{self.auth_invoice}/invoice",
+        r = httpx.post(
+            url=f"{self.endpoint}/user/wallet/{self.auth_admin}/invoice",
             headers=self.auth_api,
             json=data,
         )
-        ok, checking_id, payment_request, error_message = r.status_code == 201, None, None, r.text
+        ok, checking_id, payment_request, error_message = (
+            r.status_code == 201,
+            None,
+            None,
+            r.text,
+        )
 
         if ok:
             data = r.json()
@@ -39,7 +49,7 @@ class LNPayWallet(Wallet):
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = post(
+        r = httpx.post(
             url=f"{self.endpoint}/user/wallet/{self.auth_admin}/withdraw",
             headers=self.auth_api,
             json={"payment_request": bolt11},
@@ -55,10 +65,36 @@ class LNPayWallet(Wallet):
         return self.get_payment_status(checking_id)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/user/lntx/{checking_id}", headers=self.auth_api)
+        r = httpx.get(
+            url=f"{self.endpoint}/user/lntx/{checking_id}?fields=settled",
+            headers=self.auth_api,
+        )
 
-        if not r.ok:
+        if r.is_error:
             return PaymentStatus(None)
 
         statuses = {0: None, 1: True, -1: False}
         return PaymentStatus(statuses[r.json()["settled"]])
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        self.send, receive = trio.open_memory_channel(0)
+        async for value in receive:
+            yield value
+
+    async def webhook_listener(self):
+        text: str = await request.get_data()
+        data = json.loads(text)
+        if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
+            return "", HTTPStatus.NO_CONTENT
+
+        lntx_id = data["data"]["wtx"]["lnTx"]["id"]
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{self.endpoint}/user/lntx/{lntx_id}?fields=settled",
+                headers=self.auth_api,
+            )
+            data = r.json()
+            if data["settled"]:
+                await self.send.send(lntx_id)
+
+        return "", HTTPStatus.NO_CONTENT

@@ -131,6 +131,19 @@ def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wallet]:
 # ---------------
 
 
+def get_standalone_payment(checking_id: str) -> Optional[Payment]:
+    row = g.db.fetchone(
+        """
+        SELECT *
+        FROM apipayments
+        WHERE checking_id = ?
+        """,
+        (checking_id,),
+    )
+
+    return Payment.from_row(row) if row else None
+
+
 def get_wallet_payment(wallet_id: str, payment_hash: str) -> Optional[Payment]:
     row = g.db.fetchone(
         """

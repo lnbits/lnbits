@@ -1,24 +1,26 @@
+import trio  # type: ignore
 import importlib
 
-from quart import Quart, g
+from quart import g
+from quart_trio import QuartTrio
 from quart_cors import cors  # type: ignore
 from quart_compress import Compress  # type: ignore
 from secure import SecureHeaders  # type: ignore
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
-from .db import open_db
+from .db import open_db, open_ext_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
 
 secure_headers = SecureHeaders(hsts=False)
 
 
-def create_app(config_object="lnbits.settings") -> Quart:
+def create_app(config_object="lnbits.settings") -> QuartTrio:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
-    app = Quart(__name__, static_folder="static")
+    app = QuartTrio(__name__, static_folder="static")
     app.config.from_object(config_object)
     app.asgi_http_class = ASGIProxyFix
 
@@ -30,29 +32,40 @@ def create_app(config_object="lnbits.settings") -> Quart:
     register_filters(app)
     register_commands(app)
     register_request_hooks(app)
+    register_async_tasks(app)
 
     return app
 
 
-def register_blueprints(app: Quart) -> None:
+def register_blueprints(app: QuartTrio) -> None:
     """Register Flask blueprints / LNbits extensions."""
     app.register_blueprint(core_app)
 
     for ext in get_valid_extensions():
         try:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
-            app.register_blueprint(getattr(ext_module, f"{ext.code}_ext"), url_prefix=f"/{ext.code}")
+            bp = getattr(ext_module, f"{ext.code}_ext")
+
+            @bp.before_request
+            async def before_request():
+                g.ext_db = open_ext_db(ext.code)
+
+            @bp.teardown_request
+            async def after_request(exc):
+                g.ext_db.__exit__(type(exc), exc, None)
+
+            app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
             raise ImportError(f"Please make sure that the extension `{ext.code}` follows conventions.")
 
 
-def register_commands(app: Quart):
+def register_commands(app: QuartTrio):
     """Register Click commands."""
     app.cli.add_command(db_migrate)
     app.cli.add_command(handle_assets)
 
 
-def register_assets(app: Quart):
+def register_assets(app: QuartTrio):
     """Serve each vendored asset separately or a bundle."""
 
     @app.before_request
@@ -65,13 +78,13 @@ def register_assets(app: Quart):
             g.VENDORED_CSS = ["/static/bundle.css"]
 
 
-def register_filters(app: Quart):
+def register_filters(app: QuartTrio):
     """Jinja filters."""
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
 
 
-def register_request_hooks(app: Quart):
+def register_request_hooks(app: QuartTrio):
     """Open the core db for each request so everything happens in a big transaction"""
 
     @app.before_request
@@ -86,3 +99,20 @@ def register_request_hooks(app: Quart):
     @app.teardown_request
     async def after_request(exc):
         g.db.__exit__(type(exc), exc, None)
+
+
+def register_async_tasks(app):
+    from lnbits.core.tasks import invoice_listener, webhook_handler
+
+    @app.route("/wallet/webhook", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+    async def webhook_listener():
+        return await webhook_handler()
+
+    @app.before_serving
+    async def listeners():
+        app.nursery.start_soon(invoice_listener)
+        print("started invoice_listener")
+
+    @app.after_serving
+    async def stop_listeners():
+        pass

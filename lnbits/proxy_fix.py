@@ -5,10 +5,10 @@ from urllib.parse import urlparse
 from werkzeug.datastructures import Headers
 
 from quart import Request
-from quart.asgi import ASGIHTTPConnection
+from quart_trio.asgi import TrioASGIHTTPConnection
 
 
-class ASGIProxyFix(ASGIHTTPConnection):
+class ASGIProxyFix(TrioASGIHTTPConnection):
     def _create_request_from_scope(self, send: Callable) -> Request:
         headers = Headers()
         headers["Remote-Addr"] = (self.scope.get("client") or ["<local>"])[0]

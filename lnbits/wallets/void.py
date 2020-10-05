@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
@@ -17,3 +17,6 @@ class VoidWallet(Wallet):
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         raise Unsupported("")
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        yield ""

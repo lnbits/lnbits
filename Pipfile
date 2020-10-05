@@ -21,10 +21,13 @@ quart-compress = "*"
 secure = "*"
 typing-extensions = "*"
 httpx = "*"
+quart-trio = "*"
+trio = "*"
+hypercorn = {extras = ["trio"], version = "*"}
 
 [dev-packages]
 black = "==20.8b1"
 pytest = "*"
 pytest-cov = "*"
-pytest-asyncio = "*"
 mypy = "==0.761"
+pytest-trio = "*"

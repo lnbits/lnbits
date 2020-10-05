@@ -1,11 +1,8 @@
-import hashlib
-from quart import g, jsonify, request, url_for
+from quart import g, jsonify, request
 from http import HTTPStatus
-from lnurl import LnurlPayResponse, LnurlPayActionResponse
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import create_invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from lnbits.extensions.lnurlp import lnurlp_ext
@@ -14,7 +11,6 @@ from .crud import (
     get_pay_link,
     get_pay_links,
     update_pay_link,
-    increment_pay_link,
     delete_pay_link,
 )
 
@@ -60,6 +56,7 @@ async def api_link_retrieve(link_id):
     schema={
         "description": {"type": "string", "empty": False, "required": True},
         "amount": {"type": "integer", "min": 1, "required": True},
+        "webhook_url": {"type": "string", "required": False},
     }
 )
 async def api_link_create_or_update(link_id=None):
@@ -93,39 +90,3 @@ async def api_link_delete(link_id):
     delete_pay_link(link_id)
 
     return "", HTTPStatus.NO_CONTENT
-
-
-@lnurlp_ext.route("/api/v1/lnurl/<link_id>", methods=["GET"])
-async def api_lnurl_response(link_id):
-    link = increment_pay_link(link_id, served_meta=1)
-    if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
-
-    url = url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True)
-
-    resp = LnurlPayResponse(
-        callback=url,
-        min_sendable=link.amount * 1000,
-        max_sendable=link.amount * 1000,
-        metadata=link.lnurlpay_metadata,
-    )
-
-    return jsonify(resp.dict()), HTTPStatus.OK
-
-
-@lnurlp_ext.route("/api/v1/lnurl/cb/<link_id>", methods=["GET"])
-async def api_lnurl_callback(link_id):
-    link = increment_pay_link(link_id, served_pr=1)
-    if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
-
-    _, payment_request = create_invoice(
-        wallet_id=link.wallet,
-        amount=link.amount,
-        memo=link.description,
-        description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
-        extra={"tag": "lnurlp"},
-    )
-    resp = LnurlPayActionResponse(pr=payment_request, success_action=None, routes=[])
-
-    return jsonify(resp.dict()), HTTPStatus.OK

@@ -1,7 +1,8 @@
 import random
-import requests
+import json
+import httpx
 from os import getenv
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -16,7 +17,7 @@ class UnknownError(Exception):
 
 class SparkWallet(Wallet):
     def __init__(self):
-        self.url = getenv("SPARK_URL")
+        self.url = getenv("SPARK_URL").replace("/rpc", "")
         self.token = getenv("SPARK_TOKEN")
 
     def __getattr__(self, key):
@@ -28,12 +29,12 @@ class SparkWallet(Wallet):
             elif kwargs:
                 params = kwargs
 
-            r = requests.post(self.url, headers={"X-Access": self.token}, json={"method": key, "params": params})
+            r = httpx.post(self.url + "/rpc", headers={"X-Access": self.token}, json={"method": key, "params": params})
             try:
                 data = r.json()
             except:
                 raise UnknownError(r.text)
-            if not r.ok:
+            if r.is_error:
                 raise SparkError(data["message"])
             return data
 
@@ -91,3 +92,14 @@ class SparkWallet(Wallet):
                 return PaymentStatus(False)
             return PaymentStatus(None)
         raise KeyError("supplied an invalid checking_id")
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        url = self.url + "/stream?access-key=" + self.token
+
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream("GET", url) as r:
+                async for line in r.aiter_lines():
+                    if line.startswith("data:"):
+                        data = json.loads(line[5:])
+                        if "pay_index" in data and data.get("status") == "paid":
+                            yield data["label"]
