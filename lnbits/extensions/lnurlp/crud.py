@@ -6,7 +6,9 @@ from lnbits.db import open_ext_db
 from .models import PayLink
 
 
-def create_pay_link(*, wallet_id: str, description: str, amount: int, webhook_url: str) -> Optional[PayLink]:
+def create_pay_link(
+    *, wallet_id: str, description: str, amount: int, webhook_url: Optional[str] = None
+) -> Optional[PayLink]:
     with open_ext_db("lnurlp") as db:
         db.execute(
             """
