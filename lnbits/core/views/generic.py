@@ -1,3 +1,4 @@
+import trio  # type: ignore
 import httpx
 from os import path
 from http import HTTPStatus
@@ -122,7 +123,11 @@ async def lnurlwallet():
     account = create_account()
     user = get_user(account.id)
     wallet = create_wallet(user_id=user.id)
+    g.db.commit()
 
-    run_on_pseudo_request(redeem_lnurl_withdraw, wallet.id, withdraw_res, "LNbits initial funding: voucher redeem.")
+    await run_on_pseudo_request(
+        redeem_lnurl_withdraw, wallet.id, withdraw_res, "LNbits initial funding: voucher redeem."
+    )
+    await trio.sleep(3)
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
