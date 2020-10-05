@@ -13,7 +13,10 @@ class LndRestWallet(Wallet):
     def __init__(self):
 
         endpoint = getenv("LND_REST_ENDPOINT")
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        endpoint = "https://" + endpoint if not endpoint.startswith("http") else endpoint
+        self.endpoint = endpoint
+
         self.auth_admin = {
             "Grpc-Metadata-macaroon": getenv("LND_ADMIN_MACAROON") or getenv("LND_REST_ADMIN_MACAROON"),
         }
