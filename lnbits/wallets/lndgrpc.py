@@ -9,7 +9,6 @@ try:
 except ImportError:  # pragma: nocover
     purerpc = None
 
-import trio  # type: ignore
 import binascii
 import base64
 import hashlib
@@ -40,10 +39,8 @@ class LndWallet(Wallet):
         if lndgrpc is None:  # pragma: nocover
             raise ImportError("The `lndgrpc` library must be installed to use `LndWallet`.")
 
-        if purerpc is None:
-            import warnings
-
-            warnings.warn("To enable invoices subscription on `LndWallet` the `purerpc` library must be nistalled.")
+        if purerpc is None:  # pragma: nocover
+            raise ImportError("The `purerpc` library must be installed to use `LndWallet`.")
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
@@ -118,10 +115,6 @@ class LndWallet(Wallet):
         return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        if not purerpc:
-            trio.sleep(5)
-            yield ""
-
         async with purerpc.secure_channel(
             self.endpoint,
             self.port,
