@@ -18,7 +18,7 @@ python3 -m venv venv
 cp .env.example .env
 ./venv/bin/quart assets
 ./venv/bin/quart migrate
-./venv/bin/hypercorn --bind 0.0.0.0:5000 'lnbits.app:create_app()'
+./venv/bin/hypercorn -k trio --bind 0.0.0.0:5000 'lnbits.app:create_app()'
 ```
 
 No you can visit your LNbits at http://localhost:5000/.
