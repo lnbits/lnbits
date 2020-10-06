@@ -81,12 +81,12 @@ class LndRestWallet(Wallet):
             url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert,
         )
 
-        if not r or not r.json().get("settled"):
+        if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
             # it will return an error and no "settled" attribute on the object
             return PaymentStatus(None)
 
-        return PaymentStatus(r.json()["settled"])
+        return PaymentStatus(True)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(
