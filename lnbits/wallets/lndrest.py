@@ -37,12 +37,7 @@ class LndRestWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = httpx.post(
-            url=f"{self.endpoint}/v1/invoices",
-            headers=self.auth_invoice,
-            verify=self.auth_cert,
-            json=data,
-        )
+        r = httpx.post(url=f"{self.endpoint}/v1/invoices", headers=self.auth_invoice, verify=self.auth_cert, json=data,)
 
         if r.is_error:
             error_message = r.text
@@ -83,11 +78,12 @@ class LndRestWallet(Wallet):
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
         r = httpx.get(
-            url=f"{self.endpoint}/v1/invoice/{checking_id}",
-            headers=self.auth_invoice,
-            verify=self.auth_cert,
+            url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth_invoice, verify=self.auth_cert,
         )
-        if not r or r.json()["settled"] == False:
+
+        if not r or not r.json().get("settled"):
+            # this must also work when checking_id is not a hex recognizable by lnd
+            # it will return an error and no "settled" attribute on the object
             return PaymentStatus(None)
 
         return PaymentStatus(r.json()["settled"])
