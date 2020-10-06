@@ -1,4 +1,4 @@
-/* global Vue, LNbits, EventHub */
+/* global Vue, moment, LNbits, EventHub */
 
 Vue.component('lnbits-fsat', {
   props: {
@@ -173,4 +173,32 @@ Vue.component('lnbits-extension-list', {
       this.user = LNbits.map.user(window.user)
     }
   }
+})
+
+Vue.component('lnbits-payment-details', {
+  props: ['payment'],
+  template: `
+    <div class="q-py-md" style="text-align: left">
+      <div class="row">
+        <div class="col-3"><b>Date</b>:</div>
+        <div class="col-9">{{ payment.date }} ({{ payment.dateFrom }})</div>
+      </div>
+      <div class="row">
+        <div class="col-3"><b>Description</b>:</div>
+        <div class="col-9">{{ payment.memo }}</div>
+      </div>
+      <div class="row">
+        <div class="col-3"><b>Amount</b>:</div>
+        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} sat</div>
+      </div>
+      <div class="row">
+        <div class="col-3"><b>Fee</b>:</div>
+        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} sat</div>
+      </div>
+      <div class="row">
+        <div class="col-3"><b>Payment hash</b>:</div>
+        <div class="col-9 text-wrap mono">{{ payment.payment_hash }}</div>
+      </div>
+    </div>
+  `
 })

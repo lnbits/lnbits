@@ -1,4 +1,4 @@
-/* globals decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart */
+/* globals moment, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart */
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
@@ -162,6 +162,12 @@ new Vue({
             label: 'Amount (sat)',
             field: 'sat',
             sortable: true
+          },
+          {
+            name: 'fee',
+            align: 'right',
+            label: 'Fee (msat)',
+            field: 'fee'
           }
         ],
         pagination: {

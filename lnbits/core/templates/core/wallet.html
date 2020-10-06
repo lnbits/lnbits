@@ -114,50 +114,55 @@
                 {{ props.row.memo }}
               </q-td>
               <q-td auto-width key="date" :props="props">
-                {{ props.row.date }}
+                <q-tooltip>{{ props.row.date }}</q-tooltip>
+                {{ props.row.dateFrom }}
               </q-td>
               <q-td auto-width key="sat" :props="props">
                 {{ props.row.fsat }}
               </q-td>
+              <q-td auto-width key="sat" :props="props">
+                {{ props.row.fee }}
+              </q-td>
             </q-tr>
 
             <q-dialog v-model="props.expand" :props="props">
-              <q-card
-                v-if="props.row.amount > 0 && props.row.pending"
-                class="q-pa-lg q-pt-xl lnbits__dialog-card"
-              >
+              <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
                 <div class="text-center q-mb-lg">
-                  <a :href="'lightning:' + props.row.bolt11">
-                    <q-responsive :ratio="1" class="q-mx-xl">
-                      <qrcode
-                        :value="props.row.bolt11"
-                        :options="{width: 340}"
-                        class="rounded-borders"
-                      ></qrcode>
-                    </q-responsive>
-                  </a>
-                </div>
-                <div class="row q-mt-lg">
-                  <q-btn
-                    outline
-                    color="grey"
-                    @click="copyText(props.row.bolt11)"
-                    >Copy invoice</q-btn
-                  >
-                  <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-                    >Close</q-btn
-                  >
-                </div>
-              </q-card>
-              <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-                <div class="text-center q-mb-lg">
-                  <div v-if="props.row.isPaid && props.row.isIn">
+                  <div v-if="props.row.isIn && props.row.pending">
+                    <q-icon name="settings_ethernet" color="grey"></q-icon>
+                    Invoice waiting to be paid
+                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
+                    <div v-if="props.row.bolt11" class="text-center q-mb-lg">
+                      <a :href="'lightning:' + props.row.bolt11">
+                        <q-responsive :ratio="1" class="q-mx-xl">
+                          <qrcode
+                            :value="props.row.bolt11"
+                            :options="{width: 340}"
+                            class="rounded-borders"
+                          ></qrcode>
+                        </q-responsive>
+                      </a>
+                    </div>
+                    <div class="row q-mt-lg">
+                      <q-btn
+                        outline
+                        color="grey"
+                        @click="copyText(props.row.bolt11)"
+                        >Copy invoice</q-btn
+                      >
+                      <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                        >Close</q-btn
+                      >
+                    </div>
+                  </div>
+                  <div v-else-if="props.row.isPaid && props.row.isIn">
                     <q-icon
                       size="18px"
                       :name="'call_received'"
                       :color="'green'"
                     ></q-icon>
                     Payment Received
+                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
                   </div>
                   <div v-else-if="props.row.isPaid && props.row.isOut">
                     <q-icon
@@ -166,14 +171,12 @@
                       :color="'pink'"
                     ></q-icon>
                     Payment Sent
+                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
                   </div>
-                  <div v-else>
+                  <div v-else-if="props.row.isOut && props.row.pending">
                     <q-icon name="settings_ethernet" color="grey"></q-icon>
                     Outgoing payment pending
-                  </div>
-                  <q-tooltip>Payment Hash</q-tooltip>
-                  <div class="text-wrap mono q-pt-sm text-body1">
-                    {{ props.row.payment_hash }}
+                    <lnbits-payment-details :payment="props.row"></lnbits-payment-details>
                   </div>
                 </div>
               </q-card>

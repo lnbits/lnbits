@@ -1,4 +1,4 @@
-/* globals Vue, EventHub, axios, Quasar, _ */
+/* globals moment, Vue, EventHub, axios, Quasar, _ */
 
 var LOCALE = 'en'
 
@@ -115,6 +115,7 @@ var LNbits = {
         new Date(obj.time * 1000),
         'YYYY-MM-DD HH:mm'
       )
+      obj.dateFrom = moment(obj.date).fromNow()
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra.tag
