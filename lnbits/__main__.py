@@ -1,6 +1,6 @@
 from .app import create_app
 from .commands import migrate_databases, transpile_scss, bundle_vendored
-from .settings import LNBITS_SITE_TITLE, SERVICE_FEE, DEBUG, LNBITS_DATA_FOLDER, WALLET
+from .settings import LNBITS_SITE_TITLE, SERVICE_FEE, DEBUG, LNBITS_DATA_FOLDER, WALLET, LNBITS_COMMIT
 
 migrate_databases()
 transpile_scss()
@@ -10,6 +10,7 @@ app = create_app()
 
 print(
     f"""Starting LNbits with
+  - git version: {LNBITS_COMMIT}
   - site title: {LNBITS_SITE_TITLE}
   - debug: {DEBUG}
   - data folder: {LNBITS_DATA_FOLDER}
