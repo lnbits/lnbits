@@ -8,6 +8,7 @@ from lnurl import LnurlResponse, LnurlWithdrawResponse, decode as decode_lnurl  
 from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE
+from lnbits.tasks import run_on_pseudo_request
 
 from ..crud import (
     create_account,
@@ -17,7 +18,6 @@ from ..crud import (
     delete_wallet,
 )
 from ..services import redeem_lnurl_withdraw
-from ..tasks import run_on_pseudo_request
 
 
 @core_app.route("/favicon.ico")

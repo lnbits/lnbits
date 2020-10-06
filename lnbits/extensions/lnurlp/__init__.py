@@ -9,6 +9,6 @@ from .views import *  # noqa
 from .lnurl import *  # noqa
 from .tasks import on_invoice_paid
 
-from lnbits.core.tasks import register_invoice_listener
+from lnbits.tasks import register_invoice_listener
 
 register_invoice_listener("lnurlp", on_invoice_paid)

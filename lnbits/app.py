@@ -12,6 +12,7 @@ from .core import core_app
 from .db import open_db, open_ext_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
+from .tasks import invoice_listener, webhook_handler, grab_app_for_later
 
 secure_headers = SecureHeaders(hsts=False)
 
@@ -33,6 +34,7 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
     register_commands(app)
     register_request_hooks(app)
     register_async_tasks(app)
+    grab_app_for_later(app)
 
     return app
 
@@ -52,7 +54,7 @@ def register_blueprints(app: QuartTrio) -> None:
 
             @bp.teardown_request
             async def after_request(exc):
-                g.ext_db.__exit__(type(exc), exc, None)
+                g.ext_db.close()
 
             app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
@@ -90,6 +92,7 @@ def register_request_hooks(app: QuartTrio):
     @app.before_request
     async def before_request():
         g.db = open_db()
+        g.nursery = app.nursery
 
     @app.after_request
     async def set_secure_headers(response):
@@ -98,12 +101,10 @@ def register_request_hooks(app: QuartTrio):
 
     @app.teardown_request
     async def after_request(exc):
-        g.db.__exit__(type(exc), exc, None)
+        g.db.close()
 
 
 def register_async_tasks(app):
-    from lnbits.core.tasks import invoice_listener, webhook_handler
-
     @app.route("/wallet/webhook", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
     async def webhook_listener():
         return await webhook_handler()
@@ -111,7 +112,7 @@ def register_async_tasks(app):
     @app.before_serving
     async def listeners():
         app.nursery.start_soon(invoice_listener)
-        print("started invoice_listener")
+        print("started global invoice_listener.")
 
     @app.after_serving
     async def stop_listeners():

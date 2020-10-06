@@ -12,6 +12,9 @@ class Database:
         self.cursor = self.connection.cursor()
         self.closed = False
 
+    def close(self):
+        self.__exit__(None, None, None)
+
     def __enter__(self):
         return self
 

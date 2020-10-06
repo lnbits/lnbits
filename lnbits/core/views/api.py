@@ -1,25 +1,23 @@
-from quart import g, jsonify, request
+import trio  # type: ignore
+import json
+from quart import g, jsonify, request, make_response
 from http import HTTPStatus
 from binascii import unhexlify
 
 from lnbits import bolt11
-from lnbits.core import core_app
-from lnbits.core.services import create_invoice, pay_invoice
-from lnbits.core.crud import delete_expired_invoices
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+
+from .. import core_app
+from ..services import create_invoice, pay_invoice
+from ..crud import delete_expired_invoices
+from ..tasks import sse_listeners
 
 
 @core_app.route("/api/v1/wallet", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-        jsonify(
-            {
-                "id": g.wallet.id,
-                "name": g.wallet.name,
-                "balance": g.wallet.balance_msat,
-            }
-        ),
+        jsonify({"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat,}),
         HTTPStatus.OK,
     )
 
@@ -124,3 +122,56 @@ async def api_payment(payment_hash):
         return jsonify({"paid": False}), HTTPStatus.OK
 
     return jsonify({"paid": not payment.pending}), HTTPStatus.OK
+
+
+@core_app.route("/api/v1/payments/sse", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_payments_sse():
+    g.db.close()
+
+    send_payment, receive_payment = trio.open_memory_channel(0)
+
+    print("adding sse listener", send_payment)
+    sse_listeners.append(send_payment)
+
+    send_event, receive_event = trio.open_memory_channel(0)
+
+    async def payment_received() -> None:
+        async for payment in receive_payment:
+            await send_event.send(("payment", payment))
+
+    async def repeat_keepalive():
+        await trio.sleep(1)
+        while True:
+            await send_event.send(("keepalive", ""))
+            await trio.sleep(25)
+
+    g.nursery.start_soon(payment_received)
+    g.nursery.start_soon(repeat_keepalive)
+
+    async def send_events():
+        try:
+            async for typ, data in receive_event:
+                message = [f"event: {typ}".encode("utf-8")]
+
+                if data:
+                    jdata = json.dumps(data)
+                    message.append(f"data: {jdata}".encode("utf-8"))
+
+                yield b"\n".join(message) + b"\r\n\r\n"
+        except trio.Cancelled:
+            print("canceled!")
+            return
+
+    response = await make_response(
+        send_events(),
+        {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+            "Transfer-Encoding": "chunked",
+        },
+    )
+    response.timeout = None
+    return response
