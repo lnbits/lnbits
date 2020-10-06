@@ -1,14 +1,13 @@
 import trio  # type: ignore
 from http import HTTPStatus
-from typing import Optional, Tuple, List, Callable, Awaitable
+from typing import Optional, List, Callable
 from quart import Request, g
 from quart_trio import QuartTrio
 from werkzeug.datastructures import Headers
 
-from lnbits.db import open_db, open_ext_db
+from lnbits.db import open_db
 from lnbits.settings import WALLET
 
-from lnbits.core.models import Payment
 from lnbits.core.crud import get_standalone_payment
 
 main_app: Optional[QuartTrio] = None
@@ -17,6 +16,21 @@ main_app: Optional[QuartTrio] = None
 def grab_app_for_later(app: QuartTrio):
     global main_app
     main_app = app
+
+
+deferred_async: List[Callable] = []
+
+
+def record_async(func: Callable) -> Callable:
+    def recorder(state):
+        deferred_async.append(func)
+
+    return recorder
+
+
+def run_deferred_async(nursery):
+    for func in deferred_async:
+        nursery.start_soon(func)
 
 
 async def send_push_promise(a, b) -> None:
@@ -45,16 +59,16 @@ async def run_on_pseudo_request(func: Callable, *args):
         nursery.start_soon(run)
 
 
-invoice_listeners: List[Tuple[str, Callable[[Payment], Awaitable[None]]]] = []
+invoice_listeners: List[trio.MemorySendChannel] = []
 
 
-def register_invoice_listener(ext_name: str, cb: Callable[[Payment], Awaitable[None]]):
+def register_invoice_listener(send_chan: trio.MemorySendChannel):
     """
     A method intended for extensions to call when they want to be notified about
     new invoice payments incoming.
     """
-    print(f"registering {ext_name} invoice_listener callback: {cb}")
-    invoice_listeners.append((ext_name, cb))
+    print(f"registering invoice_listener: {send_chan}")
+    invoice_listeners.append(send_chan)
 
 
 async def webhook_handler():
@@ -73,9 +87,5 @@ async def invoice_callback_dispatcher(checking_id: str):
     payment = get_standalone_payment(checking_id)
     if payment and payment.is_in:
         payment.set_pending(False)
-        for ext_name, cb in invoice_listeners:
-            if ext_name == "core":
-                await cb(payment)
-            else:
-                with open_ext_db(ext_name) as g.ext_db:  # type: ignore
-                    await cb(payment)
+        for send_chan in invoice_listeners:
+            await send_chan.send(payment)

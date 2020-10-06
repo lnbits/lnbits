@@ -12,7 +12,7 @@ from .core import core_app
 from .db import open_db, open_ext_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
-from .tasks import invoice_listener, webhook_handler, grab_app_for_later
+from .tasks import run_deferred_async, invoice_listener, webhook_handler, grab_app_for_later
 
 secure_headers = SecureHeaders(hsts=False)
 
@@ -111,6 +111,8 @@ def register_async_tasks(app):
 
     @app.before_serving
     async def listeners():
+        run_deferred_async(app.nursery)
+
         app.nursery.start_soon(invoice_listener)
         print("started global invoice_listener.")
 

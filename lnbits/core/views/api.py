@@ -128,6 +128,7 @@ async def api_payment(payment_hash):
 @api_check_wallet_key("invoice")
 async def api_payments_sse():
     g.db.close()
+    this_wallet_id = g.wallet.id
 
     send_payment, receive_payment = trio.open_memory_channel(0)
 
@@ -138,7 +139,8 @@ async def api_payments_sse():
 
     async def payment_received() -> None:
         async for payment in receive_payment:
-            await send_event.send(("payment", payment))
+            if payment.wallet_id == this_wallet_id:
+                await send_event.send(("payment", payment))
 
     async def repeat_keepalive():
         await trio.sleep(1)
@@ -160,7 +162,6 @@ async def api_payments_sse():
 
                 yield b"\n".join(message) + b"\r\n\r\n"
         except trio.Cancelled:
-            print("canceled!")
             return
 
     response = await make_response(

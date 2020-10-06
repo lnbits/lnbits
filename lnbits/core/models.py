@@ -70,6 +70,7 @@ class Payment(NamedTuple):
     preimage: str
     payment_hash: str
     extra: Dict
+    wallet_id: str
 
     @classmethod
     def from_row(cls, row: Row):
@@ -84,6 +85,7 @@ class Payment(NamedTuple):
             fee=row["fee"],
             memo=row["memo"],
             time=row["time"],
+            wallet_id=row["wallet"],
         )
 
     @property

@@ -8,8 +8,8 @@ core_app: Blueprint = Blueprint(
 
 from .views.api import *  # noqa
 from .views.generic import *  # noqa
-from .tasks import on_invoice_paid
+from .tasks import register_listeners
 
-from lnbits.tasks import register_invoice_listener
+from lnbits.tasks import record_async
 
-register_invoice_listener("core", on_invoice_paid)
+core_app.record(record_async(register_listeners))

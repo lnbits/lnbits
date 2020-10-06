@@ -1,8 +1,21 @@
+import trio  # type: ignore
 import httpx
 
 from lnbits.core.models import Payment
+from lnbits.tasks import run_on_pseudo_request, register_invoice_listener
 
 from .crud import get_pay_link_by_invoice, mark_webhook_sent
+
+
+async def register_listeners():
+    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
+    register_invoice_listener(invoice_paid_chan_send)
+    await wait_for_paid_invoices(invoice_paid_chan_recv)
+
+
+async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
+    async for payment in invoice_paid_chan:
+        await run_on_pseudo_request(on_invoice_paid, payment)
 
 
 async def on_invoice_paid(payment: Payment) -> None:

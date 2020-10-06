@@ -7,8 +7,8 @@ lnurlp_ext: Blueprint = Blueprint("lnurlp", __name__, static_folder="static", te
 from .views_api import *  # noqa
 from .views import *  # noqa
 from .lnurl import *  # noqa
-from .tasks import on_invoice_paid
+from .tasks import register_listeners
 
-from lnbits.tasks import register_invoice_listener
+from lnbits.tasks import record_async
 
-register_invoice_listener("lnurlp", on_invoice_paid)
+lnurlp_ext.record(record_async(register_listeners))
