@@ -67,7 +67,6 @@ def register_invoice_listener(send_chan: trio.MemorySendChannel):
     A method intended for extensions to call when they want to be notified about
     new invoice payments incoming.
     """
-    print(f"registering invoice_listener: {send_chan}")
     invoice_listeners.append(send_chan)
 
 

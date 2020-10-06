@@ -1,10 +1,9 @@
+import warnings
 import click
 import importlib
 import re
 import os
 import sqlite3
-
-from scss.compiler import compile_string  # type: ignore
 
 from .core import migrations as core_migrations
 from .db import open_db, open_ext_db
@@ -24,9 +23,13 @@ def handle_assets():
 
 
 def transpile_scss():
-    with open(os.path.join(LNBITS_PATH, "static/scss/base.scss")) as scss:
-        with open(os.path.join(LNBITS_PATH, "static/css/base.css"), "w") as css:
-            css.write(compile_string(scss.read()))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        from scss.compiler import compile_string  # type: ignore
+
+        with open(os.path.join(LNBITS_PATH, "static/scss/base.scss")) as scss:
+            with open(os.path.join(LNBITS_PATH, "static/css/base.css"), "w") as css:
+                css.write(compile_string(scss.read()))
 
 
 def bundle_vendored():

@@ -1,4 +1,3 @@
-import trio  # type: ignore
 import importlib
 
 from quart import g
@@ -112,9 +111,7 @@ def register_async_tasks(app):
     @app.before_serving
     async def listeners():
         run_deferred_async(app.nursery)
-
         app.nursery.start_soon(invoice_listener)
-        print("started global invoice_listener.")
 
     @app.after_serving
     async def stop_listeners():
