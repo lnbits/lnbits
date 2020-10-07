@@ -28,8 +28,8 @@ async def lndhub_getinfo():
 )
 async def lndhub_auth():
     token = (
-        g.data["token"]
-        if "token" in g.data and g.data["token"]
+        g.data["refresh_token"]
+        if "refresh_token" in g.data and g.data["refresh_token"]
         else urlsafe_b64encode((g.data["login"] + ":" + g.data["password"]).encode("utf-8")).decode("ascii")
     )
     return jsonify({"refresh_token": token, "access_token": token})

@@ -17,7 +17,13 @@ from ..tasks import sse_listeners
 @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-        jsonify({"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat,}),
+        jsonify(
+            {
+                "id": g.wallet.id,
+                "name": g.wallet.name,
+                "balance": g.wallet.balance_msat,
+            }
+        ),
         HTTPStatus.OK,
     )
 
