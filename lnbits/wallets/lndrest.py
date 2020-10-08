@@ -17,7 +17,7 @@ class LndRestWallet(Wallet):
         self.endpoint = endpoint
 
         macaroon = (
-            getenv("LND_MACAROON")
+            getenv("LND_REST_MACAROON")
             or getenv("LND_ADMIN_MACAROON")
             or getenv("LND_REST_ADMIN_MACAROON")
             or getenv("LND_INVOICE_MACAROON")
