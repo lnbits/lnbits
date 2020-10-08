@@ -1,7 +1,7 @@
 import trio  # type: ignore
+import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
-from requests import get, post
 
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
@@ -11,8 +11,9 @@ class LNbitsWallet(Wallet):
 
     def __init__(self):
         self.endpoint = getenv("LNBITS_ENDPOINT")
-        self.auth_admin = {"X-Api-Key": getenv("LNBITS_ADMIN_KEY")}
-        self.auth_invoice = {"X-Api-Key": getenv("LNBITS_INVOICE_KEY")}
+
+        key = getenv("LNBITS_KEY") or getenv("LNBITS_ADMIN_KEY") or getenv("LNBITS_INVOICE_KEY")
+        self.key = {"X-Api-Key": key}
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
@@ -23,45 +24,45 @@ class LNbitsWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = post(
+        r = httpx.post(
             url=f"{self.endpoint}/api/v1/payments",
-            headers=self.auth_invoice,
+            headers=self.key,
             json=data,
         )
-        ok, checking_id, payment_request, error_message = r.ok, None, None, None
+        ok, checking_id, payment_request, error_message = not r.is_error, None, None, None
 
-        if r.ok:
+        if r.is_error:
+            error_message = r.json()["message"]
+        else:
             data = r.json()
             checking_id, payment_request = data["checking_id"], data["payment_request"]
-        else:
-            error_message = r.json()["message"]
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = post(url=f"{self.endpoint}/api/v1/payments", headers=self.auth_admin, json={"out": True, "bolt11": bolt11})
-        ok, checking_id, fee_msat, error_message = True, None, 0, None
+        r = httpx.post(url=f"{self.endpoint}/api/v1/payments", headers=self.key, json={"out": True, "bolt11": bolt11})
+        ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
 
-        if r.ok:
+        if r.is_error:
+            error_message = r.json()["message"]
+        else:
             data = r.json()
             checking_id = data["checking_id"]
-        else:
-            error_message = r.json()["message"]
 
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.auth_invoice)
+        r = httpx.get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key)
 
-        if not r.ok:
+        if r.is_error:
             return PaymentStatus(None)
 
         return PaymentStatus(r.json()["paid"])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.auth_invoice)
+        r = httpx.get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key)
 
-        if not r.ok:
+        if r.is_error:
             return PaymentStatus(None)
 
         return PaymentStatus(r.json()["paid"])

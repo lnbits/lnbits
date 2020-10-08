@@ -46,22 +46,28 @@ class LndWallet(Wallet):
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.port = int(getenv("LND_GRPC_PORT"))
         self.cert_path = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
-        self.auth_admin = getenv("LND_GRPC_ADMIN_MACAROON") or getenv("LND_ADMIN_MACAROON")
-        self.auth_invoices = getenv("LND_GRPC_INVOICE_MACAROON") or getenv("LND_INVOICE_MACAROON")
+
+        self.macaroon_path = (
+            getenv("LND_GRPC_MACAROON")
+            or getenv("LND_GRPC_ADMIN_MACAROON")
+            or getenv("LND_ADMIN_MACAROON")
+            or getenv("LND_GRPC_INVOICE_MACAROON")
+            or getenv("LND_INVOICE_MACAROON")
+        )
         network = getenv("LND_GRPC_NETWORK", "mainnet")
 
         self.admin_rpc = lndgrpc.LNDClient(
             f"{self.endpoint}:{self.port}",
             cert_filepath=self.cert_path,
             network=network,
-            macaroon_filepath=self.auth_admin,
+            macaroon_filepath=self.macaroon_path,
         )
 
         self.invoices_rpc = lndgrpc.LNDClient(
             f"{self.endpoint}:{self.port}",
             cert_filepath=self.cert_path,
             network=network,
-            macaroon_filepath=self.auth_invoices,
+            macaroon_filepath=self.macaroon_path,
         )
 
     def create_invoice(
@@ -129,7 +135,7 @@ class LndWallet(Wallet):
                     ln.Invoice,
                 ),
             )
-            macaroon = load_macaroon(self.auth_admin)
+            macaroon = load_macaroon(self.macaroon_path)
 
             async for inv in subscribe_invoices(
                 ln.InvoiceSubscription(),

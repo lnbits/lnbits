@@ -16,8 +16,9 @@ class OpenNodeWallet(Wallet):
     def __init__(self):
         endpoint = getenv("OPENNODE_API_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth_admin = {"Authorization": getenv("OPENNODE_ADMIN_KEY")}
-        self.auth_invoice = {"Authorization": getenv("OPENNODE_INVOICE_KEY")}
+
+        key = getenv("OPENNODE_KEY") or getenv("OPENNODE_ADMIN_KEY") or getenv("OPENNODE_INVOICE_KEY")
+        self.auth = {"Authorization": key}
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
@@ -45,9 +46,7 @@ class OpenNodeWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(
-            f"{self.endpoint}/v2/withdrawals", headers=self.auth_admin, json={"type": "ln", "address": bolt11}
-        )
+        r = httpx.post(f"{self.endpoint}/v2/withdrawals", headers=self.auth, json={"type": "ln", "address": bolt11})
 
         if r.is_error:
             error_message = r.json()["message"]
@@ -68,7 +67,7 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(f"{self.endpoint}/v1/withdrawal/{checking_id}", headers=self.auth_admin)
+        r = httpx.get(f"{self.endpoint}/v1/withdrawal/{checking_id}", headers=self.auth)
 
         if r.is_error:
             return PaymentStatus(None)

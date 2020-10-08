@@ -1,5 +1,6 @@
 import trio  # type: ignore
 import json
+import traceback
 from quart import g, jsonify, request, make_response
 from http import HTTPStatus
 from binascii import unhexlify
@@ -87,10 +88,10 @@ async def api_payments_pay_invoice():
         return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     except PermissionError as e:
         return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
-    except Exception as e:
-        print(e)
+    except Exception as exc:
+        traceback.print_exc(7)
         g.db.rollback()
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({"message": str(exc)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     return (
         jsonify(

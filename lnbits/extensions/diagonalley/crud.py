@@ -1,7 +1,7 @@
 from base64 import urlsafe_b64encode
 from uuid import uuid4
 from typing import List, Optional, Union
-import requests
+import httpx
 from lnbits.db import open_ext_db
 from lnbits.settings import WALLET
 from .models import Products, Orders, Indexers
@@ -120,7 +120,7 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
     with open_ext_db("diagonalley") as db:
         roww = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
     try:
-        x = requests.get(roww["indexeraddress"] + "/" + roww["ratingkey"])
+        x = httpx.get(roww["indexeraddress"] + "/" + roww["ratingkey"])
         if x.status_code == 200:
             print(x)
             print("poo")
@@ -158,7 +158,7 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
 
         for r in rows:
             try:
-                x = requests.get(r["indexeraddress"] + "/" + r["ratingkey"])
+                x = httpx.get(r["indexeraddress"] + "/" + r["ratingkey"])
                 if x.status_code == 200:
                     with open_ext_db("diagonalley") as db:
                         db.execute(

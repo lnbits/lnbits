@@ -3,7 +3,9 @@
 # add your dependencies here
 
 # import json
-# import requests
+# import httpx
+# (use httpx just like requests, except instead of response.ok there's only the
+#  response.is_error that is its inverse)
 
 from quart import jsonify
 from http import HTTPStatus

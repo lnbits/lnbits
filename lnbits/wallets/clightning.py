@@ -73,7 +73,7 @@ class CLightningWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = self.ln.listpays(payment_hash=checking_id)
+        r = self.ln.call("listpays", {"payment_hash": checking_id})
         if not r["pays"]:
             return PaymentStatus(False)
         if r["pays"][0]["payment_hash"] == checking_id:

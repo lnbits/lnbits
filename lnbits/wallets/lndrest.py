@@ -11,19 +11,20 @@ class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
     def __init__(self):
-
         endpoint = getenv("LND_REST_ENDPOINT")
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = "https://" + endpoint if not endpoint.startswith("http") else endpoint
         self.endpoint = endpoint
 
-        self.auth_admin = {
-            "Grpc-Metadata-macaroon": getenv("LND_ADMIN_MACAROON") or getenv("LND_REST_ADMIN_MACAROON"),
-        }
-        self.auth_invoice = {
-            "Grpc-Metadata-macaroon": getenv("LND_INVOICE_MACAROON") or getenv("LND_REST_INVOICE_MACAROON")
-        }
-        self.auth_cert = getenv("LND_REST_CERT")
+        macaroon = (
+            getenv("LND_MACAROON")
+            or getenv("LND_ADMIN_MACAROON")
+            or getenv("LND_REST_ADMIN_MACAROON")
+            or getenv("LND_INVOICE_MACAROON")
+            or getenv("LND_REST_INVOICE_MACAROON")
+        )
+        self.auth = {"Grpc-Metadata-macaroon": macaroon}
+        self.cert = getenv("LND_REST_CERT")
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
@@ -39,8 +40,8 @@ class LndRestWallet(Wallet):
 
         r = httpx.post(
             url=f"{self.endpoint}/v1/invoices",
-            headers=self.auth_invoice,
-            verify=self.auth_cert,
+            headers=self.auth,
+            verify=self.cert,
             json=data,
         )
 
@@ -62,8 +63,8 @@ class LndRestWallet(Wallet):
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = httpx.post(
             url=f"{self.endpoint}/v1/channels/transactions",
-            headers=self.auth_admin,
-            verify=self.auth_cert,
+            headers=self.auth,
+            verify=self.cert,
             json={"payment_request": bolt11},
         )
 
@@ -84,8 +85,8 @@ class LndRestWallet(Wallet):
         checking_id = checking_id.replace("_", "/")
         r = httpx.get(
             url=f"{self.endpoint}/v1/invoice/{checking_id}",
-            headers=self.auth_invoice,
-            verify=self.auth_cert,
+            headers=self.auth,
+            verify=self.cert,
         )
 
         if r.is_error or not r.json().get("settled"):
@@ -98,8 +99,8 @@ class LndRestWallet(Wallet):
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(
             url=f"{self.endpoint}/v1/payments",
-            headers=self.auth_admin,
-            verify=self.auth_cert,
+            headers=self.auth,
+            verify=self.cert,
             params={"include_incomplete": "True", "max_payments": "20"},
         )
 
@@ -118,7 +119,7 @@ class LndRestWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = self.endpoint + "/v1/invoices/subscribe"
 
-        async with httpx.AsyncClient(timeout=None, headers=self.auth_admin, verify=self.auth_cert) as client:
+        async with httpx.AsyncClient(timeout=None, headers=self.auth, verify=self.cert) as client:
             async with client.stream("GET", url) as r:
                 async for line in r.aiter_lines():
                     try:

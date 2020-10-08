@@ -15,8 +15,8 @@ class LNPayWallet(Wallet):
     def __init__(self):
         endpoint = getenv("LNPAY_API_ENDPOINT", "https://lnpay.co/v1")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.auth_admin = getenv("LNPAY_ADMIN_KEY")
-        self.auth_api = {"X-Api-Key": getenv("LNPAY_API_KEY")}
+        self.wallet_key = getenv("LNPAY_WALLET_KEY") or getenv("LNPAY_ADMIN_KEY")
+        self.auth = {"X-Api-Key": getenv("LNPAY_API_KEY")}
 
     def create_invoice(
         self,
@@ -31,8 +31,8 @@ class LNPayWallet(Wallet):
             data["memo"] = memo or ""
 
         r = httpx.post(
-            url=f"{self.endpoint}/user/wallet/{self.auth_admin}/invoice",
-            headers=self.auth_api,
+            url=f"{self.endpoint}/user/wallet/{self.wallet_key}/invoice",
+            headers=self.auth,
             json=data,
         )
         ok, checking_id, payment_request, error_message = (
@@ -50,8 +50,8 @@ class LNPayWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = httpx.post(
-            url=f"{self.endpoint}/user/wallet/{self.auth_admin}/withdraw",
-            headers=self.auth_api,
+            url=f"{self.endpoint}/user/wallet/{self.wallet_key}/withdraw",
+            headers=self.auth,
             json={"payment_request": bolt11},
         )
         ok, checking_id, fee_msat, error_message = r.status_code == 201, None, 0, None
@@ -67,7 +67,7 @@ class LNPayWallet(Wallet):
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(
             url=f"{self.endpoint}/user/lntx/{checking_id}?fields=settled",
-            headers=self.auth_api,
+            headers=self.auth,
         )
 
         if r.is_error:
@@ -91,7 +91,7 @@ class LNPayWallet(Wallet):
         async with httpx.AsyncClient() as client:
             r = await client.get(
                 f"{self.endpoint}/user/lntx/{lntx_id}?fields=settled",
-                headers=self.auth_api,
+                headers=self.auth,
             )
             data = r.json()
             if data["settled"]:

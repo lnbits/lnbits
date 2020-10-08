@@ -1,4 +1,4 @@
-import requests
+import httpx
 from quart import g, jsonify, request, abort
 from http import HTTPStatus
 from lnurl import LnurlWithdrawResponse, handle as handle_lnurl
@@ -38,12 +38,12 @@ async def api_amilkit(amilk_id):
         wallet_id=milk.wallet, amount=withdraw_res.max_sats, memo=memo, extra={"tag": "amilk"}
     )
 
-    r = requests.get(
+    r = httpx.get(
         withdraw_res.callback.base,
         params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": payment_request}},
     )
 
-    if not r.ok:
+    if r.is_error:
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 
     for i in range(10):
