@@ -101,20 +101,21 @@ class LndRestWallet(Wallet):
             url=f"{self.endpoint}/v1/payments",
             headers=self.auth,
             verify=self.cert,
-            params={"include_incomplete": "True", "max_payments": "20"},
+            params={"max_payments": "20", "reversed": True},
         )
 
         if r.is_error:
             return PaymentStatus(None)
 
-        payments = [p for p in r.json()["payments"] if p["payment_hash"] == checking_id]
-        payment = payments[0] if payments else None
-
         # check payment.status:
         # https://api.lightning.community/rest/index.html?python#peersynctype
         statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
 
-        return PaymentStatus(statuses[payment["status"]])
+        for p in r.json()["payments"]:
+            if p["payment_hash"] == checking_id:
+                return PaymentStatus(statuses[p["status"]])
+
+        return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = self.endpoint + "/v1/invoices/subscribe"
