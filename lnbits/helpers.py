@@ -101,7 +101,7 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
             elif minified not in paths:
                 paths.append(path)
 
-    return paths
+    return sorted(paths)
 
 
 def url_for_vendored(abspath: str) -> str:
