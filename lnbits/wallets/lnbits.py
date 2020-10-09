@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import json
 import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
@@ -68,6 +68,18 @@ class LNbitsWallet(Wallet):
         return PaymentStatus(r.json()["paid"])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        print("lnbits does not support paid invoices stream yet")
-        await trio.sleep(5)
-        yield ""
+        url = f"{self.endpoint}/api/v1/payments/sse"
+
+        async with httpx.AsyncClient(timeout=None, headers=self.key) as client:
+            async with client.stream("GET", url) as r:
+                async for line in r.aiter_lines():
+                    if line.startswith("data:"):
+                        try:
+                            data = json.loads(line[5:])
+                        except json.decoder.JSONDecodeError:
+                            continue
+
+                        if type(data) is not list or len(data) < 9:
+                            continue
+
+                        yield data[8]  # payment_hash
