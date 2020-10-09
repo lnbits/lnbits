@@ -33,7 +33,7 @@ async def api_lnurl_callback(link_id):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
-    _, payment_request = create_invoice(
+    payment_hash, payment_request = create_invoice(
         wallet_id=link.wallet,
         amount=link.amount,
         memo=link.description,
@@ -43,6 +43,10 @@ async def api_lnurl_callback(link_id):
 
     save_link_invoice(link_id, payment_request)
 
-    resp = LnurlPayActionResponse(pr=payment_request, success_action=None, routes=[])
+    resp = LnurlPayActionResponse(
+        pr=payment_request,
+        success_action=link.success_action(payment_hash),
+        routes=[],
+    )
 
     return jsonify(resp.dict()), HTTPStatus.OK

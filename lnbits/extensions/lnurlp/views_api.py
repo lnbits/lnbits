@@ -57,6 +57,8 @@ async def api_link_retrieve(link_id):
         "description": {"type": "string", "empty": False, "required": True},
         "amount": {"type": "integer", "min": 1, "required": True},
         "webhook_url": {"type": "string", "required": False},
+        "success_text": {"type": "string", "required": False},
+        "success_url": {"type": "string", "required": False},
     }
 )
 async def api_link_create_or_update(link_id=None):

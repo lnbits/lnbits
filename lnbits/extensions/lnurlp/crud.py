@@ -7,7 +7,13 @@ from .models import PayLink
 
 
 def create_pay_link(
-    *, wallet_id: str, description: str, amount: int, webhook_url: Optional[str] = None
+    *,
+    wallet_id: str,
+    description: str,
+    amount: int,
+    webhook_url: Optional[str] = None,
+    success_text: Optional[str] = None,
+    success_url: Optional[str] = None,
 ) -> Optional[PayLink]:
     with open_ext_db("lnurlp") as db:
         db.execute(
@@ -18,11 +24,13 @@ def create_pay_link(
                 amount,
                 served_meta,
                 served_pr,
-                webhook_url
+                webhook_url,
+                success_text,
+                success_url
             )
-            VALUES (?, ?, ?, 0, 0, ?)
+            VALUES (?, ?, ?, 0, 0, ?, ?, ?)
             """,
-            (wallet_id, description, amount, webhook_url),
+            (wallet_id, description, amount, webhook_url, success_text, success_url),
         )
         link_id = db.cursor.lastrowid
     return get_pay_link(link_id)
@@ -57,7 +65,13 @@ def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[PayLink]:
 
     with open_ext_db("lnurlp") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM pay_links WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(
+            f"""
+            SELECT * FROM pay_links WHERE wallet IN ({q})
+            ORDER BY Id
+            """,
+            (*wallet_ids,),
+        )
 
     return [PayLink.from_row(row) for row in rows]
 

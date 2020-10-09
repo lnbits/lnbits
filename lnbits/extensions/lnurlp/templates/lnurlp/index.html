@@ -137,6 +137,23 @@
           v-model="formDialog.data.webhook_url"
           type="text"
           label="Webhook URL (optional)"
+          hint="An URL to be called whenever this link receives a payment."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="formDialog.data.success_text"
+          type="text"
+          label="Success message (optional)"
+          hint="Will be shown to the user in his wallet after a successful payment."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model="formDialog.data.success_url"
+          type="text"
+          label="Success URL (optional)"
+          hint="Will be shown as a clickable link to the user in his wallet after a successful payment, appended by the payment_hash as a query string."
         ></q-input>
         <div class="row q-mt-lg">
           <q-btn
@@ -183,6 +200,9 @@
         <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
         <strong>Amount:</strong> {{ qrCodeDialog.data.amount }} sat<br />
         <strong>Webhook:</strong> {{ qrCodeDialog.data.webhook_url }}<br />
+        <strong>Success Message:</strong> {{ qrCodeDialog.data.success_text
+        }}<br />
+        <strong>Success URL:</strong> {{ qrCodeDialog.data.success_url }}<br />
       </p>
       {% endraw %}
       <div class="row q-mt-lg q-gutter-sm">
@@ -263,6 +283,13 @@
               align: 'left',
               label: 'Webhook URL',
               field: 'webhook_url'
+            },
+            {
+              name: 'success_action',
+              align: 'center',
+              label: '',
+              format: (_, row) =>
+                row.success_text || row.success_url ? '💬' : ''
             }
           ],
           pagination: {
@@ -341,12 +368,28 @@
       updatePayLink: function (wallet, data) {
         var self = this
 
+        let values = _.omit(
+          _.pick(
+            data,
+            'description',
+            'amount',
+            'webhook_url',
+            'success_text',
+            'success_url'
+          ),
+          (value, key) =>
+            (key === 'webhook_url' ||
+              key === 'success_text' ||
+              key === 'success_url') &&
+            (value === null || value === '')
+        )
+
         LNbits.api
           .request(
             'PUT',
             '/lnurlp/api/v1/links/' + data.id,
             wallet.adminkey,
-            _.pick(data, 'description', 'amount', 'webhook_url')
+            values
           )
           .then(function (response) {
             self.payLinks = _.reject(self.payLinks, function (obj) {
