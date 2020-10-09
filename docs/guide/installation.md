@@ -34,3 +34,8 @@ E.g. when you want to use LND you have to run:
 ./venv/bin/pip install lndgrpc
 ./venv/bin/pip install purerpc
 ```
+
+Dependencies for C-Lightning backend:
+```sh
+./venv/bin/pip install pylightning
+```
