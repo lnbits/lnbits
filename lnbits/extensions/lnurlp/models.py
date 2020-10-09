@@ -38,8 +38,9 @@ class PayLink(NamedTuple):
             url: ParseResult = urlparse(self.success_url)
             qs: Dict = parse_qs(url.query)
             qs["payment_hash"] = payment_hash
-            url = url._replace(query=urlencode(qs))
-            return UrlAction(url=urlunparse(url), description=self.success_text)
+            url = url._replace(query=urlencode(qs, doseq=True))
+            raw: str = urlunparse(url)
+            return UrlAction(url=raw, description=self.success_text)
         elif self.success_text:
             return MessageAction(message=self.success_text)
         else:
