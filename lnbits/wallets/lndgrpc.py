@@ -18,6 +18,45 @@ from typing import Optional, Dict, AsyncGenerator
 from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
+def get_ssl_context(cert_path: str):
+    import ssl
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+    context.options |= ssl.OP_NO_SSLv2
+    context.options |= ssl.OP_NO_SSLv3
+    context.options |= ssl.OP_NO_TLSv1
+    context.options |= ssl.OP_NO_TLSv1_1
+    context.options |= ssl.OP_NO_COMPRESSION
+    context.set_ciphers(
+        ":".join(
+            [
+                "ECDHE+AESGCM",
+                "ECDHE+CHACHA20",
+                "DHE+AESGCM",
+                "DHE+CHACHA20",
+                "ECDH+AESGCM",
+                "DH+AESGCM",
+                "ECDH+AES",
+                "DH+AES",
+                "RSA+AESGCM",
+                "RSA+AES",
+                "!aNULL",
+                "!eNULL",
+                "!MD5",
+                "!DSS",
+            ]
+        )
+    )
+    context.load_verify_locations(capath=cert_path)
+    return context
+
+
+def load_macaroon(macaroon_path: str):
+    with open(macaroon_path, "rb") as f:
+        macaroon_bytes = f.read()
+        return macaroon_bytes.hex()
+
+
 def parse_checking_id(checking_id: str) -> bytes:
     return base64.b64decode(
         checking_id.replace("_", "/"),
@@ -147,41 +186,4 @@ class LndWallet(Wallet):
                 checking_id = stringify_checking_id(inv.r_hash)
                 yield checking_id
 
-
-def get_ssl_context(cert_path: str):
-    import ssl
-
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-    context.options |= ssl.OP_NO_SSLv2
-    context.options |= ssl.OP_NO_SSLv3
-    context.options |= ssl.OP_NO_TLSv1
-    context.options |= ssl.OP_NO_TLSv1_1
-    context.options |= ssl.OP_NO_COMPRESSION
-    context.set_ciphers(
-        ":".join(
-            [
-                "ECDHE+AESGCM",
-                "ECDHE+CHACHA20",
-                "DHE+AESGCM",
-                "DHE+CHACHA20",
-                "ECDH+AESGCM",
-                "DH+AESGCM",
-                "ECDH+AES",
-                "DH+AES",
-                "RSA+AESGCM",
-                "RSA+AES",
-                "!aNULL",
-                "!eNULL",
-                "!MD5",
-                "!DSS",
-            ]
-        )
-    )
-    context.load_verify_locations(capath=cert_path)
-    return context
-
-
-def load_macaroon(macaroon_path: str):
-    with open(macaroon_path, "rb") as f:
-        macaroon_bytes = f.read()
-        return macaroon_bytes.hex()
+        print("lost connection to lnd InvoiceSubscription, please restart lnbits.")

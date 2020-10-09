@@ -52,8 +52,9 @@ Using this wallet requires the installation of the `lndgrpc` and `purerpc` Pytho
 - `LNBITS_ENDPOINT`: e.g. https://lnbits.com
 - `LNBITS_KEY`: lnbitsAdminKey
 
-
 ### LNPay
+
+For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNPayWallet**
 - `LNPAY_API_ENDPOINT`: https://lnpay.co/v1/
@@ -69,6 +70,8 @@ Using this wallet requires the installation of the `lndgrpc` and `purerpc` Pytho
 
 
 ### OpenNode
+
+For the invoice to work you must have a publicly accessible URL in your LNbits. No manual webhook setting is necessary.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **OpenNodeWallet**
 - `OPENNODE_API_ENDPOINT`: https://api.opennode.com/

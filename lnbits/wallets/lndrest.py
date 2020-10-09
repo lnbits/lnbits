@@ -1,3 +1,4 @@
+import trio  # type: ignore
 import httpx
 import json
 import base64
@@ -120,15 +121,26 @@ class LndRestWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = self.endpoint + "/v1/invoices/subscribe"
 
-        async with httpx.AsyncClient(timeout=None, headers=self.auth, verify=self.cert) as client:
-            async with client.stream("GET", url) as r:
-                async for line in r.aiter_lines():
-                    try:
-                        inv = json.loads(line)["result"]
-                        if not inv["settled"]:
-                            continue
-                    except:
-                        continue
+        while True:
+            try:
+                async with httpx.AsyncClient(
+                    timeout=None,
+                    headers=self.auth,
+                    verify=self.cert,
+                ) as client:
+                    async with client.stream("GET", url) as r:
+                        async for line in r.aiter_lines():
+                            try:
+                                inv = json.loads(line)["result"]
+                                if not inv["settled"]:
+                                    continue
+                            except:
+                                continue
 
-                    payment_hash = base64.b64decode(inv["r_hash"]).hex()
-                    yield payment_hash
+                            payment_hash = base64.b64decode(inv["r_hash"]).hex()
+                            yield payment_hash
+            except (OSError, httpx.ReadError):
+                pass
+
+            print("lost connection to lnd invoices stream, retrying in 5 seconds")
+            await trio.sleep(5)

@@ -1,3 +1,4 @@
+import trio  # type: ignore
 import random
 import json
 import httpx
@@ -96,10 +97,17 @@ class SparkWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = self.url + "/stream?access-key=" + self.token
 
-        async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream("GET", url) as r:
-                async for line in r.aiter_lines():
-                    if line.startswith("data:"):
-                        data = json.loads(line[5:])
-                        if "pay_index" in data and data.get("status") == "paid":
-                            yield data["label"]
+        while True:
+            try:
+                async with httpx.AsyncClient(timeout=None) as client:
+                    async with client.stream("GET", url) as r:
+                        async for line in r.aiter_lines():
+                            if line.startswith("data:"):
+                                data = json.loads(line[5:])
+                                if "pay_index" in data and data.get("status") == "paid":
+                                    yield data["label"]
+            except (OSError, httpx.ReadError):
+                pass
+
+            print("lost connection to spark /stream, retrying in 5 seconds")
+            await trio.sleep(5)
