@@ -164,7 +164,7 @@ async def api_payments_sse():
                 message = [f"event: {typ}".encode("utf-8")]
 
                 if data:
-                    jdata = json.dumps(data)
+                    jdata = json.dumps(data._asdict())
                     message.append(f"data: {jdata}".encode("utf-8"))
 
                 yield b"\n".join(message) + b"\r\n\r\n"
