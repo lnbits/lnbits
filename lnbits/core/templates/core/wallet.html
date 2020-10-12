@@ -130,7 +130,7 @@
               <q-td auto-width key="sat" :props="props">
                 {{ props.row.fsat }}
               </q-td>
-              <q-td auto-width key="sat" :props="props">
+              <q-td auto-width key="fee" :props="props">
                 {{ props.row.fee }}
               </q-td>
             </q-tr>
@@ -266,8 +266,8 @@
         v-model.number="receive.data.amount"
         type="number"
         label="Amount (sat) *"
-        min="receive.minMax[0]"
-        max="receive.minMax[1]"
+        :min="receive.minMax[0]"
+        :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
       ></q-input>
       <q-input
@@ -347,7 +347,8 @@
       {% raw %}
       <q-form @submit="payLnurl" class="q-gutter-md">
         <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-          {{ parse.lnurlpay.maxSendable | msatoshiFormat }}
+          <b>{{ parse.lnurlpay.domain }}</b> is requesting
+          {{ parse.lnurlpay.maxSendable | msatoshiFormat }} sat
         </p>
         <p v-else class="q-my-none text-h6 text-center">
           <b>{{ parse.lnurlpay.domain }}</b> is requesting <br />

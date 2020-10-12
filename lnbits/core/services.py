@@ -51,7 +51,12 @@ def create_invoice(
 
 
 def pay_invoice(
-    *, wallet_id: str, payment_request: str, max_sat: Optional[int] = None, extra: Optional[Dict] = None
+    *,
+    wallet_id: str,
+    payment_request: str,
+    max_sat: Optional[int] = None,
+    extra: Optional[Dict] = None,
+    description: str = "",
 ) -> str:
     temp_id = f"temp_{urlsafe_short_hash()}"
     internal_id = f"internal_{urlsafe_short_hash()}"
@@ -79,7 +84,7 @@ def pay_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=-invoice.amount_msat,
-        memo=invoice.description or "",
+        memo=description or invoice.description or "",
         extra=extra,
     )
 

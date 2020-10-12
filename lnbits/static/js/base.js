@@ -16,17 +16,32 @@ var LNbits = {
         data: data
       })
     },
-    createInvoice: function (wallet, amount, memo) {
+    createInvoice: function (wallet, amount, memo, lnurlCallback = null) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
-        memo: memo
+        memo: memo,
+        lnurl_callback: lnurlCallback
       })
     },
     payInvoice: function (wallet, bolt11) {
       return this.request('post', '/api/v1/payments', wallet.adminkey, {
         out: true,
         bolt11: bolt11
+      })
+    },
+    payLnurl: function (
+      wallet,
+      callback,
+      description_hash,
+      amount,
+      description = ''
+    ) {
+      return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
+        callback,
+        description_hash,
+        amount,
+        description
       })
     },
     getWallet: function (wallet) {

@@ -256,16 +256,36 @@ new Vue({
         .createInvoice(
           this.g.wallet,
           this.receive.data.amount,
-          this.receive.data.memo
+          this.receive.data.memo,
+          this.receive.lnurl && this.receive.lnurl.callback
         )
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.payment_request
 
-          if (this.receive.lnurl) {
-            // send invoice to lnurl callback
-            console.log('sending', this.receive.lnurl)
-            LNbits.api.sendInvoiceToLnurlWithdraw(this.receive.paymentReq)
+          if (response.data.lnurl_response !== null) {
+            if (response.data.lnurl_response === false) {
+              response.data.lnurl_response = `Unable to connect`
+            }
+
+            if (typeof response.data.lnurl_response === 'string') {
+              // failure
+              this.$q.notify({
+                timeout: 5000,
+                type: 'negative',
+                message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
+                caption: response.data.lnurl_response
+              })
+              return
+            } else if (response.data.lnurl_response === true) {
+              // success
+              this.$q.notify({
+                timeout: 5000,
+                type: 'positive',
+                message: `Invoice sent to ${this.receive.lnurl.domain}!`,
+                spinner: true
+              })
+            }
           }
 
           this.receive.paymentChecker = setInterval(() => {
@@ -274,6 +294,7 @@ new Vue({
               .then(response => {
                 if (response.data.paid) {
                   this.fetchPayments()
+                  this.fetchBalance()
                   this.receive.show = false
                   clearInterval(this.receive.paymentChecker)
                 }
@@ -314,12 +335,11 @@ new Vue({
             let data = response.data
 
             if (data.status === 'ERROR') {
-              Quasar.plugins.Notify.create({
+              this.$q.notify({
                 timeout: 5000,
                 type: 'warning',
-                message: data.reason,
-                caption: `${data.domain} returned an error to the lnurl call.`,
-                icon: null
+                message: `${data.domain} lnurl call failed.`,
+                caption: data.reason
               })
               return
             }
@@ -331,13 +351,16 @@ new Vue({
               this.parse.show = false
               this.receive.show = true
               this.receive.status = 'pending'
-              this.receive.data.amount = data.maxWithdrawable
+              this.paymentReq = null
+              this.receive.data.amount = data.maxWithdrawable / 1000
               this.receive.data.memo = data.defaultDescription
-              this.receive.minMax = [data.minWithdrawable, data.maxWithdrawable]
+              this.receive.minMax = [
+                data.minWithdrawable / 1000,
+                data.maxWithdrawable / 1000
+              ]
               this.receive.lnurl = {
                 domain: data.domain,
                 callback: data.callback,
-                k1: data.k1,
                 fixed: data.fixed
               }
             }
@@ -353,8 +376,7 @@ new Vue({
           timeout: 3000,
           type: 'warning',
           message: error + '.',
-          caption: '400 BAD REQUEST',
-          icon: null
+          caption: '400 BAD REQUEST'
         })
         this.parse.show = false
         return
@@ -390,8 +412,7 @@ new Vue({
     payInvoice: function () {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
-        message: 'Processing payment...',
-        icon: null
+        message: 'Processing payment...'
       })
 
       LNbits.api
@@ -406,6 +427,7 @@ new Vue({
                   clearInterval(this.parse.paymentChecker)
                   dismissPaymentMsg()
                   this.fetchPayments()
+                  this.fetchBalance()
                 }
               })
           }, 2000)
@@ -418,22 +440,55 @@ new Vue({
     payLnurl: function () {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
-        message: 'Processing payment...',
-        icon: null
+        message: 'Processing payment...'
       })
 
       LNbits.api
-        .payInvoice(this.g.wallet, this.parse.data.bolt11)
+        .payLnurl(
+          this.g.wallet,
+          this.parse.lnurlpay.callback,
+          this.parse.lnurlpay.description_hash,
+          this.parse.data.amount * 1000,
+          this.parse.lnurlpay.description.slice(0, 120)
+        )
         .then(response => {
+          this.parse.show = false
+
           this.parse.paymentChecker = setInterval(() => {
             LNbits.api
               .getPayment(this.g.wallet, response.data.payment_hash)
               .then(res => {
                 if (res.data.paid) {
-                  this.parse.show = false
-                  clearInterval(this.parse.paymentChecker)
                   dismissPaymentMsg()
+                  clearInterval(this.parse.paymentChecker)
                   this.fetchPayments()
+                  this.fetchBalance()
+
+                  // show lnurlpay success action
+                  if (response.data.success_action) {
+                    switch (response.data.success_action.tag) {
+                      case 'url':
+                        this.$q.notify({
+                          message: `<a target="_blank" style="color:inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
+                          caption: response.data.success_action.description,
+                          html: true,
+                          type: 'info',
+                          timeout: 0,
+                          closeBtn: true
+                        })
+                        break
+                      case 'message':
+                        this.$q.notify({
+                          message: response.data.success_action.message,
+                          type: 'info',
+                          timeout: 0,
+                          closeBtn: true
+                        })
+                        break
+                      case 'aes':
+                        break
+                    }
+                  }
                 }
               })
           }, 2000)
@@ -475,8 +530,7 @@ new Vue({
     checkPendingPayments: function () {
       var dismissMsg = this.$q.notify({
         timeout: 0,
-        message: 'Checking pending transactions...',
-        icon: null
+        message: 'Checking pending transactions...'
       })
 
       this.fetchPayments(true).then(() => {

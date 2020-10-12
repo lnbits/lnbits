@@ -3,11 +3,11 @@ import json
 import lnurl
 import httpx
 import traceback
+from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, jsonify, request, make_response
 from http import HTTPStatus
 from binascii import unhexlify
-from urllib.parse import urlparse
-from typing import Dict
+from typing import Dict, Union
 
 from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -51,6 +51,7 @@ async def api_payments():
         "amount": {"type": "integer", "min": 1, "required": True},
         "memo": {"type": "string", "empty": False, "required": True, "excludes": "description_hash"},
         "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
+        "lnurl_callback": {"type": "string", "empty": False, "required": False},
     }
 )
 async def api_payments_create_invoice():
@@ -70,6 +71,23 @@ async def api_payments_create_invoice():
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     invoice = bolt11.decode(payment_request)
+
+    lnurl_response: Union[None, bool, str] = None
+    if "lnurl_callback" in g.data:
+        print(g.data["lnurl_callback"])
+        try:
+            r = httpx.get(g.data["lnurl_callback"], params={"pr": payment_request}, timeout=10)
+            if r.is_error:
+                lnurl_response = r.text
+            else:
+                resp = json.loads(r.text)
+                if resp["status"] != "OK":
+                    lnurl_response = resp["reason"]
+                else:
+                    lnurl_response = True
+        except httpx.RequestError:
+            lnurl_response = False
+
     return (
         jsonify(
             {
@@ -77,6 +95,7 @@ async def api_payments_create_invoice():
                 "payment_request": payment_request,
                 # maintain backwards compatibility with API clients:
                 "checking_id": invoice.payment_hash,
+                "lnurl_response": lnurl_response,
             }
         ),
         HTTPStatus.CREATED,
@@ -115,6 +134,74 @@ async def api_payments_create():
     if g.data["out"] is True:
         return await api_payments_pay_invoice()
     return await api_payments_create_invoice()
+
+
+@core_app.route("/api/v1/payments/lnurl", methods=["POST"])
+@api_check_wallet_key("admin")
+@api_validate_post_request(
+    schema={
+        "description_hash": {"type": "string", "empty": False, "required": True},
+        "callback": {"type": "string", "empty": False, "required": True},
+        "amount": {"type": "number", "empty": False, "required": True},
+        "description": {"type": "string", "empty": True, "required": False},
+    }
+)
+async def api_payments_pay_lnurl():
+    try:
+        r = httpx.get(g.data["callback"], params={"amount": g.data["amount"]}, timeout=20)
+        if r.is_error:
+            return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
+    except httpx.RequestError:
+        return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
+
+    params = json.loads(r.text)
+    if params.get("status") == "ERROR":
+        domain = urlparse(g.data["callback"]).netloc
+        return jsonify({"message": f"{domain} said: '{params.get('reason', '')}'"}), HTTPStatus.BAD_REQUEST
+
+    invoice = bolt11.decode(params["pr"])
+    if invoice.amount_msat != g.data["amount"]:
+        return (
+            jsonify(
+                {
+                    "message": f"{domain} returned an invalid invoice. Expected {g.data['amount']} msat, got {invoice.amount_msat}."
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
+    if invoice.description_hash != g.data["description_hash"]:
+        return (
+            jsonify(
+                {
+                    "message": f"{domain} returned an invalid invoice. Expected description_hash == {g.data['description_hash']}, got {invoice.description_hash}."
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    try:
+        payment_hash = pay_invoice(
+            wallet_id=g.wallet.id,
+            payment_request=params["pr"],
+            description=g.data.get("description", ""),
+            extra={"success_action": params.get("successAction")},
+        )
+    except Exception as exc:
+        traceback.print_exc(7)
+        g.db.rollback()
+        return jsonify({"message": str(exc)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+    return (
+        jsonify(
+            {
+                "success_action": params.get("successAction"),
+                "payment_hash": payment_hash,
+                # maintain backwards compatibility with API clients:
+                "checking_id": payment_hash,
+            }
+        ),
+        HTTPStatus.CREATED,
+    )
 
 
 @core_app.route("/api/v1/payments/<payment_hash>", methods=["GET"])
@@ -216,10 +303,20 @@ async def api_lnurlscan(code: str):
 
     params: Dict = data.dict()
     if type(data) is lnurl.LnurlWithdrawResponse:
-        params.update(kind="withdraw", fixed=data.min_withdrawable == data.max_withdrawable)
+        params.update(kind="withdraw")
+        params.update(fixed=data.min_withdrawable == data.max_withdrawable)
+
+        # callback with k1 already in it
+        url: ParseResult = urlparse(data.callback)
+        qs: Dict = parse_qs(url.query)
+        qs["k1"] = data.k1
+        url = url._replace(query=urlencode(qs, doseq=True))
+        params.update(callback=urlunparse(url))
 
     if type(data) is lnurl.LnurlPayResponse:
-        params.update(kind="pay", fixed=data.min_sendable == data.max_sendable)
+        params.update(kind="pay")
+        params.update(fixed=data.min_sendable == data.max_sendable)
+        params.update(description_hash=data.metadata.h)
         params.update(description=data.metadata.text)
         if data.metadata.images:
             image = min(data.metadata.images, key=lambda image: len(image[1]))
