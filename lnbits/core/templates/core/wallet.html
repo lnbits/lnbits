@@ -16,7 +16,7 @@
             unelevated
             color="deep-purple"
             class="full-width"
-            @click="showSendDialog"
+            @click="showParseDialog"
             >Paste Request</q-btn
           >
         </div>
@@ -249,18 +249,26 @@
   </q-card>
 </div>
 
-<q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
+<q-dialog v-model="receive.show" @hide="closeReceiveDialog">
+  {% raw %}
   <q-card
     v-if="!receive.paymentReq"
     class="q-pa-lg q-pt-xl lnbits__dialog-card"
   >
     <q-form @submit="createInvoice" class="q-gutter-md">
+      <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
+        <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
+      </p>
+
       <q-input
         filled
         dense
         v-model.number="receive.data.amount"
         type="number"
         label="Amount (sat) *"
+        min="receive.minMax[0]"
+        max="receive.minMax[1]"
+        :readonly="receive.lnurl && receive.lnurl.fixed"
       ></q-input>
       <q-input
         filled
@@ -275,8 +283,12 @@
           color="deep-purple"
           :disable="receive.data.amount == null || receive.data.amount <= 0"
           type="submit"
-          >Create invoice</q-btn
         >
+          <span v-if="receive.lnurl">
+            Withdraw from {{receive.lnurl.domain}}
+          </span>
+          <span v-else> Create invoice </span>
+        </q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
       <q-spinner
@@ -305,20 +317,79 @@
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
     </div>
   </q-card>
+  {% endraw %}
 </q-dialog>
 
-<q-dialog v-model="send.show" position="top" @hide="closeSendDialog">
+<q-dialog v-model="parse.show" @hide="closeParseDialog">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-    <div v-if="!send.invoice">
+    <div v-if="parse.invoice">
+      {% raw %}
+      <h6 class="q-my-none">{{ parse.invoice.fsat }} sat</h6>
+      <q-separator class="q-my-sm"></q-separator>
+      <p style="word-break: break-all">
+        <strong>Description:</strong> {{ parse.invoice.description }}<br />
+        <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
+        <strong>Hash:</strong> {{ parse.invoice.hash }}
+      </p>
+      {% endraw %}
+      <div v-if="canPay" class="row q-mt-lg">
+        <q-btn unelevated color="deep-purple" @click="payInvoice">Pay</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+      <div v-else class="row q-mt-lg">
+        <q-btn unelevated disabled color="yellow" text-color="black"
+          >Not enough funds!</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </div>
+    <div v-else-if="parse.lnurlpay">
+      {% raw %}
+      <q-form @submit="payLnurl" class="q-gutter-md">
+        <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
+          {{ parse.lnurlpay.maxSendable | msatoshiFormat }}
+        </p>
+        <p v-else class="q-my-none text-h6 text-center">
+          <b>{{ parse.lnurlpay.domain }}</b> is requesting <br />
+          between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
+          <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b> sat
+        </p>
+        <q-separator class="q-my-sm"></q-separator>
+        <p class="text-justify text-italic">{{ parse.lnurlpay.description }}</p>
+        <p v-if="parse.lnurlpay.image">
+          <q-img :src="parse.lnurlpay.image" width="50%" />
+        </p>
+        <q-input
+          filled
+          dense
+          v-model.number="parse.data.amount"
+          type="number"
+          label="Amount (sat) *"
+          min="parse.lnurlpay.minSendable / 1000"
+          max="parse.lnurlpay.maxSendable / 1000"
+          :readonly="parse.lnurlpay.fixed"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn unelevated color="deep-purple" type="submit"
+            >Send satoshis</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+      {% endraw %}
+    </div>
+    <div v-else>
       <q-form
-        v-if="!theCamera.show"
-        @submit="decodeInvoice"
+        v-if="!parse.camera.show"
+        @submit="decodeRequest"
         class="q-gutter-md"
       >
         <q-input
           filled
           dense
-          v-model.trim="send.data.request"
+          v-model.trim="parse.data.request"
           type="textarea"
           label="Paste an invoice, payment request or lnurl code *"
         >
@@ -327,7 +398,7 @@
           <q-btn
             unelevated
             color="deep-purple"
-            :disable="send.data.request == ''"
+            :disable="parse.data.request == ''"
             type="submit"
             >Read</q-btn
           >
@@ -344,62 +415,16 @@
           ></qrcode-stream>
         </q-responsive>
         <div class="row q-mt-lg">
-          <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
+          <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
+            Cancel
+          </q-btn>
         </div>
-      </div>
-    </div>
-    <div v-else-if="send.lnurl.withdraw">
-      {% raw %}
-      <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
-      <q-separator class="q-my-sm"></q-separator>
-      <p style="word-break: break-all">
-        <strong>Description:</strong> {{ send.invoice.description }}<br />
-        <strong>Payment hash:</strong> {{ send.invoice.hash }}<br />
-        <strong>Expire date:</strong> {{ send.invoice.expireDate }}
-      </p>
-      {% endraw %}
-      <div v-if="canPay" class="row q-mt-lg">
-        <q-btn unelevated color="deep-purple" @click="payInvoice"
-          >Send satoshis</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </div>
-      <div v-else class="row q-mt-lg">
-        <q-btn unelevated disabled color="yellow" text-color="black"
-          >Not enough funds!</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </div>
-    </div>
-    <div v-else>
-      {% raw %}
-      <h6 class="q-my-none">{{ send.invoice.fsat }} sat</h6>
-      <q-separator class="q-my-sm"></q-separator>
-      <p style="word-break: break-all">
-        <strong>Description:</strong> {{ send.invoice.description }}<br />
-        <strong>Expire date:</strong> {{ send.invoice.expireDate }}<br />
-        <strong>Hash:</strong> {{ send.invoice.hash }}
-      </p>
-      {% endraw %}
-      <div v-if="canPay" class="row q-mt-lg">
-        <q-btn unelevated color="deep-purple" @click="payInvoice"
-          >Send satoshis</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </div>
-      <div v-else class="row q-mt-lg">
-        <q-btn unelevated disabled color="yellow" text-color="black"
-          >Not enough funds!</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </div>
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="theCamera.show" position="top">
+<q-dialog v-model="parse.camera.show">
   <q-card class="q-pa-lg q-pt-xl">
     <div class="text-center q-mb-lg">
       <qrcode-stream @decode="decodeQR" class="rounded-borders"></qrcode-stream>
@@ -412,7 +437,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="paymentsChart.show" position="top">
+<q-dialog v-model="paymentsChart.show">
   <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
     <q-card-section>
       <canvas ref="canvas" width="600" height="400"></canvas>

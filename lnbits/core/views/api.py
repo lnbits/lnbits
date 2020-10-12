@@ -1,15 +1,13 @@
-<<<<<<< HEAD
 import trio  # type: ignore
 import json
+import lnurl
+import httpx
 import traceback
 from quart import g, jsonify, request, make_response
-=======
-import lnurl
-from quart import g, jsonify, request
->>>>>>> da8fd9a... send/create buttons wip.
 from http import HTTPStatus
 from binascii import unhexlify
 from urllib.parse import urlparse
+from typing import Dict
 
 from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -137,7 +135,6 @@ async def api_payment(payment_hash):
     return jsonify({"paid": not payment.pending}), HTTPStatus.OK
 
 
-<<<<<<< HEAD
 @core_app.route("/api/v1/payments/sse", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments_sse():
@@ -190,8 +187,6 @@ async def api_payments_sse():
     )
     response.timeout = None
     return response
-=======
-    return jsonify({"paid": False}), HTTPStatus.OK
 
 
 @core_app.route("/api/v1/lnurlscan/<code>", methods=["GET"])
@@ -206,20 +201,30 @@ async def api_lnurlscan(code: str):
     if url.is_login:
         return jsonify({"domain": domain, "kind": "auth", "error": "unsupported"})
 
-    data: lnurl.LnurlResponseModel = lnurl.get(url.url)
-    if not data.ok:
+    r = httpx.get(url.url)
+    if r.is_error:
         return jsonify({"domain": domain, "error": "failed to get parameters"})
+
+    try:
+        jdata = json.loads(r.text)
+        data: lnurl.LnurlResponseModel = lnurl.LnurlResponse.from_dict(jdata)
+    except (json.decoder.JSONDecodeError, lnurl.exceptions.LnurlResponseException):
+        return jsonify({"domain": domain, "error": f"got invalid response '{r.text[:200]}'"})
 
     if type(data) is lnurl.LnurlChannelResponse:
         return jsonify({"domain": domain, "kind": "channel", "error": "unsupported"})
 
-    params = data.dict()
+    params: Dict = data.dict()
     if type(data) is lnurl.LnurlWithdrawResponse:
         params.update(kind="withdraw", fixed=data.min_withdrawable == data.max_withdrawable)
 
     if type(data) is lnurl.LnurlPayResponse:
         params.update(kind="pay", fixed=data.min_sendable == data.max_sendable)
+        params.update(description=data.metadata.text)
+        if data.metadata.images:
+            image = min(data.metadata.images, key=lambda image: len(image[1]))
+            data_uri = "data:" + image[0] + "," + image[1]
+            params.update(image=data_uri)
 
     params.update(domain=domain)
     return jsonify(params)
->>>>>>> da8fd9a... send/create buttons wip.
