@@ -28,7 +28,7 @@ class OpenNodeWallet(Wallet):
 
         r = httpx.post(
             f"{self.endpoint}/v1/charges",
-            headers=self.auth_invoice,
+            headers=self.auth,
             json={
                 "amount": amount,
                 "description": memo or "",
@@ -58,7 +58,7 @@ class OpenNodeWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth_invoice)
+        r = httpx.get(f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth)
 
         if r.is_error:
             return PaymentStatus(None)
@@ -90,7 +90,7 @@ class OpenNodeWallet(Wallet):
         if data["status"] != "paid":
             return "", HTTPStatus.NO_CONTENT
 
-        x = hmac.new(self.auth_invoice["Authorization"], digestmod="sha256")
+        x = hmac.new(self.auth["Authorization"], digestmod="sha256")
         x.update(charge_id)
         if x.hexdigest() != data["hashed_order"]:
             print("invalid webhook, not from opennode")
