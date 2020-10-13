@@ -1,4 +1,4 @@
-/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart */
+/* globals windowMixin, decode, Vue, VueQrcodeReader, VueQrcode, Quasar, LNbits, _, EventHub, Chart, decryptLnurlPayAES */
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
@@ -248,7 +248,7 @@ new Vue({
       var checker = this.parse.paymentChecker
       setTimeout(() => {
         clearInterval(checker)
-      }, 1000)
+      }, 10000)
     },
     createInvoice: function () {
       this.receive.status = 'loading'
@@ -469,7 +469,7 @@ new Vue({
                     switch (response.data.success_action.tag) {
                       case 'url':
                         this.$q.notify({
-                          message: `<a target="_blank" style="color:inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
+                          message: `<a target="_blank" style="color: inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
                           caption: response.data.success_action.description,
                           html: true,
                           type: 'info',
@@ -486,6 +486,26 @@ new Vue({
                         })
                         break
                       case 'aes':
+                        LNbits.api
+                          .getPayment(this.g.wallet, response.data.payment_hash)
+                          .then(
+                            ({data: payment}) =>
+                              console.log(payment) ||
+                              decryptLnurlPayAES(
+                                response.data.success_action,
+                                payment.preimage
+                              )
+                          )
+                          .then(value => {
+                            this.$q.notify({
+                              message: value,
+                              caption: response.data.success_action.description,
+                              html: true,
+                              type: 'info',
+                              timeout: 0,
+                              closeBtn: true
+                            })
+                          })
                         break
                     }
                   }

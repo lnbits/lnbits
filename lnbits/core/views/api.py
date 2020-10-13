@@ -211,14 +211,14 @@ async def api_payment(payment_hash):
     if not payment:
         return jsonify({"message": "Payment does not exist."}), HTTPStatus.NOT_FOUND
     elif not payment.pending:
-        return jsonify({"paid": True}), HTTPStatus.OK
+        return jsonify({"paid": True, "preimage": payment.preimage}), HTTPStatus.OK
 
     try:
         payment.check_pending()
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK
 
-    return jsonify({"paid": not payment.pending}), HTTPStatus.OK
+    return jsonify({"paid": not payment.pending, "preimage": payment.preimage}), HTTPStatus.OK
 
 
 @core_app.route("/api/v1/payments/sse", methods=["GET"])

@@ -34,7 +34,7 @@ class LNPayWallet(Wallet):
                 f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}", 0
             )
 
-        return StatusResponse(None, data["balance"] / 1000)
+        return StatusResponse(None, data["balance"] * 1000)
 
     def create_invoice(
         self,

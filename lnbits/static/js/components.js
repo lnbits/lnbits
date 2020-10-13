@@ -1,4 +1,4 @@
-/* global Vue, moment, LNbits, EventHub */
+/* global Vue, moment, LNbits, EventHub, decryptLnurlPayAES */
 
 Vue.component('lnbits-fsat', {
   props: {
@@ -199,10 +199,64 @@ Vue.component('lnbits-payment-details', {
         <div class="col-3"><b>Payment hash</b>:</div>
         <div class="col-9 text-wrap mono">{{ payment.payment_hash }}</div>
       </div>
-      <div class="row" v-if="payment.preimage">
+      <div class="row" v-if="hasPreimage">
         <div class="col-3"><b>Payment proof</b>:</div>
         <div class="col-9 text-wrap mono">{{ payment.preimage }}</div>
       </div>
+      <div class="row" v-if="hasSuccessAction">
+        <div class="col-3"><b>Success action</b>:</div>
+        <div class="col-9">
+          <lnbits-lnurlpay-success-action
+            :payment="payment"
+            :success_action="payment.extra.success_action"
+          ></lnbits-lnurlpay-success-action>
+        </div>
+      </div>
     </div>
-  `
+  `,
+  computed: {
+    hasPreimage() {
+      return (
+        this.payment.preimage &&
+        this.payment.preimage !==
+          '0000000000000000000000000000000000000000000000000000000000000000'
+      )
+    },
+    hasSuccessAction() {
+      return (
+        this.hasPreimage &&
+        this.payment.extra &&
+        this.payment.extra.success_action
+      )
+    }
+  }
+})
+
+Vue.component('lnbits-lnurlpay-success-action', {
+  props: ['payment', 'success_action'],
+  data() {
+    return {
+      decryptedValue: this.success_action.ciphertext
+    }
+  },
+  template: `
+    <div>
+      <p class="q-mb-sm">{{ success_action.message || success_action.description }}</p>
+      <code v-if="decryptedValue" class="text-h6 q-mt-sm q-mb-none">
+        {{ decryptedValue }}
+      </code>
+      <p v-else-if="success_action.url" class="text-h6 q-mt-sm q-mb-none">
+        <a target="_blank" style="color: inherit;" :href="success_action.url">{{ success_action.url }}</a>
+      </p>
+    </div>
+  `,
+  mounted: function () {
+    if (this.success_action.tag !== 'aes') return null
+
+    decryptLnurlPayAES(this.success_action, this.payment.preimage).then(
+      value => {
+        this.decryptedValue = value
+      }
+    )
+  }
 })
