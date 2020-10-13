@@ -24,7 +24,7 @@ class OpenNodeWallet(Wallet):
         try:
             r = httpx.get(f"{self.endpoint}/v1/account/balance", headers=self.auth)
         except (httpx.ConnectError, httpx.RequestError):
-            return StatusResponse(f"Unable to connect to '{self.endpoint}'")
+            return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
         data = r.json()["message"]
         if r.is_error:

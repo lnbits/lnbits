@@ -23,7 +23,7 @@ class LNPayWallet(Wallet):
         try:
             r = httpx.get(url, headers=self.auth)
         except (httpx.ConnectError, httpx.RequestError):
-            return StatusResponse(f"Unable to connect to '{url}'")
+            return StatusResponse(f"Unable to connect to '{url}'", 0)
 
         if r.is_error:
             return StatusResponse(r.text[:250], 0)
@@ -34,7 +34,7 @@ class LNPayWallet(Wallet):
                 f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}", 0
             )
 
-        return StatusResponse(None, data["balance"] / 1000)
+        return StatusResponse(None, data["balance"] * 1000)
 
     def create_invoice(
         self,

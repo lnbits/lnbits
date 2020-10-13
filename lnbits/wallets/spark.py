@@ -29,6 +29,8 @@ class SparkWallet(Wallet):
                 params = args
             elif kwargs:
                 params = kwargs
+            else:
+                params = {}
 
             r = httpx.post(self.url + "/rpc", headers={"X-Access": self.token}, json={"method": key, "params": params})
             try:

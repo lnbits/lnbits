@@ -1,7 +1,7 @@
 import httpx
 from typing import Optional, Tuple, Dict
 from quart import g
-from lnurl import LnurlWithdrawResponse
+from lnurl import LnurlWithdrawResponse  # type: ignore
 
 try:
     from typing import TypedDict  # type: ignore
@@ -51,7 +51,12 @@ def create_invoice(
 
 
 def pay_invoice(
-    *, wallet_id: str, payment_request: str, max_sat: Optional[int] = None, extra: Optional[Dict] = None
+    *,
+    wallet_id: str,
+    payment_request: str,
+    max_sat: Optional[int] = None,
+    extra: Optional[Dict] = None,
+    description: str = "",
 ) -> str:
     temp_id = f"temp_{urlsafe_short_hash()}"
     internal_id = f"internal_{urlsafe_short_hash()}"
@@ -79,7 +84,7 @@ def pay_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=-invoice.amount_msat,
-        memo=invoice.description or "",
+        memo=description or invoice.description or "",
         extra=extra,
     )
 
@@ -111,7 +116,7 @@ def pay_invoice(
     else:
         # actually pay the external invoice
         payment: PaymentResponse = WALLET.pay_invoice(payment_request)
-        if payment.ok:
+        if payment.ok and payment.checking_id:
             create_payment(
                 checking_id=payment.checking_id,
                 fee=payment.fee_msat,
@@ -127,13 +132,10 @@ def pay_invoice(
 
 
 async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo: Optional[str] = None) -> None:
-    if not memo:
-        memo = res.default_description
-
     _, payment_request = create_invoice(
         wallet_id=wallet_id,
         amount=res.max_sats,
-        memo=memo,
+        memo=memo or res.default_description or "",
         extra={"tag": "lnurlwallet"},
     )
 

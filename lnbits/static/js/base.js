@@ -1,10 +1,8 @@
-/* globals moment, Vue, EventHub, axios, Quasar, _ */
+/* globals crypto, moment, Vue, axios, Quasar, _ */
 
-var LOCALE = 'en'
-
-var EventHub = new Vue()
-
-var LNbits = {
+window.LOCALE = 'en'
+window.EventHub = new Vue()
+window.LNbits = {
   api: {
     request: function (method, url, apiKey, data) {
       return axios({
@@ -16,17 +14,34 @@ var LNbits = {
         data: data
       })
     },
-    createInvoice: function (wallet, amount, memo) {
+    createInvoice: function (wallet, amount, memo, lnurlCallback = null) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
-        memo: memo
+        memo: memo,
+        lnurl_callback: lnurlCallback
       })
     },
     payInvoice: function (wallet, bolt11) {
       return this.request('post', '/api/v1/payments', wallet.adminkey, {
         out: true,
         bolt11: bolt11
+      })
+    },
+    payLnurl: function (
+      wallet,
+      callback,
+      description_hash,
+      amount,
+      description = '',
+      comment = ''
+    ) {
+      return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
+        callback,
+        description_hash,
+        amount,
+        comment,
+        description
       })
     },
     getWallet: function (wallet) {
@@ -91,7 +106,7 @@ var LNbits = {
       )
       obj.msat = obj.balance
       obj.sat = Math.round(obj.balance / 1000)
-      obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat)
+      obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.url = ['/wallet?usr=', obj.user, '&wal=', obj.id].join('')
       return obj
     },
@@ -119,7 +134,7 @@ var LNbits = {
       obj.msat = obj.amount
       obj.sat = obj.msat / 1000
       obj.tag = obj.extra.tag
-      obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.sat)
+      obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
       obj.isPaid = obj.pending === 0
@@ -142,13 +157,13 @@ var LNbits = {
       })
     },
     formatCurrency: function (value, currency) {
-      return new Intl.NumberFormat(LOCALE, {
+      return new Intl.NumberFormat(window.LOCALE, {
         style: 'currency',
         currency: currency
       }).format(value)
     },
     formatSat: function (value) {
-      return new Intl.NumberFormat(LOCALE).format(value)
+      return new Intl.NumberFormat(window.LOCALE).format(value)
     },
     notifyApiError: function (error) {
       var types = {
@@ -231,7 +246,7 @@ var LNbits = {
   }
 }
 
-var windowMixin = {
+window.windowMixin = {
   data: function () {
     return {
       g: {
@@ -261,17 +276,17 @@ var windowMixin = {
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
     if (window.user) {
-      this.g.user = Object.freeze(LNbits.map.user(window.user))
+      this.g.user = Object.freeze(window.LNbits.map.user(window.user))
     }
     if (window.wallet) {
-      this.g.wallet = Object.freeze(LNbits.map.wallet(window.wallet))
+      this.g.wallet = Object.freeze(window.LNbits.map.wallet(window.wallet))
     }
     if (window.extensions) {
       var user = this.g.user
       this.g.extensions = Object.freeze(
         window.extensions
           .map(function (data) {
-            return LNbits.map.extension(data)
+            return window.LNbits.map.extension(data)
           })
           .map(function (obj) {
             if (user) {
@@ -287,4 +302,28 @@ var windowMixin = {
       )
     }
   }
+}
+
+window.decryptLnurlPayAES = function (success_action, preimage) {
+  let keyb = new Uint8Array(
+    preimage.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16))
+  )
+
+  return crypto.subtle
+    .importKey('raw', keyb, {name: 'AES-CBC', length: 256}, false, ['decrypt'])
+    .then(key => {
+      let ivb = Uint8Array.from(window.atob(success_action.iv), c =>
+        c.charCodeAt(0)
+      )
+      let ciphertextb = Uint8Array.from(
+        window.atob(success_action.ciphertext),
+        c => c.charCodeAt(0)
+      )
+
+      return crypto.subtle.decrypt({name: 'AES-CBC', iv: ivb}, key, ciphertextb)
+    })
+    .then(valueb => {
+      let decoder = new TextDecoder('utf-8')
+      return decoder.decode(valueb)
+    })
 }
