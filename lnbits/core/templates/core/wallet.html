@@ -349,27 +349,53 @@
         <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
           <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
           parse.lnurlpay.maxSendable | msatoshiFormat }} sat
+          <span v-if="parse.lnurlpay.commentAllowed > 0">
+            <br />
+            and a {{parse.lnurlpay.commentAllowed}}-char comment
+          </span>
         </p>
         <p v-else class="q-my-none text-h6 text-center">
           <b>{{ parse.lnurlpay.domain }}</b> is requesting <br />
           between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
           <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b> sat
+          <span v-if="parse.lnurlpay.commentAllowed > 0">
+            <br />
+            and a {{parse.lnurlpay.commentAllowed}}-char comment
+          </span>
         </p>
         <q-separator class="q-my-sm"></q-separator>
-        <p class="text-justify text-italic">{{ parse.lnurlpay.description }}</p>
-        <p v-if="parse.lnurlpay.image">
-          <q-img :src="parse.lnurlpay.image" width="50%" />
-        </p>
-        <q-input
-          filled
-          dense
-          v-model.number="parse.data.amount"
-          type="number"
-          label="Amount (sat) *"
-          min="parse.lnurlpay.minSendable / 1000"
-          max="parse.lnurlpay.maxSendable / 1000"
-          :readonly="parse.lnurlpay.fixed"
-        ></q-input>
+        <div class="row">
+          <p class="col text-justify text-italic">
+            {{ parse.lnurlpay.description }}
+          </p>
+          <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
+            <q-img :src="parse.lnurlpay.image" />
+          </p>
+        </div>
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              dense
+              v-model.number="parse.data.amount"
+              type="number"
+              label="Amount (sat) *"
+              :min="parse.lnurlpay.minSendable / 1000"
+              :max="parse.lnurlpay.maxSendable / 1000"
+              :readonly="parse.lnurlpay.fixed"
+            ></q-input>
+          </div>
+          <div class="col-8 q-pl-md" v-if="parse.lnurlpay.commentAllowed > 0">
+            <q-input
+              filled
+              dense
+              v-model.number="parse.data.comment"
+              :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+              label="Comment (optional)"
+              :maxlength="parse.lnurlpay.commentAllowed"
+            ></q-input>
+          </div>
+        </div>
         <div class="row q-mt-lg">
           <q-btn unelevated color="deep-purple" type="submit"
             >Send satoshis</q-btn

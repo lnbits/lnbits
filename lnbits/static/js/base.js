@@ -33,12 +33,14 @@ window.LNbits = {
       callback,
       description_hash,
       amount,
-      description = ''
+      description = '',
+      comment = ''
     ) {
       return this.request('post', '/api/v1/payments/lnurl', wallet.adminkey, {
         callback,
         description_hash,
         amount,
+        comment,
         description
       })
     },

@@ -142,12 +142,17 @@ async def api_payments_create():
         "description_hash": {"type": "string", "empty": False, "required": True},
         "callback": {"type": "string", "empty": False, "required": True},
         "amount": {"type": "number", "empty": False, "required": True},
-        "description": {"type": "string", "empty": True, "required": False},
+        "comment": {"type": "string", "nullable": True, "empty": True, "required": False},
+        "description": {"type": "string", "nullable": True, "empty": True, "required": False},
     }
 )
 async def api_payments_pay_lnurl():
     try:
-        r = httpx.get(g.data["callback"], params={"amount": g.data["amount"]}, timeout=20)
+        r = httpx.get(
+            g.data["callback"],
+            params={"amount": g.data["amount"], "comment": g.data["comment"]},
+            timeout=40,
+        )
         if r.is_error:
             return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
     except (httpx.ConnectError, httpx.RequestError):
@@ -321,6 +326,7 @@ async def api_lnurlscan(code: str):
             image = min(data.metadata.images, key=lambda image: len(image[1]))
             data_uri = "data:" + image[0] + "," + image[1]
             params.update(image=data_uri)
+        params.update(commentAllowed=jdata.get("commentAllowed", 0))
 
     params.update(domain=domain)
     return jsonify(params)

@@ -129,7 +129,8 @@ new Vue({
         lnurlpay: null,
         data: {
           request: '',
-          amount: 0
+          amount: 0,
+          comment: ''
         },
         paymentChecker: null,
         camera: {
@@ -235,6 +236,7 @@ new Vue({
       this.parse.invoice = null
       this.parse.lnurlpay = null
       this.parse.data.request = ''
+      this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
@@ -449,7 +451,8 @@ new Vue({
           this.parse.lnurlpay.callback,
           this.parse.lnurlpay.description_hash,
           this.parse.data.amount * 1000,
-          this.parse.lnurlpay.description.slice(0, 120)
+          this.parse.lnurlpay.description.slice(0, 120),
+          this.parse.data.comment
         )
         .then(response => {
           this.parse.show = false
