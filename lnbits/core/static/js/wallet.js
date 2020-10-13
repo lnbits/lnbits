@@ -370,7 +370,7 @@ new Vue({
 
       let invoice
       try {
-        invoice = decode(this.parse.data.bolt11)
+        invoice = decode(this.parse.data.request)
       } catch (error) {
         this.$q.notify({
           timeout: 3000,
@@ -416,7 +416,7 @@ new Vue({
       })
 
       LNbits.api
-        .payInvoice(this.g.wallet, this.parse.data.bolt11)
+        .payInvoice(this.g.wallet, this.parse.data.request)
         .then(response => {
           this.parse.paymentChecker = setInterval(() => {
             LNbits.api

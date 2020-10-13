@@ -51,7 +51,7 @@ async def api_payments():
         "amount": {"type": "integer", "min": 1, "required": True},
         "memo": {"type": "string", "empty": False, "required": True, "excludes": "description_hash"},
         "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
-        "lnurl_callback": {"type": "string", "empty": False, "required": False},
+        "lnurl_callback": {"type": "string", "nullable": True, "required": False},
     }
 )
 async def api_payments_create_invoice():
@@ -73,8 +73,7 @@ async def api_payments_create_invoice():
     invoice = bolt11.decode(payment_request)
 
     lnurl_response: Union[None, bool, str] = None
-    if "lnurl_callback" in g.data:
-        print(g.data["lnurl_callback"])
+    if g.data.get("lnurl_callback"):
         try:
             r = httpx.get(g.data["lnurl_callback"], params={"pr": payment_request}, timeout=10)
             if r.is_error:
