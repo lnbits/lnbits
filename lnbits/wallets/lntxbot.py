@@ -17,7 +17,11 @@ class LntxbotWallet(Wallet):
         self.auth = {"Authorization": f"Basic {key}"}
 
     def status(self) -> StatusResponse:
-        r = httpx.get(f"{self.endpoint}/balance", headers=self.auth)
+        r = httpx.get(
+            f"{self.endpoint}/balance",
+            headers=self.auth,
+            timeout=40,
+        )
         try:
             data = r.json()
         except:
@@ -41,6 +45,7 @@ class LntxbotWallet(Wallet):
             url=f"{self.endpoint}/addinvoice",
             headers=self.auth,
             json=data,
+            timeout=40,
         )
 
         if r.is_error:
@@ -57,7 +62,12 @@ class LntxbotWallet(Wallet):
         return InvoiceResponse(True, data["payment_hash"], data["pay_req"], None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(url=f"{self.endpoint}/payinvoice", headers=self.auth, json={"invoice": bolt11})
+        r = httpx.post(
+            url=f"{self.endpoint}/payinvoice",
+            headers=self.auth,
+            json={"invoice": bolt11},
+            timeout=40,
+        )
 
         if r.is_error:
             try:

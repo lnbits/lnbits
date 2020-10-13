@@ -86,6 +86,7 @@ class LndRestWallet(Wallet):
             headers=self.auth,
             verify=self.cert,
             json={"payment_request": bolt11},
+            timeout=180,
         )
 
         if r.is_error:

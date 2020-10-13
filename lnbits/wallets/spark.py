@@ -32,7 +32,12 @@ class SparkWallet(Wallet):
             else:
                 params = {}
 
-            r = httpx.post(self.url + "/rpc", headers={"X-Access": self.token}, json={"method": key, "params": params})
+            r = httpx.post(
+                self.url + "/rpc",
+                headers={"X-Access": self.token},
+                json={"method": key, "params": params},
+                timeout=40,
+            )
             try:
                 data = r.json()
             except:

@@ -22,7 +22,11 @@ class OpenNodeWallet(Wallet):
 
     def status(self) -> StatusResponse:
         try:
-            r = httpx.get(f"{self.endpoint}/v1/account/balance", headers=self.auth)
+            r = httpx.get(
+                f"{self.endpoint}/v1/account/balance",
+                headers=self.auth,
+                timeout=40,
+            )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
@@ -46,6 +50,7 @@ class OpenNodeWallet(Wallet):
                 "description": memo or "",
                 "callback_url": url_for("webhook_listener", _external=True),
             },
+            timeout=40,
         )
 
         if r.is_error:
@@ -58,7 +63,12 @@ class OpenNodeWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(f"{self.endpoint}/v2/withdrawals", headers=self.auth, json={"type": "ln", "address": bolt11})
+        r = httpx.post(
+            f"{self.endpoint}/v2/withdrawals",
+            headers=self.auth,
+            json={"type": "ln", "address": bolt11},
+            timeout=180,
+        )
 
         if r.is_error:
             error_message = r.json()["message"]

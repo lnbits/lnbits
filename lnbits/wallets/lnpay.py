@@ -21,7 +21,7 @@ class LNPayWallet(Wallet):
     def status(self) -> StatusResponse:
         url = f"{self.endpoint}/wallet/{self.wallet_key}"
         try:
-            r = httpx.get(url, headers=self.auth)
+            r = httpx.get(url, headers=self.auth, timeout=60)
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{url}'", 0)
 
@@ -52,6 +52,7 @@ class LNPayWallet(Wallet):
             f"{self.endpoint}/wallet/{self.wallet_key}/invoice",
             headers=self.auth,
             json=data,
+            timeout=60,
         )
         ok, checking_id, payment_request, error_message = (
             r.status_code == 201,
@@ -68,9 +69,10 @@ class LNPayWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = httpx.post(
-            url=f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
+            f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
             headers=self.auth,
             json={"payment_request": bolt11},
+            timeout=180,
         )
 
         try:
