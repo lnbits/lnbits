@@ -353,7 +353,7 @@ new Vue({
               this.parse.show = false
               this.receive.show = true
               this.receive.status = 'pending'
-              this.paymentReq = null
+              this.receive.paymentReq = null
               this.receive.data.amount = data.maxWithdrawable / 1000
               this.receive.data.memo = data.defaultDescription
               this.receive.minMax = [
