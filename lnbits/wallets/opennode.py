@@ -62,12 +62,12 @@ class OpenNodeWallet(Wallet):
 
         if r.is_error:
             error_message = r.json()["message"]
-            return PaymentResponse(False, None, 0, error_message)
+            return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()["data"]
         checking_id = data["id"]
         fee_msat = data["fee"] * 1000
-        return PaymentResponse(True, checking_id, fee_msat, None)
+        return PaymentResponse(True, checking_id, fee_msat, None, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth)

@@ -85,11 +85,12 @@ class SparkWallet(Wallet):
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         try:
             r = self.pay(bolt11)
-            ok, checking_id, fee_msat, error_message = True, r["payment_hash"], r["msatoshi_sent"] - r["msatoshi"], None
-        except (SparkError, UnknownError) as e:
-            ok, checking_id, fee_msat, error_message = False, None, None, str(e)
+        except (SparkError, UnknownError) as exc:
+            return PaymentResponse(False, None, 0, None, str(exc))
 
-        return PaymentResponse(ok, checking_id, fee_msat, error_message)
+        fee_msat = r["msatoshi_sent"] - r["msatoshi"]
+        preimage = r["payment_preimage"]
+        return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = self.listinvoices(label=checking_id)

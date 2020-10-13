@@ -199,6 +199,10 @@ Vue.component('lnbits-payment-details', {
         <div class="col-3"><b>Payment hash</b>:</div>
         <div class="col-9 text-wrap mono">{{ payment.payment_hash }}</div>
       </div>
+      <div class="row" v-if="payment.preimage">
+        <div class="col-3"><b>Payment proof</b>:</div>
+        <div class="col-9 text-wrap mono">{{ payment.preimage }}</div>
+      </div>
     </div>
   `
 })

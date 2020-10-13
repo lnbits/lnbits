@@ -18,6 +18,7 @@ class PaymentResponse(NamedTuple):
     ok: bool
     checking_id: Optional[str] = None  # payment_hash, rcp_id
     fee_msat: int = 0
+    preimage: Optional[str] = None
     error_message: Optional[str] = None
 
 

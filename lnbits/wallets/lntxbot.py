@@ -67,10 +67,13 @@ class LntxbotWallet(Wallet):
                 error_message = r.text
                 pass
 
-            return PaymentResponse(False, None, 0, error_message)
+            return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()
-        return PaymentResponse(True, data["decoded"]["payment_hash"], data["fee_msat"], None)
+        checking_id = data["payment_hash"]
+        fee_msat = data["fee_msat"]
+        preimage = data["payment_preimage"]
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.post(url=f"{self.endpoint}/invoicestatus/{checking_id}?wait=false", headers=self.auth)

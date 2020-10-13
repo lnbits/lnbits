@@ -94,12 +94,13 @@ class LndRestWallet(Wallet):
                 error_message = r.json()["error"]
             except:
                 pass
-            return PaymentResponse(False, None, 0, error_message)
+            return PaymentResponse(False, None, 0, None, error_message)
 
-        payment_hash = r.json()["payment_hash"]
+        data = r.json()
+        payment_hash = data["payment_hash"]
         checking_id = payment_hash
-
-        return PaymentResponse(True, checking_id, 0, None)
+        preimage = base64.b64decode(data["payment_preimage"]).hex()
+        return PaymentResponse(True, checking_id, 0, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")

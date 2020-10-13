@@ -135,11 +135,13 @@ class LndWallet(Wallet):
         resp = self.rpc.send_payment(payment_request=bolt11)
 
         if resp.payment_error:
-            return PaymentResponse(False, "", 0, resp.payment_error)
+            return PaymentResponse(False, "", 0, None, resp.payment_error)
 
         r_hash = hashlib.sha256(resp.payment_preimage).digest()
         checking_id = stringify_checking_id(r_hash)
-        return PaymentResponse(True, checking_id, 0, None)
+        fee_msat = resp.payment_route.total_fees_msat
+        preimage = resp.payment_preimage.hex()
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

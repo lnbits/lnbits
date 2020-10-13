@@ -72,12 +72,19 @@ class LNPayWallet(Wallet):
             headers=self.auth,
             json={"payment_request": bolt11},
         )
-        ok, checking_id, fee_msat, error_message = r.status_code == 201, None, 0, None
 
-        if ok:
-            checking_id = r.json()["lnTx"]["id"]
+        try:
+            data = r.json()
+        except:
+            return PaymentResponse(False, None, 0, None, f"Got invalid JSON: {r.text[:200]}")
 
-        return PaymentResponse(ok, checking_id, fee_msat, error_message)
+        if r.is_error:
+            return PaymentResponse(False, None, 0, None, data["message"])
+
+        checking_id = data["lnTx"]["id"]
+        fee_msat = 0
+        preimage = data["lnTx"]["payment_preimage"]
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return self.get_payment_status(checking_id)

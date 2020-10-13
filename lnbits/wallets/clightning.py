@@ -73,8 +73,14 @@ class CLightningWallet(Wallet):
             return InvoiceResponse(False, label, None, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = self.ln.pay(bolt11)
-        return PaymentResponse(True, r["payment_hash"], r["msatoshi_sent"] - r["msatoshi"], None)
+        try:
+            r = self.ln.pay(bolt11)
+        except RpcError as exc:
+            return PaymentResponse(False, None, 0, None, str(exc))
+
+        fee_msat = r["msatoshi_sent"] - r["msatoshi"]
+        preimage = r["payment_preimage"]
+        return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = self.ln.listinvoices(checking_id)

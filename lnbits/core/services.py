@@ -11,7 +11,7 @@ except ImportError:  # pragma: nocover
 from lnbits import bolt11
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
-from lnbits.wallets.base import PaymentStatus
+from lnbits.wallets.base import PaymentStatus, PaymentResponse
 
 from .crud import get_wallet, create_payment, delete_payment, check_internal, update_payment_status, get_wallet_payment
 
@@ -110,12 +110,17 @@ def pay_invoice(
         update_payment_status(checking_id=internal, pending=False)
     else:
         # actually pay the external invoice
-        ok, checking_id, fee_msat, error_message = WALLET.pay_invoice(payment_request)
-        if ok:
-            create_payment(checking_id=checking_id, fee=fee_msat, **payment_kwargs)
+        payment: PaymentResponse = WALLET.pay_invoice(payment_request)
+        if payment.ok:
+            create_payment(
+                checking_id=payment.checking_id,
+                fee=payment.fee_msat,
+                preimage=payment.preimage,
+                **payment_kwargs,
+            )
             delete_payment(temp_id)
         else:
-            raise Exception(error_message or "Failed to pay_invoice on backend.")
+            raise Exception(payment.error_message or "Failed to pay_invoice on backend.")
 
     g.db.commit()
     return invoice.payment_hash
