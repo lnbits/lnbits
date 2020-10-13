@@ -85,7 +85,7 @@ async def api_payments_create_invoice():
                     lnurl_response = resp["reason"]
                 else:
                     lnurl_response = True
-        except httpx.RequestError:
+        except (httpx.ConnectError, httpx.RequestError):
             lnurl_response = False
 
     return (
@@ -151,7 +151,7 @@ async def api_payments_pay_lnurl():
         r = httpx.get(g.data["callback"], params={"amount": g.data["amount"]}, timeout=20)
         if r.is_error:
             return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
-    except httpx.RequestError:
+    except (httpx.ConnectError, httpx.RequestError):
         return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
 
     params = json.loads(r.text)
