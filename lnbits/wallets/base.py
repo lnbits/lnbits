@@ -32,7 +32,7 @@ class PaymentStatus(NamedTuple):
 
 class Wallet(ABC):
     @abstractmethod
-    def status() -> StatusResponse:
+    def status(self) -> StatusResponse:
         pass
 
     @abstractmethod

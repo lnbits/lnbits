@@ -1,6 +1,6 @@
 import trio  # type: ignore
 import json
-import lnurl
+import lnurl  # type: ignore
 import httpx
 import traceback
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
@@ -306,11 +306,11 @@ async def api_lnurlscan(code: str):
         params.update(fixed=data.min_withdrawable == data.max_withdrawable)
 
         # callback with k1 already in it
-        url: ParseResult = urlparse(data.callback)
-        qs: Dict = parse_qs(url.query)
+        parsed_callback: ParseResult = urlparse(data.callback)
+        qs: Dict = parse_qs(parsed_callback.query)
         qs["k1"] = data.k1
-        url = url._replace(query=urlencode(qs, doseq=True))
-        params.update(callback=urlunparse(url))
+        parsed_callback = parsed_callback._replace(query=urlencode(qs, doseq=True))
+        params.update(callback=urlunparse(parsed_callback))
 
     if type(data) is lnurl.LnurlPayResponse:
         params.update(kind="pay")

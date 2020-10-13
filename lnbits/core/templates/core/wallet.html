@@ -347,8 +347,8 @@
       {% raw %}
       <q-form @submit="payLnurl" class="q-gutter-md">
         <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-          <b>{{ parse.lnurlpay.domain }}</b> is requesting
-          {{ parse.lnurlpay.maxSendable | msatoshiFormat }} sat
+          <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
+          parse.lnurlpay.maxSendable | msatoshiFormat }} sat
         </p>
         <p v-else class="q-my-none text-h6 text-center">
           <b>{{ parse.lnurlpay.domain }}</b> is requesting <br />
