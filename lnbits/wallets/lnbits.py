@@ -3,7 +3,7 @@ import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LNbitsWallet(Wallet):
@@ -14,6 +14,18 @@ class LNbitsWallet(Wallet):
 
         key = getenv("LNBITS_KEY") or getenv("LNBITS_ADMIN_KEY") or getenv("LNBITS_INVOICE_KEY")
         self.key = {"X-Api-Key": key}
+
+    def status(self) -> StatusResponse:
+        r = httpx.get(url=f"{self.endpoint}/api/v1/wallet", headers=self.key)
+        try:
+            data = r.json()
+        except:
+            return StatusResponse(f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0)
+
+        if r.is_error:
+            return StatusResponse(data["message"], 0)
+
+        return StatusResponse(None, data["balance"])
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None

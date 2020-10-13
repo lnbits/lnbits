@@ -39,5 +39,5 @@ async def on_invoice_paid(payment: Payment) -> None:
                         timeout=40,
                     )
                     mark_webhook_sent(payment.payment_hash, r.status_code)
-                except httpx.RequestError:
+                except (httpx.ConnectError, httpx.RequestError):
                     mark_webhook_sent(payment.payment_hash, -1)

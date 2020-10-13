@@ -5,7 +5,7 @@ import base64
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LndRestWallet(Wallet):
@@ -26,6 +26,25 @@ class LndRestWallet(Wallet):
         )
         self.auth = {"Grpc-Metadata-macaroon": macaroon}
         self.cert = getenv("LND_REST_CERT")
+
+    def status(self) -> StatusResponse:
+        try:
+            r = httpx.get(
+                f"{self.endpoint}/v1/balance/channels",
+                headers=self.auth,
+                verify=self.cert,
+            )
+        except (httpx.ConnectError, httpx.RequestError):
+            return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
+
+        try:
+            data = r.json()
+            if r.is_error:
+                raise Exception
+        except Exception:
+            return StatusResponse(r.text[:200], 0)
+
+        return StatusResponse(None, int(data["balance"]) * 1000)
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
@@ -139,7 +158,7 @@ class LndRestWallet(Wallet):
 
                             payment_hash = base64.b64decode(inv["r_hash"]).hex()
                             yield payment_hash
-            except (OSError, httpx.ReadError):
+            except (OSError, httpx.ConnectError, httpx.ReadError):
                 pass
 
             print("lost connection to lnd invoices stream, retrying in 5 seconds")

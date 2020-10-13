@@ -6,7 +6,7 @@ from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
 from quart import request
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class LNPayWallet(Wallet):
@@ -17,6 +17,24 @@ class LNPayWallet(Wallet):
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         self.wallet_key = getenv("LNPAY_WALLET_KEY") or getenv("LNPAY_ADMIN_KEY")
         self.auth = {"X-Api-Key": getenv("LNPAY_API_KEY")}
+
+    def status(self) -> StatusResponse:
+        url = f"{self.endpoint}/wallet/{self.wallet_key}"
+        try:
+            r = httpx.get(url, headers=self.auth)
+        except (httpx.ConnectError, httpx.RequestError):
+            return StatusResponse(f"Unable to connect to '{url}'")
+
+        if r.is_error:
+            return StatusResponse(r.text[:250], 0)
+
+        data = r.json()
+        if data["statusType"]["name"] != "active":
+            return StatusResponse(
+                f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}", 0
+            )
+
+        return StatusResponse(None, data["balance"] / 1000)
 
     def create_invoice(
         self,
@@ -31,7 +49,7 @@ class LNPayWallet(Wallet):
             data["memo"] = memo or ""
 
         r = httpx.post(
-            url=f"{self.endpoint}/user/wallet/{self.wallet_key}/invoice",
+            f"{self.endpoint}/wallet/{self.wallet_key}/invoice",
             headers=self.auth,
             json=data,
         )
@@ -50,7 +68,7 @@ class LNPayWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = httpx.post(
-            url=f"{self.endpoint}/user/wallet/{self.wallet_key}/withdraw",
+            url=f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
             headers=self.auth,
             json={"payment_request": bolt11},
         )
@@ -66,7 +84,7 @@ class LNPayWallet(Wallet):
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(
-            url=f"{self.endpoint}/user/lntx/{checking_id}?fields=settled",
+            url=f"{self.endpoint}/lntx/{checking_id}?fields=settled",
             headers=self.auth,
         )
 
@@ -90,7 +108,7 @@ class LNPayWallet(Wallet):
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
         async with httpx.AsyncClient() as client:
             r = await client.get(
-                f"{self.endpoint}/user/lntx/{lntx_id}?fields=settled",
+                f"{self.endpoint}/lntx/{lntx_id}?fields=settled",
                 headers=self.auth,
             )
             data = r.json()

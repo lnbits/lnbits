@@ -7,7 +7,7 @@ from os import getenv
 from typing import Optional, AsyncGenerator
 from quart import request, url_for
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
 
 class OpenNodeWallet(Wallet):
@@ -19,6 +19,18 @@ class OpenNodeWallet(Wallet):
 
         key = getenv("OPENNODE_KEY") or getenv("OPENNODE_ADMIN_KEY") or getenv("OPENNODE_INVOICE_KEY")
         self.auth = {"Authorization": key}
+
+    def status(self) -> StatusResponse:
+        try:
+            r = httpx.get(f"{self.endpoint}/v1/account/balance", headers=self.auth)
+        except (httpx.ConnectError, httpx.RequestError):
+            return StatusResponse(f"Unable to connect to '{self.endpoint}'")
+
+        data = r.json()["message"]
+        if r.is_error:
+            return StatusResponse(data["message"], 0)
+
+        return StatusResponse(None, data["balance"]["BTC"] / 100_000_000_000)
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None

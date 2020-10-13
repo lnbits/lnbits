@@ -5,7 +5,7 @@ import httpx
 from os import getenv
 from typing import Optional, AsyncGenerator
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 class SparkError(Exception):
@@ -35,11 +35,29 @@ class SparkWallet(Wallet):
                 data = r.json()
             except:
                 raise UnknownError(r.text)
+
             if r.is_error:
+                if r.status_code == 401:
+                    raise SparkError("Access key invalid!")
+
                 raise SparkError(data["message"])
+
             return data
 
         return call
+
+    def status(self) -> StatusResponse:
+        try:
+            funds = self.listfunds()
+        except (httpx.ConnectError, httpx.RequestError):
+            return StatusResponse("Couldn't connect to Spark server", 0)
+        except (SparkError, UnknownError) as e:
+            return StatusResponse(str(e), 0)
+
+        return StatusResponse(
+            None,
+            sum([ch["channel_sat"] * 1000 for ch in funds["channels"]]),
+        )
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None

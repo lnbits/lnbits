@@ -9,7 +9,8 @@ import json
 
 from os import getenv
 from typing import Optional, AsyncGenerator
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
+
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
 
 
 class CLightningWallet(Wallet):
@@ -38,6 +39,17 @@ class CLightningWallet(Wallet):
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
                 break
+
+    def status(self) -> StatusResponse:
+        try:
+            funds = self.ln.listfunds()
+            return StatusResponse(
+                None,
+                sum([ch["channel_sat"] * 1000 for ch in funds["channels"]]),
+            )
+        except RpcError as exc:
+            error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
+            return StatusResponse(error_message, 0)
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None

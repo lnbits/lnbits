@@ -1,4 +1,5 @@
 import importlib
+import warnings
 
 from quart import g
 from quart_trio import QuartTrio
@@ -12,6 +13,7 @@ from .db import open_db, open_ext_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
 from .tasks import run_deferred_async, invoice_listener, webhook_handler, grab_app_for_later
+from .settings import WALLET
 
 secure_headers = SecureHeaders(hsts=False)
 
@@ -27,6 +29,7 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
     cors(app)
     Compress(app)
 
+    check_funding_source(app)
     register_assets(app)
     register_blueprints(app)
     register_filters(app)
@@ -36,6 +39,19 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
     grab_app_for_later(app)
 
     return app
+
+
+def check_funding_source(app: QuartTrio) -> None:
+    @app.before_serving
+    async def check_wallet_status():
+        error_message, balance = WALLET.status()
+        if error_message:
+            warnings.warn(
+                f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+                RuntimeWarning,
+            )
+        else:
+            print(f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat.")
 
 
 def register_blueprints(app: QuartTrio) -> None:

@@ -15,7 +15,7 @@ import hashlib
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
 
 
 def get_ssl_context(cert_path: str):
@@ -95,19 +95,20 @@ class LndWallet(Wallet):
         )
         network = getenv("LND_GRPC_NETWORK", "mainnet")
 
-        self.admin_rpc = lndgrpc.LNDClient(
+        self.rpc = lndgrpc.LNDClient(
             f"{self.endpoint}:{self.port}",
             cert_filepath=self.cert_path,
             network=network,
             macaroon_filepath=self.macaroon_path,
         )
 
-        self.invoices_rpc = lndgrpc.LNDClient(
-            f"{self.endpoint}:{self.port}",
-            cert_filepath=self.cert_path,
-            network=network,
-            macaroon_filepath=self.macaroon_path,
-        )
+    def status(self) -> StatusResponse:
+        try:
+            resp = self.rpc._ln_stub.ChannelBalance(ln.ChannelBalanceRequest())
+        except Exception as exc:
+            return StatusResponse(str(exc), 0)
+
+        return StatusResponse(None, resp.balance * 1000)
 
     def create_invoice(
         self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
@@ -121,7 +122,7 @@ class LndWallet(Wallet):
 
         try:
             req = ln.Invoice(**params)
-            resp = self.invoices_rpc._ln_stub.AddInvoice(req)
+            resp = self.rpc._ln_stub.AddInvoice(req)
         except Exception as exc:
             error_message = str(exc)
             return InvoiceResponse(False, None, None, error_message)
@@ -131,7 +132,7 @@ class LndWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        resp = self.admin_rpc.send_payment(payment_request=bolt11)
+        resp = self.rpc.send_payment(payment_request=bolt11)
 
         if resp.payment_error:
             return PaymentResponse(False, "", 0, resp.payment_error)
@@ -150,7 +151,7 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentStatus(None)
 
-        resp = self.invoices_rpc.lookup_invoice(r_hash.hex())
+        resp = self.rpc.lookup_invoice(r_hash.hex())
         if resp.settled:
             return PaymentStatus(True)
 
