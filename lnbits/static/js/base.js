@@ -63,6 +63,19 @@ window.LNbits = {
       )
     }
   },
+  events: {
+    onInvoicePaid: function (wallet, cb) {
+      if (!this.pis) {
+        this.pis = new EventSource(
+          '/api/v1/payments/sse?api-key=' + wallet.inkey
+        )
+      }
+
+      this.pis.addEventListener('payment-received', ev =>
+        cb(JSON.parse(ev.data))
+      )
+    }
+  },
   href: {
     createWallet: function (walletName, userId) {
       window.location.href =

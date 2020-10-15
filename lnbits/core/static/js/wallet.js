@@ -116,6 +116,7 @@ new Vue({
         show: false,
         status: 'pending',
         paymentReq: null,
+        paymentHash: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
         data: {
@@ -225,6 +226,7 @@ new Vue({
       this.receive.show = true
       this.receive.status = 'pending'
       this.receive.paymentReq = null
+      this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
       this.receive.paymentChecker = null
@@ -241,16 +243,24 @@ new Vue({
       this.parse.camera.show = false
     },
     closeReceiveDialog: function () {
-      var checker = this.receive.paymentChecker
       setTimeout(() => {
-        clearInterval(checker)
+        clearInterval(this.receive.paymentChecker)
       }, 10000)
     },
     closeParseDialog: function () {
-      var checker = this.parse.paymentChecker
       setTimeout(() => {
-        clearInterval(checker)
+        clearInterval(this.parse.paymentChecker)
       }, 10000)
+    },
+    onPaymentReceived: function (paymentHash) {
+      this.fetchPayments()
+      this.fetchBalance()
+
+      if (this.receive.paymentHash === paymentHash) {
+        this.receive.show = false
+        this.receive.paymentHash = null
+        clearInterval(this.receive.paymentChecker)
+      }
     },
     createInvoice: function () {
       this.receive.status = 'loading'
@@ -264,6 +274,7 @@ new Vue({
         .then(response => {
           this.receive.status = 'success'
           this.receive.paymentReq = response.data.payment_request
+          this.receive.paymentHash = response.data.payment_hash
 
           if (response.data.lnurl_response !== null) {
             if (response.data.lnurl_response === false) {
@@ -274,7 +285,7 @@ new Vue({
               // failure
               this.$q.notify({
                 timeout: 5000,
-                type: 'negative',
+                type: 'warning',
                 message: `${this.receive.lnurl.domain} lnurl-withdraw call failed.`,
                 caption: response.data.lnurl_response
               })
@@ -283,7 +294,6 @@ new Vue({
               // success
               this.$q.notify({
                 timeout: 5000,
-                type: 'positive',
                 message: `Invoice sent to ${this.receive.lnurl.domain}!`,
                 spinner: true
               })
@@ -291,17 +301,14 @@ new Vue({
           }
 
           this.receive.paymentChecker = setInterval(() => {
-            LNbits.api
-              .getPayment(this.g.wallet, response.data.payment_hash)
-              .then(response => {
-                if (response.data.paid) {
-                  this.fetchPayments()
-                  this.fetchBalance()
-                  this.receive.show = false
-                  clearInterval(this.receive.paymentChecker)
-                }
-              })
-          }, 2000)
+            let hash = response.data.payment_hash
+
+            LNbits.api.getPayment(this.g.wallet, hash).then(response => {
+              if (response.data.paid) {
+                this.onPaymentReceived(hash)
+              }
+            })
+          }, 5000)
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -354,6 +361,7 @@ new Vue({
               this.receive.show = true
               this.receive.status = 'pending'
               this.receive.paymentReq = null
+              this.receive.paymentHash = null
               this.receive.data.amount = data.maxWithdrawable / 1000
               this.receive.data.memo = data.defaultDescription
               this.receive.minMax = [
@@ -475,7 +483,7 @@ new Vue({
                           message: `<a target="_blank" style="color: inherit" href="${response.data.success_action.url}">${response.data.success_action.url}</a>`,
                           caption: response.data.success_action.description,
                           html: true,
-                          type: 'info',
+                          type: 'positive',
                           timeout: 0,
                           closeBtn: true
                         })
@@ -483,7 +491,7 @@ new Vue({
                       case 'message':
                         this.$q.notify({
                           message: response.data.success_action.message,
-                          type: 'info',
+                          type: 'positive',
                           timeout: 0,
                           closeBtn: true
                         })
@@ -491,20 +499,18 @@ new Vue({
                       case 'aes':
                         LNbits.api
                           .getPayment(this.g.wallet, response.data.payment_hash)
-                          .then(
-                            ({data: payment}) =>
-                              console.log(payment) ||
-                              decryptLnurlPayAES(
-                                response.data.success_action,
-                                payment.preimage
-                              )
+                          .then(({data: payment}) =>
+                            decryptLnurlPayAES(
+                              response.data.success_action,
+                              payment.preimage
+                            )
                           )
                           .then(value => {
                             this.$q.notify({
                               message: value,
                               caption: response.data.success_action.description,
                               html: true,
-                              type: 'info',
+                              type: 'positive',
                               timeout: 0,
                               closeBtn: true
                             })
@@ -575,6 +581,7 @@ new Vue({
     setTimeout(this.checkPendingPayments(), 1200)
   },
   mounted: function () {
+    // show disclaimer
     if (
       this.$refs.disclaimer &&
       !this.$q.localStorage.getItem('lnbits.disclaimerShown')
@@ -582,5 +589,10 @@ new Vue({
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
+
+    // listen to incoming payments
+    LNbits.events.onInvoicePaid(this.g.wallet, payment =>
+      this.onPaymentReceived(payment.payment_hash)
+    )
   }
 })

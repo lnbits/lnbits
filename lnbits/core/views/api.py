@@ -228,7 +228,7 @@ async def api_payment(payment_hash):
 
 
 @core_app.route("/api/v1/payments/sse", methods=["GET"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("invoice", accept_querystring=True)
 async def api_payments_sse():
     g.db.close()
     this_wallet_id = g.wallet.id
@@ -238,12 +238,12 @@ async def api_payments_sse():
     print("adding sse listener", send_payment)
     sse_listeners.append(send_payment)
 
-    send_event, receive_event = trio.open_memory_channel(0)
+    send_event, event_to_send = trio.open_memory_channel(0)
 
     async def payment_received() -> None:
         async for payment in receive_payment:
             if payment.wallet_id == this_wallet_id:
-                await send_event.send(("payment", payment))
+                await send_event.send(("payment-received", payment))
 
     async def repeat_keepalive():
         await trio.sleep(1)
@@ -256,7 +256,7 @@ async def api_payments_sse():
 
     async def send_events():
         try:
-            async for typ, data in receive_event:
+            async for typ, data in event_to_send:
                 message = [f"event: {typ}".encode("utf-8")]
 
                 if data:
