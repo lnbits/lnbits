@@ -300,6 +300,10 @@ new Vue({
             }
           }
 
+          clearInterval(this.receive.paymentChecker)
+          setTimeout(() => {
+            clearInterval(this.receive.paymentChecker)
+          }, 40000)
           this.receive.paymentChecker = setInterval(() => {
             let hash = response.data.payment_hash
 
@@ -428,6 +432,10 @@ new Vue({
       LNbits.api
         .payInvoice(this.g.wallet, this.parse.data.request)
         .then(response => {
+          clearInterval(this.parse.paymentChecker)
+          setTimeout(() => {
+            clearInterval(this.parse.paymentChecker)
+          }, 40000)
           this.parse.paymentChecker = setInterval(() => {
             LNbits.api
               .getPayment(this.g.wallet, response.data.payment_hash)
@@ -465,6 +473,10 @@ new Vue({
         .then(response => {
           this.parse.show = false
 
+          clearInterval(this.parse.paymentChecker)
+          setTimeout(() => {
+            clearInterval(this.parse.paymentChecker)
+          }, 40000)
           this.parse.paymentChecker = setInterval(() => {
             LNbits.api
               .getPayment(this.g.wallet, response.data.payment_hash)
