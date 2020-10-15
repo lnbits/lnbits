@@ -205,48 +205,47 @@
       </q-card-section>
     </q-card>
   </div>
-</div>
-
-<div class="col-12 col-md-5 q-gutter-y-md">
-  <q-card>
-    <q-card-section>
-      <q-btn flat color="grey" @click="exportCSV" class="float-right"
-        >Renew keys</q-btn
-      >
-      <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
-      <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
-      <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
-      <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
-      <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
-    </q-card-section>
-    <q-card-section class="q-pa-none">
-      <q-separator></q-separator>
-      <q-list>
-        {% include "core/_api_docs.html" %}
-        <q-separator></q-separator>
-        <q-expansion-item
-          group="extras"
-          icon="remove_circle"
-          label="Delete wallet"
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn flat color="grey" @click="exportCSV" class="float-right"
+          >Renew keys</q-btn
         >
-          <q-card>
-            <q-card-section>
-              <p>
-                This whole wallet will be deleted, the funds will be
-                <strong>UNRECOVERABLE</strong>.
-              </p>
-              <q-btn
-                unelevated
-                color="red-10"
-                @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
-                >Delete wallet</q-btn
-              >
-            </q-card-section>
-          </q-card>
-        </q-expansion-item>
-      </q-list>
-    </q-card-section>
-  </q-card>
+        <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
+        <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
+        <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
+        <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
+        <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>
+          {% include "core/_api_docs.html" %}
+          <q-separator></q-separator>
+          <q-expansion-item
+            group="extras"
+            icon="remove_circle"
+            label="Delete wallet"
+          >
+            <q-card>
+              <q-card-section>
+                <p>
+                  This whole wallet will be deleted, the funds will be
+                  <strong>UNRECOVERABLE</strong>.
+                </p>
+                <q-btn
+                  unelevated
+                  color="red-10"
+                  @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
+                  >Delete wallet</q-btn
+                >
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
 </div>
 
 <q-dialog v-model="receive.show" @hide="closeReceiveDialog">
