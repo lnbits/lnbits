@@ -74,18 +74,23 @@ async def api_payments_create_invoice():
 
     lnurl_response: Union[None, bool, str] = None
     if g.data.get("lnurl_callback"):
-        try:
-            r = httpx.get(g.data["lnurl_callback"], params={"pr": payment_request}, timeout=10)
-            if r.is_error:
-                lnurl_response = r.text
-            else:
-                resp = json.loads(r.text)
-                if resp["status"] != "OK":
-                    lnurl_response = resp["reason"]
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.get(
+                    g.data["lnurl_callback"],
+                    params={"pr": payment_request},
+                    timeout=10,
+                )
+                if r.is_error:
+                    lnurl_response = r.text
                 else:
-                    lnurl_response = True
-        except (httpx.ConnectError, httpx.RequestError):
-            lnurl_response = False
+                    resp = json.loads(r.text)
+                    if resp["status"] != "OK":
+                        lnurl_response = resp["reason"]
+                    else:
+                        lnurl_response = True
+            except (httpx.ConnectError, httpx.RequestError):
+                lnurl_response = False
 
     return (
         jsonify(
@@ -149,16 +154,17 @@ async def api_payments_create():
 async def api_payments_pay_lnurl():
     domain = urlparse(g.data["callback"]).netloc
 
-    try:
-        r = httpx.get(
-            g.data["callback"],
-            params={"amount": g.data["amount"], "comment": g.data["comment"]},
-            timeout=40,
-        )
-        if r.is_error:
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                g.data["callback"],
+                params={"amount": g.data["amount"], "comment": g.data["comment"]},
+                timeout=40,
+            )
+            if r.is_error:
+                return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
+        except (httpx.ConnectError, httpx.RequestError):
             return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
-    except (httpx.ConnectError, httpx.RequestError):
-        return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
 
     params = json.loads(r.text)
     if params.get("status") == "ERROR":
@@ -293,9 +299,10 @@ async def api_lnurlscan(code: str):
     if url.is_login:
         return jsonify({"domain": domain, "kind": "auth", "error": "unsupported"})
 
-    r = httpx.get(url.url)
-    if r.is_error:
-        return jsonify({"domain": domain, "error": "failed to get parameters"})
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url.url, timeout=40)
+        if r.is_error:
+            return jsonify({"domain": domain, "error": "failed to get parameters"})
 
     try:
         jdata = json.loads(r.text)
