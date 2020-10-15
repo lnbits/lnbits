@@ -95,7 +95,7 @@
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width class="lnbits__q-table__icon-td">
+              <q-td auto-width class="text-center">
                 <q-icon
                   v-if="props.row.isPaid"
                   size="14px"
@@ -112,7 +112,7 @@
                   <q-tooltip>Pending</q-tooltip>
                 </q-icon>
               </q-td>
-              <q-td key="memo" :props="props">
+              <q-td key="memo" :props="props" style="white-space: normal; word-break: break-all;">
                 <q-badge v-if="props.row.tag" color="yellow" text-color="black">
                   <a
                     class="inherit"
