@@ -147,6 +147,8 @@ async def api_payments_create():
     }
 )
 async def api_payments_pay_lnurl():
+    domain = urlparse(g.data["callback"]).netloc
+
     try:
         r = httpx.get(
             g.data["callback"],
@@ -160,7 +162,6 @@ async def api_payments_pay_lnurl():
 
     params = json.loads(r.text)
     if params.get("status") == "ERROR":
-        domain = urlparse(g.data["callback"]).netloc
         return jsonify({"message": f"{domain} said: '{params.get('reason', '')}'"}), HTTPStatus.BAD_REQUEST
 
     invoice = bolt11.decode(params["pr"])
