@@ -1,4 +1,5 @@
 import trio  # type: ignore
+import json
 import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
@@ -42,7 +43,7 @@ class LntxbotWallet(Wallet):
             data["memo"] = memo or ""
 
         r = httpx.post(
-            url=f"{self.endpoint}/addinvoice",
+            f"{self.endpoint}/addinvoice",
             headers=self.auth,
             json=data,
             timeout=40,
@@ -63,7 +64,7 @@ class LntxbotWallet(Wallet):
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
         r = httpx.post(
-            url=f"{self.endpoint}/payinvoice",
+            f"{self.endpoint}/payinvoice",
             headers=self.auth,
             json={"invoice": bolt11},
             timeout=40,
@@ -86,7 +87,10 @@ class LntxbotWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.post(url=f"{self.endpoint}/invoicestatus/{checking_id}?wait=false", headers=self.auth)
+        r = httpx.post(
+            f"{self.endpoint}/invoicestatus/{checking_id}?wait=false",
+            headers=self.auth,
+        )
 
         data = r.json()
         if r.is_error or "error" in data:
@@ -98,7 +102,10 @@ class LntxbotWallet(Wallet):
         return PaymentStatus(True)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.post(url=f"{self.endpoint}/paymentstatus/{checking_id}", headers=self.auth)
+        r = httpx.post(
+            url=f"{self.endpoint}/paymentstatus/{checking_id}",
+            headers=self.auth,
+        )
 
         data = r.json()
         if r.is_error or "error" in data:
@@ -108,6 +115,19 @@ class LntxbotWallet(Wallet):
         return PaymentStatus(statuses[data.get("status", "unknown")])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        print("lntxbot does not support paid invoices stream yet")
-        await trio.sleep(5)
-        yield ""
+        url = f"{self.endpoint}/payments/stream"
+
+        while True:
+            try:
+                async with httpx.AsyncClient(timeout=None, headers=self.auth) as client:
+                    async with client.stream("GET", url) as r:
+                        async for line in r.aiter_lines():
+                            if line.startswith("data:"):
+                                data = json.loads(line[5:])
+                                if "payment_hash" in data and data.get("msatoshi") > 0:
+                                    yield data["payment_hash"]
+            except (OSError, httpx.ReadError):
+                pass
+
+            print("lost connection to lntxbot /payments/stream, retrying in 5 seconds")
+            await trio.sleep(5)
