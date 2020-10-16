@@ -27,10 +27,4 @@ Now modify the `.env` file with any settings you prefer and add a proper [fundin
 
 Then you can run restart it and it will be using the new settings.
 
-You might also need to install additional packages, depending on the chosen backend.
-E.g. when you want to use LND you have to run:
-
-```sh
-./venv/bin/pip install lndgrpc
-./venv/bin/pip install purerpc
-```
+You might also need to install additional packages or perform additional setup steps, depending on the chosen backend. See [the short guide](./wallets.md) on each different funding source.

@@ -22,7 +22,7 @@ LNbits is a very simple Python server that sits on top of any funding source, an
 * Fallback wallet for the LNURL scheme
 * Instant wallet for LN demonstrations
 
-The wallet can run on top of any lightning-network funding source, currently there is support for LND, CLightning, Lntxbot, LNpay, OpenNode, with more being added regularily.
+The wallet can run on top of any lightning-network funding source, currently there is support for LND, c-lightning, Spark, LNpay, OpenNode, lntxbot, with more being added regularily.
 
 See [lnbits.org](https://lnbits.org) for more detailed documentation.
 
@@ -30,9 +30,13 @@ Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbS
 
 LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for LNbits.
 
-## Running LNbits locally
+## Running LNbits
 
-See the [development docs](docs/devs/installation.md) for details on installation and setup.
+See the [install guide](docs/guide/installation.md) for details on installation and setup.
+
+### Contributing to LNbits
+
+There's a [slightly different setup](docs/devs/installation.md) if you want to contribute to LNbits, but if your changes don't require adding or removing any package dependencies you don't have to bother with that, just follow the [normal installation](docs/guide/installation.md) steps.
 
 ## LNbits as an account system
 
