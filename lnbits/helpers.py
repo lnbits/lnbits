@@ -75,7 +75,18 @@ def get_js_vendored(prefer_minified: bool = False) -> List[str]:
 
 
 def get_css_vendored(prefer_minified: bool = False) -> List[str]:
-    return get_vendored(".css", prefer_minified)
+    paths = get_vendored(".css", prefer_minified)
+
+    def sorter(key: str):
+        if "quasar@" in key:
+            return 1
+        if "vue@" in key:
+            return 2
+        if "chart.js@" in key:
+            return 100
+        return 9
+
+    return sorted(paths, key=sorter)
 
 
 def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
