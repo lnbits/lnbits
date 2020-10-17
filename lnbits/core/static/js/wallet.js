@@ -329,9 +329,10 @@ new Vue({
 
       if (this.parse.data.request.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
-      }
-      if (this.parse.data.request.startsWith('lnurl:')) {
+      } else if (this.parse.data.request.startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
+      } else if (this.parse.data.request.indexOf('lightning=lnurl1') !== -1) {
+        this.parse.data.request = this.parse.data.request.split('lightning=')[1]
       }
 
       if (this.parse.data.request.toLowerCase().startsWith('lnurl1')) {
