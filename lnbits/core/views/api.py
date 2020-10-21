@@ -297,21 +297,24 @@ async def api_lnurlscan(code: str):
 
     domain = urlparse(url.url).netloc
     if url.is_login:
-        return jsonify({"domain": domain, "kind": "auth", "error": "unsupported"})
+        return jsonify({"domain": domain, "kind": "auth", "error": "unsupported"}), HTTPStatus.BAD_REQUEST
 
     async with httpx.AsyncClient() as client:
         r = await client.get(url.url, timeout=40)
         if r.is_error:
-            return jsonify({"domain": domain, "error": "failed to get parameters"})
+            return jsonify({"domain": domain, "error": "failed to get parameters"}), HTTPStatus.SERVICE_UNAVAILABLE
 
     try:
         jdata = json.loads(r.text)
         data: lnurl.LnurlResponseModel = lnurl.LnurlResponse.from_dict(jdata)
     except (json.decoder.JSONDecodeError, lnurl.exceptions.LnurlResponseException):
-        return jsonify({"domain": domain, "error": f"got invalid response '{r.text[:200]}'"})
+        return (
+            jsonify({"domain": domain, "error": f"got invalid response '{r.text[:200]}'"}),
+            HTTPStatus.SERVICE_UNAVAILABLE,
+        )
 
     if type(data) is lnurl.LnurlChannelResponse:
-        return jsonify({"domain": domain, "kind": "channel", "error": "unsupported"})
+        return jsonify({"domain": domain, "kind": "channel", "error": "unsupported"}), HTTPStatus.BAD_REQUEST
 
     params: Dict = data.dict()
     if type(data) is lnurl.LnurlWithdrawResponse:

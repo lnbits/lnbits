@@ -19,7 +19,7 @@ from .crud import get_wallet, create_payment, delete_payment, check_internal, up
 def create_invoice(
     *,
     wallet_id: str,
-    amount: int,
+    amount: int,  # in satoshis
     memo: str,
     description_hash: Optional[bytes] = None,
     extra: Optional[Dict] = None,
