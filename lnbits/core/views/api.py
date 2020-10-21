@@ -191,11 +191,18 @@ async def api_payments_pay_lnurl():
         )
 
     try:
+        extra = {}
+
+        if params.get("successAction"):
+            extra["success_action"] = params["successAction"]
+        if g.data["comment"]:
+            extra["comment"] = g.data["comment"]
+
         payment_hash = pay_invoice(
             wallet_id=g.wallet.id,
             payment_request=params["pr"],
             description=g.data.get("description", ""),
-            extra={"success_action": params.get("successAction")},
+            extra=extra,
         )
     except Exception as exc:
         traceback.print_exc(7)
