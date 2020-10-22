@@ -1,11 +1,11 @@
 from quart import g, jsonify, request
 from http import HTTPStatus
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
-from lnbits.extensions.lnurlp import lnurlp_ext
+from lnbits.extensions.lnurlp import lnurlp_ext  # type: ignore
 from .crud import (
     create_pay_link,
     get_pay_link,
@@ -13,6 +13,7 @@ from .crud import (
     update_pay_link,
     delete_pay_link,
 )
+from .helpers import get_fiat_rate
 
 
 @lnurlp_ext.route("/api/v1/links", methods=["GET"])
@@ -55,13 +56,24 @@ async def api_link_retrieve(link_id):
 @api_validate_post_request(
     schema={
         "description": {"type": "string", "empty": False, "required": True},
-        "amount": {"type": "integer", "min": 1, "required": True},
+        "min": {"type": "number", "min": 0.01, "required": True},
+        "max": {"type": "number", "min": 0.01, "required": True},
+        "currency": {"type": "string", "allowed": ["USD"], "nullable": True, "required": False},
+        "comment_chars": {"type": "integer", "required": True, "min": 0, "max": 800},
         "webhook_url": {"type": "string", "required": False},
         "success_text": {"type": "string", "required": False},
         "success_url": {"type": "string", "required": False},
     }
 )
 async def api_link_create_or_update(link_id=None):
+    if g.data["min"] > g.data["max"]:
+        return jsonify({"message": "Min is greater than max."}), HTTPStatus.BAD_REQUEST
+
+    if g.data.get("currency") == None and (
+        round(g.data["min"]) != g.data["min"] or round(g.data["max"]) != g.data["max"]
+    ):
+        return jsonify({"message": "Must use full satoshis."}), HTTPStatus.BAD_REQUEST
+
     if link_id:
         link = get_pay_link(link_id)
 
@@ -92,3 +104,13 @@ async def api_link_delete(link_id):
     delete_pay_link(link_id)
 
     return "", HTTPStatus.NO_CONTENT
+
+
+@lnurlp_ext.route("/api/v1/rate/<currency>", methods=["GET"])
+async def api_check_fiat_rate(currency):
+    try:
+        rate = await get_fiat_rate(currency)
+    except AssertionError:
+        rate = None
+
+    return jsonify({"rate": rate}), HTTPStatus.OK

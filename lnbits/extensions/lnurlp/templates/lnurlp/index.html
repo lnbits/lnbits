@@ -16,25 +16,22 @@
           <div class="col">
             <h5 class="text-subtitle1 q-my-none">Pay links</h5>
           </div>
-          <div class="col-auto">
-            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
-          </div>
         </div>
         <q-table
           dense
           flat
           :data="payLinks"
           row-key="id"
-          :columns="payLinksTable.columns"
           :pagination.sync="payLinksTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
+              <q-th auto-width>Description</q-th>
+              <q-th auto-width>Amount</q-th>
+              <q-th auto-width>Currency</q-th>
+              <q-th auto-width></q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
@@ -60,8 +57,39 @@
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
               </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
+              <q-td auto-width>{{ props.row.description }}</q-td>
+              <q-td auto-width>
+                <span v-if="props.row.min == props.row.max">
+                  {{ props.row.min }}
+                </span>
+                <span v-else>{{ props.row.min }} - {{ props.row.max }}</span>
+              </q-td>
+              <q-td>{{ props.row.currency || 'sat' }}</q-td>
+              <q-td>
+                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
+                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.success_text || props.row.success_url"
+                  size="14px"
+                  name="call_to_action"
+                >
+                  <q-tooltip>
+                    On success, show message '{{ props.row.success_text }}'
+                    <span v-if="props.row.success_url"
+                      >and URL '{{ props.row.success_url }}'</span
+                    >
+                  </q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.comment_chars > 0"
+                  size="14px"
+                  name="insert_comment"
+                >
+                  <q-tooltip>
+                    {{ props.row.comment_chars }}-char comment allowed
+                  </q-tooltip>
+                </q-icon>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -124,12 +152,52 @@
           type="text"
           label="Item description *"
         ></q-input>
+        <div class="row q-col-gutter-sm">
+          <q-input
+            filled
+            dense
+            v-model.number="formDialog.data.min"
+            type="number"
+            :step="formDialog.data.currency && formDialog.data.currency !== 'satoshis' ? '0.01' : '1'"
+            :label="formDialog.fixedAmount ? 'Amount *' : 'Min *'"
+          ></q-input>
+          <q-input
+            v-if="!formDialog.fixedAmount"
+            filled
+            dense
+            v-model.number="formDialog.data.max"
+            type="number"
+            :step="formDialog.data.currency && formDialog.data.currency !== 'satoshis' ? '0.01' : '1'"
+            label="Max *"
+          ></q-input>
+        </div>
+        <div class="row q-col-gutter-sm">
+          <div class="col">
+            <q-checkbox
+              dense
+              v-model="formDialog.fixedAmount"
+              label="Fixed amount"
+            />
+          </div>
+          <div class="col">
+            <q-select
+              dense
+              :options='["satoshis", "USD"]'
+              v-model="formDialog.data.currency"
+              :display-value="formDialog.data.currency || 'satoshis'"
+              label="Currency"
+              :hint="'Amounts will be converted at use-time to satoshis. ' + (formDialog.data.currency && fiatRates[formDialog.data.currency] ? `Currently 1 ${formDialog.data.currency} = ${fiatRates[formDialog.data.currency]} sat` : '')"
+              @input="updateFiatRate"
+            />
+          </div>
+        </div>
         <q-input
           filled
           dense
-          v-model.number="formDialog.data.amount"
+          v-model.number="formDialog.data.comment_chars"
           type="number"
-          label="Amount (sat) *"
+          label="Comment maximum characters"
+          hint="Tell wallets to prompt users for a comment that will be sent along with the payment. LNURLp will store the comment and send it in the webhook."
         ></q-input>
         <q-input
           filled
@@ -171,8 +239,8 @@
                 formDialog.data.wallet == null ||
                 formDialog.data.description == null ||
                 (
-                  formDialog.data.amount == null ||
-                  formDialog.data.amount < 1
+                  formDialog.data.min == null ||
+                  formDialog.data.min <= 0
                 )
                 "
             type="submit"
@@ -198,11 +266,16 @@
       </q-responsive>
       <p style="word-break: break-all">
         <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
-        <strong>Amount:</strong> {{ qrCodeDialog.data.amount }} sat<br />
-        <strong>Webhook:</strong> {{ qrCodeDialog.data.webhook_url }}<br />
-        <strong>Success Message:</strong> {{ qrCodeDialog.data.success_text
+        <strong>Amount:</strong> {{ qrCodeDialog.data.amount }}<br />
+        <span v-if="qrCodeDialog.data.currency"
+          ><strong>{{ qrCodeDialog.data.currency }} price:</strong> {{
+          fiatRates[qrCodeDialog.data.currency] ?
+          fiatRates[qrCodeDialog.data.currency] + ' sat' : 'Loading...' }}<br
+        /></span>
+        <strong>Accepts comments:</strong> {{ qrCodeDialog.data.comments }}<br />
+        <strong>Dispatches webhook to:</strong> {{ qrCodeDialog.data.webhook
         }}<br />
-        <strong>Success URL:</strong> {{ qrCodeDialog.data.success_url }}<br />
+        <strong>On success:</strong> {{ qrCodeDialog.data.success }}<br />
       </p>
       {% endraw %}
       <div class="row q-mt-lg q-gutter-sm">
@@ -220,7 +293,6 @@
           >Shareable link</q-btn
         >
         <q-btn
-          v-if="!qrCodeDialog.data.is_unique"
           outline
           color="grey"
           icon="print"
@@ -234,223 +306,5 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script>
-  Vue.component(VueQrcode.name, VueQrcode)
-
-  var locationPath = [
-    window.location.protocol,
-    '//',
-    window.location.host,
-    window.location.pathname
-  ].join('')
-
-  var mapPayLink = function (obj) {
-    obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    obj.amount = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.print_url = [locationPath, 'print/', obj.id].join('')
-    obj.pay_url = [locationPath, obj.id].join('')
-    return obj
-  }
-
-  new Vue({
-    el: '#vue',
-    mixins: [windowMixin],
-    data: function () {
-      return {
-        checker: null,
-        payLinks: [],
-        payLinksTable: {
-          columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {
-              name: 'description',
-              align: 'left',
-              label: 'Description',
-              field: 'description'
-            },
-            {
-              name: 'amount',
-              align: 'right',
-              label: 'Amount (sat)',
-              field: 'amount'
-            },
-            {
-              name: 'webhook_url',
-              align: 'left',
-              label: 'Webhook URL',
-              field: 'webhook_url'
-            },
-            {
-              name: 'success_action',
-              align: 'center',
-              label: '',
-              format: (_, row) =>
-                row.success_text || row.success_url ? '💬' : ''
-            }
-          ],
-          pagination: {
-            rowsPerPage: 10
-          }
-        },
-        formDialog: {
-          show: false,
-          secondMultiplier: 'seconds',
-          secondMultiplierOptions: ['seconds', 'minutes', 'hours'],
-          data: {
-            is_unique: false
-          }
-        },
-        qrCodeDialog: {
-          show: false,
-          data: null
-        }
-      }
-    },
-    methods: {
-      getPayLinks: function () {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/lnurlp/api/v1/links?all_wallets',
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            self.payLinks = response.data.map(function (obj) {
-              return mapPayLink(obj)
-            })
-          })
-          .catch(function (error) {
-            clearInterval(self.checker)
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      closeFormDialog: function () {
-        this.formDialog.data = {
-          is_unique: false
-        }
-      },
-      openQrCodeDialog: function (linkId) {
-        var link = _.findWhere(this.payLinks, {id: linkId})
-        this.qrCodeDialog.data = _.clone(link)
-        this.qrCodeDialog.show = true
-      },
-      openUpdateDialog: function (linkId) {
-        var link = _.findWhere(this.payLinks, {id: linkId})
-        this.formDialog.data = _.clone(link._data)
-        this.formDialog.show = true
-      },
-      sendFormData: function () {
-        var wallet = _.findWhere(this.g.user.wallets, {
-          id: this.formDialog.data.wallet
-        })
-        var data = _.omit(this.formDialog.data, 'wallet')
-
-        data.wait_time =
-          data.wait_time *
-          {
-            seconds: 1,
-            minutes: 60,
-            hours: 3600
-          }[this.formDialog.secondMultiplier]
-
-        if (data.id) {
-          this.updatePayLink(wallet, data)
-        } else {
-          this.createPayLink(wallet, data)
-        }
-      },
-      updatePayLink: function (wallet, data) {
-        var self = this
-
-        let values = _.omit(
-          _.pick(
-            data,
-            'description',
-            'amount',
-            'webhook_url',
-            'success_text',
-            'success_url'
-          ),
-          (value, key) =>
-            (key === 'webhook_url' ||
-              key === 'success_text' ||
-              key === 'success_url') &&
-            (value === null || value === '')
-        )
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/lnurlp/api/v1/links/' + data.id,
-            wallet.adminkey,
-            values
-          )
-          .then(function (response) {
-            self.payLinks = _.reject(self.payLinks, function (obj) {
-              return obj.id === data.id
-            })
-            self.payLinks.push(mapPayLink(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      createPayLink: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request('POST', '/lnurlp/api/v1/links', wallet.adminkey, data)
-          .then(function (response) {
-            self.payLinks.push(mapPayLink(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      deletePayLink: function (linkId) {
-        var self = this
-        var link = _.findWhere(this.payLinks, {id: linkId})
-
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/lnurlp/api/v1/links/' + linkId,
-                _.findWhere(self.g.user.wallets, {id: link.wallet}).adminkey
-              )
-              .then(function (response) {
-                self.payLinks = _.reject(self.payLinks, function (obj) {
-                  return obj.id === linkId
-                })
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-      exportCSV: function () {
-        LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
-      }
-    },
-    created: function () {
-      if (this.g.user.wallets.length) {
-        var getPayLinks = this.getPayLinks
-        getPayLinks()
-        this.checker = setInterval(function () {
-          getPayLinks()
-        }, 20000)
-      }
-    }
-  })
-</script>
+<script src="/lnurlp/static/js/index.js"></script>
 {% endblock %}

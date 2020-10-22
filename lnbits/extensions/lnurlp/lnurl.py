@@ -1,12 +1,14 @@
 import hashlib
+import math
 from http import HTTPStatus
-from quart import jsonify, url_for
-from lnurl import LnurlPayResponse, LnurlPayActionResponse
+from quart import jsonify, url_for, request
+from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
 from lnbits.core.services import create_invoice
 
 from . import lnurlp_ext
-from .crud import increment_pay_link, save_link_invoice
+from .crud import increment_pay_link
+from .helpers import get_fiat_rate
 
 
 @lnurlp_ext.route("/api/v1/lnurl/<link_id>", methods=["GET"])
@@ -15,16 +17,19 @@ async def api_lnurl_response(link_id):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
-    url = url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True)
-
+    rate = await get_fiat_rate(link.currency) if link.currency else 1
     resp = LnurlPayResponse(
-        callback=url,
-        min_sendable=link.amount * 1000,
-        max_sendable=link.amount * 1000,
+        callback=url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True),
+        min_sendable=math.ceil(link.min * rate) * 1000,
+        max_sendable=round(link.max * rate) * 1000,
         metadata=link.lnurlpay_metadata,
     )
+    params = resp.dict()
 
-    return jsonify(resp.dict()), HTTPStatus.OK
+    if link.comment_chars > 0:
+        params["commentAllowed"] = link.comment_chars
+
+    return jsonify(params), HTTPStatus.OK
 
 
 @lnurlp_ext.route("/api/v1/lnurl/cb/<link_id>", methods=["GET"])
@@ -33,15 +38,43 @@ async def api_lnurl_callback(link_id):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
+    min, max = link.min, link.max
+    rate = await get_fiat_rate(link.currency) if link.currency else 1
+    if link.currency:
+        # allow some fluctuation (as the fiat price may have changed between the calls)
+        min = rate * 995 * link.min
+        max = rate * 1010 * link.max
+
+    amount_received = int(request.args.get("amount"))
+    if amount_received < min:
+        return (
+            jsonify(LnurlErrorResponse(reason=f"Amount {amount_received} is smaller than minimum {min}.").dict()),
+            HTTPStatus.OK,
+        )
+    elif amount_received > max:
+        return (
+            jsonify(LnurlErrorResponse(reason=f"Amount {amount_received} is greater than maximum {max}.").dict()),
+            HTTPStatus.OK,
+        )
+
+    comment = request.args.get("comment")
+    if len(comment or "") > link.comment_chars:
+        return (
+            jsonify(
+                LnurlErrorResponse(
+                    reason=f"Got a comment with {len(comment)} characters, but can only accept {link.comment_chars}"
+                ).dict()
+            ),
+            HTTPStatus.OK,
+        )
+
     payment_hash, payment_request = create_invoice(
         wallet_id=link.wallet,
-        amount=link.amount,
+        amount=int(amount_received / 1000),
         memo=link.description,
         description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
-        extra={"tag": "lnurlp"},
+        extra={"tag": "lnurlp", "link": link.id, "comment": comment},
     )
-
-    save_link_invoice(link_id, payment_request)
 
     resp = LnurlPayActionResponse(
         pr=payment_request,

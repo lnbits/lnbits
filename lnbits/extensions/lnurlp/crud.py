@@ -1,7 +1,9 @@
+import json
 from typing import List, Optional, Union
 
-from lnbits import bolt11
 from lnbits.db import open_ext_db
+from lnbits.core.models import Payment
+from quart import g
 
 from .models import PayLink
 
@@ -10,7 +12,10 @@ def create_pay_link(
     *,
     wallet_id: str,
     description: str,
-    amount: int,
+    min: int,
+    max: int,
+    comment_chars: int = 0,
+    currency: Optional[str] = None,
     webhook_url: Optional[str] = None,
     success_text: Optional[str] = None,
     success_url: Optional[str] = None,
@@ -21,16 +26,29 @@ def create_pay_link(
             INSERT INTO pay_links (
                 wallet,
                 description,
-                amount,
+                min,
+                max,
                 served_meta,
                 served_pr,
                 webhook_url,
                 success_text,
-                success_url
+                success_url,
+                comment_chars,
+                currency
             )
-            VALUES (?, ?, ?, 0, 0, ?, ?, ?)
+            VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
             """,
-            (wallet_id, description, amount, webhook_url, success_text, success_url),
+            (
+                wallet_id,
+                description,
+                min,
+                max,
+                webhook_url,
+                success_text,
+                success_url,
+                comment_chars,
+                currency,
+            ),
         )
         link_id = db.cursor.lastrowid
     return get_pay_link(link_id)
@@ -39,22 +57,6 @@ def create_pay_link(
 def get_pay_link(link_id: int) -> Optional[PayLink]:
     with open_ext_db("lnurlp") as db:
         row = db.fetchone("SELECT * FROM pay_links WHERE id = ?", (link_id,))
-
-    return PayLink.from_row(row) if row else None
-
-
-def get_pay_link_by_invoice(payment_hash: str) -> Optional[PayLink]:
-    # this excludes invoices with webhooks that have been sent already
-
-    with open_ext_db("lnurlp") as db:
-        row = db.fetchone(
-            """
-            SELECT pay_links.* FROM pay_links
-            INNER JOIN invoices ON invoices.pay_link = pay_links.id
-            WHERE payment_hash = ? AND webhook_sent IS NULL
-            """,
-            (payment_hash,),
-        )
 
     return PayLink.from_row(row) if row else None
 
@@ -101,25 +103,12 @@ def delete_pay_link(link_id: int) -> None:
         db.execute("DELETE FROM pay_links WHERE id = ?", (link_id,))
 
 
-def save_link_invoice(link_id: int, payment_request: str) -> None:
-    inv = bolt11.decode(payment_request)
-
-    with open_ext_db("lnurlp") as db:
-        db.execute(
-            """
-            INSERT INTO invoices (pay_link, payment_hash, expiry)
-            VALUES (?, ?, ?)
-            """,
-            (link_id, inv.payment_hash, inv.expiry),
-        )
-
-
-def mark_webhook_sent(payment_hash: str, status: int) -> None:
-    with open_ext_db("lnurlp") as db:
-        db.execute(
-            """
-            UPDATE invoices SET webhook_sent = ?
-            WHERE payment_hash = ?
-            """,
-            (status, payment_hash),
-        )
+def mark_webhook_sent(payment: Payment, status: int) -> None:
+    payment.extra["wh_status"] = status
+    g.db.execute(
+        """
+        UPDATE apipayments SET extra = ?
+        WHERE hash = ?
+        """,
+        (json.dumps(payment.extra), payment.payment_hash),
+    )

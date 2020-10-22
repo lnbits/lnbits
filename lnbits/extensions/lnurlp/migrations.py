@@ -33,3 +33,16 @@ def m002_webhooks_and_success_actions(db):
         );
         """
     )
+
+
+def m003_min_max_comment_fiat(db):
+    """
+    Support for min/max amounts, comments and fiat prices that get
+    converted automatically to satoshis based on some API.
+    """
+    db.execute("ALTER TABLE pay_links ADD COLUMN currency TEXT;")  # null = satoshis
+    db.execute("ALTER TABLE pay_links ADD COLUMN comment_chars INTEGER DEFAULT 0;")
+    db.execute("ALTER TABLE pay_links RENAME COLUMN amount TO min;")
+    db.execute("ALTER TABLE pay_links ADD COLUMN max INTEGER;")
+    db.execute("UPDATE pay_links SET max = min;")
+    db.execute("DROP TABLE invoices")

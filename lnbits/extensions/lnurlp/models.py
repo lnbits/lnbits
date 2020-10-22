@@ -12,12 +12,15 @@ class PayLink(NamedTuple):
     id: int
     wallet: str
     description: str
-    amount: int
+    min: int
     served_meta: int
     served_pr: int
     webhook_url: str
     success_text: str
     success_url: str
+    currency: str
+    comment_chars: int
+    max: int
 
     @classmethod
     def from_row(cls, row: Row) -> "PayLink":
