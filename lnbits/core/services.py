@@ -1,3 +1,4 @@
+import trio  # type: ignore
 import httpx
 from typing import Optional, Tuple, Dict
 from quart import g
@@ -89,8 +90,8 @@ def pay_invoice(
     )
 
     # check_internal() returns the checking_id of the invoice we're waiting for
-    internal = check_internal(invoice.payment_hash)
-    if internal:
+    internal_checking_id = check_internal(invoice.payment_hash)
+    if internal_checking_id:
         # create a new payment from this wallet
         create_payment(checking_id=internal_id, fee=0, pending=False, **payment_kwargs)
     else:
@@ -108,11 +109,19 @@ def pay_invoice(
     else:
         g.db.commit()
 
-    if internal:
+    if internal_checking_id:
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
         # the payer has enough to deduct from
-        update_payment_status(checking_id=internal, pending=False)
+        update_payment_status(checking_id=internal_checking_id, pending=False)
+
+        # notify receiver asynchronously
+        from lnbits.tasks import internal_invoice_paid
+
+        try:
+            internal_invoice_paid.send_nowait(internal_checking_id)
+        except trio.WouldBlock:
+            pass
     else:
         # actually pay the external invoice
         payment: PaymentResponse = WALLET.pay_invoice(payment_request)

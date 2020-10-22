@@ -77,6 +77,14 @@ async def webhook_handler():
     return "", HTTPStatus.NO_CONTENT
 
 
+internal_invoice_paid, internal_invoice_received = trio.open_memory_channel(0)
+
+
+async def internal_invoice_listener():
+    async for checking_id in internal_invoice_received:
+        await run_on_pseudo_request(invoice_callback_dispatcher, checking_id)
+
+
 async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
         await run_on_pseudo_request(invoice_callback_dispatcher, checking_id)
