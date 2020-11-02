@@ -156,7 +156,7 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
         return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
 
     usescsv = usescsv[1:]
-    link = update_withdraw_link(link.id, used=link.used + 1, usescsv=usescsv)
+    link = update_withdraw_link(link.id, usescsv=usescsv)
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
 
@@ -189,6 +189,7 @@ async def api_lnurl_callback(unique_hash):
 
         changes = {
             "open_time": link.wait_time + now,
+            "used": link.used + 1
         }
 
         update_withdraw_link(link.id, **changes)
