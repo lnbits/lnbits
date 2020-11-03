@@ -39,7 +39,7 @@ async def api_lnurl_callback(link_id):
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
     min, max = link.min, link.max
-    rate = await get_fiat_rate(link.currency) if link.currency else 1
+    rate = await get_fiat_rate(link.currency) if link.currency else 1000
     if link.currency:
         # allow some fluctuation (as the fiat price may have changed between the calls)
         min = rate * 995 * link.min
@@ -76,10 +76,6 @@ async def api_lnurl_callback(link_id):
         extra={"tag": "lnurlp", "link": link.id, "comment": comment},
     )
 
-    resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=link.success_action(payment_hash),
-        routes=[],
-    )
+    resp = LnurlPayActionResponse(pr=payment_request, success_action=link.success_action(payment_hash), routes=[],)
 
     return jsonify(resp.dict()), HTTPStatus.OK

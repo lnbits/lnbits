@@ -48,9 +48,3 @@ class PayLink(NamedTuple):
             return MessageAction(message=self.success_text)
         else:
             return None
-
-
-class Invoice(NamedTuple):
-    payment_hash: str
-    link_id: int
-    webhook_sent: bool
