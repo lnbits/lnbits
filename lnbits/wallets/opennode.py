@@ -19,7 +19,7 @@ class OpenNodeWallet(Wallet):
 
         key = getenv("OPENNODE_KEY") or getenv("OPENNODE_ADMIN_KEY") or getenv("OPENNODE_INVOICE_KEY")
         self.auth = {"Authorization": key}
-
+    
     def status(self) -> StatusResponse:
         try:
             r = httpx.get(
@@ -30,7 +30,7 @@ class OpenNodeWallet(Wallet):
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
-        data = r.json()["message"]
+        data = r.json()["data"]
         if r.is_error:
             return StatusResponse(data["message"], 0)
 
@@ -81,7 +81,6 @@ class OpenNodeWallet(Wallet):
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = httpx.get(f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth)
-
         if r.is_error:
             return PaymentStatus(None)
 
