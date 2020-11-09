@@ -19,7 +19,7 @@ class OpenNodeWallet(Wallet):
 
         key = getenv("OPENNODE_KEY") or getenv("OPENNODE_ADMIN_KEY") or getenv("OPENNODE_INVOICE_KEY")
         self.auth = {"Authorization": key}
-    
+
     def status(self) -> StatusResponse:
         try:
             r = httpx.get(
@@ -102,17 +102,13 @@ class OpenNodeWallet(Wallet):
             yield value
 
     async def webhook_listener(self):
-        text: str = await request.get_data()
-        data = json.loads(text)
-        if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
+        data = await request.form
+        if "status" not in data or data["status"] != "paid":
             return "", HTTPStatus.NO_CONTENT
 
         charge_id = data["id"]
-        if data["status"] != "paid":
-            return "", HTTPStatus.NO_CONTENT
-
-        x = hmac.new(self.auth["Authorization"], digestmod="sha256")
-        x.update(charge_id)
+        x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
+        x.update(charge_id.encode("ascii"))
         if x.hexdigest() != data["hashed_order"]:
             print("invalid webhook, not from opennode")
             return "", HTTPStatus.NO_CONTENT
