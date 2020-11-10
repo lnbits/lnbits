@@ -1,4 +1,6 @@
 import json
+import hashlib
+from ecdsa import SECP256k1, SigningKey  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
 from sqlite3 import Row
 
@@ -32,6 +34,14 @@ class Wallet(NamedTuple):
     @property
     def balance(self) -> int:
         return self.balance_msat // 1000
+
+    @property
+    def lnurlauth_key(self) -> SigningKey:
+        return SigningKey.from_string(
+            hashlib.sha256(self.id.encode("utf-8")).digest(),
+            curve=SECP256k1,
+            hashfunc=hashlib.sha256,
+        )
 
     def get_payment(self, payment_hash: str) -> Optional["Payment"]:
         from .crud import get_wallet_payment

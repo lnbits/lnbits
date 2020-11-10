@@ -1,8 +1,12 @@
 import trio  # type: ignore
+import json
 import httpx
+from binascii import unhexlify
 from typing import Optional, Tuple, Dict
+from urllib.parse import urlparse, parse_qs
 from quart import g
 from lnurl import LnurlWithdrawResponse  # type: ignore
+from ecdsa.util import sigencode_der  # type: ignore
 
 try:
     from typing import TypedDict  # type: ignore
@@ -153,6 +157,32 @@ async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo
             res.callback.base,
             params={**res.callback.query_params, **{"k1": res.k1, "pr": payment_request}},
         )
+
+
+async def perform_lnurlauth(callback: str):
+    k1 = unhexlify(parse_qs(urlparse(callback).query)["k1"][0])
+    key = g.wallet.lnurlauth_key
+    sig = key.sign_digest_deterministic(k1, sigencode=sigencode_der)
+
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            callback,
+            params={
+                "k1": k1.hex(),
+                "key": key.verifying_key.to_string("compressed").hex(),
+                "sig": sig.hex(),
+            },
+        )
+        try:
+            resp = json.loads(r.text)
+            if resp["status"] == "OK":
+                return None
+
+            return resp["reason"]
+        except (KeyError, json.decoder.JSONDecodeError):
+            return r.text[:200] + "..." if len(r.text) > 200 else r.text
+
+        return None
 
 
 def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStatus:

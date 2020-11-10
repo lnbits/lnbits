@@ -128,6 +128,7 @@ new Vue({
         show: false,
         invoice: null,
         lnurlpay: null,
+        lnurlauth: null,
         data: {
           request: '',
           amount: 0,
@@ -237,6 +238,7 @@ new Vue({
       this.parse.show = true
       this.parse.invoice = null
       this.parse.lnurlpay = null
+      this.parse.lnurlauth = null
       this.parse.data.request = ''
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
@@ -363,6 +365,8 @@ new Vue({
             if (data.kind === 'pay') {
               this.parse.lnurlpay = Object.freeze(data)
               this.parse.data.amount = data.minSendable / 1000
+            } else if (data.kind === 'auth') {
+              this.parse.lnurlauth = Object.freeze(data)
             } else if (data.kind === 'withdraw') {
               this.parse.show = false
               this.receive.show = true
@@ -539,6 +543,28 @@ new Vue({
         })
         .catch(err => {
           dismissPaymentMsg()
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    authLnurl: function () {
+      let dismissAuthMsg = this.$q.notify({
+        timeout: 10,
+        message: 'Performing authentication...'
+      })
+
+      LNbits.api
+        .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
+        .then(response => {
+          dismissAuthMsg()
+          this.$q.notify({
+            message: `Authentication successful.`,
+            type: 'positive',
+            timeout: 3500
+          })
+          this.parse.show = false
+        })
+        .catch(err => {
+          dismissAuthMsg()
           LNbits.utils.notifyApiError(err)
         })
     },
