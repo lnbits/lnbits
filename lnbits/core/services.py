@@ -5,8 +5,8 @@ from binascii import unhexlify
 from typing import Optional, Tuple, Dict
 from urllib.parse import urlparse, parse_qs
 from quart import g
-from lnurl import LnurlWithdrawResponse  # type: ignore
 from ecdsa.util import sigencode_der  # type: ignore
+from lnurl import LnurlErrorResponse, LnurlWithdrawResponse  # type: ignore
 
 try:
     from typing import TypedDict  # type: ignore
@@ -159,7 +159,7 @@ async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo
         )
 
 
-async def perform_lnurlauth(callback: str):
+async def perform_lnurlauth(callback: str) -> Optional[LnurlErrorResponse]:
     k1 = unhexlify(parse_qs(urlparse(callback).query)["k1"][0])
     key = g.wallet.lnurlauth_key
     sig = key.sign_digest_deterministic(k1, sigencode=sigencode_der)
@@ -178,11 +178,11 @@ async def perform_lnurlauth(callback: str):
             if resp["status"] == "OK":
                 return None
 
-            return resp["reason"]
+            return LnurlErrorResponse(reason=resp["reason"])
         except (KeyError, json.decoder.JSONDecodeError):
-            return r.text[:200] + "..." if len(r.text) > 200 else r.text
-
-        return None
+            return LnurlErrorResponse(
+                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text,
+            )
 
 
 def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStatus:

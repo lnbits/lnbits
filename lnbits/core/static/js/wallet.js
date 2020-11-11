@@ -565,12 +565,16 @@ new Vue({
         })
         .catch(err => {
           dismissAuthMsg()
-          this.$q.notify({
-            message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
-            caption: err.response.data.message,
-            type: 'warning',
-            timeout: 5000
-          })
+          if (err.response.data.reason) {
+            this.$q.notify({
+              message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
+              caption: err.response.data.reason,
+              type: 'warning',
+              timeout: 5000
+            })
+          } else {
+            LNbits.utils.notifyApiError(err)
+          }
         })
     },
     deleteWallet: function (walletId, user) {

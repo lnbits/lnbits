@@ -367,8 +367,7 @@ async def api_lnurlscan(code: str):
     }
 )
 async def api_perform_lnurlauth():
-    try:
-        await perform_lnurlauth(g.data["callback"])
-        return "", HTTPStatus.OK
-    except Exception as exc:
-        return jsonify({"message": str(exc)}), HTTPStatus.SERVICE_UNAVAILABLE
+    err = await perform_lnurlauth(g.data["callback"])
+    if err:
+        return jsonify({"reason": err.reason}), HTTPStatus.SERVICE_UNAVAILABLE
+    return "", HTTPStatus.OK
