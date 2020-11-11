@@ -1,11 +1,11 @@
 import trio  # type: ignore
 import json
 import httpx
+from io import BytesIO
 from binascii import unhexlify
 from typing import Optional, Tuple, Dict
 from urllib.parse import urlparse, parse_qs
 from quart import g
-from ecdsa.util import sigencode_der  # type: ignore
 from lnurl import LnurlErrorResponse, LnurlWithdrawResponse  # type: ignore
 
 try:
@@ -162,7 +162,50 @@ async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo
 async def perform_lnurlauth(callback: str) -> Optional[LnurlErrorResponse]:
     k1 = unhexlify(parse_qs(urlparse(callback).query)["k1"][0])
     key = g.wallet.lnurlauth_key
-    sig = key.sign_digest_deterministic(k1, sigencode=sigencode_der)
+
+    def int_to_bytes_suitable_der(x: int) -> bytes:
+        """for strict DER we need to encode the integer with some quirks"""
+        b = x.to_bytes((x.bit_length() + 7) // 8, "big")
+
+        if len(b) == 0:
+            # ensure there's at least one byte when the int is zero
+            return bytes([0])
+
+        if b[0] & 0x80 != 0:
+            # ensure it doesn't start with a 0x80 and so it isn't
+            # interpreted as a negative number
+            return bytes([0]) + b
+
+        return b
+
+    def encode_strict_der(r_int, s_int, order):
+        # if s > order/2 verification will fail sometimes
+        # so we must fix it here (see https://github.com/indutny/elliptic/blob/e71b2d9359c5fe9437fbf46f1f05096de447de57/lib/elliptic/ec/index.js#L146-L147)
+        if s_int > order // 2:
+            s_int = order - s_int
+
+        # now we do the strict DER encoding copied from
+        # https://github.com/KiriKiri/bip66 (without any checks)
+        r = int_to_bytes_suitable_der(r_int)
+        s = int_to_bytes_suitable_der(s_int)
+
+        r_len = len(r)
+        s_len = len(s)
+        sign_len = 6 + r_len + s_len
+
+        signature = BytesIO()
+        signature.write(0x30 .to_bytes(1, "big", signed=False))
+        signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(r_len.to_bytes(1, "big", signed=False))
+        signature.write(r)
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(s_len.to_bytes(1, "big", signed=False))
+        signature.write(s)
+
+        return signature.getvalue()
+
+    sig = key.sign_digest_deterministic(k1, sigencode=encode_strict_der)
 
     async with httpx.AsyncClient() as client:
         r = await client.get(
