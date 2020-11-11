@@ -30,6 +30,13 @@ PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
 try:
-    LNBITS_COMMIT = subprocess.check_output(["git", "-C", LNBITS_PATH, "rev-parse", "HEAD"]).strip().decode("ascii")
+    LNBITS_COMMIT = (
+        subprocess.check_output(
+            ["git", "-C", LNBITS_PATH, "rev-parse", "HEAD"],
+            stderr=subprocess.DEVNULL,
+        )
+        .strip()
+        .decode("ascii")
+    )
 except:
     LNBITS_COMMIT = "unknown"
