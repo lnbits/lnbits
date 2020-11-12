@@ -1,4 +1,5 @@
 import json
+import hmac
 import hashlib
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
@@ -35,10 +36,12 @@ class Wallet(NamedTuple):
     def balance(self) -> int:
         return self.balance_msat // 1000
 
-    @property
-    def lnurlauth_key(self) -> SigningKey:
+    def lnurlauth_key(self, domain: str) -> SigningKey:
+        hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
+        linking_key = hmac.digest(hashing_key, domain.encode("utf-8"), "sha256")
+
         return SigningKey.from_string(
-            hashlib.sha256(self.id.encode("utf-8")).digest(),
+            linking_key,
             curve=SECP256k1,
             hashfunc=hashlib.sha256,
         )

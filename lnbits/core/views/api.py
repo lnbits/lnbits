@@ -310,7 +310,9 @@ async def api_lnurlscan(code: str):
     if url.is_login:
         params.update(kind="auth")
         params.update(callback=url.url)  # with k1 already in it
-        params.update(pubkey=g.wallet.lnurlauth_key.verifying_key.to_string("compressed").hex())
+
+        lnurlauth_key = g.wallet.lnurlauth_key(domain)
+        params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
             r = await client.get(url.url, timeout=40)
