@@ -110,7 +110,11 @@ class LNPayWallet(Wallet):
 
     async def webhook_listener(self):
         text: str = await request.get_data()
-        data = json.loads(text)
+        try:
+            data = json.loads(text)
+        except json.decoder.JSONDecodeError:
+            print(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
+            data = None
         if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
             return "", HTTPStatus.NO_CONTENT
 
