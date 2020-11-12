@@ -344,7 +344,7 @@ new Vue({
           .request(
             'GET',
             '/api/v1/lnurlscan/' + this.parse.data.request,
-            this.g.user.wallets[0].adminkey
+            this.g.wallet.adminkey
           )
           .catch(err => {
             LNbits.utils.notifyApiError(err)
