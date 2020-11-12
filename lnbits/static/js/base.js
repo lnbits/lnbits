@@ -44,6 +44,11 @@ window.LNbits = {
         description
       })
     },
+    authLnurl: function (wallet, callback) {
+      return this.request('post', '/api/v1/lnurlauth', wallet.adminkey, {
+        callback
+      })
+    },
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },

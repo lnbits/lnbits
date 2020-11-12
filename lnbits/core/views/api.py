@@ -13,7 +13,7 @@ from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from .. import core_app
-from ..services import create_invoice, pay_invoice
+from ..services import create_invoice, pay_invoice, perform_lnurlauth
 from ..crud import delete_expired_invoices
 from ..tasks import sse_listeners
 
@@ -300,51 +300,76 @@ async def api_lnurlscan(code: str):
     try:
         url = lnurl.Lnurl(code)
     except ValueError:
-        return jsonify({"error": "invalid lnurl"}), HTTPStatus.BAD_REQUEST
+        return jsonify({"message": "invalid lnurl"}), HTTPStatus.BAD_REQUEST
 
     domain = urlparse(url.url).netloc
+
+    # params is what will be returned to the client
+    params: Dict = {"domain": domain}
+
     if url.is_login:
-        return jsonify({"domain": domain, "kind": "auth", "error": "unsupported"}), HTTPStatus.BAD_REQUEST
+        params.update(kind="auth")
+        params.update(callback=url.url)  # with k1 already in it
 
-    async with httpx.AsyncClient() as client:
-        r = await client.get(url.url, timeout=40)
-        if r.is_error:
-            return jsonify({"domain": domain, "error": "failed to get parameters"}), HTTPStatus.SERVICE_UNAVAILABLE
+        lnurlauth_key = g.wallet.lnurlauth_key(domain)
+        params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
+    else:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url.url, timeout=40)
+            if r.is_error:
+                return (
+                    jsonify({"domain": domain, "message": "failed to get parameters"}),
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                )
 
-    try:
-        jdata = json.loads(r.text)
-        data: lnurl.LnurlResponseModel = lnurl.LnurlResponse.from_dict(jdata)
-    except (json.decoder.JSONDecodeError, lnurl.exceptions.LnurlResponseException):
-        return (
-            jsonify({"domain": domain, "error": f"got invalid response '{r.text[:200]}'"}),
-            HTTPStatus.SERVICE_UNAVAILABLE,
-        )
+        try:
+            jdata = json.loads(r.text)
+            data: lnurl.LnurlResponseModel = lnurl.LnurlResponse.from_dict(jdata)
+        except (json.decoder.JSONDecodeError, lnurl.exceptions.LnurlResponseException):
+            return (
+                jsonify({"domain": domain, "message": f"got invalid response '{r.text[:200]}'"}),
+                HTTPStatus.SERVICE_UNAVAILABLE,
+            )
 
-    if type(data) is lnurl.LnurlChannelResponse:
-        return jsonify({"domain": domain, "kind": "channel", "error": "unsupported"}), HTTPStatus.BAD_REQUEST
+        if type(data) is lnurl.LnurlChannelResponse:
+            return jsonify({"domain": domain, "kind": "channel", "message": "unsupported"}), HTTPStatus.BAD_REQUEST
 
-    params: Dict = data.dict()
-    if type(data) is lnurl.LnurlWithdrawResponse:
-        params.update(kind="withdraw")
-        params.update(fixed=data.min_withdrawable == data.max_withdrawable)
+        params.update(**data.dict())
 
-        # callback with k1 already in it
-        parsed_callback: ParseResult = urlparse(data.callback)
-        qs: Dict = parse_qs(parsed_callback.query)
-        qs["k1"] = data.k1
-        parsed_callback = parsed_callback._replace(query=urlencode(qs, doseq=True))
-        params.update(callback=urlunparse(parsed_callback))
+        if type(data) is lnurl.LnurlWithdrawResponse:
+            params.update(kind="withdraw")
+            params.update(fixed=data.min_withdrawable == data.max_withdrawable)
 
-    if type(data) is lnurl.LnurlPayResponse:
-        params.update(kind="pay")
-        params.update(fixed=data.min_sendable == data.max_sendable)
-        params.update(description_hash=data.metadata.h)
-        params.update(description=data.metadata.text)
-        if data.metadata.images:
-            image = min(data.metadata.images, key=lambda image: len(image[1]))
-            data_uri = "data:" + image[0] + "," + image[1]
-            params.update(image=data_uri)
-        params.update(commentAllowed=jdata.get("commentAllowed", 0))
+            # callback with k1 already in it
+            parsed_callback: ParseResult = urlparse(data.callback)
+            qs: Dict = parse_qs(parsed_callback.query)
+            qs["k1"] = data.k1
+            parsed_callback = parsed_callback._replace(query=urlencode(qs, doseq=True))
+            params.update(callback=urlunparse(parsed_callback))
 
-    params.update(domain=domain)
+        if type(data) is lnurl.LnurlPayResponse:
+            params.update(kind="pay")
+            params.update(fixed=data.min_sendable == data.max_sendable)
+            params.update(description_hash=data.metadata.h)
+            params.update(description=data.metadata.text)
+            if data.metadata.images:
+                image = min(data.metadata.images, key=lambda image: len(image[1]))
+                data_uri = "data:" + image[0] + "," + image[1]
+                params.update(image=data_uri)
+            params.update(commentAllowed=jdata.get("commentAllowed", 0))
+
     return jsonify(params)
+
+
+@core_app.route("/api/v1/lnurlauth", methods=["POST"])
+@api_check_wallet_key("admin")
+@api_validate_post_request(
+    schema={
+        "callback": {"type": "string", "required": True},
+    }
+)
+async def api_perform_lnurlauth():
+    err = await perform_lnurlauth(g.data["callback"])
+    if err:
+        return jsonify({"reason": err.reason}), HTTPStatus.SERVICE_UNAVAILABLE
+    return "", HTTPStatus.OK

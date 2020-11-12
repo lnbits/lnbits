@@ -128,6 +128,7 @@ new Vue({
         show: false,
         invoice: null,
         lnurlpay: null,
+        lnurlauth: null,
         data: {
           request: '',
           amount: 0,
@@ -237,6 +238,7 @@ new Vue({
       this.parse.show = true
       this.parse.invoice = null
       this.parse.lnurlpay = null
+      this.parse.lnurlauth = null
       this.parse.data.request = ''
       this.parse.data.comment = ''
       this.parse.data.paymentChecker = null
@@ -342,7 +344,7 @@ new Vue({
           .request(
             'GET',
             '/api/v1/lnurlscan/' + this.parse.data.request,
-            this.g.user.wallets[0].adminkey
+            this.g.wallet.adminkey
           )
           .catch(err => {
             LNbits.utils.notifyApiError(err)
@@ -363,6 +365,8 @@ new Vue({
             if (data.kind === 'pay') {
               this.parse.lnurlpay = Object.freeze(data)
               this.parse.data.amount = data.minSendable / 1000
+            } else if (data.kind === 'auth') {
+              this.parse.lnurlauth = Object.freeze(data)
             } else if (data.kind === 'withdraw') {
               this.parse.show = false
               this.receive.show = true
@@ -540,6 +544,37 @@ new Vue({
         .catch(err => {
           dismissPaymentMsg()
           LNbits.utils.notifyApiError(err)
+        })
+    },
+    authLnurl: function () {
+      let dismissAuthMsg = this.$q.notify({
+        timeout: 10,
+        message: 'Performing authentication...'
+      })
+
+      LNbits.api
+        .authLnurl(this.g.wallet, this.parse.lnurlauth.callback)
+        .then(response => {
+          dismissAuthMsg()
+          this.$q.notify({
+            message: `Authentication successful.`,
+            type: 'positive',
+            timeout: 3500
+          })
+          this.parse.show = false
+        })
+        .catch(err => {
+          dismissAuthMsg()
+          if (err.response.data.reason) {
+            this.$q.notify({
+              message: `Authentication failed. ${this.parse.lnurlauth.domain} says:`,
+              caption: err.response.data.reason,
+              type: 'warning',
+              timeout: 5000
+            })
+          } else {
+            LNbits.utils.notifyApiError(err)
+          }
         })
     },
     deleteWallet: function (walletId, user) {
