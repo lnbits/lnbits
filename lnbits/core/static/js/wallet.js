@@ -211,6 +211,9 @@ new Vue({
     }
   },
   methods: {
+    paymentTableRowKey: function (row) {
+      return row.payment_hash + row.amount
+    },
     closeCamera: function () {
       this.parse.camera.show = false
     },

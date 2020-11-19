@@ -370,9 +370,9 @@ async def check_internal(
 ) -> Optional[str]:
     row = await (conn or db).fetchone(
         """
-    SELECT checking_id FROM apipayments
-    WHERE hash = ? AND pending AND amount > 0 
-    """,
+        SELECT checking_id FROM apipayments
+        WHERE hash = ? AND pending AND amount > 0 
+        """,
         (payment_hash,),
     )
     if not row:

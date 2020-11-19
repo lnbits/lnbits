@@ -1,0 +1,288 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-form
+        @submit="updateCurrentTrack(nextCurrentTrack)"
+        class="q-gutter-md"
+      >
+        <div class="row q-col-gutter-sm">
+          <div class="col">
+            <q-select
+              dense
+              filled
+              v-model="nextCurrentTrack"
+              use-input
+              hide-selected
+              fill-input
+              input-debounce="0"
+              :options="sortedTracks.map(track => track.id)"
+              option-value="id"
+              :option-label="getTrackLabel"
+              options-dense
+              label="Current track"
+            />
+          </div>
+          <div class="col">
+            {% raw %}
+            <q-btn unelevated color="deep-purple" type="submit">
+              {{ nextCurrentTrack === livestream.current_track ? 'Stop' : 'Set'
+              }} current track
+            </q-btn>
+            {% endraw %}
+          </div>
+        </div>
+      </q-form>
+      <q-form @submit="updateFeePct" class="q-gutter-md">
+        <div class="row q-col-gutter-sm">
+          <div class="col">
+            <q-input
+              filled
+              dense
+              v-model.number="livestream.fee_pct"
+              type="number"
+              label="Revenue to keep (%)"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-btn unelevated color="deep-purple" type="submit"
+              >Set percent rate</q-btn
+            >
+          </div>
+        </div>
+      </q-form>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Tracks</h5>
+          </div>
+          <div class="col q-ml-lg">
+            <q-btn
+              unelevated
+              color="deep-purple"
+              @click="trackDialog.show = true"
+              >Add new track</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="sortedTracks"
+          row-key="id"
+          no-data-label="No tracks added yet"
+          :pagination="{rowsPerPage: 0}"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th auto-width>Name</q-th>
+              <q-th auto-width>Producer</q-th>
+              <q-th auto-width>Price</q-th>
+              <q-th auto-width>Download URL</q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  :icon="livestream.current_track !== props.row.id ? 'play_circle_outline' : 'play_arrow'"
+                  :color="livestream.current_track !== props.row.id ? ($q.dark.isActive ? 'grey-7' : 'grey-5') : 'green'"
+                  type="a"
+                  @click="updateCurrentTrack(props.row.id)"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
+              <q-td auto-width>{{ props.row.name }}</q-td>
+              <q-td auto-width>
+                {{ producersMap[props.row.producer].name }}
+              </q-td>
+              <q-td class="text-right" auto-width
+                >{{ props.row.price_msat }}</q-td
+              >
+              <q-td class="text-center" auto-width
+                >{{ props.row.download_url }}</q-td
+              >
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="delete"
+                  color="negative"
+                  type="a"
+                  @click="deleteTrack(props.row.id)"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Producers</h5>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="livestream.producers"
+          row-key="id"
+          no-data-label="To include a producer, add a track"
+          :pagination="{rowsPerPage: 0}"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width>Name</q-th>
+              <q-th auto-width>Wallet</q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>{{ props.row.name }}</q-td>
+              <q-td class="text-center" auto-width>
+                <a
+                  target="_blank"
+                  :href="'/wallet?usr=' + props.row.user + '&wal=' + props.row.wallet"
+                >
+                  {{ props.row.wallet }}
+                </a>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-pa-sm col-5">
+      <q-card-section class="q-pa-none text-center">
+        <q-form class="q-gutter-md">
+          <q-select
+            filled
+            dense
+            :options="g.user.wallets"
+            :value="selectedWallet"
+            label="Using wallet:"
+            option-label="name"
+            @input="changedWallet"
+          >
+          </q-select>
+        </q-form>
+
+        <a :href="livestream.url">
+          <q-responsive :ratio="1" class="q-mx-sm">
+            <qrcode
+              :value="livestream.lnurl"
+              :options="{width: 800}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(livestream.lnurl)"
+          class="text-center q-mb-md"
+          >Copy LNURL-pay code</q-btn
+        >
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits Livestream extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "livestream/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="trackDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-card-section>
+        <q-form @submit="addTrack" class="q-gutter-md">
+          <q-select
+            filled
+            dense
+            v-model="trackDialog.data.producer"
+            use-input
+            hide-selected
+            fill-input
+            option-label="name"
+            input-debounce="0"
+            @new-value="producerAdded"
+            :options="livestream.producers"
+            options-dense
+            label="Producer"
+            hint="Select an existing producer or add a new one by name (press Enter to add)."
+          ></q-select>
+          <q-input
+            filled
+            dense
+            v-model.trim="trackDialog.data.name"
+            type="text"
+            label="Track name"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="trackDialog.data.price_sat"
+            type="number"
+            min="1"
+            label="Track price (sat)"
+            hint="This is a minimum price. Payments up to 5x bigger than this will be accepted."
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model="trackDialog.data.download_url"
+            type="text"
+            label="Download URL"
+          ></q-input>
+
+          <div class="row q-mt-lg">
+            <div class="col q-ml-lg">
+              <q-btn
+                unelevated
+                color="deep-purple"
+                :disable="disabledAddTrackButton()"
+                type="submit"
+                >Add track</q-btn
+              >
+            </div>
+            <div class="col q-ml-lg">
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+                >Cancel</q-btn
+              >
+            </div>
+          </div>
+        </q-form>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/livestream/static/js/index.js"></script>
+{% endblock %}

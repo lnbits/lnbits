@@ -1,0 +1,44 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="How to use"
+  :content-inset-level="0.5"
+>
+  <q-card>
+    <q-card-section>
+      <p>Add tracks, profit.</p>
+    </q-card-section>
+  </q-card>
+</q-expansion-item>
+
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get the livestream data"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">GET</span></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;livestream object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}/livestream/api/v1/livestream -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>
