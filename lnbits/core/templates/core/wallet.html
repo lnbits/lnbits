@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 <!---->
-{% from "macros.jinja" import window_vars with context
-%}
+{% from "macros.jinja" import window_vars with context %}
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="/core/static/js/wallet.js"></script>
 {% endblock %}
 <!---->
-{% block title %}
-{{ wallet.name }} - {{ SITE_TITLE }}
-{% endblock %}
+{% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
 <!---->
 {% block page %}
 <div class="row q-col-gutter-md">

@@ -187,10 +187,7 @@ async def api_lnurl_callback(unique_hash):
             extra={"tag": "withdraw"},
         )
 
-        changes = {
-            "open_time": link.wait_time + now,
-            "used": link.used + 1
-        }
+        changes = {"open_time": link.wait_time + now, "used": link.used + 1}
 
         update_withdraw_link(link.id, **changes)
     except ValueError as e:
