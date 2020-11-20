@@ -1,7 +1,7 @@
 {% extends "print.html" %} {% block page %}
 
-<div class="row justify-center">
-  <div class="col-12 col-sm-8 col-lg-6 text-center" id="vue">
+<div class="row">
+  <div class="" id="vue">
     {% for page in link %}
     <page size="A4" id="pdfprint">
       <table style="width: 100%">
@@ -43,8 +43,11 @@
   @media print {
     body,
     page {
-      margin: 0;
-      box-shadow: 0;
+      margin: 0px !important;
+      box-shadow: none !important;
+    }
+    .q-page {
+      padding: 0px !important;
     }
   }
 </style>
