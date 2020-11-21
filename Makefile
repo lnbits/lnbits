@@ -12,6 +12,8 @@ black: $(shell find lnbits -name "*.py")
 
 mypy: $(shell find lnbits -name "*.py")
 	./venv/bin/mypy lnbits
+	./venv/bin/mypy lnbits/core
+	./venv/bin/mypy lnbits/extensions/*
 
 checkprettier: $(shell find lnbits -name "*.js" -name ".html")
 	./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js

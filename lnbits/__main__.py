@@ -1,12 +1,16 @@
-from .app import create_app
-from .commands import migrate_databases, transpile_scss, bundle_vendored
-from .settings import LNBITS_SITE_TITLE, SERVICE_FEE, DEBUG, LNBITS_DATA_FOLDER, WALLET, LNBITS_COMMIT
+import trio  # type: ignore
 
-migrate_databases()
+from .commands import migrate_databases, transpile_scss, bundle_vendored
+
+trio.run(migrate_databases)
 transpile_scss()
 bundle_vendored()
 
+from .app import create_app
+
 app = create_app()
+
+from .settings import LNBITS_SITE_TITLE, SERVICE_FEE, DEBUG, LNBITS_DATA_FOLDER, WALLET, LNBITS_COMMIT
 
 print(
     f"""Starting LNbits with

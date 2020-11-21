@@ -1,5 +1,5 @@
 from quart import url_for
-from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode
+from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
 from sqlite3 import Row
 from typing import NamedTuple
 import shortuuid  # type: ignore

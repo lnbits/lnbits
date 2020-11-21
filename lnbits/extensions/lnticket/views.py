@@ -3,7 +3,7 @@ from quart import g, abort, render_template
 from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
 
-from lnbits.extensions.lnticket import lnticket_ext
+from . import lnticket_ext
 from .crud import get_form
 
 
@@ -16,8 +16,9 @@ async def index():
 
 @lnticket_ext.route("/<form_id>")
 async def display(form_id):
-    form = get_form(form_id) or abort(HTTPStatus.NOT_FOUND, "LNTicket does not exist.")
-    print(form.id)
+    form = await get_form(form_id)
+    if not form:
+        abort(HTTPStatus.NOT_FOUND, "LNTicket does not exist.")
 
     return await render_template(
         "lnticket/display.html",

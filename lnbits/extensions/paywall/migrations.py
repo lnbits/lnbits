@@ -1,11 +1,11 @@
-from sqlite3 import OperationalError
+from sqlalchemy.exc import OperationalError  # type: ignore
 
 
-def m001_initial(db):
+async def m001_initial(db):
     """
     Initial paywalls table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS paywalls (
             id TEXT PRIMARY KEY,
@@ -20,16 +20,16 @@ def m001_initial(db):
     )
 
 
-def m002_redux(db):
+async def m002_redux(db):
     """
     Creates an improved paywalls table and migrates the existing data.
     """
     try:
-        db.execute("SELECT remembers FROM paywalls")
+        await db.execute("SELECT remembers FROM paywalls")
 
     except OperationalError:
-        db.execute("ALTER TABLE paywalls RENAME TO paywalls_old")
-        db.execute(
+        await db.execute("ALTER TABLE paywalls RENAME TO paywalls_old")
+        await db.execute(
             """
             CREATE TABLE IF NOT EXISTS paywalls (
                 id TEXT PRIMARY KEY,
@@ -44,10 +44,10 @@ def m002_redux(db):
             );
         """
         )
-        db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON paywalls (wallet)")
+        await db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON paywalls (wallet)")
 
-        for row in [list(row) for row in db.fetchall("SELECT * FROM paywalls_old")]:
-            db.execute(
+        for row in [list(row) for row in await db.fetchall("SELECT * FROM paywalls_old")]:
+            await db.execute(
                 """
                 INSERT INTO paywalls (
                     id,
@@ -62,4 +62,4 @@ def m002_redux(db):
                 (row[0], row[1], row[3], row[4], row[5], row[6]),
             )
 
-        db.execute("DROP TABLE paywalls_old")
+        await db.execute("DROP TABLE paywalls_old")

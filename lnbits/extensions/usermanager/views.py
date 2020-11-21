@@ -1,6 +1,8 @@
 from quart import g, render_template
+
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.extensions.usermanager import usermanager_ext
+
+from . import usermanager_ext
 
 
 @usermanager_ext.route("/")

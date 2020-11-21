@@ -1,8 +1,8 @@
-def m001_initial(db):
+async def m001_initial(db):
     """
     Initial users table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -17,7 +17,7 @@ def m001_initial(db):
     """
     Initial wallets table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS wallets (
             id TEXT PRIMARY KEY,

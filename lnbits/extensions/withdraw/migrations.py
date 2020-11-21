@@ -1,8 +1,8 @@
-def m001_initial(db):
+async def m001_initial(db):
     """
     Creates an improved withdraw table and migrates the existing data.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS withdraw_links (
             id TEXT PRIMARY KEY,
@@ -23,11 +23,11 @@ def m001_initial(db):
     )
 
 
-def m002_change_withdraw_table(db):
+async def m002_change_withdraw_table(db):
     """
     Creates an improved withdraw table and migrates the existing data.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS withdraw_link (
             id TEXT PRIMARY KEY,
@@ -46,10 +46,10 @@ def m002_change_withdraw_table(db):
         );
         """
     )
-    db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON withdraw_link (wallet)")
-    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_link (unique_hash)")
+    await db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON withdraw_link (wallet)")
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_link (unique_hash)")
 
-    for row in [list(row) for row in db.fetchall("SELECT * FROM withdraw_links")]:
+    for row in [list(row) for row in await db.fetchall("SELECT * FROM withdraw_links")]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -58,7 +58,7 @@ def m002_change_withdraw_table(db):
             else:
                 usescsv += "," + str(1)
         usescsv = usescsv[1:]
-        db.execute(
+        await db.execute(
             """
             INSERT INTO withdraw_link (
                 id,
@@ -93,4 +93,4 @@ def m002_change_withdraw_table(db):
                 usescsv,
             ),
         )
-    db.execute("DROP TABLE withdraw_links")
+    await db.execute("DROP TABLE withdraw_links")

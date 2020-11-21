@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids
 
-from lnbits.extensions.paywall import paywall_ext
+from . import paywall_ext
 from .crud import get_paywall
 
 
@@ -16,5 +16,5 @@ async def index():
 
 @paywall_ext.route("/<paywall_id>")
 async def display(paywall_id):
-    paywall = get_paywall(paywall_id) or abort(HTTPStatus.NOT_FOUND, "Paywall does not exist.")
+    paywall = await get_paywall(paywall_id) or abort(HTTPStatus.NOT_FOUND, "Paywall does not exist.")
     return await render_template("paywall/display.html", paywall=paywall)

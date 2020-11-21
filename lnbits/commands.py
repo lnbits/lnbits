@@ -1,19 +1,19 @@
+import trio  # type: ignore
 import warnings
 import click
 import importlib
 import re
 import os
-import sqlite3
+from sqlalchemy.exc import OperationalError # type: ignore
 
-from .core import migrations as core_migrations
-from .db import open_db, open_ext_db
+from .core import db as core_db, migrations as core_migrations
 from .helpers import get_valid_extensions, get_css_vendored, get_js_vendored, url_for_vendored
 from .settings import LNBITS_PATH
 
 
 @click.command("migrate")
 def db_migrate():
-    migrate_databases()
+    trio.run(migrate_databases)
 
 
 @click.command("assets")
@@ -45,39 +45,44 @@ def bundle_vendored():
             f.write(output)
 
 
-def migrate_databases():
+async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
-    with open_db() as core_db:
+    core_conn = await core_db.connect()
+    core_txn = await core_conn.begin()
+
+    try:
+        rows = await (await core_conn.execute("SELECT * FROM dbversions")).fetchall()
+    except OperationalError:
+        # migration 3 wasn't ran
+        core_migrations.m000_create_migrations_table(core_conn)
+        rows = await (await core_conn.execute("SELECT * FROM dbversions")).fetchall()
+
+    current_versions = {row["db"]: row["version"] for row in rows}
+    matcher = re.compile(r"^m(\d\d\d)_")
+
+    async def run_migration(db, migrations_module):
+        db_name = migrations_module.__name__.split(".")[-2]
+        for key, migrate in migrations_module.__dict__.items():
+            match = match = matcher.match(key)
+            if match:
+                version = int(match.group(1))
+                if version > current_versions.get(db_name, 0):
+                    print(f"running migration {db_name}.{version}")
+                    await migrate(db)
+                    await core_conn.execute(
+                        "INSERT OR REPLACE INTO dbversions (db, version) VALUES (?, ?)", (db_name, version)
+                    )
+
+    await run_migration(core_conn, core_migrations)
+
+    for ext in get_valid_extensions():
         try:
-            rows = core_db.fetchall("SELECT * FROM dbversions")
-        except sqlite3.OperationalError:
-            # migration 3 wasn't ran
-            core_migrations.m000_create_migrations_table(core_db)
-            rows = core_db.fetchall("SELECT * FROM dbversions")
+            ext_migrations = importlib.import_module(f"lnbits.extensions.{ext.code}.migrations")
+            ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
+            await run_migration(ext_db, ext_migrations)
+        except ImportError:
+            raise ImportError(f"Please make sure that the extension `{ext.code}` has a migrations file.")
 
-        current_versions = {row["db"]: row["version"] for row in rows}
-        matcher = re.compile(r"^m(\d\d\d)_")
-
-        def run_migration(db, migrations_module):
-            db_name = migrations_module.__name__.split(".")[-2]
-            for key, run_migration in migrations_module.__dict__.items():
-                match = match = matcher.match(key)
-                if match:
-                    version = int(match.group(1))
-                    if version > current_versions.get(db_name, 0):
-                        print(f"running migration {db_name}.{version}")
-                        run_migration(db)
-                        core_db.execute(
-                            "INSERT OR REPLACE INTO dbversions (db, version) VALUES (?, ?)", (db_name, version)
-                        )
-
-        run_migration(core_db, core_migrations)
-
-        for ext in get_valid_extensions():
-            try:
-                ext_migrations = importlib.import_module(f"lnbits.extensions.{ext.code}.migrations")
-                with open_ext_db(ext.code) as db:
-                    run_migration(db, ext_migrations)
-            except ImportError:
-                raise ImportError(f"Please make sure that the extension `{ext.code}` has a migrations file.")
+    await core_txn.commit()
+    await core_conn.close()

@@ -1,45 +1,46 @@
 from typing import List, Optional, Union
 
-from lnbits.db import open_ext_db
 from lnbits.helpers import urlsafe_short_hash
 
+from . import db
 from .models import Tickets, Events
 
 
-#######TICKETS########
+# TICKETS
 
 
-def create_ticket(payment_hash: str, wallet: str, event: str, name: str, email: str) -> Tickets:
-    with open_ext_db("events") as db:
-        db.execute(
-            """
-            INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (payment_hash, wallet, event, name, email, False, False),
-        )
+async def create_ticket(payment_hash: str, wallet: str, event: str, name: str, email: str) -> Tickets:
+    await db.execute(
+        """
+        INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (payment_hash, wallet, event, name, email, False, False),
+    )
 
-    return get_ticket(payment_hash)
+    ticket = await get_ticket(payment_hash)
+    assert ticket, "Newly created ticket couldn't be retrieved"
+    return ticket
 
 
-def update_ticket(paid: bool, payment_hash: str) -> Tickets:
-    with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
-        if row[6] == True:
-            return get_ticket(payment_hash)
-        db.execute(
+async def set_ticket_paid(payment_hash: str) -> Tickets:
+    row = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
+    if row[6] != True:
+        await db.execute(
             """
             UPDATE ticket
-            SET paid = ?
+            SET paid = true
             WHERE id = ?
             """,
-            (paid, payment_hash),
+            (payment_hash,),
         )
 
-        eventdata = get_event(row[2])
+        eventdata = await get_event(row[2])
+        assert eventdata, "Couldn't get event from ticket being paid"
+
         sold = eventdata.sold + 1
         amount_tickets = eventdata.amount_tickets - 1
-        db.execute(
+        await db.execute(
             """
             UPDATE events
             SET sold = ?, amount_tickets = ?
@@ -47,36 +48,34 @@ def update_ticket(paid: bool, payment_hash: str) -> Tickets:
             """,
             (sold, amount_tickets, row[2]),
         )
-    return get_ticket(payment_hash)
+
+    ticket = await get_ticket(payment_hash)
+    assert ticket, "Newly updated ticket couldn't be retrieved"
+    return ticket
 
 
-def get_ticket(payment_hash: str) -> Optional[Tickets]:
-    with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
-
+async def get_ticket(payment_hash: str) -> Optional[Tickets]:
+    row = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
     return Tickets(**row) if row else None
 
 
-def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
+async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
-    with open_ext_db("events") as db:
-        q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
-    print("scrum")
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
     return [Tickets(**row) for row in rows]
 
 
-def delete_ticket(payment_hash: str) -> None:
-    with open_ext_db("events") as db:
-        db.execute("DELETE FROM ticket WHERE id = ?", (payment_hash,))
+async def delete_ticket(payment_hash: str) -> None:
+    await db.execute("DELETE FROM ticket WHERE id = ?", (payment_hash,))
 
 
-########EVENTS#########
+# EVENTS
 
 
-def create_event(
+async def create_event(
     *,
     wallet: str,
     name: str,
@@ -87,81 +86,68 @@ def create_event(
     amount_tickets: int,
     price_per_ticket: int,
 ) -> Events:
-    with open_ext_db("events") as db:
-        event_id = urlsafe_short_hash()
-        db.execute(
-            """
-            INSERT INTO events (id, wallet, name, info, closing_date, event_start_date, event_end_date, amount_tickets, price_per_ticket, sold)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                event_id,
-                wallet,
-                name,
-                info,
-                closing_date,
-                event_start_date,
-                event_end_date,
-                amount_tickets,
-                price_per_ticket,
-                0,
-            ),
-        )
-        print(event_id)
+    event_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO events (id, wallet, name, info, closing_date, event_start_date, event_end_date, amount_tickets, price_per_ticket, sold)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            event_id,
+            wallet,
+            name,
+            info,
+            closing_date,
+            event_start_date,
+            event_end_date,
+            amount_tickets,
+            price_per_ticket,
+            0,
+        ),
+    )
 
-    return get_event(event_id)
+    event = await get_event(event_id)
+    assert event, "Newly created event couldn't be retrieved"
+    return event
 
 
-def update_event(event_id: str, **kwargs) -> Events:
+async def update_event(event_id: str, **kwargs) -> Events:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    with open_ext_db("events") as db:
-        db.execute(f"UPDATE events SET {q} WHERE id = ?", (*kwargs.values(), event_id))
+    await db.execute(f"UPDATE events SET {q} WHERE id = ?", (*kwargs.values(), event_id))
+    event = await get_event(event_id)
+    assert event, "Newly updated event couldn't be retrieved"
+    return event
 
-        row = db.fetchone("SELECT * FROM events WHERE id = ?", (event_id,))
 
+async def get_event(event_id: str) -> Optional[Events]:
+    row = await db.fetchone("SELECT * FROM events WHERE id = ?", (event_id,))
     return Events(**row) if row else None
 
 
-def get_event(event_id: str) -> Optional[Events]:
-    with open_ext_db("events") as db:
-        row = db.fetchone("SELECT * FROM events WHERE id = ?", (event_id,))
-
-    return Events(**row) if row else None
-
-
-def get_events(wallet_ids: Union[str, List[str]]) -> List[Events]:
+async def get_events(wallet_ids: Union[str, List[str]]) -> List[Events]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
-    with open_ext_db("events") as db:
-        q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM events WHERE wallet IN ({q})", (*wallet_ids,))
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(f"SELECT * FROM events WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [Events(**row) for row in rows]
 
 
-def delete_event(event_id: str) -> None:
-    with open_ext_db("events") as db:
-        db.execute("DELETE FROM events WHERE id = ?", (event_id,))
+async def delete_event(event_id: str) -> None:
+    await db.execute("DELETE FROM events WHERE id = ?", (event_id,))
 
 
-########EVENTTICKETS#########
+# EVENTTICKETS
 
 
-def get_event_tickets(event_id: str, wallet_id: str) -> Tickets:
-
-    with open_ext_db("events") as db:
-        rows = db.fetchall("SELECT * FROM ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id))
-        print(rows)
-
+async def get_event_tickets(event_id: str, wallet_id: str) -> List[Tickets]:
+    rows = await db.fetchall("SELECT * FROM ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id))
     return [Tickets(**row) for row in rows]
 
 
-def reg_ticket(ticket_id: str) -> Tickets:
-    with open_ext_db("events") as db:
-        db.execute("UPDATE ticket SET registered = ? WHERE id = ?", (True, ticket_id))
-        ticket = db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
-        print(ticket[1])
-        rows = db.fetchall("SELECT * FROM ticket WHERE event = ?", (ticket[1],))
-
+async def reg_ticket(ticket_id: str) -> List[Tickets]:
+    await db.execute("UPDATE ticket SET registered = ? WHERE id = ?", (True, ticket_id))
+    ticket = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
+    rows = await db.fetchall("SELECT * FROM ticket WHERE event = ?", (ticket[1],))
     return [Tickets(**row) for row in rows]

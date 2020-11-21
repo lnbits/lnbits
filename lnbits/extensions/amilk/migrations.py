@@ -1,8 +1,8 @@
-def m001_initial(db):
+async def m001_initial(db):
     """
     Initial amilks table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS amilks (
             id TEXT PRIMARY KEY,

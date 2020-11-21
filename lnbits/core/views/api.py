@@ -2,7 +2,6 @@ import trio  # type: ignore
 import json
 import lnurl  # type: ignore
 import httpx
-import traceback
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, jsonify, request, make_response
 from http import HTTPStatus
@@ -12,7 +11,7 @@ from typing import Dict, Union
 from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
-from .. import core_app
+from .. import core_app, db
 from ..services import create_invoice, pay_invoice, perform_lnurlauth
 from ..crud import delete_expired_invoices
 from ..tasks import sse_listeners
@@ -22,13 +21,7 @@ from ..tasks import sse_listeners
 @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-        jsonify(
-            {
-                "id": g.wallet.id,
-                "name": g.wallet.name,
-                "balance": g.wallet.balance_msat,
-            }
-        ),
+        jsonify({"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat,}),
         HTTPStatus.OK,
     )
 
@@ -37,12 +30,12 @@ async def api_wallet():
 @api_check_wallet_key("invoice")
 async def api_payments():
     if "check_pending" in request.args:
-        delete_expired_invoices()
+        await delete_expired_invoices()
 
-        for payment in g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
-            payment.check_pending()
+        for payment in await g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
+            await payment.check_pending()
 
-    return jsonify(g.wallet.get_payments(pending=True)), HTTPStatus.OK
+    return jsonify(await g.wallet.get_payments(pending=True)), HTTPStatus.OK
 
 
 @api_check_wallet_key("invoice")
@@ -63,12 +56,14 @@ async def api_payments_create_invoice():
         memo = g.data["memo"]
 
     try:
-        payment_hash, payment_request = create_invoice(
+        payment_hash, payment_request = await create_invoice(
             wallet_id=g.wallet.id, amount=g.data["amount"], memo=memo, description_hash=description_hash
         )
-    except Exception as e:
-        g.db.rollback()
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    except Exception as exc:
+        await db.rollback()
+        raise exc
+
+    await db.commit()
 
     invoice = bolt11.decode(payment_request)
 
@@ -76,11 +71,7 @@ async def api_payments_create_invoice():
     if g.data.get("lnurl_callback"):
         async with httpx.AsyncClient() as client:
             try:
-                r = await client.get(
-                    g.data["lnurl_callback"],
-                    params={"pr": payment_request},
-                    timeout=10,
-                )
+                r = await client.get(g.data["lnurl_callback"], params={"pr": payment_request}, timeout=10,)
                 if r.is_error:
                     lnurl_response = r.text
                 else:
@@ -110,15 +101,14 @@ async def api_payments_create_invoice():
 @api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
 async def api_payments_pay_invoice():
     try:
-        payment_hash = pay_invoice(wallet_id=g.wallet.id, payment_request=g.data["bolt11"])
+        payment_hash = await pay_invoice(wallet_id=g.wallet.id, payment_request=g.data["bolt11"])
     except ValueError as e:
         return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     except PermissionError as e:
         return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
     except Exception as exc:
-        traceback.print_exc(7)
-        g.db.rollback()
-        return jsonify({"message": str(exc)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        await db.rollback()
+        raise exc
 
     return (
         jsonify(
@@ -157,9 +147,7 @@ async def api_payments_pay_lnurl():
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
-                g.data["callback"],
-                params={"amount": g.data["amount"], "comment": g.data["comment"]},
-                timeout=40,
+                g.data["callback"], params={"amount": g.data["amount"], "comment": g.data["comment"]}, timeout=40,
             )
             if r.is_error:
                 return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
@@ -198,16 +186,12 @@ async def api_payments_pay_lnurl():
         if g.data["comment"]:
             extra["comment"] = g.data["comment"]
 
-        payment_hash = pay_invoice(
-            wallet_id=g.wallet.id,
-            payment_request=params["pr"],
-            description=g.data.get("description", ""),
-            extra=extra,
+        payment_hash = await pay_invoice(
+            wallet_id=g.wallet.id, payment_request=params["pr"], description=g.data.get("description", ""), extra=extra,
         )
     except Exception as exc:
-        traceback.print_exc(7)
-        g.db.rollback()
-        return jsonify({"message": str(exc)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        await db.rollback()
+        raise exc
 
     return (
         jsonify(
@@ -225,7 +209,7 @@ async def api_payments_pay_lnurl():
 @core_app.route("/api/v1/payments/<payment_hash>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payment(payment_hash):
-    payment = g.wallet.get_payment(payment_hash)
+    payment = await g.wallet.get_payment(payment_hash)
 
     if not payment:
         return jsonify({"message": "Payment does not exist."}), HTTPStatus.NOT_FOUND
@@ -233,7 +217,7 @@ async def api_payment(payment_hash):
         return jsonify({"paid": True, "preimage": payment.preimage}), HTTPStatus.OK
 
     try:
-        payment.check_pending()
+        await payment.check_pending()
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK
 
@@ -243,7 +227,6 @@ async def api_payment(payment_hash):
 @core_app.route("/api/v1/payments/sse", methods=["GET"])
 @api_check_wallet_key("invoice", accept_querystring=True)
 async def api_payments_sse():
-    g.db.close()
     this_wallet_id = g.wallet.id
 
     send_payment, receive_payment = trio.open_memory_channel(0)
@@ -364,9 +347,7 @@ async def api_lnurlscan(code: str):
 @core_app.route("/api/v1/lnurlauth", methods=["POST"])
 @api_check_wallet_key("admin")
 @api_validate_post_request(
-    schema={
-        "callback": {"type": "string", "required": True},
-    }
+    schema={"callback": {"type": "string", "required": True},}
 )
 async def api_perform_lnurlauth():
     err = await perform_lnurlauth(g.data["callback"])

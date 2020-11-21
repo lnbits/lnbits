@@ -1,13 +1,9 @@
 import trio  # type: ignore
 from http import HTTPStatus
 from typing import Optional, List, Callable
-from quart import Request, g
 from quart_trio import QuartTrio
-from werkzeug.datastructures import Headers
 
-from lnbits.db import open_db
 from lnbits.settings import WALLET
-
 from lnbits.core.crud import get_standalone_payment
 
 main_app: Optional[QuartTrio] = None
@@ -37,28 +33,6 @@ async def send_push_promise(a, b) -> None:
     pass
 
 
-async def run_on_pseudo_request(func: Callable, *args):
-    fk = Request(
-        "GET",
-        "http",
-        "/background/pseudo",
-        b"",
-        Headers([("host", "lnbits.background")]),
-        "",
-        "1.1",
-        send_push_promise=send_push_promise,
-    )
-    assert main_app
-
-    async def run():
-        async with main_app.request_context(fk):
-            with open_db() as g.db:  # type: ignore
-                await func(*args)
-
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(run)
-
-
 invoice_listeners: List[trio.MemorySendChannel] = []
 
 
@@ -81,18 +55,20 @@ internal_invoice_paid, internal_invoice_received = trio.open_memory_channel(0)
 
 
 async def internal_invoice_listener():
-    async for checking_id in internal_invoice_received:
-        await run_on_pseudo_request(invoice_callback_dispatcher, checking_id)
+    async with trio.open_nursery() as nursery:
+        async for checking_id in internal_invoice_received:
+            nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
 async def invoice_listener():
-    async for checking_id in WALLET.paid_invoices_stream():
-        await run_on_pseudo_request(invoice_callback_dispatcher, checking_id)
+    async with trio.open_nursery() as nursery:
+        async for checking_id in WALLET.paid_invoices_stream():
+            nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
 async def invoice_callback_dispatcher(checking_id: str):
-    payment = get_standalone_payment(checking_id)
+    payment = await get_standalone_payment(checking_id)
     if payment and payment.is_in:
-        payment.set_pending(False)
+        await payment.set_pending(False)
         for send_chan in invoice_listeners:
             await send_chan.send(payment)

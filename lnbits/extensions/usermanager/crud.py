@@ -1,8 +1,7 @@
-from lnbits.db import open_ext_db
-from .models import Users, Wallets
-from typing import Optional
+from typing import Optional, List
 
-from ...core.crud import (
+from lnbits.core.models import Payment
+from lnbits.core.crud import (
     create_account,
     get_user,
     get_wallet_payments,
@@ -10,106 +9,91 @@ from ...core.crud import (
     delete_wallet,
 )
 
-
-###Users
-
-
-def create_usermanager_user(user_name: str, wallet_name: str, admin_id: str) -> Users:
-    user = get_user(create_account().id)
-
-    wallet = create_wallet(user_id=user.id, wallet_name=wallet_name)
-
-    with open_ext_db("usermanager") as db:
-        db.execute(
-            """
-            INSERT INTO users (id, name, admin)
-            VALUES (?, ?, ?)
-            """,
-            (user.id, user_name, admin_id),
-        )
-
-        db.execute(
-            """
-            INSERT INTO wallets (id, admin, name, user, adminkey, inkey)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (wallet.id, admin_id, wallet_name, user.id, wallet.adminkey, wallet.inkey),
-        )
-
-    return get_usermanager_user(user.id)
+from . import db
+from .models import Users, Wallets
 
 
-def get_usermanager_user(user_id: str) -> Users:
-    with open_ext_db("usermanager") as db:
+### Users
 
-        row = db.fetchone("SELECT * FROM users WHERE id = ?", (user_id,))
 
+async def create_usermanager_user(user_name: str, wallet_name: str, admin_id: str) -> Users:
+    account = await create_account()
+    user = await get_user(account.id)
+    assert user, "Newly created user couldn't be retrieved"
+
+    wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+
+    await db.execute(
+        """
+        INSERT INTO users (id, name, admin)
+        VALUES (?, ?, ?)
+        """,
+        (user.id, user_name, admin_id),
+    )
+
+    await db.execute(
+        """
+        INSERT INTO wallets (id, admin, name, user, adminkey, inkey)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (wallet.id, admin_id, wallet_name, user.id, wallet.adminkey, wallet.inkey),
+    )
+
+    user_created = await get_usermanager_user(user.id)
+    assert user_created, "Newly created user couldn't be retrieved"
+    return user_created
+
+
+async def get_usermanager_user(user_id: str) -> Optional[Users]:
+    row = await db.fetchone("SELECT * FROM users WHERE id = ?", (user_id,))
     return Users(**row) if row else None
 
 
-def get_usermanager_users(user_id: str) -> Users:
-
-    with open_ext_db("usermanager") as db:
-        rows = db.fetchall("SELECT * FROM users WHERE admin = ?", (user_id,))
-
+async def get_usermanager_users(user_id: str) -> List[Users]:
+    rows = await db.fetchall("SELECT * FROM users WHERE admin = ?", (user_id,))
     return [Users(**row) for row in rows]
 
 
-def delete_usermanager_user(user_id: str) -> None:
-    row = get_usermanager_wallets(user_id)
-    print("test")
-    with open_ext_db("usermanager") as db:
-        db.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    row
-    for r in row:
-        delete_wallet(user_id=user_id, wallet_id=r.id)
-    with open_ext_db("usermanager") as dbb:
-        dbb.execute("DELETE FROM wallets WHERE user = ?", (user_id,))
+async def delete_usermanager_user(user_id: str) -> None:
+    wallets = await get_usermanager_wallets(user_id)
+    for wallet in wallets:
+        await delete_wallet(user_id=user_id, wallet_id=wallet.id)
+
+    await db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    await db.execute("DELETE FROM wallets WHERE user = ?", (user_id,))
 
 
-###Wallets
+### Wallets
 
 
-def create_usermanager_wallet(user_id: str, wallet_name: str, admin_id: str) -> Wallets:
-    wallet = create_wallet(user_id=user_id, wallet_name=wallet_name)
-    with open_ext_db("usermanager") as db:
+async def create_usermanager_wallet(user_id: str, wallet_name: str, admin_id: str) -> Wallets:
+    wallet = await create_wallet(user_id=user_id, wallet_name=wallet_name)
+    await db.execute(
+        """
+        INSERT INTO wallets (id, admin, name, user, adminkey, inkey)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (wallet.id, admin_id, wallet_name, user_id, wallet.adminkey, wallet.inkey),
+    )
+    wallet_created = await get_usermanager_wallet(wallet.id)
+    assert wallet_created, "Newly created wallet couldn't be retrieved"
+    return wallet_created
 
-        db.execute(
-            """
-            INSERT INTO wallets (id, admin, name, user, adminkey, inkey)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (wallet.id, admin_id, wallet_name, user_id, wallet.adminkey, wallet.inkey),
-        )
 
-    return get_usermanager_wallet(wallet.id)
-
-
-def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
-    with open_ext_db("usermanager") as db:
-        row = db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet_id,))
-
+async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
+    row = await db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet_id,))
     return Wallets(**row) if row else None
 
 
-def get_usermanager_wallets(user_id: str) -> Wallets:
-
-    with open_ext_db("usermanager") as db:
-        rows = db.fetchall("SELECT * FROM wallets WHERE admin = ?", (user_id,))
-
+async def get_usermanager_wallets(user_id: str) -> List[Wallets]:
+    rows = await db.fetchall("SELECT * FROM wallets WHERE admin = ?", (user_id,))
     return [Wallets(**row) for row in rows]
 
 
-def get_usermanager_wallet_transactions(wallet_id: str) -> Users:
-    return get_wallet_payments(wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True)
+async def get_usermanager_wallet_transactions(wallet_id: str) -> List[Payment]:
+    return await get_wallet_payments(wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True)
 
 
-def get_usermanager_wallet_balances(user_id: str) -> Users:
-    user = get_user(user_id)
-    return user.wallets
-
-
-def delete_usermanager_wallet(wallet_id: str, user_id: str) -> None:
-    delete_wallet(user_id=user_id, wallet_id=wallet_id)
-    with open_ext_db("usermanager") as db:
-        db.execute("DELETE FROM wallets WHERE id = ?", (wallet_id,))
+async def delete_usermanager_wallet(wallet_id: str, user_id: str) -> None:
+    await delete_wallet(user_id=user_id, wallet_id=wallet_id)
+    await db.execute("DELETE FROM wallets WHERE id = ?", (wallet_id,))

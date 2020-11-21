@@ -3,9 +3,9 @@ from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
 from quart import url_for
 from typing import NamedTuple, Optional, Dict
 from sqlite3 import Row
-from lnurl import Lnurl, encode as lnurl_encode
-from lnurl.types import LnurlPayMetadata
-from lnurl.models import LnurlPaySuccessAction, MessageAction, UrlAction
+from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from lnurl.models import LnurlPaySuccessAction, MessageAction, UrlAction  # type: ignore
 
 
 class PayLink(NamedTuple):

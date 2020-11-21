@@ -1,7 +1,8 @@
 from quart import g, render_template
 
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.extensions.example import example_ext
+
+from . import example_ext
 
 
 @example_ext.route("/")

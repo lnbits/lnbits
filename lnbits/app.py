@@ -9,7 +9,6 @@ from secure import SecureHeaders  # type: ignore
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
-from .db import open_db, open_ext_db
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
 from .tasks import run_deferred_async, invoice_listener, internal_invoice_listener, webhook_handler, grab_app_for_later
@@ -63,13 +62,9 @@ def register_blueprints(app: QuartTrio) -> None:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
             bp = getattr(ext_module, f"{ext.code}_ext")
 
-            @bp.before_request
-            async def before_request():
-                g.ext_db = open_ext_db(ext.code)
-
             @bp.teardown_request
             async def after_request(exc):
-                g.ext_db.close()
+                await ext_module.db.close_session()
 
             app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
@@ -106,17 +101,18 @@ def register_request_hooks(app: QuartTrio):
 
     @app.before_request
     async def before_request():
-        g.db = open_db()
         g.nursery = app.nursery
+
+    @app.teardown_request
+    async def after_request(exc):
+        from lnbits.core import db
+
+        await db.close_session()
 
     @app.after_request
     async def set_secure_headers(response):
         secure_headers.quart(response)
         return response
-
-    @app.teardown_request
-    async def after_request(exc):
-        g.db.close()
 
 
 def register_async_tasks(app):

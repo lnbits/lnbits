@@ -1,8 +1,8 @@
-def m001_initial(db):
+async def m001_initial(db):
     """
     Initial products table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS products (
             id TEXT PRIMARY KEY,
@@ -20,7 +20,7 @@ def m001_initial(db):
     """
     Initial indexers table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS indexers (
             id TEXT PRIMARY KEY,
@@ -41,7 +41,7 @@ def m001_initial(db):
     """
     Initial orders table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS orders (
             id TEXT PRIMARY KEY,

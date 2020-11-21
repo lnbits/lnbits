@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids
 
-from lnbits.extensions.tpos import tpos_ext
+from . import tpos_ext
 from .crud import get_tpos
 
 
@@ -16,6 +16,8 @@ async def index():
 
 @tpos_ext.route("/<tpos_id>")
 async def tpos(tpos_id):
-    tpos = get_tpos(tpos_id) or abort(HTTPStatus.NOT_FOUND, "TPoS does not exist.")
+    tpos = await get_tpos(tpos_id)
+    if not tpos:
+        abort(HTTPStatus.NOT_FOUND, "TPoS does not exist.")
 
     return await render_template("tpos/tpos.html", tpos=tpos)

@@ -1,4 +1,7 @@
 from quart import Blueprint
+from lnbits.db import Database
+
+db = Database("ext_withdraw")
 
 
 withdraw_ext: Blueprint = Blueprint("withdraw", __name__, static_folder="static", template_folder="templates")

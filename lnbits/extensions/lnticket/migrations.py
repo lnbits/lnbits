@@ -1,6 +1,6 @@
-def m001_initial(db):
+async def m001_initial(db):
 
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS forms (
             id TEXT PRIMARY KEY,
@@ -14,7 +14,7 @@ def m001_initial(db):
     """
     )
 
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS tickets (
             id TEXT PRIMARY KEY,
@@ -30,9 +30,9 @@ def m001_initial(db):
     )
 
 
-def m002_changed(db):
+async def m002_changed(db):
 
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS ticket (
             id TEXT PRIMARY KEY,
@@ -48,7 +48,7 @@ def m002_changed(db):
     """
     )
 
-    for row in [list(row) for row in db.fetchall("SELECT * FROM tickets")]:
+    for row in [list(row) for row in await db.fetchall("SELECT * FROM tickets")]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -57,7 +57,7 @@ def m002_changed(db):
             else:
                 usescsv += "," + str(1)
         usescsv = usescsv[1:]
-        db.execute(
+        await db.execute(
             """
             INSERT INTO ticket (
                 id,
@@ -71,15 +71,6 @@ def m002_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                row[0],
-                row[1],
-                row[2],
-                row[3],
-                row[4],
-                row[5],
-                row[6],
-                True,
-            ),
+            (row[0], row[1], row[2], row[3], row[4], row[5], row[6], True,),
         )
-    db.execute("DROP TABLE tickets")
+    await db.execute("DROP TABLE tickets")

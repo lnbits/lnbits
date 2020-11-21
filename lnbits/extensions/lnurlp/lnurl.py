@@ -13,7 +13,7 @@ from .helpers import get_fiat_rate
 
 @lnurlp_ext.route("/api/v1/lnurl/<link_id>", methods=["GET"])
 async def api_lnurl_response(link_id):
-    link = increment_pay_link(link_id, served_meta=1)
+    link = await increment_pay_link(link_id, served_meta=1)
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
@@ -34,7 +34,7 @@ async def api_lnurl_response(link_id):
 
 @lnurlp_ext.route("/api/v1/lnurl/cb/<link_id>", methods=["GET"])
 async def api_lnurl_callback(link_id):
-    link = increment_pay_link(link_id, served_pr=1)
+    link = await increment_pay_link(link_id, served_pr=1)
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
@@ -71,7 +71,7 @@ async def api_lnurl_callback(link_id):
             HTTPStatus.OK,
         )
 
-    payment_hash, payment_request = create_invoice(
+    payment_hash, payment_request = await create_invoice(
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo=link.description,
@@ -79,10 +79,6 @@ async def api_lnurl_callback(link_id):
         extra={"tag": "lnurlp", "link": link.id, "comment": comment},
     )
 
-    resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=link.success_action(payment_hash),
-        routes=[],
-    )
+    resp = LnurlPayActionResponse(pr=payment_request, success_action=link.success_action(payment_hash), routes=[],)
 
     return jsonify(resp.dict()), HTTPStatus.OK

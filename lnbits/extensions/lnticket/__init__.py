@@ -1,5 +1,7 @@
 from quart import Blueprint
+from lnbits.db import Database
 
+db = Database("ext_lnticket")
 
 lnticket_ext: Blueprint = Blueprint("lnticket", __name__, static_folder="static", template_folder="templates")
 

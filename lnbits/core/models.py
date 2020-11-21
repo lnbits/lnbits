@@ -40,18 +40,14 @@ class Wallet(NamedTuple):
         hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
         linking_key = hmac.digest(hashing_key, domain.encode("utf-8"), "sha256")
 
-        return SigningKey.from_string(
-            linking_key,
-            curve=SECP256k1,
-            hashfunc=hashlib.sha256,
-        )
+        return SigningKey.from_string(linking_key, curve=SECP256k1, hashfunc=hashlib.sha256,)
 
-    def get_payment(self, payment_hash: str) -> Optional["Payment"]:
+    async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
         from .crud import get_wallet_payment
 
-        return get_wallet_payment(self.id, payment_hash)
+        return await get_wallet_payment(self.id, payment_hash)
 
-    def get_payments(
+    async def get_payments(
         self,
         *,
         complete: bool = True,
@@ -62,7 +58,7 @@ class Wallet(NamedTuple):
     ) -> List["Payment"]:
         from .crud import get_wallet_payments
 
-        return get_wallet_payments(
+        return await get_wallet_payments(
             self.id,
             complete=complete,
             pending=pending,
@@ -125,12 +121,12 @@ class Payment(NamedTuple):
     def is_uncheckable(self) -> bool:
         return self.checking_id.startswith("temp_") or self.checking_id.startswith("internal_")
 
-    def set_pending(self, pending: bool) -> None:
+    async def set_pending(self, pending: bool) -> None:
         from .crud import update_payment_status
 
-        update_payment_status(self.checking_id, pending)
+        await update_payment_status(self.checking_id, pending)
 
-    def check_pending(self) -> None:
+    async def check_pending(self) -> None:
         if self.is_uncheckable:
             return
 
@@ -139,9 +135,9 @@ class Payment(NamedTuple):
         else:
             pending = WALLET.get_invoice_status(self.checking_id)
 
-        self.set_pending(pending.pending)
+        await self.set_pending(pending.pending)
 
-    def delete(self) -> None:
+    async def delete(self) -> None:
         from .crud import delete_payment
 
-        delete_payment(self.checking_id)
+        await delete_payment(self.checking_id)

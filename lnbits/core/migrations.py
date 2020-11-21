@@ -1,8 +1,8 @@
-import sqlite3
+from sqlalchemy.exc import OperationalError # type: ignore
 
 
-def m000_create_migrations_table(db):
-    db.execute(
+async def m000_create_migrations_table(db):
+    await db.execute(
         """
     CREATE TABLE dbversions (
         db TEXT PRIMARY KEY,
@@ -12,11 +12,11 @@ def m000_create_migrations_table(db):
     )
 
 
-def m001_initial(db):
+async def m001_initial(db):
     """
     Initial LNbits tables.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS accounts (
             id TEXT PRIMARY KEY,
@@ -25,7 +25,7 @@ def m001_initial(db):
         );
     """
     )
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS extensions (
             user TEXT NOT NULL,
@@ -36,7 +36,7 @@ def m001_initial(db):
         );
     """
     )
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS wallets (
             id TEXT PRIMARY KEY,
@@ -47,7 +47,7 @@ def m001_initial(db):
         );
     """
     )
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS apipayments (
             payhash TEXT NOT NULL,
@@ -63,7 +63,7 @@ def m001_initial(db):
     """
     )
 
-    db.execute(
+    await db.execute(
         """
         CREATE VIEW IF NOT EXISTS balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
@@ -82,22 +82,22 @@ def m001_initial(db):
     )
 
 
-def m002_add_fields_to_apipayments(db):
+async def m002_add_fields_to_apipayments(db):
     """
     Adding fields to apipayments for better accounting,
     and renaming payhash to checking_id since that is what it really is.
     """
     try:
-        db.execute("ALTER TABLE apipayments RENAME COLUMN payhash TO checking_id")
-        db.execute("ALTER TABLE apipayments ADD COLUMN hash TEXT")
-        db.execute("CREATE INDEX by_hash ON apipayments (hash)")
-        db.execute("ALTER TABLE apipayments ADD COLUMN preimage TEXT")
-        db.execute("ALTER TABLE apipayments ADD COLUMN bolt11 TEXT")
-        db.execute("ALTER TABLE apipayments ADD COLUMN extra TEXT")
+        await db.execute("ALTER TABLE apipayments RENAME COLUMN payhash TO checking_id")
+        await db.execute("ALTER TABLE apipayments ADD COLUMN hash TEXT")
+        await db.execute("CREATE INDEX by_hash ON apipayments (hash)")
+        await db.execute("ALTER TABLE apipayments ADD COLUMN preimage TEXT")
+        await db.execute("ALTER TABLE apipayments ADD COLUMN bolt11 TEXT")
+        await db.execute("ALTER TABLE apipayments ADD COLUMN extra TEXT")
 
         import json
 
-        rows = db.fetchall("SELECT * FROM apipayments")
+        rows = await (await db.execute("SELECT * FROM apipayments")).fetchall()
         for row in rows:
             if not row["memo"] or not row["memo"].startswith("#"):
                 continue
@@ -106,7 +106,7 @@ def m002_add_fields_to_apipayments(db):
                 prefix = "#" + ext + " "
                 if row["memo"].startswith(prefix):
                     new = row["memo"][len(prefix) :]
-                    db.execute(
+                    await db.execute(
                         """
                         UPDATE apipayments SET extra = ?, memo = ?
                         WHERE checking_id = ? AND memo = ?
@@ -114,7 +114,7 @@ def m002_add_fields_to_apipayments(db):
                         (json.dumps({"tag": ext}), new, row["checking_id"], row["memo"]),
                     )
                     break
-    except sqlite3.OperationalError:
+    except OperationalError:
         # this is necessary now because it may be the case that this migration will
         # run twice in some environments.
         # catching errors like this won't be necessary in anymore now that we

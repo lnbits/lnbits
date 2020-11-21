@@ -8,7 +8,7 @@ from lnbits.decorators import api_validate_post_request
 from lnbits.settings import WALLET
 from lnbits import bolt11
 
-from lnbits.extensions.lndhub import lndhub_ext
+from . import lndhub_ext
 from .decorators import check_wallet
 from .utils import to_buffer, decoded_as_lndhub
 
@@ -46,20 +46,11 @@ async def lndhub_auth():
 )
 async def lndhub_addinvoice():
     try:
-        _, pr = create_invoice(
-            wallet_id=g.wallet.id,
-            amount=int(g.data["amt"]),
-            memo=g.data["memo"],
-            extra={"tag": "lndhub"},
+        _, pr = await create_invoice(
+            wallet_id=g.wallet.id, amount=int(g.data["amt"]), memo=g.data["memo"], extra={"tag": "lndhub"},
         )
     except Exception as e:
-        return jsonify(
-            {
-                "error": True,
-                "code": 7,
-                "message": "Failed to create invoice: " + str(e),
-            }
-        )
+        return jsonify({"error": True, "code": 7, "message": "Failed to create invoice: " + str(e),})
 
     invoice = bolt11.decode(pr)
     return jsonify(
@@ -78,19 +69,11 @@ async def lndhub_addinvoice():
 @api_validate_post_request(schema={"invoice": {"type": "string", "required": True}})
 async def lndhub_payinvoice():
     try:
-        pay_invoice(
-            wallet_id=g.wallet.id,
-            payment_request=g.data["invoice"],
-            extra={"tag": "lndhub"},
+        await pay_invoice(
+            wallet_id=g.wallet.id, payment_request=g.data["invoice"], extra={"tag": "lndhub"},
         )
     except Exception as e:
-        return jsonify(
-            {
-                "error": True,
-                "code": 10,
-                "message": "Payment failed: " + str(e),
-            }
-        )
+        return jsonify({"error": True, "code": 10, "message": "Payment failed: " + str(e),})
 
     invoice: bolt11.Invoice = bolt11.decode(g.data["invoice"])
     return jsonify(
@@ -119,10 +102,10 @@ async def lndhub_balance():
 @lndhub_ext.route("/ext/gettxs", methods=["GET"])
 @check_wallet()
 async def lndhub_gettxs():
-    for payment in g.wallet.get_payments(
+    for payment in await g.wallet.get_payments(
         complete=False, pending=True, outgoing=True, incoming=False, exclude_uncheckable=True
     ):
-        payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
+        await payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
 
     limit = int(request.args.get("limit", 200))
     return jsonify(
@@ -138,7 +121,7 @@ async def lndhub_gettxs():
                 "memo": payment.memo if not payment.pending else "Payment in transition",
             }
             for payment in reversed(
-                g.wallet.get_payments(pending=True, complete=True, outgoing=True, incoming=False)[:limit]
+                (await g.wallet.get_payments(pending=True, complete=True, outgoing=True, incoming=False))[:limit]
             )
         ]
     )
@@ -147,11 +130,11 @@ async def lndhub_gettxs():
 @lndhub_ext.route("/ext/getuserinvoices", methods=["GET"])
 @check_wallet()
 async def lndhub_getuserinvoices():
-    delete_expired_invoices()
-    for invoice in g.wallet.get_payments(
+    await delete_expired_invoices()
+    for invoice in await g.wallet.get_payments(
         complete=False, pending=True, outgoing=False, incoming=True, exclude_uncheckable=True
     ):
-        invoice.set_pending(WALLET.get_invoice_status(invoice.checking_id).pending)
+        await invoice.set_pending(WALLET.get_invoice_status(invoice.checking_id).pending)
 
     limit = int(request.args.get("limit", 200))
     return jsonify(
@@ -169,7 +152,7 @@ async def lndhub_getuserinvoices():
                 "type": "user_invoice",
             }
             for invoice in reversed(
-                g.wallet.get_payments(pending=True, complete=True, incoming=True, outgoing=False)[:limit]
+                (await g.wallet.get_payments(pending=True, complete=True, incoming=True, outgoing=False))[:limit]
             )
         ]
     )

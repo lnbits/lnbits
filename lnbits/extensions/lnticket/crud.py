@@ -1,44 +1,44 @@
 from typing import List, Optional, Union
 
-from lnbits.db import open_ext_db
 from lnbits.helpers import urlsafe_short_hash
 
+from . import db
 from .models import Tickets, Forms
 
 
-#######TICKETS########
+async def create_ticket(
+    payment_hash: str, wallet: str, form: str, name: str, email: str, ltext: str, sats: int,
+) -> Tickets:
+    await db.execute(
+        """
+        INSERT INTO ticket (id, form, email, ltext, name, wallet, sats, paid)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (payment_hash, form, email, ltext, name, wallet, sats, False),
+    )
+
+    ticket = await get_ticket(payment_hash)
+    assert ticket, "Newly created ticket couldn't be retrieved"
+    return ticket
 
 
-def create_ticket(payment_hash: str, wallet: str, form: str, name: str, email: str, ltext: str, sats: int) -> Tickets:
-    with open_ext_db("lnticket") as db:
-        db.execute(
-            """
-            INSERT INTO ticket (id, form, email, ltext, name, wallet, sats, paid)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (payment_hash, form, email, ltext, name, wallet, sats, False),
-        )
-
-    return get_ticket(payment_hash)
-
-
-def update_ticket(paid: bool, payment_hash: str) -> Tickets:
-    with open_ext_db("lnticket") as db:
-        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
-        if row[7] == True:
-            return get_ticket(payment_hash)
-        db.execute(
+async def set_ticket_paid(payment_hash: str) -> Tickets:
+    row = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
+    if row[7] == False:
+        await db.execute(
             """
             UPDATE ticket
-            SET paid = ?
+            SET paid = true
             WHERE id = ?
             """,
-            (paid, payment_hash),
+            (payment_hash,),
         )
 
-        formdata = get_form(row[1])
+        formdata = await get_form(row[1])
+        assert formdata, "Couldn't get form from paid ticket"
+
         amount = formdata.amountmade + row[7]
-        db.execute(
+        await db.execute(
             """
             UPDATE forms
             SET amountmade = ?
@@ -46,76 +46,71 @@ def update_ticket(paid: bool, payment_hash: str) -> Tickets:
             """,
             (amount, row[1]),
         )
-    return get_ticket(payment_hash)
+
+    ticket = await get_ticket(payment_hash)
+    assert ticket, "Newly updated ticket couldn't be retrieved"
+    return ticket
 
 
-def get_ticket(ticket_id: str) -> Optional[Tickets]:
-    with open_ext_db("lnticket") as db:
-        row = db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
-
+async def get_ticket(ticket_id: str) -> Optional[Tickets]:
+    row = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
     return Tickets(**row) if row else None
 
 
-def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
+async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
-    with open_ext_db("lnticket") as db:
-        q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [Tickets(**row) for row in rows]
 
 
-def delete_ticket(ticket_id: str) -> None:
-    with open_ext_db("lnticket") as db:
-        db.execute("DELETE FROM ticket WHERE id = ?", (ticket_id,))
+async def delete_ticket(ticket_id: str) -> None:
+    await db.execute("DELETE FROM ticket WHERE id = ?", (ticket_id,))
 
 
-########FORMS#########
+# FORMS
 
 
-def create_form(*, wallet: str, name: str, description: str, costpword: int) -> Forms:
-    with open_ext_db("lnticket") as db:
-        form_id = urlsafe_short_hash()
-        db.execute(
-            """
-            INSERT INTO forms (id, wallet, name, description, costpword, amountmade)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (form_id, wallet, name, description, costpword, 0),
-        )
+async def create_form(*, wallet: str, name: str, description: str, costpword: int) -> Forms:
+    form_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO forms (id, wallet, name, description, costpword, amountmade)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (form_id, wallet, name, description, costpword, 0),
+    )
 
-    return get_form(form_id)
+    form = await get_form(form_id)
+    assert form, "Newly created form couldn't be retrieved"
+    return form
 
 
-def update_form(form_id: str, **kwargs) -> Forms:
+async def update_form(form_id: str, **kwargs) -> Forms:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    with open_ext_db("lnticket") as db:
-        db.execute(f"UPDATE forms SET {q} WHERE id = ?", (*kwargs.values(), form_id))
-        row = db.fetchone("SELECT * FROM forms WHERE id = ?", (form_id,))
+    await db.execute(f"UPDATE forms SET {q} WHERE id = ?", (*kwargs.values(), form_id))
+    row = await db.fetchone("SELECT * FROM forms WHERE id = ?", (form_id,))
+    assert row, "Newly updated form couldn't be retrieved"
+    return Forms(**row)
 
+
+async def get_form(form_id: str) -> Optional[Forms]:
+    row = await db.fetchone("SELECT * FROM forms WHERE id = ?", (form_id,))
     return Forms(**row) if row else None
 
 
-def get_form(form_id: str) -> Optional[Forms]:
-    with open_ext_db("lnticket") as db:
-        row = db.fetchone("SELECT * FROM forms WHERE id = ?", (form_id,))
-
-    return Forms(**row) if row else None
-
-
-def get_forms(wallet_ids: Union[str, List[str]]) -> List[Forms]:
+async def get_forms(wallet_ids: Union[str, List[str]]) -> List[Forms]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
-    with open_ext_db("lnticket") as db:
-        q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM forms WHERE wallet IN ({q})", (*wallet_ids,))
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(f"SELECT * FROM forms WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [Forms(**row) for row in rows]
 
 
-def delete_form(form_id: str) -> None:
-    with open_ext_db("lnticket") as db:
-        db.execute("DELETE FROM forms WHERE id = ?", (form_id,))
+async def delete_form(form_id: str) -> None:
+    await db.execute("DELETE FROM forms WHERE id = ?", (form_id,))

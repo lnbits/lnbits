@@ -1,4 +1,7 @@
 from quart import Blueprint
+from lnbits.db import Database
+
+db = Database("ext_events")
 
 
 events_ext: Blueprint = Blueprint("events", __name__, static_folder="static", template_folder="templates")

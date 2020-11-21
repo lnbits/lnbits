@@ -15,7 +15,7 @@ def check_wallet(requires_admin=False):
             if requires_admin and key_type != "admin":
                 return jsonify({"error": True, "code": 2, "message": "insufficient permissions"})
 
-            g.wallet = get_wallet_for_key(key, key_type)
+            g.wallet = await get_wallet_for_key(key, key_type)
             if not g.wallet:
                 return jsonify({"error": True, "code": 2, "message": "insufficient permissions"})
             return await view(**kwargs)

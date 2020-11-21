@@ -8,8 +8,8 @@ from lnurl import LnurlResponse, LnurlWithdrawResponse, decode as decode_lnurl  
 from lnbits.core import core_app
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE
-from lnbits.tasks import run_on_pseudo_request
 
+from .. import db
 from ..crud import (
     create_account,
     get_user,
@@ -41,11 +41,11 @@ async def extensions():
         abort(HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension.")
 
     if extension_to_enable:
-        update_user_extension(user_id=g.user.id, extension=extension_to_enable, active=1)
+        await update_user_extension(user_id=g.user.id, extension=extension_to_enable, active=1)
     elif extension_to_disable:
-        update_user_extension(user_id=g.user.id, extension=extension_to_disable, active=0)
+        await update_user_extension(user_id=g.user.id, extension=extension_to_disable, active=0)
 
-    return await render_template("core/extensions.html", user=get_user(g.user.id))
+    return await render_template("core/extensions.html", user=await get_user(g.user.id))
 
 
 @core_app.route("/wallet")
@@ -63,9 +63,12 @@ async def wallet():
     # nothing: create everything
 
     if not user_id:
-        user = get_user(create_account().id)
+        user = await get_user((await create_account()).id)
     else:
-        user = get_user(user_id) or abort(HTTPStatus.NOT_FOUND, "User does not exist.")
+        user = await get_user(user_id)
+        if not user:
+            abort(HTTPStatus.NOT_FOUND, "User does not exist.")
+            return
 
         if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
             abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
@@ -74,7 +77,7 @@ async def wallet():
         if user.wallets and not wallet_name:
             wallet = user.wallets[0]
         else:
-            wallet = create_wallet(user_id=user.id, wallet_name=wallet_name)
+            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
 
         return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
@@ -95,7 +98,7 @@ async def deletewallet():
     if wallet_id not in user_wallet_ids:
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
-        delete_wallet(user_id=g.user.id, wallet_id=wallet_id)
+        await delete_wallet(user_id=g.user.id, wallet_id=wallet_id)
         user_wallet_ids.remove(wallet_id)
 
     if user_wallet_ids:
@@ -120,14 +123,12 @@ async def lnurlwallet():
         except Exception as exc:
             return f"Could not process lnurl-withdraw: {exc}", HTTPStatus.INTERNAL_SERVER_ERROR
 
-    account = create_account()
-    user = get_user(account.id)
-    wallet = create_wallet(user_id=user.id)
-    g.db.commit()
+    account = await create_account()
+    user = await get_user(account.id)
+    wallet = await create_wallet(user_id=user.id)
+    await db.commit()
 
-    await run_on_pseudo_request(
-        redeem_lnurl_withdraw, wallet.id, withdraw_res, "LNbits initial funding: voucher redeem."
-    )
+    g.nursery.start_soon(redeem_lnurl_withdraw, wallet.id, withdraw_res, "LNbits initial funding: voucher redeem.")
     await trio.sleep(3)
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))

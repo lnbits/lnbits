@@ -1,2 +1,2 @@
-def migrate():
+async def migrate():
     pass

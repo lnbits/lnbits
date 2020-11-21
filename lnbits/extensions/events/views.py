@@ -1,10 +1,10 @@
 from quart import g, abort, render_template
 from datetime import date, datetime
-
-from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
 
-from lnbits.extensions.events import events_ext
+from lnbits.decorators import check_user_exists, validate_uuids
+
+from . import events_ext
 from .crud import get_ticket, get_event
 
 
@@ -17,7 +17,10 @@ async def index():
 
 @events_ext.route("/<event_id>")
 async def display(event_id):
-    event = get_event(event_id) or abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
+    event = await get_event(event_id)
+    if not event:
+        abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
+
     if event.amount_tickets < 1:
         return await render_template(
             "events/error.html", event_name=event.name, event_error="Sorry, tickets are sold out :("
@@ -39,8 +42,14 @@ async def display(event_id):
 
 @events_ext.route("/ticket/<ticket_id>")
 async def ticket(ticket_id):
-    ticket = get_ticket(ticket_id) or abort(HTTPStatus.NOT_FOUND, "Ticket does not exist.")
-    event = get_event(ticket.event) or abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
+    ticket = await get_ticket(ticket_id)
+    if not ticket:
+        abort(HTTPStatus.NOT_FOUND, "Ticket does not exist.")
+
+    event = await get_event(ticket.event)
+    if not event:
+        abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
+
     return await render_template(
         "events/ticket.html", ticket_id=ticket_id, ticket_name=event.name, ticket_info=event.info
     )
@@ -48,7 +57,9 @@ async def ticket(ticket_id):
 
 @events_ext.route("/register/<event_id>")
 async def register(event_id):
-    event = get_event(event_id) or abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
+    event = await get_event(event_id)
+    if not event:
+        abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
 
     return await render_template(
         "events/register.html", event_id=event_id, event_name=event.name, wallet_id=event.wallet
