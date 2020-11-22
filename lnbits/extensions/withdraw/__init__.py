@@ -9,3 +9,4 @@ withdraw_ext: Blueprint = Blueprint("withdraw", __name__, static_folder="static"
 
 from .views_api import *  # noqa
 from .views import *  # noqa
+from .lnurl import *  # noqa
