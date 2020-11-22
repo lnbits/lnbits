@@ -1,4 +1,4 @@
-from sqlalchemy.exc import OperationalError # type: ignore
+from sqlalchemy.exc import OperationalError  # type: ignore
 
 
 async def m000_create_migrations_table(db):

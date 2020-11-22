@@ -24,7 +24,15 @@ async def api_links():
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     try:
         return (
-            jsonify([{**link._asdict(), **{"lnurl": link.lnurl},} for link in await get_withdraw_links(wallet_ids)]),
+            jsonify(
+                [
+                    {
+                        **link._asdict(),
+                        **{"lnurl": link.lnurl},
+                    }
+                    for link in await get_withdraw_links(wallet_ids)
+                ]
+            ),
             HTTPStatus.OK,
         )
     except LnurlInvalidUrl:

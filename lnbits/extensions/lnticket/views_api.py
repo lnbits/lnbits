@@ -109,7 +109,10 @@ async def api_ticket_make_ticket(form_id):
     nwords = len(re.split(r"\s+", g.data["ltext"]))
     sats = nwords * form.costpword
     payment_hash, payment_request = await create_invoice(
-        wallet_id=form.wallet, amount=sats, memo=f"ticket with {nwords} words on {form_id}", extra={"tag": "lnticket"},
+        wallet_id=form.wallet,
+        amount=sats,
+        memo=f"ticket with {nwords} words on {form_id}",
+        extra={"tag": "lnticket"},
     )
 
     ticket = await create_ticket(payment_hash=payment_hash, wallet=form.wallet, sats=sats, **g.data)

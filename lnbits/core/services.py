@@ -131,7 +131,10 @@ async def pay_invoice(
         payment: PaymentResponse = WALLET.pay_invoice(payment_request)
         if payment.ok and payment.checking_id:
             await create_payment(
-                checking_id=payment.checking_id, fee=payment.fee_msat, preimage=payment.preimage, **payment_kwargs,
+                checking_id=payment.checking_id,
+                fee=payment.fee_msat,
+                preimage=payment.preimage,
+                **payment_kwargs,
             )
             await delete_payment(temp_id)
         else:
@@ -151,7 +154,8 @@ async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo
 
     async with httpx.AsyncClient() as client:
         await client.get(
-            res.callback.base, params={**res.callback.query_params, **{"k1": res.k1, "pr": payment_request}},
+            res.callback.base,
+            params={**res.callback.query_params, **{"k1": res.k1, "pr": payment_request}},
         )
 
 
@@ -208,7 +212,11 @@ async def perform_lnurlauth(callback: str) -> Optional[LnurlErrorResponse]:
     async with httpx.AsyncClient() as client:
         r = await client.get(
             callback,
-            params={"k1": k1.hex(), "key": key.verifying_key.to_string("compressed").hex(), "sig": sig.hex(),},
+            params={
+                "k1": k1.hex(),
+                "key": key.verifying_key.to_string("compressed").hex(),
+                "sig": sig.hex(),
+            },
         )
         try:
             resp = json.loads(r.text)
@@ -217,7 +225,9 @@ async def perform_lnurlauth(callback: str) -> Optional[LnurlErrorResponse]:
 
             return LnurlErrorResponse(reason=resp["reason"])
         except (KeyError, json.decoder.JSONDecodeError):
-            return LnurlErrorResponse(reason=r.text[:200] + "..." if len(r.text) > 200 else r.text,)
+            return LnurlErrorResponse(
+                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text,
+            )
 
 
 async def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStatus:

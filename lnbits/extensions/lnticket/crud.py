@@ -7,7 +7,13 @@ from .models import Tickets, Forms
 
 
 async def create_ticket(
-    payment_hash: str, wallet: str, form: str, name: str, email: str, ltext: str, sats: int,
+    payment_hash: str,
+    wallet: str,
+    form: str,
+    name: str,
+    email: str,
+    ltext: str,
+    sats: int,
 ) -> Tickets:
     await db.execute(
         """

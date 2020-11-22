@@ -47,10 +47,19 @@ async def lndhub_auth():
 async def lndhub_addinvoice():
     try:
         _, pr = await create_invoice(
-            wallet_id=g.wallet.id, amount=int(g.data["amt"]), memo=g.data["memo"], extra={"tag": "lndhub"},
+            wallet_id=g.wallet.id,
+            amount=int(g.data["amt"]),
+            memo=g.data["memo"],
+            extra={"tag": "lndhub"},
         )
     except Exception as e:
-        return jsonify({"error": True, "code": 7, "message": "Failed to create invoice: " + str(e),})
+        return jsonify(
+            {
+                "error": True,
+                "code": 7,
+                "message": "Failed to create invoice: " + str(e),
+            }
+        )
 
     invoice = bolt11.decode(pr)
     return jsonify(
@@ -70,10 +79,18 @@ async def lndhub_addinvoice():
 async def lndhub_payinvoice():
     try:
         await pay_invoice(
-            wallet_id=g.wallet.id, payment_request=g.data["invoice"], extra={"tag": "lndhub"},
+            wallet_id=g.wallet.id,
+            payment_request=g.data["invoice"],
+            extra={"tag": "lndhub"},
         )
     except Exception as e:
-        return jsonify({"error": True, "code": 10, "message": "Payment failed: " + str(e),})
+        return jsonify(
+            {
+                "error": True,
+                "code": 10,
+                "message": "Payment failed: " + str(e),
+            }
+        )
 
     invoice: bolt11.Invoice = bolt11.decode(g.data["invoice"])
     return jsonify(

@@ -33,7 +33,17 @@ async def create_pay_link(
         )
         VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
         """,
-        (wallet_id, description, min, max, webhook_url, success_text, success_url, comment_chars, currency,),
+        (
+            wallet_id,
+            description,
+            min,
+            max,
+            webhook_url,
+            success_text,
+            success_url,
+            comment_chars,
+            currency,
+        ),
     )
     link_id = result._result_proxy.lastrowid
     link = await get_pay_link(link_id)

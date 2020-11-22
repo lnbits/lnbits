@@ -4,7 +4,7 @@ import click
 import importlib
 import re
 import os
-from sqlalchemy.exc import OperationalError # type: ignore
+from sqlalchemy.exc import OperationalError  # type: ignore
 
 from .core import db as core_db, migrations as core_migrations
 from .helpers import get_valid_extensions, get_css_vendored, get_js_vendored, url_for_vendored

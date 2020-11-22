@@ -1,7 +1,7 @@
 import os
 from typing import Tuple, Optional, Any
-from sqlalchemy_aio import TRIO_STRATEGY # type: ignore
-from sqlalchemy import create_engine # type: ignore
+from sqlalchemy_aio import TRIO_STRATEGY  # type: ignore
+from sqlalchemy import create_engine  # type: ignore
 from quart import g
 
 from .settings import LNBITS_DATA_FOLDER
