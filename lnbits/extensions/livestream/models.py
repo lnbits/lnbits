@@ -34,7 +34,7 @@ class Track(NamedTuple):
         else:
             producer_name = "unknown author"
 
-        return f"Track '{self.name}', from {producer_name}."
+        return f"Track '{self.name}', from {producer_name}. {round(self.price_msat/1000)} sat."
 
     @property
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
