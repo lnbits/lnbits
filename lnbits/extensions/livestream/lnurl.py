@@ -26,7 +26,10 @@ async def lnurl_response(ls_id):
         metadata=await track.lnurlpay_metadata,
     )
 
-    return jsonify(resp.dict())
+    params = resp.dict()
+    params["commentAllowed"] = 300
+
+    return jsonify(params)
 
 
 @livestream_ext.route("/lnurl/cb/<track_id>", methods=["GET"])
@@ -54,6 +57,12 @@ async def lnurl_callback(track_id):
             ),
         )
 
+    comment = request.args.get("comment")
+    if len(comment or "") > 300:
+        return jsonify(
+            LnurlErrorResponse(reason=f"Got a comment with {len(comment)} characters, but can only accept 300").dict()
+        )
+
     ls = await get_livestream_by_track(track_id)
 
     payment_hash, payment_request = await create_invoice(
@@ -61,9 +70,13 @@ async def lnurl_callback(track_id):
         amount=int(amount_received / 1000),
         memo=await track.description(),
         description_hash=hashlib.sha256((await track.lnurlpay_metadata).encode("utf-8")).digest(),
-        extra={"tag": "livestream", "track": track.id},
+        extra={"tag": "livestream", "track": track.id, "comment": comment},
     )
 
-    resp = LnurlPayActionResponse(pr=payment_request, success_action=track.success_action(payment_hash), routes=[],)
+    resp = LnurlPayActionResponse(
+        pr=payment_request,
+        success_action=track.success_action(payment_hash),
+        routes=[],
+    )
 
     return jsonify(resp.dict())

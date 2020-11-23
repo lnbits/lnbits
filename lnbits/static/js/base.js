@@ -65,15 +65,37 @@ window.LNbits = {
   },
   events: {
     onInvoicePaid: function (wallet, cb) {
-      if (!this.pis) {
-        this.pis = new EventSource(
+      let listener = ev => {
+        cb(JSON.parse(ev.data))
+      }
+
+      this.listenersCount = this.listenersCount || {[wallet.inkey]: 0}
+      this.listenersCount[wallet.inkey]++
+
+      this.listeners = this.listeners || {}
+      if (!(wallet.inkey in this.listeners)) {
+        this.listeners[wallet.inkey] = new EventSource(
           '/api/v1/payments/sse?api-key=' + wallet.inkey
         )
       }
 
-      this.pis.addEventListener('payment-received', ev =>
-        cb(JSON.parse(ev.data))
+      this.listeners[wallet.inkey].addEventListener(
+        'payment-received',
+        listener
       )
+
+      return () => {
+        this.listeners[wallet.inkey].removeEventListener(
+          'payment-received',
+          listener
+        )
+        this.listenersCount[wallet.inkey]--
+
+        if (this.listenersCount[wallet.inkey] <= 0) {
+          this.listeners[wallet.inkey].close()
+          delete this.listeners[wallet.inkey]
+        }
+      }
     }
   },
   href: {

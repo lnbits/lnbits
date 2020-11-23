@@ -7,6 +7,7 @@ new Vue({
   mixins: [windowMixin],
   data() {
     return {
+      cancelListener: () => {},
       selectedWallet: null,
       nextCurrentTrack: null,
       livestream: {
@@ -51,6 +52,7 @@ new Vue({
     changedWallet(wallet) {
       this.selectedWallet = wallet
       this.loadLivestream()
+      this.startPaymentNotifier()
     },
     loadLivestream() {
       LNbits.api
@@ -66,6 +68,30 @@ new Vue({
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
+    },
+    startPaymentNotifier() {
+      this.cancelListener()
+
+      this.cancelListener = LNbits.events.onInvoicePaid(
+        this.selectedWallet,
+        payment => {
+          let satoshiAmount = Math.round(payment.amount / 1000)
+          let trackName = (
+            this.tracksMap[payment.extra.track] || {name: '[unknown]'}
+          ).name
+
+          this.$q.notify({
+            message: `Someone paid <b>${satoshiAmount} sat</b> for the track <em>${trackName}</em>.`,
+            caption: payment.extra.comment
+              ? `<em>"${payment.extra.comment}"</em>`
+              : undefined,
+            color: 'secondary',
+            html: true,
+            timeout: 0,
+            actions: [{label: 'Dismiss', color: 'white', handler: () => {}}]
+          })
+        }
+      )
     },
     addTrack() {
       let {name, producer, price_sat, download_url} = this.trackDialog.data
@@ -171,5 +197,6 @@ new Vue({
   created() {
     this.selectedWallet = this.g.user.wallets[0]
     this.loadLivestream()
+    this.startPaymentNotifier()
   }
 })
