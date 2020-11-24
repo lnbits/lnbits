@@ -21,9 +21,9 @@ async def lnurl_response(ls_id):
 
     resp = LnurlPayResponse(
         callback=url_for("livestream.lnurl_callback", track_id=track.id, _external=True),
-        min_sendable=track.price_msat,
+        min_sendable=min(100000, track.price_msat),
         max_sendable=track.price_msat * 5,
-        metadata=await track.lnurlpay_metadata,
+        metadata=await track.lnurlpay_metadata(),
     )
 
     params = resp.dict()
@@ -68,14 +68,19 @@ async def lnurl_callback(track_id):
     payment_hash, payment_request = await create_invoice(
         wallet_id=ls.wallet,
         amount=int(amount_received / 1000),
-        memo=await track.description(),
-        description_hash=hashlib.sha256((await track.lnurlpay_metadata).encode("utf-8")).digest(),
+        memo=await track.fullname(),
+        description_hash=hashlib.sha256((await track.lnurlpay_metadata()).encode("utf-8")).digest(),
         extra={"tag": "livestream", "track": track.id, "comment": comment},
     )
 
+    if amount_received < track.price_msat:
+        success_action = None
+    else:
+        success_action = track.success_action(payment_hash)
+
     resp = LnurlPayActionResponse(
         pr=payment_request,
-        success_action=track.success_action(payment_hash),
+        success_action=success_action,
         routes=[],
     )
 
