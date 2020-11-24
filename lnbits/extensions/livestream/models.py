@@ -25,6 +25,14 @@ class Track(NamedTuple):
     name: str
     producer: int
 
+    @property
+    def min_sendable(self) -> int:
+        return min(100_000, self.price_msat or 100_000)
+
+    @property
+    def max_sendable(self) -> int:
+        return max(50_000_000, self.price_msat * 5)
+
     async def fullname(self) -> str:
         from .crud import get_producer
 

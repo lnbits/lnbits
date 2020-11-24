@@ -44,7 +44,6 @@ new Vue({
       return (
         !this.trackDialog.data.name ||
         this.trackDialog.data.name.length === 0 ||
-        !this.trackDialog.data.price_sat ||
         !this.trackDialog.data.producer ||
         this.trackDialog.data.producer.length === 0
       )
@@ -107,7 +106,7 @@ new Vue({
                 ? download_url
                 : undefined,
             name,
-            price_msat: price_sat * 1000,
+            price_msat: price_sat * 1000 || 0,
             producer_name: typeof producer === 'string' ? producer : undefined,
             producer_id: typeof producer === 'object' ? producer.id : undefined
           }

@@ -21,8 +21,8 @@ async def lnurl_response(ls_id):
 
     resp = LnurlPayResponse(
         callback=url_for("livestream.lnurl_callback", track_id=track.id, _external=True),
-        min_sendable=min(100000, track.price_msat),
-        max_sendable=track.price_msat * 5,
+        min_sendable=track.min_sendable,
+        max_sendable=track.max_sendable,
         metadata=await track.lnurlpay_metadata(),
     )
 
@@ -40,19 +40,19 @@ async def lnurl_callback(track_id):
 
     amount_received = int(request.args.get("amount"))
 
-    if amount_received < track.price_msat:
+    if amount_received < track.min_sendable:
         return (
             jsonify(
                 LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum {math.floor(track.price_msat / 1000)}."
+                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum {math.floor(track.min_sendable)}."
                 ).dict()
             ),
         )
-    elif track.price_msat * 5 < amount_received:
+    elif track.max_sendable < amount_received:
         return (
             jsonify(
                 LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum {math.floor(track.price_msat * 5 / 1000)}."
+                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum {math.floor(track.max_sendable)}."
                 ).dict()
             ),
         )

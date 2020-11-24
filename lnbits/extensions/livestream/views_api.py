@@ -73,7 +73,7 @@ async def api_update_fee(fee_pct):
     schema={
         "name": {"type": "string", "empty": False, "required": True},
         "download_url": {"type": "string", "empty": False, "required": False},
-        "price_msat": {"type": "number", "min": 1, "required": True},
+        "price_msat": {"type": "number", "min": 0, "required": False},
         "producer_id": {"type": "number", "required": True, "excludes": "producer_name"},
         "producer_name": {"type": "string", "required": True, "excludes": "producer_id"},
     }
@@ -84,7 +84,7 @@ async def api_add_track():
         ls.id,
         g.data["name"],
         g.data.get("download_url"),
-        g.data["price_msat"],
+        g.data.get("price_msat", 0),
         g.data.get("producer_name"),
         g.data.get("producer_id"),
     )
