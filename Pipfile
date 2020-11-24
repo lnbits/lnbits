@@ -21,8 +21,9 @@ secure = "*"
 typing-extensions = "*"
 httpx = "*"
 quart-trio = "*"
-trio = "*"
+trio = "==0.16.0"
 hypercorn = {extras = ["trio"], version = "*"}
+sqlalchemy-aio = "*"
 
 [dev-packages]
 black = "==20.8b1"
