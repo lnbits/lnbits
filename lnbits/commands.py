@@ -55,7 +55,7 @@ async def migrate_databases():
         rows = await (await core_conn.execute("SELECT * FROM dbversions")).fetchall()
     except OperationalError:
         # migration 3 wasn't ran
-        core_migrations.m000_create_migrations_table(core_conn)
+        await core_migrations.m000_create_migrations_table(core_conn)
         rows = await (await core_conn.execute("SELECT * FROM dbversions")).fetchall()
 
     current_versions = {row["db"]: row["version"] for row in rows}
