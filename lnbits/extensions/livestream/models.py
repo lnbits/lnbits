@@ -48,7 +48,7 @@ class Track(NamedTuple):
         description = (await self.fullname()) + " Like this track? Send some sats in appreciation."
 
         if self.download_url:
-            description += f" Send {round(self.price_msat/1000)} sats or more and you can download it at 320kbps."
+            description += f" Send {round(self.price_msat/1000)} sats or more and you can download it."
 
         return LnurlPayMetadata(json.dumps([["text/plain", description]]))
 
