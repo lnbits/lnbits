@@ -139,7 +139,7 @@ async def api_ticket_send_ticket(payment_hash):
         payment = await wallet.get_payment(payment_hash)
         await payment.set_pending(False)
         ticket = await set_ticket_paid(payment_hash=payment_hash)
-        return jsonify({"paid": True, "ticket_id": ticket.id}), HTTPStatus.OK
+        return jsonify({"paid": True}), HTTPStatus.OK
 
     return jsonify({"paid": False}), HTTPStatus.OK
 

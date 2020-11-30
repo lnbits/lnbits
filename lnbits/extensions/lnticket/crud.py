@@ -4,7 +4,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import Tickets, Forms
-
+import httpx
 
 async def create_ticket(
     payment_hash: str,
@@ -52,10 +52,25 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
             """,
             (amount, row[1]),
         )
-
+        
+        ticket = await get_ticket(payment_hash)
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.post(
+                    formdata.webhook,
+                    json={
+                        "form": ticket.form,
+                        "name": ticket.name,
+                        "email": ticket.email,
+                        "comment": ticket.ltext
+                    },
+                    timeout=40,
+                )
+            except AssertionError:
+                webhook = None
+        return ticket
     ticket = await get_ticket(payment_hash)
-    assert ticket, "Newly updated ticket couldn't be retrieved"
-    return ticket
+    return
 
 
 async def get_ticket(ticket_id: str) -> Optional[Tickets]:
