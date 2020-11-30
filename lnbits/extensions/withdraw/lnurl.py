@@ -38,6 +38,15 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
     if link.is_spent:
         return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
 
+    useslist = link.usescsv.split(",")
+    found = False
+    for x in useslist:
+        tohash = link.id + link.unique_hash + str(x)
+        if id_unique_hash == shortuuid.uuid(name=tohash):
+            found = True
+    if not found:
+        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
+
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
 
