@@ -64,7 +64,7 @@ new Vue({
       simpleformDialog: {
         show: false,
         data: {
-          is_unique: false,
+          is_unique: true,
           title: 'Vouchers',
           min_withdrawable: 0,
           wait_time: 1

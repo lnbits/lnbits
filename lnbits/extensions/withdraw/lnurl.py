@@ -19,14 +19,8 @@ async def api_lnurl_response(unique_hash):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
 
-    if link.is_unique == 1:
-        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
-
-    usescsv = ""
-    for x in range(1, link.uses - link.used):
-        usescsv += "," + str(1)
-    usescsv = usescsv[1:]
-    link = await update_withdraw_link(link.id, usescsv=usescsv)
+    if link.is_spent:
+        return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
 
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
@@ -41,24 +35,9 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
 
-    useslist = link.usescsv.split(",")
-    usescsv = ""
-    found = False
-    if link.is_unique == 0:
-        for x in range(link.uses - link.used):
-            usescsv += "," + str(1)
-    else:
-        for x in useslist:
-            tohash = link.id + link.unique_hash + str(x)
-            if id_unique_hash == shortuuid.uuid(name=tohash):
-                found = True
-            else:
-                usescsv += "," + x
-    if not found:
-        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
-
-    usescsv = usescsv[1:]
-    link = await update_withdraw_link(link.id, usescsv=usescsv)
+    if link.is_spent:
+        return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
+        
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
 
@@ -92,7 +71,11 @@ async def api_lnurl_callback(unique_hash):
             extra={"tag": "withdraw"},
         )
 
-        changes = {"open_time": link.wait_time + now, "used": link.used + 1}
+        usescsv = ""
+        for x in range(1, link.uses - link.used):
+            usescsv += "," + str(1)
+        usescsv = usescsv[1:]
+        changes = {"open_time": link.wait_time + now, "used": link.used + 1, "usescsv": usescsv}
 
         await update_withdraw_link(link.id, **changes)
     except ValueError as e:
