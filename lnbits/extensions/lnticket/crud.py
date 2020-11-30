@@ -62,7 +62,7 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
                         "form": ticket.form,
                         "name": ticket.name,
                         "email": ticket.email,
-                        "comment": ticket.ltext
+                        "content": ticket.ltext
                     },
                     timeout=40,
                 )
