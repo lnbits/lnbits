@@ -37,7 +37,7 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
 
     if link.is_spent:
         return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
-        
+
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
 
@@ -73,7 +73,8 @@ async def api_lnurl_callback(unique_hash):
 
         usescsv = ""
         for x in range(1, link.uses - link.used):
-            usescsv += "," + str(1)
+            usecv = link.usescsv.split(",")
+            usescsv += "," + str(usecv[x])
         usescsv = usescsv[1:]
         changes = {"open_time": link.wait_time + now, "used": link.used + 1, "usescsv": usescsv}
 
