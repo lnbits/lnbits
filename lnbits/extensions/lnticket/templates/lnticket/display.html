@@ -113,6 +113,7 @@
         if (sats === parseInt('{{ form_costpword }}')) {
           return '0 Sats to pay'
         } else {
+          this.formDialog.data.sats = sats
           return sats + ' Sats to pay'
         }
       }
@@ -140,7 +141,8 @@
             form: '{{ form_id }}',
             name: self.formDialog.data.name,
             email: self.formDialog.data.email,
-            ltext: self.formDialog.data.text
+            ltext: self.formDialog.data.text,
+            sats: self.formDialog.data.sats,
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -162,12 +164,6 @@
                 .get('/lnticket/api/v1/tickets/' + self.paymentCheck)
                 .then(function (res) {
                   if (res.data.paid) {
-                    clearInterval(paymentChecker)
-                    dismissMsg()
-                    self.formDialog.data.name = ''
-                    self.formDialog.data.email = ''
-                    self.formDialog.data.text = ''
-
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',
@@ -178,12 +174,19 @@
                       status: 'complete',
                       paymentReq: null
                     }
+                    clearInterval(paymentChecker)
+                    dismissMsg()
+                    self.formDialog.data.name = ''
+                    self.formDialog.data.email = ''
+                    self.formDialog.data.text = ''
                   }
                 })
                 .catch(function (error) {
                   LNbits.utils.notifyApiError(error)
                 })
             }, 2000)
+
+
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)

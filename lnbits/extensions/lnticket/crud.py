@@ -46,7 +46,7 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
         amount = formdata.amountmade + row[7]
         await db.execute(
             """
-            UPDATE forms
+            UPDATE form
             SET amountmade = ?
             WHERE id = ?
             """,
@@ -80,14 +80,14 @@ async def delete_ticket(ticket_id: str) -> None:
 # FORMS
 
 
-async def create_form(*, wallet: str, name: str, description: str, costpword: int) -> Forms:
+async def create_form(*, wallet: str, name: str, webhook: Optional[str] = None, description: str, costpword: int) -> Forms:
     form_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO forms (id, wallet, name, description, costpword, amountmade)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO form (id, wallet, name, webhook, description, costpword, amountmade)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (form_id, wallet, name, description, costpword, 0),
+        (form_id, wallet, name, webhook, description, costpword, 0),
     )
 
     form = await get_form(form_id)
@@ -97,14 +97,14 @@ async def create_form(*, wallet: str, name: str, description: str, costpword: in
 
 async def update_form(form_id: str, **kwargs) -> Forms:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE forms SET {q} WHERE id = ?", (*kwargs.values(), form_id))
-    row = await db.fetchone("SELECT * FROM forms WHERE id = ?", (form_id,))
+    await db.execute(f"UPDATE form SET {q} WHERE id = ?", (*kwargs.values(), form_id))
+    row = await db.fetchone("SELECT * FROM form WHERE id = ?", (form_id,))
     assert row, "Newly updated form couldn't be retrieved"
     return Forms(**row)
 
 
 async def get_form(form_id: str) -> Optional[Forms]:
-    row = await db.fetchone("SELECT * FROM forms WHERE id = ?", (form_id,))
+    row = await db.fetchone("SELECT * FROM form WHERE id = ?", (form_id,))
     return Forms(**row) if row else None
 
 
@@ -113,10 +113,10 @@ async def get_forms(wallet_ids: Union[str, List[str]]) -> List[Forms]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM forms WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(f"SELECT * FROM form WHERE wallet IN ({q})", (*wallet_ids,))
 
     return [Forms(**row) for row in rows]
 
 
 async def delete_form(form_id: str) -> None:
-    await db.execute("DELETE FROM forms WHERE id = ?", (form_id,))
+    await db.execute("DELETE FROM form WHERE id = ?", (form_id,))

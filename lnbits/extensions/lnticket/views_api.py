@@ -42,6 +42,7 @@ async def api_forms():
     schema={
         "wallet": {"type": "string", "empty": False, "required": True},
         "name": {"type": "string", "empty": False, "required": True},
+        "webhook": {"type": "string", "empty": False, "required": False},
         "description": {"type": "string", "min": 0, "required": True},
         "costpword": {"type": "integer", "min": 0, "required": True},
     }
@@ -99,6 +100,7 @@ async def api_tickets():
         "name": {"type": "string", "empty": False, "required": True},
         "email": {"type": "string", "empty": True, "required": True},
         "ltext": {"type": "string", "empty": False, "required": True},
+        "sats": {"type": "integer", "min": 0, "required": True},
     }
 )
 async def api_ticket_make_ticket(form_id):
@@ -107,7 +109,7 @@ async def api_ticket_make_ticket(form_id):
         return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
 
     nwords = len(re.split(r"\s+", g.data["ltext"]))
-    sats = nwords * form.costpword
+    sats = g.data["sats"]
     payment_hash, payment_request = await create_invoice(
         wallet_id=form.wallet,
         amount=sats,
@@ -115,7 +117,7 @@ async def api_ticket_make_ticket(form_id):
         extra={"tag": "lnticket"},
     )
 
-    ticket = await create_ticket(payment_hash=payment_hash, wallet=form.wallet, sats=sats, **g.data)
+    ticket = await create_ticket(payment_hash=payment_hash, wallet=form.wallet, **g.data)
 
     if not ticket:
         return jsonify({"message": "LNTicket could not be fetched."}), HTTPStatus.NOT_FOUND
@@ -130,7 +132,7 @@ async def api_ticket_send_ticket(payment_hash):
         status = await check_invoice_status(ticket.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
-        return jsonify({"message": "Not paid."}), HTTPStatus.NOT_FOUND
+        return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
         wallet = await get_wallet(ticket.wallet)

@@ -5,6 +5,7 @@ class Forms(NamedTuple):
     id: str
     wallet: str
     name: str
+    webhook: str
     description: str
     costpword: int
     amountmade: int

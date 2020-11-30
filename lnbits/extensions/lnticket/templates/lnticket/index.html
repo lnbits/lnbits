@@ -114,7 +114,7 @@
             </q-tr>
           </template>
           <template v-slot:body="props">
-            <q-tr :props="props">
+            <q-tr :props="props" v-if="props.row.paid">
               <q-td auto-width>
                 <q-btn
                   unelevated
@@ -184,6 +184,14 @@
         <q-input
           filled
           dense
+          v-model.trim="formDialog.data.webhook"
+          type="text"
+          label="Webhook (optional)"
+          hint="A URL to be called whenever this link receives a payment."
+        ></q-input>
+        <q-input
+          filled
+          dense
           v-model.trim="formDialog.data.description"
           type="textarea"
           label="Description "
@@ -244,6 +252,7 @@
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Name', field: 'name'},
             {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {name: 'webhook', align: 'left', label: 'Webhook', field: 'webhook'},
             {
               name: 'description',
               align: 'left',
@@ -255,12 +264,6 @@
               align: 'left',
               label: 'Cost Per Word',
               field: 'costpword'
-            },
-            {
-              name: 'amountmade',
-              align: 'left',
-              label: 'Amount Made',
-              field: 'amountmade'
             }
           ],
           pagination: {
@@ -269,11 +272,11 @@
         },
         ticketsTable: {
           columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'form', align: 'left', label: 'Form', field: 'form'},
             {name: 'name', align: 'left', label: 'Name', field: 'name'},
             {name: 'email', align: 'left', label: 'Email', field: 'email'},
             {name: 'ltext', align: 'left', label: 'Ticket', field: 'ltext'},
-            {name: 'sats', align: 'left', label: 'Paid', field: 'sats'}
+            {name: 'sats', align: 'left', label: 'Cost', field: 'sats'}
           ],
           pagination: {
             rowsPerPage: 10
