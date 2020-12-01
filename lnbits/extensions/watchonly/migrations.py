@@ -1,8 +1,8 @@
-def m001_initial(db):
+async def m001_initial(db):
     """
     Initial wallet table.
     """
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS wallets (
             id TEXT NOT NULL PRIMARY KEY,
@@ -15,7 +15,7 @@ def m001_initial(db):
     """
     )
 
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS addresses (
             address TEXT NOT NULL PRIMARY KEY,
@@ -25,7 +25,7 @@ def m001_initial(db):
     """
     )
 
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS payments (
             id TEXT NOT NULL PRIMARY KEY,
@@ -38,7 +38,7 @@ def m001_initial(db):
         );
     """
     )
-    db.execute(
+    await db.execute(
         """
         CREATE TABLE IF NOT EXISTS mempool (
             user TEXT NOT NULL,

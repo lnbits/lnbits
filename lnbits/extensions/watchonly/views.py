@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids
 
-from lnbits.extensions.watchonly import watchonly_ext
+from . import watchonly_ext
 from .crud import get_payment
 
 

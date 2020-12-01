@@ -1,8 +1,9 @@
 from typing import List, Optional, Union
 
-from lnbits.db import open_ext_db
-
+#from lnbits.db import open_ext_db
+from . import db
 from .models import Wallets, Payments, Addresses, Mempool
+
 from lnbits.helpers import urlsafe_short_hash
 
 from embit import bip32
