@@ -54,21 +54,22 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
         )
         
         ticket = await get_ticket(payment_hash)
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.post(
-                    formdata.webhook,
-                    json={
-                        "form": ticket.form,
-                        "name": ticket.name,
-                        "email": ticket.email,
-                        "content": ticket.ltext
-                    },
-                    timeout=40,
-                )
-            except AssertionError:
-                webhook = None
-        return ticket
+        if formdata.webhook:
+            async with httpx.AsyncClient() as client:
+                try:
+                    r = await client.post(
+                        formdata.webhook,
+                        json={
+                            "form": ticket.form,
+                            "name": ticket.name,
+                            "email": ticket.email,
+                            "content": ticket.ltext
+                        },
+                        timeout=40,
+                    )
+                except AssertionError:
+                    webhook = None
+            return ticket
     ticket = await get_ticket(payment_hash)
     return
 
