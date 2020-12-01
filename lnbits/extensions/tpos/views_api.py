@@ -13,9 +13,8 @@ from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
 @api_check_wallet_key("invoice")
 async def api_tposs():
     wallet_ids = [g.wallet.id]
-
     if "all_wallets" in request.args:
-        wallet_ids = await get_user(g.wallet.user).wallet_ids
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
     return jsonify([tpos._asdict() for tpos in await get_tposs(wallet_ids)]), HTTPStatus.OK
 
