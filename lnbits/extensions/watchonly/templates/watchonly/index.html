@@ -82,13 +82,14 @@
             <q-tr :props="props">
 
                           <q-td auto-width>
+
                 <q-btn
                   unelevated
                   dense
                   size="xs"
                   icon="toll"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="formDialogPayLink.show = true"
+                  @click="formDialogPayment.show = true"
                 >
                   
          <q-tooltip>
@@ -298,14 +299,14 @@
   </q-dialog>
 
 
-  <q-dialog v-model="formDialogPayLink.show" position="top" @hide="closeFormDialog">
+  <q-dialog v-model="formDialogPayment.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormData" class="q-gutter-md">
+      <q-form @submit="sendFormDataPayment" class="q-gutter-md">
 
         <q-input
           filled
           dense
-          v-model.trim="formDialogPayLink.data.title"
+          v-model.trim="formDialogPayment.data.title"
           type="text"
           label="Title"
         ></q-input>
@@ -313,7 +314,7 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialogPayLink.data.amount"
+          v-model.trim="formDialogPayment.data.amount"
           type="number"
           label="Amount (sats)"
         ></q-input>      
@@ -321,14 +322,14 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialogPayLink.data.time"
+          v-model.trim="formDialogPayment.data.time"
           type="number"
           label="Time (mins)"
         > </q-input>                  
         
         <div class="row q-mt-lg">
           <q-btn
-            v-if="formDialogPayLink.data.id"
+            v-if="formDialogPayment.data.id"
             unelevated
             color="deep-purple"
             type="submit"
@@ -339,8 +340,8 @@
             unelevated
             color="deep-purple"
             :disable="
-                formDialogPayLink.data.time == null ||
-                formDialogPayLink.data.amount == null"
+                formDialogPayment.data.time == null ||
+                formDialogPayment.data.amount == null"
             type="submit"
             >Create Paylink</q-btn
           >
@@ -379,16 +380,33 @@
         ></qrcode>
       </q-responsive>
       <p style="word-break: break-all;">
-        <br /><br />
-        Table of addresses and amount will go here...
+
+    <q-scroll-area style="height: 200px; max-width: 100%;">
+      <q-list bordered v-for="data in Addresses.data">
+      <q-item>
+        <q-item-section>{{ data.address }}</q-item-section>
+                <q-btn
+                  flat
+                  dense
+                  size="ms"
+                  icon="visibility"
+                  type="a"
+                  :href="mempool.endpoint + '/address/' + data.address"
+                  target="_blank"
+                ></q-btn>
+       </q-item>
+      </q-list>
+    </q-scroll-area>
+
+
         
       </p>
-      {% endraw %}
+
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn
           outline
           color="grey"
-          @click="copyText(Addresses.show, 'LNURL copied to clipboard!')"
+          @click="getFreshAddress(current)"
           class="q-ml-sm"
           >Get fresh address</q-btn
         >
@@ -396,7 +414,7 @@
       </div>
     </q-card>
   </q-dialog>
-
+{% endraw %}
 
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
@@ -431,6 +449,7 @@
         filter: '',
         checker: null,
         walletLinks: [],
+        current: {},
         Addresses: {
           show: false,
           data: null
@@ -513,7 +532,7 @@
           show: false,
           data: {}
         },
-        formDialogPayLink: {
+        formDialogPayment: {
           show: false,
           data: {}
         },
@@ -539,6 +558,24 @@
           self.walletLinks = response.data.map(function (obj) {
               self.Addresses.data = response.data
             })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+        getFreshAddress: function (walletID) {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/address/' + walletID,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+          self.Addresses.show = false
+          getAddresses(walletID)
+
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -610,6 +647,7 @@
       openQrCodeDialog: function (linkId) {
         var getAddresses = this.getAddresses
         getAddresses(linkId)
+        this.current = linkId
         this.Addresses.show = true
       },
       openUpdateDialog: function (linkId) {
@@ -621,20 +659,86 @@
         var wallet = this.g.user.wallets[0]
         var data = _.omit(this.formDialog.data, 'wallet')
 
-        data.wait_time =
-          data.wait_time *
-          {
-            seconds: 1,
-            minutes: 60,
-            hours: 3600
-          }[this.formDialog.secondMultiplier]
-
         if (data.id) {
           this.updateWalletLink(wallet, data)
         } else {
           this.createWalletLink(wallet, data)
         }
       },
+      sendFormDataPayLink: function () {
+        var wallet = this.g.user.wallets[0]
+        var data = _.omit(this.formDialogPayLink.data, 'wallet')
+
+        data.wait_time =
+          data.wait_time *
+          {
+            seconds: 1,
+            minutes: 60,
+            hours: 3600
+          }[this.formDialogPayLink.secondMultiplier]
+
+        if (data.id) {
+          this.updatePayLink(wallet, data)
+        } else {
+          this.createPayLink(wallet, data)
+        }
+      },
+      updatePayment: function (wallet, data) {
+        var self = this
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/watchonly/api/v1/payment/' + data.id,
+            wallet.inkey, data)
+          .then(function (response) {
+            self.payment = _.reject(self.payment, function (obj) {
+              return obj.id === data.id
+            })
+            self.payment.push(mapWalletLink(response.data))
+            self.formDialogPayLink.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createPayment: function (wallet, data) {
+        var self = this
+
+        LNbits.api
+          .request('POST', '/watchonly/api/v1/payment', wallet.inkey, data)
+          .then(function (response) {
+            self.payment.push(mapWalletLink(response.data))
+            self.formDialogPayLink.show = false
+            console.log(response.data[1][1])
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deletePayment: function (linkId) {
+        var self = this
+        var link = _.findWhere(this.payment, {id: linkId})
+        console.log(self.g.user.wallets[0].adminkey)
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this pay link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/watchonly/api/v1/payment/' + linkId,
+                self.g.user.wallets[0].inkey
+              )
+          .then(function (response) {
+              self.payment = _.reject(self.payment, function (obj) {
+                return obj.id === linkId
+          })})
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+
       updateWalletLink: function (wallet, data) {
         var self = this
 

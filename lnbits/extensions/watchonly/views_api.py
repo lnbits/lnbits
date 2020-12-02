@@ -32,13 +32,10 @@ async def api_wallets_retrieve():
 
     try:
         return (
-            jsonify([wallet._asdict() for wallet in get_watch_wallets(g.wallet.user)]), HTTPStatus.OK
+            jsonify([wallet._asdict() for wallet in await get_watch_wallets(g.wallet.user)]), HTTPStatus.OK
         )
     except:
-        return (
-            jsonify({"message": "Cant fetch."}),
-            HTTPStatus.UPGRADE_REQUIRED,
-        )
+        return ""
 
 @watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -91,20 +88,28 @@ async def api_wallet_delete(wallet_id):
 @watchonly_ext.route("/api/v1/address/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_fresh_address(wallet_id):
-    address = await get_fresh_address(wallet_id) 
+    await get_fresh_address(wallet_id) 
         
-    if not address:
-        return jsonify({"message": "something went wrong"}), HTTPStatus.NOT_FOUND
+    addresses = await get_addresses(wallet_id) 
 
-    return jsonify({address}), HTTPStatus.OK
+    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
 
 
 @watchonly_ext.route("/api/v1/addresses/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_addresses(wallet_id):
-    addresses = await get_addresses(wallet_id) 
-    if not addresses:
+    print(wallet_id)
+
+    wallet = await get_watch_wallet(wallet_id) 
+        
+    if not wallet:
         return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
+
+    addresses = await get_addresses(wallet_id) 
+
+    if not addresses:
+        await get_fresh_address(wallet_id)
+        addresses = await get_addresses(wallet_id) 
 
     return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
 
