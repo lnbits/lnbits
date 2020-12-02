@@ -21,8 +21,8 @@ async def api_example():
     """Try to add descriptions for others."""
     tools = [
         {
-            "name": "Flask",
-            "url": "https://flask.palletsprojects.com/",
+            "name": "Quart",
+            "url": "https://pgjones.gitlab.io/quart/",
             "language": "Python",
         },
         {
