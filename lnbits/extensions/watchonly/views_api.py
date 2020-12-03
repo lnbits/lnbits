@@ -2,6 +2,7 @@ import hashlib
 from quart import g, jsonify, request, url_for
 from http import HTTPStatus
 import httpx
+import requests
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -125,8 +126,8 @@ async def api_payments_retrieve():
     print(payments)
     if not payments:
         return (
-            jsonify({"message": "Cant fetch."}),
-            HTTPStatus.UPGRADE_REQUIRED,
+            jsonify(""),
+            HTTPStatus.OK
         )
     else:
         return jsonify([payment._asdict() for payment in payments]), HTTPStatus.OK
@@ -202,13 +203,8 @@ async def api_get_mempool():
 @api_check_wallet_key("invoice")
 async def api_get_mempool_address_balance(address):
     mempool = await get_mempool(g.wallet.user) 
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.get(
-                mempool.endpoint + "/" + address, 
-                timeout=40,
-            )
-            print(r)
-        except AssertionError:
-            webhook = None
-    return jsonify(mempool._asdict()), HTTPStatus.OK
+    print(mempool.endpoint)
+    r = requests.get(mempool.endpoint + "/api/address/" + address)
+    balance = r.json()['chain_stats']['funded_txo_sum'] - r.json()['chain_stats']['spent_txo_sum']
+
+    return jsonify({"balance":balance}), HTTPStatus.OK

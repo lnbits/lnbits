@@ -6,7 +6,7 @@
       <q-card-section>
 {% raw %}
         <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
-          >New wallet</q-btn
+          >New wallet </q-btn
         >
         <q-btn unelevated color="deep-purple" 
           icon="edit">
@@ -424,6 +424,7 @@
   </style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
+
   Vue.filter('reverse', function(value) {
   // slice to make a copy of array, then reverse the copy
   return value.slice().reverse();
@@ -459,6 +460,7 @@
     data: function () {
       return {
         filter: '',
+        balance: null,
         checker: null,
         walletLinks: [],
         paymentLinks: [],
@@ -512,6 +514,18 @@
               field: 'amount'
             },
             {
+              name: 'balance',
+              align: 'left',
+              label: 'Paid',
+              field: 'getAddressBalance("1wizSAYSbuyXbt9d8JV8ytm5acqq2TorC")'
+            },
+            {
+              name: 'address',
+              align: 'left',
+              label: 'Address',
+              field: 'address'
+            },
+            {
               name: 'time to pay',
               align: 'left',
               label: 'Time to Pay (secs)',
@@ -561,7 +575,9 @@
         }
       }
     },
+
     methods: {
+
 
         getAddresses: function (walletID) {
         var self = this
@@ -639,8 +655,6 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-
-
       getWalletLinks: function () {
         var self = this
 
@@ -691,6 +705,7 @@
 
       getPayments: function () {
         var self = this
+        var getAddressBalance = this.getAddressBalance
 
         LNbits.api
           .request(
@@ -709,10 +724,12 @@
               else{
               response.data[i].timeleft = timeleft
               }
+              getAddressBalance("1wizSAYSbuyXbt9d8JV8ytm5acqq2TorC")
+              console.log(this.balance)
+              response.data[i].balance = this.balance
+             
             }
-            console.log(response.data)
             self.paymentLinks = response.data.map(function (obj) {
-              console.log(mapPayment(obj))
               return mapPayment(obj)
             })
           })
@@ -726,7 +743,6 @@
         var data = self.formDialogPayment.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
-        console.log(data)
         if (data.id) {
           this.updatePayment(wallet, data)
         } else {
@@ -760,7 +776,6 @@
           .then(function (response) {
             self.paymentLinks.push(mapPayment(response.data))
             self.formDialogPayment.show = false
-            console.log(response.data)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -789,7 +804,24 @@
               })
           })
       },
+      getAddressBalance: function (address) {
+        var self = this
 
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/mempool/' + address,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            this.balance = response.data.balance
+            console.log(this.balance)
+
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       updateWalletLink: function (wallet, data) {
         var self = this
 
