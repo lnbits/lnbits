@@ -136,7 +136,7 @@ async def get_payment(payment_id: str) -> Payments:
 
 
 async def get_payments(user: str) -> List[Payments]:
-    rows = await db.fetchall("SELECT * FROM payments WHERE user IN ?", (user,))
+    rows = await db.fetchall("SELECT * FROM payments WHERE user = ?", (user,))
     print(rows[0])
     return [Payments.from_row(row) for row in rows]
 

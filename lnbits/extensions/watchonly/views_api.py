@@ -1,6 +1,7 @@
 import hashlib
 from quart import g, jsonify, request, url_for
 from http import HTTPStatus
+import httpx
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -113,24 +114,23 @@ async def api_get_addresses(wallet_id):
 
     return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
 
+
 #############################PAYEMENTS##########################
 
 @watchonly_ext.route("/api/v1/payment", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments_retrieve():
 
-    try:
-        payments = await get_payments(g.wallet.user)
-        print(payments)
-        return (
-            jsonify(payments),
-            HTTPStatus.OK,
-        )
-    except:
+    payments = await get_payments(g.wallet.user)
+    print(payments)
+    if not payments:
         return (
             jsonify({"message": "Cant fetch."}),
             HTTPStatus.UPGRADE_REQUIRED,
         )
+    else:
+        return jsonify([payment._asdict() for payment in payments]), HTTPStatus.OK
+
 
 @watchonly_ext.route("/api/v1/payment/<payment_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -196,4 +196,19 @@ async def api_get_mempool():
     mempool = await get_mempool(g.wallet.user) 
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
+    return jsonify(mempool._asdict()), HTTPStatus.OK
+
+@watchonly_ext.route("/api/v1/mempool/<address>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_get_mempool_address_balance(address):
+    mempool = await get_mempool(g.wallet.user) 
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                mempool.endpoint + "/" + address, 
+                timeout=40,
+            )
+            print(r)
+        except AssertionError:
+            webhook = None
     return jsonify(mempool._asdict()), HTTPStatus.OK

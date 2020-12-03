@@ -324,7 +324,7 @@
           dense
           v-model.trim="formDialogPayment.data.time"
           type="number"
-          label="Time (mins)"
+          label="Time (secs)"
         > </q-input>                  
         
         <div class="row q-mt-lg">
@@ -512,10 +512,16 @@
               field: 'amount'
             },
             {
-              name: 'time',
+              name: 'time to pay',
               align: 'left',
-              label: 'time',
-              field: 'time'
+              label: 'Time to Pay (secs)',
+              field: 'time_to_pay'
+            },
+            {
+              name: 'timeleft',
+              align: 'left',
+              label: 'Time left (secs)',
+              field: 'timeleft'
             },
           ],
           pagination: {
@@ -646,6 +652,7 @@
           )
           .then(function (response) {
             self.walletLinks = response.data.map(function (obj) {
+
               return mapWalletLink(obj)
             })
           })
@@ -692,7 +699,20 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
+            var i
+            var now = parseInt(new Date() / 1000)
+            for (i = 0; i < response.data.length; i++) {
+              timeleft =  response.data[i].time_to_pay - (now - response.data[i].time) 
+              if (timeleft < 1) {
+              response.data[i].timeleft = 0
+              }
+              else{
+              response.data[i].timeleft = timeleft
+              }
+            }
+            console.log(response.data)
             self.paymentLinks = response.data.map(function (obj) {
+              console.log(mapPayment(obj))
               return mapPayment(obj)
             })
           })

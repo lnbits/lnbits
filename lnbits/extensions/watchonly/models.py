@@ -21,6 +21,7 @@ class Payments(NamedTuple):
     address: str
     time_to_pay: str
     amount: int
+    amount_paid: int
     time: int
 
     @classmethod

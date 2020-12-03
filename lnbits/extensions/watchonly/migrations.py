@@ -35,6 +35,7 @@ async def m001_initial(db):
             address TEXT NOT NULL,
             time_to_pay INTEGER NOT NULL,
             amount INTEGER NOT NULL,
+            amount_paid INTEGER DEFAULT 0,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
