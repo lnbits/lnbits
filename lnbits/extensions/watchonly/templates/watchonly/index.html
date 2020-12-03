@@ -89,7 +89,7 @@
                   size="xs"
                   icon="toll"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="formDialogPayment.show = true"
+                  @click="formDialogPayment.show = true, formDialogPayment.data.walletid = props.row.id"
                 >
                   
          <q-tooltip>
@@ -157,20 +157,20 @@
             <q-icon name="search"></q-icon>
           </template>
         </q-input>
-{% endraw %}
+
           </div>
         </div>
         <q-table
           flat
           dense
-          :data="payLinks"
+          :data="paymentLinks"
           row-key="id"
-          :columns="PaylinksTable.columns"
-          :pagination.sync="PaylinksTable.pagination"
+          :columns="PaymentsTable.columns"
+          :pagination.sync="PaymentsTable.pagination"
           :filter="filter"
         >
 
-          {% raw %}
+
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
@@ -360,21 +360,21 @@
        <h5 class="text-subtitle1 q-my-none">Addresses</h5>
        <q-separator></q-separator><br/>
        <p><strong>Current:</strong> 
-        {{ Addresses.data[0].address }}
+        {{ currentaddress }}
                  <q-btn
                   flat
                   dense
                   size="ms"
                   icon="visibility"
                   type="a"
-                  :href="mempool.endpoint + '/address/' + Addresses.data[0].address"
+                  :href="mempool.endpoint + '/address/' + currentaddress"
                   target="_blank"
                 ></q-btn>
                 
               </p>
       <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
         <qrcode
-          :value="Addresses.data[0].address"
+          :value="currentaddress"
           :options="{width: 800}"
           class="rounded-borders"
         ></qrcode>
@@ -382,7 +382,7 @@
       <p style="word-break: break-all;">
 
     <q-scroll-area style="height: 200px; max-width: 100%;">
-      <q-list bordered v-for="data in Addresses.data">
+      <q-list bordered v-for="data in Addresses.data.slice().reverse()">
       <q-item>
         <q-item-section>{{ data.address }}</q-item-section>
                 <q-btn
@@ -424,7 +424,10 @@
   </style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
-
+  Vue.filter('reverse', function(value) {
+  // slice to make a copy of array, then reverse the copy
+  return value.slice().reverse();
+});
   var locationPath = [
     window.location.protocol,
     '//',
@@ -440,6 +443,15 @@
     )
     return obj
   }
+  var mapPayment = function (obj) {
+    obj._data = _.clone(obj)
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    return obj
+  }
+
 
   new Vue({
     el: '#vue',
@@ -449,7 +461,8 @@
         filter: '',
         checker: null,
         walletLinks: [],
-        current: {},
+        paymentLinks: [],
+        currentaddress: "",
         Addresses: {
           show: false,
           data: null
@@ -483,7 +496,7 @@
             rowsPerPage: 10
           }
         },
-        PaylinksTable: {
+        PaymentsTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {
@@ -555,10 +568,12 @@
           )
           .then(function (response) {
 
-          self.walletLinks = response.data.map(function (obj) {
               self.Addresses.data = response.data
+              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
+              console.log(self.currentaddress)
+
             })
-          })
+ 
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
@@ -573,13 +588,12 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-          self.Addresses.show = false
-          getAddresses(walletID)
+         console.log(response.data)
+          self.Addresses.data = response.data
+              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
 
           })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+
       },
       addressRedirect: function (address){
         window.location.href = this.mempool.endpoint + "/address/" + address;
@@ -645,11 +659,13 @@
         }
       },
       openQrCodeDialog: function (linkId) {
+        var self = this
         var getAddresses = this.getAddresses
         getAddresses(linkId)
-        this.current = linkId
-        this.Addresses.show = true
+        self.current = linkId
+        self.Addresses.show = true
       },
+
       openUpdateDialog: function (linkId) {
         var link = _.findWhere(this.walletLinks, {id: linkId})
         this.formDialog.data = _.clone(link._data)
@@ -665,22 +681,36 @@
           this.createWalletLink(wallet, data)
         }
       },
-      sendFormDataPayLink: function () {
-        var wallet = this.g.user.wallets[0]
-        var data = _.omit(this.formDialogPayLink.data, 'wallet')
 
-        data.wait_time =
-          data.wait_time *
-          {
-            seconds: 1,
-            minutes: 60,
-            hours: 3600
-          }[this.formDialogPayLink.secondMultiplier]
+      getPayments: function () {
+        var self = this
 
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/payment',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.paymentLinks = response.data.map(function (obj) {
+              return mapPayment(obj)
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      sendFormDataPayment: function () {
+        var self = this
+        var wallet = self.g.user.wallets[0]
+        var data = self.formDialogPayment.data
+        data.amount = parseInt(data.amount)
+        data.time = parseInt(data.time)
+        console.log(data)
         if (data.id) {
-          this.updatePayLink(wallet, data)
+          this.updatePayment(wallet, data)
         } else {
-          this.createPayLink(wallet, data)
+          this.createPayment(wallet, data)
         }
       },
       updatePayment: function (wallet, data) {
@@ -695,7 +725,7 @@
             self.payment = _.reject(self.payment, function (obj) {
               return obj.id === data.id
             })
-            self.payment.push(mapWalletLink(response.data))
+            self.payment.push(mapPayment(response.data))
             self.formDialogPayLink.show = false
           })
           .catch(function (error) {
@@ -708,14 +738,15 @@
         LNbits.api
           .request('POST', '/watchonly/api/v1/payment', wallet.inkey, data)
           .then(function (response) {
-            self.payment.push(mapWalletLink(response.data))
-            self.formDialogPayLink.show = false
-            console.log(response.data[1][1])
+            self.paymentLinks.push(mapPayment(response.data))
+            self.formDialogPayment.show = false
+            console.log(response.data)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
+
       deletePayment: function (linkId) {
         var self = this
         var link = _.findWhere(this.payment, {id: linkId})
@@ -803,6 +834,8 @@
       if (this.g.user.wallets.length) {
         var getWalletLinks = this.getWalletLinks
         getWalletLinks()
+        var getPayments = this.getPayments
+        getPayments()
         var getMempool = this.getMempool
         getMempool()
 

@@ -30,7 +30,8 @@ async def m001_initial(db):
         CREATE TABLE IF NOT EXISTS payments (
             id TEXT NOT NULL PRIMARY KEY,
             user TEXT,
-            masterpub TEXT NOT NULL,
+            title TEXT,
+            wallet TEXT NOT NULL,
             address TEXT NOT NULL,
             time_to_pay INTEGER NOT NULL,
             amount INTEGER NOT NULL,

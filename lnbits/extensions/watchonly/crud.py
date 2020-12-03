@@ -57,7 +57,6 @@ async def get_address(address: str) -> Addresses:
     row = await db.fetchone("SELECT * FROM addresses WHERE address = ?", (address,))
     return Addresses.from_row(row) if row else None
 
-
 async def get_addresses(wallet_id: str) -> List[Addresses]:
     rows = await db.fetchall("SELECT * FROM addresses WHERE wallet = ?", (wallet_id,))
     return [Addresses(**row) for row in rows]
@@ -90,6 +89,7 @@ async def get_watch_wallet(wallet_id: str) -> Wallets:
     row = await db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet_id,))
     return Wallets.from_row(row) if row else None
 
+
 async def get_watch_wallets(user: str) -> List[Wallets]:
     rows = await db.fetchall("SELECT * FROM wallets WHERE user = ?", (user,))
     return [Wallets(**row) for row in rows]
@@ -108,24 +108,25 @@ async def delete_watch_wallet(wallet_id: str) -> None:
 
 ###############PAYMENTS##########################
 
-async def create_payment(*, user: str, ex_key: str, description: str, amount: int) -> Payments:
+async def create_payment(*, walletid: str, user: str, title: str, time: str, amount: int) -> Payments:
 
-    address = await get_fresh_address(ex_key)
+    address = await get_fresh_address(walletid)
     payment_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO payments (
-            payment_id,
+            id,
             user,
-            ex_key,
+            title,
+            wallet,
             address,
+            time_to_pay,
             amount
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_id, user, ex_key, address, amount),
+        (payment_id, user, title,  walletid, address.address, time, amount),
     )
-    payment_id = db.cursor.lastrowid
     return await get_payment(payment_id)
 
 
@@ -136,6 +137,7 @@ async def get_payment(payment_id: str) -> Payments:
 
 async def get_payments(user: str) -> List[Payments]:
     rows = await db.fetchall("SELECT * FROM payments WHERE user IN ?", (user,))
+    print(rows[0])
     return [Payments.from_row(row) for row in rows]
 
 

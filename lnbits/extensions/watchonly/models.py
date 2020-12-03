@@ -16,7 +16,8 @@ class Wallets(NamedTuple):
 class Payments(NamedTuple):
     id: str
     user: str
-    ex_key: str
+    wallet: str
+    title: str
     address: str
     time_to_pay: str
     amount: int

@@ -120,8 +120,10 @@ async def api_get_addresses(wallet_id):
 async def api_payments_retrieve():
 
     try:
+        payments = await get_payments(g.wallet.user)
+        print(payments)
         return (
-            jsonify(get_payments(g.wallet.user)),
+            jsonify(payments),
             HTTPStatus.OK,
         )
     except:
@@ -146,21 +148,21 @@ async def api_payment_retrieve(payment_id):
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
-        "ex_key": {"type": "string", "empty": False, "required": True},
-        "pub_key": {"type": "string", "empty": False, "required": True},
-        "time_to_pay": {"type": "integer", "min": 1, "required": True},
+        "walletid": {"type": "string", "empty": False, "required": True},
+        "title": {"type": "string", "empty": False, "required": True},
+        "time": {"type": "integer", "min": 1, "required": True},
         "amount": {"type": "integer", "min": 1, "required": True},
     }
 )
 async def api_payment_create_or_update(payment_id=None):
 
     if not payment_id:
-        payment = await create_payment(g.wallet.user, g.data.ex_key, g.data.pub_key, g.data.amount)
-        return jsonify(get_payment(payment)), HTTPStatus.CREATED
+        payment = await create_payment(user = g.wallet.user, **g.data)
+        return jsonify(payment), HTTPStatus.CREATED
 
     else:
-        payment = await update_payment(payment_id, g.data) 
-        return jsonify({payment}), HTTPStatus.OK 
+        payment = await update_payment(user = g.wallet.user, **g.data) 
+        return jsonify(payment), HTTPStatus.OK 
 
 
 @watchonly_ext.route("/api/v1/payment/<payment_id>", methods=["DELETE"])
