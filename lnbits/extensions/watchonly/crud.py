@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 #from lnbits.db import open_ext_db
 from . import db
-from .models import Wallets, charges, Addresses, Mempool
+from .models import Wallets, Charges, Mempool
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -67,9 +67,9 @@ async def delete_watch_wallet(wallet_id: str) -> None:
     await db.execute("DELETE FROM wallets WHERE id = ?", (wallet_id,))
 
 
-###############charges##########################
+###############CHARGES##########################
 
-async def create_charge(*, walletid: str, user: str, title: str, time: str, amount: int) -> charges:
+async def create_charge(*, walletid: str, user: str, title: str, time: str, amount: int) -> Charges:
 
     address = await get_fresh_address(walletid)
     charge_id = urlsafe_short_hash()
@@ -92,12 +92,12 @@ async def create_charge(*, walletid: str, user: str, title: str, time: str, amou
     return await get_charge(charge_id)
 
 
-async def get_charge(charge_id: str) -> charges:
+async def get_charge(charge_id: str) -> Charges:
     row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
     return charges.from_row(row) if row else None
 
 
-async def get_charges(user: str) -> List[charges]:
+async def get_charges(user: str) -> List[Charges]:
     rows = await db.fetchall("SELECT * FROM charges WHERE user = ?", (user,))
     for row in rows:
         await check_address_balance(row.address)
@@ -108,15 +108,12 @@ async def get_charges(user: str) -> List[charges]:
 async def delete_charge(charge_id: str) -> None:
     await db.execute("DELETE FROM charges WHERE id = ?", (charge_id,))
 
-async def check_address_balance(address: str) -> List[Addresses]:
+async def check_address_balance(address: str) -> List[Charges]:
     address_data = await get_address(address)
     mempool = await get_mempool(address_data.user)
     r = requests.get(mempool.endpoint + "/api/address/" + address)
     amount_paid = r.json()['chain_stats']['funded_txo_sum'] - r.json()['chain_stats']['spent_txo_sum']
     print(amount_paid)
-    await db.execute("UPDATE addresses SET amount_paid = ? WHERE address = ?", (amount_paid, address))
-    row = await db.fetchone("SELECT * FROM addresses WHERE address = ?", (address,))
-    return Addresses.from_row(row) if row else None
 
 ######################MEMPOOL#######################
 

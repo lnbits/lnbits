@@ -4,7 +4,7 @@ from http import HTTPStatus
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from . import watchonly_ext
-from .crud import get_payment
+from .crud import get_charge
 
 
 @watchonly_ext.route("/")
@@ -15,7 +15,7 @@ async def index():
 
 
 @watchonly_ext.route("/<charge_id>")
-async def display(payment_id):
-    link = get_payment(payment_id) or abort(HTTPStatus.NOT_FOUND, "Pay link does not exist.")
+async def display(charge_id):
+    link = get_payment(charge_id) or abort(HTTPStatus.NOT_FOUND, "Charge link does not exist.")
 
     return await render_template("watchonly/display.html", link=link)
