@@ -23,8 +23,8 @@ async def m001_initial(db):
             title TEXT,
             wallet TEXT NOT NULL,
             address TEXT NOT NULL,
-            time_to_pay INTEGER NOT NULL,
-            amount INTEGER NOT NULL,
+            time_to_pay INTEGER,
+            amount INTEGER,
             balance INTEGER DEFAULT 0,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );

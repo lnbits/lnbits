@@ -23,6 +23,16 @@ from binascii import unhexlify, hexlify, a2b_base64, b2a_base64
 import requests
 
 
+async def get_derive_address(wallet_id: str, num: int):
+    
+    wallet = await get_watch_wallet(wallet_id)
+    k = bip32.HDKey.from_base58(str(wallet[2]))
+    child = k.derive([0, num])
+    address = script.p2wpkh(child).address()
+
+    return address
+
+
 ##########################WALLETS####################
 
 async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Wallets:
@@ -42,7 +52,7 @@ async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Walle
         (wallet_id, user, masterpub, title, 0, 0),
     )
        # weallet_id = db.cursor.lastrowid
-    address = await get_fresh_address(wallet_id)
+    address = await create_charge(wallet_id, user)
     return await get_watch_wallet(wallet_id)
 
 
@@ -69,9 +79,10 @@ async def delete_watch_wallet(wallet_id: str) -> None:
 
 ###############CHARGES##########################
 
-async def create_charge(*, walletid: str, user: str, title: str, time: str, amount: int) -> Charges:
+async def create_charge(*, walletid: str, user: str, title: Optional[str] = None, time: Optional[int] = None, amount: Optional[int] = None) -> Charges:
+    wallet = await get_watch_wallet(walletid)
+    address = await get_derive_address(wallet_id, wallet[4] + 1)
 
-    address = await get_fresh_address(walletid)
     charge_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -87,7 +98,7 @@ async def create_charge(*, walletid: str, user: str, title: str, time: str, amou
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (charge_id, user, title,  walletid, address.address, time, amount, 0),
+        (charge_id, user, title,  walletid, address, time, amount, 0),
     )
     return await get_charge(charge_id)
 
