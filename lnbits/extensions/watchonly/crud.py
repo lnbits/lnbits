@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 #from lnbits.db import open_ext_db
 from . import db
-from .models import Wallets, Payments, Addresses, Mempool
+from .models import Wallets, charges, Addresses, Mempool
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -20,46 +20,7 @@ from embit import script
 from embit import ec
 from embit.networks import NETWORKS
 from binascii import unhexlify, hexlify, a2b_base64, b2a_base64
-
-########################ADDRESSES#######################
-
-async def get_derive_address(wallet_id: str, num: int):
-    
-    wallet = await get_watch_wallet(wallet_id)
-    k = bip32.HDKey.from_base58(str(wallet[2]))
-    child = k.derive([0, num])
-    address = script.p2wpkh(child).address()
-
-    return address
-
-async def get_fresh_address(wallet_id: str) -> Addresses:
-    wallet = await get_watch_wallet(wallet_id)
-    
-    address = await get_derive_address(wallet_id, wallet[4] + 1)
-
-    await update_watch_wallet(wallet_id = wallet_id, address_no = wallet[4] + 1)
-    await db.execute(
-        """
-        INSERT INTO addresses (
-            address,
-            wallet,
-            amount
-        )
-        VALUES (?, ?, ?)
-        """,
-        (address, wallet_id, 0),
-    )
-
-    return await get_address(address)
-
-
-async def get_address(address: str) -> Addresses:
-    row = await db.fetchone("SELECT * FROM addresses WHERE address = ?", (address,))
-    return Addresses.from_row(row) if row else None
-
-async def get_addresses(wallet_id: str) -> List[Addresses]:
-    rows = await db.fetchall("SELECT * FROM addresses WHERE wallet = ?", (wallet_id,))
-    return [Addresses(**row) for row in rows]
+import requests
 
 
 ##########################WALLETS####################
@@ -74,7 +35,7 @@ async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Walle
             masterpub,
             title,
             address_no,
-            amount
+            balance
         )
         VALUES (?, ?, ?, ?, ?, ?)
         """,
@@ -106,43 +67,56 @@ async def delete_watch_wallet(wallet_id: str) -> None:
     await db.execute("DELETE FROM wallets WHERE id = ?", (wallet_id,))
 
 
-###############PAYMENTS##########################
+###############charges##########################
 
-async def create_payment(*, walletid: str, user: str, title: str, time: str, amount: int) -> Payments:
+async def create_charge(*, walletid: str, user: str, title: str, time: str, amount: int) -> charges:
 
     address = await get_fresh_address(walletid)
-    payment_id = urlsafe_short_hash()
+    charge_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO payments (
+        INSERT INTO charges (
             id,
             user,
             title,
             wallet,
             address,
             time_to_pay,
-            amount
+            amount,
+            balance
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_id, user, title,  walletid, address.address, time, amount),
+        (charge_id, user, title,  walletid, address.address, time, amount, 0),
     )
-    return await get_payment(payment_id)
+    return await get_charge(charge_id)
 
 
-async def get_payment(payment_id: str) -> Payments:
-    row = await db.fetchone("SELECT * FROM payments WHERE id = ?", (payment_id,))
-    return Payments.from_row(row) if row else None
+async def get_charge(charge_id: str) -> charges:
+    row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
+    return charges.from_row(row) if row else None
 
 
-async def get_payments(user: str) -> List[Payments]:
-    rows = await db.fetchall("SELECT * FROM payments WHERE user = ?", (user,))
-    return [Payments.from_row(row) for row in rows]
+async def get_charges(user: str) -> List[charges]:
+    rows = await db.fetchall("SELECT * FROM charges WHERE user = ?", (user,))
+    for row in rows:
+        await check_address_balance(row.address)
+    rows = await db.fetchall("SELECT * FROM charges WHERE user = ?", (user,))
+    return [charges.from_row(row) for row in rows]
 
 
-async def delete_payment(payment_id: str) -> None:
-    await db.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
+async def delete_charge(charge_id: str) -> None:
+    await db.execute("DELETE FROM charges WHERE id = ?", (charge_id,))
 
+async def check_address_balance(address: str) -> List[Addresses]:
+    address_data = await get_address(address)
+    mempool = await get_mempool(address_data.user)
+    r = requests.get(mempool.endpoint + "/api/address/" + address)
+    amount_paid = r.json()['chain_stats']['funded_txo_sum'] - r.json()['chain_stats']['spent_txo_sum']
+    print(amount_paid)
+    await db.execute("UPDATE addresses SET amount_paid = ? WHERE address = ?", (amount_paid, address))
+    row = await db.fetchone("SELECT * FROM addresses WHERE address = ?", (address,))
+    return Addresses.from_row(row) if row else None
 
 ######################MEMPOOL#######################
 

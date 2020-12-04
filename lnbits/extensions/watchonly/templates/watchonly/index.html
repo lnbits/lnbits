@@ -89,11 +89,11 @@
                   size="xs"
                   icon="toll"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="formDialogPayment.show = true, formDialogPayment.data.walletid = props.row.id"
+                  @click="formDialogCharge.show = true, formDialogCharge.data.walletid = props.row.id"
                 >
                   
          <q-tooltip>
-           Payment link
+           Charge link
          </q-tooltip>
                 </q-btn>      
                 <q-btn
@@ -163,10 +163,10 @@
         <q-table
           flat
           dense
-          :data="paymentLinks"
+          :data="ChargeLinks"
           row-key="id"
-          :columns="PaymentsTable.columns"
-          :pagination.sync="PaymentsTable.pagination"
+          :columns="ChargesTable.columns"
+          :pagination.sync="ChargesTable.pagination"
           :filter="filter"
         >
 
@@ -190,6 +190,33 @@
             <q-tr :props="props">
 
                <q-td auto-width>
+
+                 <q-icon v-if="props.row.timeleft < 1 && props.row.amount_paid < props.row.amount"
+                  #unelevated
+                  dense
+                  size="xs"
+                 name="error"
+                 :color="($q.dark.isActive) ? 'red' : 'red'"
+                 ></q-icon>
+
+                 <q-icon v-else-if="props.row.amount_paid > props.row.amount"
+                  #unelevated
+                  dense
+                  size="xs"
+                 name="check"
+                 :color="($q.dark.isActive) ? 'green' : 'green'"
+                 ></q-icon>
+
+                 <q-icon v-else="props.row.amount_paid < props.row.amount && props.row.timeleft > 1"
+                  #unelevated
+                  dense
+                  size="xs"
+                 name="cached"
+                 :color="($q.dark.isActive) ? 'blue' : 'blue'"
+                 ></q-icon>
+
+               
+
                  <q-btn
                   flat
                   dense
@@ -209,14 +236,12 @@
 
 
              </q-td>
-              </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props" auto-width>
                 <div v-if="col.name == 'id'"></div>
                 <div v-else>
                 {{ col.value }}
               </div>
               </q-td>
-
 
             </q-tr>
           </template>
@@ -299,14 +324,14 @@
   </q-dialog>
 
 
-  <q-dialog v-model="formDialogPayment.show" position="top" @hide="closeFormDialog">
+  <q-dialog v-model="formDialogCharge.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormDataPayment" class="q-gutter-md">
+      <q-form @submit="sendFormDataCharge" class="q-gutter-md">
 
         <q-input
           filled
           dense
-          v-model.trim="formDialogPayment.data.title"
+          v-model.trim="formDialogCharge.data.title"
           type="text"
           label="Title"
         ></q-input>
@@ -314,7 +339,7 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialogPayment.data.amount"
+          v-model.trim="formDialogCharge.data.amount"
           type="number"
           label="Amount (sats)"
         ></q-input>      
@@ -322,14 +347,14 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialogPayment.data.time"
+          v-model.trim="formDialogCharge.data.time"
           type="number"
           label="Time (secs)"
         > </q-input>                  
         
         <div class="row q-mt-lg">
           <q-btn
-            v-if="formDialogPayment.data.id"
+            v-if="formDialogCharge.data.id"
             unelevated
             color="deep-purple"
             type="submit"
@@ -340,8 +365,8 @@
             unelevated
             color="deep-purple"
             :disable="
-                formDialogPayment.data.time == null ||
-                formDialogPayment.data.amount == null"
+                formDialogCharge.data.time == null ||
+                formDialogCharge.data.amount == null"
             type="submit"
             >Create Paylink</q-btn
           >
@@ -444,7 +469,7 @@
     )
     return obj
   }
-  var mapPayment = function (obj) {
+  var mapCharge = function (obj) {
     obj._data = _.clone(obj)
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -463,7 +488,7 @@
         balance: null,
         checker: null,
         walletLinks: [],
-        paymentLinks: [],
+        ChargeLinks: [],
         currentaddress: "",
         Addresses: {
           show: false,
@@ -498,7 +523,7 @@
             rowsPerPage: 10
           }
         },
-        PaymentsTable: {
+        ChargesTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {
@@ -510,14 +535,14 @@
             {
               name: 'amount',
               align: 'left',
-              label: 'Amount',
+              label: 'Amount to pay',
               field: 'amount'
             },
             {
               name: 'balance',
               align: 'left',
-              label: 'Paid',
-              field: 'getAddressBalance("1wizSAYSbuyXbt9d8JV8ytm5acqq2TorC")'
+              label: 'Balance',
+              field: 'amount_paid'
             },
             {
               name: 'address',
@@ -528,33 +553,14 @@
             {
               name: 'time to pay',
               align: 'left',
-              label: 'Time to Pay (secs)',
+              label: 'Time to Pay',
               field: 'time_to_pay'
             },
             {
               name: 'timeleft',
               align: 'left',
-              label: 'Time left (secs)',
+              label: 'Time left',
               field: 'timeleft'
-            },
-          ],
-          pagination: {
-            rowsPerPage: 10
-          }
-        },
-        AddressTable: {
-          columns: [
-            {
-              name: 'address',
-              align: 'left',
-              label: 'Address',
-              field: 'address'
-            },
-            {
-              name: 'amount',
-              align: 'left',
-              label: 'Amount',
-              field: 'amount'
             },
           ],
           pagination: {
@@ -565,7 +571,7 @@
           show: false,
           data: {}
         },
-        formDialogPayment: {
+        formDialogCharge: {
           show: false,
           data: {}
         },
@@ -579,45 +585,7 @@
     methods: {
 
 
-        getAddresses: function (walletID) {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/addresses/' + walletID,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-
-              self.Addresses.data = response.data
-              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
-              console.log(self.currentaddress)
-
-            })
- 
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-        getFreshAddress: function (walletID) {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/address/' + walletID,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-         console.log(response.data)
-          self.Addresses.data = response.data
-              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
-
-          })
-
-      },
-      addressRedirect: function (address){
+      chargeRedirect: function (address){
         window.location.href = this.mempool.endpoint + "/address/" + address;
       },
         getMempool: function () {
@@ -703,14 +671,14 @@
         }
       },
 
-      getPayments: function () {
+      getCharges: function () {
         var self = this
         var getAddressBalance = this.getAddressBalance
 
         LNbits.api
           .request(
             'GET',
-            '/watchonly/api/v1/payment',
+            '/watchonly/api/v1/ChargeLinks',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -724,67 +692,64 @@
               else{
               response.data[i].timeleft = timeleft
               }
-              getAddressBalance("1wizSAYSbuyXbt9d8JV8ytm5acqq2TorC")
-              console.log(this.balance)
-              response.data[i].balance = this.balance
              
             }
-            self.paymentLinks = response.data.map(function (obj) {
-              return mapPayment(obj)
+            self.ChargeLinks = response.data.map(function (obj) {
+              return mapCharge(obj)
             })
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      sendFormDataPayment: function () {
+      sendFormDataCharge: function () {
         var self = this
         var wallet = self.g.user.wallets[0]
-        var data = self.formDialogPayment.data
+        var data = self.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
         if (data.id) {
-          this.updatePayment(wallet, data)
+          this.updateCharge(wallet, data)
         } else {
-          this.createPayment(wallet, data)
+          this.createCharge(wallet, data)
         }
       },
-      updatePayment: function (wallet, data) {
+      updateCharge: function (wallet, data) {
         var self = this
 
         LNbits.api
           .request(
             'PUT',
-            '/watchonly/api/v1/payment/' + data.id,
+            '/watchonly/api/v1/Charge/' + data.id,
             wallet.inkey, data)
           .then(function (response) {
-            self.payment = _.reject(self.payment, function (obj) {
+            self.Charge = _.reject(self.Charge, function (obj) {
               return obj.id === data.id
             })
-            self.payment.push(mapPayment(response.data))
+            self.Charge.push(mapCharge(response.data))
             self.formDialogPayLink.show = false
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      createPayment: function (wallet, data) {
+      createCharge: function (wallet, data) {
         var self = this
 
         LNbits.api
-          .request('POST', '/watchonly/api/v1/payment', wallet.inkey, data)
+          .request('POST', '/watchonly/api/v1/Charge', wallet.inkey, data)
           .then(function (response) {
-            self.paymentLinks.push(mapPayment(response.data))
-            self.formDialogPayment.show = false
+            self.ChargeLinks.push(mapCharge(response.data))
+            self.formDialogCharge.show = false
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
 
-      deletePayment: function (linkId) {
+      deleteCharge: function (linkId) {
         var self = this
-        var link = _.findWhere(this.payment, {id: linkId})
+        var link = _.findWhere(this.Charge, {id: linkId})
         console.log(self.g.user.wallets[0].adminkey)
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
@@ -792,11 +757,11 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/watchonly/api/v1/payment/' + linkId,
+                '/watchonly/api/v1/Charge/' + linkId,
                 self.g.user.wallets[0].inkey
               )
           .then(function (response) {
-              self.payment = _.reject(self.payment, function (obj) {
+              self.Charge = _.reject(self.Charge, function (obj) {
                 return obj.id === linkId
           })})
               .catch(function (error) {
@@ -804,24 +769,7 @@
               })
           })
       },
-      getAddressBalance: function (address) {
-        var self = this
 
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/mempool/' + address,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            this.balance = response.data.balance
-            console.log(this.balance)
-
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
       updateWalletLink: function (wallet, data) {
         var self = this
 
@@ -886,8 +834,8 @@
       if (this.g.user.wallets.length) {
         var getWalletLinks = this.getWalletLinks
         getWalletLinks()
-        var getPayments = this.getPayments
-        getPayments()
+        var getCharges = this.getCharges
+        getCharges()
         var getMempool = this.getMempool
         getMempool()
 

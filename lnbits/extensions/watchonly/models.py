@@ -7,13 +7,13 @@ class Wallets(NamedTuple):
     masterpub: str
     title: str
     address_no: int
-    amount: int
+    balance: int
     
     @classmethod
     def from_row(cls, row: Row) -> "Wallets":
         return cls(**dict(row))
 
-class Payments(NamedTuple):
+class Charges(NamedTuple):
     id: str
     user: str
     wallet: str
@@ -21,20 +21,11 @@ class Payments(NamedTuple):
     address: str
     time_to_pay: str
     amount: int
-    amount_paid: int
+    balance: int
     time: int
 
     @classmethod
     def from_row(cls, row: Row) -> "Payments":
-        return cls(**dict(row))
-
-class Addresses(NamedTuple):
-    address: str
-    wallet: str
-    amount: int
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Addresses":
         return cls(**dict(row))
 
 class Mempool(NamedTuple):

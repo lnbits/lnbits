@@ -2,7 +2,7 @@ import hashlib
 from quart import g, jsonify, request, url_for
 from http import HTTPStatus
 import httpx
-import requests
+
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -14,10 +14,10 @@ from .crud import (
     get_watch_wallets,
     update_watch_wallet,
     delete_watch_wallet,
-    create_payment,
-    get_payment,
-    get_payments,
-    delete_payment,
+    create_charge,
+    get_charge,
+    get_charges,
+    delete_charge,
     create_mempool,
     update_mempool,
     get_mempool,
@@ -85,67 +85,35 @@ async def api_wallet_delete(wallet_id):
     return jsonify({"deleted": "true"}), HTTPStatus.NO_CONTENT
 
 
-#############################ADDRESSES##########################
+#############################CHARGES##########################
 
-@watchonly_ext.route("/api/v1/address/<wallet_id>", methods=["GET"])
+@watchonly_ext.route("/api/v1/charges", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_fresh_address(wallet_id):
-    await get_fresh_address(wallet_id) 
-        
-    addresses = await get_addresses(wallet_id) 
+async def api_charges_retrieve():
 
-    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
-
-
-@watchonly_ext.route("/api/v1/addresses/<wallet_id>", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_get_addresses(wallet_id):
-    print(wallet_id)
-
-    wallet = await get_watch_wallet(wallet_id) 
-        
-    if not wallet:
-        return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
-
-    addresses = await get_addresses(wallet_id) 
-
-    if not addresses:
-        await get_fresh_address(wallet_id)
-        addresses = await get_addresses(wallet_id) 
-
-    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
-
-
-#############################PAYEMENTS##########################
-
-@watchonly_ext.route("/api/v1/payment", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_payments_retrieve():
-
-    payments = await get_payments(g.wallet.user)
-    print(payments)
-    if not payments:
+    charges = await get_charges(g.wallet.user)
+    if not charges:
         return (
             jsonify(""),
             HTTPStatus.OK
         )
     else:
-        return jsonify([payment._asdict() for payment in payments]), HTTPStatus.OK
+        return jsonify([charge._asdict() for charge in charges]), HTTPStatus.OK
 
 
-@watchonly_ext.route("/api/v1/payment/<payment_id>", methods=["GET"])
+@watchonly_ext.route("/api/v1/charge/<charge_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_payment_retrieve(payment_id):
-    payment = get_payment(payment_id) 
+async def api_charge_retrieve(charge_id):
+    charge = get_charge(charge_id) 
         
-    if not payment:
-        return jsonify({"message": "payment does not exist"}), HTTPStatus.NOT_FOUND
+    if not charge:
+        return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
 
-    return jsonify({payment}), HTTPStatus.OK
+    return jsonify({charge}), HTTPStatus.OK
 
 
-@watchonly_ext.route("/api/v1/payment", methods=["POST"])
-@watchonly_ext.route("/api/v1/payment/<payment_id>", methods=["PUT"])
+@watchonly_ext.route("/api/v1/charge", methods=["POST"])
+@watchonly_ext.route("/api/v1/charge/<charge_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -155,26 +123,26 @@ async def api_payment_retrieve(payment_id):
         "amount": {"type": "integer", "min": 1, "required": True},
     }
 )
-async def api_payment_create_or_update(payment_id=None):
+async def api_charge_create_or_update(charge_id=None):
 
-    if not payment_id:
-        payment = await create_payment(user = g.wallet.user, **g.data)
-        return jsonify(payment), HTTPStatus.CREATED
+    if not charge_id:
+        charge = await create_charge(user = g.wallet.user, **g.data)
+        return jsonify(charge), HTTPStatus.CREATED
 
     else:
-        payment = await update_payment(user = g.wallet.user, **g.data) 
-        return jsonify(payment), HTTPStatus.OK 
+        charge = await update_charge(user = g.wallet.user, **g.data) 
+        return jsonify(charge), HTTPStatus.OK 
 
 
-@watchonly_ext.route("/api/v1/payment/<payment_id>", methods=["DELETE"])
+@watchonly_ext.route("/api/v1/charge/<charge_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-async def api_payment_delete(payment_id):
-    payment = await get_watch_wallet(payment_id)
+async def api_charge_delete(charge_id):
+    charge = await get_watch_wallet(charge_id)
 
-    if not payment:
+    if not charge:
         return jsonify({"message": "Wallet link does not exist."}), HTTPStatus.NOT_FOUND
 
-    await delete_watch_wallet(payment_id)
+    await delete_watch_wallet(charge_id)
 
     return "", HTTPStatus.NO_CONTENT
 
@@ -198,13 +166,3 @@ async def api_get_mempool():
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
     return jsonify(mempool._asdict()), HTTPStatus.OK
-
-@watchonly_ext.route("/api/v1/mempool/<address>", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_get_mempool_address_balance(address):
-    mempool = await get_mempool(g.wallet.user) 
-    print(mempool.endpoint)
-    r = requests.get(mempool.endpoint + "/api/address/" + address)
-    balance = r.json()['chain_stats']['funded_txo_sum'] - r.json()['chain_stats']['spent_txo_sum']
-
-    return jsonify({"balance":balance}), HTTPStatus.OK
