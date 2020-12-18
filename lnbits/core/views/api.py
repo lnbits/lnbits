@@ -21,13 +21,7 @@ from ..tasks import sse_listeners
 @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-        jsonify(
-            {
-                "id": g.wallet.id,
-                "name": g.wallet.name,
-                "balance": g.wallet.balance_msat,
-            }
-        ),
+        jsonify({"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat,}),
         HTTPStatus.OK,
     )
 
@@ -51,6 +45,7 @@ async def api_payments():
         "memo": {"type": "string", "empty": False, "required": True, "excludes": "description_hash"},
         "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
         "lnurl_callback": {"type": "string", "nullable": True, "required": False},
+        "extra": {"type": "dict", "nullable": True, "required": False},
     }
 )
 async def api_payments_create_invoice():
@@ -63,7 +58,11 @@ async def api_payments_create_invoice():
 
     try:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=g.wallet.id, amount=g.data["amount"], memo=memo, description_hash=description_hash
+            wallet_id=g.wallet.id,
+            amount=g.data["amount"],
+            memo=memo,
+            description_hash=description_hash,
+            extra=g.data["extra"],
         )
     except Exception as exc:
         await db.rollback()
@@ -77,11 +76,7 @@ async def api_payments_create_invoice():
     if g.data.get("lnurl_callback"):
         async with httpx.AsyncClient() as client:
             try:
-                r = await client.get(
-                    g.data["lnurl_callback"],
-                    params={"pr": payment_request},
-                    timeout=10,
-                )
+                r = await client.get(g.data["lnurl_callback"], params={"pr": payment_request}, timeout=10,)
                 if r.is_error:
                     lnurl_response = r.text
                 else:
@@ -157,9 +152,7 @@ async def api_payments_pay_lnurl():
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
-                g.data["callback"],
-                params={"amount": g.data["amount"], "comment": g.data["comment"]},
-                timeout=40,
+                g.data["callback"], params={"amount": g.data["amount"], "comment": g.data["comment"]}, timeout=40,
             )
             if r.is_error:
                 return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
@@ -199,10 +192,7 @@ async def api_payments_pay_lnurl():
             extra["comment"] = g.data["comment"]
 
         payment_hash = await pay_invoice(
-            wallet_id=g.wallet.id,
-            payment_request=params["pr"],
-            description=g.data.get("description", ""),
-            extra=extra,
+            wallet_id=g.wallet.id, payment_request=params["pr"], description=g.data.get("description", ""), extra=extra,
         )
     except Exception as exc:
         await db.rollback()
@@ -362,9 +352,7 @@ async def api_lnurlscan(code: str):
 @core_app.route("/api/v1/lnurlauth", methods=["POST"])
 @api_check_wallet_key("admin")
 @api_validate_post_request(
-    schema={
-        "callback": {"type": "string", "required": True},
-    }
+    schema={"callback": {"type": "string", "required": True},}
 )
 async def api_perform_lnurlauth():
     err = await perform_lnurlauth(g.data["callback"])
