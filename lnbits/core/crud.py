@@ -253,13 +253,14 @@ async def create_payment(
     preimage: Optional[str] = None,
     pending: bool = True,
     extra: Optional[Dict] = None,
+    webhook: Optional[str] = None,
 ) -> Payment:
     await db.execute(
         """
         INSERT INTO apipayments
           (wallet, checking_id, bolt11, hash, preimage,
-           amount, pending, memo, fee, extra)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           amount, pending, memo, fee, extra, webhook)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -272,6 +273,7 @@ async def create_payment(
             memo,
             fee,
             json.dumps(extra) if extra and extra != {} and type(extra) is dict else None,
+            webhook,
         ),
     )
 
@@ -283,11 +285,7 @@ async def create_payment(
 
 async def update_payment_status(checking_id: str, pending: bool) -> None:
     await db.execute(
-        "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
-        (
-            int(pending),
-            checking_id,
-        ),
+        "UPDATE apipayments SET pending = ? WHERE checking_id = ?", (int(pending), checking_id,),
     )
 
 
