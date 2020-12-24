@@ -46,6 +46,7 @@ async def api_payments():
         "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
         "lnurl_callback": {"type": "string", "nullable": True, "required": False},
         "extra": {"type": "dict", "nullable": True, "required": False},
+        "webhook": {"type": "string", "empty": False, "required": False},
     }
 )
 async def api_payments_create_invoice():
@@ -62,7 +63,8 @@ async def api_payments_create_invoice():
             amount=g.data["amount"],
             memo=memo,
             description_hash=description_hash,
-            extra=g.data["extra"],
+            extra=g.data.get("extra"),
+            webhook=g.data.get("webhook"),
         )
     except Exception as exc:
         await db.rollback()

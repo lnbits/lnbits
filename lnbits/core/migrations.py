@@ -120,3 +120,13 @@ async def m002_add_fields_to_apipayments(db):
         # catching errors like this won't be necessary in anymore now that we
         # keep track of db versions so no migration ever runs twice.
         pass
+
+
+async def m003_add_invoice_webhook(db):
+    """
+    Special column for webhook endpoints that can be assigned
+    to each different invoice.
+    """
+
+    await db.execute("ALTER TABLE apipayments ADD COLUMN webhook TEXT")
+    await db.execute("ALTER TABLE apipayments ADD COLUMN webhook_status TEXT")

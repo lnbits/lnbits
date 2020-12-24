@@ -204,6 +204,15 @@ Vue.component('lnbits-payment-details', {
         <div class="col-3"><b>Payment hash</b>:</div>
         <div class="col-9 text-wrap mono">{{ payment.payment_hash }}</div>
       </div>
+      <div class="row" v-if="payment.webhook">
+        <div class="col-3"><b>Webhook</b>:</div>
+        <div class="col-9 text-wrap mono">
+          {{ payment.webhook }}
+          <q-badge :color="webhookStatusColor" text-color="white">
+            {{ webhookStatusText }}
+          </q-badge>
+        </div>
+      </div>
       <div class="row" v-if="hasPreimage">
         <div class="col-3"><b>Payment proof</b>:</div>
         <div class="col-9 text-wrap mono">{{ payment.preimage }}</div>
@@ -242,6 +251,19 @@ Vue.component('lnbits-payment-details', {
         this.payment.extra &&
         this.payment.extra.success_action
       )
+    },
+    webhookStatusColor() {
+      return this.payment.webhook_status >= 300 ||
+        this.payment.webhook_status < 0
+        ? 'red-10'
+        : !this.payment.webhook_status
+        ? 'cyan-7'
+        : 'green-10'
+    },
+    webhookStatusText() {
+      return this.payment.webhook_status
+        ? this.payment.webhook_status
+        : 'not sent yet'
     },
     hasTag() {
       return this.payment.extra && !!this.payment.extra.tag
