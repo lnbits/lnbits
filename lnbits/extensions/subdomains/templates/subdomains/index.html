@@ -207,18 +207,18 @@
 
       createDomain: function (wallet, data) {
         var self = this
-        /*
+        
         LNbits.api
-          .request('POST', '/lnticket/api/v1/forms', wallet.inkey, data)
+          .request('POST', '/subdomains/api/v1/domains', wallet.inkey, data)
           .then(function (response) {
-            self.forms.push(mapLNTicket(response.data))
+            self.forms.push(mapLNDomain(response.data))
             self.domainDialog.show = false
             self.domainDialog.data = {}
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-        */
+        
       },
       updateDomainDialog: function (formId) {
         var link = _.findWhere(this.forms, {id: formId})

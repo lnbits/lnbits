@@ -4,7 +4,7 @@ from typing import NamedTuple
 class Domains(NamedTuple):
     id: str
     wallet: str
-    domainName: str
+    domain: str
     cfToken: str
     cfZoneId: str
     webhook: str
@@ -16,11 +16,11 @@ class Domains(NamedTuple):
 
 class Subdomains(NamedTuple):
     id: str
-    domainName: str
-    email: str
-    subdomain: str
-    ip: str
     wallet: str
+    domain: str
+    subdomain: str
+    email: str
+    ip: str
     sats: int
     paid: bool
     time: int

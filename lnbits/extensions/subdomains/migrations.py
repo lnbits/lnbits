@@ -5,7 +5,7 @@ async def m001_initial(db):
         CREATE TABLE IF NOT EXISTS domain (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
-            domain_name TEXT NOT NULL,
+            domain TEXT NOT NULL,
             webhook TEXT,
             cf_token TEXT NOT NULL,
             cf_zone_id TEXT NOT NULL,
@@ -21,7 +21,7 @@ async def m001_initial(db):
         """
         CREATE TABLE IF NOT EXISTS subdomain (
             id TEXT PRIMARY KEY,
-            domain_name TEXT NOT NULL,
+            domain TEXT NOT NULL,
             email TEXT NOT NULL,
             subdomain TEXT NOT NULL,
             ip TEXT NOT NULL,

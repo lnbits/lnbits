@@ -38,3 +38,4 @@ async def api_subdomains():
     ]
 
     return jsonify(tools), HTTPStatus.OK
+
