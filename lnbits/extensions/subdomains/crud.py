@@ -102,8 +102,8 @@ async def create_domain(*, wallet: str, domain: str, cfToken: str, cfZoneId: str
     domain_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO domains (id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, amountmade)
-        VALUES (?, ?, ?, ?, ?, ?, ?. ?, ?)
+        INSERT INTO domain (id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, amountmade)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (domain_id, wallet, domain, webhook, cfToken, cfZoneId, description, cost, 0),
     )

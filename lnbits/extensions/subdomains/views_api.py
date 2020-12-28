@@ -6,7 +6,7 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
-from . import lnsubdomain_ext
+from . import subdomains_ext
 from .crud import (
     create_subdomain,
     set_subdomain_paid,
@@ -24,7 +24,7 @@ from .crud import (
 # domainS
 
 
-@lnsubdomain_ext.route("/api/v1/domains", methods=["GET"])
+@subdomains_ext.route("/api/v1/domains", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_domains():
     wallet_ids = [g.wallet.id]
@@ -35,8 +35,8 @@ async def api_domains():
     return jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]), HTTPStatus.OK
 
 
-@lnsubdomain_ext.route("/api/v1/domains", methods=["POST"])
-@lnsubdomain_ext.route("/api/v1/domains/<domain_id>", methods=["PUT"])
+@subdomains_ext.route("/api/v1/domains", methods=["POST"])
+@subdomains_ext.route("/api/v1/domains/<domain_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -65,7 +65,7 @@ async def api_domain_create(domain_id=None):
     return jsonify(domain._asdict()), HTTPStatus.CREATED
 
 
-@lnsubdomain_ext.route("/api/v1/domains/<domain_id>", methods=["DELETE"])
+@subdomains_ext.route("/api/v1/domains/<domain_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_domain_delete(domain_id):
     domain = await get_domain(domain_id)
@@ -84,7 +84,7 @@ async def api_domain_delete(domain_id):
 #########subdomains##########
 
 
-@lnsubdomain_ext.route("/api/v1/subdomains", methods=["GET"])
+@subdomains_ext.route("/api/v1/subdomains", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_subdomains():
     wallet_ids = [g.wallet.id]
@@ -95,7 +95,7 @@ async def api_subdomains():
     return jsonify([domain._asdict() for domain in await get_subdomains(wallet_ids)]), HTTPStatus.OK
 
 
-@lnsubdomain_ext.route("/api/v1/subdomains/<domain_id>", methods=["POST"])
+@subdomains_ext.route("/api/v1/subdomains/<domain_id>", methods=["POST"])
 @api_validate_post_request(
     schema={
         "domain": {"type": "string", "empty": False, "required": True},
@@ -127,7 +127,7 @@ async def api_subdomain_make_subdomain(domain_id):
     return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.OK
 
 
-@lnsubdomain_ext.route("/api/v1/subdomains/<payment_hash>", methods=["GET"])
+@subdomains_ext.route("/api/v1/subdomains/<payment_hash>", methods=["GET"])
 async def api_subdomain_send_subdomain(payment_hash):
     subdomain = await get_subdomain(payment_hash)
     try:
@@ -146,7 +146,7 @@ async def api_subdomain_send_subdomain(payment_hash):
     return jsonify({"paid": False}), HTTPStatus.OK
 
 
-@lnsubdomain_ext.route("/api/v1/subdomains/<subdomain_id>", methods=["DELETE"])
+@subdomains_ext.route("/api/v1/subdomains/<subdomain_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_subdomain_delete(subdomain_id):
     subdomain = await get_subdomain(subdomain_id)

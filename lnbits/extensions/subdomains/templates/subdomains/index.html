@@ -61,7 +61,7 @@
         <q-select filled dense emit-value v-model="domainDialog.data.wallet" :options="g.user.walletOptions"
           label="Wallet *">
         </q-select>
-        <q-input filled dense v-model.trim="domainDialog.data.domainName" type="name" label="Domain name "></q-input>
+        <q-input filled dense v-model.trim="domainDialog.data.domain" type="text" label="Domain name "></q-input>
         <q-input filled dense v-model.trim="domainDialog.data.cfToken" type="text" label="Cloudflare API token">
         </q-input>
         <q-input filled dense v-model.trim="domainDialog.data.cfZoneId" type="text" label="Cloudflare Zone Id">
@@ -73,7 +73,7 @@
         <div class="row q-mt-lg">
           <q-btn v-if="domainDialog.data.id" unelevated color="deep-purple" type="submit">Update Form</q-btn>
           <q-btn v-else unelevated color="deep-purple"
-            :disable="domainDialog.data.cost == null || domainDialog.data.cost < 0 || domainDialog.data.domainName == null"
+            :disable="domainDialog.data.cost == null || domainDialog.data.cost < 0 || domainDialog.data.domain == null"
             type="submit">Create Domain</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
         </div>
@@ -104,7 +104,7 @@
         domainsTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {name: 'domainName', align: 'left', label: 'Domain name', field: 'name'},
+            {name: 'domain', align: 'left', label: 'Domain name', field: 'domain'},
             {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
             {name: 'webhook', align: 'left', label: 'Webhook', field: 'webhook'},
             {
@@ -133,33 +133,32 @@
     methods: {
       getSubdomains: function () {
         var self = this
-      /*
+      
       LNbits.api
           .request(
             'GET',
-            '/lnticket/api/v1/tickets?all_wallets',
+            '/subdomains/api/v1/subdomains?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.tickets = response.data.map(function (obj) {
-              return mapLNTicket(obj)
+              return mapLNSubdomain(obj)
             })
           })
-      */
         
       },
       deleteSubdomain: function (subdomainId) {
         var self = this
         var tickets = _.findWhere(this.tickets, {id: ticketId})
-        /*
+        
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this ticket')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/lnticket/api/v1/tickets/' + ticketId,
-                _.findWhere(self.g.user.wallets, {id: tickets.wallet}).inkey
+                '/subdomain/api/v1/subdomains/' + subdomainId,
+                _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
               )
               .then(function (response) {
                 self.tickets = _.reject(self.tickets, function (obj) {
@@ -170,7 +169,7 @@
                 LNbits.utils.notifyApiError(error)
               })
           })
-        */
+        
       },
       exportSubdomainsCSV: function () {
         LNbits.utils.exportCSV(this.domainsTable.columns, this.tickets)
@@ -178,19 +177,19 @@
 
       getDomains: function () {
         var self = this
-      /*
+      
         LNbits.api
           .request(
             'GET',
-            '/lnticket/api/v1/forms?all_wallets',
+            '/subdomains/api/v1/domains?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.forms = response.data.map(function (obj) {
-              return mapLNTicket(obj)
+            self.domains = response.data.map(function (obj) {
+              return mapLNDomain(obj)
             })
           })
-      */
+      
       },
       sendFormData: function () {
         var wallet = _.findWhere(this.g.user.wallets, {
@@ -199,9 +198,9 @@
         var data = this.domainDialog.data
 
         if (data.id) {
-          this.updateForm(wallet, data)
+          this.updateDomain(wallet, data)
         } else {
-          this.createForm(wallet, data)
+          this.createDomain(wallet, data)
         }
       },
 
@@ -211,7 +210,7 @@
         LNbits.api
           .request('POST', '/subdomains/api/v1/domains', wallet.inkey, data)
           .then(function (response) {
-            self.forms.push(mapLNDomain(response.data))
+            self.domains.push(mapLNDomain(response.data))
             self.domainDialog.show = false
             self.domainDialog.data = {}
           })
@@ -221,13 +220,13 @@
         
       },
       updateDomainDialog: function (formId) {
-        var link = _.findWhere(this.forms, {id: formId})
+        var link = _.findWhere(this.domains, {id: formId})
         console.log(link.id)
         this.domainDialog.data.id = link.id
         this.domainDialog.data.wallet = link.wallet
-        this.domainDialog.data.domainName = link.domainName
+        this.domainDialog.data.domain = link.domain
         this.domainDialog.data.description = link.description
-        this.domainDialog.domainDialog.data.cfToken = link.cfToken
+        this.domainDialog.data.cfToken = link.cfToken
         this.domainDialog.cfZoneId = link.cfZoneId
         this.domainDialog.data.cost = link.cost
         this.domainDialog.show = true
@@ -235,51 +234,51 @@
       updateDomain: function (wallet, data) {
         var self = this
         console.log(data)
-        /*
+        
 
         LNbits.api
           .request(
             'PUT',
-            '/lnticket/api/v1/forms/' + data.id,
+            '/subdomains/api/v1/domains/' + data.id,
             wallet.inkey,
             data
           )
           .then(function (response) {
-            self.forms = _.reject(self.forms, function (obj) {
+            self.domains = _.reject(self.domains, function (obj) {
               return obj.id == data.id
             })
-            self.forms.push(mapLNTicket(response.data))
+            self.domains.push(mapLNDomain(response.data))
             self.domainDialog.show = false
             self.domainDialog.data = {}
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-          */
+          
       },
-      deleteDomain: function (formsId) {
+      deleteDomain: function (domainId) {
         var self = this
-        var forms = _.findWhere(this.forms, {id: formsId})
-        /*
+        var domains = _.findWhere(this.domains, {id: domainId})
+        
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this form link?')
+          .confirmDialog('Are you sure you want to delete this domain link?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/lnticket/api/v1/forms/' + formsId,
-                _.findWhere(self.g.user.wallets, {id: forms.wallet}).inkey
+                '/subdomains/api/v1/domains/' + domainId,
+                _.findWhere(self.g.user.wallets, {id: domains.wallet}).inkey
               )
               .then(function (response) {
-                self.forms = _.reject(self.forms, function (obj) {
-                  return obj.id == formsId
+                self.domains = _.reject(self.domains, function (obj) {
+                  return obj.id == domainId
                 })
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
-        */
+        
       },
       exportDomainsCSV: function () {
         LNbits.utils.exportCSV(this.domainsTable.columns, this.domains)

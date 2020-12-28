@@ -5,8 +5,8 @@ class Domains(NamedTuple):
     id: str
     wallet: str
     domain: str
-    cfToken: str
-    cfZoneId: str
+    cf_token: str
+    cf_zone_id: str
     webhook: str
     description: str
     cost: int
