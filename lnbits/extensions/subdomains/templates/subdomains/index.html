@@ -1,0 +1,296 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="deep-purple" @click="domainDialog.show = true">New Domain</q-btn>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Domains</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportDomainsCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table dense flat :data="domains" row-key="id" :columns="domainsTable.columns"
+          :pagination.sync="domainsTable.pagination">
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn unelevated dense size="xs" icon="link" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" type="a"
+                  :href="props.row.displayUrl" target="_blank"></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn flat dense size="xs" @click="updateDomainDialog(props.row.id)" icon="edit" color="light-blue">
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn flat dense size="xs" @click="deleteDomain(props.row.id)" icon="cancel" color="pink"></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="domainDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select filled dense emit-value v-model="domainDialog.data.wallet" :options="g.user.walletOptions"
+          label="Wallet *">
+        </q-select>
+        <q-input filled dense v-model.trim="domainDialog.data.domainName" type="name" label="Domain name "></q-input>
+        <q-input filled dense v-model.trim="domainDialog.data.cfToken" type="text" label="Cloudflare API token">
+        </q-input>
+        <q-input filled dense v-model.trim="domainDialog.data.cfZoneId" type="text" label="Cloudflare Zone Id">
+        </q-input>
+        <q-input filled dense v-model.trim="domainDialog.data.webhook" type="text" label="Webhook (optional)"
+          hint="A URL to be called whenever this link receives a payment."></q-input>
+        <q-input filled dense v-model.trim="domainDialog.data.description" type="textarea" label="Description "></q-input>
+        <q-input filled dense v-model.number="domainDialog.data.cost" type="number" label="Amount per day"></q-input>
+        <div class="row q-mt-lg">
+          <q-btn v-if="domainDialog.data.id" unelevated color="deep-purple" type="submit">Update Form</q-btn>
+          <q-btn v-else unelevated color="deep-purple"
+            :disable="domainDialog.data.cost == null || domainDialog.data.cost < 0 || domainDialog.data.domainName == null"
+            type="submit">Create Domain</q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapLNDomain = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.displayUrl = ['/subdomains/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        domains: [],
+        domainsTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'domainName', align: 'left', label: 'Domain name', field: 'name'},
+            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {name: 'webhook', align: 'left', label: 'Webhook', field: 'webhook'},
+            {
+              name: 'description',
+              align: 'left',
+              label: 'Description',
+              field: 'description'
+            },
+            {
+              name: 'cost',
+              align: 'left',
+              label: 'Cost Per Day',
+              field: 'cost'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+        },
+        domainDialog: {
+          show: false,
+          data: {}
+        }
+      }
+    },
+    methods: {
+      getSubdomains: function () {
+        var self = this
+      /*
+      LNbits.api
+          .request(
+            'GET',
+            '/lnticket/api/v1/tickets?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.tickets = response.data.map(function (obj) {
+              return mapLNTicket(obj)
+            })
+          })
+      */
+        
+      },
+      deleteSubdomain: function (subdomainId) {
+        var self = this
+        var tickets = _.findWhere(this.tickets, {id: ticketId})
+        /*
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this ticket')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/lnticket/api/v1/tickets/' + ticketId,
+                _.findWhere(self.g.user.wallets, {id: tickets.wallet}).inkey
+              )
+              .then(function (response) {
+                self.tickets = _.reject(self.tickets, function (obj) {
+                  return obj.id == ticketId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+        */
+      },
+      exportSubdomainsCSV: function () {
+        LNbits.utils.exportCSV(this.domainsTable.columns, this.tickets)
+      },
+
+      getDomains: function () {
+        var self = this
+      /*
+        LNbits.api
+          .request(
+            'GET',
+            '/lnticket/api/v1/forms?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.forms = response.data.map(function (obj) {
+              return mapLNTicket(obj)
+            })
+          })
+      */
+      },
+      sendFormData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.domainDialog.data.wallet
+        })
+        var data = this.domainDialog.data
+
+        if (data.id) {
+          this.updateForm(wallet, data)
+        } else {
+          this.createForm(wallet, data)
+        }
+      },
+
+      createDomain: function (wallet, data) {
+        var self = this
+        /*
+        LNbits.api
+          .request('POST', '/lnticket/api/v1/forms', wallet.inkey, data)
+          .then(function (response) {
+            self.forms.push(mapLNTicket(response.data))
+            self.domainDialog.show = false
+            self.domainDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+        */
+      },
+      updateDomainDialog: function (formId) {
+        var link = _.findWhere(this.forms, {id: formId})
+        console.log(link.id)
+        this.domainDialog.data.id = link.id
+        this.domainDialog.data.wallet = link.wallet
+        this.domainDialog.data.domainName = link.domainName
+        this.domainDialog.data.description = link.description
+        this.domainDialog.domainDialog.data.cfToken = link.cfToken
+        this.domainDialog.cfZoneId = link.cfZoneId
+        this.domainDialog.data.cost = link.cost
+        this.domainDialog.show = true
+      },
+      updateDomain: function (wallet, data) {
+        var self = this
+        console.log(data)
+        /*
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/lnticket/api/v1/forms/' + data.id,
+            wallet.inkey,
+            data
+          )
+          .then(function (response) {
+            self.forms = _.reject(self.forms, function (obj) {
+              return obj.id == data.id
+            })
+            self.forms.push(mapLNTicket(response.data))
+            self.domainDialog.show = false
+            self.domainDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+          */
+      },
+      deleteDomain: function (formsId) {
+        var self = this
+        var forms = _.findWhere(this.forms, {id: formsId})
+        /*
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this form link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/lnticket/api/v1/forms/' + formsId,
+                _.findWhere(self.g.user.wallets, {id: forms.wallet}).inkey
+              )
+              .then(function (response) {
+                self.forms = _.reject(self.forms, function (obj) {
+                  return obj.id == formsId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+        */
+      },
+      exportDomainsCSV: function () {
+        LNbits.utils.exportCSV(this.domainsTable.columns, this.domains)
+      }
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getDomains()
+        this.getSubdomains()
+      }
+    }
+  })
+</script>
+{% endblock %}
