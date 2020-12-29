@@ -22,6 +22,6 @@ async def display(domain_id):
         "subdomains/display.html",
         domain_id=domain.id,
         domain_domain=domain.domain,
-        form_desc=domain.description,
-        form_cost=domain.cost,
+        domain_desc=domain.description,
+        domain_cost=domain.cost,
     )

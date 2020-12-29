@@ -18,9 +18,11 @@ class Subdomains(NamedTuple):
     id: str
     wallet: str
     domain: str
+    domain_name: str
     subdomain: str
     email: str
     ip: str
     sats: int
+    duration: int
     paid: bool
     time: int

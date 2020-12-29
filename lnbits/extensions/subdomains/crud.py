@@ -16,13 +16,14 @@ async def create_subdomain(
     email: str,
     ip: str,
     sats: int,
+    duration: int
 ) -> Subdomains:
     await db.execute(
         """
-        INSERT INTO subdomain (id, domain, email, subdomain, ip, wallet, sats, paid)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
         """,
-        (payment_hash, domain, email, subdomain, ip, wallet, sats, False),
+        (payment_hash, domain, email, subdomain, ip, wallet, sats, duration, False),
     )
 
     subdomain = await get_subdomain(payment_hash)
@@ -32,7 +33,7 @@ async def create_subdomain(
 
 async def set_subdomain_paid(payment_hash: str) -> Subdomains:
     row = await db.fetchone("SELECT * FROM subdomain WHERE id = ?", (payment_hash,))
-    if row[7] == False:
+    if row[8] == False:
         await db.execute(
             """
             UPDATE subdomain
@@ -45,7 +46,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
         domaindata = await get_domain(row[1])
         assert domaindata, "Couldn't get domain from paid subdomain"
 
-        amount = domaindata.amountmade + row[7]
+        amount = domaindata.amountmade + row[8]
         await db.execute(
             """
             UPDATE domain
@@ -77,7 +78,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
 
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
-    row = await db.fetchone("SELECT * FROM subdomain WHERE id = ?", (subdomain_id,))
+    row = await db.fetchone("SELECT * FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?", (subdomain_id,))
     return Subdomains(**row) if row else None
 
 
@@ -86,7 +87,7 @@ async def get_subdomains(wallet_ids: Union[str, List[str]]) -> List[Subdomains]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM subdomain WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(f"SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})", (*wallet_ids,))
 
     return [Subdomains(**row) for row in rows]
 

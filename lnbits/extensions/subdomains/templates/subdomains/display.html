@@ -3,9 +3,9 @@
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
-        <h3 class="q-my-none">{{ form_domain }}</h3>
+        <h3 class="q-my-none">{{ domain_domain }}</h3>
         <br />
-        <h5 class="q-my-none">{{ form_desc }}</h5>
+        <h5 class="q-my-none">{{ domain_desc }}</h5>
         <br />
         <q-form @submit="Invoice()" class="q-gutter-md">
           <q-input filled dense v-model.trim="formDialog.data.email" type="email"
@@ -14,7 +14,7 @@
           </q-input>
           <q-input filled dense v-model.trim="formDialog.data.ip" type="text" label="ip of your server">
           </q-input>
-          <q-input filled dense v-model.trim="formDialog.data.duration" type="number" label="{{ form_cost }} sats per day">
+          <q-input filled dense v-model.trim="formDialog.data.duration" type="number" label="{{ domain_cost }} sats per day">
           </q-input>
           <p>{% raw %}{{amountSats}}{% endraw %}</p>
           <div class="row q-mt-lg">
@@ -48,7 +48,7 @@
 
 {% endblock %} {% block scripts %}
 <script>
-  console.log('{{ form_cost }}')
+  console.log('{{ domain_cost }}')
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
@@ -76,8 +76,8 @@
     },
     computed: {
       amountSats() {
-        var sats = this.formDialog.data.duration * parseInt('{{ form_cost }}')
-        if (sats === parseInt('{{ form_cost }}')) {
+        var sats = this.formDialog.data.duration * parseInt('{{ domain_cost }}')
+        if (sats === parseInt('{{ domain_cost }}')) {
           return '0 Sats to pay'
         } else {
           this.formDialog.data.sats = sats
@@ -111,6 +111,7 @@
             ip: self.formDialog.data.ip,
             email: self.formDialog.data.email,
             sats: self.formDialog.data.sats,
+            duration: parseInt(self.formDialog.data.duration),
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -131,6 +132,7 @@
               axios
                 .get('/subdomains/api/v1/subdomains/' + self.paymentCheck)
                 .then(function (res) {
+                  console.log(res.data)
                   if (res.data.paid) {
                     clearInterval(paymentChecker)
                     self.receive = {
@@ -140,25 +142,28 @@
                     }
                     dismissMsg()
 
-
-                    this.formDialog.data.subdomain = ''
-                    this.formDialog.data.email = ''
-                    this.formDialog.data.ip = ''
-                    this.formDialog.data.duration = ''
+                    console.log(self.formDialog)
+                    self.formDialog.data.subdomain = ''
+                    self.formDialog.data.email = ''
+                    self.formDialog.data.ip = ''
+                    self.formDialog.data.duration = ''
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',
                       icon: 'thumb_up',
                     })
+                    console.log("END")
 
                   }
                 })
                 .catch(function (error) {
+                  console.log(error)
                   LNbits.utils.notifyApiError(error)
                 })
             }, 2000)
           })
           .catch(function (error) {
+            console.log(error)
             LNbits.utils.notifyApiError(error)
           })
       }

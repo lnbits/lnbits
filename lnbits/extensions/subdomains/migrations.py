@@ -27,6 +27,7 @@ async def m001_initial(db):
             ip TEXT NOT NULL,
             wallet TEXT NOT NULL,
             sats INTEGER NOT NULL,
+            duration INTEGER NOT NULL,
             paid BOOLEAN NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );

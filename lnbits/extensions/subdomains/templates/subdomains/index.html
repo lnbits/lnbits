@@ -53,7 +53,51 @@
         </q-table>
       </q-card-section>
     </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Subdomains</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportSubdomainsCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table dense flat :data="subdomains" row-key="id" :columns="subdomainsTable.columns"
+          :pagination.sync="subdomainsTable.pagination">
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props" v-if="props.row.paid">
+              <q-td auto-width>
+                <q-btn unelevated dense size="xs" icon="email" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a" :href="'mailto:' + props.row.email"></q-btn>
+              </q-td>
+
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+
+              <q-td auto-width>
+                <q-btn flat dense size="xs" @click="deleteSubdomain(props.row.id)" icon="cancel" color="pink"></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
   </div>
+
 
   <q-dialog v-model="domainDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
@@ -68,7 +112,8 @@
         </q-input>
         <q-input filled dense v-model.trim="domainDialog.data.webhook" type="text" label="Webhook (optional)"
           hint="A URL to be called whenever this link receives a payment."></q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.description" type="textarea" label="Description "></q-input>
+        <q-input filled dense v-model.trim="domainDialog.data.description" type="textarea" label="Description ">
+        </q-input>
         <q-input filled dense v-model.number="domainDialog.data.cost" type="number" label="Amount per day"></q-input>
         <div class="row q-mt-lg">
           <q-btn v-if="domainDialog.data.id" unelevated color="deep-purple" type="submit">Update Form</q-btn>
@@ -90,8 +135,8 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
-    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
     obj.displayUrl = ['/subdomains/', obj.id].join('')
+    console.log(obj)
     return obj
   }
 
@@ -101,12 +146,13 @@
     data: function () {
       return {
         domains: [],
+        subdomains: [],
         domainsTable: {
           columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {name: 'domain', align: 'left', label: 'Domain name', field: 'domain'},
-            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
-            {name: 'webhook', align: 'left', label: 'Webhook', field: 'webhook'},
+            { name: 'id', align: 'left', label: 'ID', field: 'id' },
+            { name: 'domain', align: 'left', label: 'Domain name', field: 'domain' },
+            { name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet' },
+            { name: 'webhook', align: 'left', label: 'Webhook', field: 'webhook' },
             {
               name: 'description',
               align: 'left',
@@ -124,6 +170,40 @@
             rowsPerPage: 10
           },
         },
+        subdomainsTable: {
+          columns: [
+            { name: 'subdomain', align: 'left', label: 'Subdomain name', field: 'subdomain' },
+            { name: 'domain', align: 'left', label: 'Domain name', field: 'domain_name' },
+            {
+              name: 'email',
+              align: 'left',
+              label: 'Email',
+              field: 'email'
+            },
+            {
+              name: 'ip',
+              align: 'left',
+              label: 'IP address',
+              field: 'ip'
+            },
+            {
+              name: 'sats',
+              align: 'left',
+              label: 'Sats paid',
+              field: 'sats'
+            },
+            {
+              name: 'duration',
+              align: 'left',
+              label: 'Duration in days',
+              field: 'duration'
+            },
+            { name: 'id', align: 'left', label: 'ID', field: 'id' }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+        },
         domainDialog: {
           show: false,
           data: {}
@@ -133,51 +213,51 @@
     methods: {
       getSubdomains: function () {
         var self = this
-      
-      LNbits.api
+
+        LNbits.api
           .request(
             'GET',
             '/subdomains/api/v1/subdomains?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.tickets = response.data.map(function (obj) {
-              return mapLNSubdomain(obj)
+            self.subdomains = response.data.map(function (obj) {
+              return mapLNDomain(obj)
             })
           })
-        
+
       },
       deleteSubdomain: function (subdomainId) {
         var self = this
-        var tickets = _.findWhere(this.tickets, {id: ticketId})
-        
+        var subdomains = _.findWhere(this.subdomains, { id: subdomainId })
+
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this ticket')
+          .confirmDialog('Are you sure you want to delete this subdomain')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
                 '/subdomain/api/v1/subdomains/' + subdomainId,
-                _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
+                _.findWhere(self.g.user.wallets, { id: subdomains.wallet }).inkey
               )
               .then(function (response) {
-                self.tickets = _.reject(self.tickets, function (obj) {
-                  return obj.id == ticketId
+                self.subdomains = _.reject(self.subdomains, function (obj) {
+                  return obj.id == subdomainId
                 })
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
-        
+
       },
       exportSubdomainsCSV: function () {
-        LNbits.utils.exportCSV(this.domainsTable.columns, this.tickets)
+        LNbits.utils.exportCSV(this.subdomainsTable.columns, this.subdomains)
       },
 
       getDomains: function () {
         var self = this
-      
+
         LNbits.api
           .request(
             'GET',
@@ -189,7 +269,7 @@
               return mapLNDomain(obj)
             })
           })
-      
+
       },
       sendFormData: function () {
         var wallet = _.findWhere(this.g.user.wallets, {
@@ -206,7 +286,7 @@
 
       createDomain: function (wallet, data) {
         var self = this
-        
+
         LNbits.api
           .request('POST', '/subdomains/api/v1/domains', wallet.inkey, data)
           .then(function (response) {
@@ -217,10 +297,10 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-        
+
       },
       updateDomainDialog: function (formId) {
-        var link = _.findWhere(this.domains, {id: formId})
+        var link = _.findWhere(this.domains, { id: formId })
         console.log(link.id)
         this.domainDialog.data.id = link.id
         this.domainDialog.data.wallet = link.wallet
@@ -235,7 +315,7 @@
       updateDomain: function (wallet, data) {
         var self = this
         console.log(data)
-        
+
 
         LNbits.api
           .request(
@@ -255,12 +335,12 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-          
+
       },
       deleteDomain: function (domainId) {
         var self = this
-        var domains = _.findWhere(this.domains, {id: domainId})
-        
+        var domains = _.findWhere(this.domains, { id: domainId })
+
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this domain link?')
           .onOk(function () {
@@ -268,7 +348,7 @@
               .request(
                 'DELETE',
                 '/subdomains/api/v1/domains/' + domainId,
-                _.findWhere(self.g.user.wallets, {id: domains.wallet}).inkey
+                _.findWhere(self.g.user.wallets, { id: domains.wallet }).inkey
               )
               .then(function (response) {
                 self.domains = _.reject(self.domains, function (obj) {
@@ -279,7 +359,7 @@
                 LNbits.utils.notifyApiError(error)
               })
           })
-        
+
       },
       exportDomainsCSV: function () {
         LNbits.utils.exportCSV(this.domainsTable.columns, this.domains)

@@ -103,6 +103,7 @@ async def api_subdomains():
         "email": {"type": "string", "empty": True, "required": True},
         "ip": {"type": "string", "empty": False, "required": True},
         "sats": {"type": "integer", "min": 0, "required": True},
+        "duration": {"type": "integer", "empty": False, "required": True},
     }
 )
 async def api_subdomain_make_subdomain(domain_id):
@@ -110,12 +111,13 @@ async def api_subdomain_make_subdomain(domain_id):
     if not domain:
         return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
 
-    subdomain = len(re.split(r"\s+", g.data["subdomain"]))
+    subdomain = g.data["subdomain"]
+    duration = g.data["duration"]
     sats = g.data["sats"]
     payment_hash, payment_request = await create_invoice(
         wallet_id=domain.wallet,
         amount=sats,
-        memo=f"subdomain with {subdomain} words on {domain_id}",
+        memo=f"subdomain {subdomain}.{domain.domain} for {sats} sats for {duration} days",
         extra={"tag": "lnsubdomain"},
     )
 
