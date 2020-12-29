@@ -138,3 +138,6 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
 
 async def delete_domain(domain_id: str) -> None:
     await db.execute("DELETE FROM domain WHERE id = ?", (domain_id,))
+
+
+
