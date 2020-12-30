@@ -1,34 +1,27 @@
 <h1>Subdomains Extension</h1>
 
-#TODO - fix formatting etc...  
-on lnbits there should be an interface with input fields:
-subdomain (for example: subdomain1)
-ip address (for example: 192.168.21.21)
-duration (1 month / 1 year etc...)
+So the goal of the extension is to allow the owner of a domain to sell their subdomain to the anyone who is willing to pay some money for it.   
 
-then when user presses SUBMIT button the ln invoice is shown that has to be paid...
+## Requirements
+- Free cloudflare account
+- Cloudflare as a dns server provider
+- Cloudflare TOKEN and Cloudflare zone-id where the domain is parked
 
-when invoice is paid, the lnbits backend send request to the cloudflare domain registration service, that creates a new A record for that subdomain
+## API Endpoints
+- **Domains**
+  - GET /api/v1/domains
+  - POST /api/v1/domains
+  - PUT /api/v1/domains/<domain_id>
+  - DELETE /api/v1/domains/<domain_id>
+- **Subdomains**
+  - GET /api/v1/subdomains
+  - POST /api/v1/subdomains/<domain_id>
+  - GET /api/v1/subdomains/<payment_hash>
+  - DELETE /api/v1/subdomains/<subdomain_id>
 
-for example, i am hosting lnbits on 
-lnbits.grmkris.com
+## Useful 
 
-and i am selling my subdomains
-subdomain1.grmkris.com
-subdomain2.grmkris.com
-subdomain3.grmkris.com
-
-there should be checks if that subdomain is already taken
-
-and maybe an option to blacklist certain subdomains that i don't want to sell
-
-
-<h2>If your extension has API endpoints, include useful ones here</h2>
-
-<code>curl -H "Content-type: application/json" -X POST https://YOUR-LNBITS/YOUR-EXTENSION/api/v1/EXAMPLE -d '{"amount":"100","memo":"subdomains"}' -H "X-Api-Key: YOUR_WALLET-ADMIN/INVOICE-KEY"</code>
-
-## cloudflare
-
+### Cloudflare
 - Cloudflare offers programmatic subdomain registration... (create new A record)
 - you can keep your existing domain's registrar, you just have to transfer dns records to the cloudflare (free service)
 - more information: 
@@ -40,26 +33,4 @@ and maybe an option to blacklist certain subdomains that i don't want to sell
     - https://api.cloudflare.com/#dns-records-for-a-zone-update-dns-record
 - api can be used by providing authorization token OR authorization key
   - check API Tokens and API Keys : https://api.cloudflare.com/#getting-started-requests 
-
-
-
-example curls:
-List dns records
-```bash
-curl --location --request GET 'https://api.cloudflare.com/client/v4/zones/bf3c1e516b35878c9f6532db2f2705ee/dns_records?type=A' \
---header 'Content-Type: application/json' \
---header 'Authorization: Bearer mS3gGFC3ySLqBe2ERtRTlh7H2YiGbFp2KLDK62uu' 
-```
-
-```bash
-curl --location --request POST 'https://api.cloudflare.com/client/v4/zones/bf3c1e516b35878c9f6532db2f2705ee/dns_records' \
---header 'Content-Type: application/json' \
---header 'Authorization: Bearer mS3gGFC3ySLqBe2ERtRTlh7H2YiGbFp2KLDK62uu' \
---data-raw '{
-  "type":"A",
-  "name":"subdomain1.grmkris.com",
-  "content":"31.15.150.237",
-  "ttl":0,
-  "proxied":true
-}'
-```
+- Cloudflare API postman collection: https://support.cloudflare.com/hc/en-us/articles/115002323852-Using-Cloudflare-API-with-Postman-Collections
