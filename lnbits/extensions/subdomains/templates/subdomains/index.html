@@ -106,9 +106,9 @@
           label="Wallet *">
         </q-select>
         <q-input filled dense v-model.trim="domainDialog.data.domain" type="text" label="Domain name "></q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.cfToken" type="text" label="Cloudflare API token">
+        <q-input filled dense v-model.trim="domainDialog.data.cf_token" type="text" label="Cloudflare API token">
         </q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.cfZoneId" type="text" label="Cloudflare Zone Id">
+        <q-input filled dense v-model.trim="domainDialog.data.cf_zone_id" type="text" label="Cloudflare Zone Id">
         </q-input>
         <q-input filled dense v-model.trim="domainDialog.data.webhook" type="text" label="Webhook (optional)"
           hint="A URL to be called whenever this link receives a payment."></q-input>
@@ -306,8 +306,8 @@
         this.domainDialog.data.wallet = link.wallet
         this.domainDialog.data.domain = link.domain
         this.domainDialog.data.description = link.description
-        this.domainDialog.data.cfToken = link.cf_token
-        this.domainDialog.data.cfZoneId = link.cf_zone_id
+        this.domainDialog.data.cf_token = link.cf_token
+        this.domainDialog.data.cf_zone_id = link.cf_zone_id
         this.domainDialog.data.webhook = link.webhook
         this.domainDialog.data.cost = link.cost
         this.domainDialog.show = true

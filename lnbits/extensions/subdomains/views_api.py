@@ -42,8 +42,8 @@ async def api_domains():
     schema={
         "wallet": {"type": "string", "empty": False, "required": True},
         "domain": {"type": "string", "empty": False, "required": True},
-        "cfToken": {"type": "string", "empty": False, "required": True},
-        "cfZoneId": {"type": "string", "empty": False, "required": True},
+        "cf_token": {"type": "string", "empty": False, "required": True},
+        "cf_zone_id": {"type": "string", "empty": False, "required": True},
         "webhook": {"type": "string", "empty": False, "required": False},
         "description": {"type": "string", "min": 0, "required": True},
         "cost": {"type": "integer", "min": 0, "required": True},

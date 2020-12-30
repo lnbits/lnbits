@@ -32,7 +32,7 @@ async def create_subdomain(
 
 
 async def set_subdomain_paid(payment_hash: str) -> Subdomains:
-    row = await db.fetchone("SELECT * FROM subdomain WHERE id = ?", (payment_hash,))
+    row = await db.fetchone("SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?", (payment_hash,))
     if row[8] == False:
         await db.execute(
             """
@@ -55,30 +55,59 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
             """,
             (amount, row[1]),
         )
-        
+
         subdomain = await get_subdomain(payment_hash)
+
+        ### SEND REQUEST TO CLOUDFLARE
+        url="https://api.cloudflare.com/client/v4/zones/" + domaindata.cf_zone_id + "/dns_records"
+        header= {'Authorization': 'Bearer ' + domaindata.cf_token, 'Content-Type': 'application/json'}
+        aRecord=subdomain.subdomain + '.' + subdomain.domain_name
+        cf_response = ""
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.post(
+                    url,
+                    headers=header,
+                    json={
+                        "type": "A",
+                        "name": aRecord,
+                        "content": subdomain.ip,
+                        "ttl": 0,
+                        "proxed": False
+                    },
+                    timeout=40,
+                )
+                cf_response = r.text
+            except AssertionError:
+                cf_response = "Error occured"
+
+        ### Use webhook to notify about cloudflare registration
         if domaindata.webhook:
             async with httpx.AsyncClient() as client:
                 try:
                     r = await client.post(
                         domaindata.webhook,
                         json={
-                            "domain": subdomain.domain,
+                            "domain": subdomain.domain_name,
                             "subdomain": subdomain.subdomain,
                             "email": subdomain.email,
-                            "ip": subdomain.ip
+                            "ip": subdomain.ip,
+                            "cost:": str(subdomain.sats) + " sats",
+                            "duration": str(subdomain.duration) + " days",
+                            "cf_response": cf_response
                         },
                         timeout=40,
                     )
                 except AssertionError:
                     webhook = None
-            return subdomain
+
     subdomain = await get_subdomain(payment_hash)
     return
 
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
-    row = await db.fetchone("SELECT * FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?", (subdomain_id,))
+    row = await db.fetchone("SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?", (subdomain_id,))
+    print(row)
     return Subdomains(**row) if row else None
 
 
@@ -99,14 +128,14 @@ async def delete_subdomain(subdomain_id: str) -> None:
 # Domains
 
 
-async def create_domain(*, wallet: str, domain: str, cfToken: str, cfZoneId: str, webhook: Optional[str] = None, description: str, cost: int) -> Domains:
+async def create_domain(*, wallet: str, domain: str, cf_token: str, cf_zone_id: str, webhook: Optional[str] = None, description: str, cost: int) -> Domains:
     domain_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO domain (id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, amountmade)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (domain_id, wallet, domain, webhook, cfToken, cfZoneId, description, cost, 0),
+        (domain_id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, 0),
     )
 
     domain = await get_domain(domain_id)
