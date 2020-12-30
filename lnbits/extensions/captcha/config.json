@@ -1,0 +1,6 @@
+{
+    "name": "Captcha",
+    "short_description": "Create captcha to stop spam",
+    "icon": "block",
+    "contributors": ["pseudozach"]
+}
