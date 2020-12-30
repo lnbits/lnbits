@@ -7,6 +7,19 @@ So the goal of the extension is to allow the owner of a domain to sell their sub
 - Cloudflare as a dns server provider
 - Cloudflare TOKEN and Cloudflare zone-id where the domain is parked
 
+
+## Usage
+1. Register at cloudflare and setup your domain with them. (Just follow instructions they provide...)
+2. Change DNS server at your domain registrar to point to cloudflare's
+3. Get Cloudflare zoneID for your domain 
+  <img src="https://i.imgur.com/xOgapHr.png">  
+4. get Cloudflare API TOKEN
+  <img src="https://i.imgur.com/BZbktTy.png">  
+  <img src="https://i.imgur.com/YDZpW7D.png">
+5. Open the lnbits subdomains extension and register your domain with lnbits
+6. Click on the button in the table to open the public form that was generated for your domain
+  - Extension also supports webhooks so you can get notified when someone buys a new domain
+  <img src="https://i.imgur.com/hiauxeR.png">
 ## API Endpoints
 - **Domains**
   - GET /api/v1/domains
