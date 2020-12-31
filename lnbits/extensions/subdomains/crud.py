@@ -8,6 +8,7 @@ import httpx
 
 from lnbits.extensions import subdomains
 
+
 async def create_subdomain(
     payment_hash: str,
     wallet: str,
@@ -17,7 +18,7 @@ async def create_subdomain(
     ip: str,
     sats: int,
     duration: int,
-    record_type: str
+    record_type: str,
 ) -> Subdomains:
     await db.execute(
         """
@@ -33,7 +34,10 @@ async def create_subdomain(
 
 
 async def set_subdomain_paid(payment_hash: str) -> Subdomains:
-    row = await db.fetchone("SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?", (payment_hash,))
+    row = await db.fetchone(
+        "SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
+        (payment_hash,),
+    )
     if row[8] == False:
         await db.execute(
             """
@@ -60,9 +64,9 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
         subdomain = await get_subdomain(payment_hash)
 
         ### SEND REQUEST TO CLOUDFLARE
-        url="https://api.cloudflare.com/client/v4/zones/" + domaindata.cf_zone_id + "/dns_records"
-        header= {'Authorization': 'Bearer ' + domaindata.cf_token, 'Content-Type': 'application/json'}
-        aRecord=subdomain.subdomain + '.' + subdomain.domain_name
+        url = "https://api.cloudflare.com/client/v4/zones/" + domaindata.cf_zone_id + "/dns_records"
+        header = {"Authorization": "Bearer " + domaindata.cf_token, "Content-Type": "application/json"}
+        aRecord = subdomain.subdomain + "." + subdomain.domain_name
         cf_response = ""
         async with httpx.AsyncClient() as client:
             try:
@@ -74,7 +78,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
                         "name": aRecord,
                         "content": subdomain.ip,
                         "ttl": 0,
-                        "proxed": False
+                        "proxed": False,
                     },
                     timeout=40,
                 )
@@ -96,7 +100,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
                             "ip": subdomain.ip,
                             "cost:": str(subdomain.sats) + " sats",
                             "duration": str(subdomain.duration) + " days",
-                            "cf_response": cf_response
+                            "cf_response": cf_response,
                         },
                         timeout=40,
                     )
@@ -108,7 +112,10 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
 
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
-    row = await db.fetchone("SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?", (subdomain_id,))
+    row = await db.fetchone(
+        "SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
+        (subdomain_id,),
+    )
     print(row)
     return Subdomains(**row) if row else None
 
@@ -118,7 +125,10 @@ async def get_subdomains(wallet_ids: Union[str, List[str]]) -> List[Subdomains]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})",
+        (*wallet_ids,),
+    )
 
     return [Subdomains(**row) for row in rows]
 
@@ -130,7 +140,17 @@ async def delete_subdomain(subdomain_id: str) -> None:
 # Domains
 
 
-async def create_domain(*, wallet: str, domain: str, cf_token: str, cf_zone_id: str, webhook: Optional[str] = None, description: str, cost: int, allowed_record_types: str) -> Domains:
+async def create_domain(
+    *,
+    wallet: str,
+    domain: str,
+    cf_token: str,
+    cf_zone_id: str,
+    webhook: Optional[str] = None,
+    description: str,
+    cost: int,
+    allowed_record_types: str,
+) -> Domains:
     domain_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -170,6 +190,3 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
 
 async def delete_domain(domain_id: str) -> None:
     await db.execute("DELETE FROM domain WHERE id = ?", (domain_id,))
-
-
-
