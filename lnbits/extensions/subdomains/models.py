@@ -12,6 +12,7 @@ class Domains(NamedTuple):
     cost: int
     amountmade: int
     time: int
+    allowed_record_types: str
 
 
 class Subdomains(NamedTuple):
@@ -26,3 +27,4 @@ class Subdomains(NamedTuple):
     duration: int
     paid: bool
     time: int
+    record_type: str

@@ -17,11 +17,13 @@ async def display(domain_id):
     domain = await get_domain(domain_id)
     if not domain:
         abort(HTTPStatus.NOT_FOUND, "Domain does not exist.")
-
+    allowed_records = domain.allowed_record_types.replace("\"","").replace(" ","").split(",") 
+    print(allowed_records)
     return await render_template(
         "subdomains/display.html",
         domain_id=domain.id,
         domain_domain=domain.domain,
         domain_desc=domain.description,
         domain_cost=domain.cost,
+        domain_allowed_record_types=allowed_records
     )

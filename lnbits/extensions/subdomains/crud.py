@@ -16,14 +16,15 @@ async def create_subdomain(
     email: str,
     ip: str,
     sats: int,
-    duration: int
+    duration: int,
+    record_type: str
 ) -> Subdomains:
     await db.execute(
         """
-        INSERT INTO subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
+        INSERT INTO subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_hash, domain, email, subdomain, ip, wallet, sats, duration, False),
+        (payment_hash, domain, email, subdomain, ip, wallet, sats, duration, False, record_type),
     )
 
     subdomain = await get_subdomain(payment_hash)
@@ -69,7 +70,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
                     url,
                     headers=header,
                     json={
-                        "type": "A",
+                        "type": subdomain.record_type,
                         "name": aRecord,
                         "content": subdomain.ip,
                         "ttl": 0,
@@ -90,6 +91,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
                         json={
                             "domain": subdomain.domain_name,
                             "subdomain": subdomain.subdomain,
+                            "record_type": subdomain.record_type,
                             "email": subdomain.email,
                             "ip": subdomain.ip,
                             "cost:": str(subdomain.sats) + " sats",
@@ -128,14 +130,14 @@ async def delete_subdomain(subdomain_id: str) -> None:
 # Domains
 
 
-async def create_domain(*, wallet: str, domain: str, cf_token: str, cf_zone_id: str, webhook: Optional[str] = None, description: str, cost: int) -> Domains:
+async def create_domain(*, wallet: str, domain: str, cf_token: str, cf_zone_id: str, webhook: Optional[str] = None, description: str, cost: int, allowed_record_types: str) -> Domains:
     domain_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO domain (id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, amountmade)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO domain (id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, amountmade, allowed_record_types)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (domain_id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, 0),
+        (domain_id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, 0, allowed_record_types),
     )
 
     domain = await get_domain(domain_id)

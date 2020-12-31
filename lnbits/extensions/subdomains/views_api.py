@@ -47,6 +47,7 @@ async def api_domains():
         "webhook": {"type": "string", "empty": False, "required": False},
         "description": {"type": "string", "min": 0, "required": True},
         "cost": {"type": "integer", "min": 0, "required": True},
+        "allowed_record_types": {"type": "string", "required": True},
     }
 )
 async def api_domain_create(domain_id=None):
@@ -104,6 +105,7 @@ async def api_subdomains():
         "ip": {"type": "string", "empty": False, "required": True},
         "sats": {"type": "integer", "min": 0, "required": True},
         "duration": {"type": "integer", "empty": False, "required": True},
+        "record_type": {"type": "string", "empty": False, "required": True},
     }
 )
 async def api_subdomain_make_subdomain(domain_id):

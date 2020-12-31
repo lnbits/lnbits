@@ -12,6 +12,7 @@ async def m001_initial(db):
             description TEXT NOT NULL,
             cost INTEGER NOT NULL,
             amountmade INTEGER NOT NULL,
+            allowed_record_types TEXT NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
@@ -29,6 +30,7 @@ async def m001_initial(db):
             sats INTEGER NOT NULL,
             duration INTEGER NOT NULL,
             paid BOOLEAN NOT NULL,
+            record_type TEXT NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
