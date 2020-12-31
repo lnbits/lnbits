@@ -44,6 +44,10 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function receiveMessage(event){
+   if (event.data.includes("paymenthash")){
+        // console.log("paymenthash received: ", event.data);
+        document.getElementById("captchapayhash").value = event.data.split("_")[1];
+   }
    if (event.data.includes("removetheiframe")){
       if (event.data.includes("nok")){
         //invoice was NOT paid

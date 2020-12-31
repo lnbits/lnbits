@@ -365,7 +365,8 @@
 
         var captchasnippet = '<!-- Captcha Checkbox Start -->\n'
           + '<input type="checkbox" id="captchacheckbox">\n'
-          + '<label for="captchacheckbox">I\'m not a robot</label>\n'
+          + '<label for="captchacheckbox">I\'m not a robot</label><br/>\n'
+          + '<input type="text" id="captchapayhash" style="display: none;"/>\n'
           + '<script type="text/javascript" src="'+ locationPath +'static/js/captcha.js" id="captchascript" data-captchaid="'+ captchaId +'">\n'
           + '<\/script>\n'
           + '<!-- Captcha Checkbox End -->';

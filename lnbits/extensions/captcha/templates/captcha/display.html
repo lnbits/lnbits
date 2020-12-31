@@ -143,6 +143,8 @@
                       )
                     }
 
+                    parent.window.postMessage("paymenthash_"+response.data.payment_hash, "*");
+
                     self.$q.notify({
                       type: 'positive',
                       message: 'Payment received!',
