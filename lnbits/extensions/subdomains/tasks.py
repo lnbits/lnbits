@@ -26,7 +26,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     if "lnsubdomain" != payment.extra.get("tag"):
         # not an lnurlp invoice
         return
-        
+
     await payment.set_pending(False)
     subdomain = await set_subdomain_paid(payment_hash=payment.payment_hash)
     domain = await get_domain(subdomain.domain)
