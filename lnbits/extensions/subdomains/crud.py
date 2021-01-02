@@ -4,8 +4,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import Domains, Subdomains
-import httpx
-
 from lnbits.extensions import subdomains
 
 
@@ -69,6 +67,14 @@ async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
     row = await db.fetchone(
         "SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
         (subdomain_id,),
+    )
+    print(row)
+    return Subdomains(**row) if row else None
+
+async def get_subdomainBySubdomain(subdomain: str) -> Optional[Subdomains]:
+    row = await db.fetchone(
+        "SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
+        (subdomain, ),
     )
     print(row)
     return Subdomains(**row) if row else None

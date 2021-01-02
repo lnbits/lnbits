@@ -1,6 +1,7 @@
 import re
 from quart import g, jsonify, request
 from http import HTTPStatus
+from lnbits.core import crud
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
@@ -18,6 +19,7 @@ from .crud import (
     get_domain,
     get_domains,
     delete_domain,
+    get_subdomainBySubdomain
 )
 
 
@@ -117,9 +119,16 @@ async def api_subdomain_make_subdomain(domain_id):
         return jsonify({"message": g.data["ip"] + " Not a valid IP address"}), HTTPStatus.BAD_REQUEST
     if not isValidDomain(g.data["subdomain"] + "." + domain.domain):
         return (
-            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " Bad domain name"}),
+            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " bad domain name"}),
             HTTPStatus.BAD_REQUEST,
         )
+
+    if ( await get_subdomainBySubdomain(g.data["subdomain"]) is not None):
+        return (
+            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " domain already taken"}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
     if g.data["record_type"] not in domain.allowed_record_types:
         return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
 

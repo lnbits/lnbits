@@ -1,7 +1,4 @@
 from lnbits.extensions.subdomains.models import Subdomains
-import trio  # type: ignore
-import json
-import httpx
 
 # Python3 program to validate
 # domain name
