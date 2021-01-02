@@ -23,12 +23,10 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    print(payment)
     if "lnsubdomain" != payment.extra.get("tag"):
         # not an lnurlp invoice
         return
-
-    wallet = await get_wallet(payment.wallet_id)
+        
     await payment.set_pending(False)
     subdomain = await set_subdomain_paid(payment_hash=payment.payment_hash)
     domain = await get_domain(subdomain.domain)
@@ -76,5 +74,3 @@ async def on_invoice_paid(payment: Payment) -> None:
                 )
             except AssertionError:
                 webhook = None
-
-    return jsonify({"paid": True}), HTTPStatus.OK

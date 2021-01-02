@@ -23,6 +23,9 @@ $ pipenv shell
 $ pipenv install --dev
 ```
 
+If any of the modules fails to install, try checking and upgrading your setupTool module.  
+`pip install -U setuptools` 
+
 If you wish to use a version of Python higher than 3.7:
 
 ```sh

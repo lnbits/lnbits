@@ -10,7 +10,6 @@ from .util import isValidDomain, isvalidIPAddress
 from . import subdomains_ext
 from .crud import (
     create_subdomain,
-    set_subdomain_paid,
     get_subdomain,
     get_subdomains,
     delete_subdomain,
@@ -152,7 +151,9 @@ async def api_subdomain_send_subdomain(payment_hash):
         return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
-        return jsonify({"paid": False}), HTTPStatus.OK
+        return jsonify({"paid": True}), HTTPStatus.OK
+
+    return jsonify({"paid": False}), HTTPStatus.OK
 
 
 @subdomains_ext.route("/api/v1/subdomains/<subdomain_id>", methods=["DELETE"])
