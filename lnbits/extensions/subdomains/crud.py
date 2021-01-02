@@ -61,54 +61,8 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
             (amount, row[1]),
         )
 
-        subdomain = await get_subdomain(payment_hash)
-
-        ### SEND REQUEST TO CLOUDFLARE
-        url = "https://api.cloudflare.com/client/v4/zones/" + domaindata.cf_zone_id + "/dns_records"
-        header = {"Authorization": "Bearer " + domaindata.cf_token, "Content-Type": "application/json"}
-        aRecord = subdomain.subdomain + "." + subdomain.domain_name
-        cf_response = ""
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.post(
-                    url,
-                    headers=header,
-                    json={
-                        "type": subdomain.record_type,
-                        "name": aRecord,
-                        "content": subdomain.ip,
-                        "ttl": 0,
-                        "proxed": False,
-                    },
-                    timeout=40,
-                )
-                cf_response = r.text
-            except AssertionError:
-                cf_response = "Error occured"
-
-        ### Use webhook to notify about cloudflare registration
-        if domaindata.webhook:
-            async with httpx.AsyncClient() as client:
-                try:
-                    r = await client.post(
-                        domaindata.webhook,
-                        json={
-                            "domain": subdomain.domain_name,
-                            "subdomain": subdomain.subdomain,
-                            "record_type": subdomain.record_type,
-                            "email": subdomain.email,
-                            "ip": subdomain.ip,
-                            "cost:": str(subdomain.sats) + " sats",
-                            "duration": str(subdomain.duration) + " days",
-                            "cf_response": cf_response,
-                        },
-                        timeout=40,
-                    )
-                except AssertionError:
-                    webhook = None
-
     subdomain = await get_subdomain(payment_hash)
-    return
+    return subdomain
 
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:

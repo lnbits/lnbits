@@ -5,8 +5,8 @@ from http import HTTPStatus
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from .util import validIPAddress
 
+from .util import isValidDomain, isvalidIPAddress
 from . import subdomains_ext
 from .crud import (
     create_subdomain,
@@ -111,11 +111,16 @@ async def api_subdomains():
 )
 async def api_subdomain_make_subdomain(domain_id):
     domain = await get_domain(domain_id)
-    
+
     if not domain:
         return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
-    if not validIPAddress(g.data["ip"]):
+    if not isvalidIPAddress(g.data["ip"]):
         return jsonify({"message": g.data["ip"] + " Not a valid IP address"}), HTTPStatus.BAD_REQUEST
+    if not isValidDomain(g.data["subdomain"] + "." + domain.domain):
+        return (
+            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " Bad domain name"}),
+            HTTPStatus.BAD_REQUEST,
+        )
     if g.data["record_type"] not in domain.allowed_record_types:
         return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
 
@@ -147,13 +152,7 @@ async def api_subdomain_send_subdomain(payment_hash):
         return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
-        wallet = await get_wallet(subdomain.wallet)
-        payment = await wallet.get_payment(payment_hash)
-        await payment.set_pending(False)
-        subdomain = await set_subdomain_paid(payment_hash=payment_hash)
-        return jsonify({"paid": True}), HTTPStatus.OK
-
-    return jsonify({"paid": False}), HTTPStatus.OK
+        return jsonify({"paid": False}), HTTPStatus.OK
 
 
 @subdomains_ext.route("/api/v1/subdomains/<subdomain_id>", methods=["DELETE"])
@@ -170,4 +169,3 @@ async def api_subdomain_delete(subdomain_id):
     await delete_subdomain(subdomain_id)
 
     return "", HTTPStatus.NO_CONTENT
-
