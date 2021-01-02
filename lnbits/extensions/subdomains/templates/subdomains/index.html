@@ -5,7 +5,9 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="domainDialog.show = true">New Domain</q-btn>
+        <q-btn unelevated color="deep-purple" @click="domainDialog.show = true"
+          >New Domain</q-btn
+        >
       </q-card-section>
     </q-card>
 
@@ -16,11 +18,19 @@
             <h5 class="text-subtitle1 q-my-none">Domains</h5>
           </div>
           <div class="col-auto">
-            <q-btn flat color="grey" @click="exportDomainsCSV">Export to CSV</q-btn>
+            <q-btn flat color="grey" @click="exportDomainsCSV"
+              >Export to CSV</q-btn
+            >
           </div>
         </div>
-        <q-table dense flat :data="domains" row-key="id" :columns="domainsTable.columns"
-          :pagination.sync="domainsTable.pagination">
+        <q-table
+          dense
+          flat
+          :data="domains"
+          row-key="id"
+          :columns="domainsTable.columns"
+          :pagination.sync="domainsTable.pagination"
+        >
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
@@ -34,18 +44,40 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td auto-width>
-                <q-btn unelevated dense size="xs" icon="link" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'" type="a"
-                  :href="props.row.displayUrl" target="_blank"></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
               <q-td auto-width>
-                <q-btn flat dense size="xs" @click="updateDomainDialog(props.row.id)" icon="edit" color="light-blue">
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateDomainDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
                 </q-btn>
               </q-td>
               <q-td auto-width>
-                <q-btn flat dense size="xs" @click="deleteDomain(props.row.id)" icon="cancel" color="pink"></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteDomain(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
               </q-td>
             </q-tr>
           </template>
@@ -61,11 +93,19 @@
             <h5 class="text-subtitle1 q-my-none">Subdomains</h5>
           </div>
           <div class="col-auto">
-            <q-btn flat color="grey" @click="exportSubdomainsCSV">Export to CSV</q-btn>
+            <q-btn flat color="grey" @click="exportSubdomainsCSV"
+              >Export to CSV</q-btn
+            >
           </div>
         </div>
-        <q-table dense flat :data="subdomains" row-key="id" :columns="subdomainsTable.columns"
-          :pagination.sync="subdomainsTable.pagination">
+        <q-table
+          dense
+          flat
+          :data="subdomains"
+          row-key="id"
+          :columns="subdomainsTable.columns"
+          :pagination.sync="subdomainsTable.pagination"
+        >
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
@@ -78,8 +118,15 @@
           <template v-slot:body="props">
             <q-tr :props="props" v-if="props.row.paid">
               <q-td auto-width>
-                <q-btn unelevated dense size="xs" icon="email" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a" :href="'mailto:' + props.row.email"></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="email"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'mailto:' + props.row.email"
+                ></q-btn>
               </q-td>
 
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
@@ -87,7 +134,14 @@
               </q-td>
 
               <q-td auto-width>
-                <q-btn flat dense size="xs" @click="deleteSubdomain(props.row.id)" icon="cancel" color="pink"></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteSubdomain(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
               </q-td>
             </q-tr>
           </template>
@@ -98,9 +152,7 @@
     <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
       <q-card>
         <q-card-section>
-          <h6 class="text-subtitle1 q-my-none">
-            LNbits Subdomain extension
-          </h6>
+          <h6 class="text-subtitle1 q-my-none">LNbits Subdomain extension</h6>
         </q-card-section>
         <q-card-section class="q-pa-none">
           <q-separator></q-separator>
@@ -110,36 +162,96 @@
     </div>
   </div>
 
-
   <q-dialog v-model="domainDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormData" class="q-gutter-md">
-        <q-select filled dense emit-value v-model="domainDialog.data.wallet" :options="g.user.walletOptions"
-          label="Wallet *">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="domainDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
         </q-select>
-        <q-select dense filled v-model="domainDialog.data.allowed_record_types" multiple :options="dnsRecordTypes"
-          label="Allowed record types" ></q-select>
-        <q-input filled dense emit-value v-model.trim="domainDialog.data.domain" type="text" label="Domain name "></q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.cf_token" type="text" label="Cloudflare API token">
+        <q-select
+          dense
+          filled
+          v-model="domainDialog.data.allowed_record_types"
+          multiple
+          :options="dnsRecordTypes"
+          label="Allowed record types"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="domainDialog.data.domain"
+          type="text"
+          label="Domain name "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="domainDialog.data.cf_token"
+          type="text"
+          label="Cloudflare API token"
+        >
         </q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.cf_zone_id" type="text" label="Cloudflare Zone Id">
+        <q-input
+          filled
+          dense
+          v-model.trim="domainDialog.data.cf_zone_id"
+          type="text"
+          label="Cloudflare Zone Id"
+        >
         </q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.webhook" type="text" label="Webhook (optional)"
-          hint="A URL to be called whenever this link receives a payment."></q-input>
-        <q-input filled dense v-model.trim="domainDialog.data.description" type="textarea" label="Description ">
+        <q-input
+          filled
+          dense
+          v-model.trim="domainDialog.data.webhook"
+          type="text"
+          label="Webhook (optional)"
+          hint="A URL to be called whenever this link receives a payment."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="domainDialog.data.description"
+          type="textarea"
+          label="Description "
+        >
         </q-input>
-        <q-input filled dense v-model.number="domainDialog.data.cost" type="number" label="Amount per day"></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="domainDialog.data.cost"
+          type="number"
+          label="Amount per day"
+        ></q-input>
         <div class="row q-mt-lg">
-          <q-btn v-if="domainDialog.data.id" unelevated color="deep-purple" type="submit">Update Form</q-btn>
-          <q-btn v-else unelevated color="deep-purple"
+          <q-btn
+            v-if="domainDialog.data.id"
+            unelevated
+            color="deep-purple"
+            type="submit"
+            >Update Form</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="deep-purple"
             :disable="domainDialog.data.cost == null || domainDialog.data.cost < 0 || domainDialog.data.domain == null"
-            type="submit">Create Domain</q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            type="submit"
+            >Create Domain</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
         </div>
       </q-form>
     </q-card>
   </q-dialog>
-
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
@@ -161,14 +273,49 @@
       return {
         domains: [],
         subdomains: [],
-        dnsRecordTypes: ['A', 'AAAA', 'CNAME', 'HTTPS', 'TXT', 'SRV', 'LOC', 'MX', 'NS', 'SPF', 'CERT', 'DNSKEY', 'DS', 'NAPTR', 'SMIMEA', 'SSHFP', 'SVCB', 'TLSA', 'URI'],
+        dnsRecordTypes: [
+          'A',
+          'AAAA',
+          'CNAME',
+          'HTTPS',
+          'TXT',
+          'SRV',
+          'LOC',
+          'MX',
+          'NS',
+          'SPF',
+          'CERT',
+          'DNSKEY',
+          'DS',
+          'NAPTR',
+          'SMIMEA',
+          'SSHFP',
+          'SVCB',
+          'TLSA',
+          'URI'
+        ],
         domainsTable: {
           columns: [
-            { name: 'id', align: 'left', label: 'ID', field: 'id' },
-            { name: 'domain', align: 'left', label: 'Domain name', field: 'domain' },
-            { name: 'allowed_record_types', align: 'left', label: 'Allowed record types', field: 'allowed_record_types' },
-            { name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet' },
-            { name: 'webhook', align: 'left', label: 'Webhook', field: 'webhook' },
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {
+              name: 'domain',
+              align: 'left',
+              label: 'Domain name',
+              field: 'domain'
+            },
+            {
+              name: 'allowed_record_types',
+              align: 'left',
+              label: 'Allowed record types',
+              field: 'allowed_record_types'
+            },
+            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {
+              name: 'webhook',
+              align: 'left',
+              label: 'Webhook',
+              field: 'webhook'
+            },
             {
               name: 'description',
               align: 'left',
@@ -184,13 +331,28 @@
           ],
           pagination: {
             rowsPerPage: 10
-          },
+          }
         },
         subdomainsTable: {
           columns: [
-            { name: 'subdomain', align: 'left', label: 'Subdomain name', field: 'subdomain' },
-            { name: 'domain', align: 'left', label: 'Domain name', field: 'domain_name' },
-            { name: 'record_type', align: 'left', label: 'Record type', field: 'record_type' },
+            {
+              name: 'subdomain',
+              align: 'left',
+              label: 'Subdomain name',
+              field: 'subdomain'
+            },
+            {
+              name: 'domain',
+              align: 'left',
+              label: 'Domain name',
+              field: 'domain_name'
+            },
+            {
+              name: 'record_type',
+              align: 'left',
+              label: 'Record type',
+              field: 'record_type'
+            },
             {
               name: 'email',
               align: 'left',
@@ -215,11 +377,11 @@
               label: 'Duration in days',
               field: 'duration'
             },
-            { name: 'id', align: 'left', label: 'ID', field: 'id' }
+            {name: 'id', align: 'left', label: 'ID', field: 'id'}
           ],
           pagination: {
             rowsPerPage: 10
-          },
+          }
         },
         domainDialog: {
           show: false,
@@ -242,11 +404,10 @@
               return mapLNDomain(obj)
             })
           })
-
       },
       deleteSubdomain: function (subdomainId) {
         var self = this
-        var subdomains = _.findWhere(this.subdomains, { id: subdomainId })
+        var subdomains = _.findWhere(this.subdomains, {id: subdomainId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this subdomain')
@@ -255,7 +416,7 @@
               .request(
                 'DELETE',
                 '/subdomain/api/v1/subdomains/' + subdomainId,
-                _.findWhere(self.g.user.wallets, { id: subdomains.wallet }).inkey
+                _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
               )
               .then(function (response) {
                 self.subdomains = _.reject(self.subdomains, function (obj) {
@@ -266,7 +427,6 @@
                 LNbits.utils.notifyApiError(error)
               })
           })
-
       },
       exportSubdomainsCSV: function () {
         LNbits.utils.exportCSV(this.subdomainsTable.columns, this.subdomains)
@@ -286,14 +446,13 @@
               return mapLNDomain(obj)
             })
           })
-
       },
       sendFormData: function () {
         var wallet = _.findWhere(this.g.user.wallets, {
           id: this.domainDialog.data.wallet
         })
         var data = this.domainDialog.data
-        data.allowed_record_types = data.allowed_record_types.join(", ")
+        data.allowed_record_types = data.allowed_record_types.join(', ')
         console.log(this.domainDialog)
         if (data.id) {
           this.updateDomain(wallet, data)
@@ -315,10 +474,9 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-
       },
       updateDomainDialog: function (formId) {
-        var link = _.findWhere(this.domains, { id: formId })
+        var link = _.findWhere(this.domains, {id: formId})
         console.log(link.id)
         this.domainDialog.data.id = link.id
         this.domainDialog.data.wallet = link.wallet
@@ -328,13 +486,14 @@
         this.domainDialog.data.cf_zone_id = link.cf_zone_id
         this.domainDialog.data.webhook = link.webhook
         this.domainDialog.data.cost = link.cost
-        this.domainDialog.data.allowed_record_types = link.allowed_record_types.split(", ")
+        this.domainDialog.data.allowed_record_types = link.allowed_record_types.split(
+          ', '
+        )
         this.domainDialog.show = true
       },
       updateDomain: function (wallet, data) {
         var self = this
         console.log(data)
-
 
         LNbits.api
           .request(
@@ -354,11 +513,10 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-
       },
       deleteDomain: function (domainId) {
         var self = this
-        var domains = _.findWhere(this.domains, { id: domainId })
+        var domains = _.findWhere(this.domains, {id: domainId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this domain link?')
@@ -367,7 +525,7 @@
               .request(
                 'DELETE',
                 '/subdomains/api/v1/domains/' + domainId,
-                _.findWhere(self.g.user.wallets, { id: domains.wallet }).inkey
+                _.findWhere(self.g.user.wallets, {id: domains.wallet}).inkey
               )
               .then(function (response) {
                 self.domains = _.reject(self.domains, function (obj) {
@@ -378,7 +536,6 @@
                 LNbits.utils.notifyApiError(error)
               })
           })
-
       },
       exportDomainsCSV: function () {
         LNbits.utils.exportCSV(this.domainsTable.columns, this.domains)

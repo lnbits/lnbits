@@ -8,26 +8,59 @@
         <h5 class="q-my-none">{{ domain_desc }}</h5>
         <br />
         <q-form @submit="Invoice()" class="q-gutter-md">
-          <q-input filled dense v-model.trim="formDialog.data.email" type="email"
-            label="Your email (optional, if you want a reply)"></q-input>
-          <q-select dense filled v-model="formDialog.data.record_type" :options='{{domain_allowed_record_types}}'
-            label="Record type"></q-select>
-          <q-input filled dense v-model.trim="formDialog.data.subdomain" type="text" label="Subdomain you want">
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.email"
+            type="email"
+            label="Your email (optional, if you want a reply)"
+          ></q-input>
+          <q-select
+            dense
+            filled
+            v-model="formDialog.data.record_type"
+            :options="{{domain_allowed_record_types}}"
+            label="Record type"
+          ></q-select>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.subdomain"
+            type="text"
+            label="Subdomain you want"
+          >
           </q-input>
-          <q-input filled dense v-model.trim="formDialog.data.ip" type="text" label="Ip of your server">
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.ip"
+            type="text"
+            label="Ip of your server"
+          >
           </q-input>
-          <q-input filled dense v-model.trim="formDialog.data.duration" type="number" label="Number of days">
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.duration"
+            type="number"
+            label="Number of days"
+          >
           </q-input>
           <p>
             Cost per day: {{ domain_cost }} sats<br />
-            {% raw %}
-            Total cost: {{amountSats}} sats
-            {% endraw %}</p>
+            {% raw %} Total cost: {{amountSats}} sats {% endraw %}
+          </p>
           <div class="row q-mt-lg">
-            <q-btn unelevated color="deep-purple"
+            <q-btn
+              unelevated
+              color="deep-purple"
               :disable="formDialog.data.subdomain == '' || formDialog.data.ip == '' || formDialog.data.duration == ''"
-              type="submit">Submit</q-btn>
-            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto">Cancel</q-btn>
+              type="submit"
+              >Submit</q-btn
+            >
+            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
           </div>
         </q-form>
       </q-card-section>
@@ -35,18 +68,27 @@
   </div>
 
   <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
-    <q-card v-if="!receive.paymentReq" class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-card
+      v-if="!receive.paymentReq"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
     </q-card>
     <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div class="text-center q-mb-lg">
         <a :href="'lightning:' + receive.paymentReq">
           <q-responsive :ratio="1" class="q-mx-xl">
-            <qrcode :value="paymentReq" :options="{width: 340}" class="rounded-borders"></qrcode>
+            <qrcode
+              :value="paymentReq"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
           </q-responsive>
         </a>
       </div>
       <div class="row q-mt-lg">
-        <q-btn outline color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+          >Copy invoice</q-btn
+        >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -105,7 +147,7 @@
         dismissMsg()
 
         clearInterval(paymentChecker)
-        setTimeout(function () { }, 10000)
+        setTimeout(function () {}, 10000)
       },
       Invoice: function () {
         var self = this
@@ -157,10 +199,9 @@
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',
-                      icon: 'thumb_up',
+                      icon: 'thumb_up'
                     })
-                    console.log("END")
-
+                    console.log('END')
                   }
                 })
                 .catch(function (error) {
