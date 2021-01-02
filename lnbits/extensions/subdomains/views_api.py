@@ -19,7 +19,7 @@ from .crud import (
     get_domain,
     get_domains,
     delete_domain,
-    get_subdomainBySubdomain
+    get_subdomainBySubdomain,
 )
 
 
@@ -123,7 +123,7 @@ async def api_subdomain_make_subdomain(domain_id):
             HTTPStatus.BAD_REQUEST,
         )
 
-    if ( await get_subdomainBySubdomain(g.data["subdomain"]) is not None):
+    if await get_subdomainBySubdomain(g.data["subdomain"]) is not None:
         return (
             jsonify({"message": g.data["subdomain"] + "." + domain.domain + " domain already taken"}),
             HTTPStatus.BAD_REQUEST,

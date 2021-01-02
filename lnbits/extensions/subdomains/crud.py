@@ -71,10 +71,11 @@ async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
     print(row)
     return Subdomains(**row) if row else None
 
+
 async def get_subdomainBySubdomain(subdomain: str) -> Optional[Subdomains]:
     row = await db.fetchone(
         "SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
-        (subdomain, ),
+        (subdomain,),
     )
     print(row)
     return Subdomains(**row) if row else None
