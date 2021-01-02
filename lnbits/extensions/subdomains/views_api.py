@@ -5,6 +5,7 @@ from http import HTTPStatus
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from .util import validIPAddress
 
 from . import subdomains_ext
 from .crud import (
@@ -110,8 +111,13 @@ async def api_subdomains():
 )
 async def api_subdomain_make_subdomain(domain_id):
     domain = await get_domain(domain_id)
+    
     if not domain:
         return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
+    if not validIPAddress(g.data["ip"]):
+        return jsonify({"message": g.data["ip"] + " Not a valid IP address"}), HTTPStatus.BAD_REQUEST
+    if g.data["record_type"] not in domain.allowed_record_types:
+        return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
 
     subdomain = g.data["subdomain"]
     duration = g.data["duration"]
@@ -164,3 +170,4 @@ async def api_subdomain_delete(subdomain_id):
     await delete_subdomain(subdomain_id)
 
     return "", HTTPStatus.NO_CONTENT
+
