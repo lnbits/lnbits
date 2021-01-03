@@ -119,24 +119,18 @@ async def api_subdomain_make_subdomain(domain_id):
     # If the request is coming for the non-existant domain
     if not domain:
         return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
-    # regex if IP is address
-    if not isvalidIPAddress(g.data["ip"]):
-        return jsonify({"message": g.data["ip"] + " Not a valid IP address"}), HTTPStatus.BAD_REQUEST
-    # regex for checking if domain is valid
-    if not isValidDomain(g.data["subdomain"] + "." + domain.domain):
-        return (
-            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " bad domain name"}),
-            HTTPStatus.BAD_REQUEST,
-        )
+    
+    ## If record_type is not one of the allowed ones reject the request
+    if g.data["record_type"] not in domain.allowed_record_types:
+        return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
+
     ## If domain already exist in our database reject it
     if await get_subdomainBySubdomain(g.data["subdomain"]) is not None:
         return (
             jsonify({"message": g.data["subdomain"] + "." + domain.domain + " domain already taken"}),
             HTTPStatus.BAD_REQUEST,
         )
-    ## If record_type is not one of the allowed ones reject the request
-    if g.data["record_type"] not in domain.allowed_record_types:
-        return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
+
     ## Dry run cloudflare... (create and if create is sucessful delete it)
     cf_response = await cloudflare_create_subdomain(
         domain=domain, subdomain=g.data["subdomain"], record_type=g.data["record_type"], ip=g.data["ip"]
