@@ -119,7 +119,7 @@ async def api_subdomain_make_subdomain(domain_id):
     # If the request is coming for the non-existant domain
     if not domain:
         return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
-    
+
     ## If record_type is not one of the allowed ones reject the request
     if g.data["record_type"] not in domain.allowed_record_types:
         return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
