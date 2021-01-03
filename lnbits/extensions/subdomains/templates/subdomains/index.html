@@ -227,7 +227,7 @@
           dense
           v-model.number="domainDialog.data.cost"
           type="number"
-          label="Amount per day"
+          label="Amount per day in satoshis"
         ></q-input>
         <div class="row q-mt-lg">
           <q-btn
@@ -478,14 +478,7 @@
       updateDomainDialog: function (formId) {
         var link = _.findWhere(this.domains, {id: formId})
         console.log(link.id)
-        this.domainDialog.data.id = link.id
-        this.domainDialog.data.wallet = link.wallet
-        this.domainDialog.data.domain = link.domain
-        this.domainDialog.data.description = link.description
-        this.domainDialog.data.cf_token = link.cf_token
-        this.domainDialog.data.cf_zone_id = link.cf_zone_id
-        this.domainDialog.data.webhook = link.webhook
-        this.domainDialog.data.cost = link.cost
+        this.domainDialog.data = _.clone(link)
         this.domainDialog.data.allowed_record_types = link.allowed_record_types.split(
           ', '
         )
