@@ -1,7 +1,6 @@
 from http import HTTPStatus
 from quart.json import jsonify
 import trio  # type: ignore
-import json
 import httpx
 
 from .crud import get_domain, set_subdomain_paid
@@ -9,6 +8,7 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
+from .cloudflare import cloudflare_create_subdomain
 
 
 async def register_listeners():
@@ -31,28 +31,10 @@ async def on_invoice_paid(payment: Payment) -> None:
     subdomain = await set_subdomain_paid(payment_hash=payment.payment_hash)
     domain = await get_domain(subdomain.domain)
 
-    ### SEND REQUEST TO CLOUDFLARE
-    url = "https://api.cloudflare.com/client/v4/zones/" + domain.cf_zone_id + "/dns_records"
-    header = {"Authorization": "Bearer " + domain.cf_token, "Content-Type": "application/json"}
-    aRecord = subdomain.subdomain + "." + subdomain.domain_name
-    cf_response = ""
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.post(
-                url,
-                headers=header,
-                json={
-                    "type": subdomain.record_type,
-                    "name": aRecord,
-                    "content": subdomain.ip,
-                    "ttl": 0,
-                    "proxed": False,
-                },
-                timeout=40,
-            )
-            cf_response = r.text
-        except AssertionError:
-            cf_response = "Error occured"
+    ### Create subdomain
+    cf_response = cloudflare_create_subdomain(
+        domain=domain, subdomain=subdomain.subdomain, record_type=subdomain.record_type, ip=subdomain.ip
+    )
 
     ### Use webhook to notify about cloudflare registration
     if domain.webhook:
