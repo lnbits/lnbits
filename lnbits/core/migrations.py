@@ -130,3 +130,27 @@ async def m003_add_invoice_webhook(db):
 
     await db.execute("ALTER TABLE apipayments ADD COLUMN webhook TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN webhook_status TEXT")
+
+
+async def m004_fix_balance_view(db):
+    """
+    Fix balance view.
+    """
+    await db.execute("DROP VIEW IF EXISTS balances")
+    await db.execute(
+        """
+        CREATE VIEW IF NOT EXISTS balances AS
+        SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
+            SELECT wallet, SUM(amount) AS s  -- incoming
+            FROM apipayments
+            WHERE amount > 0 AND pending = 0  -- don't sum pending
+            GROUP BY wallet
+            UNION ALL
+            SELECT wallet, SUM(amount - fee) AS s  -- outgoing, sum fees
+            FROM apipayments
+            WHERE amount < 0  -- do sum pending
+            GROUP BY wallet
+        )
+        GROUP BY wallet;
+    """
+    )
