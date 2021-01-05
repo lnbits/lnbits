@@ -102,7 +102,6 @@ async def m003_changed(db):
     """
     )
 
-
     for row in [list(row) for row in await db.fetchall("SELECT * FROM forms")]:
         usescsv = ""
 

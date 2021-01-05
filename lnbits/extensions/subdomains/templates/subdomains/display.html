@@ -3,18 +3,11 @@
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
-        <h3 class="q-my-none">{{ form_name }}</h3>
+        <h3 class="q-my-none">{{ domain_domain }}</h3>
         <br />
-        <h5 class="q-my-none">{{ form_desc }}</h5>
+        <h5 class="q-my-none">{{ domain_desc }}</h5>
         <br />
         <q-form @submit="Invoice()" class="q-gutter-md">
-          <q-input
-            filled
-            dense
-            v-model.trim="formDialog.data.name"
-            type="name"
-            label="Your name "
-          ></q-input>
           <q-input
             filled
             dense
@@ -22,19 +15,46 @@
             type="email"
             label="Your email (optional, if you want a reply)"
           ></q-input>
+          <q-select
+            dense
+            filled
+            v-model="formDialog.data.record_type"
+            :options="{{domain_allowed_record_types}}"
+            label="Record type"
+          ></q-select>
           <q-input
             filled
             dense
-            v-model.number="formDialog.data.text"
-            type="textarea"
-            label="{{ form_costpword }} sats per word"
-          ></q-input>
-          <p>{% raw %}{{amountWords}}{% endraw %}</p>
+            v-model.trim="formDialog.data.subdomain"
+            type="text"
+            label="Subdomain you want"
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.ip"
+            type="text"
+            label="Ip of your server"
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.duration"
+            type="number"
+            label="Number of days"
+          >
+          </q-input>
+          <p>
+            Cost per day: {{ domain_cost }} sats<br />
+            {% raw %} Total cost: {{amountSats}} sats {% endraw %}
+          </p>
           <div class="row q-mt-lg">
             <q-btn
               unelevated
               color="deep-purple"
-              :disable="formDialog.data.name == '' || formDialog.data.text == ''"
+              :disable="formDialog.data.subdomain == '' || formDialog.data.ip == '' || formDialog.data.duration == ''"
               type="submit"
               >Submit</q-btn
             >
@@ -77,7 +97,7 @@
 
 {% endblock %} {% block scripts %}
 <script>
-  console.log('{{ form_costpword }}')
+  console.log('{{ domain_cost }}')
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
@@ -90,9 +110,11 @@
         formDialog: {
           show: false,
           data: {
-            name: '',
+            ip: '',
+            subdomain: '',
+            duration: '',
             email: '',
-            text: ''
+            record_type: ''
           }
         },
         receive: {
@@ -103,28 +125,21 @@
       }
     },
     computed: {
-      amountWords() {
-        var regex = /\s+/gi
-        var nwords = this.formDialog.data.text
-          .trim()
-          .replace(regex, ' ')
-          .split(' ').length
-        var sats = nwords * parseInt('{{ form_costpword }}')
-        if (sats === parseInt('{{ form_costpword }}')) {
-          return '0 Sats to pay'
-        } else {
-          this.formDialog.data.sats = sats
-          return sats + ' Sats to pay'
-        }
+      amountSats() {
+        var sats = this.formDialog.data.duration * parseInt('{{ domain_cost }}')
+        this.formDialog.data.sats = sats
+        return sats
       }
     },
 
     methods: {
       resetForm: function (e) {
         e.preventDefault()
-        this.formDialog.data.name = ''
+        this.formDialog.data.subdomain = ''
         this.formDialog.data.email = ''
-        this.formDialog.data.text = ''
+        this.formDialog.data.ip = ''
+        this.formDialog.data.duration = ''
+        this.formDialog.data.record_type = ''
       },
 
       closeReceiveDialog: function () {
@@ -137,12 +152,14 @@
       Invoice: function () {
         var self = this
         axios
-          .post('/lnticket/api/v1/tickets/{{ form_id }}', {
-            form: '{{ form_id }}',
-            name: self.formDialog.data.name,
+          .post('/subdomains/api/v1/subdomains/{{ domain_id }}', {
+            domain: '{{ domain_id }}',
+            subdomain: self.formDialog.data.subdomain,
+            ip: self.formDialog.data.ip,
             email: self.formDialog.data.email,
-            ltext: self.formDialog.data.text,
-            sats: self.formDialog.data.sats
+            sats: self.formDialog.data.sats,
+            duration: parseInt(self.formDialog.data.duration),
+            record_type: self.formDialog.data.record_type
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -161,8 +178,9 @@
 
             paymentChecker = setInterval(function () {
               axios
-                .get('/lnticket/api/v1/tickets/' + self.paymentCheck)
+                .get('/subdomains/api/v1/subdomains/' + self.paymentCheck)
                 .then(function (res) {
+                  console.log(res.data)
                   if (res.data.paid) {
                     clearInterval(paymentChecker)
                     self.receive = {
@@ -172,22 +190,28 @@
                     }
                     dismissMsg()
 
-                    self.formDialog.data.name = ''
+                    console.log(self.formDialog)
+                    self.formDialog.data.subdomain = ''
                     self.formDialog.data.email = ''
-                    self.formDialog.data.text = ''
+                    self.formDialog.data.ip = ''
+                    self.formDialog.data.duration = ''
+                    self.formDialog.data.record_type = ''
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',
                       icon: 'thumb_up'
                     })
+                    console.log('END')
                   }
                 })
                 .catch(function (error) {
+                  console.log(error)
                   LNbits.utils.notifyApiError(error)
                 })
             }, 2000)
           })
           .catch(function (error) {
+            console.log(error)
             LNbits.utils.notifyApiError(error)
           })
       }

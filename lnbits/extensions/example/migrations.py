@@ -1,4 +1,4 @@
-#async def m001_initial(db):
+# async def m001_initial(db):
 
 #    await db.execute(
 #        """
