@@ -139,10 +139,12 @@ async def pay_invoice(
                 **payment_kwargs,
             )
             await delete_payment(temp_id)
+            await db.commit()
         else:
+            await delete_payment(temp_id)
+            await db.commit()
             raise Exception(payment.error_message or "Failed to pay_invoice on backend.")
 
-    await db.commit()
     return invoice.payment_hash
 
 
