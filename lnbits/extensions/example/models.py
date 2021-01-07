@@ -1,8 +1,8 @@
-#from sqlite3 import Row
-#from typing import NamedTuple
+# from sqlite3 import Row
+# from typing import NamedTuple
 
 
-#class Example(NamedTuple):
+# class Example(NamedTuple):
 #    id: str
 #    wallet: str
 #
