@@ -1,0 +1,176 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="deep-purple" @click="domainDialog.show = true"
+          >New Tournament</q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Tournaments</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportDomainsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="tournaments"
+          row-key="id"
+          :columns="tournamentsTable.columns"
+          :pagination.sync="tournamentsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openTournamentDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteTournament(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        tournaments: [],
+        tournamentsTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {
+              name: 'tournamentName',
+              align: 'left',
+              label: 'Tournament name',
+              field: 'tournament'
+            },
+            {
+              name: 'participants',
+              align: 'left',
+              label: 'Participants',
+              field: 'participants' // current_participants, max_participants
+            },
+            {
+              name: 'start_time',
+              align: 'left',
+              label: 'Starts',
+              field: 'start_time' // current_participants, max_participants
+            },
+            {
+              name: 'status',
+              align: 'left',
+              label: 'Status',
+              field: 'status'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        }
+      }
+    },
+    methods: {
+      deleteSubdomain: function (subdomainId) {
+        var self = this
+        var subdomains = _.findWhere(this.subdomains, {id: subdomainId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this subdomain')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/subdomain/api/v1/subdomains/' + subdomainId,
+                _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
+              )
+              .then(function (response) {
+                self.subdomains = _.reject(self.subdomains, function (obj) {
+                  return obj.id == subdomainId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      updateDomainDialog: function (formId) {
+        var link = _.findWhere(this.domains, {id: formId})
+        console.log(link.id)
+        this.domainDialog.data = _.clone(link)
+        this.domainDialog.data.allowed_record_types = link.allowed_record_types.split(
+          ', '
+        )
+        this.domainDialog.show = true
+      },
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getDomains()
+        this.getSubdomains()
+      }
+    }
+  })
+</script>
+
+{% endblock %}
