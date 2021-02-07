@@ -17,7 +17,7 @@
         <code>[&lt;tpos_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}tpos/api/v1/tposs -H "X-Api-Key:
+          >curl -X GET {{ request.url_root }}api/v1/tposs -H "X-Api-Key:
           &lt;invoice_key&gt;"
         </code>
       </q-card-section>
@@ -42,7 +42,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}tpos/api/v1/tposs -d '{"name":
+          >curl -X POST {{ request.url_root }}api/v1/tposs -d '{"name":
           &lt;string&gt;, "currency": &lt;string&gt;}' -H "Content-type:
           application/json" -H "X-Api-Key: &lt;admin_key&gt;"
         </code>
@@ -69,8 +69,8 @@
         <code></code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.url_root
-          }}tpos/api/v1/tposs/&lt;tpos_id&gt; -H "X-Api-Key: &lt;admin_key&gt;"
+          >curl -X DELETE {{ request.url_root }}api/v1/tposs/&lt;tpos_id&gt; -H
+          "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
     </q-card>
