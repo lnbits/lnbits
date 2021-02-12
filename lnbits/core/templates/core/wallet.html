@@ -228,7 +228,7 @@
         <strong>Scan this QRcode to open this wallet somewhere else (e.g. your cell phone)</strong><p></p>
         <q-responsive :ratio="1" class="q-mx-xl">
           <qrcode
-            :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.it}}'"
+            :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}'"
             :options="{width:240}"
           ></qrcode>
         </q-responsive><p></p>
