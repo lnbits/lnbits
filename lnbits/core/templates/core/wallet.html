@@ -224,6 +224,14 @@
         >
         <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
         <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
+        <p></p>
+        <strong>Scan this QRcode to open this wallet somewhere else (e.g. your cell phone)</strong><p></p>
+        <q-responsive :ratio="1" class="q-mx-xl">
+          <qrcode
+            :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.it}}'"
+            :options="{width:240}"
+          ></qrcode>
+        </q-responsive><p></p>
         <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
         <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
         <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
