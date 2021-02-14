@@ -221,14 +221,6 @@
       <q-card-section>
         <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
         <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
-        <p></p>
-        <strong>Scan this QRcode to open this wallet somewhere else (e.g. your cell phone)</strong><p></p>
-        <q-responsive :ratio="1" class="q-mx-xl">
-          <qrcode
-            :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}'"
-            :options="{width:240}"
-          ></qrcode>
-        </q-responsive><p></p>
         <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
         <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
         <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
@@ -237,6 +229,22 @@
         <q-separator></q-separator>
         <q-list>
           {% include "core/_api_docs.html" %}
+          <q-separator></q-separator>
+          <q-expansion-item
+            group="extras"
+            icon="settings_cell"
+            label="Export to Phone with QR Code"
+          >
+            <q-card>
+              <q-card-section>
+                <p>This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.</p>
+                <qrcode
+                  :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}'"
+                  :options="{width:240}"
+                ></qrcode>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
           <q-separator></q-separator>
           <q-expansion-item
             group="extras"
