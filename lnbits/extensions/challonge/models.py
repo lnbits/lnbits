@@ -24,3 +24,4 @@ class Participant(NamedTuple):
     status: str # (SIGNUP, PAID)
     username: str
     challonge_username: str
+    email: str
