@@ -2,36 +2,35 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS domain (
+        CREATE TABLE IF NOT EXISTS tournament (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
-            domain TEXT NOT NULL,
+            challonge_API TEXT NOT NULL,
+            challonge_tournament_id TEXT NOT NULL,
+            challonge_tournament_name TEXT NOT NULL,
+            signup_fee BIGINT NOT NULL,
+            prize_pool BIGINT NOT NULL,
+            total_prize_pool BIGINT NOT NULL,
+            max_participants INTEGER NOT NULL,
+            current_participants INTEGER,
+            status TEXT NOT NULL, 
+            winner_id TEXT,
             webhook TEXT,
-            cf_token TEXT NOT NULL,
-            cf_zone_id TEXT NOT NULL,
-            description TEXT NOT NULL,
-            cost INTEGER NOT NULL,
-            amountmade INTEGER NOT NULL,
-            allowed_record_types TEXT NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            start_time  TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
     )
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS subdomain (
+        CREATE TABLE IF NOT EXISTS participant (
             id TEXT PRIMARY KEY,
-            domain TEXT NOT NULL,
-            email TEXT NOT NULL,
-            subdomain TEXT NOT NULL,
-            ip TEXT NOT NULL,
-            wallet TEXT NOT NULL,
-            sats INTEGER NOT NULL,
-            duration INTEGER NOT NULL,
-            paid BOOLEAN NOT NULL,
-            record_type TEXT NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            tournament TEXT NOT NULL,
+            secret TEXT NOT NULL,
+            status TEXT NOT NULL,
+            username TEXT NOT NULL,
+            challonge_username TEXT NOT NULL,
+            email TEXT NOT NULL
         );
     """
     )
