@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - docker-image # For testing purposes
 
 jobs:
     build:
