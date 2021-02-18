@@ -68,7 +68,7 @@ Wallets can be easily generated and given out to people at events (one click mul
 
 ![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
 
-## Tip me
+## Tip us
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
