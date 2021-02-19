@@ -23,9 +23,12 @@ RUN pip install lndgrpc purerpc
 # Production image
 FROM python:3.7-slim as lnbits
 
+# Run as non-root
+USER 1000:1000
+
 # Copy over virtualenv
 ENV VIRTUAL_ENV="/opt/venv"
-COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=builder --chown=1000:1000 $VIRTUAL_ENV $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Setup Quart
@@ -38,7 +41,7 @@ ENV LNBITS_BIND="0.0.0.0:5000"
 
 # Copy in app source
 WORKDIR /app
-COPY lnbits /app/lnbits
+COPY --chown=1000:1000 lnbits /app/lnbits
 
 EXPOSE 5000
 
