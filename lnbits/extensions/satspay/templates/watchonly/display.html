@@ -1,0 +1,54 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <div class="text-center">
+          <a href="lightning:{{ link.lnurl }}">
+            <q-responsive :ratio="1" class="q-mx-md">
+              <qrcode
+                value="{{ link.lnurl }}"
+                :options="{width: 800}"
+                class="rounded-borders"
+              ></qrcode>
+            </q-responsive>
+          </a>
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn outline color="grey" @click="copyText('{{ link.lnurl }}')"
+            >Copy LNURL</q-btn
+          >
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-mb-sm q-mt-none">
+          LNbits LNURL-pay link
+        </h6>
+        <p class="q-my-none">
+          Use a LNURL compatible bitcoin wallet to claim the sats.
+        </p>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>
+          {% include "lnurlp/_lnurl.html" %}
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin]
+  })
+</script>
+{% endblock %}
