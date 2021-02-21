@@ -53,6 +53,7 @@ async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Walle
     )
        # weallet_id = db.cursor.lastrowid
     address = await create_charge(wallet_id, user)
+    print(address)
     return await get_watch_wallet(wallet_id)
 
 
@@ -79,9 +80,10 @@ async def delete_watch_wallet(wallet_id: str) -> None:
 
 ###############CHARGES##########################
 
-async def create_charge(*, walletid: str, user: str, title: Optional[str] = None, time: Optional[int] = None, amount: Optional[int] = None) -> Charges:
+
+async def create_charge(walletid: str, user: str, title: Optional[str] = None, time: Optional[int] = None, amount: Optional[int] = None) -> Charges:
     wallet = await get_watch_wallet(walletid)
-    address = await get_derive_address(wallet_id, wallet[4] + 1)
+    address = await get_derive_address(walletid, wallet[4] + 1)
 
     charge_id = urlsafe_short_hash()
     await db.execute(
@@ -105,7 +107,7 @@ async def create_charge(*, walletid: str, user: str, title: Optional[str] = None
 
 async def get_charge(charge_id: str) -> Charges:
     row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
-    return charges.from_row(row) if row else None
+    return Charges.from_row(row) if row else None
 
 
 async def get_charges(user: str) -> List[Charges]:
