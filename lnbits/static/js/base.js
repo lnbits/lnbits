@@ -140,7 +140,10 @@ window.LNbits = {
           'bolt11',
           'preimage',
           'payment_hash',
-          'extra'
+          'extra',
+          'wallet_id',
+          'webhook',
+          'webhook_status'
         ],
         data
       )

@@ -84,6 +84,8 @@ class Payment(NamedTuple):
     payment_hash: str
     extra: Dict
     wallet_id: str
+    webhook: str
+    webhook_status: int
 
     @classmethod
     def from_row(cls, row: Row):
@@ -99,6 +101,8 @@ class Payment(NamedTuple):
             memo=row["memo"],
             time=row["time"],
             wallet_id=row["wallet"],
+            webhook=row["webhook"],
+            webhook_status=row["webhook_status"],
         )
 
     @property

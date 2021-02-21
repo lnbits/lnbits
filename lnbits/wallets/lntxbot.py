@@ -82,7 +82,7 @@ class LntxbotWallet(Wallet):
 
         data = r.json()
         checking_id = data["payment_hash"]
-        fee_msat = data["fee_msat"]
+        fee_msat = -data["fee_msat"]
         preimage = data["payment_preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 

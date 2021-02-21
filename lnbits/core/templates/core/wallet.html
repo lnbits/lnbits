@@ -219,9 +219,6 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn flat color="grey" @click="exportCSV" class="float-right"
-          >Renew keys</q-btn
-        >
         <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
         <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
         <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
@@ -232,6 +229,22 @@
         <q-separator></q-separator>
         <q-list>
           {% include "core/_api_docs.html" %}
+          <q-separator></q-separator>
+          <q-expansion-item
+            group="extras"
+            icon="settings_cell"
+            label="Export to Phone with QR Code"
+          >
+            <q-card>
+              <q-card-section>
+                <p>This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.</p>
+                <qrcode
+                  :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}'"
+                  :options="{width:240}"
+                ></qrcode>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
           <q-separator></q-separator>
           <q-expansion-item
             group="extras"

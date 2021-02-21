@@ -28,6 +28,7 @@ async def create_invoice(
     memo: str,
     description_hash: Optional[bytes] = None,
     extra: Optional[Dict] = None,
+    webhook: Optional[str] = None,
 ) -> Tuple[str, str]:
     await db.begin()
     invoice_memo = None if description_hash else memo
@@ -50,6 +51,7 @@ async def create_invoice(
         amount=amount_msat,
         memo=storeable_memo,
         extra=extra,
+        webhook=webhook,
     )
 
     await db.commit()
@@ -137,10 +139,12 @@ async def pay_invoice(
                 **payment_kwargs,
             )
             await delete_payment(temp_id)
+            await db.commit()
         else:
+            await delete_payment(temp_id)
+            await db.commit()
             raise Exception(payment.error_message or "Failed to pay_invoice on backend.")
 
-    await db.commit()
     return invoice.payment_hash
 
 
