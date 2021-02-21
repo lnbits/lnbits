@@ -20,7 +20,7 @@ from embit import script
 from embit import ec
 from embit.networks import NETWORKS
 from binascii import unhexlify, hexlify, a2b_base64, b2a_base64
-import requests
+import httpx
 
 
 async def get_derive_address(wallet_id: str, num: int):
@@ -122,7 +122,13 @@ async def delete_charge(charge_id: str) -> None:
 async def check_address_balance(address: str) -> List[Charges]:
     address_data = await get_address(address)
     mempool = await get_mempool(address_data.user)
-    r = requests.get(mempool.endpoint + "/api/address/" + address)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(mempool.endpoint + "/api/address/" + address)
+    except Exception:
+        pass
+
     amount_paid = r.json()['chain_stats']['funded_txo_sum'] - r.json()['chain_stats']['spent_txo_sum']
     print(amount_paid)
 

@@ -1,5 +1,5 @@
 import hashlib
-from quart import g, jsonify, request, url_for
+from quart import g, jsonify, url_for
 from http import HTTPStatus
 import httpx
 
