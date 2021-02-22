@@ -3,6 +3,7 @@ from typing import NamedTuple
 class Tournament(NamedTuple):
     id: str
     wallet: str
+    tournament_name: str
     challonge_API: str
     challonge_tournament_id: str
     challonge_tournament_name: str
@@ -19,6 +20,7 @@ class Tournament(NamedTuple):
 
 class Participant(NamedTuple):
     id: str
+    wallet: str
     tournament: str
     secret: str
     status: str # (SIGNUP, PAID)
