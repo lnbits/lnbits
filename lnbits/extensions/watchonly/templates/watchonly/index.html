@@ -468,7 +468,44 @@
     },
 
     methods: {
+      getAddresses: function (walletID) {
+        var self = this
 
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/addresses/' + walletID,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+
+              self.Addresses.data = response.data
+              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
+              console.log(self.currentaddress)
+
+            })
+ 
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+        getFreshAddress: function (walletID) {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/address/' + walletID,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+         console.log(response.data)
+          self.Addresses.data = response.data
+              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
+
+          })
+
+      },
 
       chargeRedirect: function (address){
         window.location.href = this.mempool.endpoint + "/address/" + address;
