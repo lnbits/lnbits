@@ -142,124 +142,9 @@
         </q-table>
       </q-card-section>
     </q-card>
-
-
-
-    <q-card>
-      <q-card-section>
-        <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Paylinks</h5>
-          </div>
-          <div class="col-auto">
-        <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
-          <template v-slot:append>
-            <q-icon name="search"></q-icon>
-          </template>
-        </q-input>
-
-          </div>
-        </div>
-        <q-table
-          flat
-          dense
-          :data="ChargeLinks"
-          row-key="id"
-          :columns="ChargesTable.columns"
-          :pagination.sync="ChargesTable.pagination"
-          :filter="filter"
-        >
-
-
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-
-
-              
-              <q-th v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>
-                {{ col.label }}
-              </div>
-              </q-th>
-              <q-th auto-width></q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr :props="props">
-
-               <q-td auto-width>
-
-                 <q-icon v-if="props.row.timeleft < 1 && props.row.amount_paid < props.row.amount"
-                  #unelevated
-                  dense
-                  size="xs"
-                 name="error"
-                 :color="($q.dark.isActive) ? 'red' : 'red'"
-                 ></q-icon>
-
-                 <q-icon v-else-if="props.row.amount_paid > props.row.amount"
-                  #unelevated
-                  dense
-                  size="xs"
-                 name="check"
-                 :color="($q.dark.isActive) ? 'green' : 'green'"
-                 ></q-icon>
-
-                 <q-icon v-else="props.row.amount_paid < props.row.amount && props.row.timeleft > 1"
-                  #unelevated
-                  dense
-                  size="xs"
-                 name="cached"
-                 :color="($q.dark.isActive) ? 'blue' : 'blue'"
-                 ></q-icon>
-
-               
-
-                 <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="openUpdateDialog(props.row.id)"
-                  icon="edit"
-                  color="light-blue"
-                ></q-btn>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="deleteWalletLink(props.row.id)"
-                  icon="cancel"
-                  color="pink"
-                ></q-btn>
-
-
-             </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>
-                {{ col.value }}
-              </div>
-              </q-td>
-
-            </q-tr>
-          </template>
-          {% endraw %}
-
-
-
-
-        </q-table>
-      </q-card-section>
-    </q-card>
-
-
-
-
   </div>
 
-
+  {% endraw %}
 
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
@@ -271,7 +156,7 @@
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
         <q-list>
-          {% include "watchonly/_api_docs.html" %}
+         {% include "watchonly/_api_docs.html" %} 
         </q-list>
       </q-card-section>
     </q-card>

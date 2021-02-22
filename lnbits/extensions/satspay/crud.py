@@ -6,20 +6,7 @@ from .models import Charges
 
 from lnbits.helpers import urlsafe_short_hash
 
-from embit import bip32
-from embit import ec
-from embit.networks import NETWORKS
-from embit import base58
-from embit.util import hashlib
-import io
-from embit.util import secp256k1
-from embit import hashes
-from binascii import hexlify
 from quart import jsonify
-from embit import script
-from embit import ec
-from embit.networks import NETWORKS
-from binascii import unhexlify, hexlify, a2b_base64, b2a_base64
 import httpx
 
 
