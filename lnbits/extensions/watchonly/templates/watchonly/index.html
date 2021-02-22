@@ -82,20 +82,7 @@
             <q-tr :props="props">
 
                           <q-td auto-width>
-
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="toll"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="formDialogCharge.show = true, formDialogCharge.data.walletid = props.row.id"
-                >
-                  
-         <q-tooltip>
-           Charge link
-         </q-tooltip>
-                </q-btn>      
+   
                 <q-btn
                   unelevated
                   dense
@@ -572,7 +559,7 @@
       openQrCodeDialog: function (linkId) {
         var self = this
         var getAddresses = this.getAddresses
-        getAddresses(linkId)
+        this.getAddresses(linkId)
         self.current = linkId
         self.Addresses.show = true
       },
