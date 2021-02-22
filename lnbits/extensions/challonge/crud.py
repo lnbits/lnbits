@@ -24,7 +24,7 @@ async def create_participant(
         (payment_hash, wallet, tournament, secret, status, username, challonge_username),
     )
 
-    participant = await get_subdomain(payment_hash)
+    participant = await get_participant(payment_hash)
     assert participant, "Newly created subdomain couldn't be retrieved"
     return participant
 
