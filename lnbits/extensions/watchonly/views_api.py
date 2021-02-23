@@ -82,6 +82,37 @@ async def api_wallet_delete(wallet_id):
     return jsonify({"deleted": "true"}), HTTPStatus.NO_CONTENT
 
 
+#############################ADDRESSES##########################
+
+@watchonly_ext.route("/api/v1/address/<wallet_id>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_fresh_address(wallet_id):
+    await get_fresh_address(wallet_id) 
+        
+    addresses = await get_addresses(wallet_id) 
+
+    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
+
+
+@watchonly_ext.route("/api/v1/addresses/<wallet_id>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_get_addresses(wallet_id):
+    print(wallet_id)
+
+    wallet = await get_watch_wallet(wallet_id) 
+        
+    if not wallet:
+        return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
+
+    addresses = await get_addresses(wallet_id) 
+
+    if not addresses:
+        await get_fresh_address(wallet_id)
+        addresses = await get_addresses(wallet_id) 
+
+    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
+
+
 #############################MEMPOOL##########################
 
 @watchonly_ext.route("/api/v1/mempool", methods=["PUT"])
