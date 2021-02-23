@@ -1,46 +1,66 @@
 {% extends "public.html" %} {% block page %}
-<div class="row q-col-gutter-md justify-center">
-  <div class="col-12 col-sm-6 col-md-5 col-lg-4">
-    <q-card class="q-pa-lg">
-      <q-card-section class="q-pa-none">
+
+<div class="q-pa-md">
+  <q-card class="my-card">
+    <q-card-section>
+      <div class="text-h6">Our Changing Planet</div>
+      <div class="text-subtitle2">by John Doe</div>
+    </q-card-section>
+
+    <q-tabs v-model="tab" class="text-teal">
+      <q-tab label="Tab one" name="one" />
+      <q-tab label="Tab two" name="two" />
+    </q-tabs>
+
+    <q-separator />
+
+    <q-tab-panels v-model="tab" animated>
+      <q-tab-panel name="Lightning">
         <div class="text-center">
-          <a href="lightning:{{ link.lnurl }}">
+          <a href="lightning:{{ charge.id }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
-                value="{{ link.lnurl }}"
-                :options="{width: 800}"
+                value="{{ charge.id }}"
+                :options="{width: 300}"
                 class="rounded-borders"
               ></qrcode>
             </q-responsive>
           </a>
         </div>
         <div class="row q-mt-lg">
-          <q-btn outline color="grey" @click="copyText('{{ link.lnurl }}')"
-            >Copy LNURL</q-btn
+          <q-btn outline color="grey" @click="copyText('{{ charge.id }}')"
+            >Copy address</q-btn
           >
         </div>
-      </q-card-section>
-    </q-card>
-  </div>
-  <div class="col-12 col-sm-6 col-md-5 col-lg-4 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h6 class="text-subtitle1 q-mb-sm q-mt-none">
-          LNbits LNURL-pay link
-        </h6>
-        <p class="q-my-none">
-          Use a LNURL compatible bitcoin wallet to claim the sats.
-        </p>
-      </q-card-section>
-      <q-card-section class="q-pa-none">
-        <q-separator></q-separator>
-        <q-list>
-          {% include "lnurlp/_lnurl.html" %}
-        </q-list>
-      </q-card-section>
-    </q-card>
-  </div>
+      </q-tab-panel>
+
+      <q-tab-panel name="Onchain">
+        <div class="text-center">
+          <a href="lightning:{{ charge.id }}">
+            <q-responsive :ratio="1" class="q-mx-md">
+              <qrcode
+                value="{{ charge.id }}"
+                :options="{width: 300}"
+                class="rounded-borders"
+              ></qrcode>
+            </q-responsive>
+          </a>
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn outline color="grey" @click="copyText('{{ charge.id }}')"
+            >Copy address</q-btn
+          >
+        </div>
+      </q-tab-panel>
+    </q-tab-panels>
+  </q-card>
 </div>
+
+
+
+
+
+
 {% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <script>

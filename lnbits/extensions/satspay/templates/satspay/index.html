@@ -54,7 +54,18 @@
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
                <q-td auto-width>
 
                  <q-icon v-if="props.row.timeleft < 1 && props.row.amount_paid < props.row.amount"
@@ -279,6 +290,7 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
+    obj.displayUrl = ['/satspay/', obj.id].join('')
     return obj
   }
 
