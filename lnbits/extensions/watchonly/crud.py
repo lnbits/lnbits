@@ -11,6 +11,7 @@ from embit import ec
 from embit.networks import NETWORKS
 from embit import base58
 from embit.util import hashlib
+
 import io
 from embit.util import secp256k1
 from embit import hashes
@@ -22,15 +23,6 @@ from embit.networks import NETWORKS
 from binascii import unhexlify, hexlify, a2b_base64, b2a_base64
 import httpx
 
-
-async def get_derive_address(wallet_id: str, num: int):
-    
-    wallet = await get_watch_wallet(wallet_id)
-    k = bip32.HDKey.from_base58(str(wallet[2]))
-    child = k.derive([0, num])
-    address = script.p2wpkh(child).address()
-
-    return address
 
 
 ##########################WALLETS####################
@@ -52,8 +44,7 @@ async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Walle
         (wallet_id, user, masterpub, title, 0, 0),
     )
        # weallet_id = db.cursor.lastrowid
-    address = await create_charge(wallet_id, user)
-    print(address)
+
     return await get_watch_wallet(wallet_id)
 
 
@@ -80,11 +71,18 @@ async def delete_watch_wallet(wallet_id: str) -> None:
     ########################ADDRESSES#######################
 
 async def get_derive_address(wallet_id: str, num: int):
-    
+
     wallet = await get_watch_wallet(wallet_id)
-    k = bip32.HDKey.from_base58(str(wallet[2]))
+    key = wallet[2]
+    k = bip32.HDKey.from_base58(key)
     child = k.derive([0, num])
-    address = script.p2wpkh(child).address()
+    
+    if key[0:4] == "xpub":
+        address = script.p2pkh(child).address()
+    elif key[0:4] == "zpub":
+        address = script.p2wpkh(child).address()
+    elif key[0:4] == "ypub":
+        address = script.p2sh(script.p2wpkh(child)).address()
 
     return address
 
