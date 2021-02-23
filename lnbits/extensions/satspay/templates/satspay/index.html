@@ -170,6 +170,14 @@
           label="Time (secs)"
         > </q-input>       
 
+        <q-input
+        filled
+        dense
+        v-model.trim="formDialogCharge.data.webhook"
+        type="url"
+        label="Webhook"
+      > </q-input>    
+
         <div class="row">
           <div class="col">
             <div v-if="walletLinks.length > 0">
@@ -375,7 +383,7 @@
           .then(function (response) {
 
             for (i = 0; i < response.data.length; i++) {
-              self.walletLinks.push(response.data[i].title + " " + response.data[i].id)
+              self.walletLinks.push(response.data[i].id)
             }
             console.log(self.walletLinks)
        

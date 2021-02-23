@@ -81,7 +81,7 @@
           <template v-slot:body="props">
             <q-tr :props="props">
 
-                          <q-td auto-width>
+            <q-td auto-width>
    
                 <q-btn
                   unelevated
@@ -194,62 +194,6 @@
       </q-form>
     </q-card>
   </q-dialog>
-
-
-  <q-dialog v-model="formDialogCharge.show" position="top" @hide="closeFormDialog">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormDataCharge" class="q-gutter-md">
-
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialogCharge.data.title"
-          type="text"
-          label="Title"
-        ></q-input>
-
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialogCharge.data.amount"
-          type="number"
-          label="Amount (sats)"
-        ></q-input>      
-
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialogCharge.data.time"
-          type="number"
-          label="Time (secs)"
-        > </q-input>                  
-        
-        <div class="row q-mt-lg">
-          <q-btn
-            v-if="formDialogCharge.data.id"
-            unelevated
-            color="deep-purple"
-            type="submit"
-            >Update Paylink</q-btn
-          >
-          <q-btn
-            v-else
-            unelevated
-            color="deep-purple"
-            :disable="
-                formDialogCharge.data.time == null ||
-                formDialogCharge.data.amount == null"
-            type="submit"
-            >Create Paylink</q-btn
-          >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-    </q-card>
-  </q-dialog>
-
 
   <q-dialog v-model="Addresses.show" position="top">
     <q-card v-if="Addresses.data" class="q-pa-lg lnbits__dialog-card">
@@ -378,6 +322,7 @@
               label: 'Title',
               field: 'title'
             },
+
             {
               name: 'amount',
               align: 'left',
@@ -443,10 +388,7 @@
           show: false,
           data: {}
         },
-        formDialogCharge: {
-          show: false,
-          data: {}
-        },
+
         qrCodeDialog: {
           show: false,
           data: null
@@ -494,9 +436,7 @@
 
       },
 
-      chargeRedirect: function (address){
-        window.location.href = this.mempool.endpoint + "/address/" + address;
-      },
+
         getMempool: function () {
         var self = this
 
@@ -580,105 +520,6 @@
         }
       },
 
-      getCharges: function () {
-        var self = this
-        var getAddressBalance = this.getAddressBalance
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/ChargeLinks',
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            var i
-            var now = parseInt(new Date() / 1000)
-            for (i = 0; i < response.data.length; i++) {
-              timeleft =  response.data[i].time_to_pay - (now - response.data[i].time) 
-              if (timeleft < 1) {
-              response.data[i].timeleft = 0
-              }
-              else{
-              response.data[i].timeleft = timeleft
-              }
-             
-            }
-            self.ChargeLinks = response.data.map(function (obj) {
-              return mapCharge(obj)
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      sendFormDataCharge: function () {
-        var self = this
-        var wallet = self.g.user.wallets[0]
-        var data = self.formDialogCharge.data
-        data.amount = parseInt(data.amount)
-        data.time = parseInt(data.time)
-        if (data.id) {
-          this.updateCharge(wallet, data)
-        } else {
-          this.createCharge(wallet, data)
-        }
-      },
-      updateCharge: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/watchonly/api/v1/Charge/' + data.id,
-            wallet.inkey, data)
-          .then(function (response) {
-            self.Charge = _.reject(self.Charge, function (obj) {
-              return obj.id === data.id
-            })
-            self.Charge.push(mapCharge(response.data))
-            self.formDialogPayLink.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      createCharge: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request('POST', '/watchonly/api/v1/Charge', wallet.inkey, data)
-          .then(function (response) {
-            self.ChargeLinks.push(mapCharge(response.data))
-            self.formDialogCharge.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-
-      deleteCharge: function (linkId) {
-        var self = this
-        var link = _.findWhere(this.Charge, {id: linkId})
-        console.log(self.g.user.wallets[0].adminkey)
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/watchonly/api/v1/Charge/' + linkId,
-                self.g.user.wallets[0].inkey
-              )
-          .then(function (response) {
-              self.Charge = _.reject(self.Charge, function (obj) {
-                return obj.id === linkId
-          })})
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-
       updateWalletLink: function (wallet, data) {
         var self = this
 
@@ -743,8 +584,6 @@
       if (this.g.user.wallets.length) {
         var getWalletLinks = this.getWalletLinks
         getWalletLinks()
-        var getCharges = this.getCharges
-        getCharges()
         var getMempool = this.getMempool
         getMempool()
 

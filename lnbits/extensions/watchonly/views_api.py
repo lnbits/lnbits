@@ -82,67 +82,6 @@ async def api_wallet_delete(wallet_id):
     return jsonify({"deleted": "true"}), HTTPStatus.NO_CONTENT
 
 
-#############################CHARGES##########################
-
-@watchonly_ext.route("/api/v1/charges", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_charges_retrieve():
-
-    charges = await get_charges(g.wallet.user)
-    if not charges:
-        return (
-            jsonify(""),
-            HTTPStatus.OK
-        )
-    else:
-        return jsonify([charge._asdict() for charge in charges]), HTTPStatus.OK
-
-
-@watchonly_ext.route("/api/v1/charge/<charge_id>", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_charge_retrieve(charge_id):
-    charge = get_charge(charge_id) 
-        
-    if not charge:
-        return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
-
-    return jsonify({charge}), HTTPStatus.OK
-
-
-@watchonly_ext.route("/api/v1/charge", methods=["POST"])
-@watchonly_ext.route("/api/v1/charge/<charge_id>", methods=["PUT"])
-@api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "walletid": {"type": "string", "empty": False, "required": True},
-        "title": {"type": "string", "empty": False, "required": True},
-        "time": {"type": "integer", "min": 1, "required": True},
-        "amount": {"type": "integer", "min": 1, "required": True},
-    }
-)
-async def api_charge_create_or_update(charge_id=None):
-
-    if not charge_id:
-        charge = await create_charge(user = g.wallet.user, **g.data)
-        return jsonify(charge), HTTPStatus.CREATED
-
-    else:
-        charge = await update_charge(user = g.wallet.user, **g.data) 
-        return jsonify(charge), HTTPStatus.OK 
-
-
-@watchonly_ext.route("/api/v1/charge/<charge_id>", methods=["DELETE"])
-@api_check_wallet_key("invoice")
-async def api_charge_delete(charge_id):
-    charge = await get_watch_wallet(charge_id)
-
-    if not charge:
-        return jsonify({"message": "Wallet link does not exist."}), HTTPStatus.NOT_FOUND
-
-    await delete_watch_wallet(charge_id)
-
-    return "", HTTPStatus.NO_CONTENT
-
 #############################MEMPOOL##########################
 
 @watchonly_ext.route("/api/v1/mempool", methods=["PUT"])
