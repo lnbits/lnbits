@@ -4,7 +4,6 @@ from http import HTTPStatus
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from . import watchonly_ext
-from .crud import get_charge
 
 
 @watchonly_ext.route("/")
