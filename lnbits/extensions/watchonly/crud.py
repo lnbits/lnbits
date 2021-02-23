@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 #from lnbits.db import open_ext_db
 from . import db
-from .models import Wallets, Charges, Mempool
+from .models import Wallets, Addresses, Mempool
 
 from lnbits.helpers import urlsafe_short_hash
 
