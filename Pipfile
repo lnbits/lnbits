@@ -25,6 +25,7 @@ trio = "==0.16.0"
 hypercorn = {extras = ["trio"], version = "*"}
 sqlalchemy-aio = "*"
 pyqrcode = "*"
+pypng = "*"
 
 [dev-packages]
 black = "==20.8b1"
