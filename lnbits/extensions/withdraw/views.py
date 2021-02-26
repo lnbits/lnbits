@@ -23,8 +23,11 @@ async def display(link_id):
 @withdraw_ext.route("/img/<link_id>")
 async def img(link_id):
     link = await get_withdraw_link(link_id, 0) or abort(HTTPStatus.NOT_FOUND, "Withdraw link does not exist.")
+    print(link)
     qr = pyqrcode.create(link.lnurl)
+    print(qr)
     qrimage = qr.png('qrimage.png', scale=5)
+    print(qrimage)
     return '<img src=' + qrimage + '>'
 
 @withdraw_ext.route("/print/<link_id>")
