@@ -1,7 +1,7 @@
 from quart import g, abort, render_template
 from http import HTTPStatus
 import pyqrcode
-import png
+from io import BytesIO
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from . import withdraw_ext
@@ -27,9 +27,13 @@ async def img(link_id):
     print(link)
     qr = pyqrcode.create(link.lnurl)
     print(qr)
-    qrimage = qr.png('qrimage.png', scale=5)
-    print(qrimage)
-    return qrimage
+    stream = BytesIO()
+    qr.svg(stream, scale=3)
+    return stream.getvalue(), 200, {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'}
 
 @withdraw_ext.route("/print/<link_id>")
 async def print_qr(link_id):
