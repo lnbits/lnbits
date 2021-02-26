@@ -28,7 +28,7 @@ async def img(link_id):
     print(qr)
     qrimage = qr.png('qrimage.png', scale=5)
     print(qrimage)
-    return '<img src=' + qrimage + '>'
+    return qrimage
 
 @withdraw_ext.route("/print/<link_id>")
 async def print_qr(link_id):
