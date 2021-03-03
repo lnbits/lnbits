@@ -4,7 +4,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import Tournament, Participant
-from lnbits.extensions import subdomains
 
 
 async def create_participant(

@@ -13,7 +13,6 @@ async def index():
     return await render_template("challonge/index.html", user=g.user)
 
 
-
 @challonge_ext.route("/<tournament_id>")
 async def display(tournament_id):
     tournament = await get_tournament(tournament_id)
