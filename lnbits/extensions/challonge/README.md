@@ -6,3 +6,4 @@ TODO:
 [ ] - frontend code
 [ ] - wiring everything together
 [ ] - testing
+[x] - backend logic, crud, db models, challonge api calls
