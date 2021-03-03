@@ -25,18 +25,18 @@ from .crud import (
 from .challonge import challonge_add_user_to_tournament, 
 
 
-# domainS
+# Tournaments
 
 
 @challonge_ext.route("/api/v1/tournaments", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_domains():
+async def api_tournaments():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]), HTTPStatus.OK
+    return jsonify([domain._asdict() for domain in await get_tournaments(wallet_ids)]), HTTPStatus.OK
 
 
 @challonge_ext.route("/api/v1/tournaments", methods=["POST"])
@@ -86,7 +86,7 @@ async def api_tournament_delete(tournament_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-#########subdomains##########
+#########participants##########
 
 
 @challonge_ext.route("/api/v1/participants", methods=["GET"])
@@ -97,7 +97,7 @@ async def api_participants():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([domain._asdict() for domain in await get_subdomains(wallet_ids)]), HTTPStatus.OK
+    return jsonify([domain._asdict() for domain in await get_participants(wallet_ids)]), HTTPStatus.OK
 
 
 @challonge_ext.route("/api/v1/participants/<participant_id>", methods=["POST"])
@@ -109,30 +109,27 @@ async def api_participants():
         "ip": {"type": "string", "empty": False, "required": True},
         "sats": {"type": "integer", "min": 0, "required": True},
         "duration": {"type": "integer", "empty": False, "required": True},
-        "record_type": {"type": "string", "empty": False, "required": True},
+        "record_type": {"type": "dstring", "empty": False, "required": True},
     }
 )
 async def api_participants_new_participant(tournament_id):
-    domain = await get_domain(domain_id)
+    tournament = await get_tournament(tournament_id=tournament_id)
 
     # If the request is coming for the non-existant domain
-    if not domain:
-        return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
-
-    ## If record_type is not one of the allowed ones reject the request
-    if g.data["record_type"] not in domain.allowed_record_types:
-        return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
+    if not tournament:
+        return jsonify({"message": "Tournament does not exist."}), HTTPStatus.NOT_FOUND
 
     ## If domain already exist in our database reject it
-    if await get_subdomainBySubdomain(g.data["subdomain"]) is not None:
+    if await get_participantByUsername(g.data["participant_name"]) is not None: # TODO check if g.data["participant_name"] really exist
         return (
-            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " domain already taken"}),
+            jsonify({"message": g.data["participant_name"] + "." + tournament.tournament_name + " participant with this name already registered"}),
             HTTPStatus.BAD_REQUEST,
         )
 
-    ## Dry run cloudflare... (create and if create is sucessful delete it)
-    cf_response = await cloudflare_create_subdomain(
-        domain=domain, subdomain=g.data["subdomain"], record_type=g.data["record_type"], ip=g.data["ip"]
+    ## Dry run challonge... (create and if create is sucessful delete it) TODO
+    """     
+    cf_response = await challonge_add_user_to_tournament(
+        challonge_name=
     )
     if cf_response["success"] == True:
         cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
@@ -140,30 +137,31 @@ async def api_participants_new_participant(tournament_id):
         return (
             jsonify({"message": "Problem with cloudflare: " + cf_response["errors"][0]["message"]}),
             HTTPStatus.BAD_REQUEST,
-        )
+        ) 
+    """
 
     ## ALL OK - create an invoice and return it to the user
     sats = g.data["sats"]
     payment_hash, payment_request = await create_invoice(
-        wallet_id=domain.wallet,
+        wallet_id=tournament.wallet,
         amount=sats,
-        memo=f"subdomain {g.data['subdomain']}.{domain.domain} for {sats} sats for {g.data['duration']} days",
+        memo=f"subdomain {g.data['subdomain']}.{tournament.domain} for {sats} sats for {g.data['duration']} days",
         extra={"tag": "lnsubdomain"},
-    )
+    ) # TODO Fix memo
 
-    subdomain = await create_subdomain(payment_hash=payment_hash, wallet=domain.wallet, **g.data)
+    participant = await create_participant(payment_hash=payment_hash, wallet=tournament.wallet, **g.data)
 
-    if not subdomain:
-        return jsonify({"message": "LNsubdomain could not be fetched."}), HTTPStatus.NOT_FOUND
+    if not participant:
+        return jsonify({"message": "Participant could not be fetched."}), HTTPStatus.NOT_FOUND
 
     return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.OK
 
 
 @challonge_ext.route("/api/v1/participants/<payment_hash>", methods=["GET"])
 async def api_participant_check_payment(payment_hash):
-    subdomain = await get_subdomain(payment_hash)
+    participant = await get_participant(payment_hash)
     try:
-        status = await check_invoice_status(subdomain.wallet, payment_hash)
+        status = await check_invoice_status(participant.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK
@@ -174,17 +172,17 @@ async def api_participant_check_payment(payment_hash):
     return jsonify({"paid": False}), HTTPStatus.OK
 
 
-@challonge_ext.route("/api/v1/subdomains/<subdomain_id>", methods=["DELETE"])
+@challonge_ext.route("/api/v1/participants/<participant_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-async def api_participant_delete(subdomain_id):
-    subdomain = await get_subdomain(subdomain_id)
+async def api_participant_delete(participant_id):
+    participant = await get_participant(participant_id)
 
-    if not subdomain:
+    if not participant:
         return jsonify({"message": "Paywall does not exist."}), HTTPStatus.NOT_FOUND
 
-    if subdomain.wallet != g.wallet.id:
-        return jsonify({"message": "Not your subdomain."}), HTTPStatus.FORBIDDEN
+    if participant.wallet != g.wallet.id:
+        return jsonify({"message": "Not your participant."}), HTTPStatus.FORBIDDEN
 
-    await delete_subdomain(subdomain_id)
+    await delete_participant(participant_id)
 
     return "", HTTPStatus.NO_CONTENT
