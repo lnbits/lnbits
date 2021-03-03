@@ -27,11 +27,17 @@ async def img(link_id):
     qr = pyqrcode.create(link.lnurl)
     stream = BytesIO()
     qr.svg(stream, scale=3)
-    return stream.getvalue(), 200, {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'}
+    return (
+        stream.getvalue(),
+        200,
+        {
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
 
 @withdraw_ext.route("/print/<link_id>")
 async def print_qr(link_id):
