@@ -1,6 +1,5 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
-
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
@@ -87,7 +86,7 @@
     </q-card>
   </div>
 </div>
-
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   new Vue({
     el: '#vue',
@@ -131,43 +130,15 @@
       }
     },
     methods: {
-      deleteSubdomain: function (subdomainId) {
-        var self = this
-        var subdomains = _.findWhere(this.subdomains, {id: subdomainId})
-
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this subdomain')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/subdomain/api/v1/subdomains/' + subdomainId,
-                _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
-              )
-              .then(function (response) {
-                self.subdomains = _.reject(self.subdomains, function (obj) {
-                  return obj.id == subdomainId
-                })
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-      updateDomainDialog: function (formId) {
+      openTournamentDialog: function (formId) {
         var link = _.findWhere(this.domains, {id: formId})
-        console.log(link.id)
-        this.domainDialog.data = _.clone(link)
-        this.domainDialog.data.allowed_record_types = link.allowed_record_types.split(
-          ', '
-        )
+        this.tournamentDialog.data = _.clone(link)
         this.domainDialog.show = true
       },
     },
     created: function () {
       if (this.g.user.wallets.length) {
-        this.getDomains()
-        this.getSubdomains()
+        this.getTournaments()
       }
     }
   })
