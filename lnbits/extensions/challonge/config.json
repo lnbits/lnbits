@@ -1,7 +1,7 @@
 {
     "name": "Challonge",
-    "short_description": "Organize a tournament, charge satoshis for signups, automate payouts to winners",
-    "icon": "tournament",
+    "short_description": "Organize bitcoin tournaments",
+    "icon": "emoji_events",
     "contributors": ["grmkris"]
   }
   

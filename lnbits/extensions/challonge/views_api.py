@@ -22,7 +22,7 @@ from .crud import (
     get_tournament,
     get_tournaments, update_tournament
 )
-from .challonge import challonge_add_user_to_tournament, 
+from .challonge import challonge_add_user_to_tournament
 
 
 # Tournaments

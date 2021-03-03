@@ -17,7 +17,7 @@ async def m001_initial(db):
             status TEXT NOT NULL,
             winner_id TEXT,
             webhook TEXT,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now')),
             start_time TIMESTAMP NOT NULL
         );
     """
@@ -31,7 +31,7 @@ async def m001_initial(db):
             tournament TEXT NOT NULL,
             secret TEXT NOT NULL,
             status TEXT NOT NULL,
-            username: TEXT NOT NULL,
+            username TEXT NOT NULL,
             challonge_username TEXT NOT NULL
         );
     """
