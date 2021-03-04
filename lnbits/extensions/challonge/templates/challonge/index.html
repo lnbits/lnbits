@@ -85,6 +85,99 @@
       </q-card-section>
     </q-card>
   </div>
+
+  <q-dialog v-model="tournamentDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="tournamentDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <!-- TODO -->
+        <q-select
+          dense
+          filled
+          v-model="tournamentDialog.data" 
+          multiple
+          :options="dnsRecordTypes"
+          label="Allowed record types"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="tournamentDialog.data."
+          type="text"
+          label="Domain name "
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="tournamentDialog.data."
+          type="text"
+          label="Cloudflare API token"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="tournamentDialog.data."
+          type="text"
+          label="Cloudflare Zone Id"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="tournamentDialog.data."
+          type="text"
+          label="Webhook (optional)"
+          hint="A URL to be called whenever this link receives a payment."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="tournamentDialog.data."
+          type="textarea"
+          label="Description "
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="tournamentDialog.data."
+          type="number"
+          label="Amount per day in satoshis"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="tournamentDialog.data.id"
+            unelevated
+            color="deep-purple"
+            type="submit"
+            >Update Form</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="deep-purple"
+            :disable="tournamentDialog.data.cost == null || tournamentDialog.data.cost < 0 || tournamentDialog.data.domain == null"
+            type="submit"
+            >Create Tournament</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
