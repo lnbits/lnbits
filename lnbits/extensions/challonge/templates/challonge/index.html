@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="domainDialog.show = true"
+        <q-btn unelevated color="deep-purple" @click="tournamentDialog.show = true"
           >New Tournament</q-btn
         >
       </q-card-section>
@@ -17,7 +17,7 @@
             <h5 class="text-subtitle1 q-my-none">Tournaments</h5>
           </div>
           <div class="col-auto">
-            <q-btn flat color="grey" @click="exportDomainsCSV"
+            <q-btn flat color="grey" @click="exportTournamentCSV"
               >Export to CSV</q-btn
             >
           </div>
@@ -100,60 +100,64 @@
         </q-select>
         <!-- TODO -->
         <q-select
-          dense
           filled
-          v-model="tournamentDialog.data" 
-          multiple
-          :options="dnsRecordTypes"
-          label="Allowed record types"
+          dense
+          emit-value
+          v-model.trim="tournamentDialog.data.challonge_API"
+          type="text"
+          label="Challonge api key"
         ></q-select>
         <q-input
           filled
           dense
           emit-value
-          v-model.trim="tournamentDialog.data."
+          v-model.trim="tournamentDialog.data.challonge_tournament_id"
           type="text"
-          label="Domain name "
+          label="Challonge tournament id"
         ></q-input>
         <q-input
           filled
           dense
-          v-model.trim="tournamentDialog.data."
+          v-model.trim="tournamentDialog.data.challonge_tournament_name"
           type="text"
-          label="blablabla"
+          label="Tournament_name"
         >
         </q-input>
         <q-input
           filled
           dense
-          v-model.trim="tournamentDialog.data."
-          type="text"
-          label="Cloudflare Zone Id"
+          v-model.trim="tournamentDialog.data.signup_fee"
+          type="number"
+          label="Signup fee"
         >
         </q-input>
         <q-input
           filled
           dense
-          v-model.trim="tournamentDialog.data."
+          v-model.trim="tournamentDialog.data.max_participants"
+          type="number"
+          label="Number of participants"
+        >
+        </q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="tournamentDialog.data.start_time"
+          type="date"
+          label="Start date&time"
+        >
+        </q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="tournamentDialog.data.webhook"
           type="text"
           label="Webhook (optional)"
           hint="A URL to be called whenever this link receives a payment."
         ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="tournamentDialog.data."
-          type="textarea"
-          label="Description "
-        >
-        </q-input>
-        <q-input
-          filled
-          dense
-          v-model.number="tournamentDialog.data."
-          type="number"
-          label="Amount per day in satoshis"
-        ></q-input>
+
         <div class="row q-mt-lg">
           <q-btn
             v-if="tournamentDialog.data.id"
@@ -177,7 +181,6 @@
       </q-form>
     </q-card>
   </q-dialog>
-
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -219,6 +222,10 @@
           pagination: {
             rowsPerPage: 10
           }
+        },
+        tournamentDialog: {
+          show: false,
+          data: {}
         }
       }
     },
@@ -226,12 +233,96 @@
       openTournamentDialog: function (formId) {
         var link = _.findWhere(this.domains, {id: formId})
         this.tournamentDialog.data = _.clone(link)
-        this.domainDialog.show = true
+        this.tournamentDialog.show = true
       },
-    },
-    created: function () {
-      if (this.g.user.wallets.length) {
-        this.getTournaments()
+      created: function () {
+        if (this.g.user.wallets.length) {
+          //this.getTournaments()
+          console.log('hello')
+        }
+      },
+      exportTournamentCSV: function () {
+        LNbits.utils.exportCSV(this.tournamentsTable.columns, this.tournaments)
+      },
+      sendFormData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.tournamentDialog.data.wallet
+        })
+        var data = this.tournamentDialog.data
+        console.log(this.tournamentDialog)
+        if (data.id) {
+          this.updateTournament(wallet, data)
+        } else {
+          this.createTournament(wallet, data)
+        }
+      },
+      createTournament: function (wallet, data) {
+        var self = this
+
+        LNbits.api
+          .request('POST', '/challonge/api/v1/tournaments', wallet.inkey, data)
+          .then(function (response) {
+            // self.domains.push(mapLNDomain(response.data)) kkTODO
+            self.tournamentDialog.show = false
+            self.tournamentDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateTournamentDialog: function (formId) {
+        var link = _.findWhere(this.tournaments, {id: formId})
+        console.log(link.id)
+        this.tournamentDialog.data = _.clone(link)
+        this.tournamentDialog.show = true
+      },
+      updateTournament: function (wallet, data) {
+        var self = this
+        console.log(data)
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/challonge/api/v1/tournaments' + data.id,
+            wallet.inkey,
+            data
+          )
+          .then(function (response) {
+            self.tournaments = _.reject(self.tournaments, function (obj) {
+              return obj.id == data.id
+            })
+            // self.tournaments.push(mapLNDomain(response.data)) TODO
+            self.tournamentDialog.show = false
+            self.tournamentDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteTournament: function (tournamentId) {
+        var self = this
+        var tournaments = _.findWhere(this.tournaments, {id: tournamentId})
+
+        LNbits.utils
+          .confirmDialog(
+            'Are you sure you want to delete this tournament link?'
+          )
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/challonge/api/v1/tournaments/' + tournamentId,
+                _.findWhere(self.g.user.wallets, {id: tournaments.wallet}).inkey
+              )
+              .then(function (response) {
+                self.tournaments = _.reject(self.tournaments, function (obj) {
+                  return obj.id == tournamentId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
       }
     }
   })
