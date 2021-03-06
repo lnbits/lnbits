@@ -11,8 +11,6 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import challonge_ext
 from .crud import (
-    create_participant,
-    create_tournament,
     delete_participant,
     create_tournament,
     delete_tournament,
@@ -45,13 +43,13 @@ async def api_tournaments():
 @api_validate_post_request(
     schema={ # TODO fix schema
         "wallet": {"type": "string", "empty": False, "required": True},
-        "domain": {"type": "string", "empty": False, "required": True},
-        "cf_token": {"type": "string", "empty": False, "required": True},
-        "cf_zone_id": {"type": "string", "empty": False, "required": True},
+        "challonge_API": {"type": "string", "empty": False, "required": True},
+        "challonge_tournament_id": {"type": "string", "empty": False, "required": True},
+        "challonge_tournament_name": {"type": "string", "empty": False, "required": True},
+        "signup_fee" : {"type": "integer", "empty": False, "required": True}, 
+        "max_participants" : {"type": "integer", "empty": False, "required": True}, 
+        "start_date" : {"type": "datetime", "empty": False, "required": True}, 
         "webhook": {"type": "string", "empty": False, "required": False},
-        "description": {"type": "string", "min": 0, "required": True},
-        "cost": {"type": "integer", "min": 0, "required": True},
-        "allowed_record_types": {"type": "string", "required": True},
     }
 )
 async def api_tournament_create(tournament_id=None):
