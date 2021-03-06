@@ -18,10 +18,11 @@ from .crud import (
     get_participant,
     get_participants,
     get_tournament,
-    get_tournaments, update_tournament
+    get_tournaments,
+    update_tournament,
 )
-from .challonge import challonge_add_user_to_tournament
-
+from .challonge import challonge_add_user_to_tournament, challonge_get_tournament_data, challonge_set_tournament_description
+from .dto import TournamentDTO, ParticipantDTO
 
 # Tournaments
 
@@ -41,14 +42,11 @@ async def api_tournaments():
 @challonge_ext.route("/api/v1/tournaments/<tournament_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
-    schema={ # TODO fix schema
+    schema={
         "wallet": {"type": "string", "empty": False, "required": True},
         "challonge_API": {"type": "string", "empty": False, "required": True},
         "challonge_tournament_id": {"type": "string", "empty": False, "required": True},
-        "challonge_tournament_name": {"type": "string", "empty": False, "required": True},
-        "signup_fee" : {"type": "integer", "empty": False, "required": True}, 
-        "max_participants" : {"type": "integer", "empty": False, "required": True}, 
-        "start_date" : {"type": "datetime", "empty": False, "required": True}, 
+        "signup_fee": {"type": "integer", "empty": False, "required": True},
         "webhook": {"type": "string", "empty": False, "required": False},
     }
 )
@@ -64,8 +62,36 @@ async def api_tournament_create(tournament_id=None):
 
         tournament = await update_tournament(tournament_id=tournament_id, **g.data)
     else:
+        challonge_tournament_data = await challonge_get_tournament_data(
+            challonge_API=g.data["challonge_API"], challonge_tournament_id=g.data["challonge_tournament_id"]
+        )
+        if (challonge_tournament_data == "Error occured"):
+            return challonge_tournament_data, HTTPStatus.BAD_REQUEST
+
+
+        challonge_tournament_data = await challonge_set_tournament_description(
+            challonge_API=g.data["challonge_API"], challonge_tournament_id=g.data["challonge_tournament_id"], description=challonge_tournament_data['tournament']['description'] + " <i>Signups managed by Lnbits</i>"
+        )
+        if 'errors' in challonge_tournament_data or challonge_tournament_data == "Error occured":
+            return challonge_tournament_data, HTTPStatus.BAD_REQUEST
+
         tournament = await create_tournament(**g.data)
-    return jsonify(tournament._asdict()), HTTPStatus.CREATED
+        tournamentDTO = TournamentDTO(
+            id=tournament.id,
+            wallet=tournament.wallet,
+            challonge_tournament_id=tournament.challonge_tournament_id,
+            signup_fee=tournament.signup_fee,
+            winner_id=tournament.winner_id,
+            webhook=tournament.webhook,
+            name=challonge_tournament_data['tournament']['name'],
+            description=challonge_tournament_data['tournament']['description'],
+            started_at=challonge_tournament_data['tournament']['started_at'],
+            completed_at=challonge_tournament_data['tournament']['completed_at'],
+            state=challonge_tournament_data['tournament']['state'],
+            signup_cap=challonge_tournament_data['tournament']['signup_cap'],
+            participants_count=challonge_tournament_data['tournament']['participants_count']
+        )
+        return jsonify(tournamentDTO._asdict()), HTTPStatus.CREATED
 
 
 @challonge_ext.route("/api/v1/tournaments/<tournament_id>", methods=["DELETE"])
@@ -118,9 +144,18 @@ async def api_participants_new_participant(tournament_id):
         return jsonify({"message": "Tournament does not exist."}), HTTPStatus.NOT_FOUND
 
     ## If domain already exist in our database reject it
-    if await get_participantByUsername(g.data["participant_name"]) is not None: # TODO check if g.data["participant_name"] really exist
+    if (
+        await get_participantByUsername(g.data["participant_name"]) is not None
+    ):  # TODO check if g.data["participant_name"] really exist
         return (
-            jsonify({"message": g.data["participant_name"] + "." + tournament.tournament_name + " participant with this name already registered"}),
+            jsonify(
+                {
+                    "message": g.data["participant_name"]
+                    + "."
+                    + tournament.tournament_name
+                    + " participant with this name already registered"
+                }
+            ),
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -145,7 +180,7 @@ async def api_participants_new_participant(tournament_id):
         amount=sats,
         memo=f"subdomain {g.data['subdomain']}.{tournament.domain} for {sats} sats for {g.data['duration']} days",
         extra={"tag": "lnsubdomain"},
-    ) # TODO Fix memo
+    )  # TODO Fix memo
 
     participant = await create_participant(payment_hash=payment_hash, wallet=tournament.wallet, **g.data)
 

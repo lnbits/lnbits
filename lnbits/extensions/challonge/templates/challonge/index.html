@@ -121,54 +121,11 @@
         <q-input
           filled
           dense
-          v-model.trim="tournamentDialog.data.challonge_tournament_name"
-          type="text"
-          label="Tournament_name"
-        >
-        </q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="tournamentDialog.data.signup_fee"
-          type="integer"
+          v-model.number="tournamentDialog.data.signup_fee"
+          type="number"
           label="Signup fee"
         >
         </q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="tournamentDialog.data.max_participants"
-          type="integer"
-          label="Number of participants"
-        >
-        </q-input>
-
-          <q-input dense filled v-model="tournamentDialog.data.start_date" label="Date and time of the tournament">
-            <template v-slot:prepend>
-              <q-icon name="event" class="cursor-pointer">
-                <q-popup-proxy transition-show="scale" transition-hide="scale">
-                  <q-date v-model="tournamentDialog.data.start_date" mask="YYYY-MM-DD HH:mm">
-                    <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Close" color="primary" flat />
-                    </div>
-                  </q-date>
-                </q-popup-proxy>
-              </q-icon>
-            </template>
-      
-            <template v-slot:append>
-              <q-icon name="access_time" class="cursor-pointer">
-                <q-popup-proxy transition-show="scale" transition-hide="scale">
-                  <q-time v-model="tournamentDialog.data.start_date" mask="YYYY-MM-DD HH:mm" format24h>
-                    <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Close" color="primary" flat />
-                    </div>
-                  </q-time>
-                </q-popup-proxy>
-              </q-icon>
-            </template>
-          </q-input>
-
 
         <q-input
           filled
@@ -191,7 +148,7 @@
             v-else
             unelevated
             color="deep-purple"
-            :disable="tournamentDialog.data.signup_fee == null || tournamentDialog.data.start_date == null || tournamentDialog.data.challonge_tournament_name == null"
+            :disable="tournamentDialog.data.signup_fee == null || tournamentDialog.data.challonge_API == null || tournamentDialog.data.challonge_tournament_id == null"
             type="submit"
             >Create Tournament</q-btn
           >

@@ -4,6 +4,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import Tournament, Participant
+from lnbits.extensions import challonge
 
 
 async def create_participant(
@@ -104,15 +105,10 @@ async def delete_participant(participant_id: str) -> None:
 async def create_tournament(
     *,
     wallet: str,
-    tournament_name: str,
     challonge_API: str,
     challonge_tournament_id: str,
-    challonge_tournament_name: str,
     signup_fee: int,
-    prize_pool: int,
-    max_participants: int,
-    webhook: str,
-    start_time: int,
+    webhook: str
 ) -> Tournament:
     tournament_id = urlsafe_short_hash()
     await db.execute(
@@ -120,25 +116,15 @@ async def create_tournament(
         INSERT INTO tournament (
             id,
             wallet,
-            tournament_name,
             challonge_api,
             challonge_tournament_id,
-            challonge_tournament_name,
             signup_fee,
-            prize_pool,
-            total_prize_pool,
-            max_participants,
-            current_participants,
-            status,
             winner_id,
-            webhook,
-            time,
-            start_time
+            webhook
             )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (tournament_id, wallet, tournament_name, challonge_API, challonge_tournament_id, challonge_tournament_name,
-         signup_fee, prize_pool, prize_pool, max_participants, 0, "STARTED", None , webhook, None, start_time ),
+        (tournament_id, wallet, challonge_API, challonge_tournament_id, signup_fee, None , webhook ),
     )
 
     tournament = await get_tournament(tournament_id)
