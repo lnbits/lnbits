@@ -85,6 +85,25 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
+    async updateWordlist() {
+      try {
+        await LNbits.api.request(
+          'PUT',
+          '/offlineshop/api/v1/offlineshop/wordlist',
+          this.selectedWallet.inkey,
+          {wordlist: this.offlineshop.wordlist}
+        )
+        this.$q.notify({
+          message: `Wordlist updated. Counter reset.`,
+          timeout: 700
+        })
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+        return
+      }
+
+      this.loadShop()
+    },
     async sendItem() {
       let {id, name, image, description, price, unit} = this.itemDialog.data
       const data = {

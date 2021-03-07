@@ -90,6 +90,10 @@
 
     <q-card class="q-pa-sm col-5">
       <q-card-section class="q-pa-none text-center">
+        <div class="row">
+          <h5 class="text-subtitle1 q-my-none">Wallet Shop</h5>
+        </div>
+
         <q-form class="q-gutter-md">
           <q-select
             filled
@@ -112,6 +116,29 @@
             >Print QR Codes</q-btn
           >
         </div>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-pa-sm col-5">
+      <q-card-section class="q-pa-none text-center">
+        <div class="row">
+          <h5 class="text-subtitle1 q-my-none">Wordlist</h5>
+        </div>
+        <q-form class="q-gutter-md q-y-md" @submit="updateWordlist">
+          <div class="row">
+            <div class="col q-mx-lg">
+              <q-input v-model="offlineshop.wordlist" dense filled autogrow />
+            </div>
+            <div class="col q-mx-lg">
+              <q-btn unelevated color="deep-purple" type="submit">
+                Update Wordlist
+              </q-btn>
+              <q-btn @click="loadShop" flat color="grey" class="q-ml-auto"
+                >Reset</q-btn
+              >
+            </div>
+          </div>
+        </q-form>
       </q-card-section>
     </q-card>
   </div>

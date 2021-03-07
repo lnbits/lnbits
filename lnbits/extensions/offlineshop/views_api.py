@@ -7,11 +7,13 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from . import offlineshop_ext
 from .crud import (
     get_or_create_shop_by_wallet,
+    set_wordlist,
     add_item,
     update_item,
     get_items,
     delete_item_from_shop,
 )
+from .models import ShopCounter
 
 
 @offlineshop_ext.route("/api/v1/offlineshop", methods=["GET"])
@@ -70,3 +72,24 @@ async def api_delete_item(item_id):
     shop = await get_or_create_shop_by_wallet(g.wallet.id)
     await delete_item_from_shop(shop.id, item_id)
     return "", HTTPStatus.NO_CONTENT
+
+
+@offlineshop_ext.route("/api/v1/offlineshop/wordlist", methods=["PUT"])
+@api_check_wallet_key("invoice")
+@api_validate_post_request(
+    schema={"wordlist": {"type": "string", "empty": True, "nullable": True, "required": True},}
+)
+async def api_set_wordlist():
+    wordlist = g.data["wordlist"].split("\n") if g.data["wordlist"] else None
+    wordlist = [word.strip() for word in wordlist if word.strip()]
+
+    shop = await get_or_create_shop_by_wallet(g.wallet.id)
+    if not shop:
+        return "", HTTPStatus.NOT_FOUND
+
+    updated_shop = await set_wordlist(shop.id, "\n".join(wordlist))
+    if not updated_shop:
+        return "", HTTPStatus.NOT_FOUND
+
+    ShopCounter.reset(updated_shop)
+    return "", HTTPStatus.OK
