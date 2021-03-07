@@ -1,0 +1,8 @@
+{
+  "name": "Offline Shop",
+  "short_description": "Sell stuff with Lightning and lnurlpay on a shop without internet or any electronic device.",
+  "icon": "nature_people",
+  "contributors": [
+    "fiatjaf"
+  ]
+}
