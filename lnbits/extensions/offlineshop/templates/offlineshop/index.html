@@ -9,10 +9,7 @@
             <h5 class="text-subtitle1 q-my-none">Items</h5>
           </div>
           <div class="col q-ml-lg">
-            <q-btn
-              unelevated
-              color="deep-purple"
-              @click="itemDialog.show = true"
+            <q-btn unelevated color="deep-purple" @click="openNewDialog()"
               >Add new item</q-btn
             >
           </div>
@@ -51,20 +48,27 @@
                   target="_blank"
                 ></q-btn>
               </q-td>
-              <q-td auto-width>{{ props.row.name }}</q-td>
+              <q-td auto-width class="text-center">{{ props.row.name }}</q-td>
               <q-td auto-width> {{ props.row.description }} </q-td>
-              <q-td class="text-right" auto-width>
-                <q-img
+              <q-td class="text-center" auto-width>
+                <img
                   v-if="props.row.image"
                   :src="props.row.image"
-                  :ratio="1"
-                  style="height: 1em"
+                  style="height: 1.5em"
                 />
               </q-td>
               <q-td class="text-center" auto-width>
                 {{ props.row.price }} {{ props.row.unit }}
               </q-td>
               <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
                 <q-btn
                   unelevated
                   dense
@@ -113,10 +117,10 @@
     </q-card>
   </div>
 
-  <q-dialog v-model="itemDialog.show" position="top">
+  <q-dialog v-model="itemDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-card-section>
-        <q-form @submit="addItem" class="q-gutter-md">
+        <q-form @submit="sendItem" class="q-gutter-md">
           <q-input
             filled
             dense
@@ -136,12 +140,15 @@
             dense
             capture="environment"
             accept="image/jpeg, image/png"
-            :max-file-size="1048576"
+            :max-file-size="3*1024**2"
             label="Small image (optional)"
             clearable
             @input="imageAdded"
             @clear="imageCleared"
           >
+            <template v-if="itemDialog.data.image" v-slot:before>
+              <img style="height: 1em" :src="itemDialog.data.image" />
+            </template>
             <template v-if="itemDialog.data.image" v-slot:append>
               <q-icon
                 name="cancel"
@@ -150,7 +157,6 @@
               />
             </template>
           </q-file>
-          <canvas id="uploading-image"></canvas>
           <q-input
             filled
             dense
@@ -175,8 +181,10 @@
                 color="deep-purple"
                 :disable="disabledAddItemButton()"
                 type="submit"
-                >Add item</q-btn
               >
+                {% raw %}{{ itemDialog.data.id ? 'Update' : 'Add' }}{% endraw %}
+                Item
+              </q-btn>
             </div>
             <div class="col q-ml-lg">
               <q-btn v-close-popup flat color="grey" class="q-ml-auto"

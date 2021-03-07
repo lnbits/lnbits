@@ -26,24 +26,31 @@ new Vue({
     }
   },
   methods: {
-    async imageAdded(file) {
+    openNewDialog() {
+      this.itemDialog.show = true
+      this.itemDialog.data = {...defaultItemData}
+    },
+    openUpdateDialog(itemId) {
+      this.itemDialog.show = true
+      let item = this.offlineshop.items.find(item => item.id === itemId)
+      this.itemDialog.data = item
+    },
+    imageAdded(file) {
+      let blobURL = URL.createObjectURL(file)
       let image = new Image()
-      image.src = URL.createObjectURL(file)
-      let canvas = document.getElementById('uploading-image')
+      image.src = blobURL
       image.onload = async () => {
+        let canvas = document.createElement('canvas')
         canvas.setAttribute('width', 300)
         canvas.setAttribute('height', 300)
         await pica.resize(image, canvas)
         this.itemDialog.data.image = canvas.toDataURL()
+        this.itemDialog = {...this.itemDialog}
       }
     },
     imageCleared() {
       this.itemDialog.data.image = null
-      let canvas = document.getElementById('uploading-image')
-      canvas.setAttribute('height', 0)
-      canvas.setAttribute('width', 0)
-      let ctx = canvas.getContext('2d')
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      this.itemDialog = {...this.itemDialog}
     },
     disabledAddItemButton() {
       return (
@@ -73,34 +80,44 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    addItem() {
-      let {name, image, description, price, unit} = this.itemDialog.data
+    async sendItem() {
+      let {id, name, image, description, price, unit} = this.itemDialog.data
+      const data = {
+        name,
+        description,
+        image,
+        price,
+        unit
+      }
 
-      LNbits.api
-        .request(
-          'POST',
-          '/offlineshop/api/v1/offlineshop/items',
-          this.selectedWallet.inkey,
-          {
-            name,
-            description,
-            image,
-            price,
-            unit
-          }
-        )
-        .then(response => {
+      try {
+        if (id) {
+          await LNbits.api.request(
+            'PUT',
+            '/offlineshop/api/v1/offlineshop/items/' + id,
+            this.selectedWallet.inkey,
+            data
+          )
+        } else {
+          await LNbits.api.request(
+            'POST',
+            '/offlineshop/api/v1/offlineshop/items',
+            this.selectedWallet.inkey,
+            data
+          )
           this.$q.notify({
             message: `Item '${this.itemDialog.data.name}' added.`,
             timeout: 700
           })
-          this.loadShop()
-          this.itemsDialog.show = false
-          this.itemsDialog.data = {...defaultItemData}
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
+        }
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+        return
+      }
+
+      this.loadShop()
+      this.itemDialog.show = false
+      this.itemDialog.data = {...defaultItemData}
     },
     toggleItem(itemId) {
       let item = this.offlineshop.items.find(item => item.id === itemId)

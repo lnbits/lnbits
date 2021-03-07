@@ -15,6 +15,9 @@ async def lnurl_response(item_id):
     if not item:
         return jsonify({"status": "ERROR", "reason": "Item not found."})
 
+    if not item.enabled:
+        return jsonify({"status": "ERROR", "reason": "Item disabled."})
+
     rate = await get_fiat_rate(item.unit) if item.unit != "sat" else 1
     price_msat = item.price * 1000 * rate
 
