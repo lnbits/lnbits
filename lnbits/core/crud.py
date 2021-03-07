@@ -286,7 +286,11 @@ async def create_payment(
 
 async def update_payment_status(checking_id: str, pending: bool) -> None:
     await db.execute(
-        "UPDATE apipayments SET pending = ? WHERE checking_id = ?", (int(pending), checking_id,),
+        "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
+        (
+            int(pending),
+            checking_id,
+        ),
     )
 
 

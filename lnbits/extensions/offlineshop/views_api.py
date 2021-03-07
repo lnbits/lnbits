@@ -24,7 +24,14 @@ async def api_shop_from_wallet():
 
     try:
         return (
-            jsonify({**shop._asdict(), **{"items": [item.values() for item in items],},}),
+            jsonify(
+                {
+                    **shop._asdict(),
+                    **{
+                        "items": [item.values() for item in items],
+                    },
+                }
+            ),
             HTTPStatus.OK,
         )
     except LnurlInvalidUrl:
@@ -50,7 +57,12 @@ async def api_add_or_update_item(item_id=None):
     shop = await get_or_create_shop_by_wallet(g.wallet.id)
     if item_id == None:
         await add_item(
-            shop.id, g.data["name"], g.data["description"], g.data.get("image"), g.data["price"], g.data["unit"],
+            shop.id,
+            g.data["name"],
+            g.data["description"],
+            g.data.get("image"),
+            g.data["price"],
+            g.data["unit"],
         )
         return "", HTTPStatus.CREATED
     else:
@@ -77,7 +89,9 @@ async def api_delete_item(item_id):
 @offlineshop_ext.route("/api/v1/offlineshop/wordlist", methods=["PUT"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
-    schema={"wordlist": {"type": "string", "empty": True, "nullable": True, "required": True},}
+    schema={
+        "wordlist": {"type": "string", "empty": True, "nullable": True, "required": True},
+    }
 )
 async def api_set_wordlist():
     wordlist = g.data["wordlist"].split("\n") if g.data["wordlist"] else None

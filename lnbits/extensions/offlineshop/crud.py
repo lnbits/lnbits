@@ -34,12 +34,20 @@ async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
 
 async def set_wordlist(shop: int, wordlist: str) -> Optional[Shop]:
     await db.execute(
-        "UPDATE shops SET wordlist = ? WHERE id = ?", (wordlist, shop),
+        "UPDATE shops SET wordlist = ? WHERE id = ?",
+        (wordlist, shop),
     )
     return await get_shop(shop)
 
 
-async def add_item(shop: int, name: str, description: str, image: Optional[str], price: int, unit: str,) -> int:
+async def add_item(
+    shop: int,
+    name: str,
+    description: str,
+    image: Optional[str],
+    price: int,
+    unit: str,
+) -> int:
     result = await db.execute(
         """
         INSERT INTO items (shop, name, description, image, price, unit)
@@ -51,7 +59,13 @@ async def add_item(shop: int, name: str, description: str, image: Optional[str],
 
 
 async def update_item(
-    shop: int, item_id: int, name: str, description: str, image: Optional[str], price: int, unit: str,
+    shop: int,
+    item_id: int,
+    name: str,
+    description: str,
+    image: Optional[str],
+    price: int,
+    unit: str,
 ) -> int:
     await db.execute(
         """
