@@ -17,18 +17,35 @@ async def index():
     return await render_template("offlineshop/index.html", user=g.user)
 
 
+@offlineshop_ext.route("/print")
+async def print_qr_codes():
+    items = []
+    for item_id in request.args.get("items").split(","):
+        item = await get_item(item_id)
+        if item:
+            items.append({"lnurl": item.lnurl, "name": item.name, "price": f"{item.price} {item.unit}"})
+
+    return await render_template("offlineshop/print.html", items=items)
+
+
 @offlineshop_ext.route("/confirmation")
 async def confirmation_code():
+    style = "<style>* { font-size: 100px}</style>"
+
     payment_hash = request.args.get("p")
     payment: Payment = await get_standalone_payment(payment_hash)
     if not payment:
-        return f"Couldn't find the payment {payment_hash}.", HTTPStatus.NOT_FOUND
+        return f"Couldn't find the payment {payment_hash}." + style, HTTPStatus.NOT_FOUND
     if payment.pending:
-        return f"Payment {payment_hash} wasn't received yet. Please try again in a minute.", HTTPStatus.PAYMENT_REQUIRED
+        return (
+            f"Payment {payment_hash} wasn't received yet. Please try again in a minute." + style,
+            HTTPStatus.PAYMENT_REQUIRED,
+        )
 
     if payment.time + 60 * 15 < time.time():
-        return "too much time has passed."
+        return "too much time has passed." + style
 
     item = await get_item(payment.extra.get("item"))
     shop = await get_shop(item.shop)
-    return shop.next_word(payment_hash)
+
+    return shop.get_word(payment_hash) + style

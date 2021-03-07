@@ -25,6 +25,11 @@ new Vue({
       }
     }
   },
+  computed: {
+    printItems() {
+      return this.offlineshop.items.filter(({enabled}) => enabled)
+    }
+  },
   methods: {
     openNewDialog() {
       this.itemDialog.show = true

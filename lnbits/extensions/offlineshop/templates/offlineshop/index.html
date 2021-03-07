@@ -18,6 +18,7 @@
         <q-table
           dense
           flat
+          selection="multiple"
           :data="offlineshop.items"
           row-key="id"
           no-data-label="No items for sale yet"
@@ -101,6 +102,16 @@
           >
           </q-select>
         </q-form>
+
+        <div v-if="printItems.length > 0" class="row q-gutter-sm q-my-md">
+          <q-btn
+            type="a"
+            outline
+            color="purple"
+            :href="'print?items=' + printItems.map(({id}) => id).join(',')"
+            >Print QR Codes</q-btn
+          >
+        </div>
       </q-card-section>
     </q-card>
   </div>
@@ -120,6 +131,30 @@
   <q-dialog v-model="itemDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-card-section>
+        <h5
+          class="q-ma-none"
+          v-if="itemDialog.data.id"
+          v-text="itemDialog.data.name"
+        ></h5>
+        <h5 class="q-ma-none q-mb-xl" v-else>Adding a new item</h5>
+
+        <q-responsive v-if="itemDialog.data.id" :ratio="1">
+          <qrcode
+            :value="itemDialog.data.lnurl"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+
+        <div v-if="itemDialog.data.id" class="row q-gutter-sm justify-center">
+          <q-btn
+            outline
+            color="grey"
+            @click="copyText(itemDialog.data.lnurl, 'LNURL copied to clipboard!')"
+            class="q-mb-lg"
+            >Copy LNURL</q-btn
+          >
+        </div>
         <q-form @submit="sendItem" class="q-gutter-md">
           <q-input
             filled

@@ -22,7 +22,7 @@ async def lnurl_response(item_id):
     price_msat = item.price * 1000 * rate
 
     resp = LnurlPayResponse(
-        callback=url_for("shop.lnurl_callback", item_id=item.id, _external=True),
+        callback=url_for("offlineshop.lnurl_callback", item_id=item.id, _external=True),
         min_sendable=price_msat,
         max_sendable=price_msat,
         metadata=await item.lnurlpay_metadata(),
@@ -56,11 +56,11 @@ async def lnurl_callback(item_id):
     payment_hash, payment_request = await create_invoice(
         wallet_id=shop.wallet,
         amount=int(amount_received / 1000),
-        memo=await item.name,
+        memo=item.name,
         description_hash=hashlib.sha256((await item.lnurlpay_metadata()).encode("utf-8")).digest(),
         extra={"tag": "offlineshop", "item": item.id},
     )
 
-    resp = LnurlPayActionResponse(pr=payment_request, success_action=item.success_action(payment_hash, shop), routes=[])
+    resp = LnurlPayActionResponse(pr=payment_request, success_action=item.success_action(shop, payment_hash), routes=[])
 
     return jsonify(resp.dict())

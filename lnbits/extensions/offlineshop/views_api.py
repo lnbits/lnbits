@@ -22,7 +22,7 @@ async def api_shop_from_wallet():
 
     try:
         return (
-            jsonify({**shop._asdict(), **{"items": [item._asdict() for item in items],},}),
+            jsonify({**shop._asdict(), **{"items": [item.values() for item in items],},}),
             HTTPStatus.OK,
         )
     except LnurlInvalidUrl:
@@ -39,7 +39,7 @@ async def api_shop_from_wallet():
     schema={
         "name": {"type": "string", "empty": False, "required": True},
         "description": {"type": "string", "empty": False, "required": True},
-        "image": {"type": "string", "required": False},
+        "image": {"type": "string", "required": False, "nullable": True},
         "price": {"type": "number", "required": True},
         "unit": {"type": "string", "allowed": ["sat", "USD"], "required": True},
     }

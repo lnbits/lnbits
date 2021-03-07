@@ -136,7 +136,7 @@ async def get_standalone_payment(checking_id_or_hash: str) -> Optional[Payment]:
         """
         SELECT *
         FROM apipayments
-        WHERE checking_id = ? OR payment_hash = ?
+        WHERE checking_id = ? OR hash = ?
         LIMIT 1
         """,
         (checking_id_or_hash, checking_id_or_hash),
