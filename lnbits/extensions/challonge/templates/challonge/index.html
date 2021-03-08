@@ -62,6 +62,15 @@
               </q-td>
               <q-td auto-width>
                 <q-btn
+                flat
+                dense
+                size="xs"
+                @click="openChallongeWebsite(props.row.id)"
+                icon="open_in_new"
+                color="light-blue"
+              >
+              </q-btn>
+                <q-btn
                   flat
                   dense
                   size="xs"
@@ -186,25 +195,31 @@
               name: 'tournamentName',
               align: 'left',
               label: 'Tournament name',
-              field: 'tournament'
+              field: 'name'
             },
             {
               name: 'participants',
               align: 'left',
               label: 'Participants',
-              field: 'participants' // current_participants, max_participants
+              field: 'participants_count'// current_participants, max_participants
             },
             {
               name: 'start_time',
               align: 'left',
               label: 'Starts',
-              field: 'start_time' // current_participants, max_participants
+              field: 'started_at' // current_participants, max_participants
+            },
+            {
+              name: 'signup_fee',
+              align: 'left',
+              label: 'Fee',
+              field: 'signup_fee'
             },
             {
               name: 'status',
               align: 'left',
               label: 'Status',
-              field: 'status'
+              field: 'state'
             }
           ],
           pagination: {
@@ -320,6 +335,9 @@
                 LNbits.utils.notifyApiError(error)
               })
           })
+      },
+      openChallongeWebsite: function (tournamentId) {
+        // TODO
       }
     },
     created: function () {

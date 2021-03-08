@@ -21,7 +21,11 @@ from .crud import (
     get_tournaments,
     update_tournament,
 )
-from .challonge import challonge_add_user_to_tournament, challonge_get_tournament_data, challonge_set_tournament_description
+from .challonge import (
+    challonge_add_user_to_tournament,
+    challonge_get_tournament_data,
+    challonge_set_tournament_description,
+)
 from .dto import TournamentDTO, ParticipantDTO
 
 # Tournaments
@@ -29,13 +33,35 @@ from .dto import TournamentDTO, ParticipantDTO
 
 @challonge_ext.route("/api/v1/tournaments", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_tournaments():
+async def api_tournaments() -> TournamentDTO:
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    tournamentDTOList = []
+    for tournament in await get_tournaments(wallet_ids):
+        challonge_tournament_data = await challonge_get_tournament_data(
+            challonge_API=tournament.challonge_api, challonge_tournament_id=tournament.challonge_tournament_id
+        )
+        tournamentDTO = TournamentDTO(
+            id=tournament.id,
+            wallet=tournament.wallet,
+            challonge_tournament_id=tournament.challonge_tournament_id,
+            signup_fee=tournament.signup_fee,
+            winner_id=tournament.winner_id,
+            webhook=tournament.webhook,
+            name=challonge_tournament_data["tournament"]["name"],
+            description=challonge_tournament_data["tournament"]["description"],
+            started_at=challonge_tournament_data["tournament"]["started_at"],
+            completed_at=challonge_tournament_data["tournament"]["completed_at"],
+            state=challonge_tournament_data["tournament"]["state"],
+            signup_cap=challonge_tournament_data["tournament"]["signup_cap"],
+            participants_count=challonge_tournament_data["tournament"]["participants_count"],
+        )
+        tournamentDTOList.append(tournamentDTO)
 
-    return jsonify([domain._asdict() for domain in await get_tournaments(wallet_ids)]), HTTPStatus.OK
+   
+    return jsonify([domain._asdict() for domain in tournamentDTOList]), HTTPStatus.OK
 
 
 @challonge_ext.route("/api/v1/tournaments", methods=["POST"])
@@ -50,7 +76,7 @@ async def api_tournaments():
         "webhook": {"type": "string", "empty": False, "required": False},
     }
 )
-async def api_tournament_create(tournament_id=None):
+async def api_tournament_create(tournament_id=None) -> TournamentDTO:
     if tournament_id:
         tournament = await get_tournament(tournament_id)
 
@@ -65,14 +91,15 @@ async def api_tournament_create(tournament_id=None):
         challonge_tournament_data = await challonge_get_tournament_data(
             challonge_API=g.data["challonge_API"], challonge_tournament_id=g.data["challonge_tournament_id"]
         )
-        if (challonge_tournament_data == "Error occured"):
+        if challonge_tournament_data == "Error occured":
             return challonge_tournament_data, HTTPStatus.BAD_REQUEST
 
-
         challonge_tournament_data = await challonge_set_tournament_description(
-            challonge_API=g.data["challonge_API"], challonge_tournament_id=g.data["challonge_tournament_id"], description=challonge_tournament_data['tournament']['description'] + " <i>Signups managed by Lnbits</i>"
+            challonge_API=g.data["challonge_API"],
+            challonge_tournament_id=g.data["challonge_tournament_id"],
+            description=challonge_tournament_data["tournament"]["description"] + " <i>Signups managed by Lnbits</i>",
         )
-        if 'errors' in challonge_tournament_data or challonge_tournament_data == "Error occured":
+        if "errors" in challonge_tournament_data or challonge_tournament_data == "Error occured":
             return challonge_tournament_data, HTTPStatus.BAD_REQUEST
 
         tournament = await create_tournament(**g.data)
@@ -83,13 +110,13 @@ async def api_tournament_create(tournament_id=None):
             signup_fee=tournament.signup_fee,
             winner_id=tournament.winner_id,
             webhook=tournament.webhook,
-            name=challonge_tournament_data['tournament']['name'],
-            description=challonge_tournament_data['tournament']['description'],
-            started_at=challonge_tournament_data['tournament']['started_at'],
-            completed_at=challonge_tournament_data['tournament']['completed_at'],
-            state=challonge_tournament_data['tournament']['state'],
-            signup_cap=challonge_tournament_data['tournament']['signup_cap'],
-            participants_count=challonge_tournament_data['tournament']['participants_count']
+            name=challonge_tournament_data["tournament"]["name"],
+            description=challonge_tournament_data["tournament"]["description"],
+            started_at=challonge_tournament_data["tournament"]["started_at"],
+            completed_at=challonge_tournament_data["tournament"]["completed_at"],
+            state=challonge_tournament_data["tournament"]["state"],
+            signup_cap=challonge_tournament_data["tournament"]["signup_cap"],
+            participants_count=challonge_tournament_data["tournament"]["participants_count"],
         )
         return jsonify(tournamentDTO._asdict()), HTTPStatus.CREATED
 
