@@ -162,6 +162,16 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
+    var mapLNTournament = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.displayUrl = ['/challonge/', obj.id].join('')
+    console.log(obj)
+    return obj
+  }
+
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
@@ -209,18 +219,27 @@
     },
     methods: {
       openTournamentDialog: function (formId) {
-        var link = _.findWhere(this.domains, {id: formId})
+        var link = _.findWhere(this.tournaments, {id: formId})
         this.tournamentDialog.data = _.clone(link)
         this.tournamentDialog.show = true
       },
-      created: function () {
-        if (this.g.user.wallets.length) {
-          //this.getTournaments()
-          console.log('hello')
-        }
-      },
       exportTournamentCSV: function () {
         LNbits.utils.exportCSV(this.tournamentsTable.columns, this.tournaments)
+      },
+      getTournaments: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/challonge/api/v1/tournaments?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.tournaments = response.data.map(function (obj) {
+              return mapLNTournament(obj)
+            })
+          })
       },
       sendFormData: function () {
         var wallet = _.findWhere(this.g.user.wallets, {
@@ -302,7 +321,13 @@
               })
           })
       }
-    }
+    },
+    created: function () {
+        if (this.g.user.wallets.length) {
+          this.getTournaments()
+          console.log('hello')
+        }
+      },
   })
 </script>
 
