@@ -65,7 +65,7 @@
                 flat
                 dense
                 size="xs"
-                @click="openChallongeWebsite(props.row.id)"
+                @click="openChallongeWebsite(props.row.challonge_tournament_id)"
                 icon="open_in_new"
                 color="light-blue"
               >
@@ -337,7 +337,9 @@
           })
       },
       openChallongeWebsite: function (tournamentId) {
-        // TODO
+        var url = 'https://challonge.com/' + tournamentId
+        var win = window.open(url, '_blank');
+        win.focus();
       }
     },
     created: function () {

@@ -97,7 +97,7 @@ async def api_tournament_create(tournament_id=None) -> TournamentDTO:
         challonge_tournament_data = await challonge_set_tournament_description(
             challonge_API=g.data["challonge_API"],
             challonge_tournament_id=g.data["challonge_tournament_id"],
-            description=challonge_tournament_data["tournament"]["description"] + " <i>Signups managed by Lnbits</i>",
+            description=challonge_tournament_data["tournament"]["description"] + " <br><i>Signups managed by Lnbits</i>",
         )
         if "errors" in challonge_tournament_data or challonge_tournament_data == "Error occured":
             return challonge_tournament_data, HTTPStatus.BAD_REQUEST
