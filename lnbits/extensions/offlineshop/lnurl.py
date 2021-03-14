@@ -19,7 +19,7 @@ async def lnurl_response(item_id):
         return jsonify({"status": "ERROR", "reason": "Item disabled."})
 
     rate = await get_fiat_rate(item.unit) if item.unit != "sat" else 1
-    price_msat = item.price * 1000 * rate
+    price_msat = int(item.price * rate) * 1000
 
     resp = LnurlPayResponse(
         callback=url_for("offlineshop.lnurl_callback", item_id=item.id, _external=True),
@@ -43,8 +43,8 @@ async def lnurl_callback(item_id):
     else:
         rate = await get_fiat_rate(item.unit)
         # allow some fluctuation (the fiat price may have changed between the calls)
-        min = rate * 995 * item.price
-        max = rate * 1010 * item.price
+        min = int(rate * item.price) * 995
+        max = int(rate * item.price) * 1010
 
     amount_received = int(request.args.get("amount"))
     if amount_received < min:
