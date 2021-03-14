@@ -4,6 +4,7 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 
 from . import lnurlp_ext
 from .crud import (
@@ -13,7 +14,6 @@ from .crud import (
     update_pay_link,
     delete_pay_link,
 )
-from .helpers import get_fiat_rate
 
 
 @lnurlp_ext.route("/api/v1/links", methods=["GET"])
@@ -109,7 +109,7 @@ async def api_link_delete(link_id):
 @lnurlp_ext.route("/api/v1/rate/<currency>", methods=["GET"])
 async def api_check_fiat_rate(currency):
     try:
-        rate = await get_fiat_rate(currency)
+        rate = await get_fiat_rate_satoshis(currency)
     except AssertionError:
         rate = None
 

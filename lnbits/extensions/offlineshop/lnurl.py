@@ -3,10 +3,10 @@ from quart import jsonify, url_for, request
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
 from lnbits.core.services import create_invoice
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import offlineshop_ext
 from .crud import get_shop, get_item
-from .helpers import get_fiat_rate
 
 
 @offlineshop_ext.route("/lnurl/<item_id>", methods=["GET"])
@@ -18,8 +18,7 @@ async def lnurl_response(item_id):
     if not item.enabled:
         return jsonify({"status": "ERROR", "reason": "Item disabled."})
 
-    rate = await get_fiat_rate(item.unit) if item.unit != "sat" else 1
-    price_msat = int(item.price * rate) * 1000
+    price_msat = (await fiat_amount_as_satoshis(item.price, item.unit) if item.unit != "sat" else item.price) * 1000
 
     resp = LnurlPayResponse(
         callback=url_for("offlineshop.lnurl_callback", item_id=item.id, _external=True),
@@ -41,10 +40,10 @@ async def lnurl_callback(item_id):
         min = item.price * 1000
         max = item.price * 1000
     else:
-        rate = await get_fiat_rate(item.unit)
+        price = await fiat_amount_as_satoshis(item.price, item.unit)
         # allow some fluctuation (the fiat price may have changed between the calls)
-        min = int(rate * item.price) * 995
-        max = int(rate * item.price) * 1010
+        min = price * 995
+        max = price * 1010
 
     amount_received = int(request.args.get("amount"))
     if amount_received < min:

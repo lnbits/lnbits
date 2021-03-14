@@ -5,10 +5,10 @@ from quart import jsonify, url_for, request
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
 from lnbits.core.services import create_invoice
+from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
 
 from . import lnurlp_ext
 from .crud import increment_pay_link
-from .helpers import get_fiat_rate
 
 
 @lnurlp_ext.route("/api/v1/lnurl/<link_id>", methods=["GET"])
@@ -17,7 +17,7 @@ async def api_lnurl_response(link_id):
     if not link:
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
-    rate = await get_fiat_rate(link.currency) if link.currency else 1
+    rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
     resp = LnurlPayResponse(
         callback=url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True),
         min_sendable=math.ceil(link.min * rate) * 1000,
@@ -39,7 +39,7 @@ async def api_lnurl_callback(link_id):
         return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
 
     min, max = link.min, link.max
-    rate = await get_fiat_rate(link.currency) if link.currency else 1
+    rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
     if link.currency:
         # allow some fluctuation (as the fiat price may have changed between the calls)
         min = rate * 995 * link.min
