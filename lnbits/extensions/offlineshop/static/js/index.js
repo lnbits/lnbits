@@ -49,9 +49,15 @@ new Vue({
       image.src = blobURL
       image.onload = async () => {
         let canvas = document.createElement('canvas')
-        canvas.setAttribute('width', 300)
-        canvas.setAttribute('height', 300)
-        await pica.resize(image, canvas)
+        canvas.setAttribute('width', 100)
+        canvas.setAttribute('height', 100)
+        await pica.resize(image, canvas, {
+          quality: 0,
+          alpha: true,
+          unsharpAmount: 95,
+          unsharpRadius: 0.9,
+          unsharpThreshold: 70
+        })
         this.itemDialog.data.image = canvas.toDataURL()
         this.itemDialog = {...this.itemDialog}
       }
