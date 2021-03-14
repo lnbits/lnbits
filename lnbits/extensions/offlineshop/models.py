@@ -1,12 +1,12 @@
 import json
 from collections import OrderedDict
 from quart import url_for
-from typing import NamedTuple, Optional, List
+from typing import NamedTuple, Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 
-shop_counters = {}
+shop_counters: Dict = {}
 
 
 class ShopCounter(object):

@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from quart import g, render_template, request
 from http import HTTPStatus
 
@@ -48,4 +49,12 @@ async def confirmation_code():
     item = await get_item(payment.extra.get("item"))
     shop = await get_shop(item.shop)
 
-    return shop.get_word(payment_hash) + style
+    return (
+        f"""
+[{shop.get_word(payment_hash)}]
+{item.name}
+{item.price} {item.unit}
+{datetime.utcfromtimestamp(payment.time).strftime('%Y-%m-%d %H:%M:%S')}
+    """
+        + style
+    )
