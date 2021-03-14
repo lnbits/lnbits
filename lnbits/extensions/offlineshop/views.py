@@ -51,9 +51,9 @@ async def confirmation_code():
 
     return (
         f"""
-[{shop.get_word(payment_hash)}]
-{item.name}
-{item.price} {item.unit}
+[{shop.get_code(payment_hash)}]<br>
+{item.name}<br>
+{item.price} {item.unit}<br>
 {datetime.utcfromtimestamp(payment.time).strftime('%Y-%m-%d %H:%M:%S')}
     """
         + style

@@ -61,6 +61,10 @@ async def lnurl_callback(item_id):
         extra={"tag": "offlineshop", "item": item.id},
     )
 
-    resp = LnurlPayActionResponse(pr=payment_request, success_action=item.success_action(shop, payment_hash), routes=[])
+    resp = LnurlPayActionResponse(
+        pr=payment_request,
+        success_action=item.success_action(shop, payment_hash) if shop.method else None,
+        routes=[],
+    )
 
     return jsonify(resp.dict())

@@ -7,6 +7,7 @@ async def m001_initial(db):
         CREATE TABLE shops (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             wallet TEXT NOT NULL,
+            method TEXT NOT NULL,
             wordlist TEXT
         );
         """

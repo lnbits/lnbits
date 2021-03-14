@@ -7,7 +7,7 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from . import offlineshop_ext
 from .crud import (
     get_or_create_shop_by_wallet,
-    set_wordlist,
+    set_method,
     add_item,
     update_item,
     get_items,
@@ -28,6 +28,7 @@ async def api_shop_from_wallet():
                 {
                     **shop._asdict(),
                     **{
+                        "otp_key": shop.otp_key,
                         "items": [item.values() for item in items],
                     },
                 }
@@ -86,14 +87,17 @@ async def api_delete_item(item_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@offlineshop_ext.route("/api/v1/offlineshop/wordlist", methods=["PUT"])
+@offlineshop_ext.route("/api/v1/offlineshop/method", methods=["PUT"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
-        "wordlist": {"type": "string", "empty": True, "nullable": True, "required": True},
+        "method": {"type": "string", "required": True, "nullable": False},
+        "wordlist": {"type": "string", "empty": True, "nullable": True, "required": False},
     }
 )
-async def api_set_wordlist():
+async def api_set_method():
+    method = g.data["method"]
+
     wordlist = g.data["wordlist"].split("\n") if g.data["wordlist"] else None
     wordlist = [word.strip() for word in wordlist if word.strip()]
 
@@ -101,7 +105,7 @@ async def api_set_wordlist():
     if not shop:
         return "", HTTPStatus.NOT_FOUND
 
-    updated_shop = await set_wordlist(shop.id, "\n".join(wordlist))
+    updated_shop = await set_method(shop.id, method, "\n".join(wordlist))
     if not updated_shop:
         return "", HTTPStatus.NOT_FOUND
 

@@ -32,10 +32,10 @@ async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
     return Shop(**dict(row)) if row else None
 
 
-async def set_wordlist(shop: int, wordlist: str) -> Optional[Shop]:
+async def set_method(shop: int, method: str, wordlist: str = "") -> Optional[Shop]:
     await db.execute(
-        "UPDATE shops SET wordlist = ? WHERE id = ?",
-        (wordlist, shop),
+        "UPDATE shops SET method = ?, wordlist = ? WHERE id = ?",
+        (method, wordlist, shop),
     )
     return await get_shop(shop)
 

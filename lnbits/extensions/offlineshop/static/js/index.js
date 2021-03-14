@@ -14,7 +14,10 @@ new Vue({
   data() {
     return {
       selectedWallet: null,
+      confirmationMethod: 'wordlist',
+      wordlistTainted: false,
       offlineshop: {
+        method: null,
         wordlist: [],
         items: []
       },
@@ -80,28 +83,32 @@ new Vue({
         )
         .then(response => {
           this.offlineshop = response.data
+          this.confirmationMethod = response.data.method
+          this.wordlistTainted = false
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
     },
-    async updateWordlist() {
+    async setMethod() {
       try {
         await LNbits.api.request(
           'PUT',
-          '/offlineshop/api/v1/offlineshop/wordlist',
+          '/offlineshop/api/v1/offlineshop/method',
           this.selectedWallet.inkey,
-          {wordlist: this.offlineshop.wordlist}
+          {method: this.confirmationMethod, wordlist: this.offlineshop.wordlist}
         )
-        this.$q.notify({
-          message: `Wordlist updated. Counter reset.`,
-          timeout: 700
-        })
       } catch (err) {
         LNbits.utils.notifyApiError(err)
         return
       }
 
+      this.$q.notify({
+        message:
+          `Method set to ${this.confirmationMethod}.` +
+          (this.confirmationMethod === 'wordlist' ? ' Counter reset.' : ''),
+        timeout: 700
+      })
       this.loadShop()
     },
     async sendItem() {

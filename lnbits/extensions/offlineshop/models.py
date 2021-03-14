@@ -1,10 +1,14 @@
 import json
+import base64
+import hashlib
 from collections import OrderedDict
 from quart import url_for
 from typing import NamedTuple, Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+
+from .helpers import totp
 
 shop_counters: Dict = {}
 
@@ -53,11 +57,24 @@ class ShopCounter(object):
 class Shop(NamedTuple):
     id: int
     wallet: str
+    method: str
     wordlist: str
 
-    def get_word(self, payment_hash):
-        sc = ShopCounter.invoke(self)
-        return sc.get_word(payment_hash)
+    @property
+    def otp_key(self) -> str:
+        return base64.b32encode(
+            hashlib.sha256(
+                ("otpkey" + str(self.id) + self.wallet).encode("ascii"),
+            ).digest()
+        ).decode("ascii")
+
+    def get_code(self, payment_hash: str) -> str:
+        if self.method == "wordlist":
+            sc = ShopCounter.invoke(self)
+            return sc.get_word(payment_hash)
+        elif self.method == "totp":
+            return totp(self.otp_key)
+        return ""
 
 
 class Item(NamedTuple):
