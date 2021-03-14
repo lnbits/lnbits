@@ -5,8 +5,9 @@
       <q-card-section class="q-pa-none">
         <h3 class="q-my-none">{{ tournament_name }}</h3>
         <br />
-        <h5 class="q-my-none">{{tournament_description}} 
-        </h5>
+          <div class="q-my-none">
+            {{ tournament_description }}
+          </div>
         <br />
         <q-form @submit="Invoice()" class="q-gutter-md">
           <q-input

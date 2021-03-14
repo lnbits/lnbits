@@ -7,3 +7,8 @@ TODO:
 [ ] - wiring everything together
 [ ] - testing
 [x] - backend logic, crud, db models, challonge api calls
+
+
+Bugs:
+- after adding new tournament table doesnt refresh
+- display description on website without html tags

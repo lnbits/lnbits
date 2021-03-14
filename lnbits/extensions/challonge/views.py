@@ -1,5 +1,5 @@
 from quart import g, abort, render_template
-
+import re
 from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
 from .dto import TournamentDTO, ParticipantDTO
