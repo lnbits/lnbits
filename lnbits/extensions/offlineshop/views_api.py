@@ -3,6 +3,7 @@ from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.utils.exchange_rates import currencies
 
 from . import offlineshop_ext
 from .crud import (
@@ -14,6 +15,11 @@ from .crud import (
     delete_item_from_shop,
 )
 from .models import ShopCounter
+
+
+@offlineshop_ext.route("/api/v1/currencies", methods=["GET"])
+async def api_list_currencies_available():
+    return jsonify(list(currencies.keys()))
 
 
 @offlineshop_ext.route("/api/v1/offlineshop", methods=["GET"])
@@ -51,7 +57,7 @@ async def api_shop_from_wallet():
         "description": {"type": "string", "empty": False, "required": True},
         "image": {"type": "string", "required": False, "nullable": True},
         "price": {"type": "number", "required": True},
-        "unit": {"type": "string", "allowed": ["sat", "USD"], "required": True},
+        "unit": {"type": "string", "required": True},
     }
 )
 async def api_add_or_update_item(item_id=None):

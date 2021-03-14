@@ -24,7 +24,7 @@ new Vue({
       itemDialog: {
         show: false,
         data: {...defaultItemData},
-        units: ['sat', 'USD']
+        units: ['sat']
       }
     }
   },
@@ -207,5 +207,14 @@ new Vue({
   created() {
     this.selectedWallet = this.g.user.wallets[0]
     this.loadShop()
+
+    LNbits.api
+      .request('GET', '/offlineshop/api/v1/currencies')
+      .then(response => {
+        this.itemDialog = {...this.itemDialog, units: ['sat', ...response.data]}
+      })
+      .catch(err => {
+        LNbits.utils.notifyApiError(err)
+      })
   }
 })
