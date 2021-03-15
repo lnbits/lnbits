@@ -26,6 +26,7 @@ new Vue({
   mixins: [windowMixin],
   data() {
     return {
+      currencies: [],
       fiatRates: {},
       checker: null,
       payLinks: [],
@@ -203,5 +204,14 @@ new Vue({
         getPayLinks()
       }, 20000)
     }
+
+    LNbits.api
+      .request('GET', '/lnurlp/api/v1/currencies')
+      .then(response => {
+        this.currencies = ['satoshis', ...response.data]
+      })
+      .catch(err => {
+        LNbits.utils.notifyApiError(err)
+      })
   }
 })

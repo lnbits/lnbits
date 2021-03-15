@@ -182,7 +182,7 @@
           <div class="col">
             <q-select
               dense
-              :options='["satoshis", "USD"]'
+              :options="currencies"
               v-model="formDialog.data.currency"
               :display-value="formDialog.data.currency || 'satoshis'"
               label="Currency"
