@@ -25,6 +25,7 @@ from .challonge import (
     challonge_add_user_to_tournament,
     challonge_get_tournament_data,
     challonge_set_tournament_description,
+    challonge_delete_user_from_tournament
 )
 from .dto import TournamentDTO, ParticipantDTO
 
@@ -151,16 +152,12 @@ async def api_participants():
     return jsonify([domain._asdict() for domain in await get_participants(wallet_ids)]), HTTPStatus.OK
 
 
-@challonge_ext.route("/api/v1/participants/<participant_id>", methods=["POST"])
+@challonge_ext.route("/api/v1/participants/<tournament_id>", methods=["POST"])
 @api_validate_post_request(
     schema={
-        "domain": {"type": "string", "empty": False, "required": True},
-        "subdomain": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "empty": True, "required": True},
-        "ip": {"type": "string", "empty": False, "required": True},
-        "sats": {"type": "integer", "min": 0, "required": True},
-        "duration": {"type": "integer", "empty": False, "required": True},
-        "record_type": {"type": "dstring", "empty": False, "required": True},
+        "tournament": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "empty": True, "required": False},
+        "challonge_username": {"type": "string", "empty": False, "required": True},
     }
 )
 async def api_participants_new_participant(tournament_id):
@@ -172,12 +169,12 @@ async def api_participants_new_participant(tournament_id):
 
     ## If domain already exist in our database reject it
     if (
-        await get_participantByUsername(g.data["participant_name"]) is not None
+        await get_participantByUsername(g.data["challonge_username"]) is not None
     ):  # TODO check if g.data["participant_name"] really exist
         return (
             jsonify(
                 {
-                    "message": g.data["participant_name"]
+                    "message": g.data["challonge_username"]
                     + "."
                     + tournament.tournament_name
                     + " participant with this name already registered"
@@ -185,20 +182,20 @@ async def api_participants_new_participant(tournament_id):
             ),
             HTTPStatus.BAD_REQUEST,
         )
-
-    ## Dry run challonge... (create and if create is sucessful delete it) TODO
-    """     
+      
     cf_response = await challonge_add_user_to_tournament(
-        challonge_name=
+        challonge_name=g.data["challonge_username"],
+        email=g.data["email"],
+        tournament=tournament
     )
     if cf_response["success"] == True:
-        cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
+        challonge_delete_user_from_tournament(tournament=tournament, user_id=cf_response.data["id"])
     else:
         return (
             jsonify({"message": "Problem with cloudflare: " + cf_response["errors"][0]["message"]}),
             HTTPStatus.BAD_REQUEST,
         ) 
-    """
+    
 
     ## ALL OK - create an invoice and return it to the user
     sats = g.data["sats"]

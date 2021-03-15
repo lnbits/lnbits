@@ -66,7 +66,7 @@ async def set_participant_paid(payment_hash: str) -> Participant:
 
 async def get_participant(participant_id: str) -> Optional[Participant]:
     row = await db.fetchone(
-        "SELECT s.*, FROM participant s WHERE s.id = ?",
+        "SELECT s.* FROM participant s WHERE s.id = ?",
         (participant_id,),
     )
     print(row)
@@ -75,7 +75,7 @@ async def get_participant(participant_id: str) -> Optional[Participant]:
 
 async def get_participantByUsername(username: str) -> Optional[Participant]:
     row = await db.fetchone(
-         "SELECT s.*, FROM participant s WHERE s.participant_name = ?",
+         "SELECT s.* FROM participant s WHERE s.challonge_username = ?",
         (username,),
     )
     print(row)
@@ -88,7 +88,7 @@ async def get_participants(wallet_ids: Union[str, List[str]]) -> List[Participan
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT s.*, FROM participant s WHERE s.wallet IN ({q})",
+        f"SELECT s.* FROM participant s WHERE s.wallet IN ({q})",
         (*wallet_ids,),
     )
 

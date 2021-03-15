@@ -32,7 +32,7 @@
             <q-btn
               unelevated
               color="deep-purple"
-              :disable="formDialog.data.subdomain == '' || formDialog.data.ip == '' || formDialog.data.duration == ''"
+              :disable="formDialog.data.username == ''"
               type="submit"
               >Submit</q-btn
             >
@@ -130,14 +130,10 @@
       Invoice: function () {
         var self = this
         axios
-          .post('/subdomains/api/v1/subdomains/{{ domain_id }}', {
-            domain: '{{ domain_id }}',
-            subdomain: self.formDialog.data.subdomain,
-            ip: self.formDialog.data.ip,
+          .post('/challonge/api/v1/participants/{{ tournament_id }}', {
+            tournament: '{{ tournament_id }}',
             email: self.formDialog.data.email,
-            sats: self.formDialog.data.sats,
-            duration: parseInt(self.formDialog.data.duration),
-            record_type: self.formDialog.data.record_type
+            challonge_username: self.formDialog.data.challonge_username,
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -156,7 +152,7 @@
 
             paymentChecker = setInterval(function () {
               axios
-                .get('/subdomains/api/v1/subdomains/' + self.paymentCheck)
+                .get('/challonge/api/v1/tournaments/' + self.paymentCheck)
                 .then(function (res) {
                   console.log(res.data)
                   if (res.data.paid) {
@@ -169,11 +165,8 @@
                     dismissMsg()
 
                     console.log(self.formDialog)
-                    self.formDialog.data.subdomain = ''
                     self.formDialog.data.email = ''
-                    self.formDialog.data.ip = ''
-                    self.formDialog.data.duration = ''
-                    self.formDialog.data.record_type = ''
+                    self.formDialog.data.challonge_username = ''
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',

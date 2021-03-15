@@ -23,7 +23,6 @@ async def m001_initial(db):
             tournament TEXT NOT NULL,
             secret TEXT NOT NULL,
             status TEXT NOT NULL,
-            username TEXT NOT NULL,
             challonge_username TEXT NOT NULL
         );
     """

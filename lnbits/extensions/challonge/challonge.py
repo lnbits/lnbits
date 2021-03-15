@@ -3,10 +3,10 @@ import httpx, json
 
 
 # https://api.challonge.com/v1/documents/participants/create
-async def challonge_add_user_to_tournament(tournament: Tournament, name: str, challonge_name: str, email: str):
+async def challonge_add_user_to_tournament(tournament: Tournament, challonge_name: str, email: str):
     ### SEND REQUEST TO CHALLONGE   
-    url = "https://api.challonge.com/v1/" + tournament.challonge_tournament_id + "/participants.json"
-    header = {"api_key": tournament.challonge_API, "Content-Type": "application/json"}
+    url = "https://api.challonge.com/v1/tournaments/" + tournament.challonge_tournament_id + "/participants.json?api_key=" + tournament.challonge_api
+    header = {"Content-Type": "application/json"}
     ch_response = ""
     async with httpx.AsyncClient() as client:
         try:
@@ -14,7 +14,6 @@ async def challonge_add_user_to_tournament(tournament: Tournament, name: str, ch
                 url,
                 headers=header,
                 json={
-                    "participant[name]": name,
                     "participant[challonge_username]": challonge_name,
                     "participant[email]": email
                 },
@@ -24,6 +23,28 @@ async def challonge_add_user_to_tournament(tournament: Tournament, name: str, ch
         except AssertionError:
             ch_response = "Error occured"
     return ch_response
+
+# https://api.challonge.com/v1/documents/participants/delete
+async def challonge_delete_user_from_tournament(tournament: Tournament, participant_id: str):
+    ### SEND REQUEST TO CHALLONGE   
+
+
+    url = "https://api.challonge.com/v1/tournaments/" + tournament.challonge_tournament_id + "/participants/"+ participant_id
+    header = {"api_key": tournament.challonge_API, "Content-Type": "application/json"}
+    ch_response = ""
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.delete(
+                url,
+                headers=header,
+                timeout=40,
+            )
+            ch_response = json.loads(r.text)
+        except AssertionError:
+            ch_response = "Error occured"
+    return ch_response
+
+
 
 async def  challonge_get_tournament_data(challonge_API : str, challonge_tournament_id: str):
     ### SEND REQUEST TO CHALLONGE   
