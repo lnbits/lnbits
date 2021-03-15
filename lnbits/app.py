@@ -14,7 +14,7 @@ from .proxy_fix import ASGIProxyFix
 from .tasks import run_deferred_async, invoice_listener, internal_invoice_listener, webhook_handler, grab_app_for_later
 from .settings import WALLET
 
-secure_headers = SecureHeaders(hsts=False)
+secure_headers = SecureHeaders(hsts=False,xfo=False)
 
 
 def create_app(config_object="lnbits.settings") -> QuartTrio:
