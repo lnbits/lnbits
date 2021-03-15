@@ -131,14 +131,15 @@ async def get_wallet_for_key(key: str, key_type: str = "invoice") -> Optional[Wa
 # ---------------
 
 
-async def get_standalone_payment(checking_id: str) -> Optional[Payment]:
+async def get_standalone_payment(checking_id_or_hash: str) -> Optional[Payment]:
     row = await db.fetchone(
         """
         SELECT *
         FROM apipayments
-        WHERE checking_id = ?
+        WHERE checking_id = ? OR hash = ?
+        LIMIT 1
         """,
-        (checking_id,),
+        (checking_id_or_hash, checking_id_or_hash),
     )
 
     return Payment.from_row(row) if row else None

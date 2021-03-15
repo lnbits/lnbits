@@ -133,7 +133,7 @@
     </q-card>
   </div>
 
-  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+  <q-dialog v-model="formDialog.show" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormData" class="q-gutter-md">
         <q-select
@@ -182,7 +182,7 @@
           <div class="col">
             <q-select
               dense
-              :options='["satoshis", "USD"]'
+              :options="currencies"
               v-model="formDialog.data.currency"
               :display-value="formDialog.data.currency || 'satoshis'"
               label="Currency"
