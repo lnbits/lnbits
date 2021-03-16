@@ -1,6 +1,6 @@
 {
   "name": "OfflineShop",
-  "short_description": "Sell stuff with Lightning and lnurlpay on a shop without internet or any electronic device.",
+  "short_description": "Receive payments for products offline!",
   "icon": "nature_people",
   "contributors": [
     "fiatjaf"

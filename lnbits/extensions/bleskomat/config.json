@@ -1,6 +1,6 @@
 {
     "name": "Bleskomat",
-    "short_description": "This extension allows you to connect a Bleskomat ATM to an lnbits wallet.",
+    "short_description": "Connect a Bleskomat ATM to an lnbits",
     "icon": "money",
     "contributors": ["chill117"]
 }
