@@ -25,6 +25,14 @@
             label="Your challonge username"
           >
           </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.username"
+            type="text"
+            label="Your username"
+          >
+          </q-input>
           <p>
             Signup fee: {{ tournament_signup_fee }} sats<br />
           </p>
@@ -134,6 +142,7 @@
             tournament: '{{ tournament_id }}',
             email: self.formDialog.data.email,
             challonge_username: self.formDialog.data.challonge_username,
+            username: self.formDialog.data.username,
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -167,6 +176,7 @@
                     console.log(self.formDialog)
                     self.formDialog.data.email = ''
                     self.formDialog.data.challonge_username = ''
+                    self.formDialog.data.username = ''
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',

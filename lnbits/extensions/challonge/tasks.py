@@ -33,7 +33,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     ### Create add user to challonge tournament
     ch_response = challonge_add_user_to_tournament( # TODO
-        challonge_name=participant.challonge_username, tournament=tournament, name=participant.username , email=participant.email
+        username=participant.username, challonge_username=participant.challonge_username, tournament=tournament, name=participant.username , email=participant.email
     )
 
     ### Use webhook to notify about challonge user participation

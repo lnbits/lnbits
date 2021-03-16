@@ -14,6 +14,7 @@ from .crud import (
     delete_participant,
     create_tournament,
     delete_tournament,
+    create_participant,
     get_participantByUsername,
     get_participant,
     get_participants,
@@ -158,6 +159,7 @@ async def api_participants():
         "tournament": {"type": "string", "empty": False, "required": True},
         "email": {"type": "string", "empty": True, "required": False},
         "challonge_username": {"type": "string", "empty": False, "required": True},
+        "username": {"type": "string", "empty": False, "required": True},
     }
 )
 async def api_participants_new_participant(tournament_id):
@@ -184,15 +186,17 @@ async def api_participants_new_participant(tournament_id):
         )
       
     cf_response = await challonge_add_user_to_tournament(
-        challonge_name=g.data["challonge_username"],
+        challonge_username=g.data["challonge_username"],
+        username=g.data["username"],
         email=g.data["email"],
         tournament=tournament
     )
-    if cf_response["success"] == True:
-        challonge_delete_user_from_tournament(tournament=tournament, user_id=cf_response.data["id"])
+
+    if not "errors" in cf_response:
+        await challonge_delete_user_from_tournament(tournament=tournament, participant_id=cf_response['participant']['id'])
     else:
         return (
-            jsonify({"message": "Problem with cloudflare: " + cf_response["errors"][0]["message"]}),
+            jsonify({"message": "Problem with challonge: " + cf_response["errors"][0]}),
             HTTPStatus.BAD_REQUEST,
         ) 
     

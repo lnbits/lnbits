@@ -3,18 +3,19 @@ import httpx, json
 
 
 # https://api.challonge.com/v1/documents/participants/create
-async def challonge_add_user_to_tournament(tournament: Tournament, challonge_name: str, email: str):
+async def challonge_add_user_to_tournament(tournament: Tournament, challonge_username: str, username: str, email: str):
     ### SEND REQUEST TO CHALLONGE   
     url = "https://api.challonge.com/v1/tournaments/" + tournament.challonge_tournament_id + "/participants.json?api_key=" + tournament.challonge_api
-    header = {"Content-Type": "application/json"}
+    header = {"Content-Type": "application/x-www-form-urlencoded"}
     ch_response = ""
     async with httpx.AsyncClient() as client:
         try:
             r = await client.post(
                 url,
                 headers=header,
-                json={
-                    "participant[challonge_username]": challonge_name,
+                data={
+                    "participant[challonge_username]": challonge_username,
+                    "participant[name]": username,
                     "participant[email]": email
                 },
                 timeout=40,
@@ -26,11 +27,8 @@ async def challonge_add_user_to_tournament(tournament: Tournament, challonge_nam
 
 # https://api.challonge.com/v1/documents/participants/delete
 async def challonge_delete_user_from_tournament(tournament: Tournament, participant_id: str):
-    ### SEND REQUEST TO CHALLONGE   
-
-
-    url = "https://api.challonge.com/v1/tournaments/" + tournament.challonge_tournament_id + "/participants/"+ participant_id
-    header = {"api_key": tournament.challonge_API, "Content-Type": "application/json"}
+    url = "https://api.challonge.com/v1/tournaments/" + tournament.challonge_tournament_id + "/participants/"+ str(participant_id) + "?api_key=" + tournament.challonge_api
+    header = {"Content-Type": "application/x-www-form-urlencoded"}
     ch_response = ""
     async with httpx.AsyncClient() as client:
         try:
@@ -39,10 +37,10 @@ async def challonge_delete_user_from_tournament(tournament: Tournament, particip
                 headers=header,
                 timeout=40,
             )
-            ch_response = json.loads(r.text)
+            #ch_response = json.loads(r.text)
         except AssertionError:
             ch_response = "Error occured"
-    return ch_response
+    #return ch_response
 
 
 
