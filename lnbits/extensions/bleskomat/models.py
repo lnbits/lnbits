@@ -39,7 +39,7 @@ class BleskomatLnurl(NamedTuple):
     def get_info_response_object(self, secret: str) -> Dict[str, str]:
         tag = self.tag
         params = json.loads(self.params)
-        response = { "tag": tag }
+        response = {"tag": tag}
         if tag == "withdrawRequest":
             for key in ["minWithdrawable", "maxWithdrawable", "defaultDescription"]:
                 response[key] = params[key]
@@ -54,7 +54,7 @@ class BleskomatLnurl(NamedTuple):
         if tag == "withdrawRequest":
             for field in ["pr"]:
                 if not field in query:
-                    raise LnurlValidationError(f"Missing required parameter: \"{field}\"")
+                    raise LnurlValidationError(f'Missing required parameter: "{field}"')
             # Check the bolt11 invoice(s) provided.
             pr = query["pr"]
             if "," in pr:
@@ -62,13 +62,13 @@ class BleskomatLnurl(NamedTuple):
             try:
                 invoice = bolt11.decode(pr)
             except ValueError as e:
-                raise LnurlValidationError("Invalid parameter (\"pr\"): Lightning payment request expected")
+                raise LnurlValidationError('Invalid parameter ("pr"): Lightning payment request expected')
             if invoice.amount_msat < params["minWithdrawable"]:
-                raise LnurlValidationError("Amount in invoice must be greater than or equal to \"minWithdrawable\"")
+                raise LnurlValidationError('Amount in invoice must be greater than or equal to "minWithdrawable"')
             if invoice.amount_msat > params["maxWithdrawable"]:
-                raise LnurlValidationError("Amount in invoice must be less than or equal to \"maxWithdrawable\"")
+                raise LnurlValidationError('Amount in invoice must be less than or equal to "maxWithdrawable"')
         else:
-            raise LnurlValidationError(f"Unknown subprotocol: \"{tag}\"")
+            raise LnurlValidationError(f'Unknown subprotocol: "{tag}"')
 
     async def execute_action(self, query: Dict[str, str]):
         self.validate_action(query)
@@ -105,6 +105,6 @@ class BleskomatLnurl(NamedTuple):
             WHERE id = ?
                 AND remaining_uses > 0
             """,
-            (now, self.id)
+            (now, self.id),
         )
         return result.rowcount > 0

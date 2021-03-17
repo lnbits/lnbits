@@ -46,7 +46,11 @@
               <q-btn outline color="grey" @click="copyText(paymentReq)"
                 >Copy invoice</q-btn
               >
-              <q-btn @click="cancelPayment(false)" flat color="grey" class="q-ml-auto"
+              <q-btn
+                @click="cancelPayment(false)"
+                flat
+                color="grey"
+                class="q-ml-auto"
                 >Cancel</q-btn
               >
             </div>
@@ -58,7 +62,7 @@
             Captcha accepted. You are probably human.<br />
             <!-- <strong>{% raw %}{{ redirectUrl }}{% endraw %}</strong> -->
           </p>
-  <!--         <div class="row q-mt-lg">
+          <!--         <div class="row q-mt-lg">
             <q-btn outline color="grey" type="a" :href="redirectUrl"
               >Open URL</q-btn>
           </div> -->

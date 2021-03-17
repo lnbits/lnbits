@@ -21,11 +21,7 @@ def generate_bleskomat_lnurl_signature(payload: str, api_key_secret: str, api_ke
         key = base64.b64decode(api_key_secret)
     else:
         key = bytes(f"{api_key_secret}")
-    return hmac.new(
-        key=key,
-        msg=payload.encode(),
-        digestmod=hashlib.sha256
-    ).hexdigest()
+    return hmac.new(key=key, msg=payload.encode(), digestmod=hashlib.sha256).hexdigest()
 
 
 def generate_bleskomat_lnurl_secret(api_key_id: str, signature: str):
@@ -58,19 +54,21 @@ class LnurlValidationError(Exception):
 def prepare_lnurl_params(tag: str, query: Dict[str, str]):
     params = {}
     if not is_supported_lnurl_subprotocol(tag):
-        raise LnurlValidationError(f"Unsupported subprotocol: \"{tag}\"")
+        raise LnurlValidationError(f'Unsupported subprotocol: "{tag}"')
     if tag == "withdrawRequest":
         params["minWithdrawable"] = float(query["minWithdrawable"])
         params["maxWithdrawable"] = float(query["maxWithdrawable"])
         params["defaultDescription"] = query["defaultDescription"]
         if not params["minWithdrawable"] > 0:
-            raise LnurlValidationError("\"minWithdrawable\" must be greater than zero")
+            raise LnurlValidationError('"minWithdrawable" must be greater than zero')
         if not params["maxWithdrawable"] >= params["minWithdrawable"]:
-            raise LnurlValidationError("\"maxWithdrawable\" must be greater than or equal to \"minWithdrawable\"")
+            raise LnurlValidationError('"maxWithdrawable" must be greater than or equal to "minWithdrawable"')
     return params
 
 
 encode_uri_component_safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.!~*'()"
+
+
 def query_to_signing_payload(query: Dict[str, str]) -> str:
     # Sort the query by key, then stringify it to create the payload.
     sorted_keys = sorted(query.keys(), key=str.lower)
@@ -84,35 +82,17 @@ def query_to_signing_payload(query: Dict[str, str]) -> str:
 
 
 unshorten_rules = {
-    "query": {
-        "n": "nonce",
-        "s": "signature",
-        "t": "tag"
-    },
-    "tags": {
-        "c": "channelRequest",
-        "l": "login",
-        "p": "payRequest",
-        "w": "withdrawRequest"
-    },
+    "query": {"n": "nonce", "s": "signature", "t": "tag"},
+    "tags": {"c": "channelRequest", "l": "login", "p": "payRequest", "w": "withdrawRequest"},
     "params": {
-        "channelRequest": {
-            "pl": "localAmt",
-            "pp": "pushAmt"
-        },
+        "channelRequest": {"pl": "localAmt", "pp": "pushAmt"},
         "login": {},
-        "payRequest": {
-            "pn": "minSendable",
-            "px": "maxSendable",
-            "pm": "metadata"
-        },
-        "withdrawRequest": {
-            "pn": "minWithdrawable",
-            "px": "maxWithdrawable",
-            "pd": "defaultDescription"
-        }
-    }
+        "payRequest": {"pn": "minSendable", "px": "maxSendable", "pm": "metadata"},
+        "withdrawRequest": {"pn": "minWithdrawable", "px": "maxWithdrawable", "pd": "defaultDescription"},
+    },
 }
+
+
 def unshorten_lnurl_query(query: Dict[str, str]) -> Dict[str, str]:
     new_query = {}
     rules = unshorten_rules
@@ -121,14 +101,14 @@ def unshorten_lnurl_query(query: Dict[str, str]) -> Dict[str, str]:
     elif "t" in query:
         tag = query["t"]
     else:
-        raise LnurlValidationError("Missing required query parameter: \"tag\"")
+        raise LnurlValidationError('Missing required query parameter: "tag"')
     # Unshorten tag:
     if tag in rules["tags"]:
         long_tag = rules["tags"][tag]
         new_query["tag"] = long_tag
         tag = long_tag
     if not tag in rules["params"]:
-        raise LnurlValidationError(f"Unknown tag: \"{tag}\"")
+        raise LnurlValidationError(f'Unknown tag: "{tag}"')
     for key in query:
         if key in rules["params"][tag]:
             short_param_key = key

@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import WithdrawLink
+from .models import WithdrawLink, HashCheck
 
 
 async def create_withdraw_link(
@@ -98,3 +98,31 @@ async def delete_withdraw_link(link_id: str) -> None:
 def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
+
+
+async def create_hash_check(
+    the_hash: str,
+    lnurl_id: str,
+) -> HashCheck:
+    await db.execute(
+        """
+        INSERT INTO hash_check (
+            id,
+            lnurl_id
+        )
+        VALUES (?, ?)
+        """,
+        (
+            the_hash,
+            lnurl_id,
+        ),
+    )
+    hashCheck = await get_hash_check(the_hash, lnurl_id)
+    row = await db.fetchone("SELECT * FROM hash_check WHERE id = ?", (the_hash,))
+    return HashCheck.from_row(row) if row else None
+
+
+async def get_hash_check(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
+    row = await db.fetchone("SELECT * FROM hash_check WHERE id = ?", (the_hash,))
+
+    return HashCheck.from_row(row) if row else None
