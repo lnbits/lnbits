@@ -8,8 +8,8 @@ from .models import Shop, Item
 async def create_shop(*, wallet_id: str) -> int:
     result = await db.execute(
         """
-        INSERT INTO shops (wallet, wordlist)
-        VALUES (?, ?)
+        INSERT INTO shops (wallet, wordlist, method)
+        VALUES (?, ?, 'wordlist')
         """,
         (wallet_id, "\n".join(animals)),
     )
