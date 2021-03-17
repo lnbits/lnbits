@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import WithdrawLink
+from .models import WithdrawLink, HashCheck
 
 
 async def create_withdraw_link(
