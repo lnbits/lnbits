@@ -114,6 +114,7 @@ async def api_link_delete(link_id):
 
     return "", HTTPStatus.NO_CONTENT
 
+
 @withdraw_ext.route("/api/v1/links/<the_hash>/<lnurl_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_hash_retrieve(the_hash, lnurl_id):

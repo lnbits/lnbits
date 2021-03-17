@@ -95,6 +95,7 @@ async def m002_change_withdraw_table(db):
         )
     await db.execute("DROP TABLE withdraw_links")
 
+
 async def m003_make_hash_check(db):
     """
     Creates a hash check table.
