@@ -59,3 +59,11 @@ class WithdrawLink(NamedTuple):
             max_withdrawable=self.max_withdrawable * 1000,
             default_description=self.title,
         )
+
+class HashCheck(NamedTuple):
+    id: str
+    lnurl_id: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Hash":
+        return cls(**dict(row))
