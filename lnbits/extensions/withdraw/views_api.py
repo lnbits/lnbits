@@ -12,6 +12,8 @@ from .crud import (
     get_withdraw_links,
     update_withdraw_link,
     delete_withdraw_link,
+    create_hash_check,
+    get_hash_check,
 )
 
 
@@ -111,3 +113,17 @@ async def api_link_delete(link_id):
     await delete_withdraw_link(link_id)
 
     return "", HTTPStatus.NO_CONTENT
+
+@withdraw_ext.route("/api/v1/links/<the_hash>/<lnurl_id>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_hash_retrieve(the_hash, lnurl_id):
+    hashCheck = await get_hash_check(the_hash, lnurl_id)
+
+    if not hashCheck:
+        hashCheck = await create_hash_check(the_hash, lnurl_id)
+        return jsonify({"status": False}), HTTPStatus.OK
+    
+    if link.wallet != g.wallet.id:
+        return jsonify({"status": True}), HTTPStatus.OK
+
+    return jsonify({"status": True}), HTTPStatus.OK

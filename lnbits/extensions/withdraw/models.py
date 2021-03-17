@@ -63,7 +63,6 @@ class WithdrawLink(NamedTuple):
 class HashCheck(NamedTuple):
     id: str
     lnurl_id: str
-
     @classmethod
     def from_row(cls, row: Row) -> "Hash":
         return cls(**dict(row))
