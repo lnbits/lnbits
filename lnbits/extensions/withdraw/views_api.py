@@ -122,8 +122,5 @@ async def api_hash_retrieve(the_hash, lnurl_id):
     if not hashCheck:
         hashCheck = await create_hash_check(the_hash, lnurl_id)
         return jsonify({"status": False}), HTTPStatus.OK
-    
-    if link.wallet != g.wallet.id:
-        return jsonify({"status": True}), HTTPStatus.OK
 
     return jsonify({"status": True}), HTTPStatus.OK
