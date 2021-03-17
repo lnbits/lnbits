@@ -149,8 +149,7 @@
       </q-card-section>
     </q-card>
   </q-expansion-item>
-</q-expansion-item>
-<q-expansion-item
+  <q-expansion-item
 group="api"
 dense
 expand-separator
@@ -177,3 +176,30 @@ label="Get Hash Check"
   </q-card-section>
 </q-card>
 </q-expansion-item>
+<q-expansion-item
+group="api"
+dense
+expand-separator
+label="Get image to embed"
+>
+<q-card>
+  <q-card-section>
+    <code
+      ><span class="text-blue">GET</span>
+      /withdraw/img/&lt;lnurl_id&gt;</code
+    >
+    <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+    <h5 class="text-caption q-mt-sm q-mb-none">
+      Returns 201 CREATED (application/json)
+    </h5>
+    <code>{"status": &lt;bool&gt;}</code>
+    <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+    <code
+      >curl -X GET {{ request.url_root }}/withdraw/img/&lt;lnurl_id&gt;"
+    </code>
+  </q-card-section>
+</q-card>
+</q-expansion-item>
+</q-expansion-item>
+
+
