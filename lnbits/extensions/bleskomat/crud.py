@@ -6,19 +6,30 @@ from . import db
 from .models import Bleskomat, BleskomatLnurl
 from .helpers import generate_bleskomat_lnurl_hash
 
+
 async def create_bleskomat(
     *, wallet_id: str, name: str, fiat_currency: str, exchange_rate_provider: str, fee: str
 ) -> Bleskomat:
     bleskomat_id = uuid4().hex
     api_key_id = secrets.token_hex(8)
     api_key_secret = secrets.token_hex(32)
-    api_key_encoding = "hex";
+    api_key_encoding = "hex"
     await db.execute(
         """
         INSERT INTO bleskomats (id, wallet, api_key_id, api_key_secret, api_key_encoding, name, fiat_currency, exchange_rate_provider, fee)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (bleskomat_id, wallet_id, api_key_id, api_key_secret, api_key_encoding, name, fiat_currency, exchange_rate_provider, fee),
+        (
+            bleskomat_id,
+            wallet_id,
+            api_key_id,
+            api_key_secret,
+            api_key_encoding,
+            name,
+            fiat_currency,
+            exchange_rate_provider,
+            fee,
+        ),
     )
     bleskomat = await get_bleskomat(bleskomat_id)
     assert bleskomat, "Newly created bleskomat couldn't be retrieved"
@@ -65,7 +76,19 @@ async def create_bleskomat_lnurl(
         INSERT INTO bleskomat_lnurls (id, bleskomat, wallet, hash, tag, params, api_key_id, initial_uses, remaining_uses, created_time, updated_time)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (bleskomat_lnurl_id, bleskomat.id, bleskomat.wallet, hash, tag, params, bleskomat.api_key_id, uses, uses, now, now),
+        (
+            bleskomat_lnurl_id,
+            bleskomat.id,
+            bleskomat.wallet,
+            hash,
+            tag,
+            params,
+            bleskomat.api_key_id,
+            uses,
+            uses,
+            now,
+            now,
+        ),
     )
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
     assert bleskomat_lnurl, "Newly created bleskomat LNURL couldn't be retrieved"

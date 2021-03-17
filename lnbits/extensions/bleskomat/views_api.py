@@ -58,13 +58,13 @@ async def api_bleskomat_create_or_update(bleskomat_id=None):
     try:
         fiat_currency = g.data["fiat_currency"]
         exchange_rate_provider = g.data["exchange_rate_provider"]
-        rate = await fetch_fiat_exchange_rate(
-            currency=fiat_currency,
-            provider=exchange_rate_provider
-        )
+        rate = await fetch_fiat_exchange_rate(currency=fiat_currency, provider=exchange_rate_provider)
     except Exception as e:
         print(e)
-        return jsonify({"message": f"Failed to fetch BTC/{fiat_currency} currency pair from \"{exchange_rate_provider}\""}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return (
+            jsonify({"message": f'Failed to fetch BTC/{fiat_currency} currency pair from "{exchange_rate_provider}"'}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
     if bleskomat_id:
         bleskomat = await get_bleskomat(bleskomat_id)

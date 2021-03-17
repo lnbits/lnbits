@@ -47,7 +47,7 @@ async def api_bleskomat_lnurl():
             # The API key ID, nonce, and tag should be present in the query string.
             for field in ["id", "nonce", "tag"]:
                 if not field in query:
-                    raise LnurlHttpError(f"Failed API key signature check: Missing \"{field}\"", HTTPStatus.BAD_REQUEST)
+                    raise LnurlHttpError(f'Failed API key signature check: Missing "{field}"', HTTPStatus.BAD_REQUEST)
 
             # URL signing scheme is described here:
             # https://github.com/chill117/lnurl-node#how-to-implement-url-signing-scheme
@@ -72,8 +72,7 @@ async def api_bleskomat_lnurl():
                     params = prepare_lnurl_params(tag, query)
                     if "f" in query:
                         rate = await fetch_fiat_exchange_rate(
-                            currency=query["f"],
-                            provider=bleskomat.exchange_rate_provider
+                            currency=query["f"], provider=bleskomat.exchange_rate_provider
                         )
                         # Convert fee (%) to decimal:
                         fee = float(bleskomat.fee) / 100
@@ -88,13 +87,7 @@ async def api_bleskomat_lnurl():
                     raise LnurlHttpError(e.message, HTTPStatus.BAD_REQUEST)
                 # Create a new LNURL using the query parameters provided in the signed URL.
                 params = json.JSONEncoder().encode(params)
-                lnurl = await create_bleskomat_lnurl(
-                    bleskomat=bleskomat,
-                    secret=secret,
-                    tag=tag,
-                    params=params,
-                    uses=1
-                )
+                lnurl = await create_bleskomat_lnurl(bleskomat=bleskomat, secret=secret, tag=tag, params=params, uses=1)
 
             # Reply with LNURL response object.
             return jsonify(lnurl.get_info_response_object(secret)), HTTPStatus.OK
