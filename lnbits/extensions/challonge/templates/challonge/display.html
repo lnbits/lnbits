@@ -96,11 +96,9 @@
         formDialog: {
           show: false,
           data: {
-            ip: '',
-            subdomain: '',
-            duration: '',
-            email: '',
-            record_type: ''
+            challonge_username: '',
+            username: '',
+            email: ''
           }
         },
         receive: {
@@ -121,11 +119,9 @@
     methods: {
       resetForm: function (e) {
         e.preventDefault()
-        this.formDialog.data.subdomain = ''
+        this.formDialog.data.challonge_username = ''
         this.formDialog.data.email = ''
-        this.formDialog.data.ip = ''
-        this.formDialog.data.duration = ''
-        this.formDialog.data.record_type = ''
+        this.formDialog.data.username = ''
       },
 
       closeReceiveDialog: function () {
@@ -161,7 +157,7 @@
 
             paymentChecker = setInterval(function () {
               axios
-                .get('/challonge/api/v1/tournaments/' + self.paymentCheck)
+                .get('/challonge/api/v1/participants/' + self.paymentCheck)
                 .then(function (res) {
                   console.log(res.data)
                   if (res.data.paid) {

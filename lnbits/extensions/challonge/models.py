@@ -1,3 +1,4 @@
+from lnbits.wallets.base import Wallet
 from typing import NamedTuple
 
 class Tournament(NamedTuple):
@@ -18,4 +19,3 @@ class Participant(NamedTuple):
     status: str # (SIGNUP, PAID)
     username: str
     challonge_username: str
-    email: str

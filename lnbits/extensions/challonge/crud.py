@@ -18,8 +18,8 @@ async def create_participant(
 ) -> Participant:
     await db.execute(
         """
-        INSERT INTO participant (id, tournament, secret, status, username, challonge_username)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO participant (id, wallet, tournament, secret, status, username, challonge_username)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (payment_hash, wallet, tournament, secret, status, username, challonge_username),
     )
@@ -73,10 +73,10 @@ async def get_participant(participant_id: str) -> Optional[Participant]:
     return Participant(**row) if row else None
 
 
-async def get_participantByUsername(username: str) -> Optional[Participant]:
+async def get_participantByUsername(challonge_username: str, username: str) -> Optional[Participant]:
     row = await db.fetchone(
-         "SELECT s.* FROM participant s WHERE s.challonge_username = ?",
-        (username,),
+         "SELECT s.* FROM participant s WHERE s.challonge_username = ? and s.username = ?",
+        (challonge_username, username),
     )
     print(row)
     return Participant(**row) if row else None

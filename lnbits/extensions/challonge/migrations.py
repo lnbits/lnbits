@@ -19,10 +19,11 @@ async def m001_initial(db):
         """
         CREATE TABLE IF NOT EXISTS participant (
             id TEXT PRIMARY KEY,
-            payment_hash TEXT NOT NULL,
+            wallet TEXT NOT NULL,
             tournament TEXT NOT NULL,
             secret TEXT NOT NULL,
             status TEXT NOT NULL,
+            username TEXT NOT NULL,
             challonge_username TEXT NOT NULL
         );
     """

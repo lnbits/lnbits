@@ -1,3 +1,4 @@
+from logging import fatal
 import re
 from quart import g, jsonify, request
 from http import HTTPStatus
@@ -8,6 +9,7 @@ import httpx
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+import uuid
 
 from . import challonge_ext
 from .crud import (
@@ -158,7 +160,7 @@ async def api_participants():
     schema={
         "tournament": {"type": "string", "empty": False, "required": True},
         "email": {"type": "string", "empty": True, "required": False},
-        "challonge_username": {"type": "string", "empty": False, "required": True},
+        "challonge_username": {"type": "string", "empty": True, "required": False},
         "username": {"type": "string", "empty": False, "required": True},
     }
 )
@@ -171,20 +173,18 @@ async def api_participants_new_participant(tournament_id):
 
     ## If domain already exist in our database reject it
     if (
-        await get_participantByUsername(g.data["challonge_username"]) is not None
+        await get_participantByUsername(g.data["challonge_username"],g.data["username"] ) is not None
     ):  # TODO check if g.data["participant_name"] really exist
         return (
             jsonify(
                 {
                     "message": g.data["challonge_username"]
-                    + "."
-                    + tournament.tournament_name
                     + " participant with this name already registered"
                 }
             ),
             HTTPStatus.BAD_REQUEST,
         )
-      
+
     cf_response = await challonge_add_user_to_tournament(
         challonge_username=g.data["challonge_username"],
         username=g.data["username"],
@@ -201,16 +201,17 @@ async def api_participants_new_participant(tournament_id):
         ) 
     
 
-    ## ALL OK - create an invoice and return it to the user
-    sats = g.data["sats"]
+    ## ALL OK - create an invoice and return it to the user with generated secret
+    sats = tournament.signup_fee
+    secret = str(uuid.uuid4()) # generate a secret id string that will be passed to user to retrieve potential winnings
     payment_hash, payment_request = await create_invoice(
         wallet_id=tournament.wallet,
         amount=sats,
-        memo=f"subdomain {g.data['subdomain']}.{tournament.domain} for {sats} sats for {g.data['duration']} days",
-        extra={"tag": "lnsubdomain"},
+        memo=f"Signup for Challonge tournament {tournament.challonge_tournament_id} with username: {g.data['username']}. Your secret id is: {secret}",
+        extra={"tag": "lnchallonge"},
     )  # TODO Fix memo
 
-    participant = await create_participant(payment_hash=payment_hash, wallet=tournament.wallet, **g.data)
+    participant = await create_participant(payment_hash=payment_hash, wallet=tournament.wallet, tournament=tournament.id, secret=secret, status="signup", challonge_username=g.data['challonge_username'], username=g.data['username'])
 
     if not participant:
         return jsonify({"message": "Participant could not be fetched."}), HTTPStatus.NOT_FOUND
@@ -222,7 +223,7 @@ async def api_participants_new_participant(tournament_id):
 async def api_participant_check_payment(payment_hash):
     participant = await get_participant(payment_hash)
     try:
-        status = await check_invoice_status(participant.wallet, payment_hash)
+        status = await check_invoice_status(participant.wallet, participant.id)
         is_paid = not status.pending
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK

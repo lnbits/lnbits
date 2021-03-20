@@ -32,8 +32,12 @@ async def on_invoice_paid(payment: Payment) -> None:
     tournament = await get_tournament(participant.tournament)
 
     ### Create add user to challonge tournament
-    ch_response = challonge_add_user_to_tournament( # TODO
-        username=participant.username, challonge_username=participant.challonge_username, tournament=tournament, name=participant.username , email=participant.email
+
+    challonge_username = getattr(participant or object(), 'challonge_username', '')
+    email = getattr(participant or object(), 'email', '')
+
+    ch_response = await challonge_add_user_to_tournament(
+        username=participant.username, challonge_username=challonge_username, tournament=tournament, email=email
     )
 
     ### Use webhook to notify about challonge user participation
@@ -43,9 +47,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                 r = await client.post(
                     tournament.webhook,
                     json={
-                        "tournament_name": tournament.challonge_tournament_name,
-                        "prize_pool": tournament.prize_pool,
-                        "total_prize_pool": tournament.total_prize_pool
+                        "data": "data" # TODO add meaninful data to the webhook
                     },
                     timeout=40,
                 )
