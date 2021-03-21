@@ -28,6 +28,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         return
 
     await payment.set_pending(False)
+    
     participant = await set_participant_paid(payment_hash=payment.payment_hash)
     tournament = await get_tournament(participant.tournament)
 

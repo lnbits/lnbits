@@ -34,30 +34,14 @@ async def set_participant_paid(payment_hash: str) -> Participant:
         "SELECT p.* FROM participant p WHERE p.id = ?",
         (payment_hash,),
     )
-    if row[5] == "signup":
+    if row['status'] == "signup":
         await db.execute(
             """
             UPDATE participant
-            SET status = paid
+            SET status = "paid"
             WHERE id = ?
             """,
             (payment_hash,),
-        )
-
-        tournament = await get_tournament(row[1])
-        assert tournament, "Couldn't get tournament from paid participant"
-
-        current_participants = tournament.current_participants + 1
-        total_prize_pool = tournament.prize_pool + tournament.signup_fee * current_participants
-        await db.execute(
-            """
-            UPDATE participant
-            SET 
-                current_participants = ?,
-                total_prize_pool = ?
-            WHERE id = ?
-            """,
-            (current_participants, total_prize_pool, row[1]),
         )
 
     participant = await get_participant(payment_hash)
