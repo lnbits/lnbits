@@ -66,9 +66,12 @@ async def invoice_listener(nursery):
 
 async def check_pending_payments():
     await delete_expired_invoices()
-    for payment in await get_payments(complete=False, pending=True, exclude_uncheckable=True):
-        print(" - checking pending", payment.checking_id)
-        await payment.check_pending()
+    while True:
+        for payment in await get_payments(complete=False, pending=True, exclude_uncheckable=True):
+            print(" - checking pending", payment.checking_id)
+            await payment.check_pending()
+
+        await trio.sleep(60 * 5)
 
 
 async def invoice_callback_dispatcher(checking_id: str):
