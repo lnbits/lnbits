@@ -1,7 +1,7 @@
 import json
 import datetime
 from uuid import uuid4
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 from lnbits import bolt11
 from lnbits.settings import DEFAULT_WALLET_NAME
@@ -158,9 +158,9 @@ async def get_wallet_payment(wallet_id: str, payment_hash: str) -> Optional[Paym
     return Payment.from_row(row) if row else None
 
 
-async def get_wallet_payments(
-    wallet_id: str,
+async def get_payments(
     *,
+    wallet_id: Optional[str] = None,
     complete: bool = False,
     pending: bool = False,
     outgoing: bool = False,
@@ -171,41 +171,48 @@ async def get_wallet_payments(
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    clause = ""
-    if complete and pending:
-        clause += ""
-    elif complete:
-        clause += "AND ((amount > 0 AND pending = 0) OR amount < 0)"
-    elif pending:
-        clause += "AND pending = 1"
-    else:
-        raise TypeError("at least one of [complete, pending] must be True.")
+    args: Any = ()
 
-    clause += " "
+    clause = []
+
+    if wallet_id:
+        clause.append("wallet = ?")
+        args = (wallet_id,)
+
+    if complete and pending:
+        pass
+    elif complete:
+        clause.append("((amount > 0 AND pending = 0) OR amount < 0)")
+    elif pending:
+        clause.append("pending = 1")
+    else:
+        pass
 
     if outgoing and incoming:
-        clause += ""
+        pass
     elif outgoing:
-        clause += "AND amount < 0"
+        clause.append("amount < 0")
     elif incoming:
-        clause += "AND amount > 0"
+        clause.append("amount > 0")
     else:
-        raise TypeError("at least one of [outgoing, incoming] must be True.")
-
-    clause += " "
+        pass
 
     if exclude_uncheckable:  # checkable means it has a checking_id that isn't internal
-        clause += "AND checking_id NOT LIKE 'temp_%' "
-        clause += "AND checking_id NOT LIKE 'internal_%' "
+        clause.append("checking_id NOT LIKE 'temp_%'")
+        clause.append("checking_id NOT LIKE 'internal_%'")
+
+    where = ""
+    if clause:
+        where = f"WHERE {' AND '.join(clause)}"
 
     rows = await db.fetchall(
         f"""
         SELECT *
         FROM apipayments
-        WHERE wallet = ? {clause}
+        {where}
         ORDER BY time DESC
         """,
-        (wallet_id,),
+        args,
     )
 
     return [Payment.from_row(row) for row in rows]

@@ -4,7 +4,7 @@ from typing import Optional, List, Callable
 from quart_trio import QuartTrio
 
 from lnbits.settings import WALLET
-from lnbits.core.crud import get_standalone_payment
+from lnbits.core.crud import get_payments, get_standalone_payment, delete_expired_invoices
 
 main_app: Optional[QuartTrio] = None
 
@@ -54,16 +54,21 @@ async def webhook_handler():
 internal_invoice_paid, internal_invoice_received = trio.open_memory_channel(0)
 
 
-async def internal_invoice_listener():
-    async with trio.open_nursery() as nursery:
-        async for checking_id in internal_invoice_received:
-            nursery.start_soon(invoice_callback_dispatcher, checking_id)
+async def internal_invoice_listener(nursery):
+    async for checking_id in internal_invoice_received:
+        nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
-async def invoice_listener():
-    async with trio.open_nursery() as nursery:
-        async for checking_id in WALLET.paid_invoices_stream():
-            nursery.start_soon(invoice_callback_dispatcher, checking_id)
+async def invoice_listener(nursery):
+    async for checking_id in WALLET.paid_invoices_stream():
+        nursery.start_soon(invoice_callback_dispatcher, checking_id)
+
+
+async def check_pending_payments():
+    await delete_expired_invoices()
+    for payment in await get_payments(complete=False, pending=True, exclude_uncheckable=True):
+        print(" - checking pending", payment.checking_id)
+        await payment.check_pending()
 
 
 async def invoice_callback_dispatcher(checking_id: str):

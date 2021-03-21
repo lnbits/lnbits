@@ -11,10 +11,17 @@ from .commands import db_migrate, handle_assets
 from .core import core_app
 from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
 from .proxy_fix import ASGIProxyFix
-from .tasks import run_deferred_async, invoice_listener, internal_invoice_listener, webhook_handler, grab_app_for_later
+from .tasks import (
+    run_deferred_async,
+    check_pending_payments,
+    invoice_listener,
+    internal_invoice_listener,
+    webhook_handler,
+    grab_app_for_later,
+)
 from .settings import WALLET
 
-secure_headers = SecureHeaders(hsts=False,xfo=False)
+secure_headers = SecureHeaders(hsts=False, xfo=False)
 
 
 def create_app(config_object="lnbits.settings") -> QuartTrio:
@@ -123,8 +130,9 @@ def register_async_tasks(app):
     @app.before_serving
     async def listeners():
         run_deferred_async(app.nursery)
-        app.nursery.start_soon(invoice_listener)
-        app.nursery.start_soon(internal_invoice_listener)
+        app.nursery.start_soon(check_pending_payments)
+        app.nursery.start_soon(invoice_listener, app.nursery)
+        app.nursery.start_soon(internal_invoice_listener, app.nursery)
 
     @app.after_serving
     async def stop_listeners():

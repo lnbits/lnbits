@@ -13,7 +13,6 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from .. import core_app, db
 from ..services import create_invoice, pay_invoice, perform_lnurlauth
-from ..crud import delete_expired_invoices
 from ..tasks import sse_listeners
 
 
@@ -30,17 +29,6 @@ async def api_wallet():
         ),
         HTTPStatus.OK,
     )
-
-
-@core_app.route("/api/v1/checkpending", methods=["POST"])
-@api_check_wallet_key("invoice")
-async def api_checkpending():
-    g.nursery.start_soon(delete_expired_invoices)
-
-    for payment in await g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
-        await payment.check_pending()
-
-    return "", HTTPStatus.NO_CONTENT
 
 
 @core_app.route("/api/v1/payments", methods=["GET"])

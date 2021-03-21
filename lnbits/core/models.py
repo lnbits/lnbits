@@ -60,10 +60,10 @@ class Wallet(NamedTuple):
         incoming: bool = True,
         exclude_uncheckable: bool = False
     ) -> List["Payment"]:
-        from .crud import get_wallet_payments
+        from .crud import get_payments
 
-        return await get_wallet_payments(
-            self.id,
+        return await get_payments(
+            wallet_id=self.id,
             complete=complete,
             pending=pending,
             outgoing=outgoing,

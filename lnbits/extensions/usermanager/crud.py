@@ -4,7 +4,7 @@ from lnbits.core.models import Payment
 from lnbits.core.crud import (
     create_account,
     get_user,
-    get_wallet_payments,
+    get_payments,
     create_wallet,
     delete_wallet,
 )
@@ -91,7 +91,7 @@ async def get_usermanager_wallets(user_id: str) -> List[Wallets]:
 
 
 async def get_usermanager_wallet_transactions(wallet_id: str) -> List[Payment]:
-    return await get_wallet_payments(wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True)
+    return await get_payments(wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True)
 
 
 async def delete_usermanager_wallet(wallet_id: str, user_id: str) -> None:

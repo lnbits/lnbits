@@ -604,19 +604,6 @@ new Vue({
         ])
       })
     },
-    checkPendingPayments: function () {
-      var dismissMsg = this.$q.notify({
-        timeout: 0,
-        message: 'Checking pending transactions...'
-      })
-
-      LNbits.api
-        .checkPending(this.g.wallet)
-        .then(() => LNbits.api.fetchPayments)
-        .then(() => {
-          dismissMsg()
-        })
-    },
     exportCSV: function () {
       LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments)
     }
@@ -629,7 +616,6 @@ new Vue({
   created: function () {
     this.fetchBalance()
     this.fetchPayments()
-    this.checkPendingPayments()
   },
   mounted: function () {
     // show disclaimer

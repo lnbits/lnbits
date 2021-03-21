@@ -52,9 +52,6 @@ window.LNbits = {
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    checkPending: function (wallet) {
-      return this.request('post', '/api/v1/checkpending', wallet.inkey)
-    },
     getPayments: function (wallet) {
       return this.request('get', '/api/v1/payments', wallet.inkey)
     },
