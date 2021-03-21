@@ -3,7 +3,7 @@ import json
 import lnurl  # type: ignore
 import httpx
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import g, jsonify, request, make_response
+from quart import g, jsonify, make_response
 from http import HTTPStatus
 from binascii import unhexlify
 from typing import Dict, Union
@@ -32,15 +32,20 @@ async def api_wallet():
     )
 
 
+@core_app.route("/api/v1/checkpending", methods=["POST"])
+@api_check_wallet_key("invoice")
+async def api_checkpending():
+    g.nursery.start_soon(delete_expired_invoices)
+
+    for payment in await g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
+        await payment.check_pending()
+
+    return "", HTTPStatus.NO_CONTENT
+
+
 @core_app.route("/api/v1/payments", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments():
-    if "check_pending" in request.args:
-        await delete_expired_invoices()
-
-        for payment in await g.wallet.get_payments(complete=False, pending=True, exclude_uncheckable=True):
-            await payment.check_pending()
-
     return jsonify(await g.wallet.get_payments(pending=True)), HTTPStatus.OK
 
 

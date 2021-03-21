@@ -584,18 +584,16 @@ new Vue({
           LNbits.href.deleteWallet(walletId, user)
         })
     },
-    fetchPayments: function (checkPending) {
-      return LNbits.api
-        .getPayments(this.g.wallet, checkPending)
-        .then(response => {
-          this.payments = response.data
-            .map(obj => {
-              return LNbits.map.payment(obj)
-            })
-            .sort((a, b) => {
-              return b.time - a.time
-            })
-        })
+    fetchPayments: function () {
+      return LNbits.api.getPayments(this.g.wallet).then(response => {
+        this.payments = response.data
+          .map(obj => {
+            return LNbits.map.payment(obj)
+          })
+          .sort((a, b) => {
+            return b.time - a.time
+          })
+      })
     },
     fetchBalance: function () {
       LNbits.api.getWallet(this.g.wallet).then(response => {
@@ -612,9 +610,12 @@ new Vue({
         message: 'Checking pending transactions...'
       })
 
-      this.fetchPayments(true).then(() => {
-        dismissMsg()
-      })
+      LNbits.api
+        .checkPending(this.g.wallet)
+        .then(() => LNbits.api.fetchPayments)
+        .then(() => {
+          dismissMsg()
+        })
     },
     exportCSV: function () {
       LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments)
@@ -628,7 +629,7 @@ new Vue({
   created: function () {
     this.fetchBalance()
     this.fetchPayments()
-    setTimeout(this.checkPendingPayments(), 1200)
+    this.checkPendingPayments()
   },
   mounted: function () {
     // show disclaimer
