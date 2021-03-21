@@ -108,6 +108,15 @@ class SparkWallet(Wallet):
         return PaymentStatus(True)
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        # check if it's 32 bytes hex
+        if len(checking_id) != 64:
+            return PaymentStatus(None)
+        try:
+            int(checking_id, 16)
+        except ValueError:
+            return PaymentStatus(None)
+
+        # ask sparko
         r = self.listpays(payment_hash=checking_id)
         if not r["pays"]:
             return PaymentStatus(False)
