@@ -123,9 +123,10 @@ async def create_hash_check(
 
 async def get_hash_check(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
     rowid = await db.fetchone("SELECT * FROM hash_check WHERE id = ?", (the_hash,))
-    rowlnurl = await db.fetchone("SELECT * FROM hash_check WHERE lnurl_id = ?", (the_hash,))
+    rowlnurl = await db.fetchone("SELECT * FROM hash_check WHERE lnurl_id = ?", (lnurl_id,))
     if not rowlnurl:
-        return {"lnurl": False, "hash": False}
+        await create_hash_check(the_hash, lnurl_id)
+        return {"lnurl": True, "hash": False}
     else:
         if not rowid:
             await create_hash_check(the_hash, lnurl_id)
