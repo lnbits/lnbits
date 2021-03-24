@@ -78,10 +78,12 @@ async def check_pending_payments():
             pending=True,
             exclude_uncheckable=True,
         ):
-            print(" - checking pending", payment.checking_id)
+            print(
+                f" - checking {'in' if payment.is_in else 'out'} pending: {payment.checking_id}"
+            )
             await payment.check_pending()
 
-        await trio.sleep(60 * 5)
+        await trio.sleep(60 * 120)
 
 
 async def invoice_callback_dispatcher(checking_id: str):
