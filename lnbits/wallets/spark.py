@@ -109,7 +109,34 @@ class SparkWallet(Wallet):
         try:
             r = await self.pay(bolt11)
         except (SparkError, UnknownError) as exc:
-            return PaymentResponse(False, None, 0, None, str(exc))
+            listpays = await self.listpays(bolt11)
+            if listpays:
+                pays = listpays["pays"]
+
+                if len(pays) == 0:
+                    return PaymentResponse(False, None, 0, None, str(exc))
+
+                pay = pays[0]
+                payment_hash = pay["payment_hash"]
+
+                if len(pays) > 1:
+                    raise Exception(
+                        f"listpays({payment_hash}) returned an unexpected response: {listpays}"
+                    )
+
+                if pay["status"] == "failed":
+                    return PaymentResponse(False, None, 0, None, str(exc))
+                elif pay["status"] == "pending":
+                    return PaymentResponse(None, listpays["pays"], 0, None, None)
+                elif pay["status"] == "complete":
+                    r = pay
+                    r["payment_preimage"] = pay["preimage"]
+                    r["msatoshi"] = int(pay["amount_msat"][0:-4])
+                    r["msatoshi_sent"] = int(pay["amount_sent_msat"][0:-4])
+                    # this may result in an error if it was paid previously
+                    # our database won't allow the same payment_hash to be added twice
+                    # this is good
+                    pass
 
         fee_msat = r["msatoshi_sent"] - r["msatoshi"]
         preimage = r["payment_preimage"]

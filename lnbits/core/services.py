@@ -140,11 +140,12 @@ async def pay_invoice(
     else:
         # actually pay the external invoice
         payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
-        if payment.ok and payment.checking_id:
+        if payment.checking_id:
             await create_payment(
                 checking_id=payment.checking_id,
                 fee=payment.fee_msat,
                 preimage=payment.preimage,
+                pending=payment.ok == None,
                 **payment_kwargs,
             )
             await delete_payment(temp_id)
