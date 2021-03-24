@@ -112,7 +112,7 @@ class LndWallet(Wallet):
             macaroon_filepath=self.macaroon_path,
         )
 
-    def status(self) -> StatusResponse:
+    async def status(self) -> StatusResponse:
         try:
             resp = self.rpc._ln_stub.ChannelBalance(ln.ChannelBalanceRequest())
         except Exception as exc:
@@ -120,7 +120,7 @@ class LndWallet(Wallet):
 
         return StatusResponse(None, resp.balance * 1000)
 
-    def create_invoice(
+    async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
@@ -144,7 +144,7 @@ class LndWallet(Wallet):
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         resp = self.rpc.send_payment(payment_request=bolt11)
 
         if resp.payment_error:
@@ -156,7 +156,7 @@ class LndWallet(Wallet):
         preimage = resp.payment_preimage.hex()
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
             r_hash = parse_checking_id(checking_id)
             if len(r_hash) != 32:
@@ -172,7 +172,7 @@ class LndWallet(Wallet):
 
         return PaymentStatus(None)
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

@@ -1,4 +1,3 @@
-import json
 import trio  # type: ignore
 import hmac
 import httpx
@@ -31,13 +30,14 @@ class OpenNodeWallet(Wallet):
         )
         self.auth = {"Authorization": key}
 
-    def status(self) -> StatusResponse:
+    async def status(self) -> StatusResponse:
         try:
-            r = httpx.get(
-                f"{self.endpoint}/v1/account/balance",
-                headers=self.auth,
-                timeout=40,
-            )
+            async with httpx.AsyncClient() as client:
+                r = await client.get(
+                    f"{self.endpoint}/v1/account/balance",
+                    headers=self.auth,
+                    timeout=40,
+                )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
 
@@ -47,7 +47,7 @@ class OpenNodeWallet(Wallet):
 
         return StatusResponse(None, data["balance"]["BTC"] / 100_000_000_000)
 
-    def create_invoice(
+    async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
@@ -56,16 +56,17 @@ class OpenNodeWallet(Wallet):
         if description_hash:
             raise Unsupported("description_hash")
 
-        r = httpx.post(
-            f"{self.endpoint}/v1/charges",
-            headers=self.auth,
-            json={
-                "amount": amount,
-                "description": memo or "",
-                "callback_url": url_for("webhook_listener", _external=True),
-            },
-            timeout=40,
-        )
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/v1/charges",
+                headers=self.auth,
+                json={
+                    "amount": amount,
+                    "description": memo or "",
+                    "callback_url": url_for("webhook_listener", _external=True),
+                },
+                timeout=40,
+            )
 
         if r.is_error:
             error_message = r.json()["message"]
@@ -76,13 +77,14 @@ class OpenNodeWallet(Wallet):
         payment_request = data["lightning_invoice"]["payreq"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(
-            f"{self.endpoint}/v2/withdrawals",
-            headers=self.auth,
-            json={"type": "ln", "address": bolt11},
-            timeout=180,
-        )
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/v2/withdrawals",
+                headers=self.auth,
+                json={"type": "ln", "address": bolt11},
+                timeout=180,
+            )
 
         if r.is_error:
             error_message = r.json()["message"]
@@ -93,16 +95,22 @@ class OpenNodeWallet(Wallet):
         fee_msat = data["fee"] * 1000
         return PaymentResponse(True, checking_id, fee_msat, None, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth)
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{self.endpoint}/v1/charge/{checking_id}", headers=self.auth
+            )
         if r.is_error:
             return PaymentStatus(None)
 
         statuses = {"processing": None, "paid": True, "unpaid": False}
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(f"{self.endpoint}/v1/withdrawal/{checking_id}", headers=self.auth)
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{self.endpoint}/v1/withdrawal/{checking_id}", headers=self.auth
+            )
 
         if r.is_error:
             return PaymentStatus(None)

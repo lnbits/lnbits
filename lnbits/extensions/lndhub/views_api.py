@@ -133,7 +133,7 @@ async def lndhub_gettxs():
         exclude_uncheckable=True,
     ):
         await payment.set_pending(
-            WALLET.get_payment_status(payment.checking_id).pending
+            (await WALLET.get_payment_status(payment.checking_id)).pending
         )
 
     limit = int(request.args.get("limit", 200))
@@ -174,7 +174,7 @@ async def lndhub_getuserinvoices():
         exclude_uncheckable=True,
     ):
         await invoice.set_pending(
-            WALLET.get_invoice_status(invoice.checking_id).pending
+            (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
 
     limit = int(request.args.get("limit", 200))

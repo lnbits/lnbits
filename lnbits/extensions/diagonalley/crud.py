@@ -274,7 +274,7 @@ def get_diagonalleys_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
             f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,)
         )
     for r in rows:
-        PAID = WALLET.get_invoice_status(r["invoiceid"]).paid
+        PAID = (await WALLET.get_invoice_status(r["invoiceid"])).paid
         if PAID:
             with open_ext_db("diagonalley") as db:
                 db.execute(

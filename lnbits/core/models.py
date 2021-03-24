@@ -141,9 +141,9 @@ class Payment(NamedTuple):
             return
 
         if self.is_out:
-            pending = WALLET.get_payment_status(self.checking_id)
+            pending = await WALLET.get_payment_status(self.checking_id)
         else:
-            pending = WALLET.get_invoice_status(self.checking_id)
+            pending = await WALLET.get_invoice_status(self.checking_id)
 
         await self.set_pending(pending.pending)
 

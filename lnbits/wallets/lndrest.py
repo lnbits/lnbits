@@ -35,13 +35,13 @@ class LndRestWallet(Wallet):
         self.auth = {"Grpc-Metadata-macaroon": macaroon}
         self.cert = getenv("LND_REST_CERT")
 
-    def status(self) -> StatusResponse:
+    async def status(self) -> StatusResponse:
         try:
-            r = httpx.get(
-                f"{self.endpoint}/v1/balance/channels",
-                headers=self.auth,
-                verify=self.cert,
-            )
+            async with httpx.AsyncClient(verify=self.cert) as client:
+                r = await client.get(
+                    f"{self.endpoint}/v1/balance/channels",
+                    headers=self.auth,
+                )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
 
@@ -54,7 +54,7 @@ class LndRestWallet(Wallet):
 
         return StatusResponse(None, int(data["balance"]) * 1000)
 
-    def create_invoice(
+    async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
@@ -71,12 +71,12 @@ class LndRestWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = httpx.post(
-            url=f"{self.endpoint}/v1/invoices",
-            headers=self.auth,
-            verify=self.cert,
-            json=data,
-        )
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            r = await client.post(
+                url=f"{self.endpoint}/v1/invoices",
+                headers=self.auth,
+                json=data,
+            )
 
         if r.is_error:
             error_message = r.text
@@ -93,14 +93,14 @@ class LndRestWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(
-            url=f"{self.endpoint}/v1/channels/transactions",
-            headers=self.auth,
-            verify=self.cert,
-            json={"payment_request": bolt11},
-            timeout=180,
-        )
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            r = await client.post(
+                url=f"{self.endpoint}/v1/channels/transactions",
+                headers=self.auth,
+                json={"payment_request": bolt11},
+                timeout=180,
+            )
 
         if r.is_error:
             error_message = r.text
@@ -116,13 +116,14 @@ class LndRestWallet(Wallet):
         preimage = base64.b64decode(data["payment_preimage"]).hex()
         return PaymentResponse(True, checking_id, 0, preimage, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
-        r = httpx.get(
-            url=f"{self.endpoint}/v1/invoice/{checking_id}",
-            headers=self.auth,
-            verify=self.cert,
-        )
+
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            r = await client.get(
+                url=f"{self.endpoint}/v1/invoice/{checking_id}",
+                headers=self.auth,
+            )
 
         if r.is_error or not r.json().get("settled"):
             # this must also work when checking_id is not a hex recognizable by lnd
@@ -131,13 +132,13 @@ class LndRestWallet(Wallet):
 
         return PaymentStatus(True)
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(
-            url=f"{self.endpoint}/v1/payments",
-            headers=self.auth,
-            verify=self.cert,
-            params={"max_payments": "20", "reversed": True},
-        )
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            r = await client.get(
+                url=f"{self.endpoint}/v1/payments",
+                headers=self.auth,
+                params={"max_payments": "20", "reversed": True},
+            )
 
         if r.is_error:
             return PaymentStatus(None)

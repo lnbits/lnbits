@@ -49,7 +49,7 @@ class CLightningWallet(Wallet):
                 self.last_pay_index = inv["pay_index"]
                 break
 
-    def status(self) -> StatusResponse:
+    async def status(self) -> StatusResponse:
         try:
             funds = self.ln.listfunds()
             return StatusResponse(
@@ -60,7 +60,7 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return StatusResponse(error_message, 0)
 
-    def create_invoice(
+    async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
@@ -84,7 +84,7 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         try:
             r = self.ln.pay(bolt11)
         except RpcError as exc:
@@ -94,7 +94,7 @@ class CLightningWallet(Wallet):
         preimage = r["payment_preimage"]
         return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         r = self.ln.listinvoices(checking_id)
         if not r["invoices"]:
             return PaymentStatus(False)
@@ -102,7 +102,7 @@ class CLightningWallet(Wallet):
             return PaymentStatus(r["invoices"][0]["status"] == "paid")
         raise KeyError("supplied an invalid checking_id")
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         r = self.ln.call("listpays", {"payment_hash": checking_id})
         if not r["pays"]:
             return PaymentStatus(False)

@@ -41,7 +41,7 @@ async def create_invoice(
     invoice_memo = None if description_hash else memo
     storeable_memo = memo
 
-    ok, checking_id, payment_request, error_message = WALLET.create_invoice(
+    ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
     )
     if not ok:
@@ -139,7 +139,7 @@ async def pay_invoice(
         await internal_invoice_paid.send(internal_checking_id)
     else:
         # actually pay the external invoice
-        payment: PaymentResponse = WALLET.pay_invoice(payment_request)
+        payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
         if payment.ok and payment.checking_id:
             await create_payment(
                 checking_id=payment.checking_id,
@@ -255,4 +255,4 @@ async def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStat
     if not payment:
         return PaymentStatus(None)
 
-    return WALLET.get_invoice_status(payment.checking_id)
+    return await WALLET.get_invoice_status(payment.checking_id)

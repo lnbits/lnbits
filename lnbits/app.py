@@ -55,7 +55,7 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
 def check_funding_source(app: QuartTrio) -> None:
     @app.before_serving
     async def check_wallet_status():
-        error_message, balance = WALLET.status()
+        error_message, balance = await WALLET.status()
         if error_message:
             warnings.warn(
                 f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",

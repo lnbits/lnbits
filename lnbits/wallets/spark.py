@@ -28,7 +28,7 @@ class SparkWallet(Wallet):
         self.token = getenv("SPARK_TOKEN")
 
     def __getattr__(self, key):
-        def call(*args, **kwargs):
+        async def call(*args, **kwargs):
             if args and kwargs:
                 raise TypeError(
                     f"must supply either named arguments or a list of arguments, not both: {args} {kwargs}"
@@ -40,12 +40,14 @@ class SparkWallet(Wallet):
             else:
                 params = {}
 
-            r = httpx.post(
-                self.url + "/rpc",
-                headers={"X-Access": self.token},
-                json={"method": key, "params": params},
-                timeout=40,
-            )
+            async with httpx.AsyncClient() as client:
+                r = await client.post(
+                    self.url + "/rpc",
+                    headers={"X-Access": self.token},
+                    json={"method": key, "params": params},
+                    timeout=40,
+                )
+
             try:
                 data = r.json()
             except:
@@ -61,9 +63,9 @@ class SparkWallet(Wallet):
 
         return call
 
-    def status(self) -> StatusResponse:
+    async def status(self) -> StatusResponse:
         try:
-            funds = self.listfunds()
+            funds = await self.listfunds()
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse("Couldn't connect to Spark server", 0)
         except (SparkError, UnknownError) as e:
@@ -74,7 +76,7 @@ class SparkWallet(Wallet):
             sum([ch["channel_sat"] * 1000 for ch in funds["channels"]]),
         )
 
-    def create_invoice(
+    async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
@@ -85,13 +87,13 @@ class SparkWallet(Wallet):
 
         try:
             if description_hash:
-                r = self.invoicewithdescriptionhash(
+                r = await self.invoicewithdescriptionhash(
                     msatoshi=amount * 1000,
                     label=label,
                     description_hash=description_hash.hex(),
                 )
             else:
-                r = self.invoice(
+                r = await self.invoice(
                     msatoshi=amount * 1000,
                     label=label,
                     description=memo or "",
@@ -103,9 +105,9 @@ class SparkWallet(Wallet):
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         try:
-            r = self.pay(bolt11)
+            r = await self.pay(bolt11)
         except (SparkError, UnknownError) as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
@@ -113,15 +115,15 @@ class SparkWallet(Wallet):
         preimage = r["payment_preimage"]
         return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = self.listinvoices(label=checking_id)
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        r = await self.listinvoices(label=checking_id)
         if not r or not r.get("invoices"):
             return PaymentStatus(None)
         if r["invoices"][0]["status"] == "unpaid":
             return PaymentStatus(False)
         return PaymentStatus(True)
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex
         if len(checking_id) != 64:
             return PaymentStatus(None)
@@ -131,7 +133,7 @@ class SparkWallet(Wallet):
             return PaymentStatus(None)
 
         # ask sparko
-        r = self.listpays(payment_hash=checking_id)
+        r = await self.listpays(payment_hash=checking_id)
         if not r["pays"]:
             return PaymentStatus(False)
         if r["pays"][0]["payment_hash"] == checking_id:
