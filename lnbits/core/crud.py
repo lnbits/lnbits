@@ -183,19 +183,23 @@ async def get_payments(
     pending: bool = False,
     outgoing: bool = False,
     incoming: bool = False,
+    since: Optional[int] = None,
     exclude_uncheckable: bool = False,
 ) -> List[Payment]:
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
 
-    args: Any = ()
+    args: List[Any] = []
+    clause: List[str] = []
 
-    clause = []
+    if since != None:
+        clause.append("time > ?")
+        args.append(since)
 
     if wallet_id:
         clause.append("wallet = ?")
-        args = (wallet_id,)
+        args.append(wallet_id)
 
     if complete and pending:
         pass
@@ -230,7 +234,7 @@ async def get_payments(
         {where}
         ORDER BY time DESC
         """,
-        args,
+        tuple(args),
     )
 
     return [Payment.from_row(row) for row in rows]

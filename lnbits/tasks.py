@@ -1,3 +1,4 @@
+import time
 import trio  # type: ignore
 from http import HTTPStatus
 from typing import Optional, List, Callable
@@ -72,7 +73,10 @@ async def check_pending_payments():
     await delete_expired_invoices()
     while True:
         for payment in await get_payments(
-            complete=False, pending=True, exclude_uncheckable=True
+            since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
+            complete=False,
+            pending=True,
+            exclude_uncheckable=True,
         ):
             print(" - checking pending", payment.checking_id)
             await payment.check_pending()
