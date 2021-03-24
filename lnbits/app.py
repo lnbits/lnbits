@@ -1,3 +1,4 @@
+import sys
 import importlib
 import warnings
 
@@ -61,6 +62,8 @@ def check_funding_source(app: QuartTrio) -> None:
                 f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                 RuntimeWarning,
             )
+
+            sys.exit(4)
         else:
             print(
                 f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
