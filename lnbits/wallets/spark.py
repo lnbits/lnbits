@@ -5,7 +5,13 @@ import httpx
 from os import getenv
 from typing import Optional, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class SparkError(Exception):
@@ -24,7 +30,9 @@ class SparkWallet(Wallet):
     def __getattr__(self, key):
         def call(*args, **kwargs):
             if args and kwargs:
-                raise TypeError(f"must supply either named arguments or a list of arguments, not both: {args} {kwargs}")
+                raise TypeError(
+                    f"must supply either named arguments or a list of arguments, not both: {args} {kwargs}"
+                )
             elif args:
                 params = args
             elif kwargs:
@@ -67,7 +75,10 @@ class SparkWallet(Wallet):
         )
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         label = "lbs{}".format(random.random())
         checking_id = label
@@ -81,7 +92,10 @@ class SparkWallet(Wallet):
                 )
             else:
                 r = self.invoice(
-                    msatoshi=amount * 1000, label=label, description=memo or "", exposeprivatechannels=True
+                    msatoshi=amount * 1000,
+                    label=label,
+                    description=memo or "",
+                    exposeprivatechannels=True,
                 )
             ok, payment_request, error_message = True, r["bolt11"], ""
         except (SparkError, UnknownError) as e:

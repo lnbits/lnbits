@@ -33,7 +33,10 @@ async def api_events():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([event._asdict() for event in await get_events(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([event._asdict() for event in await get_events(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @events_ext.route("/api/v1/events", methods=["POST"])
@@ -92,7 +95,10 @@ async def api_tickets():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([ticket._asdict() for ticket in await get_tickets(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([ticket._asdict() for ticket in await get_tickets(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @events_ext.route("/api/v1/tickets/<event_id>/<sats>", methods=["POST"])
@@ -108,17 +114,25 @@ async def api_ticket_make_ticket(event_id, sats):
         return jsonify({"message": "Event does not exist."}), HTTPStatus.NOT_FOUND
     try:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=event.wallet, amount=int(sats), memo=f"{event_id}", extra={"tag": "events"}
+            wallet_id=event.wallet,
+            amount=int(sats),
+            memo=f"{event_id}",
+            extra={"tag": "events"},
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    ticket = await create_ticket(payment_hash=payment_hash, wallet=event.wallet, event=event_id, **g.data)
+    ticket = await create_ticket(
+        payment_hash=payment_hash, wallet=event.wallet, event=event_id, **g.data
+    )
 
     if not ticket:
         return jsonify({"message": "Event could not be fetched."}), HTTPStatus.NOT_FOUND
 
-    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.OK
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.OK,
+    )
 
 
 @events_ext.route("/api/v1/tickets/<payment_hash>", methods=["GET"])
@@ -163,7 +177,14 @@ async def api_ticket_delete(ticket_id):
 @events_ext.route("/api/v1/eventtickets/<wallet_id>/<event_id>", methods=["GET"])
 async def api_event_tickets(wallet_id, event_id):
     return (
-        jsonify([ticket._asdict() for ticket in await get_event_tickets(wallet_id=wallet_id, event_id=event_id)]),
+        jsonify(
+            [
+                ticket._asdict()
+                for ticket in await get_event_tickets(
+                    wallet_id=wallet_id, event_id=event_id
+                )
+            ]
+        ),
         HTTPStatus.OK,
     )
 
@@ -177,4 +198,7 @@ async def api_event_register_ticket(ticket_id):
     if ticket.registered == True:
         return jsonify({"message": "Ticket already registered"}), HTTPStatus.FORBIDDEN
 
-    return jsonify([ticket._asdict() for ticket in await reg_ticket(ticket_id)]), HTTPStatus.OK
+    return (
+        jsonify([ticket._asdict() for ticket in await reg_ticket(ticket_id)]),
+        HTTPStatus.OK,
+    )

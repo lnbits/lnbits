@@ -3,7 +3,9 @@ from lnbits.db import Database
 
 db = Database("ext_paywall")
 
-paywall_ext: Blueprint = Blueprint("paywall", __name__, static_folder="static", template_folder="templates")
+paywall_ext: Blueprint = Blueprint(
+    "paywall", __name__, static_folder="static", template_folder="templates"
+)
 
 
 from .views_api import *  # noqa

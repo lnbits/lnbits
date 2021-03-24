@@ -9,7 +9,12 @@ from secure import SecureHeaders  # type: ignore
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
-from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
+from .helpers import (
+    get_valid_extensions,
+    get_js_vendored,
+    get_css_vendored,
+    url_for_vendored,
+)
 from .proxy_fix import ASGIProxyFix
 from .tasks import (
     run_deferred_async,
@@ -57,7 +62,9 @@ def check_funding_source(app: QuartTrio) -> None:
                 RuntimeWarning,
             )
         else:
-            print(f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat.")
+            print(
+                f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
+            )
 
 
 def register_blueprints(app: QuartTrio) -> None:
@@ -75,7 +82,9 @@ def register_blueprints(app: QuartTrio) -> None:
 
             app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
-            raise ImportError(f"Please make sure that the extension `{ext.code}` follows conventions.")
+            raise ImportError(
+                f"Please make sure that the extension `{ext.code}` follows conventions."
+            )
 
 
 def register_commands(app: QuartTrio):

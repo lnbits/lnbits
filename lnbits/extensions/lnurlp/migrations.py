@@ -40,8 +40,12 @@ async def m003_min_max_comment_fiat(db):
     Support for min/max amounts, comments and fiat prices that get
     converted automatically to satoshis based on some API.
     """
-    await db.execute("ALTER TABLE pay_links ADD COLUMN currency TEXT;")  # null = satoshis
-    await db.execute("ALTER TABLE pay_links ADD COLUMN comment_chars INTEGER DEFAULT 0;")
+    await db.execute(
+        "ALTER TABLE pay_links ADD COLUMN currency TEXT;"
+    )  # null = satoshis
+    await db.execute(
+        "ALTER TABLE pay_links ADD COLUMN comment_chars INTEGER DEFAULT 0;"
+    )
     await db.execute("ALTER TABLE pay_links RENAME COLUMN amount TO min;")
     await db.execute("ALTER TABLE pay_links ADD COLUMN max INTEGER;")
     await db.execute("UPDATE pay_links SET max = min;")

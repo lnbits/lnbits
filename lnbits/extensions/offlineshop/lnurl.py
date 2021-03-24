@@ -18,7 +18,11 @@ async def lnurl_response(item_id):
     if not item.enabled:
         return jsonify({"status": "ERROR", "reason": "Item disabled."})
 
-    price_msat = (await fiat_amount_as_satoshis(item.price, item.unit) if item.unit != "sat" else item.price) * 1000
+    price_msat = (
+        await fiat_amount_as_satoshis(item.price, item.unit)
+        if item.unit != "sat"
+        else item.price
+    ) * 1000
 
     resp = LnurlPayResponse(
         callback=url_for("offlineshop.lnurl_callback", item_id=item.id, _external=True),
@@ -47,16 +51,26 @@ async def lnurl_callback(item_id):
 
     amount_received = int(request.args.get("amount"))
     if amount_received < min:
-        return jsonify(LnurlErrorResponse(reason=f"Amount {amount_received} is smaller than minimum {min}.").dict())
+        return jsonify(
+            LnurlErrorResponse(
+                reason=f"Amount {amount_received} is smaller than minimum {min}."
+            ).dict()
+        )
     elif amount_received > max:
-        return jsonify(LnurlErrorResponse(reason=f"Amount {amount_received} is greater than maximum {max}.").dict())
+        return jsonify(
+            LnurlErrorResponse(
+                reason=f"Amount {amount_received} is greater than maximum {max}."
+            ).dict()
+        )
 
     shop = await get_shop(item.shop)
     payment_hash, payment_request = await create_invoice(
         wallet_id=shop.wallet,
         amount=int(amount_received / 1000),
         memo=item.name,
-        description_hash=hashlib.sha256((await item.lnurlpay_metadata()).encode("utf-8")).digest(),
+        description_hash=hashlib.sha256(
+            (await item.lnurlpay_metadata()).encode("utf-8")
+        ).digest(),
         extra={"tag": "offlineshop", "item": item.id},
     )
 

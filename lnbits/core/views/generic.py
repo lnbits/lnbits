@@ -2,7 +2,15 @@ import trio  # type: ignore
 import httpx
 from os import path
 from http import HTTPStatus
-from quart import g, abort, redirect, request, render_template, send_from_directory, url_for
+from quart import (
+    g,
+    abort,
+    redirect,
+    request,
+    render_template,
+    send_from_directory,
+    url_for,
+)
 from lnurl import LnurlResponse, LnurlWithdrawResponse, decode as decode_lnurl  # type: ignore
 
 from lnbits.core import core_app
@@ -22,12 +30,16 @@ from ..services import redeem_lnurl_withdraw
 
 @core_app.route("/favicon.ico")
 async def favicon():
-    return await send_from_directory(path.join(core_app.root_path, "static"), "favicon.ico")
+    return await send_from_directory(
+        path.join(core_app.root_path, "static"), "favicon.ico"
+    )
 
 
 @core_app.route("/")
 async def home():
-    return await render_template("core/index.html", lnurl=request.args.get("lightning", None))
+    return await render_template(
+        "core/index.html", lnurl=request.args.get("lightning", None)
+    )
 
 
 @core_app.route("/extensions")
@@ -38,12 +50,18 @@ async def extensions():
     extension_to_disable = request.args.get("disable", type=str)
 
     if extension_to_enable and extension_to_disable:
-        abort(HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension.")
+        abort(
+            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
+        )
 
     if extension_to_enable:
-        await update_user_extension(user_id=g.user.id, extension=extension_to_enable, active=1)
+        await update_user_extension(
+            user_id=g.user.id, extension=extension_to_enable, active=1
+        )
     elif extension_to_disable:
-        await update_user_extension(user_id=g.user.id, extension=extension_to_disable, active=0)
+        await update_user_extension(
+            user_id=g.user.id, extension=extension_to_disable, active=0
+        )
 
     return await render_template("core/extensions.html", user=await get_user(g.user.id))
 
@@ -85,7 +103,9 @@ async def wallet():
     if not wallet:
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
-    return await render_template("core/wallet.html", user=user, wallet=wallet, service_fee=service_fee)
+    return await render_template(
+        "core/wallet.html", user=user, wallet=wallet, service_fee=service_fee
+    )
 
 
 @core_app.route("/deletewallet")
@@ -116,19 +136,33 @@ async def lnurlwallet():
             withdraw_res = LnurlResponse.from_dict(r.json())
 
             if not withdraw_res.ok:
-                return f"Could not process lnurl-withdraw: {withdraw_res.error_msg}", HTTPStatus.BAD_REQUEST
+                return (
+                    f"Could not process lnurl-withdraw: {withdraw_res.error_msg}",
+                    HTTPStatus.BAD_REQUEST,
+                )
 
             if not isinstance(withdraw_res, LnurlWithdrawResponse):
-                return f"Expected an lnurl-withdraw code, got {withdraw_res.tag}", HTTPStatus.BAD_REQUEST
+                return (
+                    f"Expected an lnurl-withdraw code, got {withdraw_res.tag}",
+                    HTTPStatus.BAD_REQUEST,
+                )
         except Exception as exc:
-            return f"Could not process lnurl-withdraw: {exc}", HTTPStatus.INTERNAL_SERVER_ERROR
+            return (
+                f"Could not process lnurl-withdraw: {exc}",
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     account = await create_account()
     user = await get_user(account.id)
     wallet = await create_wallet(user_id=user.id)
     await db.commit()
 
-    g.nursery.start_soon(redeem_lnurl_withdraw, wallet.id, withdraw_res, "LNbits initial funding: voucher redeem.")
+    g.nursery.start_soon(
+        redeem_lnurl_withdraw,
+        wallet.id,
+        withdraw_res,
+        "LNbits initial funding: voucher redeem.",
+    )
     await trio.sleep(3)
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))

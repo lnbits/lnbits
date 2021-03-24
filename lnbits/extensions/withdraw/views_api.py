@@ -39,7 +39,11 @@ async def api_links():
         )
     except LnurlInvalidUrl:
         return (
-            jsonify({"message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."}),
+            jsonify(
+                {
+                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
+                }
+            ),
             HTTPStatus.UPGRADE_REQUIRED,
         )
 
@@ -50,7 +54,10 @@ async def api_link_retrieve(link_id):
     link = await get_withdraw_link(link_id, 0)
 
     if not link:
-        return jsonify({"message": "Withdraw link does not exist."}), HTTPStatus.NOT_FOUND
+        return (
+            jsonify({"message": "Withdraw link does not exist."}),
+            HTTPStatus.NOT_FOUND,
+        )
 
     if link.wallet != g.wallet.id:
         return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
@@ -74,7 +81,11 @@ async def api_link_retrieve(link_id):
 async def api_link_create_or_update(link_id=None):
     if g.data["max_withdrawable"] < g.data["min_withdrawable"]:
         return (
-            jsonify({"message": "`max_withdrawable` needs to be at least `min_withdrawable`."}),
+            jsonify(
+                {
+                    "message": "`max_withdrawable` needs to be at least `min_withdrawable`."
+                }
+            ),
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -89,14 +100,22 @@ async def api_link_create_or_update(link_id=None):
     if link_id:
         link = await get_withdraw_link(link_id, 0)
         if not link:
-            return jsonify({"message": "Withdraw link does not exist."}), HTTPStatus.NOT_FOUND
+            return (
+                jsonify({"message": "Withdraw link does not exist."}),
+                HTTPStatus.NOT_FOUND,
+            )
         if link.wallet != g.wallet.id:
             return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
         link = await update_withdraw_link(link_id, **g.data, usescsv=usescsv, used=0)
     else:
-        link = await create_withdraw_link(wallet_id=g.wallet.id, **g.data, usescsv=usescsv)
+        link = await create_withdraw_link(
+            wallet_id=g.wallet.id, **g.data, usescsv=usescsv
+        )
 
-    return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK if link_id else HTTPStatus.CREATED
+    return (
+        jsonify({**link._asdict(), **{"lnurl": link.lnurl}}),
+        HTTPStatus.OK if link_id else HTTPStatus.CREATED,
+    )
 
 
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
@@ -105,7 +124,10 @@ async def api_link_delete(link_id):
     link = await get_withdraw_link(link_id)
 
     if not link:
-        return jsonify({"message": "Withdraw link does not exist."}), HTTPStatus.NOT_FOUND
+        return (
+            jsonify({"message": "Withdraw link does not exist."}),
+            HTTPStatus.NOT_FOUND,
+        )
 
     if link.wallet != g.wallet.id:
         return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN

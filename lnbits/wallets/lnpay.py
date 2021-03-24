@@ -6,7 +6,13 @@ from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
 from quart import request
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class LNPayWallet(Wallet):
@@ -31,7 +37,8 @@ class LNPayWallet(Wallet):
         data = r.json()
         if data["statusType"]["name"] != "active":
             return StatusResponse(
-                f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}", 0
+                f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}",
+                0,
             )
 
         return StatusResponse(None, data["balance"] * 1000)
@@ -78,7 +85,9 @@ class LNPayWallet(Wallet):
         try:
             data = r.json()
         except:
-            return PaymentResponse(False, None, 0, None, f"Got invalid JSON: {r.text[:200]}")
+            return PaymentResponse(
+                False, None, 0, None, f"Got invalid JSON: {r.text[:200]}"
+            )
 
         if r.is_error:
             return PaymentResponse(False, None, 0, None, data["message"])
@@ -115,7 +124,11 @@ class LNPayWallet(Wallet):
         except json.decoder.JSONDecodeError:
             print(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
             data = None
-        if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
+        if (
+            type(data) is not dict
+            or "event" not in data
+            or data["event"].get("name") != "wallet_receive"
+        ):
             return "", HTTPStatus.NO_CONTENT
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]

@@ -37,7 +37,10 @@ async def api_domains():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @subdomains_ext.route("/api/v1/domains", methods=["POST"])
@@ -98,7 +101,10 @@ async def api_subdomains():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([domain._asdict() for domain in await get_subdomains(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([domain._asdict() for domain in await get_subdomains(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @subdomains_ext.route("/api/v1/subdomains/<domain_id>", methods=["POST"])
@@ -122,24 +128,42 @@ async def api_subdomain_make_subdomain(domain_id):
 
     ## If record_type is not one of the allowed ones reject the request
     if g.data["record_type"] not in domain.allowed_record_types:
-        return jsonify({"message": g.data["record_type"] + "Not a valid record"}), HTTPStatus.BAD_REQUEST
+        return (
+            jsonify({"message": g.data["record_type"] + "Not a valid record"}),
+            HTTPStatus.BAD_REQUEST,
+        )
 
     ## If domain already exist in our database reject it
     if await get_subdomainBySubdomain(g.data["subdomain"]) is not None:
         return (
-            jsonify({"message": g.data["subdomain"] + "." + domain.domain + " domain already taken"}),
+            jsonify(
+                {
+                    "message": g.data["subdomain"]
+                    + "."
+                    + domain.domain
+                    + " domain already taken"
+                }
+            ),
             HTTPStatus.BAD_REQUEST,
         )
 
     ## Dry run cloudflare... (create and if create is sucessful delete it)
     cf_response = await cloudflare_create_subdomain(
-        domain=domain, subdomain=g.data["subdomain"], record_type=g.data["record_type"], ip=g.data["ip"]
+        domain=domain,
+        subdomain=g.data["subdomain"],
+        record_type=g.data["record_type"],
+        ip=g.data["ip"],
     )
     if cf_response["success"] == True:
         cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
     else:
         return (
-            jsonify({"message": "Problem with cloudflare: " + cf_response["errors"][0]["message"]}),
+            jsonify(
+                {
+                    "message": "Problem with cloudflare: "
+                    + cf_response["errors"][0]["message"]
+                }
+            ),
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -152,12 +176,20 @@ async def api_subdomain_make_subdomain(domain_id):
         extra={"tag": "lnsubdomain"},
     )
 
-    subdomain = await create_subdomain(payment_hash=payment_hash, wallet=domain.wallet, **g.data)
+    subdomain = await create_subdomain(
+        payment_hash=payment_hash, wallet=domain.wallet, **g.data
+    )
 
     if not subdomain:
-        return jsonify({"message": "LNsubdomain could not be fetched."}), HTTPStatus.NOT_FOUND
+        return (
+            jsonify({"message": "LNsubdomain could not be fetched."}),
+            HTTPStatus.NOT_FOUND,
+        )
 
-    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.OK
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.OK,
+    )
 
 
 @subdomains_ext.route("/api/v1/subdomains/<payment_hash>", methods=["GET"])

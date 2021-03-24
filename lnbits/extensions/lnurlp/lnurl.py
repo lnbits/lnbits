@@ -15,7 +15,10 @@ from .crud import increment_pay_link
 async def api_lnurl_response(link_id):
     link = await increment_pay_link(link_id, served_meta=1)
     if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}),
+            HTTPStatus.OK,
+        )
 
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
     resp = LnurlPayResponse(
@@ -36,7 +39,10 @@ async def api_lnurl_response(link_id):
 async def api_lnurl_callback(link_id):
     link = await increment_pay_link(link_id, served_pr=1)
     if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-pay not found."}),
+            HTTPStatus.OK,
+        )
 
     min, max = link.min, link.max
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
@@ -51,12 +57,20 @@ async def api_lnurl_callback(link_id):
     amount_received = int(request.args.get("amount"))
     if amount_received < min:
         return (
-            jsonify(LnurlErrorResponse(reason=f"Amount {amount_received} is smaller than minimum {min}.").dict()),
+            jsonify(
+                LnurlErrorResponse(
+                    reason=f"Amount {amount_received} is smaller than minimum {min}."
+                ).dict()
+            ),
             HTTPStatus.OK,
         )
     elif amount_received > max:
         return (
-            jsonify(LnurlErrorResponse(reason=f"Amount {amount_received} is greater than maximum {max}.").dict()),
+            jsonify(
+                LnurlErrorResponse(
+                    reason=f"Amount {amount_received} is greater than maximum {max}."
+                ).dict()
+            ),
             HTTPStatus.OK,
         )
 
@@ -75,7 +89,9 @@ async def api_lnurl_callback(link_id):
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo=link.description,
-        description_hash=hashlib.sha256(link.lnurlpay_metadata.encode("utf-8")).digest(),
+        description_hash=hashlib.sha256(
+            link.lnurlpay_metadata.encode("utf-8")
+        ).digest(),
         extra={"tag": "lnurlp", "link": link.id, "comment": comment},
     )
 

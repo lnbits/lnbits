@@ -45,13 +45,19 @@ class WithdrawLink(NamedTuple):
                 _external=True,
             )
         else:
-            url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True)
+            url = url_for(
+                "withdraw.api_lnurl_response",
+                unique_hash=self.unique_hash,
+                _external=True,
+            )
 
         return lnurl_encode(url)
 
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
-        url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True)
+        url = url_for(
+            "withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True
+        )
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,

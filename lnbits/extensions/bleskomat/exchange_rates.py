@@ -3,7 +3,12 @@ import json
 import os
 
 fiat_currencies = json.load(
-    open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "fiat_currencies.json"), "r")
+    open(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "fiat_currencies.json"
+        ),
+        "r",
+    )
 )
 
 exchange_rate_providers = {
@@ -35,7 +40,9 @@ exchange_rate_providers = {
         "name": "Kraken",
         "domain": "kraken.com",
         "api_url": "https://api.kraken.com/0/public/Ticker?pair=XBT{TO}",
-        "getter": lambda data, replacements: data["result"]["XXBTZ" + replacements["TO"]]["c"][0],
+        "getter": lambda data, replacements: data["result"][
+            "XXBTZ" + replacements["TO"]
+        ]["c"][0],
     },
 }
 
@@ -50,7 +57,12 @@ for ref, exchange_rate_provider in exchange_rate_providers.items():
 
 async def fetch_fiat_exchange_rate(currency: str, provider: str):
 
-    replacements = {"FROM": "BTC", "from": "btc", "TO": currency.upper(), "to": currency.lower()}
+    replacements = {
+        "FROM": "BTC",
+        "from": "btc",
+        "TO": currency.upper(),
+        "to": currency.lower(),
+    }
 
     url = exchange_rate_providers[provider]["api_url"]
     for key in replacements.keys():

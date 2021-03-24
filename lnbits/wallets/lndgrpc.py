@@ -15,7 +15,13 @@ import hashlib
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 def get_ssl_context(cert_path: str):
@@ -76,10 +82,14 @@ def stringify_checking_id(r_hash: bytes) -> str:
 class LndWallet(Wallet):
     def __init__(self):
         if lndgrpc is None:  # pragma: nocover
-            raise ImportError("The `lndgrpc` library must be installed to use `LndWallet`.")
+            raise ImportError(
+                "The `lndgrpc` library must be installed to use `LndWallet`."
+            )
 
         if purerpc is None:  # pragma: nocover
-            raise ImportError("The `purerpc` library must be installed to use `LndWallet`.")
+            raise ImportError(
+                "The `purerpc` library must be installed to use `LndWallet`."
+            )
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
@@ -111,7 +121,10 @@ class LndWallet(Wallet):
         return StatusResponse(None, resp.balance * 1000)
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         params: Dict = {"value": amount, "expiry": 600, "private": True}
 

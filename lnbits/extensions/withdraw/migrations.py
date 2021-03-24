@@ -47,7 +47,9 @@ async def m002_change_withdraw_table(db):
         """
     )
     await db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON withdraw_link (wallet)")
-    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_link (unique_hash)")
+    await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_link (unique_hash)"
+    )
 
     for row in [list(row) for row in await db.fetchall("SELECT * FROM withdraw_links")]:
         usescsv = ""

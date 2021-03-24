@@ -5,7 +5,13 @@ import base64
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class LndRestWallet(Wallet):
@@ -14,7 +20,9 @@ class LndRestWallet(Wallet):
     def __init__(self):
         endpoint = getenv("LND_REST_ENDPOINT")
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        endpoint = "https://" + endpoint if not endpoint.startswith("http") else endpoint
+        endpoint = (
+            "https://" + endpoint if not endpoint.startswith("http") else endpoint
+        )
         self.endpoint = endpoint
 
         macaroon = (
@@ -47,14 +55,19 @@ class LndRestWallet(Wallet):
         return StatusResponse(None, int(data["balance"]) * 1000)
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {
             "value": amount,
             "private": True,
         }
         if description_hash:
-            data["description_hash"] = base64.b64encode(description_hash).decode("ascii")
+            data["description_hash"] = base64.b64encode(description_hash).decode(
+                "ascii"
+            )
         else:
             data["memo"] = memo or ""
 
@@ -131,7 +144,12 @@ class LndRestWallet(Wallet):
 
         # check payment.status:
         # https://api.lightning.community/rest/index.html?python#peersynctype
-        statuses = {"UNKNOWN": None, "IN_FLIGHT": None, "SUCCEEDED": True, "FAILED": False}
+        statuses = {
+            "UNKNOWN": None,
+            "IN_FLIGHT": None,
+            "SUCCEEDED": True,
+            "FAILED": False,
+        }
 
         # for some reason our checking_ids are in base64 but the payment hashes
         # returned here are in hex, lnd is weird

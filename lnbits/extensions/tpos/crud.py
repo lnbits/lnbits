@@ -31,7 +31,9 @@ async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM tposs WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM tposs WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [TPoS.from_row(row) for row in rows]
 

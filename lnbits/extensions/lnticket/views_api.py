@@ -32,7 +32,10 @@ async def api_forms():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([form._asdict() for form in await get_forms(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([form._asdict() for form in await get_forms(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @lnticket_ext.route("/api/v1/forms", methods=["POST"])
@@ -90,7 +93,10 @@ async def api_tickets():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([form._asdict() for form in await get_tickets(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([form._asdict() for form in await get_tickets(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @lnticket_ext.route("/api/v1/tickets/<form_id>", methods=["POST"])
@@ -117,12 +123,20 @@ async def api_ticket_make_ticket(form_id):
         extra={"tag": "lnticket"},
     )
 
-    ticket = await create_ticket(payment_hash=payment_hash, wallet=form.wallet, **g.data)
+    ticket = await create_ticket(
+        payment_hash=payment_hash, wallet=form.wallet, **g.data
+    )
 
     if not ticket:
-        return jsonify({"message": "LNTicket could not be fetched."}), HTTPStatus.NOT_FOUND
+        return (
+            jsonify({"message": "LNTicket could not be fetched."}),
+            HTTPStatus.NOT_FOUND,
+        )
 
-    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.OK
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.OK,
+    )
 
 
 @lnticket_ext.route("/api/v1/tickets/<payment_hash>", methods=["GET"])

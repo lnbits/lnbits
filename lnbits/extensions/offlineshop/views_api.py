@@ -43,7 +43,11 @@ async def api_shop_from_wallet():
         )
     except LnurlInvalidUrl:
         return (
-            jsonify({"message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."}),
+            jsonify(
+                {
+                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
+                }
+            ),
             HTTPStatus.UPGRADE_REQUIRED,
         )
 
@@ -98,7 +102,12 @@ async def api_delete_item(item_id):
 @api_validate_post_request(
     schema={
         "method": {"type": "string", "required": True, "nullable": False},
-        "wordlist": {"type": "string", "empty": True, "nullable": True, "required": False},
+        "wordlist": {
+            "type": "string",
+            "empty": True,
+            "nullable": True,
+            "required": False,
+        },
     }
 )
 async def api_set_method():

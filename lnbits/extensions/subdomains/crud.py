@@ -23,7 +23,18 @@ async def create_subdomain(
         INSERT INTO subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_hash, domain, email, subdomain, ip, wallet, sats, duration, False, record_type),
+        (
+            payment_hash,
+            domain,
+            email,
+            subdomain,
+            ip,
+            wallet,
+            sats,
+            duration,
+            False,
+            record_type,
+        ),
     )
 
     subdomain = await get_subdomain(payment_hash)
@@ -118,7 +129,18 @@ async def create_domain(
         INSERT INTO domain (id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, amountmade, allowed_record_types)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (domain_id, wallet, domain, webhook, cf_token, cf_zone_id, description, cost, 0, allowed_record_types),
+        (
+            domain_id,
+            wallet,
+            domain,
+            webhook,
+            cf_token,
+            cf_zone_id,
+            description,
+            cost,
+            0,
+            allowed_record_types,
+        ),
     )
 
     domain = await get_domain(domain_id)
@@ -128,7 +150,9 @@ async def create_domain(
 
 async def update_domain(domain_id: str, **kwargs) -> Domains:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE domain SET {q} WHERE id = ?", (*kwargs.values(), domain_id))
+    await db.execute(
+        f"UPDATE domain SET {q} WHERE id = ?", (*kwargs.values(), domain_id)
+    )
     row = await db.fetchone("SELECT * FROM domain WHERE id = ?", (domain_id,))
     assert row, "Newly updated domain couldn't be retrieved"
     return Domains(**row)
@@ -144,7 +168,9 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM domain WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM domain WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [Domains(**row) for row in rows]
 

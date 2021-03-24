@@ -17,4 +17,6 @@ async def index():
         "exchange_rate_providers": exchange_rate_providers_serializable,
         "fiat_currencies": fiat_currencies,
     }
-    return await render_template("bleskomat/index.html", user=g.user, bleskomat_vars=bleskomat_vars)
+    return await render_template(
+        "bleskomat/index.html", user=g.user, bleskomat_vars=bleskomat_vars
+    )

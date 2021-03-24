@@ -7,7 +7,14 @@ from os import getenv
 from typing import Optional, AsyncGenerator
 from quart import request, url_for
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+    Unsupported,
+)
 
 
 class OpenNodeWallet(Wallet):
@@ -17,7 +24,11 @@ class OpenNodeWallet(Wallet):
         endpoint = getenv("OPENNODE_API_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
-        key = getenv("OPENNODE_KEY") or getenv("OPENNODE_ADMIN_KEY") or getenv("OPENNODE_INVOICE_KEY")
+        key = (
+            getenv("OPENNODE_KEY")
+            or getenv("OPENNODE_ADMIN_KEY")
+            or getenv("OPENNODE_INVOICE_KEY")
+        )
         self.auth = {"Authorization": key}
 
     def status(self) -> StatusResponse:
@@ -37,7 +48,10 @@ class OpenNodeWallet(Wallet):
         return StatusResponse(None, data["balance"]["BTC"] / 100_000_000_000)
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         if description_hash:
             raise Unsupported("description_hash")
@@ -93,7 +107,13 @@ class OpenNodeWallet(Wallet):
         if r.is_error:
             return PaymentStatus(None)
 
-        statuses = {"initial": None, "pending": None, "confirmed": True, "error": False, "failed": False}
+        statuses = {
+            "initial": None,
+            "pending": None,
+            "confirmed": True,
+            "error": False,
+            "failed": False,
+        }
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

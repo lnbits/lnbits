@@ -16,5 +16,7 @@ async def index():
 
 @captcha_ext.route("/<captcha_id>")
 async def display(captcha_id):
-    captcha = await get_captcha(captcha_id) or abort(HTTPStatus.NOT_FOUND, "captcha does not exist.")
+    captcha = await get_captcha(captcha_id) or abort(
+        HTTPStatus.NOT_FOUND, "captcha does not exist."
+    )
     return await render_template("captcha/display.html", captcha=captcha)

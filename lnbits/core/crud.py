@@ -25,7 +25,9 @@ async def create_account() -> User:
 
 
 async def get_account(user_id: str) -> Optional[User]:
-    row = await db.fetchone("SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,))
+    row = await db.fetchone(
+        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,)
+    )
 
     return User(**row) if row else None
 
@@ -34,7 +36,9 @@ async def get_user(user_id: str) -> Optional[User]:
     user = await db.fetchone("SELECT id, email FROM accounts WHERE id = ?", (user_id,))
 
     if user:
-        extensions = await db.fetchall("SELECT extension FROM extensions WHERE user = ? AND active = 1", (user_id,))
+        extensions = await db.fetchall(
+            "SELECT extension FROM extensions WHERE user = ? AND active = 1", (user_id,)
+        )
         wallets = await db.fetchall(
             """
             SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
@@ -45,7 +49,15 @@ async def get_user(user_id: str) -> Optional[User]:
         )
 
     return (
-        User(**{**user, **{"extensions": [e[0] for e in extensions], "wallets": [Wallet(**w) for w in wallets]}})
+        User(
+            **{
+                **user,
+                **{
+                    "extensions": [e[0] for e in extensions],
+                    "wallets": [Wallet(**w) for w in wallets],
+                },
+            }
+        )
         if user
         else None
     )
@@ -72,7 +84,13 @@ async def create_wallet(*, user_id: str, wallet_name: Optional[str] = None) -> W
         INSERT INTO wallets (id, name, user, adminkey, inkey)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (wallet_id, wallet_name or DEFAULT_WALLET_NAME, user_id, uuid4().hex, uuid4().hex),
+        (
+            wallet_id,
+            wallet_name or DEFAULT_WALLET_NAME,
+            user_id,
+            uuid4().hex,
+            uuid4().hex,
+        ),
     )
 
     new_wallet = await get_wallet(wallet_id=wallet_id)
@@ -280,7 +298,9 @@ async def create_payment(
             int(pending),
             memo,
             fee,
-            json.dumps(extra) if extra and extra != {} and type(extra) is dict else None,
+            json.dumps(extra)
+            if extra and extra != {} and type(extra) is dict
+            else None,
             webhook,
         ),
     )

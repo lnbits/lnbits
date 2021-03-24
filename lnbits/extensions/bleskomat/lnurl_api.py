@@ -47,7 +47,10 @@ async def api_bleskomat_lnurl():
             # The API key ID, nonce, and tag should be present in the query string.
             for field in ["id", "nonce", "tag"]:
                 if not field in query:
-                    raise LnurlHttpError(f'Failed API key signature check: Missing "{field}"', HTTPStatus.BAD_REQUEST)
+                    raise LnurlHttpError(
+                        f'Failed API key signature check: Missing "{field}"',
+                        HTTPStatus.BAD_REQUEST,
+                    )
 
             # URL signing scheme is described here:
             # https://github.com/chill117/lnurl-node#how-to-implement-url-signing-scheme
@@ -58,7 +61,9 @@ async def api_bleskomat_lnurl():
                 raise LnurlHttpError("Unknown API key", HTTPStatus.BAD_REQUEST)
             api_key_secret = bleskomat.api_key_secret
             api_key_encoding = bleskomat.api_key_encoding
-            expected_signature = generate_bleskomat_lnurl_signature(payload, api_key_secret, api_key_encoding)
+            expected_signature = generate_bleskomat_lnurl_signature(
+                payload, api_key_secret, api_key_encoding
+            )
             if signature != expected_signature:
                 raise LnurlHttpError("Invalid API key signature", HTTPStatus.FORBIDDEN)
 
@@ -72,13 +77,16 @@ async def api_bleskomat_lnurl():
                     params = prepare_lnurl_params(tag, query)
                     if "f" in query:
                         rate = await fetch_fiat_exchange_rate(
-                            currency=query["f"], provider=bleskomat.exchange_rate_provider
+                            currency=query["f"],
+                            provider=bleskomat.exchange_rate_provider,
                         )
                         # Convert fee (%) to decimal:
                         fee = float(bleskomat.fee) / 100
                         if tag == "withdrawRequest":
                             for key in ["minWithdrawable", "maxWithdrawable"]:
-                                amount_sats = int(math.floor((params[key] / rate) * 1e8))
+                                amount_sats = int(
+                                    math.floor((params[key] / rate) * 1e8)
+                                )
                                 fee_sats = int(math.floor(amount_sats * fee))
                                 amount_sats_less_fee = amount_sats - fee_sats
                                 # Convert to msats:
@@ -87,7 +95,9 @@ async def api_bleskomat_lnurl():
                     raise LnurlHttpError(e.message, HTTPStatus.BAD_REQUEST)
                 # Create a new LNURL using the query parameters provided in the signed URL.
                 params = json.JSONEncoder().encode(params)
-                lnurl = await create_bleskomat_lnurl(bleskomat=bleskomat, secret=secret, tag=tag, params=params, uses=1)
+                lnurl = await create_bleskomat_lnurl(
+                    bleskomat=bleskomat, secret=secret, tag=tag, params=params, uses=1
+                )
 
             # Reply with LNURL response object.
             return jsonify(lnurl.get_info_response_object(secret)), HTTPStatus.OK
@@ -104,7 +114,9 @@ async def api_bleskomat_lnurl():
             raise LnurlHttpError("Invalid secret", HTTPStatus.BAD_REQUEST)
 
         if not lnurl.has_uses_remaining():
-            raise LnurlHttpError("Maximum number of uses already reached", HTTPStatus.BAD_REQUEST)
+            raise LnurlHttpError(
+                "Maximum number of uses already reached", HTTPStatus.BAD_REQUEST
+            )
 
         try:
             await lnurl.execute_action(query)
@@ -115,6 +127,9 @@ async def api_bleskomat_lnurl():
         return jsonify({"status": "ERROR", "reason": str(e)}), e.http_status
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"status": "ERROR", "reason": "Unexpected error"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return (
+            jsonify({"status": "ERROR", "reason": "Unexpected error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
     return jsonify({"status": "OK"}), HTTPStatus.OK

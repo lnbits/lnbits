@@ -16,7 +16,9 @@ from .models import Users, Wallets
 ### Users
 
 
-async def create_usermanager_user(user_name: str, wallet_name: str, admin_id: str) -> Users:
+async def create_usermanager_user(
+    user_name: str, wallet_name: str, admin_id: str
+) -> Users:
     account = await create_account()
     user = await get_user(account.id)
     assert user, "Newly created user couldn't be retrieved"
@@ -66,7 +68,9 @@ async def delete_usermanager_user(user_id: str) -> None:
 ### Wallets
 
 
-async def create_usermanager_wallet(user_id: str, wallet_name: str, admin_id: str) -> Wallets:
+async def create_usermanager_wallet(
+    user_id: str, wallet_name: str, admin_id: str
+) -> Wallets:
     wallet = await create_wallet(user_id=user_id, wallet_name=wallet_name)
     await db.execute(
         """
@@ -91,7 +95,9 @@ async def get_usermanager_wallets(user_id: str) -> List[Wallets]:
 
 
 async def get_usermanager_wallet_transactions(wallet_id: str) -> List[Payment]:
-    return await get_payments(wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True)
+    return await get_payments(
+        wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True
+    )
 
 
 async def delete_usermanager_wallet(wallet_id: str, user_id: str) -> None:

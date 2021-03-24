@@ -8,7 +8,12 @@ from .helpers import generate_bleskomat_lnurl_hash
 
 
 async def create_bleskomat(
-    *, wallet_id: str, name: str, fiat_currency: str, exchange_rate_provider: str, fee: str
+    *,
+    wallet_id: str,
+    name: str,
+    fiat_currency: str,
+    exchange_rate_provider: str,
+    fee: str,
 ) -> Bleskomat:
     bleskomat_id = uuid4().hex
     api_key_id = secrets.token_hex(8)
@@ -42,7 +47,9 @@ async def get_bleskomat(bleskomat_id: str) -> Optional[Bleskomat]:
 
 
 async def get_bleskomat_by_api_key_id(api_key_id: str) -> Optional[Bleskomat]:
-    row = await db.fetchone("SELECT * FROM bleskomats WHERE api_key_id = ?", (api_key_id,))
+    row = await db.fetchone(
+        "SELECT * FROM bleskomats WHERE api_key_id = ?", (api_key_id,)
+    )
     return Bleskomat(**row) if row else None
 
 
@@ -50,13 +57,17 @@ async def get_bleskomats(wallet_ids: Union[str, List[str]]) -> List[Bleskomat]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM bleskomats WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM bleskomats WHERE wallet IN ({q})", (*wallet_ids,)
+    )
     return [Bleskomat(**row) for row in rows]
 
 
 async def update_bleskomat(bleskomat_id: str, **kwargs) -> Optional[Bleskomat]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE bleskomats SET {q} WHERE id = ?", (*kwargs.values(), bleskomat_id))
+    await db.execute(
+        f"UPDATE bleskomats SET {q} WHERE id = ?", (*kwargs.values(), bleskomat_id)
+    )
     row = await db.fetchone("SELECT * FROM bleskomats WHERE id = ?", (bleskomat_id,))
     return Bleskomat(**row) if row else None
 

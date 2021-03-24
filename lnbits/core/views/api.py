@@ -41,8 +41,18 @@ async def api_payments():
 @api_validate_post_request(
     schema={
         "amount": {"type": "integer", "min": 1, "required": True},
-        "memo": {"type": "string", "empty": False, "required": True, "excludes": "description_hash"},
-        "description_hash": {"type": "string", "empty": False, "required": True, "excludes": "memo"},
+        "memo": {
+            "type": "string",
+            "empty": False,
+            "required": True,
+            "excludes": "description_hash",
+        },
+        "description_hash": {
+            "type": "string",
+            "empty": False,
+            "required": True,
+            "excludes": "memo",
+        },
         "lnurl_callback": {"type": "string", "nullable": True, "required": False},
         "extra": {"type": "dict", "nullable": True, "required": False},
         "webhook": {"type": "string", "empty": False, "required": False},
@@ -108,10 +118,14 @@ async def api_payments_create_invoice():
 
 
 @api_check_wallet_key("admin")
-@api_validate_post_request(schema={"bolt11": {"type": "string", "empty": False, "required": True}})
+@api_validate_post_request(
+    schema={"bolt11": {"type": "string", "empty": False, "required": True}}
+)
 async def api_payments_pay_invoice():
     try:
-        payment_hash = await pay_invoice(wallet_id=g.wallet.id, payment_request=g.data["bolt11"])
+        payment_hash = await pay_invoice(
+            wallet_id=g.wallet.id, payment_request=g.data["bolt11"]
+        )
     except ValueError as e:
         return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     except PermissionError as e:
@@ -147,8 +161,18 @@ async def api_payments_create():
         "description_hash": {"type": "string", "empty": False, "required": True},
         "callback": {"type": "string", "empty": False, "required": True},
         "amount": {"type": "number", "empty": False, "required": True},
-        "comment": {"type": "string", "nullable": True, "empty": True, "required": False},
-        "description": {"type": "string", "nullable": True, "empty": True, "required": False},
+        "comment": {
+            "type": "string",
+            "nullable": True,
+            "empty": True,
+            "required": False,
+        },
+        "description": {
+            "type": "string",
+            "nullable": True,
+            "empty": True,
+            "required": False,
+        },
     }
 )
 async def api_payments_pay_lnurl():
@@ -168,7 +192,10 @@ async def api_payments_pay_lnurl():
 
     params = json.loads(r.text)
     if params.get("status") == "ERROR":
-        return jsonify({"message": f"{domain} said: '{params.get('reason', '')}'"}), HTTPStatus.BAD_REQUEST
+        return (
+            jsonify({"message": f"{domain} said: '{params.get('reason', '')}'"}),
+            HTTPStatus.BAD_REQUEST,
+        )
 
     invoice = bolt11.decode(params["pr"])
     if invoice.amount_msat != g.data["amount"]:
@@ -236,7 +263,10 @@ async def api_payment(payment_hash):
     except Exception:
         return jsonify({"paid": False}), HTTPStatus.OK
 
-    return jsonify({"paid": not payment.pending, "preimage": payment.preimage}), HTTPStatus.OK
+    return (
+        jsonify({"paid": not payment.pending, "preimage": payment.preimage}),
+        HTTPStatus.OK,
+    )
 
 
 @core_app.route("/api/v1/payments/sse", methods=["GET"])
@@ -325,12 +355,22 @@ async def api_lnurlscan(code: str):
             data: lnurl.LnurlResponseModel = lnurl.LnurlResponse.from_dict(jdata)
         except (json.decoder.JSONDecodeError, lnurl.exceptions.LnurlResponseException):
             return (
-                jsonify({"domain": domain, "message": f"got invalid response '{r.text[:200]}'"}),
+                jsonify(
+                    {
+                        "domain": domain,
+                        "message": f"got invalid response '{r.text[:200]}'",
+                    }
+                ),
                 HTTPStatus.SERVICE_UNAVAILABLE,
             )
 
         if type(data) is lnurl.LnurlChannelResponse:
-            return jsonify({"domain": domain, "kind": "channel", "message": "unsupported"}), HTTPStatus.BAD_REQUEST
+            return (
+                jsonify(
+                    {"domain": domain, "kind": "channel", "message": "unsupported"}
+                ),
+                HTTPStatus.BAD_REQUEST,
+            )
 
         params.update(**data.dict())
 

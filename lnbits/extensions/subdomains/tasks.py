@@ -33,7 +33,10 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     ### Create subdomain
     cf_response = cloudflare_create_subdomain(
-        domain=domain, subdomain=subdomain.subdomain, record_type=subdomain.record_type, ip=subdomain.ip
+        domain=domain,
+        subdomain=subdomain.subdomain,
+        record_type=subdomain.record_type,
+        ip=subdomain.ip,
     )
 
     ### Use webhook to notify about cloudflare registration

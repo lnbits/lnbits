@@ -14,7 +14,9 @@ def generate_bleskomat_lnurl_hash(secret: str):
     return m.hexdigest()
 
 
-def generate_bleskomat_lnurl_signature(payload: str, api_key_secret: str, api_key_encoding: str = "hex"):
+def generate_bleskomat_lnurl_signature(
+    payload: str, api_key_secret: str, api_key_encoding: str = "hex"
+):
     if api_key_encoding == "hex":
         key = unhexlify(api_key_secret)
     elif api_key_encoding == "base64":
@@ -41,7 +43,11 @@ def is_supported_lnurl_subprotocol(tag: str) -> bool:
 
 
 class LnurlHttpError(Exception):
-    def __init__(self, message: str = "", http_status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR):
+    def __init__(
+        self,
+        message: str = "",
+        http_status: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR,
+    ):
         self.message = message
         self.http_status = http_status
         super().__init__(self.message)
@@ -62,11 +68,15 @@ def prepare_lnurl_params(tag: str, query: Dict[str, str]):
         if not params["minWithdrawable"] > 0:
             raise LnurlValidationError('"minWithdrawable" must be greater than zero')
         if not params["maxWithdrawable"] >= params["minWithdrawable"]:
-            raise LnurlValidationError('"maxWithdrawable" must be greater than or equal to "minWithdrawable"')
+            raise LnurlValidationError(
+                '"maxWithdrawable" must be greater than or equal to "minWithdrawable"'
+            )
     return params
 
 
-encode_uri_component_safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.!~*'()"
+encode_uri_component_safe_chars = (
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.!~*'()"
+)
 
 
 def query_to_signing_payload(query: Dict[str, str]) -> str:
@@ -76,19 +86,30 @@ def query_to_signing_payload(query: Dict[str, str]) -> str:
     for key in sorted_keys:
         if not key == "signature":
             encoded_key = urllib.parse.quote(key, safe=encode_uri_component_safe_chars)
-            encoded_value = urllib.parse.quote(query[key], safe=encode_uri_component_safe_chars)
+            encoded_value = urllib.parse.quote(
+                query[key], safe=encode_uri_component_safe_chars
+            )
             payload.append(f"{encoded_key}={encoded_value}")
     return "&".join(payload)
 
 
 unshorten_rules = {
     "query": {"n": "nonce", "s": "signature", "t": "tag"},
-    "tags": {"c": "channelRequest", "l": "login", "p": "payRequest", "w": "withdrawRequest"},
+    "tags": {
+        "c": "channelRequest",
+        "l": "login",
+        "p": "payRequest",
+        "w": "withdrawRequest",
+    },
     "params": {
         "channelRequest": {"pl": "localAmt", "pp": "pushAmt"},
         "login": {},
         "payRequest": {"pn": "minSendable", "px": "maxSendable", "pm": "metadata"},
-        "withdrawRequest": {"pn": "minWithdrawable", "px": "maxWithdrawable", "pd": "defaultDescription"},
+        "withdrawRequest": {
+            "pn": "minWithdrawable",
+            "px": "maxWithdrawable",
+            "pd": "defaultDescription",
+        },
     },
 }
 

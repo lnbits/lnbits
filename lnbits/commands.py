@@ -7,7 +7,12 @@ import os
 from sqlalchemy.exc import OperationalError  # type: ignore
 
 from .core import db as core_db, migrations as core_migrations
-from .helpers import get_valid_extensions, get_css_vendored, get_js_vendored, url_for_vendored
+from .helpers import (
+    get_valid_extensions,
+    get_css_vendored,
+    get_js_vendored,
+    url_for_vendored,
+)
 from .settings import LNBITS_PATH
 
 
@@ -71,18 +76,23 @@ async def migrate_databases():
                     print(f"running migration {db_name}.{version}")
                     await migrate(db)
                     await core_conn.execute(
-                        "INSERT OR REPLACE INTO dbversions (db, version) VALUES (?, ?)", (db_name, version)
+                        "INSERT OR REPLACE INTO dbversions (db, version) VALUES (?, ?)",
+                        (db_name, version),
                     )
 
     await run_migration(core_conn, core_migrations)
 
     for ext in get_valid_extensions():
         try:
-            ext_migrations = importlib.import_module(f"lnbits.extensions.{ext.code}.migrations")
+            ext_migrations = importlib.import_module(
+                f"lnbits.extensions.{ext.code}.migrations"
+            )
             ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
             await run_migration(ext_db, ext_migrations)
         except ImportError:
-            raise ImportError(f"Please make sure that the extension `{ext.code}` has a migrations file.")
+            raise ImportError(
+                f"Please make sure that the extension `{ext.code}` has a migrations file."
+            )
 
     await core_txn.commit()
     await core_conn.close()

@@ -3,7 +3,9 @@ from lnbits.db import Database
 
 db = Database("ext_subdomains")
 
-subdomains_ext: Blueprint = Blueprint("subdomains", __name__, static_folder="static", template_folder="templates")
+subdomains_ext: Blueprint = Blueprint(
+    "subdomains", __name__, static_folder="static", template_folder="templates"
+)
 
 
 from .views_api import *  # noqa

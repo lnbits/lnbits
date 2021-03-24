@@ -4,7 +4,13 @@ import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class LntxbotWallet(Wallet):
@@ -14,7 +20,11 @@ class LntxbotWallet(Wallet):
         endpoint = getenv("LNTXBOT_API_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
-        key = getenv("LNTXBOT_KEY") or getenv("LNTXBOT_ADMIN_KEY") or getenv("LNTXBOT_INVOICE_KEY")
+        key = (
+            getenv("LNTXBOT_KEY")
+            or getenv("LNTXBOT_ADMIN_KEY")
+            or getenv("LNTXBOT_INVOICE_KEY")
+        )
         self.auth = {"Authorization": f"Basic {key}"}
 
     def status(self) -> StatusResponse:
@@ -26,7 +36,9 @@ class LntxbotWallet(Wallet):
         try:
             data = r.json()
         except:
-            return StatusResponse(f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0)
+            return StatusResponse(
+                f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
+            )
 
         if data.get("error"):
             return StatusResponse(data["message"], 0)
@@ -34,7 +46,10 @@ class LntxbotWallet(Wallet):
         return StatusResponse(None, data["BTC"]["AvailableBalance"] * 1000)
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"amt": str(amount)}
         if description_hash:

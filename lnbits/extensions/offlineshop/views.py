@@ -24,7 +24,13 @@ async def print_qr_codes():
     for item_id in request.args.get("items").split(","):
         item = await get_item(item_id)
         if item:
-            items.append({"lnurl": item.lnurl, "name": item.name, "price": f"{item.price} {item.unit}"})
+            items.append(
+                {
+                    "lnurl": item.lnurl,
+                    "name": item.name,
+                    "price": f"{item.price} {item.unit}",
+                }
+            )
 
     return await render_template("offlineshop/print.html", items=items)
 
@@ -36,10 +42,14 @@ async def confirmation_code():
     payment_hash = request.args.get("p")
     payment: Payment = await get_standalone_payment(payment_hash)
     if not payment:
-        return f"Couldn't find the payment {payment_hash}." + style, HTTPStatus.NOT_FOUND
+        return (
+            f"Couldn't find the payment {payment_hash}." + style,
+            HTTPStatus.NOT_FOUND,
+        )
     if payment.pending:
         return (
-            f"Payment {payment_hash} wasn't received yet. Please try again in a minute." + style,
+            f"Payment {payment_hash} wasn't received yet. Please try again in a minute."
+            + style,
             HTTPStatus.PAYMENT_REQUIRED,
         )
 

@@ -10,13 +10,22 @@ import json
 from os import getenv
 from typing import Optional, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet, Unsupported
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+    Unsupported,
+)
 
 
 class CLightningWallet(Wallet):
     def __init__(self):
         if LightningRpc is None:  # pragma: nocover
-            raise ImportError("The `pylightning` library must be installed to use `CLightningWallet`.")
+            raise ImportError(
+                "The `pylightning` library must be installed to use `CLightningWallet`."
+            )
 
         self.rpc = getenv("CLIGHTNING_RPC")
         self.ln = LightningRpc(self.rpc)
@@ -52,7 +61,10 @@ class CLightningWallet(Wallet):
             return StatusResponse(error_message, 0)
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
         msat = amount * 1000

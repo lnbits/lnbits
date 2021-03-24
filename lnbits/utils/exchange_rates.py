@@ -212,7 +212,12 @@ exchange_rate_providers = {
 
 
 async def btc_price(currency: str) -> float:
-    replacements = {"FROM": "BTC", "from": "btc", "TO": currency.upper(), "to": currency.lower()}
+    replacements = {
+        "FROM": "BTC",
+        "from": "btc",
+        "TO": currency.upper(),
+        "to": currency.lower(),
+    }
     rates = []
     send_channel, receive_channel = trio.open_memory_channel(0)
 

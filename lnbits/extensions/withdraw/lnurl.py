@@ -17,10 +17,16 @@ async def api_lnurl_response(unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
+            HTTPStatus.OK,
+        )
 
     if link.is_spent:
-        return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "Withdraw is spent."}),
+            HTTPStatus.OK,
+        )
 
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
@@ -33,10 +39,16 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
+            HTTPStatus.OK,
+        )
 
     if link.is_spent:
-        return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "Withdraw is spent."}),
+            HTTPStatus.OK,
+        )
 
     useslist = link.usescsv.split(",")
     found = False
@@ -45,7 +57,10 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
         if id_unique_hash == shortuuid.uuid(name=tohash):
             found = True
     if not found:
-        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
+            HTTPStatus.OK,
+        )
 
     return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
 
@@ -61,16 +76,27 @@ async def api_lnurl_callback(unique_hash):
     now = int(datetime.now().timestamp())
 
     if not link:
-        return jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
+            HTTPStatus.OK,
+        )
 
     if link.is_spent:
-        return jsonify({"status": "ERROR", "reason": "Withdraw is spent."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "Withdraw is spent."}),
+            HTTPStatus.OK,
+        )
 
     if link.k1 != k1:
         return jsonify({"status": "ERROR", "reason": "Bad request."}), HTTPStatus.OK
 
     if now < link.open_time:
-        return jsonify({"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}), HTTPStatus.OK
+        return (
+            jsonify(
+                {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
+            ),
+            HTTPStatus.OK,
+        )
 
     try:
         await pay_invoice(
@@ -85,12 +111,19 @@ async def api_lnurl_callback(unique_hash):
             usecv = link.usescsv.split(",")
             usescsv += "," + str(usecv[x])
         usescsv = usescsv[1:]
-        changes = {"open_time": link.wait_time + now, "used": link.used + 1, "usescsv": usescsv}
+        changes = {
+            "open_time": link.wait_time + now,
+            "used": link.used + 1,
+            "usescsv": usescsv,
+        }
 
         await update_withdraw_link(link.id, **changes)
     except ValueError as e:
         return jsonify({"status": "ERROR", "reason": str(e)}), HTTPStatus.OK
     except PermissionError:
-        return jsonify({"status": "ERROR", "reason": "Withdraw link is empty."}), HTTPStatus.OK
+        return (
+            jsonify({"status": "ERROR", "reason": "Withdraw link is empty."}),
+            HTTPStatus.OK,
+        )
 
     return jsonify({"status": "OK"}), HTTPStatus.OK

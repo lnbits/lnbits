@@ -3,7 +3,9 @@ from lnbits.db import Database
 
 db = Database("ext_lnurlp")
 
-lnurlp_ext: Blueprint = Blueprint("lnurlp", __name__, static_folder="static", template_folder="templates")
+lnurlp_ext: Blueprint = Blueprint(
+    "lnurlp", __name__, static_folder="static", template_folder="templates"
+)
 
 
 from .views_api import *  # noqa

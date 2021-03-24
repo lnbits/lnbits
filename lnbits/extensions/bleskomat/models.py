@@ -62,11 +62,17 @@ class BleskomatLnurl(NamedTuple):
             try:
                 invoice = bolt11.decode(pr)
             except ValueError as e:
-                raise LnurlValidationError('Invalid parameter ("pr"): Lightning payment request expected')
+                raise LnurlValidationError(
+                    'Invalid parameter ("pr"): Lightning payment request expected'
+                )
             if invoice.amount_msat < params["minWithdrawable"]:
-                raise LnurlValidationError('Amount in invoice must be greater than or equal to "minWithdrawable"')
+                raise LnurlValidationError(
+                    'Amount in invoice must be greater than or equal to "minWithdrawable"'
+                )
             if invoice.amount_msat > params["maxWithdrawable"]:
-                raise LnurlValidationError('Amount in invoice must be less than or equal to "maxWithdrawable"')
+                raise LnurlValidationError(
+                    'Amount in invoice must be less than or equal to "maxWithdrawable"'
+                )
         else:
             raise LnurlValidationError(f'Unknown subprotocol: "{tag}"')
 

@@ -18,7 +18,14 @@ from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentStatus, PaymentResponse
 
 from . import db
-from .crud import get_wallet, create_payment, delete_payment, check_internal, update_payment_status, get_wallet_payment
+from .crud import (
+    get_wallet,
+    create_payment,
+    delete_payment,
+    check_internal,
+    update_payment_status,
+    get_wallet_payment,
+)
 
 
 async def create_invoice(
@@ -101,7 +108,9 @@ async def pay_invoice(
     internal_checking_id = await check_internal(invoice.payment_hash)
     if internal_checking_id:
         # create a new payment from this wallet
-        await create_payment(checking_id=internal_id, fee=0, pending=False, **payment_kwargs)
+        await create_payment(
+            checking_id=internal_id, fee=0, pending=False, **payment_kwargs
+        )
     else:
         # create a temporary payment here so we can check if
         # the balance is enough in the next step
@@ -143,12 +152,16 @@ async def pay_invoice(
         else:
             await delete_payment(temp_id)
             await db.commit()
-            raise Exception(payment.error_message or "Failed to pay_invoice on backend.")
+            raise Exception(
+                payment.error_message or "Failed to pay_invoice on backend."
+            )
 
     return invoice.payment_hash
 
 
-async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo: Optional[str] = None) -> None:
+async def redeem_lnurl_withdraw(
+    wallet_id: str, res: LnurlWithdrawResponse, memo: Optional[str] = None
+) -> None:
     _, payment_request = await create_invoice(
         wallet_id=wallet_id,
         amount=res.max_sats,
@@ -159,7 +172,10 @@ async def redeem_lnurl_withdraw(wallet_id: str, res: LnurlWithdrawResponse, memo
     async with httpx.AsyncClient() as client:
         await client.get(
             res.callback.base,
-            params={**res.callback.query_params, **{"k1": res.k1, "pr": payment_request}},
+            params={
+                **res.callback.query_params,
+                **{"k1": res.k1, "pr": payment_request},
+            },
         )
 
 

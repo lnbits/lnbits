@@ -18,7 +18,9 @@ class Database:
 
     def session_connection(self) -> Tuple[Optional[Any], Optional[Any]]:
         try:
-            return getattr(g, f"{self.db_name}_conn", None), getattr(g, f"{self.db_name}_txn", None)
+            return getattr(g, f"{self.db_name}_conn", None), getattr(
+                g, f"{self.db_name}_txn", None
+            )
         except RuntimeError:
             return None, None
 

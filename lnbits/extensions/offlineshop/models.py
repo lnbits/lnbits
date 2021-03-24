@@ -89,7 +89,9 @@ class Item(NamedTuple):
 
     @property
     def lnurl(self) -> str:
-        return lnurl_encode(url_for("offlineshop.lnurl_response", item_id=self.id, _external=True))
+        return lnurl_encode(
+            url_for("offlineshop.lnurl_response", item_id=self.id, _external=True)
+        )
 
     def values(self):
         values = self._asdict()
@@ -104,11 +106,15 @@ class Item(NamedTuple):
 
         return LnurlPayMetadata(json.dumps(metadata))
 
-    def success_action(self, shop: Shop, payment_hash: str) -> Optional[LnurlPaySuccessAction]:
+    def success_action(
+        self, shop: Shop, payment_hash: str
+    ) -> Optional[LnurlPaySuccessAction]:
         if not shop.wordlist:
             return None
 
         return UrlAction(
-            url=url_for("offlineshop.confirmation_code", p=payment_hash, _external=True),
+            url=url_for(
+                "offlineshop.confirmation_code", p=payment_hash, _external=True
+            ),
             description="Open to get the confirmation code for your purchase.",
         )

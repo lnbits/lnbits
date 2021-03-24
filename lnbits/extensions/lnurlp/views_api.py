@@ -31,12 +31,21 @@ async def api_links():
 
     try:
         return (
-            jsonify([{**link._asdict(), **{"lnurl": link.lnurl}} for link in await get_pay_links(wallet_ids)]),
+            jsonify(
+                [
+                    {**link._asdict(), **{"lnurl": link.lnurl}}
+                    for link in await get_pay_links(wallet_ids)
+                ]
+            ),
             HTTPStatus.OK,
         )
     except LnurlInvalidUrl:
         return (
-            jsonify({"message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."}),
+            jsonify(
+                {
+                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
+                }
+            ),
             HTTPStatus.UPGRADE_REQUIRED,
         )
 
@@ -83,7 +92,10 @@ async def api_link_create_or_update(link_id=None):
         link = await get_pay_link(link_id)
 
         if not link:
-            return jsonify({"message": "Pay link does not exist."}), HTTPStatus.NOT_FOUND
+            return (
+                jsonify({"message": "Pay link does not exist."}),
+                HTTPStatus.NOT_FOUND,
+            )
 
         if link.wallet != g.wallet.id:
             return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
@@ -92,7 +104,10 @@ async def api_link_create_or_update(link_id=None):
     else:
         link = await create_pay_link(wallet_id=g.wallet.id, **g.data)
 
-    return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK if link_id else HTTPStatus.CREATED
+    return (
+        jsonify({**link._asdict(), **{"lnurl": link.lnurl}}),
+        HTTPStatus.OK if link_id else HTTPStatus.CREATED,
+    )
 
 
 @lnurlp_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])

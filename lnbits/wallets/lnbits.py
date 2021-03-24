@@ -3,7 +3,13 @@ import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class LNbitsWallet(Wallet):
@@ -12,7 +18,11 @@ class LNbitsWallet(Wallet):
     def __init__(self):
         self.endpoint = getenv("LNBITS_ENDPOINT")
 
-        key = getenv("LNBITS_KEY") or getenv("LNBITS_ADMIN_KEY") or getenv("LNBITS_INVOICE_KEY")
+        key = (
+            getenv("LNBITS_KEY")
+            or getenv("LNBITS_ADMIN_KEY")
+            or getenv("LNBITS_INVOICE_KEY")
+        )
         self.key = {"X-Api-Key": key}
 
     def status(self) -> StatusResponse:
@@ -20,7 +30,9 @@ class LNbitsWallet(Wallet):
         try:
             data = r.json()
         except:
-            return StatusResponse(f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0)
+            return StatusResponse(
+                f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
+            )
 
         if r.is_error:
             return StatusResponse(data["message"], 0)
@@ -28,7 +40,10 @@ class LNbitsWallet(Wallet):
         return StatusResponse(None, data["balance"])
 
     def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
@@ -41,7 +56,12 @@ class LNbitsWallet(Wallet):
             headers=self.key,
             json=data,
         )
-        ok, checking_id, payment_request, error_message = not r.is_error, None, None, None
+        ok, checking_id, payment_request, error_message = (
+            not r.is_error,
+            None,
+            None,
+            None,
+        )
 
         if r.is_error:
             error_message = r.json()["message"]
@@ -52,7 +72,11 @@ class LNbitsWallet(Wallet):
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
     def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(url=f"{self.endpoint}/api/v1/payments", headers=self.key, json={"out": True, "bolt11": bolt11})
+        r = httpx.post(
+            url=f"{self.endpoint}/api/v1/payments",
+            headers=self.key,
+            json={"out": True, "bolt11": bolt11},
+        )
         ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
 
         if r.is_error:
@@ -64,7 +88,9 @@ class LNbitsWallet(Wallet):
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
     def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key)
+        r = httpx.get(
+            url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key
+        )
 
         if r.is_error:
             return PaymentStatus(None)
@@ -72,7 +98,9 @@ class LNbitsWallet(Wallet):
         return PaymentStatus(r.json()["paid"])
 
     def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key)
+        r = httpx.get(
+            url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key
+        )
 
         if r.is_error:
             return PaymentStatus(None)
