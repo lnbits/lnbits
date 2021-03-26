@@ -1,6 +1,6 @@
 import json
 import math
-from quart import g, jsonify, request
+from quart import jsonify, request
 from http import HTTPStatus
 import traceback
 
@@ -29,7 +29,6 @@ from .helpers import (
 # Handles signed URL from Bleskomat ATMs and "action" callback of auto-generated LNURLs.
 @bleskomat_ext.route("/u", methods=["GET"])
 async def api_bleskomat_lnurl():
-
     try:
         query = request.args.to_dict()
 
@@ -125,7 +124,7 @@ async def api_bleskomat_lnurl():
 
     except LnurlHttpError as e:
         return jsonify({"status": "ERROR", "reason": str(e)}), e.http_status
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
         return (
             jsonify({"status": "ERROR", "reason": "Unexpected error"}),

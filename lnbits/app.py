@@ -79,10 +79,6 @@ def register_blueprints(app: QuartTrio) -> None:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
             bp = getattr(ext_module, f"{ext.code}_ext")
 
-            @bp.teardown_request
-            async def after_request(exc):
-                await ext_module.db.close_session()
-
             app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
             raise ImportError(
@@ -121,12 +117,6 @@ def register_request_hooks(app: QuartTrio):
     @app.before_request
     async def before_request():
         g.nursery = app.nursery
-
-    @app.teardown_request
-    async def after_request(exc):
-        from lnbits.core import db
-
-        await db.close_session()
 
     @app.after_request
     async def set_secure_headers(response):

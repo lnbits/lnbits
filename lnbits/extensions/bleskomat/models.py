@@ -61,7 +61,7 @@ class BleskomatLnurl(NamedTuple):
                 raise LnurlValidationError("Multiple payment requests not supported")
             try:
                 invoice = bolt11.decode(pr)
-            except ValueError as e:
+            except ValueError:
                 raise LnurlValidationError(
                     'Invalid parameter ("pr"): Lightning payment request expected'
                 )
@@ -79,14 +79,11 @@ class BleskomatLnurl(NamedTuple):
     async def execute_action(self, query: Dict[str, str]):
         self.validate_action(query)
         used = False
-        if self.initial_uses > 0:
-            await db.commit()
-            await db.begin()
-            used = await self.use()
-            if not used:
-                await db.rollback()
-                raise LnurlValidationError("Maximum number of uses already reached")
-        try:
+        async with db.connect() as conn:
+            if self.initial_uses > 0:
+                used = await self.use(conn)
+                if not used:
+                    raise LnurlValidationError("Maximum number of uses already reached")
             tag = self.tag
             if tag == "withdrawRequest":
                 payment_hash = await pay_invoice(
@@ -95,16 +92,10 @@ class BleskomatLnurl(NamedTuple):
                 )
                 if not payment_hash:
                     raise LnurlValidationError("Failed to pay invoice")
-        except Exception as e:
-            if used:
-                await db.rollback()
-            raise e
-        if used:
-            await db.commit()
 
-    async def use(self) -> bool:
+    async def use(self, conn) -> bool:
         now = int(time.time())
-        result = await db.execute(
+        result = await conn.execute(
             """
             UPDATE bleskomat_lnurls
             SET remaining_uses = remaining_uses - 1, updated_time = ?

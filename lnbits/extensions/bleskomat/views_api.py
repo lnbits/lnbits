@@ -70,11 +70,10 @@ async def api_bleskomat_retrieve(bleskomat_id):
     }
 )
 async def api_bleskomat_create_or_update(bleskomat_id=None):
-
     try:
         fiat_currency = g.data["fiat_currency"]
         exchange_rate_provider = g.data["exchange_rate_provider"]
-        rate = await fetch_fiat_exchange_rate(
+        await fetch_fiat_exchange_rate(
             currency=fiat_currency, provider=exchange_rate_provider
         )
     except Exception as e:

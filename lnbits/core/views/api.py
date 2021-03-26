@@ -66,7 +66,7 @@ async def api_payments_create_invoice():
         description_hash = b""
         memo = g.data["memo"]
 
-    try:
+    async with db.connect() as conn:
         payment_hash, payment_request = await create_invoice(
             wallet_id=g.wallet.id,
             amount=g.data["amount"],
@@ -74,12 +74,8 @@ async def api_payments_create_invoice():
             description_hash=description_hash,
             extra=g.data.get("extra"),
             webhook=g.data.get("webhook"),
+            conn=conn,
         )
-    except Exception as exc:
-        await db.rollback()
-        raise exc
-
-    await db.commit()
 
     invoice = bolt11.decode(payment_request)
 
@@ -124,14 +120,14 @@ async def api_payments_create_invoice():
 async def api_payments_pay_invoice():
     try:
         payment_hash = await pay_invoice(
-            wallet_id=g.wallet.id, payment_request=g.data["bolt11"]
+            wallet_id=g.wallet.id,
+            payment_request=g.data["bolt11"],
         )
     except ValueError as e:
         return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     except PermissionError as e:
         return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
     except Exception as exc:
-        await db.rollback()
         raise exc
 
     return (
@@ -217,23 +213,19 @@ async def api_payments_pay_lnurl():
             HTTPStatus.BAD_REQUEST,
         )
 
-    try:
-        extra = {}
+    extra = {}
 
-        if params.get("successAction"):
-            extra["success_action"] = params["successAction"]
-        if g.data["comment"]:
-            extra["comment"] = g.data["comment"]
+    if params.get("successAction"):
+        extra["success_action"] = params["successAction"]
+    if g.data["comment"]:
+        extra["comment"] = g.data["comment"]
 
-        payment_hash = await pay_invoice(
-            wallet_id=g.wallet.id,
-            payment_request=params["pr"],
-            description=g.data.get("description", ""),
-            extra=extra,
-        )
-    except Exception as exc:
-        await db.rollback()
-        raise exc
+    payment_hash = await pay_invoice(
+        wallet_id=g.wallet.id,
+        payment_request=params["pr"],
+        description=g.data.get("description", ""),
+        extra=extra,
+    )
 
     return (
         jsonify(

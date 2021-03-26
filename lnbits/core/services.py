@@ -13,6 +13,7 @@ except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
 
 from lnbits import bolt11
+from lnbits.db import Connection
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentStatus, PaymentResponse
@@ -36,8 +37,8 @@ async def create_invoice(
     description_hash: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
+    conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
-    await db.begin()
     invoice_memo = None if description_hash else memo
     storeable_memo = memo
 
@@ -59,9 +60,9 @@ async def create_invoice(
         memo=storeable_memo,
         extra=extra,
         webhook=webhook,
+        conn=conn,
     )
 
-    await db.commit()
     return invoice.payment_hash, payment_request
 
 
@@ -72,102 +73,114 @@ async def pay_invoice(
     max_sat: Optional[int] = None,
     extra: Optional[Dict] = None,
     description: str = "",
+    conn: Optional[Connection] = None,
 ) -> str:
-    await db.begin()
-    temp_id = f"temp_{urlsafe_short_hash()}"
-    internal_id = f"internal_{urlsafe_short_hash()}"
+    async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
+        temp_id = f"temp_{urlsafe_short_hash()}"
+        internal_id = f"internal_{urlsafe_short_hash()}"
 
-    invoice = bolt11.decode(payment_request)
-    if invoice.amount_msat == 0:
-        raise ValueError("Amountless invoices not supported.")
-    if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise ValueError("Amount in invoice is too high.")
+        invoice = bolt11.decode(payment_request)
+        if invoice.amount_msat == 0:
+            raise ValueError("Amountless invoices not supported.")
+        if max_sat and invoice.amount_msat > max_sat * 1000:
+            raise ValueError("Amount in invoice is too high.")
 
-    # put all parameters that don't change here
-    PaymentKwargs = TypedDict(
-        "PaymentKwargs",
-        {
-            "wallet_id": str,
-            "payment_request": str,
-            "payment_hash": str,
-            "amount": int,
-            "memo": str,
-            "extra": Optional[Dict],
-        },
-    )
-    payment_kwargs: PaymentKwargs = dict(
-        wallet_id=wallet_id,
-        payment_request=payment_request,
-        payment_hash=invoice.payment_hash,
-        amount=-invoice.amount_msat,
-        memo=description or invoice.description or "",
-        extra=extra,
-    )
-
-    # check_internal() returns the checking_id of the invoice we're waiting for
-    internal_checking_id = await check_internal(invoice.payment_hash)
-    if internal_checking_id:
-        # create a new payment from this wallet
-        await create_payment(
-            checking_id=internal_id, fee=0, pending=False, **payment_kwargs
+        # put all parameters that don't change here
+        PaymentKwargs = TypedDict(
+            "PaymentKwargs",
+            {
+                "wallet_id": str,
+                "payment_request": str,
+                "payment_hash": str,
+                "amount": int,
+                "memo": str,
+                "extra": Optional[Dict],
+            },
         )
-    else:
-        # create a temporary payment here so we can check if
-        # the balance is enough in the next step
-        fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
-        await create_payment(checking_id=temp_id, fee=-fee_reserve, **payment_kwargs)
+        payment_kwargs: PaymentKwargs = dict(
+            wallet_id=wallet_id,
+            payment_request=payment_request,
+            payment_hash=invoice.payment_hash,
+            amount=-invoice.amount_msat,
+            memo=description or invoice.description or "",
+            extra=extra,
+        )
 
-    # do the balance check
-    wallet = await get_wallet(wallet_id)
-    assert wallet
-    if wallet.balance_msat < 0:
-        await db.rollback()
-        raise PermissionError("Insufficient balance.")
-    else:
-        await db.commit()
-        await db.begin()
-
-    if internal_checking_id:
-        # mark the invoice from the other side as not pending anymore
-        # so the other side only has access to his new money when we are sure
-        # the payer has enough to deduct from
-        await update_payment_status(checking_id=internal_checking_id, pending=False)
-
-        # notify receiver asynchronously
-        from lnbits.tasks import internal_invoice_paid
-
-        await internal_invoice_paid.send(internal_checking_id)
-    else:
-        # actually pay the external invoice
-        payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
-        if payment.checking_id:
+        # check_internal() returns the checking_id of the invoice we're waiting for
+        internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
+        if internal_checking_id:
+            # create a new payment from this wallet
             await create_payment(
-                checking_id=payment.checking_id,
-                fee=payment.fee_msat,
-                preimage=payment.preimage,
-                pending=payment.ok == None,
+                checking_id=internal_id,
+                fee=0,
+                pending=False,
+                conn=conn,
                 **payment_kwargs,
             )
-            await delete_payment(temp_id)
-            await db.commit()
         else:
-            await delete_payment(temp_id)
-            await db.commit()
-            raise Exception(
-                payment.error_message or "Failed to pay_invoice on backend."
+            # create a temporary payment here so we can check if
+            # the balance is enough in the next step
+            fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
+            await create_payment(
+                checking_id=temp_id,
+                fee=-fee_reserve,
+                conn=conn,
+                **payment_kwargs,
             )
 
-    return invoice.payment_hash
+        # do the balance check
+        wallet = await get_wallet(wallet_id, conn=conn)
+        assert wallet
+        if wallet.balance_msat < 0:
+            raise PermissionError("Insufficient balance.")
+
+        if internal_checking_id:
+            # mark the invoice from the other side as not pending anymore
+            # so the other side only has access to his new money when we are sure
+            # the payer has enough to deduct from
+            await update_payment_status(
+                checking_id=internal_checking_id,
+                pending=False,
+                conn=conn,
+            )
+
+            # notify receiver asynchronously
+            from lnbits.tasks import internal_invoice_paid
+
+            await internal_invoice_paid.send(internal_checking_id)
+        else:
+            # actually pay the external invoice
+            payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
+            if payment.checking_id:
+                await create_payment(
+                    checking_id=payment.checking_id,
+                    fee=payment.fee_msat,
+                    preimage=payment.preimage,
+                    pending=payment.ok == None,
+                    conn=conn,
+                    **payment_kwargs,
+                )
+                await delete_payment(temp_id, conn=conn)
+            else:
+                raise Exception(
+                    payment.error_message or "Failed to pay_invoice on backend."
+                )
+
+        return invoice.payment_hash
 
 
 async def redeem_lnurl_withdraw(
-    wallet_id: str, res: LnurlWithdrawResponse, memo: Optional[str] = None
+    wallet_id: str,
+    res: LnurlWithdrawResponse,
+    memo: Optional[str] = None,
+    conn: Optional[Connection] = None,
 ) -> None:
     _, payment_request = await create_invoice(
         wallet_id=wallet_id,
         amount=res.max_sats,
         memo=memo or res.default_description or "",
         extra={"tag": "lnurlwallet"},
+        conn=conn,
     )
 
     async with httpx.AsyncClient() as client:
@@ -180,7 +193,10 @@ async def redeem_lnurl_withdraw(
         )
 
 
-async def perform_lnurlauth(callback: str) -> Optional[LnurlErrorResponse]:
+async def perform_lnurlauth(
+    callback: str,
+    conn: Optional[Connection] = None,
+) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
@@ -251,8 +267,12 @@ async def perform_lnurlauth(callback: str) -> Optional[LnurlErrorResponse]:
             )
 
 
-async def check_invoice_status(wallet_id: str, payment_hash: str) -> PaymentStatus:
-    payment = await get_wallet_payment(wallet_id, payment_hash)
+async def check_invoice_status(
+    wallet_id: str,
+    payment_hash: str,
+    conn: Optional[Connection] = None,
+) -> PaymentStatus:
+    payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:
         return PaymentStatus(None)
 

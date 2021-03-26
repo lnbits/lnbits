@@ -13,11 +13,10 @@ from quart import (
 )
 from lnurl import LnurlResponse, LnurlWithdrawResponse, decode as decode_lnurl  # type: ignore
 
-from lnbits.core import core_app
+from lnbits.core import core_app, db
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE
 
-from .. import db
 from ..crud import (
     create_account,
     get_user,
@@ -152,10 +151,10 @@ async def lnurlwallet():
                 HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
-    account = await create_account()
-    user = await get_user(account.id)
-    wallet = await create_wallet(user_id=user.id)
-    await db.commit()
+    async with db.connect() as conn:
+        account = await create_account(conn=conn)
+        user = await get_user(account.id, conn=conn)
+        wallet = await create_wallet(user_id=user.id, conn=conn)
 
     g.nursery.start_soon(
         redeem_lnurl_withdraw,
