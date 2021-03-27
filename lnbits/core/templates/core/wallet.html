@@ -438,7 +438,7 @@
             <q-input
               filled
               dense
-              v-model.number="parse.data.comment"
+              v-model="parse.data.comment"
               :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
               label="Comment (optional)"
               :maxlength="parse.lnurlpay.commentAllowed"
