@@ -88,7 +88,15 @@ window.LNbits = {
   map: {
     extension: function (data) {
       var obj = _.object(
-        ['code', 'isValid', 'name', 'shortDescription', 'icon'],
+        [
+          'code',
+          'isValid',
+          'name',
+          'shortDescription',
+          'icon',
+          'contributors',
+          'hidden'
+        ],
         data
       )
       obj.url = ['/', obj.code, '/'].join('')
@@ -303,6 +311,9 @@ window.windowMixin = {
         window.extensions
           .map(function (data) {
             return window.LNbits.map.extension(data)
+          })
+          .filter(function (obj) {
+            return !obj.hidden
           })
           .map(function (obj) {
             if (user) {

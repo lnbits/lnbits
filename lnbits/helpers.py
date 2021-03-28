@@ -15,6 +15,7 @@ class Extension(NamedTuple):
     short_description: Optional[str] = None
     icon: Optional[str] = None
     contributors: Optional[List[str]] = None
+    hidden: bool = False
 
 
 class ExtensionManager:
@@ -49,6 +50,7 @@ class ExtensionManager:
                     config.get("short_description"),
                     config.get("icon"),
                     config.get("contributors"),
+                    config.get("hidden") or False,
                 )
             )
 
