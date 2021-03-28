@@ -45,7 +45,9 @@ class Track(NamedTuple):
         return f"'{self.name}', from {producer_name}."
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
-        description = (await self.fullname()) + " Like this track? Send some sats in appreciation."
+        description = (
+            await self.fullname()
+        ) + " Like this track? Send some sats in appreciation."
 
         if self.download_url:
             description += f" Send {round(self.price_msat/1000)} sats or more and you can download it."
@@ -57,7 +59,12 @@ class Track(NamedTuple):
             return None
 
         return UrlAction(
-            url=url_for("livestream.track_redirect_download", track_id=self.id, p=payment_hash[:5], _external=True),
+            url=url_for(
+                "livestream.track_redirect_download",
+                track_id=self.id,
+                p=payment_hash,
+                _external=True,
+            ),
             description=f"Download the track {self.name}!",
         )
 
