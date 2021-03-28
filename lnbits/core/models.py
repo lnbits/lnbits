@@ -146,7 +146,7 @@ class Payment(NamedTuple):
             status = await WALLET.get_invoice_status(self.checking_id)
 
         print(
-            f" - checking '{'in' if self.is_in else 'out'}' {self.checking_id}: {status.paid}"
+            f" - checking '{'in' if self.is_in else 'out'}' {self.checking_id}: {status}"
         )
 
         if self.is_out and status.failed:
