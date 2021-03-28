@@ -1,8 +1,10 @@
 {
-  "name": "Livestream Manager",
-  "short_description": "Do music livestreams, sell songs with revenue splitting from a single QR code.",
+  "name": "DJ Livestream",
+  "short_description": "Take tips or messages, sell tracks and split revenue with a static QR code.",
   "icon": "speaker",
   "contributors": [
-    "fiatjaf"
-  ]
+    "fiatjaf",
+    "cryptograffiti"
+  ],
+  "hidden": true
 }
