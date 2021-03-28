@@ -1,6 +1,7 @@
 {% extends "public.html" %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    {% if tournament_state == 'pending' %}
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
         <h3 class="q-my-none">{{ tournament_name }} - {{ tournament_state }}</h3>
@@ -27,11 +28,24 @@
         </q-form>
       </q-card-section>
     </q-card>
+    {% endif %}
 
+    {% if tournament_state == 'underway' or tournament_state == 'awaiting_review'%}
     <q-card class="q-pa-lg">
       <q-card-section>
         <h3 class="q-my-none">{{ tournament_name }} - {{ tournament_state }}</h3>
-        <p> <a href=https://challonge.com/{{tournament_challonge_tournament_id}}>Tournament</a>, if you are a 🏆 winner 🏆 input your secret that you received when signing up</p>
+        <p><a href=https://challonge.com/{{tournament_challonge_tournament_id}}>Tournament</a> is underway, check back later</p>
+        <iframe src="https://challonge.com/{{tournament_challonge_tournament_id}}/module" width="100%" height="500" frameborder="0" scrolling="auto" allowtransparency="true"></iframe>
+      </q-card-section>
+    </q-card>
+    {% endif %}
+  
+    {% if tournament_state == 'complete' %}
+    <q-card class="q-pa-lg">
+      <q-card-section>
+        <h3 class="q-my-none">{{ tournament_name }} - {{ tournament_state }}</h3>
+        <iframe src="https://challonge.com/{{tournament_challonge_tournament_id}}/module" width="100%" height="500" frameborder="0" scrolling="auto" allowtransparency="true"></iframe>
+        <p> <a href=https://challonge.com/{{tournament_challonge_tournament_id}}>Tournament</a> is over, if you are a 🏆 winner 🏆 input your secret that you received when signing up</p>
       </q-card-section>
       <q-form @submit="ClaimWin()" class="q-gutter-md">
         <q-input filled dense v-model.trim="formDialog.data.secret" type="text" label="Your secret">
@@ -43,13 +57,7 @@
         </div>
       </q-form>
     </q-card>
-
-    <q-card class="q-pa-lg">
-      <q-card-section>
-        <h3 class="q-my-none">{{ tournament_name }} - {{ tournament_state }}</h3>
-        <p><a href=https://challonge.com/{{tournament_challonge_tournament_id}}>Tournament</a> is underway, check back later</p>
-      </q-card-section>
-    </q-card>
+    {% endif %}
 
 
   </div>
