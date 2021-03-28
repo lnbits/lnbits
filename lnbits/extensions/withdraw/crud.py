@@ -58,6 +58,9 @@ async def create_withdraw_link(
 
 async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     row = await db.fetchone("SELECT * FROM withdraw_link WHERE id = ?", (link_id,))
+    if not row:
+        return None
+
     link = []
     for item in row:
         link.append(item)
@@ -69,6 +72,9 @@ async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[Withdra
     row = await db.fetchone(
         "SELECT * FROM withdraw_link WHERE unique_hash = ?", (unique_hash,)
     )
+    if not row:
+        return None
+
     link = []
     for item in row:
         link.append(item)
