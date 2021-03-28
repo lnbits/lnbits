@@ -1,7 +1,7 @@
 import trio  # type: ignore
-import random
 import json
 import httpx
+import random
 from os import getenv
 from typing import Optional, AsyncGenerator
 
@@ -40,13 +40,16 @@ class SparkWallet(Wallet):
             else:
                 params = {}
 
-            async with httpx.AsyncClient() as client:
-                r = await client.post(
-                    self.url + "/rpc",
-                    headers={"X-Access": self.token},
-                    json={"method": key, "params": params},
-                    timeout=40,
-                )
+            try:
+                async with httpx.AsyncClient() as client:
+                    r = await client.post(
+                        self.url + "/rpc",
+                        headers={"X-Access": self.token},
+                        json={"method": key, "params": params},
+                        timeout=40,
+                    )
+            except (OSError, httpx.ConnectError, httpx.RequestError) as exc:
+                raise SparkError("error connecting to spark: " + str(exc))
 
             try:
                 data = r.json()
@@ -143,7 +146,11 @@ class SparkWallet(Wallet):
         return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = await self.listinvoices(label=checking_id)
+        try:
+            r = await self.listinvoices(label=checking_id)
+        except (SparkError, UnknownError):
+            return PaymentStatus(None)
+
         if not r or not r.get("invoices"):
             return PaymentStatus(None)
         if r["invoices"][0]["status"] == "unpaid":
@@ -160,7 +167,11 @@ class SparkWallet(Wallet):
             return PaymentStatus(None)
 
         # ask sparko
-        r = await self.listpays(payment_hash=checking_id)
+        try:
+            r = await self.listpays(payment_hash=checking_id)
+        except (SparkError, UnknownError):
+            return PaymentStatus(None)
+
         if not r["pays"]:
             return PaymentStatus(False)
         if r["pays"][0]["payment_hash"] == checking_id:
@@ -184,7 +195,7 @@ class SparkWallet(Wallet):
                                 data = json.loads(line[5:])
                                 if "pay_index" in data and data.get("status") == "paid":
                                     yield data["label"]
-            except (OSError, httpx.ReadError):
+            except (OSError, httpx.ReadError, httpx.ConnectError):
                 pass
 
             print("lost connection to spark /stream, retrying in 5 seconds")
