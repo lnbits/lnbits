@@ -71,19 +71,26 @@ async def invoice_listener(nursery):
 
 async def check_pending_payments():
     await delete_expired_invoices()
+
+    outgoing = True
+    incoming = True
+
     while True:
         for payment in await get_payments(
             since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
             complete=False,
             pending=True,
+            outgoing=outgoing,
+            incoming=incoming,
             exclude_uncheckable=True,
         ):
-            print(
-                f" - checking {'in' if payment.is_in else 'out'} pending: {payment.checking_id}"
-            )
             await payment.check_pending()
 
-        await trio.sleep(60 * 120)
+        # after the first check we will only check outgoing, not incoming
+        # that will be handled by the global invoice listeners, hopefully
+        incoming = False
+
+        await trio.sleep(60 * 30)  # every 30 minutes
 
 
 async def invoice_callback_dispatcher(checking_id: str):

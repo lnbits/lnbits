@@ -58,7 +58,7 @@ class Wallet(NamedTuple):
         pending: bool = False,
         outgoing: bool = True,
         incoming: bool = True,
-        exclude_uncheckable: bool = False
+        exclude_uncheckable: bool = False,
     ) -> List["Payment"]:
         from .crud import get_payments
 
@@ -141,11 +141,18 @@ class Payment(NamedTuple):
             return
 
         if self.is_out:
-            pending = await WALLET.get_payment_status(self.checking_id)
+            status = await WALLET.get_payment_status(self.checking_id)
         else:
-            pending = await WALLET.get_invoice_status(self.checking_id)
+            status = await WALLET.get_invoice_status(self.checking_id)
 
-        await self.set_pending(pending.pending)
+        print(
+            f" - checking '{'in' if self.is_in else 'out'}' {self.checking_id}: {status.paid}"
+        )
+
+        if self.is_out and status.failed:
+            await self.delete()
+        elif not status.pending:
+            await self.set_pending(status.pending)
 
     async def delete(self) -> None:
         from .crud import delete_payment

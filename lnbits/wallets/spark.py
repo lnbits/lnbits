@@ -130,7 +130,7 @@ class SparkWallet(Wallet):
                 if pay["status"] == "failed":
                     return PaymentResponse(False, None, 0, None, str(exc))
                 elif pay["status"] == "pending":
-                    return PaymentResponse(None, listpays["pays"], 0, None, None)
+                    return PaymentResponse(None, payment_hash, 0, None, None)
                 elif pay["status"] == "complete":
                     r = pay
                     r["payment_preimage"] = pay["preimage"]
