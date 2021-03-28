@@ -1,3 +1,4 @@
+from lnbits.extensions.challonge.models import Participant, Tournament
 from logging import fatal
 import re
 from quart import g, jsonify, request
@@ -23,6 +24,9 @@ from .crud import (
     get_tournament,
     get_tournaments,
     update_tournament,
+    claim_winning,
+    get_participant_by_secret,
+    set_participant_winner
 )
 from .challonge import (
     challonge_add_user_to_tournament,
@@ -31,6 +35,8 @@ from .challonge import (
     challonge_delete_user_from_tournament
 )
 from .dto import TournamentDTO, ParticipantDTO
+
+from ..withdraw.crud import create_withdraw_link
 
 # Tournaments
 
@@ -140,6 +146,40 @@ async def api_tournament_delete(tournament_id):
 
     return "", HTTPStatus.NO_CONTENT
 
+@challonge_ext.route("/api/v1/tournaments/<tournament_id>", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "secret": {"type": "string", "empty": False, "required": True},
+    }
+)
+async def claim_winnings(tournament_id):
+    tournament : Tournament = await get_tournament(tournament_id)
+    participant : Participant = await get_participant_by_secret(g.data["secret"])
+    if (tournament.id == participant.tournament):
+        challonge_tournament_data = await challonge_get_tournament_data(
+            challonge_API=tournament.challonge_api, challonge_tournament_id=tournament.challonge_tournament_id
+        )
+        if (challonge_tournament_data["tournament"]["state"] == "complete"):
+            for x in challonge_tournament_data["tournament"]["participants"]:
+                if (x['participant']["final_rank"] == 1):
+                    if (participant.username == x['participant']["display_name"]):
+                        await set_participant_winner(payment_hash=participant.id);
+                        withdrawable = tournament.signup_fee * len(challonge_tournament_data["tournament"]["participants"])
+                        withdraw_url = await create_withdraw_link(
+                            wallet_id=tournament.wallet, 
+                            title=challonge_tournament_data["tournament"]["name"],
+                            max_withdrawable=withdrawable,
+                            min_withdrawable=withdrawable,
+                            uses=1,
+                            wait_time=30,
+                            is_unique=True,
+                            usescsv=False
+                            )
+                        return jsonify({**withdraw_url._asdict(), **{"lnurl": withdraw_url.lnurl}}), HTTPStatus.CREATED
+        else:
+            return jsonify({"message": "Tournament not completed yet!"}), HTTPStatus.BAD_REQUEST
+    else:
+        return jsonify({"message:", "Participant not in the tournament"}), HTTPStatus.BAD_REQUEST
 
 #########participants##########
 
@@ -152,7 +192,7 @@ async def api_participants():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([domain._asdict() for domain in await get_participants(wallet_ids)]), HTTPStatus.OK
+    return jsonify([tournament._asdict() for tournament in await get_participants(wallet_ids)]), HTTPStatus.OK
 
 
 @challonge_ext.route("/api/v1/participants/<tournament_id>", methods=["POST"])
@@ -167,11 +207,11 @@ async def api_participants():
 async def api_participants_new_participant(tournament_id):
     tournament = await get_tournament(tournament_id=tournament_id)
 
-    # If the request is coming for the non-existant domain
+    # If the request is coming for the non-existant tournament
     if not tournament:
         return jsonify({"message": "Tournament does not exist."}), HTTPStatus.NOT_FOUND
 
-    ## If domain already exist in our database reject it
+    ## If tournament already exist in our database reject it
     if (
         await get_participantByUsername(g.data["challonge_username"],g.data["username"] ) is not None
     ):  # TODO check if g.data["participant_name"] really exist

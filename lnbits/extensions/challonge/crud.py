@@ -48,6 +48,17 @@ async def set_participant_paid(payment_hash: str) -> Participant:
     return participant
 
 
+async def set_participant_winner(payment_hash: str) -> None:
+    await db.execute(
+        """
+        UPDATE participant
+        SET status = "winner"
+        WHERE id = ?
+        """,
+        (payment_hash,)
+    )
+
+
 async def get_participant(participant_id: str) -> Optional[Participant]:
     row = await db.fetchone(
         "SELECT s.* FROM participant s WHERE s.id = ?",
@@ -139,5 +150,16 @@ async def get_tournaments(wallet_ids: Union[str, List[str]]) -> List[Tournament]
     return [Tournament(**row) for row in rows]
 
 
-async def delete_tournament(domain_id: str) -> None:
-    await db.execute("DELETE FROM tournament WHERE id = ?", (domain_id,))
+async def delete_tournament(tournament_id: str) -> None:
+    await db.execute("DELETE FROM tournament WHERE id = ?", (tournament_id,))
+
+async def claim_winning(secret: str) -> None:
+    return;
+
+async def verify_secret(secret: str) -> bool:
+    return True;
+
+async def get_participant_by_secret(secret: str) -> Optional[Participant]:
+    sql = "SELECT p.* FROM participant p WHERE p.secret = ?"
+    row = await db.fetchone(sql, (secret,))
+    return Participant(**row) if row else None

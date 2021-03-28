@@ -46,7 +46,7 @@ async def challonge_delete_user_from_tournament(tournament: Tournament, particip
 
 async def  challonge_get_tournament_data(challonge_API : str, challonge_tournament_id: str):
     ### SEND REQUEST TO CHALLONGE   
-    url = "https://api.challonge.com/v1/tournaments/" + challonge_tournament_id + ".json?include_participants=1&api_key="+challonge_API
+    url = "https://api.challonge.com/v1/tournaments/" + challonge_tournament_id + ".json?include_participants=1&include_participants=1&api_key="+challonge_API
     # header = {"api_key": challonge_API, "Content-Type": "application/json"}
     ch_response = ""
     async with httpx.AsyncClient() as client:
