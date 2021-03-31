@@ -154,7 +154,7 @@ async def pay_invoice(
             if payment.checking_id:
                 await create_payment(
                     checking_id=payment.checking_id,
-                    fee=-abs(payment.fee_msat),
+                    fee=payment.fee_msat,
                     preimage=payment.preimage,
                     pending=payment.ok == None,
                     conn=conn,

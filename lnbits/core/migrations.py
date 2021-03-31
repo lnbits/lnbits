@@ -135,3 +135,29 @@ async def m003_add_invoice_webhook(db):
 
     await db.execute("ALTER TABLE apipayments ADD COLUMN webhook TEXT")
     await db.execute("ALTER TABLE apipayments ADD COLUMN webhook_status TEXT")
+
+
+async def m004_ensure_fees_are_always_negative(db):
+    """
+    Use abs() so wallet backends don't have to care about the sign of the fees.
+    """
+
+    await db.execute("DROP VIEW balances")
+
+    await db.execute(
+        """
+        CREATE VIEW IF NOT EXISTS balances AS
+        SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
+            SELECT wallet, SUM(amount) AS s  -- incoming
+            FROM apipayments
+            WHERE amount > 0 AND pending = 0  -- don't sum pending
+            GROUP BY wallet
+            UNION ALL
+            SELECT wallet, SUM(amount - abs(fee)) AS s  -- outgoing, sum fees
+            FROM apipayments
+            WHERE amount < 0  -- do sum pending
+            GROUP BY wallet
+        )
+        GROUP BY wallet;
+    """
+    )
