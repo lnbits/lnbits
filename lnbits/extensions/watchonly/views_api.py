@@ -1,8 +1,7 @@
 import hashlib
-from quart import g, jsonify, url_for
+from quart import g, jsonify, url_for, request
 from http import HTTPStatus
-import httpx
-
+import httpx, json
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -38,6 +37,7 @@ async def api_wallets_retrieve():
 @api_check_wallet_key("invoice")
 async def api_wallet_retrieve(wallet_id):
     wallet = await get_watch_wallet(wallet_id) 
+    addresses = await api_get_addresses(wallet_id)
         
     if not wallet:
         return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
@@ -131,3 +131,62 @@ async def api_get_mempool():
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
     return jsonify(mempool._asdict()), HTTPStatus.OK
+
+@watchonly_ext.route("/api/v1/mempool/<address>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_get_mempool_wallet_balance(address):
+    mempool = await get_mempool(g.wallet.user)
+    if not mempool:
+        mempool = await create_mempool(user=g.wallet.user)
+    url = (
+        mempool.endpoint
+        + "/api/address/"
+        + address
+    )
+    header = {
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                url,
+                headers=header,
+                timeout=40,
+            )
+            mp_response = json.loads(r.text)
+            print(mp_response)
+        except AssertionError:
+            mp_response = "Error occured"
+    return jsonify(mp_response), HTTPStatus.OK
+
+@watchonly_ext.route("/api/v1/mempool/txs/<address>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_get_mempool_wallet_txs(address):
+    mempool = await get_mempool(g.wallet.user)
+    if not mempool:
+        mempool = await create_mempool(user=g.wallet.user)
+    url = (
+        mempool.endpoint
+        + "/api/address/"
+        + address
+        + "/txs"
+    )
+    header = {
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                url,
+                headers=header,
+                timeout=40,
+            )
+            mp_response = json.loads(r.text)
+            print(mp_response)
+        except AssertionError:
+            mp_response = "Error occured"
+    return jsonify(mp_response), HTTPStatus.OK
+
+
+    
+    

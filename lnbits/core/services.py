@@ -27,8 +27,6 @@ from .crud import (
     update_payment_status,
     get_wallet_payment,
 )
-
-
 async def create_invoice(
     *,
     wallet_id: str,

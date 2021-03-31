@@ -81,6 +81,7 @@ async def api_wallet_delete(wallet_id):
 async def api_charges_retrieve():
 
     charges = await get_charges(g.wallet.user)
+    print(charges)
     if not charges:
         return (
             jsonify(""),
@@ -106,8 +107,10 @@ async def api_charge_retrieve(charge_id):
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
-        "walletid": {"type": "string", "empty": False, "required": True},
-        "title": {"type": "string", "empty": False, "required": True},
+        "onchainwallet": {"type": "string", "empty": False, "required": True},
+        "lnbitswallet": {"type": "string", "empty": False, "required": True},
+        "description": {"type": "string", "empty": False, "required": True},
+        "webhook": {"type": "string", "empty": False, "required": True},
         "time": {"type": "integer", "min": 1, "required": True},
         "amount": {"type": "integer", "min": 1, "required": True},
     }
@@ -117,7 +120,6 @@ async def api_charge_create_or_update(charge_id=None):
     if not charge_id:
         charge = await create_charge(user = g.wallet.user, **g.data)
         return jsonify(charge), HTTPStatus.CREATED
-
     else:
         charge = await update_charge(user = g.wallet.user, **g.data) 
         return jsonify(charge), HTTPStatus.OK 

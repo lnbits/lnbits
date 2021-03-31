@@ -8,10 +8,11 @@ class Wallets(NamedTuple):
     title: str
     address_no: int
     balance: int
-    
+
     @classmethod
     def from_row(cls, row: Row) -> "Wallets":
         return cls(**dict(row))
+
 
 class Mempool(NamedTuple):
     user: str

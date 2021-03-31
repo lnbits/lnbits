@@ -215,7 +215,7 @@
 
       <div v-if="formDialogCharge.data.onchain">
 
-        <q-select filled dense emit-value v-model="onchainwallet" :options="walletLinks" label="Onchain Wallet" />
+        <q-select filled dense emit-value v-model="formDialogCharge.data.onchainwallet" :options="walletLinks" label="Onchain Wallet" />
 
       </div>
       <div v-if="formDialogCharge.data.lnbits">
@@ -223,7 +223,7 @@
         filled
         dense
         emit-value
-        v-model="formDialog.data.wallet"
+        v-model="formDialogCharge.data.lnbitswallet"
         :options="g.user.walletOptions"
         label="Wallet *"
       >
@@ -442,10 +442,11 @@
         LNbits.api
           .request(
             'GET',
-            '/satspay/api/v1/ChargeLinks',
+            '/satspay/api/v1/charges',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
+            console.log(response.data)
             var i
             var now = parseInt(new Date() / 1000)
             for (i = 0; i < response.data.length; i++) {
@@ -468,8 +469,9 @@
       },
       sendFormDataCharge: function () {
         var self = this
-        var wallet = self.g.user.wallets[0]
+        var wallet = self.g.user.wallets[0].inkey
         var data = self.formDialogCharge.data
+        console.log(data)
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
         if (data.id) {
@@ -501,10 +503,11 @@
         var self = this
 
         LNbits.api
-          .request('POST', '/satspay/api/v1/Charge', wallet.inkey, data)
+          .request('POST', '/satspay/api/v1/charge', wallet, data)
           .then(function (response) {
             self.ChargeLinks.push(mapCharge(response.data))
             self.formDialogCharge.show = false
+            self.formDialogCharge.data = null
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)

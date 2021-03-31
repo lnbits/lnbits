@@ -285,6 +285,22 @@
     )
     return obj
   }
+  var mapAddresses = function (obj) {
+    obj._data = _.clone(obj)
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    return obj
+  }
+  var mapTxs = function (obj) {
+    obj._data = _.clone(obj)
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    return obj
+  }
   var mapCharge = function (obj) {
     obj._data = _.clone(obj)
     obj.date = Quasar.utils.date.formatDate(
@@ -304,6 +320,8 @@
         balance: null,
         checker: null,
         walletLinks: [],
+        AddressesLinks: [],
+        txsLinks: [],
         ChargeLinks: [],
         currentaddress: "",
         Addresses: {
@@ -321,13 +339,6 @@
               align: 'left',
               label: 'Title',
               field: 'title'
-            },
-
-            {
-              name: 'amount',
-              align: 'left',
-              label: 'Amount',
-              field: 'amount'
             },
             {
               name: 'masterpub',
@@ -397,26 +408,64 @@
     },
 
     methods: {
+      getAddressDetails: function (address){
+        LNbits.api
+                .request(
+                  'GET',
+                  '/watchonly/api/v1/mempool/' + address,
+                  this.g.user.wallets[0].inkey
+                  )
+                  .then(function (response) {
+                  
+                   return reponse.data
+               })
+              .catch(function (error) {
+                
+              LNbits.utils.notifyApiError(error)
+              })
+      },
+      getAddressTxs: function (address){
+        LNbits.api
+                .request(
+                  'GET',
+                  '/watchonly/api/v1/mempool/txs/' + address,
+                  this.g.user.wallets[0].inkey
+                  )
+                  .then(function (response) {
+                  
+                    self.txsLinks = response.data.map(function (obj) {
+                    console.log(obj)
+                    return mapTxs(obj)
+
+                  })
+               })
+              .catch(function (error) {
+                
+              LNbits.utils.notifyApiError(error)
+              })
+      },
       getAddresses: function (walletID) {
         var self = this
-
         LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/addresses/' + walletID,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
+                .request(
+                'GET',
+                '/watchonly/api/v1/addresses/' + walletID,
+                this.g.user.wallets[0].inkey
+                )
+                .then(function (response) {
+                  self.Addresses.data = response.data
+                  self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
+                  self.AddressesLinks = response.data.map(function (obj) {
+                    console.log(obj)
+                    
+                    return mapAddresses(obj)
 
-              self.Addresses.data = response.data
-              self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
-              console.log(self.currentaddress)
-
-            })
- 
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+                  })
+                })
+              .catch(function (error) {
+                
+              LNbits.utils.notifyApiError(error)
+              })
       },
         getFreshAddress: function (walletID) {
         var self = this
@@ -428,16 +477,11 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-         console.log(response.data)
           self.Addresses.data = response.data
               self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
-
           })
-
       },
-
-
-        getMempool: function () {
+      getMempool: function () {
         var self = this
 
         LNbits.api
@@ -447,9 +491,7 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response.data.endpoint)
             self.mempool.endpoint = response.data.endpoint
-            console.log(this.mempool.endpoint)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -482,15 +524,19 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
+           console.log(response)
+           
             self.walletLinks = response.data.map(function (obj) {
-
-              return mapWalletLink(obj)
+            self.getAddresses(obj.id)
+            return mapWalletLink(obj)
             })
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
+
+      
       closeFormDialog: function () {
         this.formDialog.data = {
           is_unique: false
@@ -547,7 +593,6 @@
           .then(function (response) {
             self.walletLinks.push(mapWalletLink(response.data))
             self.formDialog.show = false
-            console.log(response.data[1][1])
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -556,7 +601,6 @@
       deleteWalletLink: function (linkId) {
         var self = this
         var link = _.findWhere(this.walletLinks, {id: linkId})
-        console.log(self.g.user.wallets[0].adminkey)
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
@@ -582,13 +626,13 @@
     },
     created: function () {
       if (this.g.user.wallets.length) {
-        var getWalletLinks = this.getWalletLinks
-        getWalletLinks()
         var getMempool = this.getMempool
         getMempool()
-
+        var getWalletLinks = this.getWalletLinks
+        getWalletLinks()
+        
+        
       }
-
     }
   })
 </script>

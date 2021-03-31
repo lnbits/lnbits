@@ -9,13 +9,19 @@ async def m001_initial(db):
         CREATE TABLE IF NOT EXISTS charges (
             id TEXT NOT NULL PRIMARY KEY,
             user TEXT,
-            title TEXT,
-            wallet TEXT NOT NULL,
-            address TEXT NOT NULL,
-            time_to_pay INTEGER,
+            description TEXT,
+            onchainwallet TEXT,
+            onchainaddress TEXT,
+            lnbitswallet TEXT,
+            lnbitskey TEXT,
+            payment_request TEXT,
+            payment_hash TEXT,
+            webhook TEXT,
+            time INTEGER,
             amount INTEGER,
             balance INTEGER DEFAULT 0,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            paid BOOLEAN,
+            timestamp TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
     )
