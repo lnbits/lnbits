@@ -21,7 +21,10 @@ async def api_amilks():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([amilk._asdict() for amilk in await get_amilks(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([amilk._asdict() for amilk in await get_amilks(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @amilk_ext.route("/api/v1/amilk/milk/<amilk_id>", methods=["GET"])
@@ -35,12 +38,18 @@ async def api_amilkit(amilk_id):
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 
     payment_hash, payment_request = await create_invoice(
-        wallet_id=milk.wallet, amount=withdraw_res.max_sats, memo=memo, extra={"tag": "amilk"}
+        wallet_id=milk.wallet,
+        amount=withdraw_res.max_sats,
+        memo=memo,
+        extra={"tag": "amilk"},
     )
 
     r = httpx.get(
         withdraw_res.callback.base,
-        params={**withdraw_res.callback.query_params, **{"k1": withdraw_res.k1, "pr": payment_request}},
+        params={
+            **withdraw_res.callback.query_params,
+            **{"k1": withdraw_res.k1, "pr": payment_request},
+        },
     )
 
     if r.is_error:
@@ -68,7 +77,10 @@ async def api_amilkit(amilk_id):
 )
 async def api_amilk_create():
     amilk = await create_amilk(
-        wallet_id=g.wallet.id, lnurl=g.data["lnurl"], atime=g.data["atime"], amount=g.data["amount"]
+        wallet_id=g.wallet.id,
+        lnurl=g.data["lnurl"],
+        atime=g.data["atime"],
+        amount=g.data["amount"],
     )
 
     return jsonify(amilk._asdict()), HTTPStatus.CREATED

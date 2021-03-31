@@ -74,14 +74,18 @@ async def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[PayLink]:
 
 async def update_pay_link(link_id: int, **kwargs) -> Optional[PayLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id))
+    await db.execute(
+        f"UPDATE pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+    )
     row = await db.fetchone("SELECT * FROM pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 
 
 async def increment_pay_link(link_id: int, **kwargs) -> Optional[PayLink]:
     q = ", ".join([f"{field[0]} = {field[0]} + ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id))
+    await db.execute(
+        f"UPDATE pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+    )
     row = await db.fetchone("SELECT * FROM pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 

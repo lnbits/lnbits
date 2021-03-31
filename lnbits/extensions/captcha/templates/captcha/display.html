@@ -1,0 +1,178 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-sm-8 col-md-5 col-lg-4">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h5 class="text-subtitle1 q-mt-none q-mb-sm">{{ captcha.memo }}</h5>
+        {% if captcha.description %}
+        <p>{{ captcha.description }}</p>
+        {% endif %}
+        <div v-if="!this.redirectUrl" class="q-mt-lg">
+          <q-form v-if="">
+            <q-input
+              filled
+              v-model.number="userAmount"
+              type="number"
+              :min="captchaAmount"
+              suffix="sat"
+              label="Choose an amount *"
+              :hint="'Minimum ' + captchaAmount + ' sat'"
+            >
+              <template v-slot:after>
+                <q-btn
+                  round
+                  dense
+                  flat
+                  icon="check"
+                  color="deep-purple"
+                  type="submit"
+                  @click="createInvoice"
+                  :disabled="userAmount < captchaAmount || paymentReq"
+                ></q-btn>
+              </template>
+            </q-input>
+          </q-form>
+          <div v-if="paymentReq" class="q-mt-lg">
+            <a :href="'lightning:' + paymentReq">
+              <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+                <qrcode
+                  :value="paymentReq"
+                  :options="{width: 800}"
+                  class="rounded-borders"
+                ></qrcode>
+              </q-responsive>
+            </a>
+            <div class="row q-mt-lg">
+              <q-btn outline color="grey" @click="copyText(paymentReq)"
+                >Copy invoice</q-btn
+              >
+              <q-btn
+                @click="cancelPayment(false)"
+                flat
+                color="grey"
+                class="q-ml-auto"
+                >Cancel</q-btn
+              >
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <q-separator class="q-my-lg"></q-separator>
+          <p>
+            Captcha accepted. You are probably human.<br />
+            <!-- <strong>{% raw %}{{ redirectUrl }}{% endraw %}</strong> -->
+          </p>
+          <!--         <div class="row q-mt-lg">
+            <q-btn outline color="grey" type="a" :href="redirectUrl"
+              >Open URL</q-btn>
+          </div> -->
+        </div>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        userAmount: {{ captcha.amount }},
+        captchaAmount: {{ captcha.amount }},
+        paymentReq: null,
+        redirectUrl: null,
+        paymentDialog: {
+          dismissMsg: null,
+          checker: null
+        }
+      }
+    },
+    computed: {
+      amount: function () {
+        return (this.captchaAmount > this.userAmount) ? this.captchaAmount : this.userAmount
+      }
+    },
+    methods: {
+      cancelPayment: function (paid) {
+        this.paymentReq = null
+        clearInterval(this.paymentDialog.checker)
+        if (this.paymentDialog.dismissMsg) {
+          this.paymentDialog.dismissMsg()
+        }
+        var removeiframestring = "removetheiframe_nok";
+        var timeout = 500;
+        if(paid){
+          console.log("paid, dismissing iframe");
+          removeiframestring = "removetheiframe_ok";
+          timeout = 2000;
+        }
+        setTimeout(function () {
+          // parent.closeIFrame()
+          parent.window.postMessage(removeiframestring, "*");
+        }, timeout)
+      },
+      createInvoice: function () {
+        var self = this
+
+        axios
+          .post(
+            '/captcha/api/v1/captchas/{{ captcha.id }}/invoice',
+            {amount: this.amount}
+          )
+          .then(function (response) {
+            self.paymentReq = response.data.payment_request.toUpperCase()
+
+            self.paymentDialog.dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+
+            self.paymentDialog.checker = setInterval(function () {
+              axios
+                .post(
+                  '/captcha/api/v1/captchas/{{ captcha.id }}/check_invoice',
+                  {payment_hash: response.data.payment_hash}
+                )
+                .then(function (res) {
+                  if (res.data.paid) {
+                    self.cancelPayment(true)
+                    self.redirectUrl = res.data.url
+                    if (res.data.remembers) {
+                      self.$q.localStorage.set(
+                        'lnbits.captcha.{{ captcha.id }}',
+                        res.data.url
+                      )
+                    }
+
+                    parent.window.postMessage("paymenthash_"+response.data.payment_hash, "*");
+
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Payment received!',
+                      icon: null
+                    })
+                  }
+                })
+                .catch(function (error) {
+                  LNbits.utils.notifyApiError(error)
+                })
+            }, 2000)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    },
+    created: function () {
+      var url = this.$q.localStorage.getItem('lnbits.captcha.{{ captcha.id }}')
+
+      if (url) {
+        this.redirectUrl = url
+      }
+    }
+  })
+</script>
+{% endblock %}

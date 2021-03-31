@@ -7,7 +7,12 @@ import os
 from sqlalchemy.exc import OperationalError  # type: ignore
 
 from .core import db as core_db, migrations as core_migrations
-from .helpers import get_valid_extensions, get_css_vendored, get_js_vendored, url_for_vendored
+from .helpers import (
+    get_valid_extensions,
+    get_css_vendored,
+    get_js_vendored,
+    url_for_vendored,
+)
 from .settings import LNBITS_PATH
 
 
@@ -48,41 +53,41 @@ def bundle_vendored():
 async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
 
-    core_conn = await core_db.connect()
-    core_txn = await core_conn.begin()
-
-    try:
-        rows = await (await core_conn.execute("SELECT * FROM dbversions")).fetchall()
-    except OperationalError:
-        # migration 3 wasn't ran
-        await core_migrations.m000_create_migrations_table(core_conn)
-        rows = await (await core_conn.execute("SELECT * FROM dbversions")).fetchall()
-
-    current_versions = {row["db"]: row["version"] for row in rows}
-    matcher = re.compile(r"^m(\d\d\d)_")
-
-    async def run_migration(db, migrations_module):
-        db_name = migrations_module.__name__.split(".")[-2]
-        for key, migrate in migrations_module.__dict__.items():
-            match = match = matcher.match(key)
-            if match:
-                version = int(match.group(1))
-                if version > current_versions.get(db_name, 0):
-                    print(f"running migration {db_name}.{version}")
-                    await migrate(db)
-                    await core_conn.execute(
-                        "INSERT OR REPLACE INTO dbversions (db, version) VALUES (?, ?)", (db_name, version)
-                    )
-
-    await run_migration(core_conn, core_migrations)
-
-    for ext in get_valid_extensions():
+    async with core_db.connect() as conn:
         try:
-            ext_migrations = importlib.import_module(f"lnbits.extensions.{ext.code}.migrations")
-            ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
-            await run_migration(ext_db, ext_migrations)
-        except ImportError:
-            raise ImportError(f"Please make sure that the extension `{ext.code}` has a migrations file.")
+            rows = await (await conn.execute("SELECT * FROM dbversions")).fetchall()
+        except OperationalError:
+            # migration 3 wasn't ran
+            await core_migrations.m000_create_migrations_table(conn)
+            rows = await (await conn.execute("SELECT * FROM dbversions")).fetchall()
 
-    await core_txn.commit()
-    await core_conn.close()
+        current_versions = {row["db"]: row["version"] for row in rows}
+        matcher = re.compile(r"^m(\d\d\d)_")
+
+        async def run_migration(db, migrations_module):
+            db_name = migrations_module.__name__.split(".")[-2]
+            for key, migrate in migrations_module.__dict__.items():
+                match = match = matcher.match(key)
+                if match:
+                    version = int(match.group(1))
+                    if version > current_versions.get(db_name, 0):
+                        print(f"running migration {db_name}.{version}")
+                        await migrate(db)
+                        await conn.execute(
+                            "INSERT OR REPLACE INTO dbversions (db, version) VALUES (?, ?)",
+                            (db_name, version),
+                        )
+
+        await run_migration(conn, core_migrations)
+
+        for ext in get_valid_extensions():
+            try:
+                ext_migrations = importlib.import_module(
+                    f"lnbits.extensions.{ext.code}.migrations"
+                )
+                ext_db = importlib.import_module(f"lnbits.extensions.{ext.code}").db
+                await run_migration(ext_db, ext_migrations)
+            except ImportError:
+                raise ImportError(
+                    f"Please make sure that the extension `{ext.code}` has a migrations file."
+                )

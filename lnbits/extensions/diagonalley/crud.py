@@ -21,7 +21,14 @@ regex = re.compile(
 
 
 def create_diagonalleys_product(
-    *, wallet_id: str, product: str, categories: str, description: str, image: str, price: int, quantity: int
+    *,
+    wallet_id: str,
+    product: str,
+    categories: str,
+    description: str,
+    image: str,
+    price: int,
+    quantity: int,
 ) -> Products:
     with open_ext_db("diagonalley") as db:
         product_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
@@ -30,7 +37,16 @@ def create_diagonalleys_product(
             INSERT INTO products (id, wallet, product, categories, description, image, price, quantity)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (product_id, wallet_id, product, categories, description, image, price, quantity),
+            (
+                product_id,
+                wallet_id,
+                product,
+                categories,
+                description,
+                image,
+                price,
+                quantity,
+            ),
         )
 
     return get_diagonalleys_product(product_id)
@@ -40,7 +56,9 @@ def update_diagonalleys_product(product_id: str, **kwargs) -> Optional[Indexers]
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     with open_ext_db("diagonalley") as db:
-        db.execute(f"UPDATE products SET {q} WHERE id = ?", (*kwargs.values(), product_id))
+        db.execute(
+            f"UPDATE products SET {q} WHERE id = ?", (*kwargs.values(), product_id)
+        )
         row = db.fetchone("SELECT * FROM products WHERE id = ?", (product_id,))
 
     return get_diagonalleys_indexer(product_id)
@@ -59,7 +77,9 @@ def get_diagonalleys_products(wallet_ids: Union[str, List[str]]) -> List[Product
 
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM products WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(
+            f"SELECT * FROM products WHERE wallet IN ({q})", (*wallet_ids,)
+        )
 
     return [Products(**row) for row in rows]
 
@@ -110,7 +130,9 @@ def update_diagonalleys_indexer(indexer_id: str, **kwargs) -> Optional[Indexers]
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     with open_ext_db("diagonalley") as db:
-        db.execute(f"UPDATE indexers SET {q} WHERE id = ?", (*kwargs.values(), indexer_id))
+        db.execute(
+            f"UPDATE indexers SET {q} WHERE id = ?", (*kwargs.values(), indexer_id)
+        )
         row = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
 
     return get_diagonalleys_indexer(indexer_id)
@@ -154,7 +176,9 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
 
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(
+            f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,)
+        )
 
         for r in rows:
             try:
@@ -181,7 +205,9 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
                 print("An exception occurred")
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(
+            f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,)
+        )
     return [Indexers(**row) for row in rows]
 
 
@@ -213,7 +239,19 @@ def create_diagonalleys_order(
             INSERT INTO orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (order_id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, False, False),
+            (
+                order_id,
+                productid,
+                wallet,
+                product,
+                quantity,
+                shippingzone,
+                address,
+                email,
+                invoiceid,
+                False,
+                False,
+            ),
         )
 
     return get_diagonalleys_order(order_id)
@@ -232,9 +270,11 @@ def get_diagonalleys_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
 
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
-        rows = db.fetchall(f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,))
+        rows = db.fetchall(
+            f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,)
+        )
     for r in rows:
-        PAID = WALLET.get_invoice_status(r["invoiceid"]).paid
+        PAID = (await WALLET.get_invoice_status(r["invoiceid"])).paid
         if PAID:
             with open_ext_db("diagonalley") as db:
                 db.execute(
@@ -244,7 +284,9 @@ def get_diagonalleys_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
                         r["id"],
                     ),
                 )
-                rows = db.fetchall(f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,))
+                rows = db.fetchall(
+                    f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,)
+                )
     return [Orders(**row) for row in rows]
 
 

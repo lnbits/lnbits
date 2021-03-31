@@ -4,7 +4,13 @@ import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class LntxbotWallet(Wallet):
@@ -14,27 +20,37 @@ class LntxbotWallet(Wallet):
         endpoint = getenv("LNTXBOT_API_ENDPOINT")
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
-        key = getenv("LNTXBOT_KEY") or getenv("LNTXBOT_ADMIN_KEY") or getenv("LNTXBOT_INVOICE_KEY")
+        key = (
+            getenv("LNTXBOT_KEY")
+            or getenv("LNTXBOT_ADMIN_KEY")
+            or getenv("LNTXBOT_INVOICE_KEY")
+        )
         self.auth = {"Authorization": f"Basic {key}"}
 
-    def status(self) -> StatusResponse:
-        r = httpx.get(
-            f"{self.endpoint}/balance",
-            headers=self.auth,
-            timeout=40,
-        )
+    async def status(self) -> StatusResponse:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{self.endpoint}/balance",
+                headers=self.auth,
+                timeout=40,
+            )
         try:
             data = r.json()
         except:
-            return StatusResponse(f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0)
+            return StatusResponse(
+                f"Failed to connect to {self.endpoint}, got: '{r.text[:200]}...'", 0
+            )
 
         if data.get("error"):
             return StatusResponse(data["message"], 0)
 
         return StatusResponse(None, data["BTC"]["AvailableBalance"] * 1000)
 
-    def create_invoice(
-        self, amount: int, memo: Optional[str] = None, description_hash: Optional[bytes] = None
+    async def create_invoice(
+        self,
+        amount: int,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"amt": str(amount)}
         if description_hash:
@@ -42,12 +58,13 @@ class LntxbotWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = httpx.post(
-            f"{self.endpoint}/addinvoice",
-            headers=self.auth,
-            json=data,
-            timeout=40,
-        )
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/addinvoice",
+                headers=self.auth,
+                json=data,
+                timeout=40,
+            )
 
         if r.is_error:
             try:
@@ -62,13 +79,14 @@ class LntxbotWallet(Wallet):
         data = r.json()
         return InvoiceResponse(True, data["payment_hash"], data["pay_req"], None)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(
-            f"{self.endpoint}/payinvoice",
-            headers=self.auth,
-            json={"invoice": bolt11},
-            timeout=40,
-        )
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/payinvoice",
+                headers=self.auth,
+                json={"invoice": bolt11},
+                timeout=40,
+            )
 
         if r.is_error:
             try:
@@ -86,11 +104,12 @@ class LntxbotWallet(Wallet):
         preimage = data["payment_preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.post(
-            f"{self.endpoint}/invoicestatus/{checking_id}?wait=false",
-            headers=self.auth,
-        )
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/invoicestatus/{checking_id}?wait=false",
+                headers=self.auth,
+            )
 
         data = r.json()
         if r.is_error or "error" in data:
@@ -101,11 +120,12 @@ class LntxbotWallet(Wallet):
 
         return PaymentStatus(True)
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.post(
-            url=f"{self.endpoint}/paymentstatus/{checking_id}",
-            headers=self.auth,
-        )
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                url=f"{self.endpoint}/paymentstatus/{checking_id}",
+                headers=self.auth,
+            )
 
         data = r.json()
         if r.is_error or "error" in data:

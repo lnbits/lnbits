@@ -111,7 +111,12 @@ async def m002_add_fields_to_apipayments(db):
                         UPDATE apipayments SET extra = ?, memo = ?
                         WHERE checking_id = ? AND memo = ?
                         """,
-                        (json.dumps({"tag": ext}), new, row["checking_id"], row["memo"]),
+                        (
+                            json.dumps({"tag": ext}),
+                            new,
+                            row["checking_id"],
+                            row["memo"],
+                        ),
                     )
                     break
     except OperationalError:

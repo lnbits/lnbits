@@ -46,7 +46,9 @@ async def m002_redux(db):
         )
         await db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON paywalls (wallet)")
 
-        for row in [list(row) for row in await db.fetchall("SELECT * FROM paywalls_old")]:
+        for row in [
+            list(row) for row in await db.fetchall("SELECT * FROM paywalls_old")
+        ]:
             await db.execute(
                 """
                 INSERT INTO paywalls (

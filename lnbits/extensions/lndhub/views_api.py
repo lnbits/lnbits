@@ -23,14 +23,20 @@ async def lndhub_getinfo():
     schema={
         "login": {"type": "string", "required": True, "excludes": "refresh_token"},
         "password": {"type": "string", "required": True, "excludes": "refresh_token"},
-        "refresh_token": {"type": "string", "required": True, "excludes": ["login", "password"]},
+        "refresh_token": {
+            "type": "string",
+            "required": True,
+            "excludes": ["login", "password"],
+        },
     }
 )
 async def lndhub_auth():
     token = (
         g.data["refresh_token"]
         if "refresh_token" in g.data and g.data["refresh_token"]
-        else urlsafe_b64encode((g.data["login"] + ":" + g.data["password"]).encode("utf-8")).decode("ascii")
+        else urlsafe_b64encode(
+            (g.data["login"] + ":" + g.data["password"]).encode("utf-8")
+        ).decode("ascii")
     )
     return jsonify({"refresh_token": token, "access_token": token})
 
@@ -120,9 +126,15 @@ async def lndhub_balance():
 @check_wallet()
 async def lndhub_gettxs():
     for payment in await g.wallet.get_payments(
-        complete=False, pending=True, outgoing=True, incoming=False, exclude_uncheckable=True
+        complete=False,
+        pending=True,
+        outgoing=True,
+        incoming=False,
+        exclude_uncheckable=True,
     ):
-        await payment.set_pending(WALLET.get_payment_status(payment.checking_id).pending)
+        await payment.set_pending(
+            (await WALLET.get_payment_status(payment.checking_id)).pending
+        )
 
     limit = int(request.args.get("limit", 200))
     return jsonify(
@@ -135,10 +147,16 @@ async def lndhub_gettxs():
                 "fee": payment.fee,
                 "value": int(payment.amount / 1000),
                 "timestamp": payment.time,
-                "memo": payment.memo if not payment.pending else "Payment in transition",
+                "memo": payment.memo
+                if not payment.pending
+                else "Payment in transition",
             }
             for payment in reversed(
-                (await g.wallet.get_payments(pending=True, complete=True, outgoing=True, incoming=False))[:limit]
+                (
+                    await g.wallet.get_payments(
+                        pending=True, complete=True, outgoing=True, incoming=False
+                    )
+                )[:limit]
             )
         ]
     )
@@ -149,9 +167,15 @@ async def lndhub_gettxs():
 async def lndhub_getuserinvoices():
     await delete_expired_invoices()
     for invoice in await g.wallet.get_payments(
-        complete=False, pending=True, outgoing=False, incoming=True, exclude_uncheckable=True
+        complete=False,
+        pending=True,
+        outgoing=False,
+        incoming=True,
+        exclude_uncheckable=True,
     ):
-        await invoice.set_pending(WALLET.get_invoice_status(invoice.checking_id).pending)
+        await invoice.set_pending(
+            (await WALLET.get_invoice_status(invoice.checking_id)).pending
+        )
 
     limit = int(request.args.get("limit", 200))
     return jsonify(
@@ -169,7 +193,11 @@ async def lndhub_getuserinvoices():
                 "type": "user_invoice",
             }
             for invoice in reversed(
-                (await g.wallet.get_payments(pending=True, complete=True, incoming=True, outgoing=False))[:limit]
+                (
+                    await g.wallet.get_payments(
+                        pending=True, complete=True, incoming=True, outgoing=False
+                    )
+                )[:limit]
             )
         ]
     )

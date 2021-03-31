@@ -7,7 +7,13 @@ from .models import Paywall
 
 
 async def create_paywall(
-    *, wallet_id: str, url: str, memo: str, description: Optional[str] = None, amount: int = 0, remembers: bool = True
+    *,
+    wallet_id: str,
+    url: str,
+    memo: str,
+    description: Optional[str] = None,
+    amount: int = 0,
+    remembers: bool = True,
 ) -> Paywall:
     paywall_id = urlsafe_short_hash()
     await db.execute(
@@ -34,7 +40,9 @@ async def get_paywalls(wallet_ids: Union[str, List[str]]) -> List[Paywall]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM paywalls WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM paywalls WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [Paywall.from_row(row) for row in rows]
 

@@ -16,7 +16,10 @@ async def api_tposs():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([tpos._asdict() for tpos in await get_tposs(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([tpos._asdict() for tpos in await get_tposs(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @tpos_ext.route("/api/v1/tposs", methods=["POST"])
@@ -49,7 +52,9 @@ async def api_tpos_delete(tpos_id):
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/", methods=["POST"])
-@api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
+@api_validate_post_request(
+    schema={"amount": {"type": "integer", "min": 1, "required": True}}
+)
 async def api_tpos_create_invoice(tpos_id):
     tpos = await get_tpos(tpos_id)
 
@@ -58,12 +63,18 @@ async def api_tpos_create_invoice(tpos_id):
 
     try:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=tpos.wallet, amount=g.data["amount"], memo=f"{tpos.name}", extra={"tag": "tpos"}
+            wallet_id=tpos.wallet,
+            amount=g.data["amount"],
+            memo=f"{tpos.name}",
+            extra={"tag": "tpos"},
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.CREATED
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.CREATED,
+    )
 
 
 @tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/<payment_hash>", methods=["GET"])

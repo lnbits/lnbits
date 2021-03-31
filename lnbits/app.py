@@ -1,3 +1,4 @@
+import sys
 import importlib
 import warnings
 
@@ -9,12 +10,24 @@ from secure import SecureHeaders  # type: ignore
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
-from .helpers import get_valid_extensions, get_js_vendored, get_css_vendored, url_for_vendored
+from .helpers import (
+    get_valid_extensions,
+    get_js_vendored,
+    get_css_vendored,
+    url_for_vendored,
+)
 from .proxy_fix import ASGIProxyFix
-from .tasks import run_deferred_async, invoice_listener, internal_invoice_listener, webhook_handler, grab_app_for_later
+from .tasks import (
+    run_deferred_async,
+    check_pending_payments,
+    invoice_listener,
+    internal_invoice_listener,
+    webhook_handler,
+    grab_app_for_later,
+)
 from .settings import WALLET
 
-secure_headers = SecureHeaders(hsts=False)
+secure_headers = SecureHeaders(hsts=False, xfo=False)
 
 
 def create_app(config_object="lnbits.settings") -> QuartTrio:
@@ -43,14 +56,18 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
 def check_funding_source(app: QuartTrio) -> None:
     @app.before_serving
     async def check_wallet_status():
-        error_message, balance = WALLET.status()
+        error_message, balance = await WALLET.status()
         if error_message:
             warnings.warn(
                 f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                 RuntimeWarning,
             )
+
+            sys.exit(4)
         else:
-            print(f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat.")
+            print(
+                f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
+            )
 
 
 def register_blueprints(app: QuartTrio) -> None:
@@ -62,13 +79,11 @@ def register_blueprints(app: QuartTrio) -> None:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
             bp = getattr(ext_module, f"{ext.code}_ext")
 
-            @bp.teardown_request
-            async def after_request(exc):
-                await ext_module.db.close_session()
-
             app.register_blueprint(bp, url_prefix=f"/{ext.code}")
         except Exception:
-            raise ImportError(f"Please make sure that the extension `{ext.code}` follows conventions.")
+            raise ImportError(
+                f"Please make sure that the extension `{ext.code}` follows conventions."
+            )
 
 
 def register_commands(app: QuartTrio):
@@ -103,12 +118,6 @@ def register_request_hooks(app: QuartTrio):
     async def before_request():
         g.nursery = app.nursery
 
-    @app.teardown_request
-    async def after_request(exc):
-        from lnbits.core import db
-
-        await db.close_session()
-
     @app.after_request
     async def set_secure_headers(response):
         secure_headers.quart(response)
@@ -123,8 +132,9 @@ def register_async_tasks(app):
     @app.before_serving
     async def listeners():
         run_deferred_async(app.nursery)
-        app.nursery.start_soon(invoice_listener)
-        app.nursery.start_soon(internal_invoice_listener)
+        app.nursery.start_soon(check_pending_payments)
+        app.nursery.start_soon(invoice_listener, app.nursery)
+        app.nursery.start_soon(internal_invoice_listener, app.nursery)
 
     @app.after_serving
     async def stop_listeners():
