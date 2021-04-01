@@ -36,24 +36,24 @@
           :filter="filter"
         >
 
+        <template v-slot:header="props">
+          <q-tr :props="props">
+            <q-th auto-width></q-th>
+            <q-th auto-width></q-th>
 
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
+            <q-th v-for="col in props.cols" :key="col.name" :props="props" auto-width>
+              <div v-if="col.name == 'id'"></div>
+              <div v-else>
+              {{ col.label }}
+            </div>
+            </q-th>
+            <q-th auto-width></q-th>
+          </q-tr>
+        </template>
 
-
-              
-              <q-th v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>
-                {{ col.label }}
-              </div>
-              </q-th>
-              <q-th auto-width></q-th>
-            </q-tr>
-          </template>
           <template v-slot:body="props">
             <q-tr :props="props">
+              
               <q-td auto-width>
                 <q-btn
                   unelevated
@@ -76,7 +76,7 @@
                  :color="($q.dark.isActive) ? 'red' : 'red'"
                  ></q-icon>
 
-                 <q-icon v-else-if="props.row.amount_paid > props.row.amount"
+                 <q-icon v-else-if="props.row.balance > props.row.amount"
                   #unelevated
                   dense
                   size="xs"
@@ -91,9 +91,6 @@
                  name="cached"
                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
                  ></q-icon>
-
-               
-
                  <q-btn
                   flat
                   dense
@@ -286,10 +283,19 @@
   }
   var mapCharge = function (obj) {
     obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
+    obj.theDate = ( obj.time + obj.timestamp - ((Date.now()/1000)))
+    console.log(obj.theDate)
+    if(obj.theDate < 0){
+      obj.date = "Time elapsed"
+    }
+    else{
+      obj.date = Quasar.utils.date.formatDate(
+      
+      new Date(obj.theDate * 1000),
+      'HH:mm:ss'
     )
+    }
+    
     obj.displayUrl = ['/satspay/', obj.id].join('')
     return obj
   }
@@ -318,12 +324,11 @@
 
         ChargesTable: {
           columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {
-              name: 'title',
+              name: 'description',
               align: 'left',
               label: 'Title',
-              field: 'title'
+              field: 'description'
             },
             {
               name: 'amount',
@@ -335,7 +340,7 @@
               name: 'balance',
               align: 'left',
               label: 'Balance',
-              field: 'amount_paid'
+              field: 'balance'
             },
             {
               name: 'onchain address',
@@ -347,19 +352,19 @@
             name: 'LNbits wallet',
               align: 'left',
               label: 'LNbits wallet',
-              field: 'lnbits-wallet'
+              field: 'lnbitswallet'
             },
             {
               name: 'time to pay',
               align: 'left',
               label: 'Time to Pay',
-              field: 'time_to_pay'
+              field: 'time'
             },
             {
               name: 'timeleft',
               align: 'left',
               label: 'Time left',
-              field: 'timeleft'
+              field: 'date'
             },
           ],
           pagination: {
@@ -459,7 +464,10 @@
               }
              
             }
+            
             self.ChargeLinks = response.data.map(function (obj) {
+              console.log(obj.timestamp)
+              console.log(Date.now()/1000)
               return mapCharge(obj)
             })
           })
@@ -494,6 +502,21 @@
             })
             self.Charge.push(mapCharge(response.data))
             self.formDialogPayLink.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getBalance: function (walletId) {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/satspay/api/v1/charges/balance/' + walletId,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            console.log(response.data)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -598,26 +621,16 @@
 
     },
     created: function () {
-      var getWalletLinks = this.getWalletLinks
-      getWalletLinks()
+       var self = this
         var getCharges = this.getCharges
         getCharges()
-
-      if (this.g.user.wallets.length) {
-        for (i = 0; i < this.g.extensions.length; i++) {
-          if(this.g.extensions[i].code == "watchonly"){
-            console.log(this.walletLinks)
-            if(this.walletLinks.length > 0 ){
-              this.watchonlyactive = true
-            }
-          }
+        var getBalance = this.getBalance
+        setTimeout(function(){ 
+        for (i = 0; i < self.ChargeLinks.length; i++) {
+          getBalance(self.ChargeLinks[i].id)
         }
-       
-        
-
-
-      }
-
+        }, 5000);
+        getCharges()
     }
   })
 </script>

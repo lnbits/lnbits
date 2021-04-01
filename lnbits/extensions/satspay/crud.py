@@ -9,7 +9,9 @@ from lnbits.helpers import urlsafe_short_hash
 from quart import jsonify
 import httpx
 from lnbits.core.services import create_invoice, check_invoice_status
-from ..watchonly.crud import get_watch_wallet, get_derive_address
+from ..watchonly.crud import get_watch_wallet, get_derive_address, get_mempool
+
+import time
 
 ###############CHARGES##########################
 
@@ -66,10 +68,7 @@ async def get_charge(charge_id: str) -> Charges:
 
 async def get_charges(user: str) -> List[Charges]:
     rows = await db.fetchall("SELECT * FROM charges WHERE user = ?", (user,))
-    for row in rows:
-        await check_address_balance(row.id)
-    rows = await db.fetchall("SELECT * FROM charges WHERE user = ?", (user,))
-    return [charges.from_row(row) for row in rows]
+    return [Charges.from_row(row) for row in rows]
 
 
 async def delete_charge(charge_id: str) -> None:

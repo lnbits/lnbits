@@ -13,7 +13,6 @@ async def m001_initial(db):
             onchainwallet TEXT,
             onchainaddress TEXT,
             lnbitswallet TEXT,
-            lnbitskey TEXT,
             payment_request TEXT,
             payment_hash TEXT,
             webhook TEXT,
