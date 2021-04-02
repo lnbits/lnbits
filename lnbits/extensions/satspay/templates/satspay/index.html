@@ -398,7 +398,7 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-
+            console.log(response.data)
             for (i = 0; i < response.data.length; i++) {
               self.walletLinks.push(response.data[i].id)
             }
@@ -487,6 +487,9 @@
         } else {
           this.createCharge(wallet, data)
         }
+        this.getCharges()
+        this.formDialogCharge.show = false
+        this.formDialogCharge.data = null
       },
       updateCharge: function (wallet, data) {
         var self = this
@@ -528,9 +531,10 @@
         LNbits.api
           .request('POST', '/satspay/api/v1/charge', wallet, data)
           .then(function (response) {
+            this.formDialogCharge.show = false
+            this.formDialogCharge.data = null
             self.ChargeLinks.push(mapCharge(response.data))
-            self.formDialogCharge.show = false
-            self.formDialogCharge.data = null
+            
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -624,6 +628,8 @@
        var self = this
         var getCharges = this.getCharges
         getCharges()
+        var getWalletLinks = this.getWalletLinks
+        getWalletLinks()
         var getBalance = this.getBalance
         setTimeout(function(){ 
         for (i = 0; i < self.ChargeLinks.length; i++) {
