@@ -1,0 +1,74 @@
+{% extends "public.html" %} {% block page %}
+
+<div class="q-pa-md">
+  <q-card class="my-card">
+    <q-card-section>
+      <div class="text-h6">Our Changing Planet</div>
+      <div class="text-subtitle2">by John Doe</div>
+    </q-card-section>
+
+    <q-tabs v-model="tab" class="text-teal">
+      <q-tab label="Tab one" name="one" />
+      <q-tab label="Tab two" name="two" />
+    </q-tabs>
+
+    <q-separator />
+
+    <q-tab-panels v-model="tab" animated>
+      <q-tab-panel name="Lightning">
+        <div class="text-center">
+          <a href="lightning:{{ charge.id }}">
+            <q-responsive :ratio="1" class="q-mx-md">
+              <qrcode
+                value="{{ charge.id }}"
+                :options="{width: 300}"
+                class="rounded-borders"
+              ></qrcode>
+            </q-responsive>
+          </a>
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn outline color="grey" @click="copyText('{{ charge.id }}')"
+            >Copy address</q-btn
+          >
+        </div>
+      </q-tab-panel>
+
+      <q-tab-panel name="Onchain">
+        <div class="text-center">
+          <a href="lightning:{{ charge.id }}">
+            <q-responsive :ratio="1" class="q-mx-md">
+              <qrcode
+                value="{{ charge.id }}"
+                :options="{width: 300}"
+                class="rounded-borders"
+              ></qrcode>
+            </q-responsive>
+          </a>
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn outline color="grey" @click="copyText('{{ charge.id }}')"
+            >Copy address</q-btn
+          >
+        </div>
+      </q-tab-panel>
+    </q-tab-panels>
+  </q-card>
+</div>
+
+
+
+
+
+
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin]
+  })
+</script>
+{% endblock %}
