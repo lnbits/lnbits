@@ -324,6 +324,18 @@
 
         ChargesTable: {
           columns: [
+          {
+              name: 'timeleft',
+              align: 'left',
+              label: 'Time left',
+              field: 'countdown'
+            },
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
             {
               name: 'description',
               align: 'left',
@@ -360,12 +372,6 @@
               label: 'Time to Pay',
               field: 'time'
             },
-            {
-              name: 'timeleft',
-              align: 'left',
-              label: 'Time left',
-              field: 'date'
-            },
           ],
           pagination: {
             rowsPerPage: 10
@@ -386,7 +392,18 @@
       }
     },
 
+    computed: {
+      updateCountdowns() {
+        console.log("whatever")
+      Object.mapWalletLink(this.data).forEach(row => {
+        let datem = moment(row.time).format('YYYY-MM-DD HH:mm');
+        row.countdown = countdown(new Date(datem).getTime()).toString();
+      })
+    }
+    },
+
     methods: {
+
 
       getWalletLinks: function () {
         var self = this
@@ -466,8 +483,8 @@
             }
             
             self.ChargeLinks = response.data.map(function (obj) {
-              console.log(obj.timestamp)
-              console.log(Date.now()/1000)
+
+
               return mapCharge(obj)
             })
           })
@@ -637,6 +654,8 @@
         }
         }, 5000);
         getCharges()
+
+
     }
   })
 </script>
