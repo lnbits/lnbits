@@ -270,7 +270,6 @@
             self.Addresses.data = response.data
             self.currentaddress = self.Addresses.data[self.Addresses.data.length - 1].address
             self.AddressesLinks = response.data.map(function (obj) {
-              console.log(obj)
 
               return mapAddresses(obj)
 
@@ -338,7 +337,6 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response)
 
             self.walletLinks = response.data.map(function (obj) {
               self.getAddresses(obj.id)

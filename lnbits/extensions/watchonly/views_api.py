@@ -91,8 +91,6 @@ async def api_fresh_address(wallet_id):
 @watchonly_ext.route("/api/v1/addresses/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_addresses(wallet_id):
-    print(wallet_id)
-
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
