@@ -23,6 +23,7 @@ class Mempool(NamedTuple):
         return cls(**dict(row))
 
 class Addresses(NamedTuple):
+    id: str
     address: str
     wallet: str
     amount: int

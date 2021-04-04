@@ -36,18 +36,16 @@ async def api_wallets_retrieve():
 @watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_wallet_retrieve(wallet_id):
-    wallet = await get_watch_wallet(wallet_id) 
-    addresses = await api_get_addresses(wallet_id)
+    wallet = await get_watch_wallet(wallet_id)
         
     if not wallet:
         return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
 
-    return jsonify({wallet}), HTTPStatus.OK
+    return jsonify(wallet._asdict()), HTTPStatus.OK
 
 
 @watchonly_ext.route("/api/v1/wallet", methods=["POST"])
-@watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["PUT"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 @api_validate_post_request(
     schema={
         "masterpub": {"type": "string", "empty": False, "required": True},
@@ -55,20 +53,15 @@ async def api_wallet_retrieve(wallet_id):
     }
 )
 async def api_wallet_create_or_update(wallet_id=None):
-    print("g.data")
-    if not wallet_id:
-        wallet = await create_watch_wallet(user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"])
-        mempool = await get_mempool(g.wallet.user) 
-        if not mempool:
-            create_mempool(user=g.wallet.user)
-        return jsonify(wallet._asdict()), HTTPStatus.CREATED
-    else:
-        wallet = await update_watch_wallet(wallet_id=wallet_id, **g.data) 
-        return jsonify(wallet._asdict()), HTTPStatus.OK 
+    wallet = await create_watch_wallet(user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"])
+    mempool = await get_mempool(g.wallet.user) 
+    if not mempool:
+        create_mempool(user=g.wallet.user)
+    return jsonify(wallet._asdict()), HTTPStatus.CREATED
 
 
 @watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["DELETE"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 async def api_wallet_delete(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
 
@@ -114,7 +107,7 @@ async def api_get_addresses(wallet_id):
 #############################MEMPOOL##########################
 
 @watchonly_ext.route("/api/v1/mempool", methods=["PUT"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 @api_validate_post_request(
     schema={
         "endpoint": {"type": "string", "empty": False, "required": True},
@@ -125,67 +118,13 @@ async def api_update_mempool():
     return jsonify(mempool._asdict()), HTTPStatus.OK 
 
 @watchonly_ext.route("/api/v1/mempool", methods=["GET"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 async def api_get_mempool():
     mempool = await get_mempool(g.wallet.user) 
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
     return jsonify(mempool._asdict()), HTTPStatus.OK
 
-@watchonly_ext.route("/api/v1/mempool/<address>", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_get_mempool_wallet_balance(address):
-    mempool = await get_mempool(g.wallet.user)
-    if not mempool:
-        mempool = await create_mempool(user=g.wallet.user)
-    url = (
-        mempool.endpoint
-        + "/api/address/"
-        + address
-    )
-    header = {
-        "Content-Type": "application/json",
-    }
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.get(
-                url,
-                headers=header,
-                timeout=40,
-            )
-            mp_response = json.loads(r.text)
-            print(mp_response)
-        except AssertionError:
-            mp_response = "Error occured"
-    return jsonify(mp_response), HTTPStatus.OK
-
-@watchonly_ext.route("/api/v1/mempool/txs/<address>", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_get_mempool_wallet_txs(address):
-    mempool = await get_mempool(g.wallet.user)
-    if not mempool:
-        mempool = await create_mempool(user=g.wallet.user)
-    url = (
-        mempool.endpoint
-        + "/api/address/"
-        + address
-        + "/txs"
-    )
-    header = {
-        "Content-Type": "application/json",
-    }
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.get(
-                url,
-                headers=header,
-                timeout=40,
-            )
-            mp_response = json.loads(r.text)
-            print(mp_response)
-        except AssertionError:
-            mp_response = "Error occured"
-    return jsonify(mp_response), HTTPStatus.OK
 
 
     

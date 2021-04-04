@@ -18,7 +18,8 @@ async def m001_initial(db):
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS addresses (
-            address TEXT NOT NULL PRIMARY KEY,
+            id TEXT NOT NULL PRIMARY KEY,
+            address TEXT NOT NULL,
             wallet TEXT NOT NULL,
             amount INTEGER NOT NULL
         );

@@ -92,16 +92,18 @@ async def get_fresh_address(wallet_id: str) -> Addresses:
     address = await get_derive_address(wallet_id, wallet[4] + 1)
 
     await update_watch_wallet(wallet_id = wallet_id, address_no = wallet[4] + 1)
+    masterpub_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO addresses (
+            id,
             address,
             wallet,
             amount
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
         """,
-        (address, wallet_id, 0),
+        (masterpub_id, address, wallet_id, 0),
     )
 
     return await get_address(address)

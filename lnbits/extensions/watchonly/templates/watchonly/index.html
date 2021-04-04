@@ -66,14 +66,8 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-
-
-              
               <q-th v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>
                 {{ col.label }}
-              </div>
               </q-th>
               <q-th auto-width></q-th>
             </q-tr>
@@ -96,14 +90,6 @@
            Adresses
          </q-tooltip>
                 </q-btn> 
-                 <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="openUpdateDialog(props.row.id)"
-                  icon="edit"
-                  color="light-blue"
-                ></q-btn>
                 <q-btn
                   flat
                   dense
@@ -117,10 +103,7 @@
              </q-td>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>
                 {{ col.value }}
-              </div>
               </q-td>
 
 
@@ -137,7 +120,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          LNbits WatchOnly Extension
+          LNbits Watch Only Extension
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -165,20 +148,11 @@
         v-model="formDialog.data.masterpub"
         height="50px"         
         autogrow 
-        label="Master Public Key, either xpub, ypub, zpub"
+        label="Account Extended Public Key; xpub, ypub, zpub"
       ></q-input>
 
-        
         <div class="row q-mt-lg">
           <q-btn
-            v-if="formDialog.data.id"
-            unelevated
-            color="deep-purple"
-            type="submit"
-            >Update Watch-only Wallet</q-btn
-          >
-          <q-btn
-            v-else
             unelevated
             color="deep-purple"
             :disable="
@@ -293,23 +267,6 @@
     )
     return obj
   }
-  var mapTxs = function (obj) {
-    obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    return obj
-  }
-  var mapCharge = function (obj) {
-    obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    return obj
-  }
-
 
   new Vue({
     el: '#vue',
@@ -321,8 +278,6 @@
         checker: null,
         walletLinks: [],
         AddressesLinks: [],
-        txsLinks: [],
-        ChargeLinks: [],
         currentaddress: "",
         Addresses: {
           show: false,
@@ -345,50 +300,6 @@
               align: 'left',
               label: 'MasterPub',
               field: 'masterpub'
-            },
-          ],
-          pagination: {
-            rowsPerPage: 10
-          }
-        },
-        ChargesTable: {
-          columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {
-              name: 'title',
-              align: 'left',
-              label: 'Title',
-              field: 'title'
-            },
-            {
-              name: 'amount',
-              align: 'left',
-              label: 'Amount to pay',
-              field: 'amount'
-            },
-            {
-              name: 'balance',
-              align: 'left',
-              label: 'Balance',
-              field: 'amount_paid'
-            },
-            {
-              name: 'address',
-              align: 'left',
-              label: 'Address',
-              field: 'address'
-            },
-            {
-              name: 'time to pay',
-              align: 'left',
-              label: 'Time to Pay',
-              field: 'time_to_pay'
-            },
-            {
-              name: 'timeleft',
-              align: 'left',
-              label: 'Time left',
-              field: 'timeleft'
             },
           ],
           pagination: {
@@ -418,26 +329,6 @@
                   .then(function (response) {
                   
                    return reponse.data
-               })
-              .catch(function (error) {
-                
-              LNbits.utils.notifyApiError(error)
-              })
-      },
-      getAddressTxs: function (address){
-        LNbits.api
-                .request(
-                  'GET',
-                  '/watchonly/api/v1/mempool/txs/' + address,
-                  this.g.user.wallets[0].inkey
-                  )
-                  .then(function (response) {
-                  
-                    self.txsLinks = response.data.map(function (obj) {
-                    console.log(obj)
-                    return mapTxs(obj)
-
-                  })
                })
               .catch(function (error) {
                 
@@ -488,7 +379,7 @@
           .request(
             'GET',
             '/watchonly/api/v1/mempool',
-            this.g.user.wallets[0].inkey
+            this.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             self.mempool.endpoint = response.data.endpoint
@@ -505,7 +396,7 @@
           .request(
             'PUT',
             '/watchonly/api/v1/mempool',
-            wallet.inkey, self.mempool)
+            wallet.adminkey, self.mempool)
           .then(function (response) {
             self.mempool.endpoint = response.data.endpoint
             self.walletLinks.push(mapwalletLink(response.data))
@@ -549,47 +440,17 @@
         self.current = linkId
         self.Addresses.show = true
       },
-
-      openUpdateDialog: function (linkId) {
-        var link = _.findWhere(this.walletLinks, {id: linkId})
-        this.formDialog.data = _.clone(link._data)
-        this.formDialog.show = true
-      },
       sendFormData: function () {
         var wallet = this.g.user.wallets[0]
         var data = _.omit(this.formDialog.data, 'wallet')
+        this.createWalletLink(wallet, data)
 
-        if (data.id) {
-          this.updateWalletLink(wallet, data)
-        } else {
-          this.createWalletLink(wallet, data)
-        }
-      },
-
-      updateWalletLink: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/watchonly/api/v1/wallet/' + data.id,
-            wallet.inkey, data)
-          .then(function (response) {
-            self.walletLinks = _.reject(self.walletLinks, function (obj) {
-              return obj.id === data.id
-            })
-            self.walletLinks.push(mapWalletLink(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
       },
       createWalletLink: function (wallet, data) {
         var self = this
 
         LNbits.api
-          .request('POST', '/watchonly/api/v1/wallet', wallet.inkey, data)
+          .request('POST', '/watchonly/api/v1/wallet', wallet.adminkey, data)
           .then(function (response) {
             self.walletLinks.push(mapWalletLink(response.data))
             self.formDialog.show = false
@@ -608,7 +469,7 @@
               .request(
                 'DELETE',
                 '/watchonly/api/v1/wallet/' + linkId,
-                self.g.user.wallets[0].inkey
+                self.g.user.wallets[0].adminkey
               )
           .then(function (response) {
               self.walletLinks = _.reject(self.walletLinks, function (obj) {
