@@ -4,7 +4,8 @@ from lnbits.db import Database
 db = Database("ext_watchonly")
 
 
-watchonly_ext: Blueprint = Blueprint("watchonly", __name__, static_folder="static", template_folder="templates")
+watchonly_ext: Blueprint = Blueprint(
+    "watchonly", __name__, static_folder="static", template_folder="templates")
 
 
 from .views_api import *  # noqa

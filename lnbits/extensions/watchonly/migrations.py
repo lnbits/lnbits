@@ -25,7 +25,7 @@ async def m001_initial(db):
         );
     """
     )
-    
+
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS mempool (

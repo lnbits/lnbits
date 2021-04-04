@@ -15,6 +15,7 @@ async def index():
 
 @watchonly_ext.route("/<charge_id>")
 async def display(charge_id):
-    link = get_payment(charge_id) or abort(HTTPStatus.NOT_FOUND, "Charge link does not exist.")
+    link = get_payment(charge_id) or abort(
+        HTTPStatus.NOT_FOUND, "Charge link does not exist.")
 
     return await render_template("watchonly/display.html", link=link)

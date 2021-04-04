@@ -1,7 +1,8 @@
 import hashlib
 from quart import g, jsonify, url_for, request
 from http import HTTPStatus
-import httpx, json
+import httpx
+import json
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -22,6 +23,7 @@ from .crud import (
 
 ###################WALLETS#############################
 
+
 @watchonly_ext.route("/api/v1/wallet", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_wallets_retrieve():
@@ -33,11 +35,12 @@ async def api_wallets_retrieve():
     except:
         return ""
 
+
 @watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_wallet_retrieve(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
-        
+
     if not wallet:
         return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
 
@@ -54,7 +57,7 @@ async def api_wallet_retrieve(wallet_id):
 )
 async def api_wallet_create_or_update(wallet_id=None):
     wallet = await create_watch_wallet(user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"])
-    mempool = await get_mempool(g.wallet.user) 
+    mempool = await get_mempool(g.wallet.user)
     if not mempool:
         create_mempool(user=g.wallet.user)
     return jsonify(wallet._asdict()), HTTPStatus.CREATED
@@ -78,9 +81,9 @@ async def api_wallet_delete(wallet_id):
 @watchonly_ext.route("/api/v1/address/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_fresh_address(wallet_id):
-    await get_fresh_address(wallet_id) 
-        
-    addresses = await get_addresses(wallet_id) 
+    await get_fresh_address(wallet_id)
+
+    addresses = await get_addresses(wallet_id)
 
     return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
 
@@ -90,16 +93,16 @@ async def api_fresh_address(wallet_id):
 async def api_get_addresses(wallet_id):
     print(wallet_id)
 
-    wallet = await get_watch_wallet(wallet_id) 
-        
+    wallet = await get_watch_wallet(wallet_id)
+
     if not wallet:
         return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
 
-    addresses = await get_addresses(wallet_id) 
+    addresses = await get_addresses(wallet_id)
 
     if not addresses:
         await get_fresh_address(wallet_id)
-        addresses = await get_addresses(wallet_id) 
+        addresses = await get_addresses(wallet_id)
 
     return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
 
@@ -115,17 +118,13 @@ async def api_get_addresses(wallet_id):
 )
 async def api_update_mempool():
     mempool = await update_mempool(user=g.wallet.user, **g.data)
-    return jsonify(mempool._asdict()), HTTPStatus.OK 
+    return jsonify(mempool._asdict()), HTTPStatus.OK
+
 
 @watchonly_ext.route("/api/v1/mempool", methods=["GET"])
 @api_check_wallet_key("admin")
 async def api_get_mempool():
-    mempool = await get_mempool(g.wallet.user) 
+    mempool = await get_mempool(g.wallet.user)
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
     return jsonify(mempool._asdict()), HTTPStatus.OK
-
-
-
-    
-    
