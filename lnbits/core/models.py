@@ -145,13 +145,13 @@ class Payment(NamedTuple):
         else:
             status = await WALLET.get_invoice_status(self.checking_id)
 
-        print(
-            f" - checking '{'in' if self.is_in else 'out'}' {self.checking_id}: {status}"
-        )
-
         if self.is_out and status.failed:
+            print(f" - deleting outgoing failed payment {self.checking_id}: {status}")
             await self.delete()
         elif not status.pending:
+            print(
+                f" - marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
+            )
             await self.set_pending(status.pending)
 
     async def delete(self) -> None:
