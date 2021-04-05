@@ -1,6 +1,7 @@
 from sqlite3 import Row
 from typing import NamedTuple
 
+
 class Charges(NamedTuple):
     id: str
     user: str
@@ -18,5 +19,5 @@ class Charges(NamedTuple):
     timestamp: int
 
     @classmethod
-    def from_row(cls, row: Row) -> "Payments":
+    def from_row(cls, row: Row) -> "Charges":
         return cls(**dict(row))

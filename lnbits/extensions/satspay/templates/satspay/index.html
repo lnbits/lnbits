@@ -297,9 +297,9 @@
     }
     
     obj.displayUrl = ['/satspay/', obj.id].join('')
+
     return obj
   }
-
 
   new Vue({
     el: '#vue',
@@ -312,6 +312,7 @@
         checker: null,
         walletLinks: [],
         ChargeLinks: [],
+        ChargeLinksObj: [],
         onchainwallet: '',
         currentaddress: "",
         Addresses: {
@@ -324,12 +325,7 @@
 
         ChargesTable: {
           columns: [
-          {
-              name: 'timeleft',
-              align: 'left',
-              label: 'Time left',
-              field: 'countdown'
-            },
+
             {
               name: 'id',
               align: 'left',
@@ -341,6 +337,12 @@
               align: 'left',
               label: 'Title',
               field: 'description'
+            },
+            {
+              name: 'timeleft',
+              align: 'left',
+              label: 'Time left',
+              field: 'date'
             },
             {
               name: 'amount',
@@ -355,6 +357,12 @@
               field: 'balance'
             },
             {
+              name: 'time to pay',
+              align: 'left',
+              label: 'Time to Pay',
+              field: 'time'
+            },
+            {
               name: 'onchain address',
               align: 'left',
               label: 'Onchain Address',
@@ -365,12 +373,6 @@
               align: 'left',
               label: 'LNbits wallet',
               field: 'lnbitswallet'
-            },
-            {
-              name: 'time to pay',
-              align: 'left',
-              label: 'Time to Pay',
-              field: 'time'
             },
           ],
           pagination: {
@@ -391,19 +393,12 @@
         }
       }
     },
-
-    computed: {
-      updateCountdowns() {
-        console.log("whatever")
-      Object.mapWalletLink(this.data).forEach(row => {
-        let datem = moment(row.time).format('YYYY-MM-DD HH:mm');
-        row.countdown = countdown(new Date(datem).getTime()).toString();
-      })
-    }
-    },
-
     methods: {
-
+      updateCountdowns: function () {
+        setInterval(function(){ 
+        
+        }, 1000)
+      },
 
       getWalletLinks: function () {
         var self = this
@@ -494,7 +489,7 @@
       },
       sendFormDataCharge: function () {
         var self = this
-        var wallet = self.g.user.wallets[0].inkey
+        var wallet = self.g.user.wallets[0].adminkey
         var data = self.formDialogCharge.data
         console.log(data)
         data.amount = parseInt(data.amount)
@@ -515,7 +510,7 @@
           .request(
             'PUT',
             '/satspay/api/v1/Charge/' + data.id,
-            wallet.inkey, data)
+            wallet.adminkey, data)
           .then(function (response) {
             self.Charge = _.reject(self.Charge, function (obj) {
               return obj.id === data.id
@@ -654,8 +649,8 @@
         }
         }, 5000);
         getCharges()
-
-
+        var updateCountdowns = this.updateCountdowns
+        updateCountdowns()
     }
   })
 </script>

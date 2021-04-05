@@ -10,6 +10,7 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.extensions.satspay import satspay_ext
 from .crud import (
     create_charge,
+    update_charge,
     get_charge,
     get_charges,
     delete_charge,
@@ -38,7 +39,7 @@ async def api_charge_create_or_update(charge_id=None):
         charge = await create_charge(user=g.wallet.user, **g.data)
         return jsonify(charge._asdict()), HTTPStatus.CREATED
     else:
-        charge = await update_charge(user=g.wallet.user, **g.data)
+        charge = await update_charge(charge_id=charge_id, **g.data)
         return jsonify(charge._asdict()), HTTPStatus.OK
 
 
@@ -59,12 +60,13 @@ async def api_charges_retrieve():
 @satspay_ext.route("/api/v1/charge/<charge_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_charge_retrieve(charge_id):
-    charge = get_charge(charge_id)
+    charge = await get_charge(charge_id)
+    print(charge)
 
     if not charge:
         return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
 
-    return jsonify({charge}), HTTPStatus.OK
+    return jsonify(charge._asdict()), HTTPStatus.OK
 
 
 @satspay_ext.route("/api/v1/charge/<charge_id>", methods=["DELETE"])
