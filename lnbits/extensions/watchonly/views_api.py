@@ -56,7 +56,10 @@ async def api_wallet_retrieve(wallet_id):
     }
 )
 async def api_wallet_create_or_update(wallet_id=None):
-    wallet = await create_watch_wallet(user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"])
+    try:
+        wallet = await create_watch_wallet(user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"])
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     mempool = await get_mempool(g.wallet.user)
     if not mempool:
         create_mempool(user=g.wallet.user)
