@@ -104,11 +104,10 @@
                   size="xs"
                   icon="cached"
                   flat
-                  @click="getBalance(props.row.id)"
                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
                  >
                  <q-tooltip>
-                   Check balance
+                   Processing
                  </q-tooltip>
                 </q-btn>
                  <q-btn
@@ -118,15 +117,23 @@
                   @click="openUpdateDialog(props.row.id)"
                   icon="edit"
                   color="light-blue"
-                ></q-btn>
+                >
+                <q-tooltip>
+                  Edit charge
+                </q-tooltip>
+              </q-btn>
                 <q-btn
                   flat
                   dense
                   size="xs"
-                  @click="deleteWalletLink(props.row.id)"
+                  @click="deleteChargeLink(props.row.id)"
                   icon="cancel"
                   color="pink"
-                ></q-btn>
+                >
+                <q-tooltip>
+                  Delete charge
+                </q-tooltip>
+              </q-btn>
 
 
              </q-td>
@@ -179,7 +186,7 @@
           dense
           v-model.trim="formDialogCharge.data.description"
           type="text"
-          label="Description"
+          label="*Description"
         ></q-input>
 
         <q-input
@@ -187,7 +194,7 @@
           dense
           v-model.trim="formDialogCharge.data.amount"
           type="number"
-          label="Amount (sats)"
+          label="*Amount (sats)"
         ></q-input>      
 
         <q-input
@@ -196,7 +203,7 @@
           v-model.trim="formDialogCharge.data.time"
           type="number"
           max="1440"
-          label="Mins valid for (max 1440)"
+          label="*Mins valid for (max 1440)"
         > </q-input>       
 
         <q-input
@@ -204,8 +211,23 @@
         dense
         v-model.trim="formDialogCharge.data.webhook"
         type="url"
-        label="Webhook"
+        label="Webhook (URL to send transaction data to once paid)"
       > </q-input>    
+
+      <q-input
+      filled
+      dense
+      v-model.trim="formDialogCharge.data.completelink"
+      type="url"
+      label="Completed button URL"
+    > </q-input>   
+    <q-input
+    filled
+    dense
+    v-model.trim="formDialogCharge.data.completelinktext"
+    type="text"
+    label="Completed button text (ie 'Back to merchant')"
+  > </q-input>   
 
         <div class="row">
           <div class="col">
@@ -263,9 +285,9 @@
                 formDialogCharge.data.time == null ||
                 formDialogCharge.data.amount == null"
             type="submit"
-            >Create Paylink</q-btn
+            >Create Charge</q-btn
           >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+          <q-btn @click="cancelCharge" flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
         </div>
@@ -283,30 +305,9 @@
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
-  Vue.filter('reverse', function(value) {
-  // slice to make a copy of array, then reverse the copy
-  return value.slice().reverse();
-});
-  var locationPath = [
-    window.location.protocol,
-    '//',
-    window.location.hostname,
-    window.location.pathname
-  ].join('')
-
-  var mapWalletLink = function (obj) {
-    obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    return obj
-  }
-
   var mapCharge = obj => {
   obj._data = _.clone(obj)
   obj.theTime = (obj.time * 60) - (Date.now()/1000 - obj.timestamp)
-  console.log(obj.theTime)
     obj.time = obj.time + "mins"
 
     if(obj.time_elapsed){
@@ -318,7 +319,6 @@
       'HH:mm:ss'
     )}
     obj.displayUrl = ['/satspay/', obj.id].join('')
-    console.log(obj.date)
     return obj
   }
 
@@ -396,6 +396,18 @@
               label: 'LNbits wallet',
               field: 'lnbitswallet'
             },
+            {
+            name: 'Webhook link',
+              align: 'left',
+              label: 'Webhook link',
+              field: 'webhook'
+            },
+            {
+            name: 'Paid link',
+              align: 'left',
+              label: 'Paid link',
+              field: 'completelink'
+            },
           ],
           pagination: {
             rowsPerPage: 10
@@ -407,7 +419,11 @@
         },
         formDialogCharge: {
           show: false,
-          data: {onchain: false,lnbits:false}
+          data: {
+            onchain: false,
+            lnbits:false,
+            description: ""
+          }
         },
         qrCodeDialog: {
           show: false,
@@ -416,6 +432,17 @@
       }
     },
     methods: {
+      cancelCharge: function (data) {
+        var self = this
+        self.formDialogCharge.data.description = ""
+        self.formDialogCharge.data.onchainwallet = ""
+        self.formDialogCharge.data.lnbitswallet = ""
+        self.formDialogCharge.data.time = null
+        self.formDialogCharge.data.amount = null
+        self.formDialogCharge.data.webhook = ""
+        self.formDialogCharge.data.completelink = ""
+        self.formDialogCharge.show = false
+      },
 
       getWalletLinks: function () {
         var self = this
@@ -464,7 +491,6 @@
           this.createWalletLink(wallet, data)
         }
       },
-
       getCharges: function () {
         var self = this
         var getAddressBalance = this.getAddressBalance
@@ -476,7 +502,6 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response.data[0].time_elapsed)
             self.ChargeLinks = response.data.map(mapCharge)
           })
           .catch(function (error) {
@@ -485,8 +510,8 @@
       },
       sendFormDataCharge: function () {
         var self = this
-        var wallet = self.g.user.wallets[0].adminkey
-        var data = self.formDialogCharge.data
+        var wallet = this.g.user.wallets[0].adminkey
+        var data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
         if (data.id) {
@@ -494,9 +519,6 @@
         } else {
           this.createCharge(wallet, data)
         }
-        this.getCharges()
-        this.formDialogCharge.show = false
-        this.formDialogCharge.data = null
       },
       updateCharge: function (wallet, data) {
         var self = this
@@ -517,20 +539,25 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      getBalance: function (walletId) {
-        var self = this
-        LNbits.api
-          .request(
-            'GET',
-            '/satspay/api/v1/charges/balance/' + walletId,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            this.ChargeLinks = response.data.map(mapCharge)
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+      timerCount: function () {
+        self = this
+        var refreshIntervalId = setInterval(function () {
+          for (i = 0; i < self.ChargeLinks.length - 1; i++) {
+            if(self.ChargeLinks[i]["paid"] == 'True'){
+              setTimeout(function(){ 
+               LNbits.api
+               .request(
+                'GET',
+                '/satspay/api/v1/charges/balance/' + self.ChargeLinks[i]["id"],
+                "filla"
+              )
+              .then(function (response) {
+              })
+              }, 2000);
+            }
+          }
+          self.getCharges()
+        }, 20000)
       },
       createCharge: function (wallet, data) {
         var self = this
@@ -538,10 +565,8 @@
         LNbits.api
           .request('POST', '/satspay/api/v1/charge', wallet, data)
           .then(function (response) {
-            this.formDialogCharge.show = false
-            this.formDialogCharge.data = null
             self.ChargeLinks.push(mapCharge(response.data))
-            
+            self.formDialogCharge.show = false
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -570,53 +595,21 @@
           })
       },
 
-      updateWalletLink: function (wallet, data) {
+      deleteChargeLink: function (chargeId) {
         var self = this
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/satspay/api/v1/wallet/' + data.id,
-            wallet.inkey, data)
-          .then(function (response) {
-            self.walletLinks = _.reject(self.walletLinks, function (obj) {
-              return obj.id === data.id
-            })
-            self.walletLinks.push(mapWalletLink(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      createWalletLink: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request('POST', '/satspay/api/v1/wallet', wallet.inkey, data)
-          .then(function (response) {
-            self.walletLinks.push(mapWalletLink(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      deleteWalletLink: function (linkId) {
-        var self = this
-        var link = _.findWhere(this.walletLinks, {id: linkId})
+        var link = _.findWhere(this.chargeLinks, {id: chargeId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/satspay/api/v1/wallet/' + linkId,
-                self.g.user.wallets[0].inkey
+                '/satspay/api/v1/charge/' + chargeId,
+                self.g.user.wallets[0].adminkey
               )
           .then(function (response) {
-              self.walletLinks = _.reject(self.walletLinks, function (obj) {
-                return obj.id === linkId
+              self.chargeLinks = _.reject(self.chargeLinks, function (obj) {
+                return obj.id === chargeId
           })})
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
@@ -624,7 +617,7 @@
           })
       },
       exportCSV: function () {
-        LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
+        LNbits.utils.exportCSV(this.ChargesTable.columns, this.chargeLinks)
       },
 
     },
@@ -634,6 +627,8 @@
         getCharges()
         var getWalletLinks = this.getWalletLinks
         getWalletLinks()
+        var timerCount = this.timerCount
+        timerCount()
     }
   })
 </script>

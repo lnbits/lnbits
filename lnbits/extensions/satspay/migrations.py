@@ -15,6 +15,8 @@ async def m001_initial(db):
             payment_request TEXT,
             payment_hash TEXT,
             webhook TEXT,
+            completelink TEXT,
+            completelinktext TEXT,
             time INTEGER,
             amount INTEGER,
             balance INTEGER DEFAULT 0,

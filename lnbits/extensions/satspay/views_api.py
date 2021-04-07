@@ -28,7 +28,9 @@ from .crud import (
         "onchainwallet": {"type": "string"},
         "lnbitswallet": {"type": "string"},
         "description": {"type": "string", "empty": False, "required": True},
-        "webhook": {"type": "string", "empty": False, "required": True},
+        "webhook": {"type": "string"},
+        "completelink": {"type": "string"},
+        "completelinktext": {"type": "string"},
         "time": {"type": "integer", "min": 1, "required": True},
         "amount": {"type": "integer", "min": 1, "required": True},
     }
@@ -85,15 +87,36 @@ async def api_charges_balance(charge_id):
 
     if not charge:
         return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
-    else:
-        return jsonify(charge._asdict()), HTTPStatus.OK
+    if charge.paid and charge.webhook:
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.post(
+                    charge.webhook,
+                    json={
+                        "id": charge.id,
+                        "description": charge.description,
+                        "onchainaddress": charge.onchainaddress,
+                        "payment_request": charge.payment_request,
+                        "payment_hash": charge.payment_hash,
+                        "time": charge.time,
+                        "amount": charge.amount,
+                        "balance": charge.balance,
+                        "paid": charge.paid,
+                        "timestamp": charge.timestamp,
+                        "completelink": charge.completelink,
+                    },
+                    timeout=40,
+                )
+            except AssertionError:
+                charge.webhook = None
+    return jsonify(charge._asdict()), HTTPStatus.OK
 
 #############################MEMPOOL##########################
 
 
-@satspay_ext.route("/api/v1/mempool", methods=["PUT"])
-@api_check_wallet_key("invoice")
-@api_validate_post_request(
+@ satspay_ext.route("/api/v1/mempool", methods=["PUT"])
+@ api_check_wallet_key("invoice")
+@ api_validate_post_request(
     schema={
         "endpoint": {"type": "string", "empty": False, "required": True},
     }
@@ -103,8 +126,8 @@ async def api_update_mempool():
     return jsonify(mempool._asdict()), HTTPStatus.OK
 
 
-@satspay_ext.route("/api/v1/mempool", methods=["GET"])
-@api_check_wallet_key("invoice")
+@ satspay_ext.route("/api/v1/mempool", methods=["GET"])
+@ api_check_wallet_key("invoice")
 async def api_get_mempool():
     mempool = await get_mempool(g.wallet.user)
     if not mempool:

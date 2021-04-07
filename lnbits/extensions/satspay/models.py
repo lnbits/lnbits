@@ -13,6 +13,8 @@ class Charges(NamedTuple):
     payment_request: str
     payment_hash: str
     webhook: str
+    completelink: str
+    completelinktext: str
     time: int
     amount: int
     balance: int

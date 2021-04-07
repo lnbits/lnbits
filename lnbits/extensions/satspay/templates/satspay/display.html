@@ -81,6 +81,7 @@
           </div>
           <div v-else-if="charge_paid == 'True'">
             <q-icon name="check" style="color:green; font-size: 21.4em;" ></q-icon>
+            <q-btn outline v-if="'{{ charge.webhook }}' != 'None'" type="a" href="{{ charge.completelink }}" label="{{ charge.completelinktext }}"></q-btn>
             </div>
           <div v-else>
             <center>
@@ -115,6 +116,7 @@
           </div>
           <div v-else-if="charge_paid == 'True'">
             <q-icon name="check" style="color:green; font-size: 21.4em;" ></q-icon>
+            <q-btn outline  v-if="'{{ charge.webhook }}' != 'None'" type="a" href="{{ charge.completelink }}" label="{{ charge.completelinktext }}"></q-btn>
             </div>
           <div v-else>
             <center>
@@ -217,7 +219,11 @@
 
       timerCount: function () {
         self = this
-        setInterval(function () {
+        var refreshIntervalId = setInterval(function () {
+          if(self.charge_paid == "True"){
+            console.log("did this work?")
+            clearInterval(refreshIntervalId)
+          }
           self.getTheTime()
           self.getThePercentage()
           self.counter++
@@ -228,6 +234,10 @@
       }
     },
     created: function () {
+      if('{{ charge.lnbitswallet }}' == 'None'){
+        this.lnbtc = false
+        this.onbtc = true
+      }
       this.getTheTime()
       this.getThePercentage()
       var timerCount = this.timerCount
