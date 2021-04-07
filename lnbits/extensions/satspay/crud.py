@@ -11,7 +11,6 @@ import httpx
 from lnbits.core.services import create_invoice, check_invoice_status
 from ..watchonly.crud import get_watch_wallet, get_derive_address, get_mempool
 
-import time
 
 ###############CHARGES##########################
 
@@ -45,13 +44,12 @@ async def create_charge(user: str, description: Optional[str] = None, onchainwal
             webhook,
             time,
             amount,
-            balance,
-            paid
+            balance
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (charge_id, user, description, onchainwallet, onchainaddress, lnbitswallet,
-         payment_request, payment_hash, webhook, time, amount, 0, False),
+         payment_request, payment_hash, webhook, time, amount, 0),
     )
     return await get_charge(charge_id)
 
@@ -79,21 +77,24 @@ async def delete_charge(charge_id: str) -> None:
 
 async def check_address_balance(charge_id: str) -> List[Charges]:
     charge = await get_charge(charge_id)
-    if charge.onchainaddress:
-        mempool = await get_mempool(charge.user)
-        try:
-            async with httpx.AsyncClient() as client:
-                r = await client.get(mempool.endpoint + "/api/address/" + charge.onchainaddress)
-                respAmount = r.json()['chain_stats']['funded_txo_sum']
-                if (charge.balance + respAmount) >= charge.balance:
-                    return await update_charge(charge_id=charge_id, balance=(charge.balance + respAmount), paid=True)
-                else:
-                    return await update_charge(charge_id=charge_id, balance=(charge.balance + respAmount), paid=False)
-        except Exception:
-            pass
-    if charge.lnbitswallet:
-        invoice_status = await check_invoice_status(charge.lnbitswallet, charge.payment_hash)
-        if invoice_status.paid:
-            return await update_charge(charge_id=charge_id, balance=charge.balance, paid=True)
+    print(charge.balance)
+    if not charge.paid:
+        if charge.onchainaddress:
+            mempool = await get_mempool(charge.user)
+            try:
+                async with httpx.AsyncClient() as client:
+                    r = await client.get(mempool.endpoint + "/api/address/" + charge.onchainaddress)
+                    respAmount = r.json()['chain_stats']['funded_txo_sum']
+                    print(respAmount)
+                    if respAmount >= charge.balance:
+                        await update_charge(charge_id=charge_id, balance=respAmount)
+            except Exception:
+                pass
+        if charge.lnbitswallet:
+            invoice_status = await check_invoice_status(charge.lnbitswallet, charge.payment_hash)
+            print(invoice_status)
+            if invoice_status.paid:
+                print("paid")
+                return await update_charge(charge_id=charge_id, balance=charge.amount)
     row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None

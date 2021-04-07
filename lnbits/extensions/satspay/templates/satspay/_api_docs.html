@@ -121,80 +121,6 @@
       group="api"
       dense
       expand-separator
-      label="Create a charge link"
-    >
-      <q-card>
-        <q-card-section>
-          <code><span class="text-green">POST</span> /pay/api/v1/links</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <code>{"description": &lt;string&gt; "amount": &lt;integer&gt;}</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 201 CREATED (application/json)
-          </h5>
-          <code>
-            { "deliveryId": &lt;string&gt;, "description": &lt;string&gt;,
-            "webhookId": &lt;string&gt;, "originalDeliveryId": &lt;string&gt;,
-            "isRedelivery": &lt;boolean&gt;, "type": &lt;string&gt;,
-            "timestamp": &lt;int&gt;, "paytime": &lt;int&gt;, "storeId":
-            &lt;string&gt;, "invoiceId": &lt;string&gt;, "manuallyMarked":
-            &lt;boolean&gt;, "overPaid": &lt;boolean&gt;, "afterExpiration":
-            &lt;boolean&gt;, "partiallyPaid": &lt;boolean&gt; }<br /><small
-              >"type" can be InvoiceReceivedPayment, InvoicePaidInFull,
-              InvoiceExpired, InvoiceConfirmed, and InvoiceInvalid</small
-            >
-          </code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X POST {{ request.url_root }}pay/api/v1/links -d
-            '{"description": &lt;string&gt;, "amount": &lt;integer&gt;}' -H
-            "Content-type: application/json" -H "X-Api-Key: {{
-            g.user.wallets[0].adminkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
-      label="Update a pay link"
-    >
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-green">PUT</span>
-            /pay/api/v1/links/&lt;pay_id&gt;</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <code
-            >{"description": &lt;string&gt;, "amount": &lt;integer&gt;}</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 200 OK (application/json)
-          </h5>
-          <code>{"lnurl": &lt;string&gt;}</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X PUT {{ request.url_root }}pay/api/v1/links/&lt;pay_id&gt;
-            -d '{"description": &lt;string&gt;, "amount": &lt;integer&gt;}' -H
-            "Content-type: application/json" -H "X-Api-Key: {{
-            g.user.wallets[0].adminkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
       label="Delete a pay link"
       class="q-pb-md"
     >
@@ -202,7 +128,7 @@
         <q-card-section>
           <code
             ><span class="text-pink">DELETE</span>
-            /pay/api/v1/links/&lt;pay_id&gt;</code
+            /satspay/api/v1/charge/&lt;charge_id&gt;</code
           >
           <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
           <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -211,8 +137,33 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X DELETE {{ request.url_root
-            }}pay/api/v1/links/&lt;pay_id&gt; -H "X-Api-Key: {{
+            }}api/v1/charge/&lt;charge_id&gt; -H "X-Api-Key: {{
             g.user.wallets[0].adminkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+    <q-expansion-item group="api" dense expand-separator label="Get balances">
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-blue">GET</span>
+            /satspay/api/v1/charges/balance/&lt;charge_id&gt;</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Body (application/json)
+          </h5>
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Returns 200 OK (application/json)
+          </h5>
+          <code>[&lt;charge_object&gt;, ...]</code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X GET {{ request.url_root
+            }}api/v1/charges/balance/&lt;charge_id&gt; -H "X-Api-Key: {{
+            g.user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>

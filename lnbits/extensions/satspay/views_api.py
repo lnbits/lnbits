@@ -46,38 +46,32 @@ async def api_charge_create_or_update(charge_id=None):
 @satspay_ext.route("/api/v1/charges", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_charges_retrieve():
-
-    charges = await get_charges(g.wallet.user)
-    if not charges:
-        return (
-            jsonify(""),
-            HTTPStatus.OK
-        )
-    else:
-        return jsonify([charge._asdict() for charge in charges]), HTTPStatus.OK
+    try:
+        return jsonify([{**charge._asdict(), **{"time_elapsed": charge.time_elapsed}, **{"paid": charge.paid}}for charge in await get_charges(g.wallet.user)]), HTTPStatus.OK
+    except:
+        return ""
 
 
 @satspay_ext.route("/api/v1/charge/<charge_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_charge_retrieve(charge_id):
     charge = await get_charge(charge_id)
-    print(charge)
 
     if not charge:
         return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
 
-    return jsonify(charge._asdict()), HTTPStatus.OK
+    return jsonify({**charge._asdict(), **{"time_elapsed": charge.time_elapsed}, **{"paid": charge.paid}}), HTTPStatus.OK
 
 
 @satspay_ext.route("/api/v1/charge/<charge_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_charge_delete(charge_id):
-    charge = await get_watch_wallet(charge_id)
+    charge = await get_charge(charge_id)
 
     if not charge:
         return jsonify({"message": "Wallet link does not exist."}), HTTPStatus.NOT_FOUND
 
-    await delete_watch_wallet(charge_id)
+    await delete_charge(charge_id)
 
     return "", HTTPStatus.NO_CONTENT
 
@@ -85,15 +79,12 @@ async def api_charge_delete(charge_id):
 #############################BALANCE##########################
 
 @satspay_ext.route("/api/v1/charges/balance/<charge_id>", methods=["GET"])
-@api_check_wallet_key("invoice")
 async def api_charges_balance(charge_id):
 
     charge = await check_address_balance(charge_id)
+
     if not charge:
-        return (
-            jsonify(""),
-            HTTPStatus.OK
-        )
+        return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
     else:
         return jsonify(charge._asdict()), HTTPStatus.OK
 

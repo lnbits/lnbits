@@ -64,33 +64,53 @@
                   type="a"
                   :href="props.row.displayUrl"
                   target="_blank"
-                ></q-btn>
+                >
+                <q-tooltip>
+                  Payment link
+                </q-tooltip>
+              </q-btn>
               </q-td>
                <q-td auto-width>
 
-                 <q-icon v-if="props.row.timeleft < 1 && props.row.amount_paid < props.row.amount"
-                  #unelevated
+                 <q-btn v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
+                  unelevated
+                  flat
                   dense
                   size="xs"
-                 name="error"
+                  icon="error"
                  :color="($q.dark.isActive) ? 'red' : 'red'"
-                 ></q-icon>
+                 >
+                 <q-tooltip>
+                  Time elapsed
+                </q-tooltip>
+                </q-btn>
 
-                 <q-icon v-else-if="props.row.balance > props.row.amount"
-                  #unelevated
+                 <q-btn v-else-if="props.row.balance >= props.row.amount"
+                  unelevated
+                  flat
                   dense
                   size="xs"
-                 name="check"
+                  icon="check"
                  :color="($q.dark.isActive) ? 'green' : 'green'"
-                 ></q-icon>
+                 >
+                 <q-tooltip>
+                  PAID!
+                </q-tooltip>
+                </q-btn>
 
-                 <q-icon v-else="props.row.amount_paid < props.row.amount && props.row.timeleft > 1"
-                  #unelevated
+                 <q-btn v-else
+                  unelevated
                   dense
                   size="xs"
-                 name="cached"
+                  icon="cached"
+                  flat
+                  @click="getBalance(props.row.id)"
                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
-                 ></q-icon>
+                 >
+                 <q-tooltip>
+                   Check balance
+                 </q-tooltip>
+                </q-btn>
                  <q-btn
                   flat
                   dense
@@ -175,7 +195,8 @@
           dense
           v-model.trim="formDialogCharge.data.time"
           type="number"
-          label="Time (secs)"
+          max="1440"
+          label="Mins valid for (max 1440)"
         > </q-input>       
 
         <q-input
@@ -281,25 +302,26 @@
     )
     return obj
   }
-  var mapCharge = function (obj) {
-    obj._data = _.clone(obj)
-    obj.theDate = ( obj.time + obj.timestamp - ((Date.now()/1000)))
-    console.log(obj.theDate)
-    if(obj.theDate < 0){
+
+  var mapCharge = obj => {
+  obj._data = _.clone(obj)
+  obj.theTime = (obj.time * 60) - (Date.now()/1000 - obj.timestamp)
+  console.log(obj.theTime)
+    obj.time = obj.time + "mins"
+
+    if(obj.time_elapsed){
       obj.date = "Time elapsed"
     }
     else{
       obj.date = Quasar.utils.date.formatDate(
-      
-      new Date(obj.theDate * 1000),
+      new Date((obj.theTime - 3600)*1000),
       'HH:mm:ss'
-    )
-    }
-    
+    )}
     obj.displayUrl = ['/satspay/', obj.id].join('')
-
+    console.log(obj.date)
     return obj
   }
+
 
   new Vue({
     el: '#vue',
@@ -326,8 +348,8 @@
         ChargesTable: {
           columns: [
 
-            {
-              name: 'id',
+          {
+              name: 'theId',
               align: 'left',
               label: 'ID',
               field: 'id'
@@ -345,6 +367,12 @@
               field: 'date'
             },
             {
+              name: 'time to pay',
+              align: 'left',
+              label: 'Time to Pay',
+              field: 'time'
+            },
+            {
               name: 'amount',
               align: 'left',
               label: 'Amount to pay',
@@ -355,12 +383,6 @@
               align: 'left',
               label: 'Balance',
               field: 'balance'
-            },
-            {
-              name: 'time to pay',
-              align: 'left',
-              label: 'Time to Pay',
-              field: 'time'
             },
             {
               name: 'onchain address',
@@ -394,11 +416,6 @@
       }
     },
     methods: {
-      updateCountdowns: function () {
-        setInterval(function(){ 
-        
-        }, 1000)
-      },
 
       getWalletLinks: function () {
         var self = this
@@ -410,13 +427,9 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response.data)
             for (i = 0; i < response.data.length; i++) {
               self.walletLinks.push(response.data[i].id)
             }
-            console.log(self.walletLinks)
-       
-            
               return
           })
           .catch(function (error) {
@@ -463,25 +476,8 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response.data)
-            var i
-            var now = parseInt(new Date() / 1000)
-            for (i = 0; i < response.data.length; i++) {
-              timeleft =  response.data[i].time_to_pay - (now - response.data[i].time) 
-              if (timeleft < 1) {
-              response.data[i].timeleft = 0
-              }
-              else{
-              response.data[i].timeleft = timeleft
-              }
-             
-            }
-            
-            self.ChargeLinks = response.data.map(function (obj) {
-
-
-              return mapCharge(obj)
-            })
+            console.log(response.data[0].time_elapsed)
+            self.ChargeLinks = response.data.map(mapCharge)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -491,7 +487,6 @@
         var self = this
         var wallet = self.g.user.wallets[0].adminkey
         var data = self.formDialogCharge.data
-        console.log(data)
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
         if (data.id) {
@@ -509,7 +504,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/satspay/api/v1/Charge/' + data.id,
+            '/satspay/api/v1/charge/' + data.id,
             wallet.adminkey, data)
           .then(function (response) {
             self.Charge = _.reject(self.Charge, function (obj) {
@@ -531,7 +526,7 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response.data)
+            this.ChargeLinks = response.data.map(mapCharge)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -556,14 +551,13 @@
       deleteCharge: function (linkId) {
         var self = this
         var link = _.findWhere(this.Charge, {id: linkId})
-        console.log(self.g.user.wallets[0].adminkey)
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/satspay/api/v1/Charge/' + linkId,
+                '/satspay/api/v1/charge/' + linkId,
                 self.g.user.wallets[0].inkey
               )
           .then(function (response) {
@@ -603,7 +597,6 @@
           .then(function (response) {
             self.walletLinks.push(mapWalletLink(response.data))
             self.formDialog.show = false
-            console.log(response.data[1][1])
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -612,7 +605,6 @@
       deleteWalletLink: function (linkId) {
         var self = this
         var link = _.findWhere(this.walletLinks, {id: linkId})
-        console.log(self.g.user.wallets[0].adminkey)
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
@@ -642,15 +634,6 @@
         getCharges()
         var getWalletLinks = this.getWalletLinks
         getWalletLinks()
-        var getBalance = this.getBalance
-        setTimeout(function(){ 
-        for (i = 0; i < self.ChargeLinks.length; i++) {
-          getBalance(self.ChargeLinks[i].id)
-        }
-        }, 5000);
-        getCharges()
-        var updateCountdowns = this.updateCountdowns
-        updateCountdowns()
     }
   })
 </script>

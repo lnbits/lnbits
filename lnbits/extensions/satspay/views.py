@@ -1,4 +1,4 @@
-from quart import g, abort, render_template
+from quart import g, abort, render_template, jsonify
 from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids
@@ -16,6 +16,6 @@ async def index():
 
 @satspay_ext.route("/<charge_id>")
 async def display(charge_id):
-    charge = get_charge(charge_id) or abort(HTTPStatus.NOT_FOUND, "Charge link does not exist.")
-
+    charge = await get_charge(charge_id) or abort(
+        HTTPStatus.NOT_FOUND, "Charge link does not exist.")
     return await render_template("satspay/display.html", charge=charge)

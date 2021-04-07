@@ -3,7 +3,6 @@ async def m001_initial(db):
     Initial wallet table.
     """
 
-
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS charges (
@@ -19,7 +18,6 @@ async def m001_initial(db):
             time INTEGER,
             amount INTEGER,
             balance INTEGER DEFAULT 0,
-            paid BOOLEAN,
             timestamp TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
