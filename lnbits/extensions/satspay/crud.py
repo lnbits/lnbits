@@ -21,7 +21,6 @@ async def create_charge(user: str, description: str = None, onchainwallet: Optio
         wallet = await get_watch_wallet(onchainwallet)
         onchainaddress = await get_derive_address(onchainwallet, int(wallet[4]) + 1)
         await update_watch_wallet(wallet_id=onchainwallet, address_no=int(wallet[4]) + 1)
-        print(onchainaddress)
     else:
         onchainaddress = None
     if lnbitswallet:

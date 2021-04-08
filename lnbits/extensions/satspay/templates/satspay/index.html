@@ -17,12 +17,16 @@
           <div class="col">
             <h5 class="text-subtitle1 q-my-none">Charges</h5>
           </div>
+
           <div class="col-auto">
         <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
           <template v-slot:append>
             <q-icon name="search"></q-icon>
           </template>
         </q-input>
+        <q-btn flat color="grey" @click="exportchargeCSV"
+        >Export to CSV</q-btn
+      >
 
           </div>
         </div>
@@ -110,18 +114,6 @@
                    Processing
                  </q-tooltip>
                 </q-btn>
-                 <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="openUpdateDialog(props.row.id)"
-                  icon="edit"
-                  color="light-blue"
-                >
-                <q-tooltip>
-                  Edit charge
-                </q-tooltip>
-              </q-btn>
                 <q-btn
                   flat
                   dense
@@ -271,14 +263,6 @@
       </div>
         <div class="row q-mt-lg">
           <q-btn
-            v-if="formDialogCharge.data.id"
-            unelevated
-            color="deep-purple"
-            type="submit"
-            >Update Paylink</q-btn
-          >
-          <q-btn
-            v-else
             unelevated
             color="deep-purple"
             :disable="
@@ -422,7 +406,9 @@
           data: {
             onchain: false,
             lnbits:false,
-            description: ""
+            description: "",
+            time: null,
+            amount: null,
           }
         },
         qrCodeDialog: {
@@ -475,22 +461,6 @@
         self.current = linkId
         self.Addresses.show = true
       },
-
-      openUpdateDialog: function (linkId) {
-        var link = _.findWhere(this.walletLinks, {id: linkId})
-        this.formDialog.data = _.clone(link._data)
-        this.formDialog.show = true
-      },
-      sendFormData: function () {
-        var wallet = this.g.user.wallets[0]
-        var data = _.omit(this.formDialog.data, 'wallet')
-
-        if (data.id) {
-          this.updateWalletLink(wallet, data)
-        } else {
-          this.createWalletLink(wallet, data)
-        }
-      },
       getCharges: function () {
         var self = this
         var getAddressBalance = this.getAddressBalance
@@ -514,30 +484,7 @@
         var data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
-        if (data.id) {
-          this.updateCharge(wallet, data)
-        } else {
-          this.createCharge(wallet, data)
-        }
-      },
-      updateCharge: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/satspay/api/v1/charge/' + data.id,
-            wallet.adminkey, data)
-          .then(function (response) {
-            self.Charge = _.reject(self.Charge, function (obj) {
-              return obj.id === data.id
-            })
-            self.Charge.push(mapCharge(response.data))
-            self.formDialogPayLink.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        this.createCharge(wallet, data)
       },
       timerCount: function () {
         self = this
@@ -573,31 +520,9 @@
           })
       },
 
-      deleteCharge: function (linkId) {
-        var self = this
-        var link = _.findWhere(this.Charge, {id: linkId})
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/satspay/api/v1/charge/' + linkId,
-                self.g.user.wallets[0].inkey
-              )
-          .then(function (response) {
-              self.Charge = _.reject(self.Charge, function (obj) {
-                return obj.id === linkId
-          })})
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-
       deleteChargeLink: function (chargeId) {
         var self = this
-        var link = _.findWhere(this.chargeLinks, {id: chargeId})
+        var link = _.findWhere(this.ChargeLinks, {id: chargeId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
@@ -608,7 +533,7 @@
                 self.g.user.wallets[0].adminkey
               )
           .then(function (response) {
-              self.chargeLinks = _.reject(self.chargeLinks, function (obj) {
+              self.ChargeLinks = _.reject(self.ChargeLinks, function (obj) {
                 return obj.id === chargeId
           })})
               .catch(function (error) {
@@ -616,8 +541,9 @@
               })
           })
       },
-      exportCSV: function () {
-        LNbits.utils.exportCSV(this.ChargesTable.columns, this.chargeLinks)
+      exportchargeCSV: function () {
+        var self = this
+        LNbits.utils.exportCSV(self.ChargesTable.columns, this.ChargeLinks)
       },
 
     },

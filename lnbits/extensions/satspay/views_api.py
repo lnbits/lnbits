@@ -36,7 +36,6 @@ from .crud import (
     }
 )
 async def api_charge_create_or_update(charge_id=None):
-
     if not charge_id:
         charge = await create_charge(user=g.wallet.user, **g.data)
         return jsonify(charge._asdict()), HTTPStatus.CREATED
