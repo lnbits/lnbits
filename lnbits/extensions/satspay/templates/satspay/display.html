@@ -3,7 +3,6 @@
   <q-card class="my-card">
     <div class="column">
       <center> <div class="col theHeading">{{ charge.description }}</div></center>
-
       <div class="col">
         <div class="col" color="white"  style="background-color:grey; height: 30px; padding: 5px" v-if="charge_time_elapsed == 'True'">
           <center>Time elapsed</center>
@@ -24,8 +23,6 @@
         </q-linear-progress>
       </div>
       </div>
-
-
       <div class="col" style="margin: 2px 15px; max-height:100px" >
         <center>
           <q-btn flat dense outline  @click="copyText('{{ charge.id }}')"
@@ -69,9 +66,7 @@
         </div>
         <q-separator></q-separator>
       </div>
-
     </div>
-
     <q-card class="q-pa-lg" v-if="lnbtc">
       <q-card-section class="q-pa-none">
         <div class="text-center q-pt-md">
@@ -104,8 +99,6 @@
       </div></div>
       </q-card-section>
     </q-card>
-
-
     <q-card class="q-pa-lg" v-if="onbtc">
       <q-card-section class="q-pa-none">
         

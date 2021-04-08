@@ -19,9 +19,10 @@ async def create_charge(user: str, description: str = None, onchainwallet: Optio
     charge_id = urlsafe_short_hash()
     if onchainwallet:
         wallet = await get_watch_wallet(onchainwallet)
-        onchainaddress = await get_fresh_address(onchainwallet)
+        onchain = await get_fresh_address(onchainwallet)
+        onchainaddress = onchain.address
     else:
-        onchainaddress.address = None
+        onchainaddress = None
     if lnbitswallet:
         payment_hash, payment_request = await create_invoice(
             wallet_id=lnbitswallet,
@@ -50,7 +51,7 @@ async def create_charge(user: str, description: str = None, onchainwallet: Optio
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (charge_id, user, description, onchainwallet, onchainaddress.address, lnbitswallet,
+        (charge_id, user, description, onchainwallet, onchainaddress, lnbitswallet,
          payment_request, payment_hash, webhook, completelink, completelinktext, time, amount, 0),
     )
     return await get_charge(charge_id)

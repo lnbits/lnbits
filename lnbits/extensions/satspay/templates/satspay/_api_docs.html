@@ -9,7 +9,6 @@
       >
     </p>
   </q-card-section>
-
   <q-expansion-item
     group="extras"
     icon="swap_vertical_circle"
@@ -80,7 +79,7 @@
             /satspay/api/v1/charge/&lt;charge_id&gt;</code
           >
           <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
           <h5 class="text-caption q-mt-sm q-mb-none">
             Body (application/json)
           </h5>
@@ -103,7 +102,7 @@
             ><span class="text-blue">GET</span> /satspay/api/v1/charges</code
           >
           <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
           <h5 class="text-caption q-mt-sm q-mb-none">
             Body (application/json)
           </h5>
@@ -152,8 +151,6 @@
             ><span class="text-blue">GET</span>
             /satspay/api/v1/charges/balance/&lt;charge_id&gt;</code
           >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
           <h5 class="text-caption q-mt-sm q-mb-none">
             Body (application/json)
           </h5>
