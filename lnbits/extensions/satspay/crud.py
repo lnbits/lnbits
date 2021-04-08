@@ -9,7 +9,7 @@ from lnbits.helpers import urlsafe_short_hash
 from quart import jsonify
 import httpx
 from lnbits.core.services import create_invoice, check_invoice_status
-from ..watchonly.crud import get_watch_wallet, get_derive_address, get_mempool, update_watch_wallet
+from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
 
 
 ###############CHARGES##########################
@@ -19,10 +19,9 @@ async def create_charge(user: str, description: str = None, onchainwallet: Optio
     charge_id = urlsafe_short_hash()
     if onchainwallet:
         wallet = await get_watch_wallet(onchainwallet)
-        onchainaddress = await get_derive_address(onchainwallet, int(wallet[4]) + 1)
-        await update_watch_wallet(wallet_id=onchainwallet, address_no=int(wallet[4]) + 1)
+        onchainaddress = await get_fresh_address(onchainwallet)
     else:
-        onchainaddress = None
+        onchainaddress.address = None
     if lnbitswallet:
         payment_hash, payment_request = await create_invoice(
             wallet_id=lnbitswallet,
@@ -51,7 +50,7 @@ async def create_charge(user: str, description: str = None, onchainwallet: Optio
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (charge_id, user, description, onchainwallet, onchainaddress, lnbitswallet,
+        (charge_id, user, description, onchainwallet, onchainaddress.address, lnbitswallet,
          payment_request, payment_hash, webhook, completelink, completelinktext, time, amount, 0),
     )
     return await get_charge(charge_id)

@@ -190,7 +190,6 @@
             if (self.charge_balance >= self.charge_amount ){
               self.charge_paid = "True"
             }
-            console.log(self.charge_paid)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -241,7 +240,6 @@
       this.getTheTime()
       this.getThePercentage()
       var timerCount = this.timerCount
-      console.log('{{ charge.paid }}')
       if('{{ charge.paid }}' == 'False'){
         timerCount()
       }
