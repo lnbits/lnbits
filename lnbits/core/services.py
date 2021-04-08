@@ -27,6 +27,12 @@ from .crud import (
     update_payment_status,
     get_wallet_payment,
 )
+
+
+class PaymentFailure(Exception):
+    pass
+
+
 async def create_invoice(
     *,
     wallet_id: str,
@@ -160,8 +166,9 @@ async def pay_invoice(
                 )
                 await delete_payment(temp_id, conn=conn)
             else:
-                raise Exception(
-                    payment.error_message or "Failed to pay_invoice on backend."
+                raise PaymentFailure(
+                    payment.error_message
+                    or "Payment failed, but backend didn't give us an error message."
                 )
 
         return invoice.payment_hash
