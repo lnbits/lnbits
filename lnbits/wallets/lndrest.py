@@ -102,12 +102,8 @@ class LndRestWallet(Wallet):
                 timeout=180,
             )
 
-        if r.is_error:
-            error_message = r.text
-            try:
-                error_message = r.json()["error"]
-            except:
-                pass
+        if r.is_error or r.json().get("payment_error"):
+            error_message = r.json().get("payment_error") or r.text
             return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()
