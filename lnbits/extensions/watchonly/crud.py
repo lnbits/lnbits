@@ -6,27 +6,76 @@ from .models import Wallets, Addresses, Mempool
 
 from lnbits.helpers import urlsafe_short_hash
 
-from embit import bip32
-from embit import ec
+from embit.descriptor import Descriptor, Key
+from embit.descriptor.arguments import AllowedDerivation
 from embit.networks import NETWORKS
-from embit import base58
-from embit.util import hashlib
 
-import io
-from embit.util import secp256k1
-from embit import hashes
-from binascii import hexlify
-from quart import jsonify
-from embit import script
-from embit import ec
-from embit.networks import NETWORKS
-from binascii import unhexlify, hexlify, a2b_base64, b2a_base64
 import httpx
 
 
 ##########################WALLETS####################
 
+def detect_network(k):
+    version = k.key.version
+    for network_name in NETWORKS:
+        net = NETWORKS[network_name]
+        # not found in this network
+        if version in [net["xpub"], net["ypub"], net["zpub"], net["Zpub"], net["Ypub"]]:
+            return net
+
+def parse_key(masterpub: str):
+    """Parses masterpub or descriptor and returns a tuple: (Descriptor, network)
+    To create addresses use descriptor.derive(num).address(network=network)
+    """
+    network = None
+    # probably a single key
+    if "(" not in masterpub:
+        k = Key.from_string(masterpub)
+        if not k.is_extended:
+            raise ValueError("The key is not a master public key")
+        if k.is_private:
+            raise ValueError("Private keys are not allowed")
+        # check depth
+        if k.key.depth != 3:
+            raise ValueError("Non-standard depth. Only bip44, bip49 and bip84 are supported with bare xpubs. For custom derivation paths use descriptors.")
+        # if allowed derivation is not provided use default /{0,1}/*
+        if k.allowed_derivation is None:
+            k.allowed_derivation = AllowedDerivation.default()
+        # get version bytes
+        version = k.key.version
+        for network_name in NETWORKS:
+            net = NETWORKS[network_name]
+            # not found in this network
+            if version in [net["xpub"], net["ypub"], net["zpub"]]:
+                network = net
+                if version == net["xpub"]:
+                    desc = Descriptor.from_string("pkh(%s)" % str(k))
+                elif version == net["ypub"]:
+                    desc = Descriptor.from_string("sh(wpkh(%s))" % str(k))
+                elif version == net["zpub"]:
+                    desc = Descriptor.from_string("wpkh(%s)" % str(k))
+                break
+        # we didn't find correct version
+        if network is None:
+            raise ValueError("Unknown master public key version")
+    else:
+        desc = Descriptor.from_string(masterpub)
+        if not desc.is_wildcard:
+            raise ValueError("Descriptor should have wildcards")
+        for k in desc.keys:
+            if k.is_extended:
+                net = detect_network(k)
+                if net is None:
+                    raise ValueError(f"Unknown version: {k}")
+                if network is not None and network != net:
+                    raise ValueError("Keys from different networks")
+                network = net
+    return desc, network
+
+
 async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Wallets:
+    # check the masterpub is fine, it will raise an exception if not
+    parse_key(masterpub)
     wallet_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -40,7 +89,8 @@ async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Walle
         )
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (wallet_id, user, masterpub, title, 0, 0),
+        # address_no is -1 so fresh address on empty wallet can get address with index 0
+        (wallet_id, user, masterpub, title, -1, 0),
     )
     # weallet_id = db.cursor.lastrowid
 
@@ -75,17 +125,8 @@ async def get_derive_address(wallet_id: str, num: int):
 
     wallet = await get_watch_wallet(wallet_id)
     key = wallet[2]
-    k = bip32.HDKey.from_base58(key)
-    child = k.derive([0, num])
-
-    if key[0:4] == "xpub":
-        address = script.p2pkh(child).address()
-    elif key[0:4] == "zpub":
-        address = script.p2wpkh(child).address()
-    elif key[0:4] == "ypub":
-        address = script.p2sh(script.p2wpkh(child)).address()
-
-    return address
+    desc, network = parse_key(key)
+    return desc.derive(num).address(network=network)
 
 
 async def get_fresh_address(wallet_id: str) -> Addresses:
