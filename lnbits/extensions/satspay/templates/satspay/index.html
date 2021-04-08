@@ -4,10 +4,13 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-{% raw %}
-        <q-btn unelevated color="deep-purple" @click="formDialogCharge.show = true"
-          >New charge </q-btn
-        >
+        {% raw %}
+        <q-btn
+          unelevated
+          color="deep-purple"
+          @click="formDialogCharge.show = true"
+          >New charge
+        </q-btn>
       </q-card-section>
     </q-card>
 
@@ -19,15 +22,20 @@
           </div>
 
           <div class="col-auto">
-        <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
-          <template v-slot:append>
-            <q-icon name="search"></q-icon>
-          </template>
-        </q-input>
-        <q-btn flat color="grey" @click="exportchargeCSV"
-        >Export to CSV</q-btn
-      >
-
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+            <q-btn flat color="grey" @click="exportchargeCSV"
+              >Export to CSV</q-btn
+            >
           </div>
         </div>
         <q-table
@@ -39,25 +47,26 @@
           :pagination.sync="ChargesTable.pagination"
           :filter="filter"
         >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
 
-        <template v-slot:header="props">
-          <q-tr :props="props">
-            <q-th auto-width></q-th>
-            <q-th auto-width></q-th>
-
-            <q-th v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-              <div v-if="col.name == 'id'"></div>
-              <div v-else>
-              {{ col.label }}
-            </div>
-            </q-th>
-            <q-th auto-width></q-th>
-          </q-tr>
-        </template>
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.label }}</div>
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
 
           <template v-slot:body="props">
             <q-tr :props="props">
-              
               <q-td auto-width>
                 <q-btn
                   unelevated
@@ -69,50 +78,44 @@
                   :href="props.row.displayUrl"
                   target="_blank"
                 >
-                <q-tooltip>
-                  Payment link
-                </q-tooltip>
-              </q-btn>
+                  <q-tooltip> Payment link </q-tooltip>
+                </q-btn>
               </q-td>
-               <q-td auto-width>
-
-                 <q-btn v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
+              <q-td auto-width>
+                <q-btn
+                  v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
                   unelevated
                   flat
                   dense
                   size="xs"
                   icon="error"
-                 :color="($q.dark.isActive) ? 'red' : 'red'"
-                 >
-                 <q-tooltip>
-                  Time elapsed
-                </q-tooltip>
+                  :color="($q.dark.isActive) ? 'red' : 'red'"
+                >
+                  <q-tooltip> Time elapsed </q-tooltip>
                 </q-btn>
 
-                 <q-btn v-else-if="props.row.balance >= props.row.amount"
+                <q-btn
+                  v-else-if="props.row.balance >= props.row.amount"
                   unelevated
                   flat
                   dense
                   size="xs"
                   icon="check"
-                 :color="($q.dark.isActive) ? 'green' : 'green'"
-                 >
-                 <q-tooltip>
-                  PAID!
-                </q-tooltip>
+                  :color="($q.dark.isActive) ? 'green' : 'green'"
+                >
+                  <q-tooltip> PAID! </q-tooltip>
                 </q-btn>
 
-                 <q-btn v-else
+                <q-btn
+                  v-else
                   unelevated
                   dense
                   size="xs"
                   icon="cached"
                   flat
-                 :color="($q.dark.isActive) ? 'blue' : 'blue'"
-                 >
-                 <q-tooltip>
-                   Processing
-                 </q-tooltip>
+                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
+                >
+                  <q-tooltip> Processing </q-tooltip>
                 </q-btn>
                 <q-btn
                   flat
@@ -122,57 +125,44 @@
                   icon="cancel"
                   color="pink"
                 >
-                <q-tooltip>
-                  Delete charge
-                </q-tooltip>
-              </q-btn>
-
-
-             </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props" auto-width>
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>
-                {{ col.value }}
-              </div>
+                  <q-tooltip> Delete charge </q-tooltip>
+                </q-btn>
               </q-td>
-
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.value }}</div>
+              </q-td>
             </q-tr>
           </template>
           {% endraw %}
-
-
-
-
         </q-table>
       </q-card-section>
     </q-card>
-
-
-
-
   </div>
-
-
 
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">
-          LNbits satspay Extension
-        </h6>
+        <h6 class="text-subtitle1 q-my-none">LNbits satspay Extension</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list>
-          {% include "satspay/_api_docs.html" %}
-        </q-list>
+        <q-list> {% include "satspay/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
-  <q-dialog v-model="formDialogCharge.show" position="top" @hide="closeFormDialog">
+  <q-dialog
+    v-model="formDialogCharge.show"
+    position="top"
+    @hide="closeFormDialog"
+  >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormDataCharge" class="q-gutter-md">
-
         <q-input
           filled
           dense
@@ -187,7 +177,7 @@
           v-model.trim="formDialogCharge.data.amount"
           type="number"
           label="*Amount (sats)"
-        ></q-input>      
+        ></q-input>
 
         <q-input
           filled
@@ -196,69 +186,82 @@
           type="number"
           max="1440"
           label="*Mins valid for (max 1440)"
-        > </q-input>       
+        >
+        </q-input>
 
         <q-input
-        filled
-        dense
-        v-model.trim="formDialogCharge.data.webhook"
-        type="url"
-        label="Webhook (URL to send transaction data to once paid)"
-      > </q-input>    
+          filled
+          dense
+          v-model.trim="formDialogCharge.data.webhook"
+          type="url"
+          label="Webhook (URL to send transaction data to once paid)"
+        >
+        </q-input>
 
-      <q-input
-      filled
-      dense
-      v-model.trim="formDialogCharge.data.completelink"
-      type="url"
-      label="Completed button URL"
-    > </q-input>   
-    <q-input
-    filled
-    dense
-    v-model.trim="formDialogCharge.data.completelinktext"
-    type="text"
-    label="Completed button text (ie 'Back to merchant')"
-  > </q-input>   
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogCharge.data.completelink"
+          type="url"
+          label="Completed button URL"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogCharge.data.completelinktext"
+          type="text"
+          label="Completed button text (ie 'Back to merchant')"
+        >
+        </q-input>
 
         <div class="row">
           <div class="col">
             <div v-if="walletLinks.length > 0">
-              <q-checkbox  v-model="formDialogCharge.data.onchain" label="Onchain" />
-              </div>
-              <div v-else>
-                <q-checkbox  :value=false label="Onchain" disabled>
-                  <q-tooltip>
-                    Watch-Only extension MUST be activated and have a wallet
-                  </q-tooltip>  
-                </q-checkbox>
-      
-                </div>
+              <q-checkbox
+                v-model="formDialogCharge.data.onchain"
+                label="Onchain"
+              />
+            </div>
+            <div v-else>
+              <q-checkbox :value="false" label="Onchain" disabled>
+                <q-tooltip>
+                  Watch-Only extension MUST be activated and have a wallet
+                </q-tooltip>
+              </q-checkbox>
+            </div>
           </div>
           <div class="col">
-
             <div>
-            <q-checkbox v-model="formDialogCharge.data.lnbits" label="LNbits wallet" />           
-          </div>
+              <q-checkbox
+                v-model="formDialogCharge.data.lnbits"
+                label="LNbits wallet"
+              />
+            </div>
           </div>
         </div>
 
+        <div v-if="formDialogCharge.data.onchain">
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="formDialogCharge.data.onchainwallet"
+            :options="walletLinks"
+            label="Onchain Wallet"
+          />
+        </div>
 
-
-      <div v-if="formDialogCharge.data.onchain">
-
-        <q-select filled dense emit-value v-model="formDialogCharge.data.onchainwallet" :options="walletLinks" label="Onchain Wallet" />
-
-      </div>
-      <div v-if="formDialogCharge.data.lnbits">
         <q-select
-        filled
-        dense
-        emit-value
-        v-model="formDialogCharge.data.lnbitswallet"
-        :options="g.user.walletOptions"
-        label="Wallet *">
-      </div>
+          v-if="formDialogCharge.data.lnbits"
+          filled
+          dense
+          emit-value
+          v-model="formDialogCharge.data.lnbitswallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -276,34 +279,29 @@
       </q-form>
     </q-card>
   </q-dialog>
-
-
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
-<style>
-
-  </style>
+<style></style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   var mapCharge = obj => {
-  obj._data = _.clone(obj)
-  obj.theTime = (obj.time * 60) - (Date.now()/1000 - obj.timestamp)
-    obj.time = obj.time + "mins"
+    obj._data = _.clone(obj)
+    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
+    obj.time = obj.time + 'mins'
 
-    if(obj.time_elapsed){
-      obj.date = "Time elapsed"
-    }
-    else{
+    if (obj.time_elapsed) {
+      obj.date = 'Time elapsed'
+    } else {
       obj.date = Quasar.utils.date.formatDate(
-      new Date((obj.theTime - 3600)*1000),
-      'HH:mm:ss'
-    )}
+        new Date((obj.theTime - 3600) * 1000),
+        'HH:mm:ss'
+      )
+    }
     obj.displayUrl = ['/satspay/', obj.id].join('')
     return obj
   }
-
 
   new Vue({
     el: '#vue',
@@ -318,19 +316,18 @@
         ChargeLinks: [],
         ChargeLinksObj: [],
         onchainwallet: '',
-        currentaddress: "",
+        currentaddress: '',
         Addresses: {
           show: false,
           data: null
         },
-        mempool:{
-          endpoint:""
+        mempool: {
+          endpoint: ''
         },
 
         ChargesTable: {
           columns: [
-
-          {
+            {
               name: 'theId',
               align: 'left',
               label: 'ID',
@@ -373,23 +370,23 @@
               field: 'onchainaddress'
             },
             {
-            name: 'LNbits wallet',
+              name: 'LNbits wallet',
               align: 'left',
               label: 'LNbits wallet',
               field: 'lnbitswallet'
             },
             {
-            name: 'Webhook link',
+              name: 'Webhook link',
               align: 'left',
               label: 'Webhook link',
               field: 'webhook'
             },
             {
-            name: 'Paid link',
+              name: 'Paid link',
               align: 'left',
               label: 'Paid link',
               field: 'completelink'
-            },
+            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -403,10 +400,10 @@
           show: false,
           data: {
             onchain: false,
-            lnbits:false,
-            description: "",
+            lnbits: false,
+            description: '',
             time: null,
-            amount: null,
+            amount: null
           }
         },
         qrCodeDialog: {
@@ -418,13 +415,13 @@
     methods: {
       cancelCharge: function (data) {
         var self = this
-        self.formDialogCharge.data.description = ""
-        self.formDialogCharge.data.onchainwallet = ""
-        self.formDialogCharge.data.lnbitswallet = ""
+        self.formDialogCharge.data.description = ''
+        self.formDialogCharge.data.onchainwallet = ''
+        self.formDialogCharge.data.lnbitswallet = ''
         self.formDialogCharge.data.time = null
         self.formDialogCharge.data.amount = null
-        self.formDialogCharge.data.webhook = ""
-        self.formDialogCharge.data.completelink = ""
+        self.formDialogCharge.data.webhook = ''
+        self.formDialogCharge.data.completelink = ''
         self.formDialogCharge.show = false
       },
 
@@ -441,7 +438,7 @@
             for (i = 0; i < response.data.length; i++) {
               self.walletLinks.push(response.data[i].id)
             }
-              return
+            return
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -488,17 +485,17 @@
         self = this
         var refreshIntervalId = setInterval(function () {
           for (i = 0; i < self.ChargeLinks.length - 1; i++) {
-            if(self.ChargeLinks[i]["paid"] == 'True'){
-              setTimeout(function(){ 
-               LNbits.api
-               .request(
-                'GET',
-                '/satspay/api/v1/charges/balance/' + self.ChargeLinks[i]["id"],
-                "filla"
-              )
-              .then(function (response) {
-              })
-              }, 2000);
+            if (self.ChargeLinks[i]['paid'] == 'True') {
+              setTimeout(function () {
+                LNbits.api
+                  .request(
+                    'GET',
+                    '/satspay/api/v1/charges/balance/' +
+                      self.ChargeLinks[i]['id'],
+                    'filla'
+                  )
+                  .then(function (response) {})
+              }, 2000)
             }
           }
           self.getCharges()
@@ -530,10 +527,11 @@
                 '/satspay/api/v1/charge/' + chargeId,
                 self.g.user.wallets[0].adminkey
               )
-          .then(function (response) {
-              self.ChargeLinks = _.reject(self.ChargeLinks, function (obj) {
-                return obj.id === chargeId
-          })})
+              .then(function (response) {
+                self.ChargeLinks = _.reject(self.ChargeLinks, function (obj) {
+                  return obj.id === chargeId
+                })
+              })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
@@ -542,17 +540,16 @@
       exportchargeCSV: function () {
         var self = this
         LNbits.utils.exportCSV(self.ChargesTable.columns, this.ChargeLinks)
-      },
-
+      }
     },
     created: function () {
-       var self = this
-        var getCharges = this.getCharges
-        getCharges()
-        var getWalletLinks = this.getWalletLinks
-        getWalletLinks()
-        var timerCount = this.timerCount
-        timerCount()
+      var self = this
+      var getCharges = this.getCharges
+      getCharges()
+      var getWalletLinks = this.getWalletLinks
+      getWalletLinks()
+      var timerCount = this.timerCount
+      timerCount()
     }
   })
 </script>
