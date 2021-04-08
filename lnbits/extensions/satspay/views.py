@@ -17,5 +17,6 @@ async def index():
 @satspay_ext.route("/<charge_id>")
 async def display(charge_id):
     charge = await get_charge(charge_id) or abort(
-        HTTPStatus.NOT_FOUND, "Charge link does not exist.")
+        HTTPStatus.NOT_FOUND, "Charge link does not exist."
+    )
     return await render_template("satspay/display.html", charge=charge)

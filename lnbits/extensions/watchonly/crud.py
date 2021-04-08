@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-#from lnbits.db import open_ext_db
+# from lnbits.db import open_ext_db
 from . import db
 from .models import Wallets, Addresses, Mempool
 
@@ -15,6 +15,7 @@ import httpx
 
 ##########################WALLETS####################
 
+
 def detect_network(k):
     version = k.key.version
     for network_name in NETWORKS:
@@ -22,6 +23,7 @@ def detect_network(k):
         # not found in this network
         if version in [net["xpub"], net["ypub"], net["zpub"], net["Zpub"], net["Ypub"]]:
             return net
+
 
 def parse_key(masterpub: str):
     """Parses masterpub or descriptor and returns a tuple: (Descriptor, network)
@@ -37,7 +39,9 @@ def parse_key(masterpub: str):
             raise ValueError("Private keys are not allowed")
         # check depth
         if k.key.depth != 3:
-            raise ValueError("Non-standard depth. Only bip44, bip49 and bip84 are supported with bare xpubs. For custom derivation paths use descriptors.")
+            raise ValueError(
+                "Non-standard depth. Only bip44, bip49 and bip84 are supported with bare xpubs. For custom derivation paths use descriptors."
+            )
         # if allowed derivation is not provided use default /{0,1}/*
         if k.allowed_derivation is None:
             k.allowed_derivation = AllowedDerivation.default()
@@ -110,7 +114,9 @@ async def get_watch_wallets(user: str) -> List[Wallets]:
 async def update_watch_wallet(wallet_id: str, **kwargs) -> Optional[Wallets]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
-    await db.execute(f"UPDATE wallets SET {q} WHERE id = ?", (*kwargs.values(), wallet_id))
+    await db.execute(
+        f"UPDATE wallets SET {q} WHERE id = ?", (*kwargs.values(), wallet_id)
+    )
     row = await db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet_id,))
     return Wallets.from_row(row) if row else None
 
@@ -161,6 +167,7 @@ async def get_addresses(wallet_id: str) -> List[Addresses]:
     rows = await db.fetchall("SELECT * FROM addresses WHERE wallet = ?", (wallet_id,))
     return [Addresses(**row) for row in rows]
 
+
 ######################MEMPOOL#######################
 
 
@@ -173,7 +180,7 @@ async def create_mempool(user: str) -> Mempool:
         ) 
         VALUES (?, ?)
         """,
-        (user, 'https://mempool.space'),
+        (user, "https://mempool.space"),
     )
     row = await db.fetchone("SELECT * FROM mempool WHERE user = ?", (user,))
     return Mempool.from_row(row) if row else None

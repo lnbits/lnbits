@@ -30,7 +30,10 @@ async def api_wallets_retrieve():
 
     try:
         return (
-            jsonify([wallet._asdict() for wallet in await get_watch_wallets(g.wallet.user)]), HTTPStatus.OK
+            jsonify(
+                [wallet._asdict() for wallet in await get_watch_wallets(g.wallet.user)]
+            ),
+            HTTPStatus.OK,
         )
     except:
         return ""
@@ -57,7 +60,9 @@ async def api_wallet_retrieve(wallet_id):
 )
 async def api_wallet_create_or_update(wallet_id=None):
     try:
-        wallet = await create_watch_wallet(user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"])
+        wallet = await create_watch_wallet(
+            user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"]
+        )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
     mempool = await get_mempool(g.wallet.user)
@@ -80,6 +85,7 @@ async def api_wallet_delete(wallet_id):
 
 
 #############################ADDRESSES##########################
+
 
 @watchonly_ext.route("/api/v1/address/<wallet_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -109,6 +115,7 @@ async def api_get_addresses(wallet_id):
 
 
 #############################MEMPOOL##########################
+
 
 @watchonly_ext.route("/api/v1/mempool", methods=["PUT"])
 @api_check_wallet_key("admin")
