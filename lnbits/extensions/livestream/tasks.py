@@ -52,9 +52,16 @@ async def on_invoice_paid(payment: Payment) -> None:
         UPDATE apipayments
         SET extra = ?, amount = ?
         WHERE hash = ?
+          AND checking_id NOT LIKE 'internal_%'
         """,
         (
-            json.dumps(dict(**payment.extra, shared_with=[producer.name, producer.id], received=payment.amount,)),
+            json.dumps(
+                dict(
+                    **payment.extra,
+                    shared_with=[producer.name, producer.id],
+                    received=payment.amount,
+                )
+            ),
             payment.amount - amount,
             payment.payment_hash,
         ),
