@@ -4,7 +4,8 @@ from lnbits.db import Database
 db = Database("ext_satspay")
 
 
-satspay_ext: Blueprint = Blueprint("satspay", __name__, static_folder="static", template_folder="templates")
+satspay_ext: Blueprint = Blueprint(
+    "satspay", __name__, static_folder="static", template_folder="templates")
 
 
 from .views_api import *  # noqa
