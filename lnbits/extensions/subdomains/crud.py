@@ -4,7 +4,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import Domains, Subdomains
-from lnbits.extensions import subdomains
 
 
 async def create_subdomain(
@@ -37,9 +36,9 @@ async def create_subdomain(
         ),
     )
 
-    subdomain = await get_subdomain(payment_hash)
-    assert subdomain, "Newly created subdomain couldn't be retrieved"
-    return subdomain
+    new_subdomain = await get_subdomain(payment_hash)
+    assert new_subdomain, "Newly created subdomain couldn't be retrieved"
+    return new_subdomain
 
 
 async def set_subdomain_paid(payment_hash: str) -> Subdomains:
@@ -70,8 +69,9 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
             (amount, row[1]),
         )
 
-    subdomain = await get_subdomain(payment_hash)
-    return subdomain
+    new_subdomain = await get_subdomain(payment_hash)
+    assert new_subdomain, "Newly paid subdomain couldn't be retrieved"
+    return new_subdomain
 
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
@@ -79,7 +79,6 @@ async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
         "SELECT s.*, d.domain as domain_name FROM subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
         (subdomain_id,),
     )
-    print(row)
     return Subdomains(**row) if row else None
 
 
@@ -143,9 +142,9 @@ async def create_domain(
         ),
     )
 
-    domain = await get_domain(domain_id)
-    assert domain, "Newly created domain couldn't be retrieved"
-    return domain
+    new_domain = await get_domain(domain_id)
+    assert new_domain, "Newly created domain couldn't be retrieved"
+    return new_domain
 
 
 async def update_domain(domain_id: str, **kwargs) -> Domains:

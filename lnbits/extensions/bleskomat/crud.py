@@ -106,7 +106,7 @@ async def create_bleskomat_lnurl(
     return bleskomat_lnurl
 
 
-async def get_bleskomat_lnurl(secret: str) -> BleskomatLnurl:
+async def get_bleskomat_lnurl(secret: str) -> Optional[BleskomatLnurl]:
     hash = generate_bleskomat_lnurl_hash(secret)
     row = await db.fetchone("SELECT * FROM bleskomat_lnurls WHERE hash = ?", (hash,))
     return BleskomatLnurl(**row) if row else None

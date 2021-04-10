@@ -91,8 +91,8 @@ class BleskomatLnurl(NamedTuple):
                         wallet_id=self.wallet,
                         payment_request=query["pr"],
                     )
-                except Exception as exc:
-                    raise LnurlValidationError(f"Failed to pay invoice: {exc.message}")
+                except Exception:
+                    raise LnurlValidationError("Failed to pay invoice")
                 if not payment_hash:
                     raise LnurlValidationError("Failed to pay invoice")
 

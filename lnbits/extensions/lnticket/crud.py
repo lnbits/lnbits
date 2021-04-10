@@ -55,24 +55,25 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
         )
 
         ticket = await get_ticket(payment_hash)
+        assert ticket, "Newly paid ticket could not be retrieved"
+
         if formdata.webhook:
             async with httpx.AsyncClient() as client:
-                try:
-                    r = await client.post(
-                        formdata.webhook,
-                        json={
-                            "form": ticket.form,
-                            "name": ticket.name,
-                            "email": ticket.email,
-                            "content": ticket.ltext,
-                        },
-                        timeout=40,
-                    )
-                except AssertionError:
-                    webhook = None
+                await client.post(
+                    formdata.webhook,
+                    json={
+                        "form": ticket.form,
+                        "name": ticket.name,
+                        "email": ticket.email,
+                        "content": ticket.ltext,
+                    },
+                    timeout=40,
+                )
             return ticket
+
     ticket = await get_ticket(payment_hash)
-    return
+    assert ticket, "Newly paid ticket could not be retrieved"
+    return ticket
 
 
 async def get_ticket(ticket_id: str) -> Optional[Tickets]:
