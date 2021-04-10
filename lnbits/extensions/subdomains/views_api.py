@@ -1,15 +1,10 @@
-import re
 from quart import g, jsonify, request
 from http import HTTPStatus
-from lnbits.core import crud
-import json
 
-import httpx
-from lnbits.core.crud import get_user, get_wallet
+from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
-from .util import isValidDomain, isvalidIPAddress
 from . import subdomains_ext
 from .crud import (
     create_subdomain,
@@ -169,12 +164,16 @@ async def api_subdomain_make_subdomain(domain_id):
 
     ## ALL OK - create an invoice and return it to the user
     sats = g.data["sats"]
-    payment_hash, payment_request = await create_invoice(
-        wallet_id=domain.wallet,
-        amount=sats,
-        memo=f"subdomain {g.data['subdomain']}.{domain.domain} for {sats} sats for {g.data['duration']} days",
-        extra={"tag": "lnsubdomain"},
-    )
+
+    try:
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=domain.wallet,
+            amount=sats,
+            memo=f"subdomain {g.data['subdomain']}.{domain.domain} for {sats} sats for {g.data['duration']} days",
+            extra={"tag": "lnsubdomain"},
+        )
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     subdomain = await create_subdomain(
         payment_hash=payment_hash, wallet=domain.wallet, **g.data

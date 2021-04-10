@@ -37,12 +37,15 @@ async def api_amilkit(amilk_id):
     except LnurlException:
         abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 
-    payment_hash, payment_request = await create_invoice(
-        wallet_id=milk.wallet,
-        amount=withdraw_res.max_sats,
-        memo=memo,
-        extra={"tag": "amilk"},
-    )
+    try:
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=milk.wallet,
+            amount=withdraw_res.max_sats,
+            memo=memo,
+            extra={"tag": "amilk"},
+        )
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     r = httpx.get(
         withdraw_res.callback.base,

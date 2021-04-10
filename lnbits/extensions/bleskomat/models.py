@@ -86,10 +86,13 @@ class BleskomatLnurl(NamedTuple):
                     raise LnurlValidationError("Maximum number of uses already reached")
             tag = self.tag
             if tag == "withdrawRequest":
-                payment_hash = await pay_invoice(
-                    wallet_id=self.wallet,
-                    payment_request=query["pr"],
-                )
+                try:
+                    payment_hash = await pay_invoice(
+                        wallet_id=self.wallet,
+                        payment_request=query["pr"],
+                    )
+                except Exception as exc:
+                    raise LnurlValidationError(f"Failed to pay invoice: {exc.message}")
                 if not payment_hash:
                     raise LnurlValidationError("Failed to pay invoice")
 

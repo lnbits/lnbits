@@ -119,11 +119,10 @@ async def api_lnurl_callback(unique_hash):
 
         await update_withdraw_link(link.id, **changes)
     except ValueError as e:
-        return jsonify({"status": "ERROR", "reason": str(e)}), HTTPStatus.OK
+        return jsonify({"status": "ERROR", "reason": str(e)})
     except PermissionError:
-        return (
-            jsonify({"status": "ERROR", "reason": "Withdraw link is empty."}),
-            HTTPStatus.OK,
-        )
+        return jsonify({"status": "ERROR", "reason": "Withdraw link is empty."})
+    except Exception as e:
+        return jsonify({"status": "ERROR", "reason": str(e)})
 
     return jsonify({"status": "OK"}), HTTPStatus.OK

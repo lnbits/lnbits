@@ -12,7 +12,13 @@ from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from .. import core_app, db
-from ..services import PaymentFailure, create_invoice, pay_invoice, perform_lnurlauth
+from ..services import (
+    PaymentFailure,
+    InvoiceFailure,
+    create_invoice,
+    pay_invoice,
+    perform_lnurlauth,
+)
 from ..tasks import sse_listeners
 
 
@@ -67,15 +73,20 @@ async def api_payments_create_invoice():
         memo = g.data["memo"]
 
     async with db.connect() as conn:
-        payment_hash, payment_request = await create_invoice(
-            wallet_id=g.wallet.id,
-            amount=g.data["amount"],
-            memo=memo,
-            description_hash=description_hash,
-            extra=g.data.get("extra"),
-            webhook=g.data.get("webhook"),
-            conn=conn,
-        )
+        try:
+            payment_hash, payment_request = await create_invoice(
+                wallet_id=g.wallet.id,
+                amount=g.data["amount"],
+                memo=memo,
+                description_hash=description_hash,
+                extra=g.data.get("extra"),
+                webhook=g.data.get("webhook"),
+                conn=conn,
+            )
+        except InvoiceFailure as e:
+            return jsonify({"message": str(e)}), 520
+        except Exception as exc:
+            raise exc
 
     invoice = bolt11.decode(payment_request)
 

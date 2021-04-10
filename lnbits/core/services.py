@@ -33,6 +33,10 @@ class PaymentFailure(Exception):
     pass
 
 
+class InvoiceFailure(Exception):
+    pass
+
+
 async def create_invoice(
     *,
     wallet_id: str,
@@ -50,7 +54,7 @@ async def create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
     )
     if not ok:
-        raise Exception(error_message or "Unexpected backend error.")
+        raise InvoiceFailure(error_message or "Unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
 

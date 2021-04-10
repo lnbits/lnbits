@@ -49,7 +49,7 @@ class SparkWallet(Wallet):
                         timeout=40,
                     )
             except (OSError, httpx.ConnectError, httpx.RequestError) as exc:
-                raise SparkError("error connecting to spark: " + str(exc))
+                raise UnknownError("error connecting to spark: " + str(exc))
 
             try:
                 data = r.json()
@@ -123,7 +123,7 @@ class SparkWallet(Wallet):
                 payment_hash = pay["payment_hash"]
 
                 if len(pays) > 1:
-                    raise Exception(
+                    raise SparkError(
                         f"listpays({payment_hash}) returned an unexpected response: {listpays}"
                     )
 

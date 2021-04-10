@@ -116,12 +116,16 @@ async def api_ticket_make_ticket(form_id):
 
     nwords = len(re.split(r"\s+", g.data["ltext"]))
     sats = g.data["sats"]
-    payment_hash, payment_request = await create_invoice(
-        wallet_id=form.wallet,
-        amount=sats,
-        memo=f"ticket with {nwords} words on {form_id}",
-        extra={"tag": "lnticket"},
-    )
+
+    try:
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=form.wallet,
+            amount=sats,
+            memo=f"ticket with {nwords} words on {form_id}",
+            extra={"tag": "lnticket"},
+        )
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     ticket = await create_ticket(
         payment_hash=payment_hash, wallet=form.wallet, **g.data
