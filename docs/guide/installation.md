@@ -16,6 +16,7 @@ cd lnbits/
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
+mkdir data
 ./venv/bin/quart assets
 ./venv/bin/quart migrate
 ./venv/bin/hypercorn -k trio --bind 0.0.0.0:5000 'lnbits.app:create_app()'
@@ -28,3 +29,31 @@ Now modify the `.env` file with any settings you prefer and add a proper [fundin
 Then you can run restart it and it will be using the new settings.
 
 You might also need to install additional packages or perform additional setup steps, depending on the chosen backend. See [the short guide](./wallets.md) on each different funding source.
+
+Docker installation
+===================
+
+To install using docker you first need to build the docker image as:
+```
+git clone https://github.com/lnbits/lnbits.git
+cd lnbits/ # ${PWD} refered as <lnbits_repo>
+docker build -t lnbits .
+```
+
+You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
+```
+cp <lnbits_repo>/.env.example .env
+```
+and change the configuration in `.env` as required.
+
+Then create the data directory for the user ID 1000, which is the user that runs the lnbits within the docker container.
+```
+mkdir data
+sudo chown 1000:1000 ./data/
+```
+
+Then the image can be run as:
+```
+docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits
+``
+Finally you can access the lnbits on your machine port 5000.
