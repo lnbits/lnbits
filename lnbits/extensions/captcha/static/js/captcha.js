@@ -7,7 +7,7 @@ function ccreateIframeElement(t = {}) {
     e.style.border = "none", e.style.width = "100%", e.style.height = "100%",  e.scrolling = "no", e.id = "captcha-iframe";
     t.dest, t.amount, t.currency, t.label, t.opReturn;
     var captchaid = document.getElementById("captchascript").getAttribute("data-captchaid");
-    return e.src = "http://localhost:5000/captcha/" + captchaid, e
+    return e.src = "./captcha/" + captchaid, e
 }
 document.addEventListener("DOMContentLoaded", function() {
     if (captchaStyleAdded) console.log("Captcha stuff already added!");
