@@ -13,7 +13,7 @@ function ccreateIframeElement(t = {}) {
   var captchaid = document
     .getElementById('captchascript')
     .getAttribute('data-captchaid')
-  return (e.src = 'http://localhost:5000/captcha/' + captchaid), e
+  return (e.src = './captcha/' + captchaid), e
 }
 document.addEventListener('DOMContentLoaded', function () {
   if (captchaStyleAdded) console.log('Captcha stuff already added!')
