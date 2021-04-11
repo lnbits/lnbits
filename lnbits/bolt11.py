@@ -106,7 +106,9 @@ def decode(pr: str) -> Invoice:
         key = VerifyingKey.from_string(unhexlify(invoice.payee), curve=SECP256k1)
         key.verify(sig, message, hashlib.sha256, sigdecode=sigdecode_string)
     else:
-        keys = VerifyingKey.from_public_key_recovery(sig, message, SECP256k1, hashlib.sha256)
+        keys = VerifyingKey.from_public_key_recovery(
+            sig, message, SECP256k1, hashlib.sha256
+        )
         signaling_byte = signature[64]
         key = keys[int(signaling_byte)]
         invoice.payee = key.to_string("compressed").hex()

@@ -9,7 +9,9 @@ from .models import Tickets, Events
 # TICKETS
 
 
-async def create_ticket(payment_hash: str, wallet: str, event: str, name: str, email: str) -> Tickets:
+async def create_ticket(
+    payment_hash: str, wallet: str, event: str, name: str, email: str
+) -> Tickets:
     await db.execute(
         """
         INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
@@ -64,7 +66,9 @@ async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,)
+    )
     return [Tickets(**row) for row in rows]
 
 
@@ -113,7 +117,9 @@ async def create_event(
 
 async def update_event(event_id: str, **kwargs) -> Events:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE events SET {q} WHERE id = ?", (*kwargs.values(), event_id))
+    await db.execute(
+        f"UPDATE events SET {q} WHERE id = ?", (*kwargs.values(), event_id)
+    )
     event = await get_event(event_id)
     assert event, "Newly updated event couldn't be retrieved"
     return event
@@ -129,7 +135,9 @@ async def get_events(wallet_ids: Union[str, List[str]]) -> List[Events]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM events WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM events WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [Events(**row) for row in rows]
 
@@ -142,7 +150,9 @@ async def delete_event(event_id: str) -> None:
 
 
 async def get_event_tickets(event_id: str, wallet_id: str) -> List[Tickets]:
-    rows = await db.fetchall("SELECT * FROM ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id))
+    rows = await db.fetchall(
+        "SELECT * FROM ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id)
+    )
     return [Tickets(**row) for row in rows]
 
 

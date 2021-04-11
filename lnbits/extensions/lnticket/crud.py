@@ -6,6 +6,7 @@ from . import db
 from .models import Tickets, Forms
 import httpx
 
+
 async def create_ticket(
     payment_hash: str,
     wallet: str,
@@ -52,26 +53,27 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
             """,
             (amount, row[1]),
         )
-        
+
         ticket = await get_ticket(payment_hash)
+        assert ticket, "Newly paid ticket could not be retrieved"
+
         if formdata.webhook:
             async with httpx.AsyncClient() as client:
-                try:
-                    r = await client.post(
-                        formdata.webhook,
-                        json={
-                            "form": ticket.form,
-                            "name": ticket.name,
-                            "email": ticket.email,
-                            "content": ticket.ltext
-                        },
-                        timeout=40,
-                    )
-                except AssertionError:
-                    webhook = None
+                await client.post(
+                    formdata.webhook,
+                    json={
+                        "form": ticket.form,
+                        "name": ticket.name,
+                        "email": ticket.email,
+                        "content": ticket.ltext,
+                    },
+                    timeout=40,
+                )
             return ticket
+
     ticket = await get_ticket(payment_hash)
-    return
+    assert ticket, "Newly paid ticket could not be retrieved"
+    return ticket
 
 
 async def get_ticket(ticket_id: str) -> Optional[Tickets]:
@@ -84,7 +86,9 @@ async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [Tickets(**row) for row in rows]
 
@@ -96,7 +100,14 @@ async def delete_ticket(ticket_id: str) -> None:
 # FORMS
 
 
-async def create_form(*, wallet: str, name: str, webhook: Optional[str] = None, description: str, costpword: int) -> Forms:
+async def create_form(
+    *,
+    wallet: str,
+    name: str,
+    webhook: Optional[str] = None,
+    description: str,
+    costpword: int,
+) -> Forms:
     form_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -129,7 +140,9 @@ async def get_forms(wallet_ids: Union[str, List[str]]) -> List[Forms]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM form WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM form WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [Forms(**row) for row in rows]
 

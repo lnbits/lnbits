@@ -46,7 +46,9 @@ async def m002_redux(db):
         )
         await db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON captchas (wallet)")
 
-        for row in [list(row) for row in await db.fetchall("SELECT * FROM captchas_old")]:
+        for row in [
+            list(row) for row in await db.fetchall("SELECT * FROM captchas_old")
+        ]:
             await db.execute(
                 """
                 INSERT INTO captchas (

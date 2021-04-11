@@ -36,7 +36,12 @@ async def api_diagonalley_products():
     if "all_wallets" in request.args:
         wallet_ids = get_user(g.wallet.user).wallet_ids
 
-    return jsonify([product._asdict() for product in get_diagonalleys_products(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify(
+            [product._asdict() for product in get_diagonalleys_products(wallet_ids)]
+        ),
+        HTTPStatus.OK,
+    )
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/products", methods=["POST"])
@@ -58,16 +63,25 @@ async def api_diagonalley_product_create(product_id=None):
         product = get_diagonalleys_indexer(product_id)
 
         if not product:
-            return jsonify({"message": "Withdraw product does not exist."}), HTTPStatus.NOT_FOUND
+            return (
+                jsonify({"message": "Withdraw product does not exist."}),
+                HTTPStatus.NOT_FOUND,
+            )
 
         if product.wallet != g.wallet.id:
-            return jsonify({"message": "Not your withdraw product."}), HTTPStatus.FORBIDDEN
+            return (
+                jsonify({"message": "Not your withdraw product."}),
+                HTTPStatus.FORBIDDEN,
+            )
 
         product = update_diagonalleys_product(product_id, **g.data)
     else:
         product = create_diagonalleys_product(wallet_id=g.wallet.id, **g.data)
 
-    return jsonify(product._asdict()), HTTPStatus.OK if product_id else HTTPStatus.CREATED
+    return (
+        jsonify(product._asdict()),
+        HTTPStatus.OK if product_id else HTTPStatus.CREATED,
+    )
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/products/<product_id>", methods=["DELETE"])
@@ -97,7 +111,12 @@ async def api_diagonalley_indexers():
     if "all_wallets" in request.args:
         wallet_ids = get_user(g.wallet.user).wallet_ids
 
-    return jsonify([indexer._asdict() for indexer in get_diagonalleys_indexers(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify(
+            [indexer._asdict() for indexer in get_diagonalleys_indexers(wallet_ids)]
+        ),
+        HTTPStatus.OK,
+    )
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/indexers", methods=["POST"])
@@ -120,16 +139,25 @@ async def api_diagonalley_indexer_create(indexer_id=None):
         indexer = get_diagonalleys_indexer(indexer_id)
 
         if not indexer:
-            return jsonify({"message": "Withdraw indexer does not exist."}), HTTPStatus.NOT_FOUND
+            return (
+                jsonify({"message": "Withdraw indexer does not exist."}),
+                HTTPStatus.NOT_FOUND,
+            )
 
         if indexer.wallet != g.wallet.id:
-            return jsonify({"message": "Not your withdraw indexer."}), HTTPStatus.FORBIDDEN
+            return (
+                jsonify({"message": "Not your withdraw indexer."}),
+                HTTPStatus.FORBIDDEN,
+            )
 
         indexer = update_diagonalleys_indexer(indexer_id, **g.data)
     else:
         indexer = create_diagonalleys_indexer(wallet_id=g.wallet.id, **g.data)
 
-    return jsonify(indexer._asdict()), HTTPStatus.OK if indexer_id else HTTPStatus.CREATED
+    return (
+        jsonify(indexer._asdict()),
+        HTTPStatus.OK if indexer_id else HTTPStatus.CREATED,
+    )
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/indexers/<indexer_id>", methods=["DELETE"])
@@ -159,7 +187,10 @@ async def api_diagonalley_orders():
     if "all_wallets" in request.args:
         wallet_ids = get_user(g.wallet.user).wallet_ids
 
-    return jsonify([order._asdict() for order in get_diagonalleys_orders(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([order._asdict() for order in get_diagonalleys_orders(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @diagonalley_ext.route("/api/v1/diagonalley/orders", methods=["POST"])
@@ -221,13 +252,20 @@ async def api_diagonalleys_order_shipped(order_id):
         )
         order = db.fetchone("SELECT * FROM orders WHERE id = ?", (order_id,))
 
-    return jsonify([order._asdict() for order in get_diagonalleys_orders(order["wallet"])]), HTTPStatus.OK
+    return (
+        jsonify(
+            [order._asdict() for order in get_diagonalleys_orders(order["wallet"])]
+        ),
+        HTTPStatus.OK,
+    )
 
 
 ###List products based on indexer id
 
 
-@diagonalley_ext.route("/api/v1/diagonalley/stall/products/<indexer_id>", methods=["GET"])
+@diagonalley_ext.route(
+    "/api/v1/diagonalley/stall/products/<indexer_id>", methods=["GET"]
+)
 async def api_diagonalleys_stall_products(indexer_id):
     with open_ext_db("diagonalley") as db:
         rows = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
@@ -239,13 +277,20 @@ async def api_diagonalleys_stall_products(indexer_id):
         if not products:
             return jsonify({"message": "No products"}), HTTPStatus.NOT_FOUND
 
-    return jsonify([products._asdict() for products in get_diagonalleys_products(rows[1])]), HTTPStatus.OK
+    return (
+        jsonify(
+            [products._asdict() for products in get_diagonalleys_products(rows[1])]
+        ),
+        HTTPStatus.OK,
+    )
 
 
 ###Check a product has been shipped
 
 
-@diagonalley_ext.route("/api/v1/diagonalley/stall/checkshipped/<checking_id>", methods=["GET"])
+@diagonalley_ext.route(
+    "/api/v1/diagonalley/stall/checkshipped/<checking_id>", methods=["GET"]
+)
 async def api_diagonalleys_stall_checkshipped(checking_id):
     with open_ext_db("diagonalley") as db:
         rows = db.fetchone("SELECT * FROM orders WHERE invoiceid = ?", (checking_id,))
@@ -276,7 +321,9 @@ async def api_diagonalley_stall_order(indexer_id):
         shippingcost = shipping.zone2cost
 
     checking_id, payment_request = create_invoice(
-        wallet_id=product.wallet, amount=shippingcost + (g.data["quantity"] * product.price), memo=g.data["id"]
+        wallet_id=product.wallet,
+        amount=shippingcost + (g.data["quantity"] * product.price),
+        memo=g.data["id"],
     )
     selling_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
     with open_ext_db("diagonalley") as db:
@@ -299,4 +346,7 @@ async def api_diagonalley_stall_order(indexer_id):
                 False,
             ),
         )
-    return jsonify({"checking_id": checking_id, "payment_request": payment_request}), HTTPStatus.OK
+    return (
+        jsonify({"checking_id": checking_id, "payment_request": payment_request}),
+        HTTPStatus.OK,
+    )

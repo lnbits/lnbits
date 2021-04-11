@@ -45,17 +45,32 @@ class WithdrawLink(NamedTuple):
                 _external=True,
             )
         else:
-            url = url_for("withdraw.api_lnurl_response", unique_hash=self.unique_hash, _external=True)
+            url = url_for(
+                "withdraw.api_lnurl_response",
+                unique_hash=self.unique_hash,
+                _external=True,
+            )
 
         return lnurl_encode(url)
 
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
-        url = url_for("withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True)
+        url = url_for(
+            "withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True
+        )
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,
             min_withdrawable=self.min_withdrawable * 1000,
             max_withdrawable=self.max_withdrawable * 1000,
-            default_description="LNbits voucher",
+            default_description=self.title,
         )
+
+
+class HashCheck(NamedTuple):
+    id: str
+    lnurl_id: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Hash":
+        return cls(**dict(row))
