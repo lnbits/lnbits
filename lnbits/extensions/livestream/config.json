@@ -1,10 +1,10 @@
 {
   "name": "DJ Livestream",
-  "short_description": "Take tips or messages, sell tracks and split revenue with a static QR code.",
+  "short_description": "Sell tracks and split revenue with a static QR code.",
   "icon": "speaker",
   "contributors": [
     "fiatjaf",
     "cryptograffiti"
   ],
-  "hidden": true
+  "hidden": false
 }
