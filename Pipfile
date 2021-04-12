@@ -24,6 +24,7 @@ quart-trio = "*"
 trio = "==0.16.0"
 hypercorn = {extras = ["trio"], version = "*"}
 sqlalchemy-aio = "*"
+embit = "*"
 pyqrcode = "*"
 pypng = "*"
 
