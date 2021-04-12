@@ -87,9 +87,10 @@
           dense
           flat
           :data="filteredPayments"
-          row-key="payment_hash"
+          :row-key="paymentTableRowKey"
           :columns="paymentsTable.columns"
           :pagination.sync="paymentsTable.pagination"
+          no-data-label="No transactions made yet"
         >
           {% raw %}
           <template v-slot:header="props">
