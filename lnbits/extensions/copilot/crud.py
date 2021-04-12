@@ -15,9 +15,14 @@ from quart import jsonify
 async def create_copilot(
     title: str,
     user: str,
-    animation: str = None,
+    animation1: Optional[str] = None,
+    animation2: Optional[str] = None,
+    animation3: Optional[str] = None,
+    animation1threshold: Optional[int] = None,
+    animation2threshold: Optional[int] = None,
+    animation3threshold: Optional[int] = None,
     show_message: Optional[str] = None,
-    amount: Optional[str] = None,
+    amount: Optional[int] = None,
     lnurl_title: Optional[str] = None,
 ) -> Copilots:
     copilot_id = urlsafe_short_hash()
@@ -28,18 +33,28 @@ async def create_copilot(
             id,
             user,
             title,
-            animation,
+            animation1,
+            animation2,
+            animation3,
+            animation1threshold,
+            animation2threshold,
+            animation3threshold,
             show_message,
             amount,
             lnurl_title
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             copilot_id,
             user,
             title,
-            animation,
+            animation1,
+            animation2,
+            animation3,
+            animation1threshold,
+            animation2threshold,
+            animation3threshold,
             show_message,
             amount,
             lnurl_title

@@ -24,7 +24,12 @@ from .crud import (
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
-        "animation": {"type": "string", "empty": False, "required": True},
+        "animation1": {"type": "string"},
+        "animation2": {"type": "string"},
+        "animation3": {"type": "string"},
+        "animation1threshold": {"type": "integer"},
+        "animation2threshold": {"type": "integer"},
+        "animation3threshold": {"type": "integer"},
         "show_message": {"type": "integer", "empty": False, "required": True},
         "amount": {"type": "integer", "empty": False, "required": True},
     }
@@ -40,7 +45,7 @@ async def api_copilot_create_or_update(copilot_id=None):
 
 @copilot_ext.route("/api/v1/copilot", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_copilot_retrieve(copilot_id):
+async def api_copilots_retrieve(copilot_id):
     copilots = await get_copilots(user=g.wallet.user)
 
     if not copilots:
