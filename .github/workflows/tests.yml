@@ -22,7 +22,7 @@ jobs:
         env:
           LNBITS_BACKEND_WALLET_CLASS: LNPayWallet
           LNBITS_FORCE_HTTPS: 0
-          LNPAY_API_ENDPOINT: https://lnpay.co/v1/
+          LNPAY_API_ENDPOINT: https://api.lnpay.co/v1/
           LNPAY_API_KEY: sak_gG5pSFZhFgOLHm26a8hcWvXKt98yd
           LNPAY_ADMIN_KEY: waka_HqWfOoNE0TPqmQHSYErbF4n9
           LNPAY_INVOICE_KEY: waki_ZqFEbhrTyopuPlOZButZUw

@@ -54,10 +54,10 @@ Using this wallet requires the installation of the `lndgrpc` and `purerpc` Pytho
 
 ### LNPay
 
-For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret.
+For the invoice listener to work you have a publicly accessible URL in your LNbits and must set up [LNPay webhooks](https://dashboard.lnpay.co/webhook/) pointing to `<your LNbits host>/wallet/webhook` with the "Wallet Receive" event and no secret.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNPayWallet**
-- `LNPAY_API_ENDPOINT`: https://lnpay.co/v1/
+- `LNPAY_API_ENDPOINT`: https://api.lnpay.co/v1/
 - `LNPAY_API_KEY`: sak_apiKey
 - `LNPAY_WALLET_KEY`: waka_apiKey
 
