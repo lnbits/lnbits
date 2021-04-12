@@ -4,7 +4,9 @@ from lnbits.db import Database
 
 db = Database("ext_livestream")
 
-livestream_ext: Blueprint = Blueprint("livestream", __name__, static_folder="static", template_folder="templates")
+livestream_ext: Blueprint = Blueprint(
+    "livestream", __name__, static_folder="static", template_folder="templates"
+)
 
 
 from .views_api import *  # noqa

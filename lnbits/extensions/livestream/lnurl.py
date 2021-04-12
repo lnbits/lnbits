@@ -20,7 +20,9 @@ async def lnurl_response(ls_id):
         return jsonify({"status": "ERROR", "reason": "This livestream is offline."})
 
     resp = LnurlPayResponse(
-        callback=url_for("livestream.lnurl_callback", track_id=track.id, _external=True),
+        callback=url_for(
+            "livestream.lnurl_callback", track_id=track.id, _external=True
+        ),
         min_sendable=track.min_sendable,
         max_sendable=track.max_sendable,
         metadata=await track.lnurlpay_metadata(),
@@ -60,7 +62,9 @@ async def lnurl_callback(track_id):
     comment = request.args.get("comment")
     if len(comment or "") > 300:
         return jsonify(
-            LnurlErrorResponse(reason=f"Got a comment with {len(comment)} characters, but can only accept 300").dict()
+            LnurlErrorResponse(
+                reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
+            ).dict()
         )
 
     ls = await get_livestream_by_track(track_id)
@@ -69,7 +73,9 @@ async def lnurl_callback(track_id):
         wallet_id=ls.wallet,
         amount=int(amount_received / 1000),
         memo=await track.fullname(),
-        description_hash=hashlib.sha256((await track.lnurlpay_metadata()).encode("utf-8")).digest(),
+        description_hash=hashlib.sha256(
+            (await track.lnurlpay_metadata()).encode("utf-8")
+        ).digest(),
         extra={"tag": "livestream", "track": track.id, "comment": comment},
     )
 

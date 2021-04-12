@@ -39,7 +39,11 @@ async def api_livestream_from_wallet():
         )
     except LnurlInvalidUrl:
         return (
-            jsonify({"message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."}),
+            jsonify(
+                {
+                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
+                }
+            ),
             HTTPStatus.UPGRADE_REQUIRED,
         )
 
@@ -74,8 +78,16 @@ async def api_update_fee(fee_pct):
         "name": {"type": "string", "empty": False, "required": True},
         "download_url": {"type": "string", "empty": False, "required": False},
         "price_msat": {"type": "number", "min": 0, "required": False},
-        "producer_id": {"type": "number", "required": True, "excludes": "producer_name"},
-        "producer_name": {"type": "string", "required": True, "excludes": "producer_id"},
+        "producer_id": {
+            "type": "number",
+            "required": True,
+            "excludes": "producer_name",
+        },
+        "producer_name": {
+            "type": "string",
+            "required": True,
+            "excludes": "producer_id",
+        },
     }
 )
 async def api_add_track():

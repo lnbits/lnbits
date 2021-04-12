@@ -24,9 +24,15 @@ async def track_redirect_download(track_id):
     payment: Payment = await get_wallet_payment(ls.wallet, payment_hash)
 
     if not payment:
-        return f"Couldn't find the payment {payment_hash} or track {track.id}.", HTTPStatus.NOT_FOUND
+        return (
+            f"Couldn't find the payment {payment_hash} or track {track.id}.",
+            HTTPStatus.NOT_FOUND,
+        )
 
     if payment.pending:
-        return f"Payment {payment_hash} wasn't received yet. Please try again in a minute.", HTTPStatus.PAYMENT_REQUIRED
+        return (
+            f"Payment {payment_hash} wasn't received yet. Please try again in a minute.",
+            HTTPStatus.PAYMENT_REQUIRED,
+        )
 
     return redirect(track.download_url)
