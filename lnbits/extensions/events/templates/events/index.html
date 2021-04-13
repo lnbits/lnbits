@@ -176,22 +176,29 @@
   <q-dialog v-model="formDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendEventData" class="q-gutter-md">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialog.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-        >
-        </q-select>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.name"
-          type="name"
-          label="Name of event "
-        ></q-input>
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialog.data.name"
+              type="name"
+              label="Title of event "
+            ></q-input>
+          </div>
+          <div class="col q-pl-sm">
+            <q-select
+              filled
+              dense
+              emit-value
+              v-model="formDialog.data.wallet"
+              :options="g.user.walletOptions"
+              label="Wallet *"
+            >
+            </q-select>
+          </div>
+        </div>
+
         <q-input
           filled
           dense
@@ -199,41 +206,63 @@
           type="textarea"
           label="Info about the event "
         ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.closing_date"
-          type="date"
-          label="Closing for tickets "
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.event_start_date"
-          type="date"
-          label="Event begins "
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.event_end_date"
-          type="date"
-          label="Event ends "
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.number="formDialog.data.amount_tickets"
-          type="number"
-          label="Amount of tickets "
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.number="formDialog.data.price_per_ticket"
-          type="number"
-          label="Price per ticket "
-        ></q-input>
+        <div class="row">
+          <div class="col-4">Ticket closing date</div>
+          <div class="col-8">
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialog.data.closing_date"
+              type="date"
+            ></q-input>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-4">Event begins</div>
+          <div class="col-8">
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialog.data.event_start_date"
+              type="date"
+            ></q-input>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-4">Event ends</div>
+          <div class="col-8">
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialog.data.event_end_date"
+              type="date"
+            ></q-input>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              dense
+              v-model.number="formDialog.data.amount_tickets"
+              type="number"
+              label="Amount of tickets "
+            ></q-input>
+          </div>
+          <div class="col q-pl-sm">
+            <q-input
+              filled
+              dense
+              v-model.number="formDialog.data.price_per_ticket"
+              type="number"
+              label="Price per ticket "
+            ></q-input>
+          </div>
+        </div>
+
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialog.data.id"
