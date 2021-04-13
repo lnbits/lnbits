@@ -1,14 +1,18 @@
 {% extends "public.html" %} {% block page %}
-<div class="q-pa-sm theCard">
+<div class="q-pa-sm" style="width: 400px; margin: 10px auto">
   <q-card class="my-card">
     <div class="column">
       <center>
-        <div class="col theHeading">{{ copilot.title }}</div>
+        <div class="col" style="margin: 15px; font-size: 25px">
+          {{ copilot.title }}
+        </div>
       </center>
       <div class="col">say what</div>
       <div class="col" style="margin: 2px 15px; max-height: 100px">
         <center>
-          <q-btn flat dense outline>Open compose window</q-btn>
+          <q-btn flat dense outline @click="openCompose"
+            >Open compose window</q-btn
+          >
         </center>
       </div>
       <q-separator></q-separator>
@@ -37,14 +41,16 @@
         counter: 1,
         newTimeLeft: '',
         lnbtc: true,
-        onbtc: false,
-        charge_time_elapsed: '{{charge.time_elapsed}}',
-        charge_amount: '{{charge.amount}}',
-        charge_balance: '{{charge.balance}}',
-        charge_paid: '{{charge.paid}}'
+        onbtc: false
       }
     },
-    methods: {},
+    methods: {
+      openCompose: function () {
+        let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=900,height=500,left=200,top=200`
+
+        open('../copilot/cp/{{ copilot.id }}', 'test', params)
+      }
+    },
     created: function () {}
   })
 </script>

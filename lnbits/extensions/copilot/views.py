@@ -14,9 +14,16 @@ async def index():
     return await render_template("copilot/index.html", user=g.user)
 
 
-@copilot_ext.route("/<copilot_id>")
-async def display(copilot_id):
+@copilot_ext.route("/cp/<copilot_id>")
+async def compose(copilot_id):
     copilot = await get_copilot(copilot_id) or abort(
-        HTTPStatus.NOT_FOUND, "Charge link does not exist."
+        HTTPStatus.NOT_FOUND, "Copilot link does not exist."
+    )
+    return await render_template("copilot/compose.html", copilot=copilot)
+
+@copilot_ext.route("/<copilot_id>")
+async def panel(copilot_id):
+    copilot = await get_copilot(copilot_id) or abort(
+        HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
     return await render_template("copilot/panel.html", copilot=copilot)

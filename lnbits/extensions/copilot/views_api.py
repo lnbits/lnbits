@@ -24,15 +24,15 @@ from .crud import (
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
-        "animation1": {"type": "string"},
-        "animation2": {"type": "string"},
-        "animation3": {"type": "string"},
-        "animation1threshold": {"type": "integer"},
-        "animation2threshold": {"type": "integer"},
-        "animation3threshold": {"type": "integer"},
-        "animation1webhook": {"type": "string"},
-        "animation2webhook": {"type": "string"},
-        "animation3webhook": {"type": "string"},
+        "animation1": {"type": "string", "required": False},
+        "animation2": {"type": "string", "required": False},
+        "animation3": {"type": "string", "required": False},
+        "animation1threshold": {"type": "integer", "required": False},
+        "animation2threshold": {"type": "integer", "required": False},
+        "animation3threshold": {"type": "integer", "required": False},
+        "animation1webhook": {"type": "string", "required": False},
+        "animation2webhook": {"type": "string", "required": False},
+        "animation3webhook": {"type": "string", "required": False},
         "lnurl_title": {"type": "string", "empty": False, "required": True},
         "show_message": {"type": "integer", "empty": False, "required": True},
         "show_ack": {"type": "integer", "empty": False, "required": True},
@@ -49,20 +49,21 @@ async def api_copilot_create_or_update(copilot_id=None):
 
 @copilot_ext.route("/api/v1/copilot", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_copilots_retrieve(copilot_id):
-    copilots = await get_copilots(user=g.wallet.user)
-
-    if not copilots:
-        return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
-
-    return (
-        jsonify(
-            {
-                copilots._asdict()
-            }
-        ),
-        HTTPStatus.OK,
-    )
+async def api_copilots_retrieve():
+    try:
+        return (
+            jsonify(
+                [
+                    {
+                        **copilot._asdict()
+                    }
+                    for copilot in await get_copilots(g.wallet.user)
+                ]
+            ),
+            HTTPStatus.OK,
+        )
+    except:
+        return ""
 
 @copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["GET"])
 @api_check_wallet_key("invoice")

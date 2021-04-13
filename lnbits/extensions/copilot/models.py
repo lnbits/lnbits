@@ -16,12 +16,13 @@ class Copilots(NamedTuple):
     animation1webhook: str
     animation2webhook: str
     animation3webhook: str
-    show_message: bool
-    amount: int
     lnurl_title: str
     show_message: int
     show_ack: int
     amount_made: int
+    timestamp: int
+    fullscreen_cam: int
+    iframe_url: str
 
     @classmethod
     def from_row(cls, row: Row) -> "Copilots":

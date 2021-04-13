@@ -72,13 +72,27 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="link"
+                  icon="apps"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
-                  :href="props.row.displayUrl"
+                  :href="props.row.displayPanelUrl"
                   target="_blank"
                 >
-                  <q-tooltip> Payment link </q-tooltip>
+                  <q-tooltip> Panel </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="face"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayComposeUrl"
+                  target="_blank"
+                >
+                  <q-tooltip> Compose window </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td auto-width>
@@ -305,7 +319,7 @@
             unelevated
             color="deep-purple"
             :disable="
-                formDialogCopilot.data.amount == null"
+                formDialogCopilot.data.title == ''"
             type="submit"
             >Create Copilot</q-btn
           >
@@ -336,7 +350,8 @@
         'HH:mm:ss'
       )
     }
-    obj.displayUrl = ['/copilot/', obj.id].join('')
+    obj.displayComposeUrl = ['/copilot/cp/', obj.id].join('')
+    obj.displayPanelUrl = ['/copilot/', obj.id].join('')
     return obj
   }
 
@@ -377,58 +392,10 @@
               field: 'title'
             },
             {
-              name: 'animation_1',
+              name: 'amount_made',
               align: 'left',
-              label: 'animation 1',
-              field: 'animation_1'
-            },
-            {
-              name: 'animation_2',
-              align: 'left',
-              label: 'animation 2',
-              field: 'animation_2'
-            },
-            {
-              name: 'animation_3',
-              align: 'left',
-              label: 'animation 3',
-              field: 'animation_3'
-            },
-            {
-              name: 'animation_1_threshold',
-              align: 'left',
-              label: '1 threshold',
-              field: 'animation_1_threshold'
-            },
-            {
-              name: 'animation_2_threshold',
-              align: 'left',
-              label: '2 threshold',
-              field: 'animation_2_threshold'
-            },
-            {
-              name: 'animation_3_threshold',
-              align: 'left',
-              label: '3 threshold',
-              field: 'animation_3_threshold'
-            },
-            {
-              name: 'lnurl_title',
-              align: 'left',
-              label: 'lnurl message',
-              field: 'lnurl_title'
-            },
-            {
-              name: 'amount',
-              align: 'left',
-              label: 'amount to pay',
-              field: 'amount'
-            },
-            {
-              name: 'show_message',
-              align: 'left',
-              label: 'show comments?',
-              field: 'show_message'
+              label: 'amount made',
+              field: 'amount_made'
             }
           ],
           pagination: {
@@ -444,18 +411,44 @@
           data: {
             show_message: false,
             show_ack: true,
-            description: '',
-            time: null,
-            amount: null
+            title: '',
+            animation1threshold: 0,
+            animation2threshold: 0,
+            animation3threshold: 0,
+            animation1webhook: '',
+            animation2webhook: '',
+            animation3webhook: ''
           }
         },
         qrCodeDialog: {
           show: false,
           data: null
-        }
+        },
+        options: ['moon_rocket', 'confetti', 'roller_coaster']
       }
     },
     methods: {
+      cancelCopilot: function (data) {
+        var self = this
+        self.formDialogCopilot.show = false
+      },
+      closeFormDialog: function () {
+        this.formDialog.data = {
+          is_unique: false
+        }
+      },
+      sendFormDataCopilot: function () {
+        var self = this
+        var wallet = this.g.user.wallets[0].adminkey
+        var data = this.formDialogCopilot.data
+        console.log(data)
+        data.animation1threshold = parseInt(data.animation1threshold)
+        data.animation1threshold = parseInt(data.animation2threshold)
+        data.animation1threshold = parseInt(data.animation3threshold)
+
+        this.createCopilot(wallet, data)
+      },
+
       createCopilot: function (wallet, data) {
         var self = this
 
@@ -471,7 +464,6 @@
       },
       getCopilots: function () {
         var self = this
-        var getAddressBalance = this.getAddressBalance
         LNbits.api
           .request(
             'GET',
@@ -507,12 +499,16 @@
               })
           })
       },
-      exportchargeCSV: function () {
+      exportcopilotCSV: function () {
         var self = this
         LNbits.utils.exportCSV(self.CopilotsTable.columns, this.CopilotLinks)
       }
     },
-    created: function () {}
+    created: function () {
+      var self = this
+      var getCopilots = this.getCopilots
+      getCopilots()
+    }
   })
 </script>
 {% endblock %}

@@ -22,6 +22,8 @@ async def m001_initial(db):
             show_message INTEGER,
             show_ack INTEGER,
             amount_made INTEGER,
+            fullscreen_cam INTEGER,
+            iframe_url TEXT,
             timestamp TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """
