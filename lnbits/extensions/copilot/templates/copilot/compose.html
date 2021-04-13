@@ -1,5 +1,28 @@
-{% extends "public.html" %} {% block page %} {% endblock %} {% block scripts %}
+{% extends "public.html" %} {% block page %}<q-page
+  >fdgasdf
+
+  <video
+    autoplay="true"
+    id="videoElement"
+    style="width: 100%"
+    class="fixed-top-left"
+  ></video>
+</q-page>
+{% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<style>
+  body.body--dark .q-drawer,
+  body.body--dark .q-footer,
+  body.body--dark .q-header,
+  .q-drawer,
+  .q-footer,
+  .q-header {
+    display: none;
+  }
+  .q-page {
+    padding: 0px;
+  }
+</style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
@@ -7,19 +30,27 @@
     el: '#vue',
     mixins: [windowMixin],
     data() {
-      return {
-        newProgress: 0.4,
-        counter: 1,
-        newTimeLeft: '',
-        lnbtc: true,
-        onbtc: false,
-        charge_time_elapsed: '{{charge.time_elapsed}}',
-        charge_amount: '{{charge.amount}}',
-        charge_balance: '{{charge.balance}}',
-        charge_paid: '{{charge.paid}}'
+      return {}
+    },
+    methods: {
+      initCamera() {
+        var video = document.querySelector('#videoElement')
+
+        if (navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices
+            .getUserMedia({video: true})
+            .then(function (stream) {
+              video.srcObject = stream
+            })
+            .catch(function (err0r) {
+              console.log('Something went wrong!')
+            })
+        }
       }
     },
-    methods: {},
+    mounted() {
+      this.initCamera()
+    },
     created: function () {}
   })
 </script>

@@ -23,6 +23,7 @@ class Copilots(NamedTuple):
     timestamp: int
     fullscreen_cam: int
     iframe_url: str
+    notes: str
 
     @classmethod
     def from_row(cls, row: Row) -> "Copilots":
