@@ -4,6 +4,11 @@
   label="API info"
   :content-inset-level="0.5"
 >
+  <q-card-section>
+    <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
+    <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
+    <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
+  </q-card-section>
   <q-expansion-item
     group="api"
     dense

@@ -41,10 +41,14 @@
 
     <q-card v-show="ticketLink.show" class="q-pa-lg">
       <div class="text-center q-mb-lg">
-        <a :href="ticketLink.data.link" target="_blank">
-          <q-btn unelevated size="xl" color="deep-purple"
-            >Link to your ticket!</q-btn
-          ></a
+        <q-btn
+          unelevated
+          size="xl"
+          :href="ticketLink.data.link"
+          target="_blank"
+          color="deep-purple"
+          type="a"
+          >Link to your ticket!</q-btn
         >
         <br /><br />
         <p>You'll be redirected in a few moments...</p>

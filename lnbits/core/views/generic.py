@@ -5,8 +5,9 @@ from http import HTTPStatus
 from quart import (
     g,
     abort,
-    redirect,
+    jsonify,
     request,
+    redirect,
     render_template,
     send_from_directory,
     url_for,
@@ -165,3 +166,39 @@ async def lnurlwallet():
     await trio.sleep(3)
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
+
+
+@core_app.route("/manifest/<usr>.webmanifest")
+async def manifest(usr: str):
+    user = await get_user(usr)
+    if not user:
+        return "", HTTPStatus.NOT_FOUND
+
+    return jsonify(
+        {
+            "short_name": "LNbits",
+            "name": "LNbits Wallet",
+            "icons": [
+                {
+                    "src": "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
+                    "type": "image/png",
+                    "sizes": "900x900",
+                }
+            ],
+            "start_url": "/wallet?usr=" + usr,
+            "background_color": "#3367D6",
+            "description": "Weather forecast information",
+            "display": "standalone",
+            "scope": "/",
+            "theme_color": "#3367D6",
+            "shortcuts": [
+                {
+                    "name": wallet.name,
+                    "short_name": wallet.name,
+                    "description": wallet.name,
+                    "url": "/wallet?usr=" + usr + "&wal=" + wallet.id,
+                }
+                for wallet in user.wallets
+            ],
+        }
+    )
