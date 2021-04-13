@@ -220,14 +220,13 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-mt-none q-mb-sm">LNbits wallet</h6>
-        <strong>Wallet name: </strong><em>{{ wallet.name }}</em><br />
-        <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
-        <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
-        <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
+        <h6 class="text-subtitle1 q-mt-none q-mb-sm">
+          LNbits wallet: <strong><em>{{ wallet.name }}</em></strong>
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
+
         <q-list>
           {% include "core/_api_docs.html" %}
           <q-separator></q-separator>
@@ -238,7 +237,10 @@
           >
             <q-card>
               <q-card-section>
-                <p>This QR code contains your wallet URL with full access. You can scan it from your phone to open your wallet from there.</p>
+                <p>
+                  This QR code contains your wallet URL with full access. You
+                  can scan it from your phone to open your wallet from there.
+                </p>
                 <qrcode
                   :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}'"
                   :options="{width:240}"
