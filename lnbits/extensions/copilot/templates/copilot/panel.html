@@ -2,26 +2,82 @@
 <div class="q-pa-sm" style="width: 400px; margin: 10px auto">
   <q-card class="my-card">
     <div class="column">
-      <center>
-        <div class="col" style="margin: 15px; font-size: 25px">
-          {{ copilot.title }}
-        </div>
-      </center>
-      <div class="col">say what</div>
-      <div class="col" style="margin: 2px 15px; max-height: 100px">
+      <div class="col">
         <center>
-          <q-btn flat dense outline @click="openCompose"
-            >Open compose window</q-btn
-          >
+          <q-btn
+            flat
+            round
+            dense
+            @click="openCompose"
+            icon="face"
+            style="font-size: 100px"
+          ></q-btn>
         </center>
       </div>
+      <center>
+        <div class="col" style="margin: 15px; font-size: 25px">
+          Title: {{ copilot.title }}
+        </div>
+      </center>
       <q-separator></q-separator>
       <div class="col">
         <div class="row">
-          <div class="col"></div>
-          <div class="col"></div>
+          <div class="col">
+            <q-toggle
+              v-model="formDialogCopilot.fullscreen_cam"
+              size="xl"
+              icon="face"
+              label="Fullscreen"
+            />
+          </div>
+          <div class="col">
+            <q-input
+              class="q-pt-sm"
+              dense
+              outlined
+              bottom-slots
+              v-model="text"
+              label="iframe url"
+            >
+              <template v-slot:after>
+                <q-btn round dense flat icon="send" />
+              </template>
+            </q-input>
+          </div>
         </div>
-        <q-separator></q-separator>
+        <div class="row q-pa-sm">
+          <div class="col">
+            <q-btn color="primary" label="Animation 1" />
+          </div>
+          <div class="col">
+            <q-btn color="primary" label="Animation 2" />
+          </div>
+          <div class="col">
+            <q-btn color="primary" label="Animation 3" />
+          </div>
+        </div>
+        <div class="column">
+          <div class="col">
+            <q-input
+              v-model="textareaModel"
+              filled
+              class="q-pl-sm q-pr-sm q-pb-sm"
+              clearable
+              type="textarea"
+              label="Notes"
+              :shadow-text="textareaShadowText"
+              @keydown="processTextareaFill"
+              @focus="processTextareaFill"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-btn
+              color="primary"
+              label="Save notes"
+              class="q-ma-sm float-right"
+            ></q-btn>
+          </div>
+        </div>
       </div>
     </div>
   </q-card>
@@ -41,7 +97,10 @@
         counter: 1,
         newTimeLeft: '',
         lnbtc: true,
-        onbtc: false
+        onbtc: false,
+        formDialogCopilot: {
+          fullscreen_cam: true
+        }
       }
     },
     methods: {
