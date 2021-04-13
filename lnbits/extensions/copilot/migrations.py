@@ -15,9 +15,13 @@ async def m001_initial(db):
             animation1threshold INTEGER,
             animation2threshold INTEGER,
             animation3threshold INTEGER,
-            show_message TEXT,
-            amount INTEGER,
+            animation1webhook TEXT,
+            animation2webhook TEXT,
+            animation3webhook TEXT,
             lnurl_title TEXT,
+            show_message INTEGER,
+            show_ack INTEGER,
+            amount_made INTEGER,
             timestamp TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
     """

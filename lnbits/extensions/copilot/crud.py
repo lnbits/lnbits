@@ -21,9 +21,13 @@ async def create_copilot(
     animation1threshold: Optional[int] = None,
     animation2threshold: Optional[int] = None,
     animation3threshold: Optional[int] = None,
-    show_message: Optional[str] = None,
-    amount: Optional[int] = None,
+    animation1webhook: Optional[str] = None,
+    animation2webhook: Optional[str] = None,
+    animation3webhook: Optional[str] = None,
     lnurl_title: Optional[str] = None,
+    show_message: Optional[int] = None,
+    show_ack: Optional[int] = None,
+    amount_made: Optional[int] = None,
 ) -> Copilots:
     copilot_id = urlsafe_short_hash()
 
@@ -39,11 +43,16 @@ async def create_copilot(
             animation1threshold,
             animation2threshold,
             animation3threshold,
+            animation1webhook,
+            animation2webhook,
+            animation3webhook,
+            lnurl_title,
             show_message,
-            amount,
-            lnurl_title
+            show_ack,
+            lnurl_title,
+            amount_made
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             copilot_id,
@@ -55,9 +64,14 @@ async def create_copilot(
             animation1threshold,
             animation2threshold,
             animation3threshold,
+            animation1webhook,
+            animation2webhook,
+            animation3webhook,
+            lnurl_title,
             show_message,
-            amount,
-            lnurl_title
+            show_ack,
+            lnurl_title,
+            0
         ),
     )
     return await get_copilot(copilot_id)

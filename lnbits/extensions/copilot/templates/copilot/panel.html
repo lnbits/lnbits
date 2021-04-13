@@ -1,0 +1,51 @@
+{% extends "public.html" %} {% block page %}
+<div class="q-pa-sm theCard">
+  <q-card class="my-card">
+    <div class="column">
+      <center>
+        <div class="col theHeading">{{ copilot.title }}</div>
+      </center>
+      <div class="col">say what</div>
+      <div class="col" style="margin: 2px 15px; max-height: 100px">
+        <center>
+          <q-btn flat dense outline>Open compose window</q-btn>
+        </center>
+      </div>
+      <q-separator></q-separator>
+      <div class="col">
+        <div class="row">
+          <div class="col"></div>
+          <div class="col"></div>
+        </div>
+        <q-separator></q-separator>
+      </div>
+    </div>
+  </q-card>
+</div>
+
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data() {
+      return {
+        newProgress: 0.4,
+        counter: 1,
+        newTimeLeft: '',
+        lnbtc: true,
+        onbtc: false,
+        charge_time_elapsed: '{{charge.time_elapsed}}',
+        charge_amount: '{{charge.amount}}',
+        charge_balance: '{{charge.balance}}',
+        charge_paid: '{{charge.paid}}'
+      }
+    },
+    methods: {},
+    created: function () {}
+  })
+</script>
+{% endblock %}

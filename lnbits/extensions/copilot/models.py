@@ -13,17 +13,16 @@ class Copilots(NamedTuple):
     animation1threshold: int
     animation2threshold: int
     animation3threshold: int
+    animation1webhook: str
+    animation2webhook: str
+    animation3webhook: str
     show_message: bool
     amount: int
     lnurl_title: str
+    show_message: int
+    show_ack: int
+    amount_made: int
 
     @classmethod
     def from_row(cls, row: Row) -> "Copilots":
         return cls(**dict(row))
-
-    @property
-    def paid(self):
-        if self.balance >= self.amount:
-            return True
-        else:
-            return False

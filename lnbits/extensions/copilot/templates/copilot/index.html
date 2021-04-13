@@ -133,83 +133,140 @@
           dense
           v-model.trim="formDialogCopilot.data.title"
           type="text"
-          label="*Title"
+          label="Title"
         ></q-input>
 
-        <div class="row">
-          <div class="col">
-            <q-select
-              filled
-              dense
-              v-model.trim="formDialogCopilot.data.animation1"
-              :options="options"
-              label="Animation 1"
-            />
-          </div>
-
-          <div class="col q-pl-xs">
-            <q-input
-              filled
-              dense
-              v-model.trim="formDialogCopilot.data.animation1threshold"
-              type="number"
-              label="Threshold (at least)"
-            >
-            </q-input>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col">
-            <q-select
-              filled
-              dense
-              v-model.trim="formDialogCopilot.data.animation2"
-              :options="options"
-              label="Animation 2"
-            />
-          </div>
-          <div class="col q-pl-sm">
-            <q-input
-              filled
-              dense
-              v-model.trim="formDialogCopilot.data.animation2threshold"
-              type="number"
-              label="Threshold (at least)"
-            >
-            </q-input>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col">
-            <q-select
-              filled
-              dense
-              v-model.trim="formDialogCopilot.data.animation3"
-              :options="options"
-              label="Animation 3"
-            />
-          </div>
-          <div class="col q-pl-sm">
-            <q-input
-              filled
-              dense
-              v-model.trim="formDialogCopilot.data.animation3threshold"
-              type="number"
-              label="Threshold (at least)"
-            >
-            </q-input>
-          </div>
-        </div>
-
-        <q-input
-          filled
+        <q-expansion-item
+          group="api"
           dense
-          v-model.trim="formDialogCopilot.data.amount"
-          type="number"
-          label="*Amount (sats)"
-        ></q-input>
+          expand-separator
+          label="Payment threshold 1"
+        >
+          <q-card>
+            <q-card-section>
+              <div class="row">
+                <div class="col">
+                  <q-select
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation1"
+                    :options="options"
+                    label="Animation"
+                  />
+                </div>
+
+                <div class="col q-pl-xs">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation1threshold"
+                    type="number"
+                    label="From *sats"
+                  >
+                  </q-input>
+                </div>
+                <div class="col q-pl-xs">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation1webhook"
+                    type="number"
+                    label="Webhook"
+                  >
+                  </q-input>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+
+        <q-expansion-item
+          group="api"
+          dense
+          expand-separator
+          label="Payment threshold 2"
+        >
+          <q-card>
+            <q-card-section>
+              <div class="row">
+                <div class="col">
+                  <q-select
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation2"
+                    :options="options"
+                    label="Animation"
+                  />
+                </div>
+
+                <div class="col q-pl-xs">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation2threshold"
+                    type="number"
+                    label="From *sats"
+                  >
+                  </q-input>
+                </div>
+                <div class="col q-pl-xs">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation2webhook"
+                    type="number"
+                    label="Webhook"
+                  >
+                  </q-input>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+
+        <q-expansion-item
+          group="api"
+          dense
+          expand-separator
+          label="Payment threshold 3"
+        >
+          <q-card>
+            <q-card-section>
+              <div class="row">
+                <div class="col">
+                  <q-select
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation3"
+                    :options="options"
+                    label="Animation"
+                  />
+                </div>
+
+                <div class="col q-pl-xs">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation3threshold"
+                    type="number"
+                    label="From *sats"
+                  >
+                  </q-input>
+                </div>
+                <div class="col q-pl-xs">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="formDialogCopilot.data.animation3webhook"
+                    type="number"
+                    label="Webhook"
+                  >
+                  </q-input>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
 
         <q-input
           filled
@@ -220,13 +277,29 @@
           label="Lnurl title (message with QR code)"
         >
         </q-input>
-        <div class="q-gutter-sm">
-          <q-checkbox
-            v-model="formDialogCopilot.data.show_message"
-            left-label
-            label="Show lnurl-pay messages? (available in some wallets)"
-          />
+
+        <div class="row">
+          <div class="col">
+            <div class="q-gutter-sm">
+              <q-checkbox
+                v-model="formDialogCopilot.data.show_message"
+                left-label
+                label="Show lnurl-pay messages?"
+              />
+            </div>
+          </div>
+
+          <div class="col q-pl-xs">
+            <div class="q-gutter-sm">
+              <q-checkbox
+                v-model="formDialogCopilot.data.show_ack"
+                left-label
+                label="Show 'powered by LNbits'"
+              />
+            </div>
+          </div>
         </div>
+
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -370,6 +443,7 @@
           show: false,
           data: {
             show_message: false,
+            show_ack: true,
             description: '',
             time: null,
             amount: null

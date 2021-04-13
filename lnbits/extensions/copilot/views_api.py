@@ -30,8 +30,12 @@ from .crud import (
         "animation1threshold": {"type": "integer"},
         "animation2threshold": {"type": "integer"},
         "animation3threshold": {"type": "integer"},
+        "animation1webhook": {"type": "string"},
+        "animation2webhook": {"type": "string"},
+        "animation3webhook": {"type": "string"},
+        "lnurl_title": {"type": "string", "empty": False, "required": True},
         "show_message": {"type": "integer", "empty": False, "required": True},
-        "amount": {"type": "integer", "empty": False, "required": True},
+        "show_ack": {"type": "integer", "empty": False, "required": True},
     }
 )
 async def api_copilot_create_or_update(copilot_id=None):

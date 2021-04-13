@@ -19,4 +19,4 @@ async def display(copilot_id):
     copilot = await get_copilot(copilot_id) or abort(
         HTTPStatus.NOT_FOUND, "Charge link does not exist."
     )
-    return await render_template("copilot/display.html", copilot=copilot)
+    return await render_template("copilot/panel.html", copilot=copilot)
