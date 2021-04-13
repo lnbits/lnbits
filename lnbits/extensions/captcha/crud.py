@@ -7,7 +7,13 @@ from .models import Captcha
 
 
 async def create_captcha(
-    *, wallet_id: str, url: str, memo: str, description: Optional[str] = None, amount: int = 0, remembers: bool = True
+    *,
+    wallet_id: str,
+    url: str,
+    memo: str,
+    description: Optional[str] = None,
+    amount: int = 0,
+    remembers: bool = True,
 ) -> Captcha:
     captcha_id = urlsafe_short_hash()
     await db.execute(
@@ -34,7 +40,9 @@ async def get_captchas(wallet_ids: Union[str, List[str]]) -> List[Captcha]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM captchas WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM captchas WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [Captcha.from_row(row) for row in rows]
 

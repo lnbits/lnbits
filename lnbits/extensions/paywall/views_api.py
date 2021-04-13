@@ -17,7 +17,10 @@ async def api_paywalls():
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return jsonify([paywall._asdict() for paywall in await get_paywalls(wallet_ids)]), HTTPStatus.OK
+    return (
+        jsonify([paywall._asdict() for paywall in await get_paywalls(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
 @paywall_ext.route("/api/v1/paywalls", methods=["POST"])
@@ -26,7 +29,12 @@ async def api_paywalls():
     schema={
         "url": {"type": "string", "empty": False, "required": True},
         "memo": {"type": "string", "empty": False, "required": True},
-        "description": {"type": "string", "empty": True, "nullable": True, "required": False},
+        "description": {
+            "type": "string",
+            "empty": True,
+            "nullable": True,
+            "required": False,
+        },
         "amount": {"type": "integer", "min": 0, "required": True},
         "remembers": {"type": "boolean", "required": True},
     }
@@ -53,26 +61,41 @@ async def api_paywall_delete(paywall_id):
 
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/invoice", methods=["POST"])
-@api_validate_post_request(schema={"amount": {"type": "integer", "min": 1, "required": True}})
+@api_validate_post_request(
+    schema={"amount": {"type": "integer", "min": 1, "required": True}}
+)
 async def api_paywall_create_invoice(paywall_id):
     paywall = await get_paywall(paywall_id)
 
     if g.data["amount"] < paywall.amount:
-        return jsonify({"message": f"Minimum amount is {paywall.amount} sat."}), HTTPStatus.BAD_REQUEST
+        return (
+            jsonify({"message": f"Minimum amount is {paywall.amount} sat."}),
+            HTTPStatus.BAD_REQUEST,
+        )
 
     try:
-        amount = g.data["amount"] if g.data["amount"] > paywall.amount else paywall.amount
+        amount = (
+            g.data["amount"] if g.data["amount"] > paywall.amount else paywall.amount
+        )
         payment_hash, payment_request = await create_invoice(
-            wallet_id=paywall.wallet, amount=amount, memo=f"{paywall.memo}", extra={"tag": "paywall"}
+            wallet_id=paywall.wallet,
+            amount=amount,
+            memo=f"{paywall.memo}",
+            extra={"tag": "paywall"},
         )
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify({"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.CREATED
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.CREATED,
+    )
 
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
-@api_validate_post_request(schema={"payment_hash": {"type": "string", "empty": False, "required": True}})
+@api_validate_post_request(
+    schema={"payment_hash": {"type": "string", "empty": False, "required": True}}
+)
 async def api_paywal_check_invoice(paywall_id):
     paywall = await get_paywall(paywall_id)
 
@@ -90,6 +113,9 @@ async def api_paywal_check_invoice(paywall_id):
         payment = await wallet.get_payment(g.data["payment_hash"])
         await payment.set_pending(False)
 
-        return jsonify({"paid": True, "url": paywall.url, "remembers": paywall.remembers}), HTTPStatus.OK
+        return (
+            jsonify({"paid": True, "url": paywall.url, "remembers": paywall.remembers}),
+            HTTPStatus.OK,
+        )
 
     return jsonify({"paid": False}), HTTPStatus.OK

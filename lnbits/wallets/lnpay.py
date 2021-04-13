@@ -6,7 +6,13 @@ from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
 from quart import request
 
-from .base import StatusResponse, InvoiceResponse, PaymentResponse, PaymentStatus, Wallet
+from .base import (
+    StatusResponse,
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    Wallet,
+)
 
 
 class LNPayWallet(Wallet):
@@ -18,10 +24,11 @@ class LNPayWallet(Wallet):
         self.wallet_key = getenv("LNPAY_WALLET_KEY") or getenv("LNPAY_ADMIN_KEY")
         self.auth = {"X-Api-Key": getenv("LNPAY_API_KEY")}
 
-    def status(self) -> StatusResponse:
+    async def status(self) -> StatusResponse:
         url = f"{self.endpoint}/wallet/{self.wallet_key}"
         try:
-            r = httpx.get(url, headers=self.auth, timeout=60)
+            async with httpx.AsyncClient() as client:
+                r = await client.get(url, headers=self.auth, timeout=60)
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{url}'", 0)
 
@@ -31,12 +38,13 @@ class LNPayWallet(Wallet):
         data = r.json()
         if data["statusType"]["name"] != "active":
             return StatusResponse(
-                f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}", 0
+                f"Wallet {data['user_label']} (data['id']) not active, but {data['statusType']['name']}",
+                0,
             )
 
         return StatusResponse(None, data["balance"] * 1000)
 
-    def create_invoice(
+    async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
@@ -48,12 +56,13 @@ class LNPayWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        r = httpx.post(
-            f"{self.endpoint}/wallet/{self.wallet_key}/invoice",
-            headers=self.auth,
-            json=data,
-            timeout=60,
-        )
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/wallet/{self.wallet_key}/invoice",
+                headers=self.auth,
+                json=data,
+                timeout=60,
+            )
         ok, checking_id, payment_request, error_message = (
             r.status_code == 201,
             None,
@@ -67,18 +76,21 @@ class LNPayWallet(Wallet):
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
-    def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        r = httpx.post(
-            f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
-            headers=self.auth,
-            json={"payment_request": bolt11},
-            timeout=180,
-        )
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
+                headers=self.auth,
+                json={"payment_request": bolt11},
+                timeout=180,
+            )
 
         try:
             data = r.json()
         except:
-            return PaymentResponse(False, None, 0, None, f"Got invalid JSON: {r.text[:200]}")
+            return PaymentResponse(
+                False, None, 0, None, f"Got invalid JSON: {r.text[:200]}"
+            )
 
         if r.is_error:
             return PaymentResponse(False, None, 0, None, data["message"])
@@ -88,14 +100,15 @@ class LNPayWallet(Wallet):
         preimage = data["lnTx"]["payment_preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
-    def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return self.get_payment_status(checking_id)
+    async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
+        return await self.get_payment_status(checking_id)
 
-    def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        r = httpx.get(
-            url=f"{self.endpoint}/lntx/{checking_id}?fields=settled",
-            headers=self.auth,
-        )
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                url=f"{self.endpoint}/lntx/{checking_id}?fields=settled",
+                headers=self.auth,
+            )
 
         if r.is_error:
             return PaymentStatus(None)
@@ -115,7 +128,11 @@ class LNPayWallet(Wallet):
         except json.decoder.JSONDecodeError:
             print(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
             data = None
-        if type(data) is not dict or "event" not in data or data["event"].get("name") != "wallet_receive":
+        if (
+            type(data) is not dict
+            or "event" not in data
+            or data["event"].get("name") != "wallet_receive"
+        ):
             return "", HTTPStatus.NO_CONTENT
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]

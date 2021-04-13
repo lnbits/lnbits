@@ -40,7 +40,11 @@ class Wallet(NamedTuple):
         hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
         linking_key = hmac.digest(hashing_key, domain.encode("utf-8"), "sha256")
 
-        return SigningKey.from_string(linking_key, curve=SECP256k1, hashfunc=hashlib.sha256,)
+        return SigningKey.from_string(
+            linking_key,
+            curve=SECP256k1,
+            hashfunc=hashlib.sha256,
+        )
 
     async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
         from .crud import get_wallet_payment
@@ -54,12 +58,12 @@ class Wallet(NamedTuple):
         pending: bool = False,
         outgoing: bool = True,
         incoming: bool = True,
-        exclude_uncheckable: bool = False
+        exclude_uncheckable: bool = False,
     ) -> List["Payment"]:
-        from .crud import get_wallet_payments
+        from .crud import get_payments
 
-        return await get_wallet_payments(
-            self.id,
+        return await get_payments(
+            wallet_id=self.id,
             complete=complete,
             pending=pending,
             outgoing=outgoing,
@@ -123,7 +127,9 @@ class Payment(NamedTuple):
 
     @property
     def is_uncheckable(self) -> bool:
-        return self.checking_id.startswith("temp_") or self.checking_id.startswith("internal_")
+        return self.checking_id.startswith("temp_") or self.checking_id.startswith(
+            "internal_"
+        )
 
     async def set_pending(self, pending: bool) -> None:
         from .crud import update_payment_status
@@ -135,11 +141,18 @@ class Payment(NamedTuple):
             return
 
         if self.is_out:
-            pending = WALLET.get_payment_status(self.checking_id)
+            status = await WALLET.get_payment_status(self.checking_id)
         else:
-            pending = WALLET.get_invoice_status(self.checking_id)
+            status = await WALLET.get_invoice_status(self.checking_id)
 
-        await self.set_pending(pending.pending)
+        if self.is_out and status.failed:
+            print(f" - deleting outgoing failed payment {self.checking_id}: {status}")
+            await self.delete()
+        elif not status.pending:
+            print(
+                f" - marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
+            )
+            await self.set_pending(status.pending)
 
     async def delete(self) -> None:
         from .crud import delete_payment

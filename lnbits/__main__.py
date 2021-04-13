@@ -10,7 +10,14 @@ from .app import create_app
 
 app = create_app()
 
-from .settings import LNBITS_SITE_TITLE, SERVICE_FEE, DEBUG, LNBITS_DATA_FOLDER, WALLET, LNBITS_COMMIT
+from .settings import (
+    LNBITS_SITE_TITLE,
+    SERVICE_FEE,
+    DEBUG,
+    LNBITS_DATA_FOLDER,
+    WALLET,
+    LNBITS_COMMIT,
+)
 
 print(
     f"""Starting LNbits with

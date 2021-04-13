@@ -31,7 +31,9 @@ async def get_amilks(wallet_ids: Union[str, List[str]]) -> List[AMilk]:
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
-    rows = await db.fetchall(f"SELECT * FROM amilks WHERE wallet IN ({q})", (*wallet_ids,))
+    rows = await db.fetchall(
+        f"SELECT * FROM amilks WHERE wallet IN ({q})", (*wallet_ids,)
+    )
 
     return [AMilk(**row) for row in rows]
 

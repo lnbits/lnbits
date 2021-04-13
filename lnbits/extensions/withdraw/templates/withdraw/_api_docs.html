@@ -22,8 +22,8 @@
         <code>[&lt;withdraw_link_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}withdraw/api/v1/links -H
-          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+          >curl -X GET {{ request.url_root }}api/v1/links -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -49,9 +49,8 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root
-          }}withdraw/api/v1/links/&lt;withdraw_id&gt; -H "X-Api-Key: {{
-          g.user.wallets[0].inkey }}"
+          >curl -X GET {{ request.url_root }}api/v1/links/&lt;withdraw_id&gt; -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -79,8 +78,8 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}withdraw/api/v1/links -d
-          '{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;,
+          >curl -X POST {{ request.url_root }}api/v1/links -d '{"title":
+          &lt;string&gt;, "min_withdrawable": &lt;integer&gt;,
           "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
@@ -115,9 +114,8 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X PUT {{ request.url_root
-          }}withdraw/api/v1/links/&lt;withdraw_id&gt; -d '{"title":
-          &lt;string&gt;, "min_withdrawable": &lt;integer&gt;,
+          >curl -X PUT {{ request.url_root }}api/v1/links/&lt;withdraw_id&gt; -d
+          '{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;,
           "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
@@ -131,7 +129,6 @@
     dense
     expand-separator
     label="Delete a withdraw link"
-    class="q-pb-md"
   >
     <q-card>
       <q-card-section>
@@ -145,9 +142,56 @@
         <code></code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.url_root
-          }}withdraw/api/v1/links/&lt;withdraw_id&gt; -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+          >curl -X DELETE {{ request.url_root }}api/v1/links/&lt;withdraw_id&gt;
+          -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get hash check (for captchas to prevent milking)"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /withdraw/api/v1/links/&lt;the_hash&gt;/&lt;lnurl_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code>{"status": &lt;bool&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root
+          }}api/v1/links/&lt;the_hash&gt;/&lt;lnurl_id&gt; -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get image to embed"
+    class="q-pb-md"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /withdraw/img/&lt;lnurl_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}/withdraw/img/&lt;lnurl_id&gt;"
         </code>
       </q-card-section>
     </q-card>

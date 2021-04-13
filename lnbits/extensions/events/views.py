@@ -23,12 +23,16 @@ async def display(event_id):
 
     if event.amount_tickets < 1:
         return await render_template(
-            "events/error.html", event_name=event.name, event_error="Sorry, tickets are sold out :("
+            "events/error.html",
+            event_name=event.name,
+            event_error="Sorry, tickets are sold out :(",
         )
     datetime_object = datetime.strptime(event.closing_date, "%Y-%m-%d").date()
     if date.today() > datetime_object:
         return await render_template(
-            "events/error.html", event_name=event.name, event_error="Sorry, ticket closing date has passed :("
+            "events/error.html",
+            event_name=event.name,
+            event_error="Sorry, ticket closing date has passed :(",
         )
 
     return await render_template(
@@ -51,7 +55,10 @@ async def ticket(ticket_id):
         abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
 
     return await render_template(
-        "events/ticket.html", ticket_id=ticket_id, ticket_name=event.name, ticket_info=event.info
+        "events/ticket.html",
+        ticket_id=ticket_id,
+        ticket_name=event.name,
+        ticket_info=event.info,
     )
 
 
@@ -62,5 +69,8 @@ async def register(event_id):
         abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
 
     return await render_template(
-        "events/register.html", event_id=event_id, event_name=event.name, wallet_id=event.wallet
+        "events/register.html",
+        event_id=event_id,
+        event_name=event.name,
+        wallet_id=event.wallet,
     )

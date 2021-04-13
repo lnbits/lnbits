@@ -17,8 +17,8 @@
         <code>[&lt;paywall_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}paywall/api/v1/paywalls -H
-          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+          >curl -X GET {{ request.url_root }}api/v1/paywalls -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -48,11 +48,11 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}paywall/api/v1/paywalls -d
-          '{"url": &lt;string&gt;, "memo": &lt;string&gt;, "description":
-          &lt;string&gt;, "amount": &lt;integer&gt;, "remembers":
-          &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key:
-          {{ g.user.wallets[0].adminkey }}"
+          >curl -X POST {{ request.url_root }}api/v1/paywalls -d '{"url":
+          &lt;string&gt;, "memo": &lt;string&gt;, "description": &lt;string&gt;,
+          "amount": &lt;integer&gt;, "remembers": &lt;boolean&gt;}' -H
+          "Content-type: application/json" -H "X-Api-Key: {{
+          g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -81,7 +81,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.url_root
-          }}paywall/api/v1/paywalls/&lt;paywall_id&gt;/invoice -d '{"amount":
+          }}api/v1/paywalls/&lt;paywall_id&gt;/invoice -d '{"amount":
           &lt;integer&gt;}' -H "Content-type: application/json"
         </code>
       </q-card-section>
@@ -112,7 +112,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.url_root
-          }}paywall/api/v1/paywalls/&lt;paywall_id&gt;/check_invoice -d
+          }}api/v1/paywalls/&lt;paywall_id&gt;/check_invoice -d
           '{"payment_hash": &lt;string&gt;}' -H "Content-type: application/json"
         </code>
       </q-card-section>
@@ -138,7 +138,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.url_root
-          }}paywall/api/v1/paywalls/&lt;paywall_id&gt; -H "X-Api-Key: {{
+          }}api/v1/paywalls/&lt;paywall_id&gt; -H "X-Api-Key: {{
           g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>

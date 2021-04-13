@@ -26,7 +26,10 @@ from lnbits.core import update_user_extension
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users():
     user_id = g.wallet.user
-    return jsonify([user._asdict() for user in await get_usermanager_users(user_id)]), HTTPStatus.OK
+    return (
+        jsonify([user._asdict() for user in await get_usermanager_users(user_id)]),
+        HTTPStatus.OK,
+    )
 
 
 @usermanager_ext.route("/api/v1/users", methods=["POST"])
@@ -39,7 +42,9 @@ async def api_usermanager_users():
     }
 )
 async def api_usermanager_users_create():
-    user = await create_usermanager_user(g.data["user_name"], g.data["wallet_name"], g.data["admin_id"])
+    user = await create_usermanager_user(
+        g.data["user_name"], g.data["wallet_name"], g.data["admin_id"]
+    )
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 
@@ -69,7 +74,9 @@ async def api_usermanager_activate_extension():
     user = await get_user(g.data["userid"])
     if not user:
         return jsonify({"message": "no such user"}), HTTPStatus.NOT_FOUND
-    update_user_extension(user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"])
+    update_user_extension(
+        user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"]
+    )
     return jsonify({"extension": "updated"}), HTTPStatus.CREATED
 
 
@@ -80,7 +87,12 @@ async def api_usermanager_activate_extension():
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallets():
     user_id = g.wallet.user
-    return jsonify([wallet._asdict() for wallet in await get_usermanager_wallets(user_id)]), HTTPStatus.OK
+    return (
+        jsonify(
+            [wallet._asdict() for wallet in await get_usermanager_wallets(user_id)]
+        ),
+        HTTPStatus.OK,
+    )
 
 
 @usermanager_ext.route("/api/v1/wallets", methods=["POST"])
@@ -93,7 +105,9 @@ async def api_usermanager_wallets():
     }
 )
 async def api_usermanager_wallets_create():
-    user = await create_usermanager_wallet(g.data["user_id"], g.data["wallet_name"], g.data["admin_id"])
+    user = await create_usermanager_wallet(
+        g.data["user_id"], g.data["wallet_name"], g.data["admin_id"]
+    )
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 

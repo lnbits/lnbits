@@ -52,13 +52,8 @@ window.LNbits = {
     getWallet: function (wallet) {
       return this.request('get', '/api/v1/wallet', wallet.inkey)
     },
-    getPayments: function (wallet, checkPending) {
-      var query_param = checkPending ? '?check_pending' : ''
-      return this.request(
-        'get',
-        ['/api/v1/payments', query_param].join(''),
-        wallet.inkey
-      )
+    getPayments: function (wallet) {
+      return this.request('get', '/api/v1/payments', wallet.inkey)
     },
     getPayment: function (wallet, paymentHash) {
       return this.request(
@@ -93,7 +88,15 @@ window.LNbits = {
   map: {
     extension: function (data) {
       var obj = _.object(
-        ['code', 'isValid', 'name', 'shortDescription', 'icon'],
+        [
+          'code',
+          'isValid',
+          'name',
+          'shortDescription',
+          'icon',
+          'contributors',
+          'hidden'
+        ],
         data
       )
       obj.url = ['/', obj.code, '/'].join('')
@@ -308,6 +311,9 @@ window.windowMixin = {
         window.extensions
           .map(function (data) {
             return window.LNbits.map.extension(data)
+          })
+          .filter(function (obj) {
+            return !obj.hidden
           })
           .map(function (obj) {
             if (user) {

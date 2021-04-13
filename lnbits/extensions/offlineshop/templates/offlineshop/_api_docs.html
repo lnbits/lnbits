@@ -1,0 +1,147 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="How to use"
+  :content-inset-level="0.5"
+>
+  <q-card>
+    <q-card-section>
+      <ol>
+        <li>Register items.</li>
+        <li>
+          Print QR codes and paste them on your store, your menu, somewhere,
+          somehow.
+        </li>
+        <li>
+          Clients scan the QR codes and get information about the items plus the
+          price on their phones directly (they must have internet)
+        </li>
+        <li>
+          Once they decide to pay, they'll get an invoice on their phones
+          automatically
+        </li>
+        <li>
+          When the payment is confirmed, a confirmation code will be issued for
+          them.
+        </li>
+      </ol>
+      <p>
+        The confirmation codes are words from a predefined sequential word list.
+        Each new payment bumps the words sequence by 1. So you can check the
+        confirmation codes manually by just looking at them.
+      </p>
+      <p>
+        For example, if your wordlist is
+        <code>[apple, banana, coconut]</code> the first purchase will be
+        <code>apple</code>, the second <code>banana</code> and so on. When it
+        gets to the end it starts from the beginning again.
+      </p>
+      <p>Powered by LNURL-pay.</p>
+    </q-card-section>
+  </q-card>
+</q-expansion-item>
+
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create item (a shop will be created automatically based on the wallet you use)"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">POST</span></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 201 OK</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root
+          }}/offlineshop/api/v1/offlineshop/items -H "Content-Type:
+          application/json" -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -d
+          '{"name": &lt;string&gt;, "description": &lt;string&gt;, "image":
+          &lt;data-uri string&gt;, "price": &lt;integer&gt;, "unit": &lt;"sat"
+          or "USD"&gt;}'
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get the shop data along with items"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">GET</span></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code
+          >{"id": &lt;integer&gt;, "wallet": &lt;string&gt;, "wordlist":
+          &lt;string&gt;, "items": [{"id": &lt;integer&gt;, "name":
+          &lt;string&gt;, "description": &lt;string&gt;, "image":
+          &lt;string&gt;, "enabled": &lt;boolean&gt;, "price": &lt;integer&gt;,
+          "unit": &lt;string&gt;, "lnurl": &lt;string&gt;}, ...]}&lt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}/offlineshop/api/v1/offlineshop -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Update item (all fields must be sent again)"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">PUT</span></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root
+          }}/offlineshop/api/v1/offlineshop/items/&lt;item_id&gt; -H
+          "Content-Type: application/json" -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}" -d '{"name": &lt;string&gt;,
+          "description": &lt;string&gt;, "image": &lt;data-uri string&gt;,
+          "price": &lt;integer&gt;, "unit": &lt;"sat" or "USD"&gt;}'
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Delete item">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">DELETE</span></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 200 OK</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root
+          }}/offlineshop/api/v1/offlineshop/items/&lt;item_id&gt; -H "X-Api-Key:
+          {{ g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>

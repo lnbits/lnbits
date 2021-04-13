@@ -24,10 +24,12 @@ quart-trio = "*"
 trio = "==0.16.0"
 hypercorn = {extras = ["trio"], version = "*"}
 sqlalchemy-aio = "*"
+pyqrcode = "*"
+pypng = "*"
 
 [dev-packages]
 black = "==20.8b1"
 pytest = "*"
 pytest-cov = "*"
-mypy = "==0.761"
+mypy = "latest"
 pytest-trio = "*"

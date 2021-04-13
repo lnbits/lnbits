@@ -16,5 +16,7 @@ async def index():
 
 @paywall_ext.route("/<paywall_id>")
 async def display(paywall_id):
-    paywall = await get_paywall(paywall_id) or abort(HTTPStatus.NOT_FOUND, "Paywall does not exist.")
+    paywall = await get_paywall(paywall_id) or abort(
+        HTTPStatus.NOT_FOUND, "Paywall does not exist."
+    )
     return await render_template("paywall/display.html", paywall=paywall)

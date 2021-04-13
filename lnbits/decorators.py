@@ -77,11 +77,15 @@ def check_user_exists(param: str = "usr"):
     return wrap
 
 
-def validate_uuids(params: List[str], *, required: Union[bool, List[str]] = False, version: int = 4):
+def validate_uuids(
+    params: List[str], *, required: Union[bool, List[str]] = False, version: int = 4
+):
     def wrap(view):
         @wraps(view)
         async def wrapped_view(**kwargs):
-            query_params = {param: request.args.get(param, type=str) for param in params}
+            query_params = {
+                param: request.args.get(param, type=str) for param in params
+            }
 
             for param, value in query_params.items():
                 if not value and (required is True or (required and param in required)):

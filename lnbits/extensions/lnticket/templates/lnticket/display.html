@@ -142,7 +142,7 @@
             name: self.formDialog.data.name,
             email: self.formDialog.data.email,
             ltext: self.formDialog.data.text,
-            sats: self.formDialog.data.sats,
+            sats: self.formDialog.data.sats
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -171,7 +171,6 @@
                       paymentReq: null
                     }
                     dismissMsg()
-                    
 
                     self.formDialog.data.name = ''
                     self.formDialog.data.email = ''
@@ -179,9 +178,8 @@
                     self.$q.notify({
                       type: 'positive',
                       message: 'Sent, thank you!',
-                      icon: 'thumb_up',
+                      icon: 'thumb_up'
                     })
-
                   }
                 })
                 .catch(function (error) {

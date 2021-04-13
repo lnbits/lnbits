@@ -58,7 +58,20 @@
                   type="a"
                   :href="props.row.withdraw_url"
                   target="_blank"
-                ></q-btn>
+                >
+                  <q-tooltip> shareable link </q-tooltip></q-btn
+                >
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="web_asset"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'/withdraw/img/' + props.row.id"
+                  target="_blank"
+                  ><q-tooltip> embeddable image </q-tooltip></q-btn
+                >
                 <q-btn
                   unelevated
                   dense
@@ -66,7 +79,8 @@
                   icon="visibility"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
-                ></q-btn>
+                  ><q-tooltip> view LNURL </q-tooltip></q-btn
+                >
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}

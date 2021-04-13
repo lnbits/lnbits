@@ -3,7 +3,9 @@ from lnbits.db import Database
 
 db = Database("ext_captcha")
 
-captcha_ext: Blueprint = Blueprint("captcha", __name__, static_folder="static", template_folder="templates")
+captcha_ext: Blueprint = Blueprint(
+    "captcha", __name__, static_folder="static", template_folder="templates"
+)
 
 
 from .views_api import *  # noqa
