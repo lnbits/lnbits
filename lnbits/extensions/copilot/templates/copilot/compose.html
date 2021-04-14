@@ -14,12 +14,14 @@
     class="fixed-bottom-right"
   ></video>
   <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
+  {% raw %}
   <qrcode
     style="width: 20%; z-index: 9999"
     :value="{{ lnurl }}"
     :options="{width:150}"
     class="rounded-borders fixed-top-right"
   ></qrcode>
+  {% endraw %}
   <q-btn
     color="primary"
     @click="reconnect"
