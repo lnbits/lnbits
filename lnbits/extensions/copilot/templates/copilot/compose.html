@@ -1,17 +1,32 @@
-{% extends "public.html" %} {% block page %}<q-page
-  >fdgasdf
-
+{% extends "public.html" %} {% block page %}<q-page>
+  <iframe
+    width="100%"
+    height="100%"
+    id="iframe_main"
+    src="/"
+    class="fixed-bottom-left"
+  >
+  </iframe>
   <video
     autoplay="true"
     id="videoElement"
     style="width: 100%"
-    class="fixed-top-left"
+    class="fixed-bottom-right"
   ></video>
-  <img src="" />
-  <img
-    src="/copilot/static/confetti.gif"
-    style="width: 100%"
-    class="fixed-top-left"
+  <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
+
+  <qrcode
+    style="width: 20%; z-index: 9999"
+    :value="'{{ lnurl }}'"
+    :options="{width:222}"
+    class="rounded-borders fixed-top-right"
+  ></qrcode>
+
+  <q-btn
+    color="primary"
+    @click="reconnect"
+    label="Reconnect"
+    class="fixed-bottom-left"
   />
 </q-page>
 {% endblock %} {% block scripts %}
@@ -39,6 +54,10 @@
       return {}
     },
     methods: {
+      openURL: function (url) {
+        console.log(url)
+        return Quasar.utils.openURL(url)
+      },
       initCamera() {
         var video = document.querySelector('#videoElement')
 
@@ -52,6 +71,88 @@
               console.log('Something went wrong!')
             })
         }
+      },
+      animation1: function () {
+        self = this
+        setTimeout(function () {
+          setInterval(function () {
+            self.connection.send('')
+          }, 1000)
+        }, 2000)
+      },
+      reconnect: function () {
+        this.connection.addEventListener('open', function (event) {
+          this.connection.send('')
+        })
+
+        this.connection.addEventListener('message', function (event) {
+          res = event.data.split('-')
+          console.log(res[1])
+          if (res[0] != this.oldRes) {
+            this.oldRes = res[0]
+            if (res[1] == 'rocket') {
+              document.getElementById('animations').style.width = '50%'
+              document.getElementById('animations').src =
+                '/copilot/static/rocket.gif'
+              setTimeout(function () {
+                document.getElementById('animations').src = ''
+              }, 5000)
+            }
+            if (res[1] == 'face') {
+              document.getElementById('animations').style.width = '50%'
+              document.getElementById('animations').src =
+                '/copilot/static/face.gif'
+              setTimeout(function () {
+                document.getElementById('animations').src = ''
+              }, 5000)
+            }
+            if (res[1] == 'bitcoin') {
+              document.getElementById('animations').style.width = '30%'
+              document.getElementById('animations').src =
+                '/copilot/static/bitcoin.gif'
+              setTimeout(function () {
+                document.getElementById('animations').src = ''
+              }, 5000)
+            }
+            if (res[1] == 'confetti') {
+              document.getElementById('animations').style.width = '100%'
+              document.getElementById('animations').src =
+                '/copilot/static/confetti.gif'
+              setTimeout(function () {
+                document.getElementById('animations').src = ''
+              }, 5000)
+            }
+            if (res[1] == 'martijn') {
+              document.getElementById('animations').style.width = '50%'
+              document.getElementById('animations').src =
+                '/copilot/static/martijn.gif'
+              setTimeout(function () {
+                document.getElementById('animations').src = ''
+              }, 5000)
+            }
+            if (res[1] == 'rick') {
+              document.getElementById('animations').style.width = '50%'
+              document.getElementById('animations').src =
+                '/copilot/static/rick.gif'
+              setTimeout(function () {
+                document.getElementById('animations').src = ''
+              }, 5000)
+            }
+            if (res[1] == 'true') {
+              document.getElementById('videoElement').style.width = '20%'
+            }
+            if (res[1] == 'false') {
+              document.getElementById('videoElement').style.width = '100%'
+            }
+            if (res[1].substring(0, 3) == 'htt') {
+              document.getElementById('iframe_main').src = res[1]
+            }
+          }
+        })
+
+        this.connection.addEventListener('close', function (event) {
+          console.log('The connection has been closed')
+        })
       }
     },
     mounted() {
@@ -59,20 +160,98 @@
     },
     created: function () {
       console.log('{{ copilot.id }}')
-
-      console.log('Starting connection to WebSocket Server')
-      this.connection = new WebSocket(
-        'wss://' + document.domain + ':' + location.port + '/ws'
-      )
-
-      this.connection.onmessage = function (event) {
-        console.log(event)
+      if (location.protocol !== 'http:') {
+        this.connection = new WebSocket(
+          'wss://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/compose/{{ copilot.id }}'
+        )
+      } else {
+        this.connection = new WebSocket(
+          'ws://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/compose/{{ copilot.id }}'
+        )
       }
 
-      this.connection.onopen = function (event) {
-        console.log(event)
-        console.log('Successfully connected to the echo websocket server...')
-      }
+      this.connection.addEventListener('open', function (event) {
+        this.connection.send('')
+      })
+
+      this.connection.addEventListener('message', function (event) {
+        res = event.data.split('-')
+        console.log(res[1])
+        if (res[0] != this.oldRes) {
+          this.oldRes = res[0]
+          if (res[1] == 'rocket') {
+            document.getElementById('animations').style.width = '50%'
+            document.getElementById('animations').src =
+              '/copilot/static/rocket.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'face') {
+            document.getElementById('animations').style.width = '50%'
+            document.getElementById('animations').src =
+              '/copilot/static/face.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'bitcoin') {
+            document.getElementById('animations').style.width = '30%'
+            document.getElementById('animations').src =
+              '/copilot/static/bitcoin.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'confetti') {
+            document.getElementById('animations').style.width = '100%'
+            document.getElementById('animations').src =
+              '/copilot/static/confetti.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'martijn') {
+            document.getElementById('animations').style.width = '50%'
+            document.getElementById('animations').src =
+              '/copilot/static/martijn.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'rick') {
+            document.getElementById('animations').style.width = '50%'
+            document.getElementById('animations').src =
+              '/copilot/static/rick.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'true') {
+            document.getElementById('videoElement').style.width = '20%'
+          }
+          if (res[1] == 'false') {
+            document.getElementById('videoElement').style.width = '100%'
+          }
+          if (res[1].substring(0, 3) == 'htt') {
+            document.getElementById('iframe_main').src = res[1]
+          }
+        }
+      })
+
+      this.connection.addEventListener('close', function (event) {
+        console.log('The connection has been closed')
+      })
+      var animation1 = this.animation1
+      animation1()
     }
   })
 </script>

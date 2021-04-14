@@ -15,6 +15,7 @@ from quart import jsonify
 async def create_copilot(
     title: str,
     user: str,
+    wallet: str,
     animation1: Optional[str] = None,
     animation2: Optional[str] = None,
     animation3: Optional[str] = None,
@@ -36,6 +37,7 @@ async def create_copilot(
         INSERT INTO copilots (
             id,
             user,
+            wallet,
             title,
             animation1,
             animation2,
@@ -52,11 +54,12 @@ async def create_copilot(
             lnurl_title,
             amount_made
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             copilot_id,
             user,
+            wallet,
             title,
             animation1,
             animation2,

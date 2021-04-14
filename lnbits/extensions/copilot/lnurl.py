@@ -9,19 +9,19 @@ from . import copilot_ext
 from .crud import get_copilot
 
 
-@copilot_ext.route("/lnurl/<copilot_id>", methods=["GET"])
-async def lnurl_response(copilot_id):
-    copilot = await get_copilot(copilot_id)
-    if not copilot:
+@copilot_ext.route("/lnurl/<cp_id>", methods=["GET"])
+async def lnurl_response(cp_id):
+    cp = await get_copilot(cp_id)
+    if not cp:
         return jsonify({"status": "ERROR", "reason": "Copilot not found."})
 
     resp = LnurlPayResponse(
         callback=url_for(
-            "copilot.lnurl_callback", _external=True
+            "copilot.lnurl_callback", cp_id=cp_id, _external=True
         ),
-        min_sendable=copilot.amount,
-        max_sendable=copilot.amount,
-        metadata=copilot.lnurl_title,
+        min_sendable=10,
+        max_sendable=50000,
+        metadata=cp.lnurl_title,
     )
 
     params = resp.dict()
@@ -30,24 +30,27 @@ async def lnurl_response(copilot_id):
     return jsonify(params)
 
 
-@copilot_ext.route("/lnurl/cb", methods=["GET"])
-async def lnurl_callback():
+@copilot_ext.route("/lnurl/cb/<cp_id>", methods=["GET"])
+async def lnurl_callback(cp_id):
+    cp = await get_copilot(cp_id)
+    if not cp:
+        return jsonify({"status": "ERROR", "reason": "Copilot not found."})
 
     amount_received = int(request.args.get("amount"))
 
-    if amount_received < track.amount:
+    if amount_received < 10:
         return (
             jsonify(
                 LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum {math.floor(track.min_sendable)}."
+                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum 10 sats."
                 ).dict()
             ),
         )
-    elif track.max_sendable < amount_received:
+    elif 50000 > amount_received/1000:
         return (
             jsonify(
                 LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum {math.floor(track.max_sendable)}."
+                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum 50000."
                 ).dict()
             ),
         )
@@ -60,21 +63,19 @@ async def lnurl_callback():
             ).dict()
         )
 
-    copilot = await get_copilot_by_track(track_id)
-
     payment_hash, payment_request = await create_invoice(
-        wallet_id=copilot.wallet,
+        wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
-        memo=await track.fullname(),
+        memo=cp.lnurl_title,
         description_hash=hashlib.sha256(
-            (await track.lnurlpay_metadata()).encode("utf-8")
+            (cp.lnurl_title).encode("utf-8")
         ).digest(),
-        extra={"tag": "copilot", "track": track.id, "comment": comment},
+        extra={"tag": "copilot", "comment": comment},
     )
 
     if amount_received < track.price_msat:
         success_action = None
-    ecopilote:
+    else:
         success_action = track.success_action(payment_hash)
 
     resp = LnurlPayActionResponse(
@@ -82,5 +83,8 @@ async def lnurl_callback():
         success_action=success_action,
         routes=[],
     )
-
+    socket_sendererer = app.socket_sendererer()   
+    async with socket_sendererer.websocket('/ws') as the_websocket:
+        await the_websocket.send("pay{payment_hash}")
+    
     return jsonify(resp.dict())

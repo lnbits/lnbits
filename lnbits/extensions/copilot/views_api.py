@@ -6,6 +6,8 @@ import httpx
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
+from . import copilot_ext
+
 from lnbits.extensions.copilot import copilot_ext
 from .crud import (
     create_copilot,
@@ -24,12 +26,13 @@ from .crud import (
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
+        "wallet": {"type": "string", "empty": False, "required": True},
         "animation1": {"type": "string", "required": False},
         "animation2": {"type": "string", "required": False},
         "animation3": {"type": "string", "required": False},
-        "animation1threshold": {"type": "integer", "required": False},
-        "animation2threshold": {"type": "integer", "required": False},
-        "animation3threshold": {"type": "integer", "required": False},
+        "animation1threshold": {"type": "string", "required": False},
+        "animation2threshold": {"type": "string", "required": False},
+        "animation3threshold": {"type": "string", "required": False},
         "animation1webhook": {"type": "string", "required": False},
         "animation2webhook": {"type": "string", "required": False},
         "animation3webhook": {"type": "string", "required": False},

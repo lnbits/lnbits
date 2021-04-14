@@ -10,7 +10,7 @@
             dense
             @click="openCompose"
             icon="face"
-            style="font-size: 100px"
+            style="font-size: 80px"
           ></q-btn>
         </center>
       </div>
@@ -23,11 +23,11 @@
       <div class="col">
         <div class="row">
           <div class="col">
-            <q-toggle
-              v-model="formDialogCopilot.fullscreen_cam"
-              size="xl"
-              icon="face"
-              label="Fullscreen"
+            <q-btn
+              class="q-mt-sm q-ml-sm"
+              color="primary"
+              @click="fullscreenToggle"
+              label="Webcam size"
             />
           </div>
           <div class="col">
@@ -36,24 +36,71 @@
               dense
               outlined
               bottom-slots
-              v-model="text"
+              v-model="iframe"
               label="iframe url"
             >
               <template v-slot:after>
-                <q-btn round dense flat icon="send" />
+                <q-btn
+                  round
+                  dense
+                  flat
+                  @click="iframeChange(iframe)"
+                  icon="send"
+                />
               </template>
             </q-input>
           </div>
         </div>
         <div class="row q-pa-sm">
           <div class="col">
-            <q-btn color="primary" label="Animation 1" />
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('rocket')"
+              label="rocket"
+            />
           </div>
           <div class="col">
-            <q-btn color="primary" label="Animation 2" />
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('confetti')"
+              label="confetti"
+            />
           </div>
           <div class="col">
-            <q-btn color="primary" label="Animation 3" />
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('face')"
+              label="face"
+            />
+          </div>
+        </div>
+        <div class="row q-pa-sm">
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('rick')"
+              label="rick"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('martijn')"
+              label="martijn"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('bitcoin')"
+              label="bitcoin"
+            />
           </div>
         </div>
         <div class="column">
@@ -65,9 +112,6 @@
               clearable
               type="textarea"
               label="Notes"
-              :shadow-text="textareaShadowText"
-              @keydown="processTextareaFill"
-              @focus="processTextareaFill"
             ></q-input>
           </div>
           <div class="col">
@@ -93,24 +137,67 @@
     mixins: [windowMixin],
     data() {
       return {
-        newProgress: 0.4,
-        counter: 1,
-        newTimeLeft: '',
-        lnbtc: true,
-        onbtc: false,
-        formDialogCopilot: {
-          fullscreen_cam: true
-        }
+        fullscreen_cam: true,
+        textareaModel: '',
+        iframe: ''
       }
     },
     methods: {
+      iframeChange: function (url) {
+        this.connection.send(String(url))
+      },
+      fullscreenToggle: function () {
+        console.log(this.fullscreen_cam)
+        this.connection.send(String(this.fullscreen_cam))
+        if (this.fullscreen_cam) {
+          this.fullscreen_cam = false
+        } else {
+          this.fullscreen_cam = true
+        }
+      },
       openCompose: function () {
-        let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=900,height=500,left=200,top=200`
+        let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200`
 
         open('../copilot/cp/{{ copilot.id }}', 'test', params)
+      },
+      animationBTN: function (name) {
+        this.connection.send(name)
+      },
+      stfu: function (name) {
+        this.connection.send('')
       }
     },
-    created: function () {}
+    created: function () {
+      console.log('{{ copilot.id }}')
+
+      if (location.protocol == 'https:') {
+        console.log(location.protocol)
+        this.connection = new WebSocket(
+          'wss://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/panel/{{ copilot.id }}'
+        )
+      } else {
+        this.connection = new WebSocket(
+          'ws://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/panel/{{ copilot.id }}'
+        )
+      }
+      this.connection.addEventListener('open', function (event) {})
+
+      this.connection.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data)
+      })
+
+      this.connection.addEventListener('close', function (event) {
+        console.log('The connection has been closed')
+      })
+    }
   })
 </script>
 {% endblock %}

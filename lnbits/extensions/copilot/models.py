@@ -1,12 +1,16 @@
 from sqlite3 import Row
 from typing import NamedTuple
 import time
-
+from quart import url_for
+from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 
 class Copilots(NamedTuple):
     id: str
     user: str
     title: str
+    wallet: str
     animation1: str
     animation2: str
     animation3: str
@@ -28,3 +32,8 @@ class Copilots(NamedTuple):
     @classmethod
     def from_row(cls, row: Row) -> "Copilots":
         return cls(**dict(row))
+
+    @property
+    def lnurl(self) -> Lnurl:
+        url = url_for("copilot.lnurl_response", cp_id=self.id, _external=True)
+        return lnurl_encode(url)
