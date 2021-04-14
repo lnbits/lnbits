@@ -15,11 +15,10 @@
   ></video>
   <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
   <qrcode
-    style="width: 10%: z-index:9999"
+    style="width: 10%; z-index: 9999"
     :value="{{copilot.lnurl}}"
     :options="{width: 800}"
-    class="rounded-borders"
-    class="fixed-top-right"
+    class="rounded-borders fixed-top-right"
   ></qrcode>
   <q-btn
     color="primary"
@@ -85,9 +84,9 @@
     },
     created: function () {
       console.log('{{ copilot.id }}')
-      if (location.protocol !== 'https:') {
+      if (location.protocol !== 'http:') {
         this.connection = new WebSocket(
-          'ws://' +
+          'wss://' +
             document.domain +
             ':' +
             location.port +
@@ -95,7 +94,7 @@
         )
       } else {
         this.connection = new WebSocket(
-          'wss://' +
+          'ws://' +
             document.domain +
             ':' +
             location.port +

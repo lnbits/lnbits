@@ -170,9 +170,9 @@
     created: function () {
       console.log('{{ copilot.id }}')
 
-      if (location.protocol !== 'https:') {
+      if (location.protocol == 'https:') {
         this.connection = new WebSocket(
-          'ws://' +
+          'wss://' +
             document.domain +
             ':' +
             location.port +
@@ -180,7 +180,7 @@
         )
       } else {
         this.connection = new WebSocket(
-          'wss://' +
+          'ws://' +
             document.domain +
             ':' +
             location.port +
