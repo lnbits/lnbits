@@ -47,4 +47,5 @@ async def panel(copilot_id):
     copilot = await get_copilot(copilot_id) or abort(
         HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
-    return await render_template("copilot/panel.html", copilot=copilot)
+    print(copilot.lnurl)
+    return await render_template("copilot/panel.html", copilot=copilot, lnurl=copilot.lnurl)
