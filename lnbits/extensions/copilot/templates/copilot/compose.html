@@ -62,11 +62,7 @@
 
       console.log('Starting connection to WebSocket Server')
       this.connection = new WebSocket(
-        'wss://' +
-          document.domain +
-          ':' +
-          location.port +
-          '/ws/{{ copilot.id }}'
+        'ws://' + document.domain + ':' + location.port + '/ws/{{ copilot.id }}'
       )
 
       this.connection.onmessage = function (event) {
