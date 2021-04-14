@@ -85,14 +85,24 @@
     },
     created: function () {
       console.log('{{ copilot.id }}')
+      if (location.protocol !== 'https:') {
+        this.connection = new WebSocket(
+          'ws://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/compose/{{ copilot.id }}'
+        )
+      } else {
+        this.connection = new WebSocket(
+          'wss://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/compose/{{ copilot.id }}'
+        )
+      }
 
-      this.connection = new WebSocket(
-        'ws://' +
-          document.domain +
-          ':' +
-          location.port +
-          '/copilot/ws/compose/{{ copilot.id }}'
-      )
       this.connection.addEventListener('open', function (event) {
         this.connection.send('')
       })
