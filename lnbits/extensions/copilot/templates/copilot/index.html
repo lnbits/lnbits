@@ -147,6 +147,14 @@
           type="text"
           label="Title"
         ></q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogCopilot.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
 
         <q-expansion-item
           group="api"
@@ -182,7 +190,7 @@
                     filled
                     dense
                     v-model.trim="formDialogCopilot.data.animation1webhook"
-                    type="number"
+                    type="text"
                     label="Webhook"
                   >
                   </q-input>
@@ -218,6 +226,7 @@
                     v-model.trim="formDialogCopilot.data.animation2threshold"
                     type="number"
                     label="From *sats"
+                    :rules="[ val <= formDialogCopilot.data.animation1threshold || 'Must be higher than last']"
                   >
                   </q-input>
                 </div>
@@ -226,7 +235,7 @@
                     filled
                     dense
                     v-model.trim="formDialogCopilot.data.animation2webhook"
-                    type="number"
+                    type="text"
                     label="Webhook"
                   >
                   </q-input>
@@ -262,6 +271,7 @@
                     v-model.trim="formDialogCopilot.data.animation3threshold"
                     type="number"
                     label="From *sats"
+                    :rules="[ val <= formDialogCopilot.data.animation2threshold || 'Must be higher than last']"
                   >
                   </q-input>
                 </div>
@@ -270,7 +280,7 @@
                     filled
                     dense
                     v-model.trim="formDialogCopilot.data.animation3webhook"
-                    type="number"
+                    type="text"
                     label="Webhook"
                   >
                   </q-input>
@@ -409,20 +419,14 @@
           data: {
             show_message: false,
             show_ack: true,
-            title: '',
-            animation1threshold: 0,
-            animation2threshold: 0,
-            animation3threshold: 0,
-            animation1webhook: '',
-            animation2webhook: '',
-            animation3webhook: ''
+            title: ''
           }
         },
         qrCodeDialog: {
           show: false,
           data: null
         },
-        options: ['moon_rocket', 'confetti', 'roller_coaster']
+        options: ['bitcoin', 'confetti', 'rocket', 'face', 'martijn', 'rick']
       }
     },
     methods: {
@@ -437,19 +441,15 @@
       },
       sendFormDataCopilot: function () {
         var self = this
-        var wallet = this.g.user.wallets[0].adminkey
-        var data = this.formDialogCopilot.data
-        console.log(data)
-        data.animation1threshold = parseInt(data.animation1threshold)
-        data.animation1threshold = parseInt(data.animation2threshold)
-        data.animation1threshold = parseInt(data.animation3threshold)
-
-        this.createCopilot(wallet, data)
+        console.log(self.formDialogCopilot.data.animation1threshold)
+        this.createCopilot(
+          self.g.user.wallets[0].adminkey,
+          self.formDialogCopilot.data
+        )
       },
 
       createCopilot: function (wallet, data) {
         var self = this
-
         LNbits.api
           .request('POST', '/copilot/api/v1/copilot', wallet, data)
           .then(function (response) {
