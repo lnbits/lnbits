@@ -24,7 +24,8 @@
         <div class="row">
           <div class="col">
             <q-toggle
-              v-model="formDialogCopilot.fullscreen_cam"
+              v-model="fullscreen_cam"
+              @click="fullscreenToggle"
               size="xl"
               icon="face"
               label="Fullscreen"
@@ -36,24 +37,36 @@
               dense
               outlined
               bottom-slots
-              v-model="text"
+              v-model="iframe"
               label="iframe url"
             >
               <template v-slot:after>
-                <q-btn round dense flat icon="send" />
+                <q-btn round dense flat @click="" icon="send" />
               </template>
             </q-input>
           </div>
         </div>
         <div class="row q-pa-sm">
           <div class="col">
-            <q-btn color="primary" label="Animation 1" />
+            <q-btn
+              color="primary"
+              @click="animationBTN('animation1')"
+              label="Confetti"
+            />
           </div>
           <div class="col">
-            <q-btn color="primary" label="Animation 2" />
+            <q-btn
+              color="primary"
+              @click="animationBTN('animation2')"
+              label="Smiley"
+            />
           </div>
           <div class="col">
-            <q-btn color="primary" label="Animation 3" />
+            <q-btn
+              color="primary"
+              @click="animationBTN('animation3')"
+              label="Rocket"
+            />
           </div>
         </div>
         <div class="column">
@@ -65,9 +78,6 @@
               clearable
               type="textarea"
               label="Notes"
-              :shadow-text="textareaShadowText"
-              @keydown="processTextareaFill"
-              @focus="processTextareaFill"
             ></q-input>
           </div>
           <div class="col">
@@ -93,24 +103,47 @@
     mixins: [windowMixin],
     data() {
       return {
-        newProgress: 0.4,
-        counter: 1,
-        newTimeLeft: '',
-        lnbtc: true,
-        onbtc: false,
-        formDialogCopilot: {
-          fullscreen_cam: true
-        }
+        fullscreen_cam: true,
+        textareaModel: '',
+        iframe: ''
       }
     },
     methods: {
+      fullscreenToggle: function () {
+        this.connection.send(String(fullscreen_cam))
+      },
       openCompose: function () {
         let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=900,height=500,left=200,top=200`
 
         open('../copilot/cp/{{ copilot.id }}', 'test', params)
+      },
+      animationBTN: function (name) {
+        this.connection.send(name)
+      },
+      stfu: function (name) {
+        this.connection.send('')
       }
     },
-    created: function () {}
+    created: function () {
+      console.log('{{ copilot.id }}')
+
+      this.connection = new WebSocket(
+        'ws://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/copilot/ws/panel/{{ copilot.id }}'
+      )
+      this.connection.addEventListener('open', function (event) {})
+
+      this.connection.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data)
+      })
+
+      this.connection.addEventListener('close', function (event) {
+        console.log('The connection has been closed')
+      })
+    }
   })
 </script>
 {% endblock %}

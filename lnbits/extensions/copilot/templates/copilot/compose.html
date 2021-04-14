@@ -1,18 +1,18 @@
-{% extends "public.html" %} {% block page %}<q-page
-  >fdgasdf
-
+{% extends "public.html" %} {% block page %}<q-page>
+  <iframe
+    width="100%"
+    height="100%"
+    src="https://www.w3schools.com"
+    title="W3Schools Free Online Web Tutorials"
+  >
+  </iframe>
   <video
     autoplay="true"
     id="videoElement"
     style="width: 100%"
-    class="fixed-top-left"
+    class="fixed-bottom-right"
   ></video>
-  <img src="" />
-  <img
-    src="/copilot/static/confetti.gif"
-    style="width: 100%"
-    class="fixed-top-left"
-  />
+  <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
 </q-page>
 {% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
@@ -39,6 +39,10 @@
       return {}
     },
     methods: {
+      openURL: function (url) {
+        console.log(url)
+        return Quasar.utils.openURL(url)
+      },
       initCamera() {
         var video = document.querySelector('#videoElement')
 
@@ -52,6 +56,14 @@
               console.log('Something went wrong!')
             })
         }
+      },
+      animation1: function () {
+        self = this
+        setTimeout(function () {
+          setInterval(function () {
+            self.connection.send('')
+          }, 1000)
+        }, 2000)
       }
     },
     mounted() {
@@ -60,19 +72,60 @@
     created: function () {
       console.log('{{ copilot.id }}')
 
-      console.log('Starting connection to WebSocket Server')
       this.connection = new WebSocket(
-        'wss://' + document.domain + ':' + location.port + '/ws'
+        'ws://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/copilot/ws/compose/{{ copilot.id }}'
       )
+      this.connection.addEventListener('open', function (event) {
+        this.connection.send('')
+      })
 
-      this.connection.onmessage = function (event) {
-        console.log(event)
-      }
+      this.connection.addEventListener('message', function (event) {
+        res = event.data.split('-')
 
-      this.connection.onopen = function (event) {
-        console.log(event)
-        console.log('Successfully connected to the echo websocket server...')
-      }
+        if (res[0] != this.oldRes) {
+          this.oldRes = res[0]
+          if (res[1] == 'animation1') {
+            document.getElementById('animations').style.width = '100%'
+            document.getElementById('animations').src =
+              '/copilot/static/confetti.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'animation2') {
+            document.getElementById('animations').style.width = '50%'
+            document.getElementById('animations').src =
+              '/copilot/static/face.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'animation3') {
+            document.getElementById('animations').style.width = '50%'
+            document.getElementById('animations').src =
+              '/copilot/static/rocket.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'true') {
+            document.getElementById('videoElement').style.width = '10%'
+          }
+          if (res[1] == 'false') {
+            document.getElementById('videoElement').style.width = '100%'
+          }
+        }
+      })
+
+      this.connection.addEventListener('close', function (event) {
+        console.log('The connection has been closed')
+      })
+      var animation1 = this.animation1
+      animation1()
     }
   })
 </script>
