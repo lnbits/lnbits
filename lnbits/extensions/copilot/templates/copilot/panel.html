@@ -171,6 +171,7 @@
       console.log('{{ copilot.id }}')
 
       if (location.protocol == 'https:') {
+        console.log(location.protocol)
         this.connection = new WebSocket(
           'wss://' +
             document.domain +
