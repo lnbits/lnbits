@@ -23,12 +23,11 @@
       <div class="col">
         <div class="row">
           <div class="col">
-            <q-toggle
-              v-model="fullscreen_cam"
+            <q-btn
+              class="q-mt-sm q-ml-sm"
+              color="primary"
               @click="fullscreenToggle"
-              size="xl"
-              icon="face"
-              label="Fullscreen"
+              label="Webcam size"
             />
           </div>
           <div class="col">
@@ -41,7 +40,13 @@
               label="iframe url"
             >
               <template v-slot:after>
-                <q-btn round dense flat @click="" icon="send" />
+                <q-btn
+                  round
+                  dense
+                  flat
+                  @click="iframeChange(iframe)"
+                  icon="send"
+                />
               </template>
             </q-input>
           </div>
@@ -49,6 +54,7 @@
         <div class="row q-pa-sm">
           <div class="col">
             <q-btn
+              style="width: 95%"
               color="primary"
               @click="animationBTN('animation1')"
               label="Confetti"
@@ -56,6 +62,7 @@
           </div>
           <div class="col">
             <q-btn
+              style="width: 95%"
               color="primary"
               @click="animationBTN('animation2')"
               label="Smiley"
@@ -63,6 +70,7 @@
           </div>
           <div class="col">
             <q-btn
+              style="width: 95%"
               color="primary"
               @click="animationBTN('animation3')"
               label="Rocket"
@@ -109,8 +117,17 @@
       }
     },
     methods: {
+      iframeChange: function (url) {
+        this.connection.send(String(url))
+      },
       fullscreenToggle: function () {
-        this.connection.send(String(fullscreen_cam))
+        console.log(this.fullscreen_cam)
+        this.connection.send(String(this.fullscreen_cam))
+        if (this.fullscreen_cam) {
+          this.fullscreen_cam = false
+        } else {
+          this.fullscreen_cam = true
+        }
       },
       openCompose: function () {
         let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=900,height=500,left=200,top=200`
