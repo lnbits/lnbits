@@ -17,7 +17,7 @@ async def lnurl_response(cp_id):
 
     resp = LnurlPayResponse(
         callback=url_for(
-            "copilot.lnurl_callback", track_id=track.id, _external=True
+            "copilot.lnurl_callback", cp_id=cp_id, _external=True
         ),
         min_sendable=10,
         max_sendable=50000,
