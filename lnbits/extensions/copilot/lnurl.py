@@ -21,7 +21,7 @@ async def lnurl_response(cp_id):
         ),
         min_sendable=10,
         max_sendable=50000,
-        metadata=await cp.lnurl_title,
+        metadata=cp.lnurl_title,
     )
 
     params = resp.dict()
