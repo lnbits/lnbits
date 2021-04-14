@@ -177,7 +177,7 @@
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/compose/{{ copilot.id }}'
+            '/copilot/ws/panel/{{ copilot.id }}'
         )
       } else {
         this.connection = new WebSocket(
@@ -185,7 +185,7 @@
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/compose/{{ copilot.id }}'
+            '/copilot/ws/panel/{{ copilot.id }}'
         )
       }
       this.connection.addEventListener('open', function (event) {})
