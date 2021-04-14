@@ -14,12 +14,13 @@
     class="fixed-bottom-right"
   ></video>
   <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
-  <img
-    src="/copilot/static/lnurl.png"
-    style="width: 20%"
-    id="animations"
+  <qrcode
+    style="width: 25%"
+    :value="{{copilot.lnurl}}"
+    :options="{width: 800}"
+    class="rounded-borders"
     class="fixed-top-right"
-  />
+  ></qrcode>
   <q-btn
     color="primary"
     @click="reconnect"

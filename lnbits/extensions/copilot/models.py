@@ -1,7 +1,7 @@
 from sqlite3 import Row
 from typing import NamedTuple
 import time
-
+from quart import url_for
 from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
@@ -35,5 +35,5 @@ class Copilots(NamedTuple):
 
     @property
     def lnurl(self) -> Lnurl:
-        url = url_for("copilots.lnurl_response", ls_id=self.id, _external=True)
+        url = url_for("copilot.lnurl_response", cp_id=self.id, _external=True)
         return lnurl_encode(url)

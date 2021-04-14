@@ -10,6 +10,8 @@ from quart import g, abort, render_template, jsonify, websocket
 from functools import wraps
 import trio 
 import shortuuid
+from . import copilot_ext
+
 connected_websockets = {}
 
 @copilot_ext.websocket('/ws/panel/<copilot_id>')

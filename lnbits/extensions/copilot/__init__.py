@@ -9,3 +9,4 @@ copilot_ext: Blueprint = Blueprint(
 
 from .views_api import *  # noqa
 from .views import *  # noqa
+from .lnurl import *  # noqa

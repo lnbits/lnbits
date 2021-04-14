@@ -6,6 +6,8 @@ import httpx
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
+from . import copilot_ext
+
 from lnbits.extensions.copilot import copilot_ext
 from .crud import (
     create_copilot,
