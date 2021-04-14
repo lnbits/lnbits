@@ -1,11 +1,10 @@
-from quart import g, abort, render_template, jsonify
+from quart import g, abort, render_template, jsonify, websocket
 from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from . import copilot_ext
 from .crud import get_copilot
-
 
 @copilot_ext.route("/")
 @validate_uuids(["usr"], required=True)
@@ -27,3 +26,9 @@ async def panel(copilot_id):
         HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
     return await render_template("copilot/panel.html", copilot=copilot)
+
+@copilot_ext.websocket('/ws/<copilot_id>')
+async def ws():
+    while True:
+        data = await websocket.receive()
+        await websocket.send(f"echo {data}")
