@@ -10,7 +10,7 @@
             dense
             @click="openCompose"
             icon="face"
-            style="font-size: 100px"
+            style="font-size: 80px"
           ></q-btn>
         </center>
       </div>
@@ -56,24 +56,50 @@
             <q-btn
               style="width: 95%"
               color="primary"
-              @click="animationBTN('animation1')"
-              label="Confetti"
+              @click="animationBTN('rocket')"
+              label="rocket"
             />
           </div>
           <div class="col">
             <q-btn
               style="width: 95%"
               color="primary"
-              @click="animationBTN('animation2')"
-              label="Smiley"
+              @click="animationBTN('confetti')"
+              label="confetti"
             />
           </div>
           <div class="col">
             <q-btn
               style="width: 95%"
               color="primary"
-              @click="animationBTN('animation3')"
-              label="Rocket"
+              @click="animationBTN('face')"
+              label="face"
+            />
+          </div>
+        </div>
+        <div class="row q-pa-sm">
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('rick')"
+              label="rick"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('martijn')"
+              label="martijn"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('bitcoin')"
+              label="bitcoin"
             />
           </div>
         </div>
@@ -130,7 +156,7 @@
         }
       },
       openCompose: function () {
-        let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=900,height=500,left=200,top=200`
+        let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200`
 
         open('../copilot/cp/{{ copilot.id }}', 'test', params)
       },
