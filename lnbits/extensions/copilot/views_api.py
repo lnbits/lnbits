@@ -1,5 +1,5 @@
 import hashlib
-from quart import g, jsonify, url_for
+from quart import g, jsonify, url_for, websocket
 from http import HTTPStatus
 import httpx
 
@@ -26,18 +26,19 @@ from .crud import (
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
-        "wallet": {"type": "string", "empty": False, "required": True},
+        "lnurl_toggle": {"type": "integer", "empty": False, "required": True},
+        "wallet": {"type": "string", "empty": False, "required": False},
         "animation1": {"type": "string", "required": False},
         "animation2": {"type": "string", "required": False},
         "animation3": {"type": "string", "required": False},
-        "animation1threshold": {"type": "string", "required": False},
-        "animation2threshold": {"type": "string", "required": False},
-        "animation3threshold": {"type": "string", "required": False},
+        "animation1threshold": {"type": "integer", "required": False},
+        "animation2threshold": {"type": "integer", "required": False},
+        "animation3threshold": {"type": "integer", "required": False},
         "animation1webhook": {"type": "string", "required": False},
         "animation2webhook": {"type": "string", "required": False},
         "animation3webhook": {"type": "string", "required": False},
-        "lnurl_title": {"type": "string", "empty": False, "required": True},
-        "show_message": {"type": "integer", "empty": False, "required": True},
+        "lnurl_title": {"type": "string", "empty": False, "required": False},
+        "show_message": {"type": "integer", "empty": False, "required": False},
         "show_ack": {"type": "integer", "empty": False, "required": True},
     }
 )
@@ -97,3 +98,24 @@ async def api_copilot_delete(copilot_id):
     await delete_copilot(copilot_id)
 
     return "", HTTPStatus.NO_CONTENT
+
+#############################PAYMENTHOOK##########################
+
+@copilot_ext.route("/api/v1/copilot/hook/<copilot_id>", methods=["POST"])
+async def api_copilot_delete(copilot_id, trigger):
+    copilot = await get_copilot(copilot_id)
+
+    if not copilot:
+        return jsonify({"message": "Copilot link link does not exist."}), HTTPStatus.NOT_FOUND
+
+    socket_sendererer = app.socket_sendererer()   
+    if copilot.animation1threshold and g.data['amount'] > copilot.animation1threshold:
+        data = copilot.animation1
+        if copilot.animation2threshold and g.data['amount'] > copilot.animation2threshold:
+            data = copilot.animation2
+            if copilot.animation3threshold and g.data['amount'] > copilot.animation3threshold:
+                data = copilot.animation3
+    async with socket_sendererer.websocket('/ws/compose/' + copilot_id) as the_websocket:
+        await the_websocket.send(data)
+    
+    return "", HTTPStatus.OK

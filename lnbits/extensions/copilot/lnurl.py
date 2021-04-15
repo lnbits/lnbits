@@ -67,6 +67,7 @@ async def lnurl_callback(cp_id):
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
         memo=cp.lnurl_title,
+        webhook="/copilot/api/v1/copilot/hook/" + cp_id,
         description_hash=hashlib.sha256(
             (cp.lnurl_title).encode("utf-8")
         ).digest(),
@@ -83,8 +84,5 @@ async def lnurl_callback(cp_id):
         success_action=success_action,
         routes=[],
     )
-    socket_sendererer = app.socket_sendererer()   
-    async with socket_sendererer.websocket('/ws') as the_websocket:
-        await the_websocket.send("pay{payment_hash}")
     
     return jsonify(resp.dict())

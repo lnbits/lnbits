@@ -16,6 +16,7 @@
   <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
 
   <qrcode
+    v-if="'{{ lnurl_toggle }}' == 'True'"
     style="width: 20%; z-index: 9999"
     :value="'{{ lnurl }}'"
     :options="{width:222}"
@@ -79,80 +80,6 @@
             self.connection.send('')
           }, 1000)
         }, 2000)
-      },
-      reconnect: function () {
-        this.connection.addEventListener('open', function (event) {
-          this.connection.send('')
-        })
-
-        this.connection.addEventListener('message', function (event) {
-          res = event.data.split('-')
-          console.log(res[1])
-          if (res[0] != this.oldRes) {
-            this.oldRes = res[0]
-            if (res[1] == 'rocket') {
-              document.getElementById('animations').style.width = '50%'
-              document.getElementById('animations').src =
-                '/copilot/static/rocket.gif'
-              setTimeout(function () {
-                document.getElementById('animations').src = ''
-              }, 5000)
-            }
-            if (res[1] == 'face') {
-              document.getElementById('animations').style.width = '50%'
-              document.getElementById('animations').src =
-                '/copilot/static/face.gif'
-              setTimeout(function () {
-                document.getElementById('animations').src = ''
-              }, 5000)
-            }
-            if (res[1] == 'bitcoin') {
-              document.getElementById('animations').style.width = '30%'
-              document.getElementById('animations').src =
-                '/copilot/static/bitcoin.gif'
-              setTimeout(function () {
-                document.getElementById('animations').src = ''
-              }, 5000)
-            }
-            if (res[1] == 'confetti') {
-              document.getElementById('animations').style.width = '100%'
-              document.getElementById('animations').src =
-                '/copilot/static/confetti.gif'
-              setTimeout(function () {
-                document.getElementById('animations').src = ''
-              }, 5000)
-            }
-            if (res[1] == 'martijn') {
-              document.getElementById('animations').style.width = '50%'
-              document.getElementById('animations').src =
-                '/copilot/static/martijn.gif'
-              setTimeout(function () {
-                document.getElementById('animations').src = ''
-              }, 5000)
-            }
-            if (res[1] == 'rick') {
-              document.getElementById('animations').style.width = '50%'
-              document.getElementById('animations').src =
-                '/copilot/static/rick.gif'
-              setTimeout(function () {
-                document.getElementById('animations').src = ''
-              }, 5000)
-            }
-            if (res[1] == 'true') {
-              document.getElementById('videoElement').style.width = '20%'
-            }
-            if (res[1] == 'false') {
-              document.getElementById('videoElement').style.width = '100%'
-            }
-            if (res[1].substring(0, 3) == 'htt') {
-              document.getElementById('iframe_main').src = res[1]
-            }
-          }
-        })
-
-        this.connection.addEventListener('close', function (event) {
-          console.log('The connection has been closed')
-        })
       }
     },
     mounted() {

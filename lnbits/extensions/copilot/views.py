@@ -40,7 +40,9 @@ async def compose(copilot_id):
     copilot = await get_copilot(copilot_id) or abort(
         HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
-    return await render_template("copilot/compose.html", copilot=copilot, lnurl=copilot.lnurl)
+    if copilot.lnurl_toggle:
+        return await render_template("copilot/compose.html", copilot=copilot, lnurl=copilot.lnurl, lnurl_toggle=copilot.lnurl_toggle)
+    return await render_template("copilot/compose.html", copilot=copilot, lnurl_toggle=copilot.lnurl_toggle)
 
 @copilot_ext.route("/<copilot_id>")
 async def panel(copilot_id):

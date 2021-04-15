@@ -10,6 +10,7 @@ class Copilots(NamedTuple):
     id: str
     user: str
     title: str
+    lnurl_toggle: str
     wallet: str
     animation1: str
     animation2: str

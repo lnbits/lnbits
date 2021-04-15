@@ -9,6 +9,7 @@ async def m001_initial(db):
             id TEXT NOT NULL PRIMARY KEY,
             user TEXT,
             title TEXT,
+            lnurl_toggle INTEGER,
             wallet TEXT,
             animation1 TEXT,
             animation2 TEXT,
