@@ -31,9 +31,9 @@ from .crud import (
         "animation1": {"type": "string", "required": False},
         "animation2": {"type": "string", "required": False},
         "animation3": {"type": "string", "required": False},
-        "animation1threshold": {"type": "integer", "required": False},
-        "animation2threshold": {"type": "integer", "required": False},
-        "animation3threshold": {"type": "integer", "required": False},
+        "animation1threshold": {"type": "string", "required": False},
+        "animation2threshold": {"type": "string", "required": False},
+        "animation3threshold": {"type": "string", "required": False},
         "animation1webhook": {"type": "string", "required": False},
         "animation2webhook": {"type": "string", "required": False},
         "animation3webhook": {"type": "string", "required": False},
@@ -109,11 +109,11 @@ async def api_copilot_hooker(copilot_id, trigger):
         return jsonify({"message": "Copilot link link does not exist."}), HTTPStatus.NOT_FOUND
 
     socket_sendererer = app.socket_sendererer()   
-    if copilot.animation1threshold and g.data['amount'] > copilot.animation1threshold:
+    if copilot.animation1threshold and int(g.data['amount']) > copilot.animation1threshold:
         data = copilot.animation1
-        if copilot.animation2threshold and g.data['amount'] > copilot.animation2threshold:
+        if copilot.animation2threshold and int(g.data['amount']) > copilot.animation2threshold:
             data = copilot.animation2
-            if copilot.animation3threshold and g.data['amount'] > copilot.animation3threshold:
+            if copilot.animation3threshold and int(g.data['amount']) > copilot.animation3threshold:
                 data = copilot.animation3
     async with socket_sendererer.websocket('/ws/compose/' + copilot_id) as the_websocket:
         await the_websocket.send(data)
