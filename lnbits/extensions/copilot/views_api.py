@@ -99,10 +99,10 @@ async def api_copilot_delete(copilot_id):
 
     return "", HTTPStatus.NO_CONTENT
 
-#############################PAYMENTHOOK##########################
+#############################PAYMENTHOOKER##########################
 
 @copilot_ext.route("/api/v1/copilot/hook/<copilot_id>", methods=["POST"])
-async def api_copilot_delete(copilot_id, trigger):
+async def api_copilot_hooker(copilot_id, trigger):
     copilot = await get_copilot(copilot_id)
 
     if not copilot:
