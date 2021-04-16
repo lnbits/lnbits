@@ -74,6 +74,7 @@ async def lnurl_callback(cp_id):
     resp = LnurlPayActionResponse(
         pr=payment_request,
         success_action=None,
+        disposable=False,
         routes=[],
     )
     print(payment_request)
