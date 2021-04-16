@@ -20,8 +20,8 @@ async def lnurl_response(cp_id):
         callback=url_for(
             "copilot.lnurl_callback", cp_id=cp_id, _external=True
         ),
-        min_sendable=10,
-        max_sendable=50000,
+        min_sendable=1000,
+        max_sendable=50000000,
         metadata=LnurlPayMetadata(json.dumps([["text/plain", cp.lnurl_title]]))
     )
 
@@ -39,7 +39,7 @@ async def lnurl_callback(cp_id):
 
     amount_received = int(request.args.get("amount"))
 
-    if amount_received < 10:
+    if amount_received < 1000:
         return (
             jsonify(
                 LnurlErrorResponse(
@@ -47,7 +47,7 @@ async def lnurl_callback(cp_id):
                 ).dict()
             ),
         )
-    elif 50000 > amount_received/1000:
+    elif 50000000 > amount_received/1000:
         return (
             jsonify(
                 LnurlErrorResponse(
