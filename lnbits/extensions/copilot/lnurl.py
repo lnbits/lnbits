@@ -77,5 +77,5 @@ async def lnurl_callback(cp_id):
         disposable=False,
         routes=[],
     )
-    print(payment_request)
+    print(url_for("copilot.api_copilot_hooker", copilot_id=cp_id, amount=int(amount_received / 1000), _external=False))
     return jsonify(resp.dict())
