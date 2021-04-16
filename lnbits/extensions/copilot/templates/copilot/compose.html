@@ -197,10 +197,12 @@
           }
           if (res[1] == 'confetti') {
             document.getElementById('animations').style.width = '100%'
+            document.getElementById('animations').style.height = '100%'
             document.getElementById('animations').src =
               '/copilot/static/confetti.gif'
             setTimeout(function () {
               document.getElementById('animations').src = ''
+              document.getElementById('animations').style.height = ''
             }, 5000)
           }
           if (res[1] == 'martijn') {
