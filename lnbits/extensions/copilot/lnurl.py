@@ -2,7 +2,7 @@ import hashlib
 import math
 from quart import jsonify, url_for, request
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
-
+from lnurl.types import LnurlPayMetadata
 from lnbits.core.services import create_invoice
 
 from . import copilot_ext
@@ -21,7 +21,7 @@ async def lnurl_response(cp_id):
         ),
         min_sendable=10,
         max_sendable=50000,
-        metadata=cp.lnurl_title,
+        metadata=LnurlPayMetadata(json.dumps([["text/plain", cp.lnurl_title]]))
     )
 
     params = resp.dict()
