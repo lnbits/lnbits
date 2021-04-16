@@ -66,7 +66,7 @@ async def lnurl_callback(cp_id):
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
         memo=cp.lnurl_title,
-        webhook="/copilot/api/v1/copilot/hook/" + copilot_id + "/" + int(amount_received / 1000),
+        webhook="/copilot/api/v1/copilot/hook/" + cp_id + "/" + int(amount_received / 1000),
         description_hash=hashlib.sha256((cp.lnurl_title).encode("utf-8")).digest(),
         extra={"tag": "copilot", "comment": comment},
     )
