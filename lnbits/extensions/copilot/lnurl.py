@@ -75,14 +75,9 @@ async def lnurl_callback(cp_id):
         extra={"tag": "copilot", "comment": comment},
     )
 
-    if amount_received < track.price_msat:
-        success_action = None
-    else:
-        success_action = track.success_action(payment_hash)
-
     resp = LnurlPayActionResponse(
         pr=payment_request,
-        success_action=success_action,
+        success_action=None,
         routes=[],
     )
     
