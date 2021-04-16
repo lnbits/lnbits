@@ -24,6 +24,7 @@ async def ws_panel(copilot_id):
 @copilot_ext.websocket('/ws/compose/<copilot_id>')
 async def ws_compose(copilot_id):
     global connected_websockets
+    print(copilot_id)
     while True:
         data = await websocket.receive()
         await websocket.send(connected_websockets[copilot_id])

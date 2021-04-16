@@ -80,6 +80,7 @@ async def lnurl_callback(cp_id):
         success_action=None,
         routes=[],
     )
+    print(cp_id)
     print(jsonify(resp.dict()))
     
     return jsonify(resp.dict())
