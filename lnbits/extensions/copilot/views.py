@@ -91,10 +91,7 @@ async def api_copilot_hooker(copilot_id, amount):
                 and int(amount) > copilot.animation3threshold
             ):
                 data = copilot.animation3
-    print(data)
-    async with websocket(
-        "/ws/compose/" + copilot_id
-    ) as the_websocket:
-        await the_websocket.send(data)
-    print(data)
+    global connected_websockets
+    connected_websockets[copilot_id] = copilot_id + "-" + data
+
     return "", HTTPStatus.OK
