@@ -69,7 +69,7 @@ async def lnurl_callback(cp_id):
         memo=cp.lnurl_title,
         webhook="/copilot/api/v1/copilot/hook/" + cp_id + "/" + str(amount_received),
         description_hash=hashlib.sha256((str(cp.lnurl_title)).encode("utf-8")).digest(),
-        extra={"tag": "copilot", "comment": comment},
+       # extra={"tag": "copilot", "comment": comment},
     )
 
     return jsonify(pr=payment_request, success_action=None, routes=[])
