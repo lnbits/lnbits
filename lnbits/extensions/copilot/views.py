@@ -25,7 +25,9 @@ async def ws_panel(copilot_id):
 @copilot_ext.websocket("/ws/compose/<copilot_id>")
 async def ws_compose(copilot_id):
     global connected_websockets
+    print("poo")
     while True:
+        print("poo")
         data = await websocket.receive()
         await websocket.send(connected_websockets[copilot_id])
 
@@ -86,9 +88,10 @@ async def api_copilot_hooker(copilot_id, amount):
                 and int(amount) > copilot.animation3threshold
             ):
                 data = copilot.animation3
+    print(data)
     async with websocket(
         "/ws/compose/" + copilot_id
     ) as the_websocket:
         await the_websocket.send(data)
-
+    print(data)
     return "", HTTPStatus.OK
