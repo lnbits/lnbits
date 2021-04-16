@@ -13,6 +13,7 @@ from .crud import get_copilot
 @copilot_ext.route("/lnurl/<cp_id>", methods=["GET"])
 async def lnurl_response(cp_id):
     cp = await get_copilot(cp_id)
+    print(cp)
     if not cp:
         return jsonify({"status": "ERROR", "reason": "Copilot not found."})
 
@@ -20,7 +21,7 @@ async def lnurl_response(cp_id):
         callback=url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
         min_sendable=10000,
         max_sendable=50000000,
-        metadata="{'title':'" + cp.lnurl_title + "'}",
+        metadata="{'title':'" + str(cp.lnurl_title) + "'}",
     )
 
     params = resp.dict()
