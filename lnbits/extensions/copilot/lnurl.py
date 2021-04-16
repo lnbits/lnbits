@@ -71,4 +71,5 @@ async def lnurl_callback(cp_id):
         extra={"tag": "copilot", "comment": comment},
     )
     print(jsonify(pr=payment_request, success_action=None, routes=[], disposable=None))
+    print(["pr"=payment_request, "success_action"=None, "routes"=[], "disposable"=None])
     return jsonify(pr=payment_request, success_action=None, routes=[], disposable=None)
