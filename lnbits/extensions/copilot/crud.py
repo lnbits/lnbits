@@ -80,7 +80,7 @@ async def create_copilot(
             show_ack,
             show_price,
             lnurl_title,
-            0
+            0,
         ),
     )
     return await get_copilot(copilot_id)

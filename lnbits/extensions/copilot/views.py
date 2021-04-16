@@ -8,26 +8,29 @@ from .crud import get_copilot
 
 from quart import g, abort, render_template, jsonify, websocket
 from functools import wraps
-import trio 
+import trio
 import shortuuid
 from . import copilot_ext
 
 connected_websockets = {}
 
-@copilot_ext.websocket('/ws/panel/<copilot_id>')
+
+@copilot_ext.websocket("/ws/panel/<copilot_id>")
 async def ws_panel(copilot_id):
     global connected_websockets
     while True:
         data = await websocket.receive()
-        connected_websockets[copilot_id] = shortuuid.uuid() + '-' + data
+        connected_websockets[copilot_id] = shortuuid.uuid() + "-" + data
 
-@copilot_ext.websocket('/ws/compose/<copilot_id>')
+
+@copilot_ext.websocket("/ws/compose/<copilot_id>")
 async def ws_compose(copilot_id):
     global connected_websockets
     while True:
         data = await websocket.receive()
         await websocket.send(connected_websockets[copilot_id])
-        
+
+
 @copilot_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
@@ -41,8 +44,16 @@ async def compose(copilot_id):
         HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
     if copilot.lnurl_toggle:
-        return await render_template("copilot/compose.html", copilot=copilot, lnurl=copilot.lnurl, lnurl_toggle=copilot.lnurl_toggle)
-    return await render_template("copilot/compose.html", copilot=copilot, lnurl_toggle=copilot.lnurl_toggle)
+        return await render_template(
+            "copilot/compose.html",
+            copilot=copilot,
+            lnurl=copilot.lnurl,
+            lnurl_toggle=copilot.lnurl_toggle,
+        )
+    return await render_template(
+        "copilot/compose.html", copilot=copilot, lnurl_toggle=copilot.lnurl_toggle
+    )
+
 
 @copilot_ext.route("/<copilot_id>")
 async def panel(copilot_id):

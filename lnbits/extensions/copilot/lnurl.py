@@ -17,12 +17,10 @@ async def lnurl_response(cp_id):
         return jsonify({"status": "ERROR", "reason": "Copilot not found."})
 
     resp = LnurlPayResponse(
-        callback=url_for(
-            "copilot.lnurl_callback", cp_id=cp_id, _external=True
-        ),
+        callback=url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
         min_sendable=10000,
         max_sendable=50000000,
-        metadata=LnurlPayMetadata(json.dumps([["text/plain", cp.lnurl_title]]))
+        metadata=LnurlPayMetadata(json.dumps([["text/plain", cp.lnurl_title]])),
     )
 
     params = resp.dict()
@@ -47,7 +45,7 @@ async def lnurl_callback(cp_id):
                 ).dict()
             ),
         )
-    elif  amount_received/1000 > 50000000:
+    elif amount_received / 1000 > 50000000:
         return (
             jsonify(
                 LnurlErrorResponse(
@@ -69,18 +67,16 @@ async def lnurl_callback(cp_id):
         amount=int(amount_received / 1000),
         memo=cp.lnurl_title,
         webhook="/copilot/api/v1/copilot/hook/" + cp_id,
-        description_hash=hashlib.sha256(
-            (cp.lnurl_title).encode("utf-8")
-        ).digest(),
+        description_hash=hashlib.sha256((cp.lnurl_title).encode("utf-8")).digest(),
         extra={"tag": "copilot", "comment": comment},
     )
 
     resp = LnurlPayActionResponse(
         pr=payment_request,
-        success_action=None,
+        success_action=jsonify({tag: "message", message: "Thank you!"}),
         routes=[],
     )
     print(payment_request)
-    print(jsonify(resp.dict()))
-    
+    print(resp)
+
     return jsonify(resp.dict())

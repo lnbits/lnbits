@@ -6,6 +6,7 @@ from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 
+
 class Copilots(NamedTuple):
     id: str
     user: str

@@ -58,17 +58,13 @@ async def api_copilots_retrieve():
     try:
         return (
             jsonify(
-                [
-                    {
-                        **copilot._asdict()
-                    }
-                    for copilot in await get_copilots(g.wallet.user)
-                ]
+                [{**copilot._asdict()} for copilot in await get_copilots(g.wallet.user)]
             ),
             HTTPStatus.OK,
         )
     except:
         return ""
+
 
 @copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -79,11 +75,7 @@ async def api_copilot_retrieve(copilot_id):
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
 
     return (
-        jsonify(
-            {
-                copilot._asdict()
-            }
-        ),
+        jsonify({copilot._asdict()}),
         HTTPStatus.OK,
     )
 
@@ -100,23 +92,39 @@ async def api_copilot_delete(copilot_id):
 
     return "", HTTPStatus.NO_CONTENT
 
+
 #############################PAYMENTHOOKER##########################
+
 
 @copilot_ext.route("/api/v1/copilot/hook/<copilot_id>", methods=["POST"])
 async def api_copilot_hooker(copilot_id, trigger):
     copilot = await get_copilot(copilot_id)
 
     if not copilot:
-        return jsonify({"message": "Copilot link link does not exist."}), HTTPStatus.NOT_FOUND
+        return (
+            jsonify({"message": "Copilot link link does not exist."}),
+            HTTPStatus.NOT_FOUND,
+        )
 
-    socket_sendererer = app.socket_sendererer()   
-    if copilot.animation1threshold and int(g.data['amount']) > copilot.animation1threshold:
+    socket_sendererer = app.socket_sendererer()
+    if (
+        copilot.animation1threshold
+        and int(g.data["amount"]) > copilot.animation1threshold
+    ):
         data = copilot.animation1
-        if copilot.animation2threshold and int(g.data['amount']) > copilot.animation2threshold:
+        if (
+            copilot.animation2threshold
+            and int(g.data["amount"]) > copilot.animation2threshold
+        ):
             data = copilot.animation2
-            if copilot.animation3threshold and int(g.data['amount']) > copilot.animation3threshold:
+            if (
+                copilot.animation3threshold
+                and int(g.data["amount"]) > copilot.animation3threshold
+            ):
                 data = copilot.animation3
-    async with socket_sendererer.websocket('/ws/compose/' + copilot_id) as the_websocket:
+    async with socket_sendererer.websocket(
+        "/ws/compose/" + copilot_id
+    ) as the_websocket:
         await the_websocket.send(data)
-    
+
     return "", HTTPStatus.OK
