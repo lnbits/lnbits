@@ -70,5 +70,5 @@ async def lnurl_callback(cp_id):
         description_hash=hashlib.sha256((cp.lnurl_title).encode("utf-8")).digest(),
         extra={"tag": "copilot", "comment": comment},
     )
-
-    return jsonify("pr": payment_request, "success_action": None, "routes": [], "disposable": None)
+    print(jsonify("pr"=payment_request, "success_action"=None, "routes"=[], "disposable"=None))
+    return jsonify("pr"=payment_request, "success_action"=None, "routes"=[], "disposable"=None)
