@@ -20,7 +20,7 @@ async def lnurl_response(cp_id):
         callback=url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
         min_sendable=10000,
         max_sendable=50000000,
-        metadata=LnurlPayMetadata(json.dumps([["text/plain", cp.lnurl_title]])),
+        metadata="{'title':'" + cp.lnurl_title + "'}",
     )
 
     params = resp.dict()
