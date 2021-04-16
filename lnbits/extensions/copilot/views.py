@@ -92,6 +92,6 @@ async def api_copilot_hooker(copilot_id, amount):
             ):
                 data = copilot.animation3
     global connected_websockets
-    connected_websockets[copilot_id] = copilot_id + "-" + data
-
+    connected_websockets[copilot_id.id] = shortuuid.uuid() + "-" + data
+    
     return "", HTTPStatus.OK
