@@ -67,7 +67,7 @@ async def panel(copilot_id):
 @copilot_ext.route("/api/v1/copilot/hook/<copilot_id>/<amount>", methods=["GET"])
 async def api_copilot_hooker(copilot_id, amount):
     copilot = await get_copilot(copilot_id)
-    print(amount)
+    print("amount")
     if not copilot:
         return (
             jsonify({"message": "Copilot link link does not exist."}),
