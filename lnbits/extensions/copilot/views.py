@@ -64,8 +64,10 @@ async def panel(copilot_id):
     return await render_template("copilot/panel.html", copilot=copilot)
 
 
-@copilot_ext.route("/api/v1/copilot/hook/<copilot_id>/<amount>", methods=["GET"])
-async def api_copilot_hooker(copilot_id, amount):
+@copilot_ext.route("/api/v1/copilot/hook/", methods=["GET"])
+async def api_copilot_hooker():
+    copilot_id = request.args.get("copilot")
+    amount = request.args.get("amount")
     copilot = await get_copilot(copilot_id)
     print("amount")
     if not copilot:
