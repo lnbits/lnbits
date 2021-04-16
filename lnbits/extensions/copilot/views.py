@@ -22,7 +22,6 @@ async def ws_panel(copilot_id):
         data = await websocket.receive()
         connected_websockets[copilot_id] = shortuuid.uuid() + "-" + data
 
-
 @copilot_ext.websocket("/ws/compose/<copilot_id>")
 async def ws_compose(copilot_id):
     global connected_websockets
@@ -61,3 +60,35 @@ async def panel(copilot_id):
         HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
     return await render_template("copilot/panel.html", copilot=copilot)
+
+
+@copilot_ext.route("/api/v1/copilot/hook/<copilot_id>/<amount>", methods=["GET"])
+async def api_copilot_hooker(copilot_id, amount):
+    copilot = await get_copilot(copilot_id)
+
+    if not copilot:
+        return (
+            jsonify({"message": "Copilot link link does not exist."}),
+            HTTPStatus.NOT_FOUND,
+        )
+    if (
+        copilot.animation1threshold
+        and int(amount) > copilot.animation1threshold
+    ):
+        data = copilot.animation1
+        if (
+            copilot.animation2threshold
+            and int(amount) > copilot.animation2threshold
+        ):
+            data = copilot.animation2
+            if (
+                copilot.animation3threshold
+                and int(amount) > copilot.animation3threshold
+            ):
+                data = copilot.animation3
+    async with websocket(
+        "/ws/compose/" + copilot_id
+    ) as the_websocket:
+        await the_websocket.send(data)
+
+    return "", HTTPStatus.OK
