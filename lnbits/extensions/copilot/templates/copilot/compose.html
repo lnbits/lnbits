@@ -18,13 +18,12 @@
   <div
     v-if="'{{ lnurl_toggle }}' == 1"
     class="rounded-borders fixed-top-right column"
-    style="width: 20%; z-index: 9999"
+    style="width: 350px; z-index: 9999"
   >
     <div class="col">
       <qrcode
-        style="width: 100%"
         :value="'{{ lnurl }}'"
-        :options="{width:222}"
+        :options="{width:350}"
         class="rounded-borders"
       ></qrcode>
     </div>
@@ -37,7 +36,7 @@
         width: 100%;
       "
     >
-      <center>{{ copilot.title }}</center>
+      <center>{{ copilot.lnurl_title }}</center>
     </div>
   </div>
 
