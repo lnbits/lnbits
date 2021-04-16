@@ -29,6 +29,7 @@ async def create_copilot(
     lnurl_title: Optional[str] = None,
     show_message: Optional[int] = None,
     show_ack: Optional[int] = None,
+    show_price: Optional[int] = None,
     amount_made: Optional[int] = None,
 ) -> Copilots:
     copilot_id = urlsafe_short_hash()
@@ -53,10 +54,11 @@ async def create_copilot(
             lnurl_title,
             show_message,
             show_ack,
+            show_price,
             lnurl_title,
             amount_made
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             copilot_id,
@@ -76,6 +78,7 @@ async def create_copilot(
             lnurl_title,
             show_message,
             show_ack,
+            show_price,
             lnurl_title,
             0
         ),

@@ -321,13 +321,21 @@
         <div class="q-gutter-sm">
           <div class="row">
             <q-checkbox
+              v-model="formDialogCopilot.data.show_price"
+              left-label
+              label="Show bitcoin price"
+            ></q-checkbox>
+          </div>
+        </div>
+        <div class="q-gutter-sm">
+          <div class="row">
+            <q-checkbox
               v-model="formDialogCopilot.data.show_ack"
               left-label
               label="Show 'powered by LNbits'"
             ></q-checkbox>
           </div>
         </div>
-
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -431,7 +439,8 @@
           data: {
             lnurl_toggle: false,
             show_message: false,
-            show_ack: true,
+            show_ack: false,
+            show_price: false,
             title: ''
           }
         },

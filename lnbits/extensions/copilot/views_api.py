@@ -40,6 +40,7 @@ from .crud import (
         "lnurl_title": {"type": "string", "empty": False, "required": False},
         "show_message": {"type": "integer", "empty": False, "required": False},
         "show_ack": {"type": "integer", "empty": False, "required": True},
+        "show_price": {"type": "integer", "empty": False, "required": True},
     }
 )
 async def api_copilot_create_or_update(copilot_id=None):

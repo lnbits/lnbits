@@ -24,6 +24,7 @@ class Copilots(NamedTuple):
     lnurl_title: str
     show_message: int
     show_ack: int
+    show_price: int
     amount_made: int
     timestamp: int
     fullscreen_cam: int

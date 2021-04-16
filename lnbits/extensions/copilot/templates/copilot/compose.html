@@ -15,20 +15,56 @@
   ></video>
   <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
 
-  <qrcode
+  <div
     v-if="'{{ lnurl_toggle }}' == 1"
+    class="rounded-borders fixed-top-right column"
     style="width: 20%; z-index: 9999"
-    :value="'{{ lnurl }}'"
-    :options="{width:222}"
-    class="rounded-borders fixed-top-right"
-  ></qrcode>
+  >
+    <div class="col">
+      <qrcode
+        style="width: 100%"
+        :value="'{{ lnurl }}'"
+        :options="{width:222}"
+        class="rounded-borders"
+      ></qrcode>
+    </div>
+    <div
+      class="col"
+      style="
+        font-size: 25px;
+        background-color: white;
+        color: black;
+        width: 100%;
+      "
+    >
+      <center>{{ copilot.title }}</center>
+    </div>
+  </div>
 
-  <q-btn
-    color="primary"
-    @click="reconnect"
-    label="Reconnect"
-    class="fixed-bottom-left"
-  />
+  <h2
+    v-if="'{{ copilot.show_price }}' != 'None'"
+    class="text-bold fixed-bottom-left"
+    style="
+      margin: 60px 60px;
+      font-size: 150px;
+      text-shadow: 4px 8px 4px black;
+      color: white;
+    "
+  >
+    {% raw %}{{ price }}{% endraw %}
+  </h2>
+  <p
+    v-if="'{{ copilot.show_ack }}' != 'None'"
+    class="fixed-top"
+    style="
+      font-size: 22px;
+      text-shadow: 2px 4px 1px black;
+      color: white;
+      padding-left: 40%;
+    "
+  >
+    Powered by LNbits/StreamerCopilot
+  </p>
 </q-page>
 {% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
@@ -52,7 +88,10 @@
     el: '#vue',
     mixins: [windowMixin],
     data() {
-      return {}
+      return {
+        price: '',
+        counter: 1
+      }
     },
     methods: {
       openURL: function (url) {
@@ -78,6 +117,25 @@
         setTimeout(function () {
           setInterval(function () {
             self.connection.send('')
+            self.counter++
+            if (self.counter % 20 === 0) {
+              if ('{{ copilot.show_price }}' != 'None') {
+                LNbits.api
+                  .request('GET', 'https://api.opennode.com/v1/rates', 'filla')
+                  .then(function (response) {
+                    self.price = String(
+                      new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD'
+                      }).format(response.data.data.BTCUSD.USD)
+                    )
+                    console.log(self.price)
+                  })
+                  .catch(function (error) {
+                    LNbits.utils.notifyApiError(error)
+                  })
+              }
+            }
           }, 1000)
         }, 2000)
       }
