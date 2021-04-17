@@ -32,7 +32,10 @@ async def api_livestream_from_wallet():
                     **ls._asdict(),
                     **{
                         "lnurl": ls.lnurl,
-                        "tracks": [track._asdict() for track in tracks],
+                        "tracks": [
+                            dict(lnurl=track.lnurl, **track._asdict())
+                            for track in tracks
+                        ],
                         "producers": [producer._asdict() for producer in producers],
                     },
                 }
