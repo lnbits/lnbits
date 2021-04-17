@@ -1,7 +1,9 @@
 import json
 import hmac
 import hashlib
+from quart import url_for
 from ecdsa import SECP256k1, SigningKey  # type: ignore
+from lnurl import encode as lnurl_encode  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
 from sqlite3 import Row
 
@@ -35,6 +37,22 @@ class Wallet(NamedTuple):
     @property
     def balance(self) -> int:
         return self.balance_msat // 1000
+
+    @property
+    def withdrawable_balance(self) -> int:
+        from .services import fee_reserve
+
+        return self.balance_msat - fee_reserve(self.balance_msat)
+
+    @property
+    def lnurlwithdraw_full(self) -> str:
+        url = url_for(
+            "core.lnurl_full_withdraw",
+            usr=self.user,
+            wal=self.id,
+            _external=True,
+        )
+        return lnurl_encode(url)
 
     def lnurlauth_key(self, domain: str) -> SigningKey:
         hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
@@ -158,3 +176,13 @@ class Payment(NamedTuple):
         from .crud import delete_payment
 
         await delete_payment(self.checking_id)
+
+
+class BalanceCheck(NamedTuple):
+    wallet: str
+    service: str
+    url: str
+
+    @classmethod
+    def from_row(cls, row: Row):
+        return cls(wallet=row["wallet"], service=row["service"], url=row["url"])

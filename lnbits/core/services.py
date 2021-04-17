@@ -4,8 +4,8 @@ from io import BytesIO
 from binascii import unhexlify
 from typing import Optional, Tuple, Dict
 from urllib.parse import urlparse, parse_qs
-from quart import g
-from lnurl import LnurlErrorResponse, LnurlWithdrawResponse  # type: ignore
+from quart import g, url_for
+from lnurl import LnurlErrorResponse, decode as decode_lnurl  # type: ignore
 
 try:
     from typing import TypedDict  # type: ignore
@@ -128,10 +128,9 @@ async def pay_invoice(
         else:
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
-            fee_reserve = max(1000, int(invoice.amount_msat * 0.01))
             await create_payment(
                 checking_id=temp_id,
-                fee=-fee_reserve,
+                fee=-fee_reserve(invoice.amount_msat),
                 conn=conn,
                 **payment_kwargs,
             )
@@ -180,24 +179,38 @@ async def pay_invoice(
 
 async def redeem_lnurl_withdraw(
     wallet_id: str,
-    res: LnurlWithdrawResponse,
+    lnurl_request: str,
     memo: Optional[str] = None,
+    extra: Optional[Dict] = None,
     conn: Optional[Connection] = None,
 ) -> None:
+    res = {}
+
+    async with httpx.AsyncClient() as client:
+        lnurl = decode_lnurl(lnurl_request)
+        r = await client.get(str(lnurl))
+        res = r.json()
+
     _, payment_request = await create_invoice(
         wallet_id=wallet_id,
-        amount=res.max_sats,
-        memo=memo or res.default_description or "",
-        extra={"tag": "lnurlwallet"},
+        amount=res["maxWithdrawable"],
+        memo=memo or res["defaultDescription"] or "",
+        extra=extra,
         conn=conn,
     )
 
     async with httpx.AsyncClient() as client:
         await client.get(
-            res.callback.base,
+            res["callback"],
             params={
-                **res.callback.query_params,
-                **{"k1": res.k1, "pr": payment_request},
+                "k1": res["k1"],
+                "pr": payment_request,
+                "balanceNotify": url_for(
+                    "core.lnurl_balance_notify",
+                    service=urlparse(lnurl_request).netloc,
+                    wal=g.wallet.id,
+                    _external=True,
+                ),
             },
         )
 
@@ -286,3 +299,7 @@ async def check_invoice_status(
         return PaymentStatus(None)
 
     return await WALLET.get_invoice_status(payment.checking_id)
+
+
+def fee_reserve(amount_msat: int) -> int:
+    return max(1000, int(amount_msat * 0.01))

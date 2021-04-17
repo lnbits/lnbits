@@ -3,7 +3,9 @@ import httpx
 from typing import List
 
 from lnbits.tasks import register_invoice_listener
+
 from . import db
+from .crud import get_balance_notify
 from .models import Payment
 
 sse_listeners: List[trio.MemorySendChannel] = []
@@ -23,6 +25,19 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
             await dispatch_webhook(payment)
+
+        # dispatch balance_notify
+        url = await get_balance_notify(payment.wallet_id)
+        if url:
+            async with httpx.AsyncClient() as client:
+                try:
+                    r = await client.post(
+                        url,
+                        timeout=4,
+                    )
+                    await mark_webhook_sent(payment, r.status_code)
+                except (httpx.ConnectError, httpx.RequestError):
+                    pass
 
 
 async def dispatch_sse(payment: Payment):
