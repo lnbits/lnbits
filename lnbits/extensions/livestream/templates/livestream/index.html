@@ -64,7 +64,7 @@
             <q-btn
               unelevated
               color="deep-purple"
-              @click="trackDialog.show = true"
+              @click="openAddTrackDialog"
               >Add new track</q-btn
             >
           </div>
@@ -107,12 +107,20 @@
                 {{ producersMap[props.row.producer].name }}
               </q-td>
               <q-td class="text-right" auto-width
-                >{{ props.row.price_msat }}</q-td
+                >{{ Math.round(props.row.price_msat / 1000) }}</q-td
               >
               <q-td class="text-center" auto-width
                 >{{ props.row.download_url }}</q-td
               >
               <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
                 <q-btn
                   unelevated
                   dense
@@ -186,7 +194,7 @@
           </q-select>
         </q-form>
 
-        <a :href="livestream.url">
+        <a :href="'lightning:' + livestream.lnurl">
           <q-responsive :ratio="1" class="q-mx-sm">
             <qrcode
               :value="livestream.lnurl"
@@ -269,7 +277,10 @@
                 color="deep-purple"
                 :disable="disabledAddTrackButton()"
                 type="submit"
-                >Add track</q-btn
+                >
+                  <span v-if="trackDialog.data.id">Update track</span>
+                  <span v-else>Add track</span>
+              </q-btn
               >
             </div>
             <div class="col q-ml-lg">

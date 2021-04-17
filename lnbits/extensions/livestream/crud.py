@@ -1,4 +1,3 @@
-import unicodedata
 from typing import List, Optional
 
 from lnbits.core.crud import create_account, create_wallet
@@ -65,22 +64,36 @@ async def add_track(
     name: str,
     download_url: Optional[str],
     price_msat: int,
-    producer_name: Optional[str],
-    producer_id: Optional[int],
+    producer: Optional[int],
 ) -> int:
-    if producer_id:
-        p_id = producer_id
-    elif producer_name:
-        p_id = await add_producer(livestream, producer_name)
-    else:
-        raise TypeError("need either producer_id or producer_name arguments")
-
     result = await db.execute(
         """
         INSERT INTO tracks (livestream, name, download_url, price_msat, producer)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (livestream, name, download_url, price_msat, p_id),
+        (livestream, name, download_url, price_msat, producer),
+    )
+    return result._result_proxy.lastrowid
+
+
+async def update_track(
+    livestream: int,
+    track_id: int,
+    name: str,
+    download_url: Optional[str],
+    price_msat: int,
+    producer: int,
+) -> int:
+    result = await db.execute(
+        """
+        UPDATE tracks SET
+          name = ?,
+          download_url = ?,
+          price_msat = ?,
+          producer = ?
+        WHERE livestream = ? AND id = ?
+        """,
+        (name, download_url, price_msat, producer, livestream, track_id),
     )
     return result._result_proxy.lastrowid
 
@@ -120,7 +133,7 @@ async def delete_track_from_livestream(livestream: int, track_id: int):
 
 
 async def add_producer(livestream: int, name: str) -> int:
-    name = "".join([unicodedata.normalize("NFD", l)[0] for l in name if l]).strip()
+    name = name.strip()
 
     existing = await db.fetchall(
         """
