@@ -1,4 +1,3 @@
-import trio  # type: ignore
 from os import path
 from http import HTTPStatus
 from quart import (
@@ -203,8 +202,9 @@ async def lnurlwallet():
         wallet.id,
         request.args.get("lightning"),
         "LNbits initial funding: voucher redeem.",
+        {"tag": "lnurlwallet"},
+        5,  # wait 5 seconds before sending the invoice to the service
     )
-    await trio.sleep(3)
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 

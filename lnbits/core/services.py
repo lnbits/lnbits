@@ -1,3 +1,4 @@
+import trio  # type: ignore
 import json
 import httpx
 from io import BytesIO
@@ -182,6 +183,7 @@ async def redeem_lnurl_withdraw(
     lnurl_request: str,
     memo: Optional[str] = None,
     extra: Optional[Dict] = None,
+    wait_seconds: int = 0,
     conn: Optional[Connection] = None,
 ) -> None:
     res = {}
@@ -199,19 +201,28 @@ async def redeem_lnurl_withdraw(
         conn=conn,
     )
 
+    if wait_seconds:
+        await trio.sleep(wait_seconds)
+
+    params = {
+        "k1": res["k1"],
+        "pr": payment_request,
+    }
+
+    try:
+        params["balanceNotify"] = url_for(
+            "core.lnurl_balance_notify",
+            service=urlparse(lnurl_request).netloc,
+            wal=wallet_id,
+            _external=True,
+        )
+    except Exception:
+        pass
+
     async with httpx.AsyncClient() as client:
         await client.get(
             res["callback"],
-            params={
-                "k1": res["k1"],
-                "pr": payment_request,
-                "balanceNotify": url_for(
-                    "core.lnurl_balance_notify",
-                    service=urlparse(lnurl_request).netloc,
-                    wal=wallet_id,
-                    _external=True,
-                ),
-            },
+            params=params,
         )
 
 
