@@ -195,7 +195,7 @@ class SparkWallet(Wallet):
                                 data = json.loads(line[5:])
                                 if "pay_index" in data and data.get("status") == "paid":
                                     yield data["label"]
-            except (OSError, httpx.ReadError, httpx.ConnectError):
+            except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
 
             print("lost connection to spark /stream, retrying in 5 seconds")
