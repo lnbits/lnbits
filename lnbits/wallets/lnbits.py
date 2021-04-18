@@ -125,7 +125,7 @@ class LNbitsWallet(Wallet):
                         except json.decoder.JSONDecodeError:
                             continue
 
-                        if type(data) is not list or len(data) < 9:
+                        if type(data) is not dict:
                             continue
 
-                        yield data[8]  # payment_hash
+                        yield data["payment_hash"]  # payment_hash
