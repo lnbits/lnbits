@@ -61,10 +61,7 @@
             <h5 class="text-subtitle1 q-my-none">Tracks</h5>
           </div>
           <div class="col q-ml-lg">
-            <q-btn
-              unelevated
-              color="deep-purple"
-              @click="openAddTrackDialog"
+            <q-btn unelevated color="deep-purple" @click="openAddTrackDialog"
               >Add new track</q-btn
             >
           </div>
@@ -229,8 +226,13 @@
 
   <q-dialog v-model="trackDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-card-section v-if="trackDialog.data.lnurl" class="q-pa-none text-center">
-        <p class="text-subtitle1 q-my-none">Standalone QR Code for this track</p>
+      <q-card-section
+        v-if="trackDialog.data.lnurl"
+        class="q-pa-none text-center"
+      >
+        <p class="text-subtitle1 q-my-none">
+          Standalone QR Code for this track
+        </p>
         <a :href="'lightning:' + trackDialog.data.lnurl">
           <q-responsive :ratio="1" class="q-mx-sm">
             <qrcode
@@ -297,11 +299,10 @@
                 color="deep-purple"
                 :disable="disabledAddTrackButton()"
                 type="submit"
-                >
-                  <span v-if="trackDialog.data.id">Update track</span>
-                  <span v-else>Add track</span>
-              </q-btn
               >
+                <span v-if="trackDialog.data.id">Update track</span>
+                <span v-else>Add track</span>
+              </q-btn>
             </div>
             <div class="col q-ml-lg">
               <q-btn v-close-popup flat color="grey" class="q-ml-auto"

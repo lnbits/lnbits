@@ -4,7 +4,7 @@
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="/core/static/js/wallet.js"></script>
-<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest">
+<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" />
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
