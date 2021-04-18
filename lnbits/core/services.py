@@ -193,7 +193,7 @@ async def redeem_lnurl_withdraw(
 
     _, payment_request = await create_invoice(
         wallet_id=wallet_id,
-        amount=res["maxWithdrawable"],
+        amount=int(res["maxWithdrawable"] / 1000),
         memo=memo or res["defaultDescription"] or "",
         extra=extra,
         conn=conn,
@@ -208,7 +208,7 @@ async def redeem_lnurl_withdraw(
                 "balanceNotify": url_for(
                     "core.lnurl_balance_notify",
                     service=urlparse(lnurl_request).netloc,
-                    wal=g.wallet.id,
+                    wal=wallet_id,
                     _external=True,
                 ),
             },
