@@ -93,6 +93,15 @@
       }
     },
     methods: {
+      showNotif: function (userMessage) {
+        this.$q.notify({
+          color: 'purple',
+          html: true,
+          message: '<h2 style="color: white;">' + userMessage + '</h2>',
+          position: 'left',
+          timeout: 5000
+        })
+      },
       openURL: function (url) {
         console.log(url)
         return Quasar.utils.openURL(url)
@@ -229,6 +238,9 @@
           }
           if (res[1].substring(0, 3) == 'htt') {
             document.getElementById('iframe_main').src = res[1]
+          }
+          if (res[2] != 'none') {
+            this.showNotif(res[2])
           }
         }
       })

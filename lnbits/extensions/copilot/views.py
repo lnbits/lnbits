@@ -1,5 +1,6 @@
 from quart import g, abort, render_template, jsonify, websocket
 from http import HTTPStatus
+import httpx
 
 from lnbits.decorators import check_user_exists, validate_uuids
 
@@ -65,10 +66,13 @@ async def panel(copilot_id):
     return await render_template("copilot/panel.html", copilot=copilot)
 
 
-@copilot_ext.route("/api/v1/copilot/hook/<copilot_id>/<amount>/", methods=["GET"])
+@copilot_ext.route(
+    "/api/v1/copilot/hook/<copilot_id>/<amount>/<comment>", methods=["GET"]
+)
 async def api_copilot_hooker(copilot_id, amount):
 
     data = ""
+    webhook = ""
     copilot = await get_copilot(copilot_id)
 
     if not copilot:
@@ -76,21 +80,31 @@ async def api_copilot_hooker(copilot_id, amount):
             jsonify({"message": "Copilot link link does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
-    print("got here")
     if int(copilot.animation1threshold) and int(amount) > copilot.animation1threshold:
-        print("one")
         data = copilot.animation1
-        if int(copilot.animation2threshold) and int(amount) > copilot.animation2threshold:
-            print("two")
+        webhook = copilot.animation1webhook
+        if (
+            int(copilot.animation2threshold)
+            and int(amount) > copilot.animation2threshold
+        ):
             data = copilot.animation2
+            webhook = copilot.animation1webhook
             if (
                 int(copilot.animation3threshold)
                 and int(amount) > copilot.animation3threshold
             ):
-                print("three")
                 data = copilot.animation3
+                webhook = copilot.animation1webhook
+    if webhook:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                webhook,
+                json={
+                    copilot,
+                },
+                timeout=40,
+            )
     global connected_websockets
-    
-    connected_websockets[copilot_id] = shortuuid.uuid() + "-" + data
+    connected_websockets[copilot_id] = shortuuid.uuid() + "-" + data + "-" + comment
     print(connected_websockets)
     return "", HTTPStatus.OK

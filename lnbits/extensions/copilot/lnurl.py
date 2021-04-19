@@ -25,7 +25,8 @@ async def lnurl_response(cp_id):
     )
 
     params = resp.dict()
-    params["commentAllowed"] = 300
+    if cp.show_message:
+        params["commentAllowed"] = 300
 
     return jsonify(params)
 
@@ -54,14 +55,17 @@ async def lnurl_callback(cp_id):
                 ).dict()
             ),
         )
-
-    comment = request.args.get("comment")
-    if len(comment or "") > 300:
-        return jsonify(
-            LnurlErrorResponse(
-                reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
-            ).dict()
-        )
+    comment = ""
+    if request.args.get("comment"):
+        comment = request.args.get("comment")
+        if len(comment or "") > 300:
+            return jsonify(
+                LnurlErrorResponse(
+                    reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
+                ).dict()
+            )
+        if len(comment) < 1:
+            comment = "none"
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=cp.wallet,
@@ -71,7 +75,8 @@ async def lnurl_callback(cp_id):
             "copilot.api_copilot_hooker",
             copilot_id=cp_id,
             amount=int(amount_received / 1000),
-            _external=True,
+            comment=comment,
+            _external=False,
         ),
         description_hash=hashlib.sha256(
             (
@@ -91,7 +96,8 @@ async def lnurl_callback(cp_id):
             "copilot.api_copilot_hooker",
             copilot_id=cp_id,
             amount=int(amount_received / 1000),
-            _external=True,
+            comment=comment,
+            _external=False,
         )
     )
     return jsonify(resp.dict())
