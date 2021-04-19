@@ -7,7 +7,7 @@ from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
-
+import shortuuid
 
 async def register_listeners():
     invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
