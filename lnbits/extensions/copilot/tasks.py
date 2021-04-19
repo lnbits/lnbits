@@ -6,7 +6,7 @@ from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_pay_link
+from .crud import get_copilot
 
 
 async def register_listeners():
