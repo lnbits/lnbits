@@ -14,4 +14,4 @@ from .tasks import register_listeners
 
 from lnbits.tasks import record_async
 
-lnurlp_ext.record(record_async(register_listeners))
+copilot_ext.record(record_async(register_listeners))
