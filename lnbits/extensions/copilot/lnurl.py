@@ -76,7 +76,7 @@ async def lnurl_callback(cp_id):
             copilot_id=cp_id,
             amount=int(amount_received / 1000),
             comment=comment,
-            _external=True,
+            _external=False,
         ))[:-1],
         description_hash=hashlib.sha256(
             (
@@ -97,7 +97,7 @@ async def lnurl_callback(cp_id):
             copilot_id=cp_id,
             amount=int(amount_received / 1000),
             comment=comment,
-            _external=True,
+            _external=False,
         ))[:-1]
     )
     return jsonify(resp.dict())
