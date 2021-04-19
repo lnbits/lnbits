@@ -76,18 +76,21 @@ async def api_copilot_hooker(copilot_id, amount):
             jsonify({"message": "Copilot link link does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
-
-    if copilot.animation1threshold and int(amount) > copilot.animation1threshold:
+    print("got here")
+    if int(copilot.animation1threshold) and int(amount) > copilot.animation1threshold:
+        print("one")
         data = copilot.animation1
-        if copilot.animation2threshold and int(amount) > copilot.animation2threshold:
+        if int(copilot.animation2threshold) and int(amount) > copilot.animation2threshold:
+            print("two")
             data = copilot.animation2
             if (
-                copilot.animation3threshold
+                int(copilot.animation3threshold)
                 and int(amount) > copilot.animation3threshold
             ):
+                print("three")
                 data = copilot.animation3
     global connected_websockets
+    
+    connected_websockets[copilot_id] = shortuuid.uuid() + "-" + data
     print(connected_websockets)
-    connected_websockets[copilot.id] = shortuuid.uuid() + "-" + data
-
     return "", HTTPStatus.OK
