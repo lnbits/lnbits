@@ -71,13 +71,13 @@ async def lnurl_callback(cp_id):
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
         memo=cp.lnurl_title,
-        webhook=url_for(
+        webhook=str(url_for(
             "copilot.api_copilot_hooker",
             copilot_id=cp_id,
             amount=int(amount_received / 1000),
             comment=comment,
-            _external=False,
-        ),
+            _external=True,
+        ))[:-1],
         description_hash=hashlib.sha256(
             (
                 LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
@@ -92,12 +92,12 @@ async def lnurl_callback(cp_id):
         routes=[],
     )
     print(
-        url_for(
+        str(url_for(
             "copilot.api_copilot_hooker",
             copilot_id=cp_id,
             amount=int(amount_received / 1000),
             comment=comment,
-            _external=False,
-        )
+            _external=True,
+        ))[:-1]
     )
     return jsonify(resp.dict())

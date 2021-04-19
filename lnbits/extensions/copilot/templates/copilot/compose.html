@@ -239,6 +239,7 @@
           if (res[1].substring(0, 3) == 'htt') {
             document.getElementById('iframe_main').src = res[1]
           }
+          console.log(res[2])
           if (res[2] != 'none') {
             this.showNotif(res[2])
           }
