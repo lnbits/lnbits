@@ -7,6 +7,7 @@ from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
+from .views import updater
 import shortuuid
 
 async def register_listeners():
@@ -69,10 +70,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                 await mark_webhook_sent(payment, r.status_code)
             except (httpx.ConnectError, httpx.RequestError):
                 await mark_webhook_sent(payment, -1)
-    global connected_websockets
-    connected_websockets[copilot.id] = (
-        shortuuid.uuid() + "-" + data + "-" + payment.extra.get("comment")
-    )
+    await updater(data, payment.extra.get("comment"), copilot.id)
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:

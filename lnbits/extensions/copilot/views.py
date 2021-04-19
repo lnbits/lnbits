@@ -64,3 +64,9 @@ async def panel(copilot_id):
         HTTPStatus.NOT_FOUND, "Copilot link does not exist."
     )
     return await render_template("copilot/panel.html", copilot=copilot)
+
+async def updater(data, comment, copilot):
+    global connected_websockets
+    connected_websockets[copilot] = (
+        shortuuid.uuid() + "-" + data + "-" + comment
+    )
