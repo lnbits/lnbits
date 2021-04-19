@@ -40,7 +40,7 @@
     </div>
   </div>
 
-  <h4
+  <h2
     v-if="'{{ copilot.show_price }}' != 'None'"
     class="text-bold fixed-bottom-left"
     style="
@@ -51,7 +51,7 @@
     "
   >
     {% raw %}{{ price }}{% endraw %}
-  </h4>
+  </h2>
   <p
     v-if="'{{ copilot.show_ack }}' != 'None'"
     class="fixed-top"
@@ -97,7 +97,7 @@
         this.$q.notify({
           color: 'purple',
           html: true,
-          message: '<h2 style="color: white;">' + userMessage + '</h2>',
+          message: '<h4 style="color: white;">' + userMessage + '</h4>',
           position: 'left',
           timeout: 5000
         })
