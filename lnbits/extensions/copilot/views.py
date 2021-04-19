@@ -69,7 +69,7 @@ async def panel(copilot_id):
 @copilot_ext.route(
     "/api/v1/copilot/hook/<copilot_id>/<amount>/<comment>", methods=["GET"]
 )
-async def api_copilot_hooker(copilot_id, amount):
+async def api_copilot_hooker(copilot_id, amount, comment):
 
     data = ""
     webhook = ""
