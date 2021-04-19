@@ -40,7 +40,7 @@
     </div>
   </div>
 
-  <h2
+  <h4
     v-if="'{{ copilot.show_price }}' != 'None'"
     class="text-bold fixed-bottom-left"
     style="
@@ -51,7 +51,7 @@
     "
   >
     {% raw %}{{ price }}{% endraw %}
-  </h2>
+  </h4>
   <p
     v-if="'{{ copilot.show_ack }}' != 'None'"
     class="fixed-top"
