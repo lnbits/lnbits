@@ -14,13 +14,13 @@
   <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
 
   <div
-    v-if="'{{ lnurl_toggle }}' == 1"
+    v-if="copilot.lnurl_toggle == 1"
     class="rounded-borders fixed-top-right column"
     style="width: 350px; z-index: 9999; background-color: white"
   >
     <div class="col">
       <qrcode
-        :value="'{{ lnurl }}'"
+        :value="copilot.lnurl"
         :options="{width:350}"
         class="rounded-borders"
       ></qrcode>
@@ -34,12 +34,12 @@
         width: 100%;
       "
     >
-      <center>{{ copilot.lnurl_title }}</center>
+      <center>{% raw %}{{ copilot.lnurl_title }}{% endraw %}</center>
     </div>
   </div>
 
   <h2
-    v-if="'{{ copilot.show_price }}' != 'None'"
+    v-if="copilot.show_price != 'None'"
     class="text-bold fixed-bottom-left"
     style="
       margin: 60px 60px;
@@ -51,7 +51,7 @@
     {% raw %}{{ price }}{% endraw %}
   </h2>
   <p
-    v-if="'{{ copilot.show_ack }}' != 'None'"
+    v-if="copilot.show_ack != 'None'"
     class="fixed-top"
     style="
       font-size: 22px;
@@ -88,7 +88,9 @@
       return {
         price: '',
         counter: 1,
-        colours: ['teal', 'purple', 'indigo', 'pink', 'green']
+        colours: ['teal', 'purple', 'indigo', 'pink', 'green'],
+        copilot: {},
+        lnurl: ''
       }
     },
     methods: {
@@ -136,7 +138,7 @@
       },
       getPrice: function () {
         self = this
-        if ('{{ copilot.show_price }}' != 'None') {
+        if (self.copilot.show_price != 'None') {
           LNbits.api
             .request('GET', 'https://api.opennode.com/v1/rates', 'filla')
             .then(function (response) {
@@ -146,7 +148,6 @@
                   currency: 'USD'
                 }).format(response.data.data.BTCUSD.USD)
               )
-              console.log(self.price)
             })
             .catch(function (error) {
               LNbits.utils.notifyApiError(error)
@@ -161,7 +162,6 @@
             self.counter++
             if (self.counter % 20 === 0) {
               self.getPrice()
-              console.log('test')
             }
           }, 1000)
         }, 2000)
@@ -171,10 +171,13 @@
       this.initCamera()
     },
     created: function () {
+      self = this
+      self.copilot = JSON.parse(localStorage.getItem('copilot'))
+
       LNbits.api
         .request(
           'GET',
-          '/copilot/api/v1/copilot/ws/{{ copilot.id }}/launching/rocket',
+          '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/launching/rocket',
           'filla'
         )
         .then(function (response) {})
@@ -187,7 +190,8 @@
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/compose/{{ copilot.id }}'
+            '/copilot/ws/compose/' +
+            self.copilot.id
         )
       } else {
         this.connection = new WebSocket(
@@ -195,7 +199,8 @@
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/compose/{{ copilot.id }}'
+            '/copilot/ws/compose/' +
+            self.copilot.id
         )
       }
 
