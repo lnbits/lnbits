@@ -76,7 +76,7 @@ async def api_copilot_retrieve(copilot_id):
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
 
     return (
-        jsonify({copilot._asdict()}),
+        jsonify(copilot._asdict()),
         HTTPStatus.OK,
     )
 
@@ -101,5 +101,6 @@ async def api_copilot_ws_relay(copilot_id, comment, data):
     if not copilot:
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
     await updater(data, comment, copilot_id)
+    print("updated")
     return "", HTTPStatus.OK
 
