@@ -15,13 +15,13 @@
 
   <div
     v-if="copilot.lnurl_toggle == 1"
-    class="rounded-borders fixed-top-left column"
-    style="width: 300px; z-index: 9999; background-color: white"
+    class="rounded-borders fixed-right column"
+    style="width: 250px; z-index: 9999; background-color: white"
   >
     <div class="col">
       <qrcode
         :value="copilot.lnurl"
-        :options="{width:300}"
+        :options="{width:250}"
         class="rounded-borders"
       ></qrcode>
     </div>
@@ -103,7 +103,7 @@
           icon: 'chat_bubble_outline',
           html: true,
           message: '<h4 style="color: white;">' + userMessage + '</h4>',
-          position: 'top-right',
+          position: 'top-left',
           timeout: 5000
         })
       },
