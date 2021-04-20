@@ -172,7 +172,7 @@
       }
 
       this.connection.addEventListener('open', function (event) {
-        this.connection.send('')
+        this.connection.send('handshake')
       })
       var showNotif = this.showNotif
 

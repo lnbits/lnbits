@@ -17,7 +17,7 @@ from .crud import (
     delete_copilot,
 )
 
-#############################COPILOT##########################
+#######################COPILOT##########################
 
 
 @copilot_ext.route("/api/v1/copilot", methods=["POST"])

@@ -10,6 +10,7 @@ from .crud import get_copilot
 from .views import updater
 import shortuuid
 
+
 async def register_listeners():
     invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
     register_invoice_listener(invoice_paid_chan_send)
@@ -25,7 +26,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     webhook = None
     data = None
     if "copilot" != payment.extra.get("tag"):
-        # not an lnurlp invoice
+        # not an copilot invoice
         return
 
     if payment.extra.get("wh_status"):
@@ -39,7 +40,10 @@ async def on_invoice_paid(payment: Payment) -> None:
             jsonify({"message": "Copilot link link does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
-    if int(copilot.animation1threshold) and int(payment.amount) > copilot.animation1threshold:
+    if (
+        int(copilot.animation1threshold)
+        and int(payment.amount) > copilot.animation1threshold
+    ):
         data = copilot.animation1
         webhook = copilot.animation1webhook
         if (

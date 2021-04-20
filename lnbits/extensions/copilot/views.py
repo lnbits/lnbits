@@ -13,26 +13,6 @@ import trio
 import shortuuid
 from . import copilot_ext
 
-connected_websockets = {}
-
-
-@copilot_ext.websocket("/ws/panel/<copilot_id>")
-async def ws_panel(copilot_id):
-    global connected_websockets
-    while True:
-        data = await websocket.receive()
-        connected_websockets[copilot_id] = shortuuid.uuid() + "-" + data
-
-
-@copilot_ext.websocket("/ws/compose/<copilot_id>")
-async def ws_compose(copilot_id):
-    global connected_websockets
-
-    while True:
-
-        data = await websocket.receive()
-        await websocket.send(connected_websockets[copilot_id])
-
 
 @copilot_ext.route("/")
 @validate_uuids(["usr"], required=True)
@@ -65,8 +45,33 @@ async def panel(copilot_id):
     )
     return await render_template("copilot/panel.html", copilot=copilot)
 
+
+##################WEBSOCKET ROUTES########################
+
+# socket_relay is a list where the control panel or
+# lnurl endpoints can leave a message for the compose window
+
+socket_relay = {}
+
+
+@copilot_ext.websocket("/ws/panel/<copilot_id>")
+async def ws_panel(copilot_id):
+    global socket_relay
+    while True:
+        data = await websocket.receive()
+        if data == "handshake":
+            await websocket.send(f"willkommen")
+        socket_relay[copilot_id] = shortuuid.uuid()[:5] + "-" + data + "-" + "none"
+
+
+@copilot_ext.websocket("/ws/compose/<copilot_id>")
+async def ws_compose(copilot_id):
+    global socket_relay
+    while True:
+        data = await websocket.receive()
+        await websocket.send(socket_relay[copilot_id])
+
+
 async def updater(data, comment, copilot):
-    global connected_websockets
-    connected_websockets[copilot] = (
-        shortuuid.uuid() + "-" + data + "-" + comment
-    )
+    global socket_relay
+    socket_relay[copilot] = shortuuid.uuid()[:5] + "-" + data + "-" + comment
