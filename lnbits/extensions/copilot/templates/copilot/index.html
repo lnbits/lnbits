@@ -512,10 +512,9 @@
           })
       },
       openCopilotCompose: function (copilot_id) {
-        localStorage.setItem(
-          'copilot',
-          JSON.stringify(this.getCopilot(copilot_id))
-        )
+        var copilot = this.getCopilot(copilot_id)
+        console.log(copilot)
+        localStorage.setItem('copilot', JSON.stringify(copilot))
         let params =
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200'
         open('../copilot/cp/', 'test', params)
