@@ -40,24 +40,18 @@ async def on_invoice_paid(payment: Payment) -> None:
             jsonify({"message": "Copilot link link does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
-    if (
-        int(copilot.animation1threshold)
-        and int(payment.amount) > copilot.animation1threshold
-    ):
-        data = copilot.animation1
-        webhook = copilot.animation1webhook
-        if (
-            int(copilot.animation2threshold)
-            and int(payment.amount) > copilot.animation2threshold
-        ):
-            data = copilot.animation2
+    if copilot.animation1threshold:
+        if int(payment.amount) > copilot.animation1threshold:
+            data = copilot.animation1
             webhook = copilot.animation1webhook
-            if (
-                int(copilot.animation3threshold)
-                and int(payment.amount) > copilot.animation3threshold
-            ):
-                data = copilot.animation3
+        if copilot.animation2threshold:
+            if int(payment.amount) > copilot.animation2threshold:
+                data = copilot.animation2
                 webhook = copilot.animation1webhook
+            if copilot.animation3threshold:
+                if int(payment.amount) > copilot.animation3threshold:
+                    data = copilot.animation3
+                    webhook = copilot.animation1webhook
     if webhook:
         async with httpx.AsyncClient() as client:
             try:
