@@ -119,9 +119,10 @@
         }
       },
       openCompose: function () {
-        let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200`
+        let params =
+          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1200,height=644,left=410,top=100'
 
-        open('../copilot/cp/', 'test', params)
+        open('./copilot/cp/', 'test', params)
       },
       animationBTN: function (name) {
         this.connection.send(name)
