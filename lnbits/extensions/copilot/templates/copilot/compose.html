@@ -260,11 +260,11 @@
             }, 5000)
           }
           if (res[1] == 'true') {
-            document.getElementById('videoElement').style.width = '20%'
+            document.getElementById('videoCamera').style.width = '20%'
             self.initScreenShare()
           }
           if (res[1] == 'false') {
-            document.getElementById('videoElement').style.width = '100%'
+            document.getElementById('videoCamera').style.width = '100%'
             document.getElementById('videoScreen').src = null
           }
           console.log(res[2])
