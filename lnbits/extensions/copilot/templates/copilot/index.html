@@ -428,6 +428,7 @@
             rowsPerPage: 10
           }
         },
+        passedCopilot: {},
         formDialog: {
           show: false,
           data: {}
@@ -504,24 +505,24 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            return response.data
+            self.passedCopilot = response.data
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
       openCopilotCompose: function (copilot_id) {
-        var copilot = this.getCopilot(copilot_id)
-        console.log(JSON.stringify(copilot))
-        localStorage.setItem('copilot', JSON.stringify(copilot))
+        this.getCopilot(copilot_id)
+        console.log(JSON.stringify(this.passedCopilot))
+        localStorage.setItem('copilot', JSON.stringify(this.passedCopilot))
         let params =
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200'
         open('../copilot/cp/', 'test', params)
       },
       openCopilotPanel: function (copilot_id) {
-        var copilot = this.getCopilot(copilot_id)
-        console.log(JSON.stringify(copilot))
-        localStorage.setItem('copilot', JSON.stringify(copilot))
+        this.getCopilot(copilot_id)
+        console.log(JSON.stringify(this.passedCopilot))
+        localStorage.setItem('copilot', JSON.stringify(this.passedCopilot))
         let params =
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200'
         open('../copilot/pn/', 'test', params)
