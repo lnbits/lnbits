@@ -76,7 +76,7 @@ async def api_copilot_retrieve(copilot_id):
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
 
     return (
-        jsonify(copilot._asdict(), lnurl=copilot.lnurl),
+        jsonify({**copilot._asdict(), **{"lnurl": copilot.lnurl}}),
         HTTPStatus.OK,
     )
 
