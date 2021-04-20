@@ -13,7 +13,6 @@ from .crud import get_copilot
 @copilot_ext.route("/lnurl/<cp_id>", methods=["GET"])
 async def lnurl_response(cp_id):
     cp = await get_copilot(cp_id)
-    print(cp)
     if not cp:
         return jsonify({"status": "ERROR", "reason": "Copilot not found."})
 
@@ -47,7 +46,7 @@ async def lnurl_callback(cp_id):
                 ).dict()
             ),
         )
-    elif amount_received / 1000 > 50000000:
+    elif amount_received / 1000 > 10000000:
         return (
             jsonify(
                 LnurlErrorResponse(

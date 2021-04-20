@@ -223,7 +223,10 @@
           >
             <q-card>
               <q-card-section>
-                <div class="row">
+                <div
+                  class="row"
+                  v-if="formDialogCopilot.data.animation1threshold > 0"
+                >
                   <div class="col">
                     <q-select
                       filled
@@ -268,7 +271,10 @@
           >
             <q-card>
               <q-card-section>
-                <div class="row">
+                <div
+                  class="row"
+                  v-if="formDialogCopilot.data.animation2threshold > formDialogCopilot.data.animation1threshold"
+                >
                   <div class="col">
                     <q-select
                       filled

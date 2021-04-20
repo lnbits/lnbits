@@ -57,4 +57,4 @@ async def ws_compose(copilot_id):
 
 async def updater(data, comment, copilot):
     global socket_relay
-    socket_relay[copilot] = shortuuid.uuid()[:5] + "-" + data + "-" + comment
+    socket_relay[copilot] = shortuuid.uuid()[:5] + "-" + str(data) + "-" + str(comment)
