@@ -145,7 +145,6 @@
       },
       animation1: function () {
         self = this
-        self.getPrice
         setTimeout(function () {
           setInterval(function () {
             self.connection.send('')
@@ -280,6 +279,8 @@
       })
       var animation1 = this.animation1
       animation1()
+      var getPrice = this.getPrice
+      getPrice()
     }
   })
 </script>
