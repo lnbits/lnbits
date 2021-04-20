@@ -15,9 +15,7 @@
         </center>
       </div>
       <center>
-        <div class="col" style="margin: 15px; font-size: 25px">
-          Title: {{ copilot.title }}
-        </div>
+        <div class="col" style="margin: 15px; font-size: 25px">Title:</div>
       </center>
       <q-separator></q-separator>
       <div class="col">
@@ -120,7 +118,7 @@
       openCompose: function () {
         let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200`
 
-        open('../copilot/cp/{{ copilot.id }}', 'test', params)
+        open('../copilot/cp/', 'test', params)
       },
       animationBTN: function (name) {
         this.connection.send(name)
@@ -130,7 +128,8 @@
       }
     },
     created: function () {
-      console.log('{{ copilot.id }}')
+      var copilot = JSON.parse(localStorage.getItem('copilot'))
+      console.log(copilot.id)
 
       if (location.protocol == 'https:') {
         console.log(location.protocol)
@@ -139,7 +138,8 @@
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/panel/{{ copilot.id }}'
+            '/copilot/ws/panel/' +
+            copilot.id
         )
       } else {
         this.connection = new WebSocket(
@@ -147,7 +147,8 @@
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/panel/{{ copilot.id }}'
+            '/copilot/ws/panel/' +
+            copilot.id
         )
       }
       this.connection.addEventListener('open', function (event) {})

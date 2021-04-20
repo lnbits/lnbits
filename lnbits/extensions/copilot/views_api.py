@@ -103,4 +103,3 @@ async def api_copilot_ws_relay(copilot_id, comment, data):
     await updater(data, comment, copilot_id)
     print(comment)
     return "", HTTPStatus.OK
-

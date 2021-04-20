@@ -497,10 +497,29 @@
             LNbits.utils.notifyApiError(error)
           })
       },
+      getCopilot: function (copilot_id) {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/copilot/api/v1/copilot/' + copilot_id,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            return response.data
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       opencopilotCompose: function (copilot_id) {
+        localStorage.setItem(
+          'copilot',
+          JSON.stringify(this.getCopilot(copilot_id))
+        )
         let params =
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200'
-        open('../copilot/cp/' + copilot_id, 'test', params)
+        open('../copilot/cp/', 'test', params)
       },
 
       deleteCopilotLink: function (chargeId) {

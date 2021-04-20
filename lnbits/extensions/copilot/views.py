@@ -21,29 +21,14 @@ async def index():
     return await render_template("copilot/index.html", user=g.user)
 
 
-@copilot_ext.route("/cp/<copilot_id>")
-async def compose(copilot_id):
-    copilot = await get_copilot(copilot_id) or abort(
-        HTTPStatus.NOT_FOUND, "Copilot link does not exist."
-    )
-    if copilot.lnurl_toggle:
-        return await render_template(
-            "copilot/compose.html",
-            copilot=copilot,
-            lnurl=copilot.lnurl,
-            lnurl_toggle=copilot.lnurl_toggle,
-        )
-    return await render_template(
-        "copilot/compose.html", copilot=copilot, lnurl_toggle=copilot.lnurl_toggle
-    )
+@copilot_ext.route("/cp/")
+async def compose():
+    return await render_template("copilot/compose.html")
 
 
-@copilot_ext.route("/<copilot_id>")
-async def panel(copilot_id):
-    copilot = await get_copilot(copilot_id) or abort(
-        HTTPStatus.NOT_FOUND, "Copilot link does not exist."
-    )
-    return await render_template("copilot/panel.html", copilot=copilot)
+@copilot_ext.route("/pn/")
+async def panel():
+    return await render_template("copilot/panel.html")
 
 
 ##################WEBSOCKET ROUTES########################
