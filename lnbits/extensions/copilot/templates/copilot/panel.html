@@ -101,7 +101,8 @@
       return {
         fullscreen_cam: true,
         textareaModel: '',
-        iframe: ''
+        iframe: '',
+        copilot: {}
       }
     },
     methods: {
@@ -130,36 +131,37 @@
       }
     },
     created: function () {
-      var copilot = JSON.parse(localStorage.getItem('copilot'))
-      console.log(copilot.id)
+      self = this
+      self.copilot = JSON.parse(localStorage.getItem('copilot'))
+      console.log(this.copilot.id)
 
       if (location.protocol == 'https:') {
         console.log(location.protocol)
-        this.connection = new WebSocket(
+        self.connection = new WebSocket(
           'wss://' +
             document.domain +
             ':' +
             location.port +
             '/copilot/ws/panel/' +
-            copilot.id
+            self.copilot.id
         )
       } else {
-        this.connection = new WebSocket(
+        self.connection = new WebSocket(
           'ws://' +
             document.domain +
             ':' +
             location.port +
             '/copilot/ws/panel/' +
-            copilot.id
+            self.copilot.id
         )
       }
-      this.connection.addEventListener('open', function (event) {})
+      self.connection.addEventListener('open', function (event) {})
 
-      this.connection.addEventListener('message', function (event) {
+      self.connection.addEventListener('message', function (event) {
         console.log('Message from server ', event.data)
       })
 
-      this.connection.addEventListener('close', function (event) {
+      self.connection.addEventListener('close', function (event) {
         console.log('The connection has been closed')
       })
     }
