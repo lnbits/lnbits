@@ -16,7 +16,12 @@
   <div
     v-if="copilot.lnurl_toggle == 1"
     class="rounded-borders column fixed-right"
-    style="width: 250px; height: 300px z-index: 9999; background-color: white"
+    style="
+      width: 250px;
+      background-color: white;
+      height: 300px;
+      margin-top: 10%;
+    "
   >
     <div class="col">
       <qrcode
@@ -24,7 +29,7 @@
         :options="{width:250}"
         class="rounded-borders"
       ></qrcode>
-      <center class="absolute-bottom">
+      <center class="absolute-bottom" style="color: black; font-size: 20px">
         {% raw %}{{ copilot.lnurl_title }}{% endraw %}
       </center>
     </div>
