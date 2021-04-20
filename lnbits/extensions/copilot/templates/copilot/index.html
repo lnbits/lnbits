@@ -504,6 +504,7 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
+            console.log(response.data)
             return response.data
           })
           .catch(function (error) {
