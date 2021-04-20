@@ -150,7 +150,8 @@
             self.connection.send('')
             self.counter++
             if (self.counter % 20 === 0) {
-              self.getPrice
+              this.getPrice
+              console.log('test')
             }
           }, 1000)
         }, 2000)
