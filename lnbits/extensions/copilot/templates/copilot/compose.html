@@ -154,7 +154,16 @@
       this.initCamera()
     },
     created: function () {
-      console.log('{{ copilot.id }}')
+      LNbits.api
+        .request(
+          'GET',
+          '/api/v1/copilot/ws/{{ copilot.id }}/initialising/rocket',
+          'filla'
+        )
+        .then(function (response) {})
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
       if (location.protocol !== 'http:') {
         this.connection = new WebSocket(
           'wss://' +

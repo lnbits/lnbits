@@ -5,6 +5,7 @@ import httpx
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from .views import updater
 
 from . import copilot_ext
 
@@ -91,3 +92,14 @@ async def api_copilot_delete(copilot_id):
     await delete_copilot(copilot_id)
 
     return "", HTTPStatus.NO_CONTENT
+
+
+@copilot_ext.route("/api/v1/copilot/ws/<copilot_id>/<comment>/<data>", methods=["GET"])
+async def api_copilot_retrieve(copilot_id, comment, data):
+    copilot = await get_copilot(copilot_id)
+
+    if not copilot:
+        return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
+    await updater(data, comment, copilot_id)
+    return "", HTTPStatus.OK
+
