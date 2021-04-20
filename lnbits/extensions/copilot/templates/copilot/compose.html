@@ -1,12 +1,11 @@
 {% extends "public.html" %} {% block page %}<q-page>
-  <iframe
+  <div
     width="100%"
     height="100%"
     id="iframe_main"
     src="/"
     class="fixed-bottom-left"
-  >
-  </iframe>
+  ></div>
   <video
     autoplay="true"
     id="videoElement"
@@ -247,12 +246,22 @@
           }
           if (res[1] == 'true') {
             document.getElementById('videoElement').style.width = '20%'
+            async function startCapture(displayMediaOptions) {
+              let captureStream = null
+
+              try {
+                captureStream = await navigator.mediaDevices.getDisplayMedia(
+                  displayMediaOptions
+                )
+              } catch (err) {
+                console.error('Error: ' + err)
+              }
+              document.getElementById('iframe_main').src = captureStream
+            }
           }
           if (res[1] == 'false') {
             document.getElementById('videoElement').style.width = '100%'
-          }
-          if (res[1].substring(0, 3) == 'htt') {
-            document.getElementById('iframe_main').src = res[1]
+            document.getElementById('iframe_main').src = null
           }
           console.log(res[2])
           if (res[2] != 'none') {
