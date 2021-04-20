@@ -24,21 +24,25 @@
         <div class="row">
           <div class="col">
             <q-btn
+              disable
               class="q-mt-sm q-ml-sm"
               color="primary"
               @click="fullscreenToggle"
               label="Webcam size"
-            />
+            >
+              <q-tooltip> Coming soon </q-tooltip></q-btn
+            >
           </div>
           <div class="col">
             <q-input
+              disable
               class="q-pt-sm"
               dense
               outlined
               bottom-slots
               v-model="iframe"
               label="iframe url"
-            >
+              ><q-tooltip> Coming soon </q-tooltip>
               <template v-slot:after>
                 <q-btn
                   round
