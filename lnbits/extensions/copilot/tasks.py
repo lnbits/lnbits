@@ -41,15 +41,15 @@ async def on_invoice_paid(payment: Payment) -> None:
             HTTPStatus.NOT_FOUND,
         )
     if copilot.animation1threshold:
-        if int(payment.amount/1000) > copilot.animation1threshold:
+        if int(payment.amount / 1000) >= copilot.animation1threshold:
             data = copilot.animation1
             webhook = copilot.animation1webhook
         if copilot.animation2threshold:
-            if int(payment.amount/1000) > copilot.animation2threshold:
+            if int(payment.amount / 1000) >= copilot.animation2threshold:
                 data = copilot.animation2
                 webhook = copilot.animation1webhook
             if copilot.animation3threshold:
-                if int(payment.amount/1000) > copilot.animation3threshold:
+                if int(payment.amount / 1000) >= copilot.animation3threshold:
                     data = copilot.animation3
                     webhook = copilot.animation1webhook
     if webhook:
@@ -70,7 +70,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                 await mark_webhook_sent(payment, -1)
     if payment.extra.get("comment"):
         await updater(data, payment.extra.get("comment"), copilot.id)
-    
+
     await updater(data, "none", copilot.id)
 
 
