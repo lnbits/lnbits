@@ -30,13 +30,13 @@
         class="rounded-borders"
       ></qrcode>
       <center class="absolute-bottom" style="color: black; font-size: 20px">
-        {% raw %}{{ copilot.lnurl_title }}{% endraw %}
+        {% raw %}{{ copilot.lnurl_title }}
       </center>
     </div>
   </div>
 
   <h2
-    v-if="copilot.show_price != 'None'"
+    v-if="{{copilot.show_price]} != 'None'"
     class="text-bold fixed-bottom-left"
     style="
       margin: 60px 60px;
@@ -45,10 +45,10 @@
       color: white;
     "
   >
-    {% raw %}{{ price }}{% endraw %}
+    {{ price }}
   </h2>
   <p
-    v-if="copilot.show_ack != 'None'"
+    v-if="{{copilot.show_ack}} != 'None'"
     class="fixed-top"
     style="
       font-size: 22px;
@@ -59,6 +59,7 @@
   >
     Powered by LNbits/StreamerCopilot
   </p>
+  {% endraw %}
 </q-page>
 {% endblock %} {% block scripts %}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
