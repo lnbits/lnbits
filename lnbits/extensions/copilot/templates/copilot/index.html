@@ -155,14 +155,14 @@
             left-label
           ></q-checkbox>
         </div>
-        <div class="row">
+
+        <div v-if="formDialogCopilot.data.lnurl_toggle">
           <q-checkbox
             v-model="formDialogCopilot.data.show_message"
             left-label
-            label="Show lnurl-pay messages? (great lnurl feature but only supported by few wallets lntxbot, BLW)"
+            label="Show lnurl-pay messages? (supported by few wallets)"
           ></q-checkbox>
-        </div>
-        <div v-if="formDialogCopilot.data.lnurl_toggle">
+
           <q-select
             filled
             dense
