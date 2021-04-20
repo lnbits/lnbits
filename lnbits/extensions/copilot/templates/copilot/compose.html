@@ -24,17 +24,9 @@
         :options="{width:250}"
         class="rounded-borders"
       ></qrcode>
-    </div>
-    <div
-      class="col"
-      style="
-        font-size: 25px;
-        background-color: white;
-        color: black;
-        width: 100%;
-      "
-    >
-      <center>{% raw %}{{ copilot.lnurl_title }}{% endraw %}</center>
+      <center class="absolute-bottom">
+        {% raw %}{{ copilot.lnurl_title }}{% endraw %}
+      </center>
     </div>
   </div>
 
