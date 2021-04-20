@@ -75,9 +75,7 @@
                   size="xs"
                   icon="apps"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.displayPanelUrl"
-                  target="_blank"
+                  @click="openCopilotPanel(props.row.id)"
                 >
                   <q-tooltip> Panel </q-tooltip>
                 </q-btn>
@@ -89,7 +87,7 @@
                   size="xs"
                   icon="face"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="opencopilotCompose(props.row.id)"
+                  @click="openCopilotCompose(props.row.id)"
                 >
                   <q-tooltip> Compose window </q-tooltip>
                 </q-btn>
@@ -512,7 +510,7 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      opencopilotCompose: function (copilot_id) {
+      openCopilotCompose: function (copilot_id) {
         localStorage.setItem(
           'copilot',
           JSON.stringify(this.getCopilot(copilot_id))
@@ -521,7 +519,15 @@
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200'
         open('../copilot/cp/', 'test', params)
       },
-
+      openCopilotPanel: function (copilot_id) {
+        localStorage.setItem(
+          'copilot',
+          JSON.stringify(this.getCopilot(copilot_id))
+        )
+        let params =
+          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1722,height=972,left=200,top=200'
+        open('../copilot/pn/', 'test', params)
+      },
       deleteCopilotLink: function (chargeId) {
         var self = this
         var link = _.findWhere(this.CopilotLinks, {id: chargeId})
