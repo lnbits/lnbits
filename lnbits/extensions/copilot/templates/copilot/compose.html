@@ -96,8 +96,9 @@
     methods: {
       showNotif: function (userMessage) {
         var colour = colours[Math.floor(Math.random() * colours.length)]
+        console.log(String(colour))
         this.$q.notify({
-          color: colour,
+          color: String(colour),
           html: true,
           message: '<h4 style="color: white;">' + userMessage + '</h4>',
           position: 'left',
