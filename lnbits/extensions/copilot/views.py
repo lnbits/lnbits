@@ -59,8 +59,6 @@ async def ws_panel(copilot_id):
     global socket_relay
     while True:
         data = await websocket.receive()
-        if data == "handshake":
-            await websocket.send(f"willkommen")
         socket_relay[copilot_id] = shortuuid.uuid()[:5] + "-" + data + "-" + "none"
 
 
