@@ -1,14 +1,13 @@
 {% extends "public.html" %} {% block page %}<q-page>
-  <div
-    width="100%"
-    height="100%"
-    id="iframe_main"
-    src="/"
-    class="fixed-bottom-left"
-  ></div>
   <video
     autoplay="true"
-    id="videoElement"
+    id="videoScreen"
+    style="width: 100%"
+    class="fixed-bottom-right"
+  ></video>
+  <video
+    autoplay="true"
+    id="videoCamera"
     style="width: 100%"
     class="fixed-bottom-right"
   ></video>
@@ -111,7 +110,7 @@
         return Quasar.utils.openURL(url)
       },
       initCamera() {
-        var video = document.querySelector('#videoElement')
+        var video = document.querySelector('#videoCamera')
 
         if (navigator.mediaDevices.getUserMedia) {
           navigator.mediaDevices
@@ -123,6 +122,17 @@
               console.log('Something went wrong!')
             })
         }
+      },
+      initScreenShare() {
+        var video = document.querySelector('#videoScreen')
+        navigator.mediaDevices
+          .getDisplayMedia({video: true})
+          .then(function (stream) {
+            video.srcObject = stream
+          })
+          .catch(function (err0r) {
+            console.log('Something went wrong!')
+          })
       },
       getPrice: function () {
         self = this
@@ -150,7 +160,7 @@
             self.connection.send('')
             self.counter++
             if (self.counter % 20 === 0) {
-              this.getPrice
+              self.getPrice()
               console.log('test')
             }
           }, 1000)
@@ -251,22 +261,11 @@
           }
           if (res[1] == 'true') {
             document.getElementById('videoElement').style.width = '20%'
-            async function startCapture(displayMediaOptions) {
-              let captureStream = null
-
-              try {
-                captureStream = await navigator.mediaDevices.getDisplayMedia(
-                  displayMediaOptions
-                )
-              } catch (err) {
-                console.error('Error: ' + err)
-              }
-              document.getElementById('iframe_main').src = captureStream
-            }
+            self.initScreenShare()
           }
           if (res[1] == 'false') {
             document.getElementById('videoElement').style.width = '100%'
-            document.getElementById('iframe_main').src = null
+            document.getElementById('videoScreen').src = null
           }
           console.log(res[2])
           if (res[2] != 'none') {
