@@ -70,8 +70,10 @@ async def on_invoice_paid(payment: Payment) -> None:
                 await mark_webhook_sent(payment, -1)
     if payment.extra.get("comment"):
         await updater(data, payment.extra.get("comment"), copilot.id)
+    else:
+        await updater(data, "none", copilot.id)
 
-    await updater(data, "none", copilot.id)
+    
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
