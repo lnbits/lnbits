@@ -155,6 +155,13 @@
             left-label
           ></q-checkbox>
         </div>
+        <div class="row">
+          <q-checkbox
+            v-model="formDialogCopilot.data.show_message"
+            left-label
+            label="Show lnurl-pay messages? (great lnurl feature but only supported by few wallets lntxbot, BLW)"
+          ></q-checkbox>
+        </div>
         <div v-if="formDialogCopilot.data.lnurl_toggle">
           <q-select
             filled
@@ -309,13 +316,6 @@
             label="Lnurl title (message with QR code)"
           >
           </q-input>
-          <div class="q-gutter-sm">
-            <q-checkbox
-              v-model="formDialogCopilot.data.show_message"
-              left-label
-              label="Show lnurl-pay messages?"
-            ></q-checkbox>
-          </div>
         </div>
 
         <div class="q-gutter-sm">
