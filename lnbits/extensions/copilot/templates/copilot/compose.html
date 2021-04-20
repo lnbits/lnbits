@@ -89,13 +89,15 @@
     data() {
       return {
         price: '',
-        counter: 1
+        counter: 1,
+        colours: ['teal', 'purple', 'indigo', 'pink', 'green']
       }
     },
     methods: {
       showNotif: function (userMessage) {
+        var colour = colours[Math.floor(Math.random() * colours.length)]
         this.$q.notify({
-          color: 'purple',
+          color: colour,
           html: true,
           message: '<h4 style="color: white;">' + userMessage + '</h4>',
           position: 'left',
