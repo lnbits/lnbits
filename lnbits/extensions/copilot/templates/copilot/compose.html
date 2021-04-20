@@ -124,29 +124,34 @@
             })
         }
       },
+      getPrice: function () {
+        self = this
+        if ('{{ copilot.show_price }}' != 'None') {
+          LNbits.api
+            .request('GET', 'https://api.opennode.com/v1/rates', 'filla')
+            .then(function (response) {
+              self.price = String(
+                new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD'
+                }).format(response.data.data.BTCUSD.USD)
+              )
+              console.log(self.price)
+            })
+            .catch(function (error) {
+              LNbits.utils.notifyApiError(error)
+            })
+        }
+      },
       animation1: function () {
         self = this
+        self.getPrice
         setTimeout(function () {
           setInterval(function () {
             self.connection.send('')
             self.counter++
             if (self.counter % 20 === 0) {
-              if ('{{ copilot.show_price }}' != 'None') {
-                LNbits.api
-                  .request('GET', 'https://api.opennode.com/v1/rates', 'filla')
-                  .then(function (response) {
-                    self.price = String(
-                      new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD'
-                      }).format(response.data.data.BTCUSD.USD)
-                    )
-                    console.log(self.price)
-                  })
-                  .catch(function (error) {
-                    LNbits.utils.notifyApiError(error)
-                  })
-              }
+              self.getPrice
             }
           }, 1000)
         }, 2000)
