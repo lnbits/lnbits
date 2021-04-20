@@ -3,7 +3,7 @@ import json
 import lnurl  # type: ignore
 import httpx
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import g, jsonify, make_response
+from quart import g, jsonify, make_response, url_for
 from http import HTTPStatus
 from binascii import unhexlify
 from typing import Dict, Union
@@ -12,6 +12,7 @@ from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from .. import core_app, db
+from ..crud import save_balance_check
 from ..services import (
     PaymentFailure,
     InvoiceFailure,
@@ -60,6 +61,7 @@ async def api_payments():
             "excludes": "memo",
         },
         "lnurl_callback": {"type": "string", "nullable": True, "required": False},
+        "lnurl_balance_check": {"type": "string", "required": False},
         "extra": {"type": "dict", "nullable": True, "required": False},
         "webhook": {"type": "string", "empty": False, "required": False},
     }
@@ -92,11 +94,22 @@ async def api_payments_create_invoice():
 
     lnurl_response: Union[None, bool, str] = None
     if g.data.get("lnurl_callback"):
+        if "lnurl_balance_check" in g.data:
+            save_balance_check(g.wallet.id, g.data["lnurl_balance_check"])
+
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.get(
                     g.data["lnurl_callback"],
-                    params={"pr": payment_request},
+                    params={
+                        "pr": payment_request,
+                        "balanceNotify": url_for(
+                            "core.lnurl_balance_notify",
+                            service=urlparse(g.data["lnurl_callback"]).netloc,
+                            wal=g.wallet.id,
+                            _external=True,
+                        ),
+                    },
                     timeout=10,
                 )
                 if r.is_error:
@@ -387,6 +400,12 @@ async def api_lnurlscan(code: str):
             parsed_callback: ParseResult = urlparse(data.callback)
             qs: Dict = parse_qs(parsed_callback.query)
             qs["k1"] = data.k1
+
+            # balanceCheck/balanceNotify
+            if "balanceCheck" in jdata:
+                params.update(balanceCheck=jdata["balanceCheck"])
+
+            # format callback url and send to client
             parsed_callback = parsed_callback._replace(query=urlencode(qs, doseq=True))
             params.update(callback=urlunparse(parsed_callback))
 

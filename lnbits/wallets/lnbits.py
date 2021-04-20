@@ -1,3 +1,4 @@
+import trio  # type: ignore
 import json
 import httpx
 from os import getenv
@@ -116,16 +117,25 @@ class LNbitsWallet(Wallet):
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"{self.endpoint}/api/v1/payments/sse"
 
-        async with httpx.AsyncClient(timeout=None, headers=self.key) as client:
-            async with client.stream("GET", url) as r:
-                async for line in r.aiter_lines():
-                    if line.startswith("data:"):
-                        try:
-                            data = json.loads(line[5:])
-                        except json.decoder.JSONDecodeError:
-                            continue
+        while True:
+            try:
+                async with httpx.AsyncClient(timeout=None, headers=self.key) as client:
+                    async with client.stream("GET", url) as r:
+                        async for line in r.aiter_lines():
+                            if line.startswith("data:"):
 
-                        if type(data) is not list or len(data) < 9:
-                            continue
+                                try:
+                                    data = json.loads(line[5:])
+                                except json.decoder.JSONDecodeError:
+                                    continue
 
-                        yield data[8]  # payment_hash
+                                if type(data) is not dict:
+                                    continue
+
+                                yield data["payment_hash"]  # payment_hash
+
+            except (OSError, httpx.ReadError, httpx.ConnectError):
+                pass
+
+            print("lost connection to lnbits /payments/sse, retrying in 5 seconds")
+            await trio.sleep(5)

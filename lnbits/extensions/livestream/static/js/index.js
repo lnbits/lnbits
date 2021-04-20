@@ -93,24 +93,21 @@ new Vue({
       )
     },
     addTrack() {
-      let {name, producer, price_sat, download_url} = this.trackDialog.data
+      let {id, name, producer, price_sat, download_url} = this.trackDialog.data
+
+      const [method, path] = id
+        ? ['PUT', `/livestream/api/v1/livestream/tracks/${id}`]
+        : ['POST', '/livestream/api/v1/livestream/tracks']
 
       LNbits.api
-        .request(
-          'POST',
-          '/livestream/api/v1/livestream/tracks',
-          this.selectedWallet.inkey,
-          {
-            download_url:
-              download_url && download_url.length > 0
-                ? download_url
-                : undefined,
-            name,
-            price_msat: price_sat * 1000 || 0,
-            producer_name: typeof producer === 'string' ? producer : undefined,
-            producer_id: typeof producer === 'object' ? producer.id : undefined
-          }
-        )
+        .request(method, path, this.selectedWallet.inkey, {
+          download_url:
+            download_url && download_url.length > 0 ? download_url : undefined,
+          name,
+          price_msat: price_sat * 1000 || 0,
+          producer_name: typeof producer === 'string' ? producer : undefined,
+          producer_id: typeof producer === 'object' ? producer.id : undefined
+        })
         .then(response => {
           this.$q.notify({
             message: `Track '${this.trackDialog.data.name}' added.`,
@@ -123,6 +120,21 @@ new Vue({
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
+    },
+    openAddTrackDialog() {
+      this.trackDialog.show = true
+      this.trackDialog.data = {}
+    },
+    openUpdateDialog(itemId) {
+      this.trackDialog.show = true
+      let item = this.livestream.tracks.find(item => item.id === itemId)
+      this.trackDialog.data = {
+        ...item,
+        producer: this.livestream.producers.find(
+          prod => prod.id === item.producer
+        ),
+        price_sat: Math.round(item.price_msat / 1000)
+      }
     },
     deleteTrack(trackId) {
       LNbits.utils

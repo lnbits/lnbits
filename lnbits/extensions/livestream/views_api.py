@@ -9,9 +9,11 @@ from .crud import (
     get_or_create_livestream_by_wallet,
     add_track,
     get_tracks,
+    update_track,
+    add_producer,
     get_producers,
-    update_livestream_fee,
     update_current_track,
+    update_livestream_fee,
     delete_track_from_livestream,
 )
 
@@ -30,7 +32,10 @@ async def api_livestream_from_wallet():
                     **ls._asdict(),
                     **{
                         "lnurl": ls.lnurl,
-                        "tracks": [track._asdict() for track in tracks],
+                        "tracks": [
+                            dict(lnurl=track.lnurl, **track._asdict())
+                            for track in tracks
+                        ],
                         "producers": [producer._asdict() for producer in producers],
                     },
                 }
@@ -72,6 +77,7 @@ async def api_update_fee(fee_pct):
 
 
 @livestream_ext.route("/api/v1/livestream/tracks", methods=["POST"])
+@livestream_ext.route("/api/v1/livestream/tracks/<id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -90,17 +96,35 @@ async def api_update_fee(fee_pct):
         },
     }
 )
-async def api_add_track():
+async def api_add_track(id=None):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
-    await add_track(
-        ls.id,
-        g.data["name"],
-        g.data.get("download_url"),
-        g.data.get("price_msat", 0),
-        g.data.get("producer_name"),
-        g.data.get("producer_id"),
-    )
-    return "", HTTPStatus.CREATED
+
+    if "producer_id" in g.data:
+        p_id = g.data["producer_id"]
+    elif "producer_name" in g.data:
+        p_id = await add_producer(ls.id, g.data["producer_name"])
+    else:
+        raise TypeError("need either producer_id or producer_name arguments")
+
+    if id:
+        await update_track(
+            ls.id,
+            id,
+            g.data["name"],
+            g.data.get("download_url"),
+            g.data.get("price_msat", 0),
+            p_id,
+        )
+        return "", HTTPStatus.OK
+    else:
+        await add_track(
+            ls.id,
+            g.data["name"],
+            g.data.get("download_url"),
+            g.data.get("price_msat", 0),
+            p_id,
+        )
+        return "", HTTPStatus.CREATED
 
 
 @livestream_ext.route("/api/v1/livestream/tracks/<track_id>", methods=["DELETE"])

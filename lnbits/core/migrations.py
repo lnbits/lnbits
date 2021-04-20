@@ -161,3 +161,32 @@ async def m004_ensure_fees_are_always_negative(db):
         GROUP BY wallet;
     """
     )
+
+
+async def m005_balance_check_balance_notify(db):
+    """
+    Keep track of balanceCheck-enabled lnurl-withdrawals to be consumed by an LNbits wallet and of balanceNotify URLs supplied by users to empty their wallets.
+    """
+
+    await db.execute(
+        """
+        CREATE TABLE balance_check (
+          wallet INTEGER NOT NULL REFERENCES wallets (id),
+          service TEXT NOT NULL,
+          url TEXT NOT NULL,
+
+          UNIQUE(wallet, service)
+        );
+    """
+    )
+
+    await db.execute(
+        """
+        CREATE TABLE balance_notify (
+          wallet INTEGER NOT NULL REFERENCES wallets (id),
+          url TEXT NOT NULL,
+
+          UNIQUE(wallet, url)
+        );
+    """
+    )

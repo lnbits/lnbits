@@ -61,10 +61,7 @@
             <h5 class="text-subtitle1 q-my-none">Tracks</h5>
           </div>
           <div class="col q-ml-lg">
-            <q-btn
-              unelevated
-              color="deep-purple"
-              @click="trackDialog.show = true"
+            <q-btn unelevated color="deep-purple" @click="openAddTrackDialog"
               >Add new track</q-btn
             >
           </div>
@@ -107,12 +104,20 @@
                 {{ producersMap[props.row.producer].name }}
               </q-td>
               <q-td class="text-right" auto-width
-                >{{ props.row.price_msat }}</q-td
+                >{{ Math.round(props.row.price_msat / 1000) }}</q-td
               >
               <q-td class="text-center" auto-width
                 >{{ props.row.download_url }}</q-td
               >
               <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
                 <q-btn
                   unelevated
                   dense
@@ -186,7 +191,7 @@
           </q-select>
         </q-form>
 
-        <a :href="livestream.url">
+        <a :href="'lightning:' + livestream.lnurl">
           <q-responsive :ratio="1" class="q-mx-sm">
             <qrcode
               :value="livestream.lnurl"
@@ -221,6 +226,31 @@
 
   <q-dialog v-model="trackDialog.show">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-card-section
+        v-if="trackDialog.data.lnurl"
+        class="q-pa-none text-center"
+      >
+        <p class="text-subtitle1 q-my-none">
+          Standalone QR Code for this track
+        </p>
+        <a :href="'lightning:' + trackDialog.data.lnurl">
+          <q-responsive :ratio="1" class="q-mx-sm">
+            <qrcode
+              :value="trackDialog.data.lnurl"
+              :options="{width: 800}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(trackDialog.data.lnurl)"
+          class="text-center q-mb-md"
+          >Copy LNURL-pay code</q-btn
+        >
+      </q-card-section>
       <q-card-section>
         <q-form @submit="addTrack" class="q-gutter-md">
           <q-select
@@ -269,8 +299,10 @@
                 color="deep-purple"
                 :disable="disabledAddTrackButton()"
                 type="submit"
-                >Add track</q-btn
               >
+                <span v-if="trackDialog.data.id">Update track</span>
+                <span v-else>Add track</span>
+              </q-btn>
             </div>
             <div class="col q-ml-lg">
               <q-btn v-close-popup flat color="grey" class="q-ml-auto"

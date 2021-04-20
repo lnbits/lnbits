@@ -10,7 +10,7 @@ from .crud import get_livestream, get_livestream_by_track, get_track
 
 
 @livestream_ext.route("/lnurl/<ls_id>", methods=["GET"])
-async def lnurl_response(ls_id):
+async def lnurl_livestream(ls_id):
     ls = await get_livestream(ls_id)
     if not ls:
         return jsonify({"status": "ERROR", "reason": "Livestream not found."})
@@ -18,6 +18,27 @@ async def lnurl_response(ls_id):
     track = await get_track(ls.current_track)
     if not track:
         return jsonify({"status": "ERROR", "reason": "This livestream is offline."})
+
+    resp = LnurlPayResponse(
+        callback=url_for(
+            "livestream.lnurl_callback", track_id=track.id, _external=True
+        ),
+        min_sendable=track.min_sendable,
+        max_sendable=track.max_sendable,
+        metadata=await track.lnurlpay_metadata(),
+    )
+
+    params = resp.dict()
+    params["commentAllowed"] = 300
+
+    return jsonify(params)
+
+
+@livestream_ext.route("/lnurl/t/<track_id>", methods=["GET"])
+async def lnurl_track(track_id):
+    track = await get_track(track_id)
+    if not track:
+        return jsonify({"status": "ERROR", "reason": "Track not found."})
 
     resp = LnurlPayResponse(
         callback=url_for(

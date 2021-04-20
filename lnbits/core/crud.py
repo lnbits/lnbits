@@ -2,13 +2,14 @@ import json
 import datetime
 from uuid import uuid4
 from typing import List, Optional, Dict, Any
+from urllib.parse import urlparse
 
 from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.settings import DEFAULT_WALLET_NAME
 
 from . import db
-from .models import User, Wallet, Payment
+from .models import User, Wallet, Payment, BalanceCheck
 
 
 # accounts
@@ -379,3 +380,77 @@ async def check_internal(
         return None
     else:
         return row["checking_id"]
+
+
+# balance_check
+# -------------
+
+
+async def save_balance_check(
+    wallet_id: str,
+    url: str,
+    conn: Optional[Connection] = None,
+):
+    domain = urlparse(url).netloc
+
+    await (conn or db).execute(
+        """
+        INSERT OR REPLACE INTO balance_check (wallet, service, url)
+        VALUES (?, ?, ?)
+        """,
+        (wallet_id, domain, url),
+    )
+
+
+async def get_balance_check(
+    wallet_id: str,
+    domain: str,
+    conn: Optional[Connection] = None,
+) -> Optional[BalanceCheck]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT wallet, service, url
+        FROM balance_check
+        WHERE wallet = ? AND service = ?
+        """,
+        (wallet_id, domain),
+    )
+    return BalanceCheck.from_row(row) if row else None
+
+
+async def get_balance_checks(conn: Optional[Connection] = None) -> List[BalanceCheck]:
+    rows = await (conn or db).fetchall("SELECT wallet, service, url FROM balance_check")
+    return [BalanceCheck.from_row(row) for row in rows]
+
+
+# balance_notify
+# --------------
+
+
+async def save_balance_notify(
+    wallet_id: str,
+    url: str,
+    conn: Optional[Connection] = None,
+):
+    await (conn or db).execute(
+        """
+        INSERT OR REPLACE INTO balance_notify (wallet, url)
+        VALUES (?, ?)
+        """,
+        (wallet_id, url),
+    )
+
+
+async def get_balance_notify(
+    wallet_id: str,
+    conn: Optional[Connection] = None,
+) -> Optional[str]:
+    row = await (conn or db).fetchone(
+        """
+        SELECT url
+        FROM balance_notify
+        WHERE wallet = ?
+        """,
+        (wallet_id,),
+    )
+    return row[0] if row else None

@@ -1,5 +1,3 @@
-import trio  # type: ignore
-import httpx
 from os import path
 from http import HTTPStatus
 from quart import (
@@ -12,11 +10,10 @@ from quart import (
     send_from_directory,
     url_for,
 )
-from lnurl import LnurlResponse, LnurlWithdrawResponse, decode as decode_lnurl  # type: ignore
 
 from lnbits.core import core_app, db
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE
+from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE, LNBITS_SITE_TITLE
 
 from ..crud import (
     create_account,
@@ -24,8 +21,10 @@ from ..crud import (
     update_user_extension,
     create_wallet,
     delete_wallet,
+    get_balance_check,
+    save_balance_notify,
 )
-from ..services import redeem_lnurl_withdraw
+from ..services import redeem_lnurl_withdraw, pay_invoice
 
 
 @core_app.route("/favicon.ico")
@@ -108,6 +107,62 @@ async def wallet():
     )
 
 
+@core_app.route("/withdraw")
+@validate_uuids(["usr", "wal"], required=True)
+async def lnurl_full_withdraw():
+    user = await get_user(request.args.get("usr"))
+    if not user:
+        return jsonify({"status": "ERROR", "reason": "User does not exist."})
+
+    wallet = user.get_wallet(request.args.get("wal"))
+    if not wallet:
+        return jsonify({"status": "ERROR", "reason": "Wallet does not exist."})
+
+    return jsonify(
+        {
+            "tag": "withdrawRequest",
+            "callback": url_for(
+                "core.lnurl_full_withdraw_callback",
+                usr=user.id,
+                wal=wallet.id,
+                _external=True,
+            ),
+            "k1": "0",
+            "minWithdrawable": 1 if wallet.withdrawable_balance else 0,
+            "maxWithdrawable": wallet.withdrawable_balance,
+            "defaultDescription": f"{LNBITS_SITE_TITLE} balance withdraw from {wallet.id[0:5]}",
+            "balanceCheck": url_for(
+                "core.lnurl_full_withdraw", usr=user.id, wal=wallet.id, _external=True
+            ),
+        }
+    )
+
+
+@core_app.route("/withdraw/cb")
+@validate_uuids(["usr", "wal"], required=True)
+async def lnurl_full_withdraw_callback():
+    user = await get_user(request.args.get("usr"))
+    if not user:
+        return jsonify({"status": "ERROR", "reason": "User does not exist."})
+
+    wallet = user.get_wallet(request.args.get("wal"))
+    if not wallet:
+        return jsonify({"status": "ERROR", "reason": "Wallet does not exist."})
+
+    pr = request.args.get("pr")
+
+    async def pay():
+        await pay_invoice(wallet_id=wallet.id, payment_request=pr)
+
+    g.nursery.start_soon(pay)
+
+    balance_notify = request.args.get("balanceNotify")
+    if balance_notify:
+        await save_balance_notify(wallet.id, balance_notify)
+
+    return jsonify({"status": "OK"})
+
+
 @core_app.route("/deletewallet")
 @validate_uuids(["usr", "wal"], required=True)
 @check_user_exists()
@@ -127,31 +182,16 @@ async def deletewallet():
     return redirect(url_for("core.home"))
 
 
+@core_app.route("/withdraw/notify/<service>")
+@validate_uuids(["wal"], required=True)
+async def lnurl_balance_notify(service: str):
+    bc = await get_balance_check(request.args.get("wal"), service)
+    if bc:
+        redeem_lnurl_withdraw(bc.wallet, bc.url)
+
+
 @core_app.route("/lnurlwallet")
 async def lnurlwallet():
-    async with httpx.AsyncClient() as client:
-        try:
-            lnurl = decode_lnurl(request.args.get("lightning"))
-            r = await client.get(str(lnurl))
-            withdraw_res = LnurlResponse.from_dict(r.json())
-
-            if not withdraw_res.ok:
-                return (
-                    f"Could not process lnurl-withdraw: {withdraw_res.error_msg}",
-                    HTTPStatus.BAD_REQUEST,
-                )
-
-            if not isinstance(withdraw_res, LnurlWithdrawResponse):
-                return (
-                    f"Expected an lnurl-withdraw code, got {withdraw_res.tag}",
-                    HTTPStatus.BAD_REQUEST,
-                )
-        except Exception as exc:
-            return (
-                f"Could not process lnurl-withdraw: {exc}",
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
-
     async with db.connect() as conn:
         account = await create_account(conn=conn)
         user = await get_user(account.id, conn=conn)
@@ -160,10 +200,11 @@ async def lnurlwallet():
     g.nursery.start_soon(
         redeem_lnurl_withdraw,
         wallet.id,
-        withdraw_res,
+        request.args.get("lightning"),
         "LNbits initial funding: voucher redeem.",
+        {"tag": "lnurlwallet"},
+        5,  # wait 5 seconds before sending the invoice to the service
     )
-    await trio.sleep(3)
 
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 

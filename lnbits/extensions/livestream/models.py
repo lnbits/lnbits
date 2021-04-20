@@ -14,7 +14,7 @@ class Livestream(NamedTuple):
 
     @property
     def lnurl(self) -> Lnurl:
-        url = url_for("livestream.lnurl_response", ls_id=self.id, _external=True)
+        url = url_for("livestream.lnurl_livestream", ls_id=self.id, _external=True)
         return lnurl_encode(url)
 
 
@@ -32,6 +32,11 @@ class Track(NamedTuple):
     @property
     def max_sendable(self) -> int:
         return max(50_000_000, self.price_msat * 5)
+
+    @property
+    def lnurl(self) -> Lnurl:
+        url = url_for("livestream.lnurl_track", track_id=self.id, _external=True)
+        return lnurl_encode(url)
 
     async def fullname(self) -> str:
         from .crud import get_producer

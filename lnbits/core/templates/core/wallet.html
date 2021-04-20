@@ -4,7 +4,7 @@
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="/core/static/js/wallet.js"></script>
-<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest">
+<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" />
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
@@ -233,11 +233,37 @@
           <q-separator></q-separator>
           <q-expansion-item
             group="extras"
+            icon="crop_free"
+            label="Drain Funds"
+          >
+            <q-card>
+              <q-card-section class="text-center">
+                <p>
+                  This is an LNURL-withdraw QR code for slurping everything from
+                  this wallet. Do not share with anyone.
+                </p>
+                <a href="lightning:{{wallet.lnurlwithdraw_full}}">
+                  <qrcode
+                    value="{{wallet.lnurlwithdraw_full}}"
+                    :options="{width:240}"
+                  ></qrcode>
+                </a>
+                <p>
+                  It is compatible with <code>balanceCheck</code> and
+                  <code>balanceNotify</code> so your wallet may keep pulling the
+                  funds continuously from here after the first withdraw.
+                </p>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+          <q-separator></q-separator>
+          <q-expansion-item
+            group="extras"
             icon="settings_cell"
             label="Export to Phone with QR Code"
           >
             <q-card>
-              <q-card-section>
+              <q-card-section class="text-center">
                 <p>
                   This QR code contains your wallet URL with full access. You
                   can scan it from your phone to open your wallet from there.

@@ -9,7 +9,9 @@ from lnbits.core.crud import (
     get_payments,
     get_standalone_payment,
     delete_expired_invoices,
+    get_balance_checks,
 )
+from lnbits.core.services import redeem_lnurl_withdraw
 
 main_app: Optional[QuartTrio] = None
 
@@ -91,6 +93,14 @@ async def check_pending_payments():
         incoming = False
 
         await trio.sleep(60 * 30)  # every 30 minutes
+
+
+async def perform_balance_checks():
+    while True:
+        for bc in await get_balance_checks():
+            redeem_lnurl_withdraw(bc.wallet, bc.url)
+
+        await trio.sleep(60 * 60 * 6)  # every 6 hours
 
 
 async def invoice_callback_dispatcher(checking_id: str):

@@ -2,7 +2,7 @@ var ciframeLoaded = !1,
   captchaStyleAdded = !1
 
 function ccreateIframeElement(t = {}) {
-   const e = document.createElement('iframe')
+  const e = document.createElement('iframe')
   // e.style.marginLeft = "25px",
   ;(e.style.border = 'none'),
     (e.style.width = '100%'),
@@ -12,11 +12,9 @@ function ccreateIframeElement(t = {}) {
   t.dest, t.amount, t.currency, t.label, t.opReturn
   var captchaid = document
     .getElementById('captchascript')
-    .getAttribute('data-captchaid');
-  var lnbhostsrc = document
-    .getElementById('captchascript')
-    .getAttribute('src');
-  var lnbhost = lnbhostsrc.split("/captcha/static/js/captcha.js")[0];
+    .getAttribute('data-captchaid')
+  var lnbhostsrc = document.getElementById('captchascript').getAttribute('src')
+  var lnbhost = lnbhostsrc.split('/captcha/static/js/captcha.js')[0]
   return (e.src = lnbhost + '/captcha/' + captchaid), e
 }
 document.addEventListener('DOMContentLoaded', function () {
