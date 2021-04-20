@@ -95,7 +95,7 @@ async def api_copilot_delete(copilot_id):
 
 
 @copilot_ext.route("/api/v1/copilot/ws/<copilot_id>/<comment>/<data>", methods=["GET"])
-async def api_copilot_retrieve(copilot_id, comment, data):
+async def api_copilot_ws_relay(copilot_id, comment, data):
     copilot = await get_copilot(copilot_id)
 
     if not copilot:
