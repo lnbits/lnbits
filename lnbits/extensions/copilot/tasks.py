@@ -73,8 +73,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     else:
         await updater(data, "none", copilot.id)
 
-    
-
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
     payment.extra["wh_status"] = status
