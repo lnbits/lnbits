@@ -122,7 +122,15 @@ async def api_usermanager_wallet_transactions(wallet_id):
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users_wallets(user_id):
     wallet = await get_usermanager_users_wallets(user_id)
-    return jsonify(wallet), HTTPStatus.OK
+    return (
+        jsonify(
+            [
+                wallet._asdict()
+                for wallet in await get_usermanager_users_wallets(user_id)
+            ]
+        ),
+        HTTPStatus.OK,
+    )
 
 
 @usermanager_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])

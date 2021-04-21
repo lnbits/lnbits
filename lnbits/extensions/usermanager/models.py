@@ -1,4 +1,5 @@
 from typing import NamedTuple
+from sqlite3 import Row
 
 
 class Users(NamedTuple):
@@ -16,3 +17,7 @@ class Wallets(NamedTuple):
     user: str
     adminkey: str
     inkey: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Wallets":
+        return cls(**dict(row))
