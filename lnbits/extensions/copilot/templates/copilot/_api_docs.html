@@ -155,12 +155,15 @@
             ><span class="text-blue">GET</span>
             /api/v1/copilot/ws/&lt;copilot_id&gt;/&lt;comment&gt;/&lt;data&gt;</code
           >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
           <h5 class="text-caption q-mt-sm q-mb-none">Returns 200</h5>
           <code></code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}/api/v1/copilot/ws/&lt;string,
-            copilot_id&gt;/&lt;string, comment&gt;/&lt;string, gif name&gt;
+            copilot_id&gt;/&lt;string, comment&gt;/&lt;string, gif name&gt; -H
+            "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
