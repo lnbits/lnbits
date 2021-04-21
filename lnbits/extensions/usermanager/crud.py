@@ -84,22 +84,22 @@ async def create_usermanager_wallet(
     return wallet_created
 
 
-async def get_usermanager_wallet(wallet_id: str) -> List[Wallets]:
+async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
     row = await db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet_id,))
     return Wallets(**row) if row else None
 
 
-async def get_usermanager_wallets(admin_id: str) -> List[Wallets]:
+async def get_usermanager_wallets(admin_id: str) -> Optional[Wallets]:
     rows = await db.fetchall("SELECT * FROM wallets WHERE admin = ?", (admin_id,))
     return [Wallets(**row) for row in rows]
 
 
-async def get_usermanager_users_wallets(user_id: str) -> List[Wallets]:
+async def get_usermanager_users_wallets(user_id: str) -> Optional[Wallets]:
     rows = await db.fetchall("SELECT * FROM wallets WHERE user = ?", (user_id,))
     return [Wallets(**row) for row in rows]
 
 
-async def get_usermanager_wallet_transactions(wallet_id: str) -> List[Payment]:
+async def get_usermanager_wallet_transactions(wallet_id: str) -> Optional[Payment]:
     return await get_payments(
         wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True
     )
