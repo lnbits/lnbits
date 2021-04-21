@@ -14,6 +14,7 @@ from .crud import (
     create_usermanager_wallet,
     get_usermanager_wallet,
     get_usermanager_wallets,
+    get_usermanager_users_wallets,
     delete_usermanager_wallet,
 )
 from lnbits.core import update_user_extension
@@ -83,18 +84,6 @@ async def api_usermanager_activate_extension():
 ###Wallets
 
 
-@usermanager_ext.route("/api/v1/wallets", methods=["GET"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallets():
-    user_id = g.wallet.user
-    return (
-        jsonify(
-            [wallet._asdict() for wallet in await get_usermanager_wallets(user_id)]
-        ),
-        HTTPStatus.OK,
-    )
-
-
 @usermanager_ext.route("/api/v1/wallets", methods=["POST"])
 @api_check_wallet_key(key_type="invoice")
 @api_validate_post_request(
@@ -111,6 +100,18 @@ async def api_usermanager_wallets_create():
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 
+@usermanager_ext.route("/api/v1/wallets", methods=["GET"])
+@api_check_wallet_key(key_type="invoice")
+async def api_usermanager_wallets():
+    admin_id = g.wallet.user
+    return (
+        jsonify(
+            [wallet._asdict() for wallet in await get_usermanager_wallets(admin_id)]
+        ),
+        HTTPStatus.OK,
+    )
+
+
 @usermanager_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallet_transactions(wallet_id):
@@ -119,9 +120,10 @@ async def api_usermanager_wallet_transactions(wallet_id):
 
 @usermanager_ext.route("/api/v1/wallets/<user_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallet(user_id):
-    wallet = await get_usermanager_wallets(user_id)
+async def api_usermanager_users_wallets(user_id):
+    wallet = await get_usermanager_users_wallets(user_id)
     return jsonify(wallet._asdict()), HTTPStatus.OK
+
 
 @usermanager_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
