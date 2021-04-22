@@ -334,7 +334,7 @@
         <q-btn
           unelevated
           color="deep-purple"
-          :disable="receive.data.amount == null || receive.data.amount <= 0"
+          :disable="receive.data.memo == null || receive.data.amount == null || receive.data.amount <= 0"
           type="submit"
         >
           <span v-if="receive.lnurl">
