@@ -186,6 +186,9 @@ async def redeem_lnurl_withdraw(
     wait_seconds: int = 0,
     conn: Optional[Connection] = None,
 ) -> None:
+    if not lnurl_request:
+        return None
+
     res = {}
 
     async with httpx.AsyncClient() as client:
