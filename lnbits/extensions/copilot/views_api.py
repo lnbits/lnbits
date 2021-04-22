@@ -95,7 +95,6 @@ async def api_copilot_delete(copilot_id):
 
 
 @copilot_ext.route("/api/v1/copilot/ws/<copilot_id>/<comment>/<data>", methods=["GET"])
-@api_check_wallet_key("admin")
 async def api_copilot_ws_relay(copilot_id, comment, data):
     copilot = await get_copilot(copilot_id)
 
