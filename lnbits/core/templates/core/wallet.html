@@ -231,11 +231,9 @@
         <q-list>
           {% include "core/_api_docs.html" %}
           <q-separator></q-separator>
-          <q-expansion-item
-            group="extras"
-            icon="crop_free"
-            label="Drain Funds"
-          >
+
+          {% if wallet.lnurlwithdraw_full %}
+          <q-expansion-item group="extras" icon="crop_free" label="Drain Funds">
             <q-card>
               <q-card-section class="text-center">
                 <p>
@@ -257,6 +255,8 @@
             </q-card>
           </q-expansion-item>
           <q-separator></q-separator>
+          {% endif %}
+
           <q-expansion-item
             group="extras"
             icon="settings_cell"
