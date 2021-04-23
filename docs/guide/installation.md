@@ -13,6 +13,7 @@ Download this repo and install the dependencies:
 ```sh
 git clone https://github.com/lnbits/lnbits.git
 cd lnbits/
+sudo apt install python3-venv -y
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
