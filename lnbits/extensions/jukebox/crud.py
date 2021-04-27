@@ -1,8 +1,7 @@
 from typing import List, Optional
 
 from . import db
-from .wordlists import animals
-from .models import Shop, Item
+from .models import Jukebox
 
 
 async def create_update_jukebox(wallet_id: str) -> int:
