@@ -1,0 +1,25 @@
+{% extends "print.html" %} {% block page %} {% raw %}
+<div class="row justify-center">
+  <div v-for="item in items" class="q-my-sm q-mx-lg">
+    <div class="text-center q-ma-none q-mb-sm">{{ item.name }}</div>
+    <qrcode :value="item.lnurl" :options="{margin: 0, width: 250}"></qrcode>
+    <div class="text-center q-ma-none q-mt-sm">{{ item.price }}</div>
+  </div>
+</div>
+{% endraw %} {% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    created: function () {
+      window.print()
+    },
+    data: function () {
+      return {
+        items: JSON.parse('{{items | tojson}}')
+      }
+    }
+  })
+</script>
+{% endblock %}
