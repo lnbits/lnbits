@@ -54,7 +54,7 @@ async def api_lnurl_callback(link_id):
         min = link.min * 1000
         max = link.max * 1000
 
-    amount_received = int(request.args.get("amount"))
+    amount_received = int(request.args.get("amount") or 0)
     if amount_received < min:
         return (
             jsonify(
