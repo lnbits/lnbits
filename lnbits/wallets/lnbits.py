@@ -123,7 +123,6 @@ class LNbitsWallet(Wallet):
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():
                             if line.startswith("data:"):
-
                                 try:
                                     data = json.loads(line[5:])
                                 except json.decoder.JSONDecodeError:
@@ -134,7 +133,7 @@ class LNbitsWallet(Wallet):
 
                                 yield data["payment_hash"]  # payment_hash
 
-            except (OSError, httpx.ReadError, httpx.ConnectError):
+            except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
 
             print("lost connection to lnbits /payments/sse, retrying in 5 seconds")

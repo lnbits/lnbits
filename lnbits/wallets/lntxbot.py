@@ -146,7 +146,7 @@ class LntxbotWallet(Wallet):
                                 data = json.loads(line[5:])
                                 if "payment_hash" in data and data.get("msatoshi") > 0:
                                     yield data["payment_hash"]
-            except (OSError, httpx.ReadError):
+            except (OSError, httpx.ReadError, httpx.ReadTimeout, httpx.ConnectError):
                 pass
 
             print("lost connection to lntxbot /payments/stream, retrying in 5 seconds")

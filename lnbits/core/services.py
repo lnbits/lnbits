@@ -186,6 +186,9 @@ async def redeem_lnurl_withdraw(
     wait_seconds: int = 0,
     conn: Optional[Connection] = None,
 ) -> None:
+    if not lnurl_request:
+        return None
+
     res = {}
 
     async with httpx.AsyncClient() as client:
@@ -193,13 +196,19 @@ async def redeem_lnurl_withdraw(
         r = await client.get(str(lnurl))
         res = r.json()
 
-    _, payment_request = await create_invoice(
-        wallet_id=wallet_id,
-        amount=int(res["maxWithdrawable"] / 1000),
-        memo=memo or res["defaultDescription"] or "",
-        extra=extra,
-        conn=conn,
-    )
+    try:
+        _, payment_request = await create_invoice(
+            wallet_id=wallet_id,
+            amount=int(res["maxWithdrawable"] / 1000),
+            memo=memo or res["defaultDescription"] or "",
+            extra=extra,
+            conn=conn,
+        )
+    except:
+        print(
+            f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
+        )
+        return None
 
     if wait_seconds:
         await trio.sleep(wait_seconds)

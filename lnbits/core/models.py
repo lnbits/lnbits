@@ -52,7 +52,10 @@ class Wallet(NamedTuple):
             wal=self.id,
             _external=True,
         )
-        return lnurl_encode(url)
+        try:
+            return lnurl_encode(url)
+        except:
+            return ""
 
     def lnurlauth_key(self, domain: str) -> SigningKey:
         hashing_key = hashlib.sha256(self.id.encode("utf-8")).digest()
