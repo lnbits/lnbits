@@ -10,7 +10,8 @@ async def m001_initial(db):
             wallet TEXT,
             sp_user TEXT NOT NULL,
             sp_secret TEXT NOT NULL,
-            sp_token TEXT,
+            sp_access_token TEXT,
+            sp_refresh_token TEXT,
             sp_device TEXT,
             sp_playlists TEXT,
             price INTEGER

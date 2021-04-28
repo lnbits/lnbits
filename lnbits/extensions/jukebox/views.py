@@ -9,7 +9,7 @@ from lnbits.core.crud import get_standalone_payment
 
 from . import jukebox_ext
 from .crud import get_jukebox
-
+from urllib.parse import unquote
 
 @jukebox_ext.route("/")
 @validate_uuids(["usr"], required=True)

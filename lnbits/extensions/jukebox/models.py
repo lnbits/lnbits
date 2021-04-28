@@ -13,7 +13,8 @@ class Jukebox(NamedTuple):
     wallet: str
     sp_user: str
     sp_secret: str
-    sp_token: str
+    sp_access_token: str
+    sp_refresh_token: str
     sp_device: str
     sp_playlists: str
     price: int

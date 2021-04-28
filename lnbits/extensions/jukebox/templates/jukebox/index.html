@@ -174,7 +174,7 @@
             >here</a
           >. <br />
           In the app go to edit-settings, set the redirect URI to this link
-          (replacing the CLIENT-ID with your own) {% raw %}{{ locationcbPath
+          (replacing the CLIENT-ID with your own) {% raw %}{{ locationcb
           }}CLIENT-ID{% endraw %}
           <q-input
             filled
@@ -238,13 +238,14 @@
             dense
             emit-value
             v-model="jukeboxDialog.data.sp_device"
-            :options="device"
+            :options="devices"
             label="Device jukebox will play to"
           ></q-select>
           <q-select
             class="q-pb-md"
             filled
             dense
+            multiple
             emit-value
             v-model="jukeboxDialog.data.sp_playlists"
             :options="playlists"
@@ -252,7 +253,9 @@
           ></q-select>
           <div class="row q-mt-md">
             <div class="col-5">
-              <q-btn color="green-7" @click="step = 2">Create Jukebox</q-btn>
+              <q-btn color="green-7" @click="createJukebox"
+                >Create Jukebox</q-btn
+              >
             </div>
             <div class="col-7">
               <q-btn

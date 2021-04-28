@@ -11,15 +11,16 @@ async def create_jukebox(
     price: int,
     sp_user: str,
     sp_secret: str,
-    sp_token: Optional[str] = "",
+    sp_access_token: Optional[str] = "",
+    sp_refresh_token: Optional[str] = "",
     sp_device: Optional[str] = "",
     sp_playlists: Optional[str] = "",
 ) -> Jukebox:
     juke_id = urlsafe_short_hash()
     result = await db.execute(
         """
-        INSERT INTO jukebox (id, title, wallet, sp_user, sp_secret, sp_token, sp_device, sp_playlists, price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO jukebox (id, title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             juke_id,
@@ -27,7 +28,8 @@ async def create_jukebox(
             wallet,
             sp_user,
             sp_secret,
-            sp_token,
+            sp_access_token,
+            sp_refresh_token,
             sp_device,
             sp_playlists,
             int(price),
