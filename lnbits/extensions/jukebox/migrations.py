@@ -5,12 +5,15 @@ async def m001_initial(db):
     await db.execute(
         """
         CREATE TABLE jukebox (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            wallet TEXT NOT NULL,
-            user TEXT NOT NULL,
-            secret TEXT NOT NULL,
-            token TEXT NOT NULL,
-            playlists TEXT NOT NULL
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            wallet TEXT,
+            sp_user TEXT NOT NULL,
+            sp_secret TEXT NOT NULL,
+            sp_token TEXT,
+            sp_device TEXT,
+            sp_playlists TEXT,
+            price INTEGER
         );
         """
     )

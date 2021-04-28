@@ -4,28 +4,25 @@ Vue.component(VueQrcode.name, VueQrcode)
 
 const pica = window.pica()
 
-const defaultItemData = {
-  unit: 'sat'
-}
+
 
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data() {
     return {
-      selectedWallet: null,
-      confirmationMethod: 'wordlist',
-      wordlistTainted: false,
-      jukebox: {
-        method: null,
-        wordlist: [],
-        items: []
-      },
-      itemDialog: {
+      isPwd: true,
+      tokenFetched: true,
+      device: [],
+      jukebox: {},
+      playlists: [],
+      step: 1,
+      locationcbPath: "",
+      jukeboxDialog: {
         show: false,
-        data: {...defaultItemData},
-        units: ['sat']
-      }
+        data: {}
+      },
+      spotifyDialog: false
     }
   },
   computed: {
@@ -34,183 +31,130 @@ new Vue({
     }
   },
   methods: {
-    openNewDialog() {
-      this.itemDialog.show = true
-      this.itemDialog.data = {...defaultItemData}
+    closeFormDialog() {
+      this.jukeboxDialog.data = {}
+      this.jukeboxDialog.show = false
+      this.step = 1
     },
-    openUpdateDialog(itemId) {
-      this.itemDialog.show = true
-      let item = this.jukebox.items.find(item => item.id === itemId)
-      this.itemDialog.data = item
-    },
-    imageAdded(file) {
-      let blobURL = URL.createObjectURL(file)
-      let image = new Image()
-      image.src = blobURL
-      image.onload = async () => {
-        let canvas = document.createElement('canvas')
-        canvas.setAttribute('width', 100)
-        canvas.setAttribute('height', 100)
-        await pica.resize(image, canvas, {
-          quality: 0,
-          alpha: true,
-          unsharpAmount: 95,
-          unsharpRadius: 0.9,
-          unsharpThreshold: 70
+    submitSpotify() {
+
+      self = this
+      console.log(self.jukeboxDialog.data)
+      self.requestAuthorization()
+        this.$q.notify({
+          spinner: true,
+          message: 'Fetching token',
+          timeout: 4000
         })
-        this.itemDialog.data.image = canvas.toDataURL()
-        this.itemDialog = {...this.itemDialog}
-      }
-    },
-    imageCleared() {
-      this.itemDialog.data.image = null
-      this.itemDialog = {...this.itemDialog}
-    },
-    disabledAddItemButton() {
-      return (
-        !this.itemDialog.data.name ||
-        this.itemDialog.data.name.length === 0 ||
-        !this.itemDialog.data.price ||
-        !this.itemDialog.data.description ||
-        !this.itemDialog.data.unit ||
-        this.itemDialog.data.unit.length === 0
-      )
-    },
-    changedWallet(wallet) {
-      this.selectedWallet = wallet
-      this.loadShop()
-    },
-    loadShop() {
-      LNbits.api
-        .request('GET', '/jukebox/api/v1/jukebox', this.selectedWallet.inkey)
-        .then(response => {
-          this.jukebox = response.data
-          this.confirmationMethod = response.data.method
-          this.wordlistTainted = false
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    },
-    async setMethod() {
-      try {
-        await LNbits.api.request(
-          'PUT',
-          '/jukebox/api/v1/jukebox/method',
-          this.selectedWallet.inkey,
-          {method: this.confirmationMethod, wordlist: this.jukebox.wordlist}
-        )
-      } catch (err) {
-        LNbits.utils.notifyApiError(err)
-        return
-      }
-
-      this.$q.notify({
-        message:
-          `Method set to ${this.confirmationMethod}.` +
-          (this.confirmationMethod === 'wordlist' ? ' Counter reset.' : ''),
-        timeout: 700
-      })
-      this.loadShop()
-    },
-    async sendItem() {
-      let {id, name, image, description, price, unit} = this.itemDialog.data
-      const data = {
-        name,
-        description,
-        image,
-        price,
-        unit
-      }
-
-      try {
-        if (id) {
-          await LNbits.api.request(
-            'PUT',
-            '/jukebox/api/v1/jukebox/items/' + id,
-            this.selectedWallet.inkey,
-            data
-          )
-        } else {
-          await LNbits.api.request(
-            'POST',
-            '/jukebox/api/v1/jukebox/items',
-            this.selectedWallet.inkey,
-            data
-          )
-          this.$q.notify({
-            message: `Item '${this.itemDialog.data.name}' added.`,
-            timeout: 700
-          })
-        }
-      } catch (err) {
-        LNbits.utils.notifyApiError(err)
-        return
-      }
-
-      this.loadShop()
-      this.itemDialog.show = false
-      this.itemDialog.data = {...defaultItemData}
-    },
-    toggleItem(itemId) {
-      let item = this.jukebox.items.find(item => item.id === itemId)
-      item.enabled = !item.enabled
-
-      LNbits.api
-        .request(
-          'PUT',
-          '/jukebox/api/v1/jukebox/items/' + itemId,
-          this.selectedWallet.inkey,
-          item
+        LNbits.api.request(
+          'POST',
+          '/jukebox/api/v1/jukebox/',
+          self.g.user.wallets[0].adminkey,
+          self.jukeboxDialog.data
         )
         .then(response => {
-          this.$q.notify({
-            message: `Item ${item.enabled ? 'enabled' : 'disabled'}.`,
-            timeout: 700
-          })
-          this.jukebox.items = this.jukebox.items
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    },
-    deleteItem(itemId) {
-      LNbits.utils
-        .confirmDialog('Are you sure you want to delete this item?')
-        .onOk(() => {
-          LNbits.api
-            .request(
-              'DELETE',
-              '/jukebox/api/v1/jukebox/items/' + itemId,
-              this.selectedWallet.inkey
-            )
+         if(response.data){
+          var timerId = setInterval(function(){ 
+            if(!self.jukeboxDialog.data.sp_user){
+              clearInterval(timerId);
+            }
+            LNbits.api
+            .request('GET', '/jukebox/api/v1/jukebox/spotify/' + self.jukeboxDialog.data.sp_user, self.g.user.wallets[0].inkey)
             .then(response => {
-              this.$q.notify({
-                message: `Item deleted.`,
-                timeout: 700
+             if(response.data.sp_token){
+               console.log(response.data.sp_token)
+
+               self.step = 3
+               clearInterval(timerId);
+               self.refreshPlaylists()
+               self.$q.notify({
+                message: 'Success! App is now linked!',
+                timeout: 3000
               })
-              this.jukebox.items.splice(
-                this.jukebox.items.findIndex(item => item.id === itemId),
-                1
-              )
+               //set devices, playlists
+             }
             })
             .catch(err => {
-              LNbits.utils.notifyApiError(err)
+             LNbits.utils.notifyApiError(err)
             })
+           }, 3000)
+         }
         })
-    }
+        .catch(err => {
+         LNbits.utils.notifyApiError(err)
+        })
+    },
+    requestAuthorization(){
+      self = this
+      let url = 'https://accounts.spotify.com/authorize'
+      url += '?scope=user-modify-playback-state%20user-read-playback-position'
+      url += '%20user-library-read%20streaming%20user-read-playback-state'
+      url += '%20user-read-recently-played%20playlist-read-private&response_type=code'
+      url += '&redirect_uri=' +  encodeURIComponent(self.locationcbPath) + self.jukeboxDialog.data.sp_user
+      url += '&client_id=' + self.jukeboxDialog.data.sp_user 
+      url += '&show_dialog=true'
+      console.log(url)
+      window.open(url)
+    },
+    openNewDialog() {
+      this.jukeboxDialog.show = true
+      this.jukeboxDialog.data = {}
+    },
+    openUpdateDialog(itemId) {
+      this.jukeboxDialog.show = true
+      let item = this.jukebox.items.find(item => item.id === itemId)
+      this.jukeboxDialog.data = item
+    },
+
+    callApi(method, url, body, callback){
+      let xhr = new XMLHttpRequest()
+      xhr.open(method, url, true)
+      xhr.setRequestHeader('Content-Type', 'application/json')
+      xhr.setRequestHeader('Authorization', 'Bearer ' + self.jukeboxDialog.data.sp_token)
+      xhr.send(body)
+      xhr.onload = callback
+    },
+    refreshPlaylists(){
+      console.log("sdfvasdv")
+      callApi( "GET", "https://api.spotify.com/v1/me/playlists", null, handlePlaylistsResponse )
+    },
+    handlePlaylistsResponse(){
+      console.log("data")
+      if ( this.status == 200 ){
+        var data = JSON.parse(this.responseText)
+        console.log(data)
+      }
+      else if ( this.status == 401 ){
+        refreshAccessToken()
+      }
+      else {
+        console.log(this.responseText)
+        alert(this.responseText)
+      }
+    },
+    refreshAccessToken(){
+      refresh_token = localStorage.getItem("refresh_token")
+      let body = "grant_type=refresh_token"
+      body += "&refresh_token=" + self.jukeboxDialog.data.sp_token
+      body += "&client_id=" + self.jukeboxDialog.data.sp_user
+      callAuthorizationApi(body)
+    },
+    callAuthorizationApi(body){
+      let xhr = new XMLHttpRequest()
+      xhr.open("POST", TOKEN, true)
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+      xhr.setRequestHeader('Authorization', 'Basic ' + btoa(self.jukeboxDialog.data.sp_user + ":" + self.jukeboxDialog.data.sp_secret))
+      xhr.send(body)
+      xhr.onload = handleAuthorizationResponse
+    },
   },
   created() {
     this.selectedWallet = this.g.user.wallets[0]
-    this.loadShop()
-
-    LNbits.api
-      .request('GET', '/jukebox/api/v1/currencies')
-      .then(response => {
-        this.itemDialog = {...this.itemDialog, units: ['sat', ...response.data]}
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
+    this.locationcbPath = String([
+      window.location.protocol,
+      '//',
+      window.location.host,
+      '/jukebox/api/v1/jukebox/spotify/cb/'
+    ].join(''))
   }
 })

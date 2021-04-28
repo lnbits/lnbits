@@ -1,5 +1,5 @@
 {
-  "name": "Jukebox",
+  "name": "SpotifyJukebox",
   "short_description": "Spotify jukebox middleware",
   "icon": "audiotrack",
   "contributors": ["benarc"]

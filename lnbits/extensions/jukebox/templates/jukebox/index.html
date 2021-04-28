@@ -4,15 +4,15 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
+        <q-btn
+          unelevated
+          color="green-7"
+          class="q-ma-lg"
+          @click="openNewDialog()"
+          >Add Spotify Jukebox</q-btn
+        >
         <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Items</h5>
-          </div>
-          <div class="col q-ml-lg">
-            <q-btn unelevated color="deep-purple" @click="openNewDialog()"
-              >Add jukebox</q-btn
-            >
-          </div>
+          <h5 class="text-subtitle1 q-my-none">Items</h5>
         </div>
         {% raw %}
         <q-table
@@ -101,107 +101,170 @@
     </q-card>
   </div>
 
-  <q-dialog v-model="itemDialog.show">
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-card-section>
-        <h5
-          class="q-ma-none"
-          v-if="itemDialog.data.id"
-          v-text="itemDialog.data.name"
-        ></h5>
-        <h5 class="q-ma-none q-mb-xl" v-else>Adding a new item</h5>
-
-        <q-responsive v-if="itemDialog.data.id" :ratio="1">
-          <qrcode
-            :value="itemDialog.data.lnurl"
-            :options="{width: 800}"
-            class="rounded-borders"
-          ></qrcode>
-        </q-responsive>
-
-        <div v-if="itemDialog.data.id" class="row q-gutter-sm justify-center">
-          <q-btn
-            outline
-            color="grey"
-            @click="copyText(itemDialog.data.lnurl, 'LNURL copied to clipboard!')"
-            class="q-mb-lg"
-            >Copy LNURL</q-btn
-          >
-        </div>
-        <q-form @submit="sendItem" class="q-gutter-md">
+  <q-dialog v-model="jukeboxDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-md q-pt-lg q-mt-md" style="width: 100%">
+      <q-stepper
+        v-model="step"
+        active-color="green-7"
+        inactive-color="green-10"
+        vertical
+        animated
+      >
+        <q-step
+          :name="1"
+          title="Pick wallet, price"
+          icon="account_balance_wallet"
+          :done="step > 1"
+        >
           <q-input
             filled
+            class="q-pt-md"
             dense
-            v-model.trim="itemDialog.data.name"
-            type="text"
-            label="Item name"
-          ></q-input>
-          <q-input
-            filled
-            dense
-            v-model.trim="itemDialog.data.description"
-            type="text"
-            label="Brief description"
-          ></q-input>
-          <q-file
-            filled
-            dense
-            capture="environment"
-            accept="image/jpeg, image/png"
-            :max-file-size="3*1024**2"
-            label="Small image (optional)"
-            clearable
-            @input="imageAdded"
-            @clear="imageCleared"
-          >
-            <template v-if="itemDialog.data.image" v-slot:before>
-              <img style="height: 1em" :src="itemDialog.data.image" />
-            </template>
-            <template v-if="itemDialog.data.image" v-slot:append>
-              <q-icon
-                name="cancel"
-                @click.stop.prevent="imageCleared"
-                class="cursor-pointer"
-              />
-            </template>
-          </q-file>
-          <q-input
-            filled
-            dense
-            v-model.number="itemDialog.data.price"
-            type="number"
-            min="1"
-            :label="`Item price (${itemDialog.data.unit})`"
+            v-model.trim="jukeboxDialog.data.title"
+            label="Jukebox name"
           ></q-input>
           <q-select
+            class="q-pb-md q-pt-md"
             filled
             dense
-            v-model="itemDialog.data.unit"
-            type="text"
-            label="Unit"
-            :options="itemDialog.units"
+            emit-value
+            v-model="jukeboxDialog.data.wallet"
+            :options="g.user.walletOptions"
+            label="Wallet to use"
           ></q-select>
-
-          <div class="row q-mt-lg">
-            <div class="col q-ml-lg">
+          <q-input
+            filled
+            dense
+            v-model.trim="jukeboxDialog.data.price"
+            type="number"
+            max="1440"
+            label="Price per track"
+            class="q-pb-lg"
+          >
+          </q-input>
+          <div class="row">
+            <div class="col-4">
               <q-btn
-                unelevated
-                color="deep-purple"
-                :disable="disabledAddItemButton()"
-                type="submit"
+                v-if="jukeboxDialog.data.title != null && jukeboxDialog.data.price != null && jukeboxDialog.data.wallet != null"
+                color="green-7"
+                @click="step = 2"
+                >Continue</q-btn
               >
-                {% raw %}{{ itemDialog.data.id ? 'Update' : 'Add' }}{% endraw %}
-                Item
-              </q-btn>
+              <q-btn v-else color="green-7" disable>Continue</q-btn>
             </div>
-            <div class="col q-ml-lg">
-              <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            <div class="col-8">
+              <q-btn
+                color="green-7"
+                class="float-right"
+                @click="closeFormDialog"
                 >Cancel</q-btn
               >
             </div>
           </div>
-        </q-form>
-      </q-card-section>
+
+          <br />
+        </q-step>
+
+        <q-step :name="2" title="Add api keys" icon="vpn_key" :done="step > 2">
+          To use this extension you need a Spotify client ID and client secret.
+          You get these by creating an app in the Spotify developers dashboard
+          <a
+            target="_blank"
+            href="https://developer.spotify.com/dashboard/applications"
+            >here</a
+          >. <br />
+          In the app go to edit-settings, set the redirect URI to this link
+          (replacing the CLIENT-ID with your own) {% raw %}{{ locationcbPath
+          }}CLIENT-ID{% endraw %}
+          <q-input
+            filled
+            class="q-pb-md q-pt-md"
+            dense
+            v-model.trim="jukeboxDialog.data.sp_user"
+            label="Client ID"
+          ></q-input>
+
+          <q-input
+            dense
+            v-model="jukeboxDialog.data.sp_secret"
+            filled
+            :type="isPwd ? 'password' : 'text'"
+            label="Client secret"
+          >
+            <template #append>
+              <q-icon
+                :name="isPwd ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"
+              ></q-icon>
+            </template>
+          </q-input>
+
+          <div class="row q-mt-md">
+            <div class="col-4">
+              <q-btn
+                v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
+                color="green-7"
+                @click="submitSpotify"
+                >Get token</q-btn
+              >
+              <q-btn v-else color="green-7" disable color="green-7"
+                >Get token</q-btn
+              >
+            </div>
+            <div class="col-8">
+              <q-btn
+                color="green-7"
+                class="float-right"
+                @click="closeFormDialog"
+                >Cancel</q-btn
+              >
+            </div>
+          </div>
+
+          <br />
+        </q-step>
+
+        <q-step
+          :name="3"
+          title="Select playlists"
+          icon="queue_music"
+          active-color="green-8"
+          :done="step > 3"
+        >
+          <q-select
+            class="q-pb-md q-pt-md"
+            filled
+            dense
+            emit-value
+            v-model="jukeboxDialog.data.sp_device"
+            :options="device"
+            label="Device jukebox will play to"
+          ></q-select>
+          <q-select
+            class="q-pb-md"
+            filled
+            dense
+            emit-value
+            v-model="jukeboxDialog.data.sp_playlists"
+            :options="playlists"
+            label="Playlists available to the jukebox"
+          ></q-select>
+          <div class="row q-mt-md">
+            <div class="col-5">
+              <q-btn color="green-7" @click="step = 2">Create Jukebox</q-btn>
+            </div>
+            <div class="col-7">
+              <q-btn
+                color="green-7"
+                class="float-right"
+                @click="closeFormDialog"
+                >Cancel</q-btn
+              >
+            </div>
+          </div>
+        </q-step>
+      </q-stepper>
     </q-card>
   </q-dialog>
 </div>
