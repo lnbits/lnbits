@@ -1,0 +1,170 @@
+{% extends "public.html" %} {% block page %}
+<div class="q-pa-sm" style="width: 300px; margin: 10px auto">
+  <q-card class="my-card">
+    <div class="column">
+      <div class="col">
+        <center>
+          <q-btn
+            flat
+            round
+            dense
+            @click="openCompose"
+            icon="face"
+            style="font-size: 80px"
+          ></q-btn>
+        </center>
+      </div>
+      <center>
+        <div class="col" style="margin: 15px; font-size: 25px">
+          Title: {% raw %} {{ copilot.title }} {% endraw %}
+        </div>
+      </center>
+      <q-separator></q-separator>
+      <div class="col">
+        <div class="row">
+          <div class="col">
+            <q-btn
+              class="q-mt-sm q-ml-sm"
+              color="primary"
+              @click="fullscreenToggle"
+              label="Screen share"
+            >
+            </q-btn>
+          </div>
+        </div>
+        <div class="row q-pa-sm">
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('rocket')"
+              label="rocket"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('confetti')"
+              label="confetti"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('face')"
+              label="face"
+            />
+          </div>
+        </div>
+        <div class="row q-pa-sm">
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('rick')"
+              label="rick"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('martijn')"
+              label="martijn"
+            />
+          </div>
+          <div class="col">
+            <q-btn
+              style="width: 95%"
+              color="primary"
+              @click="animationBTN('bitcoin')"
+              label="bitcoin"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </q-card>
+</div>
+
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data() {
+      return {
+        fullscreen_cam: true,
+        textareaModel: '',
+        iframe: '',
+        copilot: {}
+      }
+    },
+    methods: {
+      iframeChange: function (url) {
+        this.connection.send(String(url))
+      },
+      fullscreenToggle: function () {
+        console.log(this.fullscreen_cam)
+        this.connection.send(String(this.fullscreen_cam))
+        if (this.fullscreen_cam) {
+          this.fullscreen_cam = false
+        } else {
+          this.fullscreen_cam = true
+        }
+      },
+      openCompose: function () {
+        let params =
+          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1200,height=644,left=410,top=100'
+
+        open('./copilot/cp/', 'test', params)
+      },
+      animationBTN: function (name) {
+        this.connection.send(name)
+      },
+      stfu: function (name) {
+        this.connection.send('')
+      }
+    },
+    created: function () {
+      self = this
+      self.copilot = JSON.parse(localStorage.getItem('copilot'))
+
+      if (location.protocol == 'https:') {
+        console.log(location.protocol)
+        self.connection = new WebSocket(
+          'wss://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/panel/' +
+            self.copilot.id
+        )
+      } else {
+        self.connection = new WebSocket(
+          'ws://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/panel/' +
+            self.copilot.id
+        )
+      }
+      self.connection.addEventListener('open', function (event) {})
+
+      self.connection.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data)
+      })
+
+      self.connection.addEventListener('close', function (event) {
+        console.log('The connection has been closed')
+      })
+    }
+  })
+</script>
+{% endblock %}

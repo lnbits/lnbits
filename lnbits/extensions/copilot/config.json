@@ -1,0 +1,8 @@
+{
+  "name": "StreamerCopilot",
+  "short_description": "Tips, animations, webhooks for streamers",
+  "icon": "face",
+  "contributors": [
+    "arcbtc"
+  ]
+}

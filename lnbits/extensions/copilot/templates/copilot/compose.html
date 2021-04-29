@@ -1,0 +1,289 @@
+{% extends "public.html" %} {% block page %}<q-page>
+  <video
+    autoplay="true"
+    id="videoScreen"
+    style="width: 100%"
+    class="fixed-bottom-right"
+  ></video>
+  <video
+    autoplay="true"
+    id="videoCamera"
+    style="width: 100%"
+    class="fixed-bottom-right"
+  ></video>
+  <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
+
+  <div
+    v-if="copilot.lnurl_toggle == 1"
+    class="rounded-borders column fixed-right"
+    style="
+      width: 250px;
+      background-color: white;
+      height: 300px;
+      margin-top: 10%;
+    "
+  >
+    <div class="col">
+      <qrcode
+        :value="copilot.lnurl"
+        :options="{width:250}"
+        class="rounded-borders"
+      ></qrcode>
+      <center class="absolute-bottom" style="color: black; font-size: 20px">
+        {% raw %}{{ copilot.lnurl_title }}{% endraw %}
+      </center>
+    </div>
+  </div>
+
+  <h2
+    v-if="copilot.show_price != 0"
+    class="text-bold fixed-bottom-left"
+    style="
+      margin: 60px 60px;
+      font-size: 110px;
+      text-shadow: 4px 8px 4px black;
+      color: white;
+    "
+  >
+    {% raw %}{{ price }}{% endraw %}
+  </h2>
+  <p
+    v-if="copilot.show_ack != 0"
+    class="fixed-top"
+    style="
+      font-size: 22px;
+      text-shadow: 2px 4px 1px black;
+      color: white;
+      padding-left: 40%;
+    "
+  >
+    Powered by LNbits/StreamerCopilot
+  </p>
+</q-page>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<style>
+  body.body--dark .q-drawer,
+  body.body--dark .q-footer,
+  body.body--dark .q-header,
+  .q-drawer,
+  .q-footer,
+  .q-header {
+    display: none;
+  }
+  .q-page {
+    padding: 0px;
+  }
+</style>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data() {
+      return {
+        price: '',
+        counter: 1,
+        colours: ['teal', 'purple', 'indigo', 'pink', 'green'],
+        copilot: {},
+        lnurl: ''
+      }
+    },
+    methods: {
+      showNotif: function (userMessage) {
+        var colour = this.colours[
+          Math.floor(Math.random() * this.colours.length)
+        ]
+        this.$q.notify({
+          color: colour,
+          icon: 'chat_bubble_outline',
+          html: true,
+          message: '<h4 style="color: white;">' + userMessage + '</h4>',
+          position: 'top-left',
+          timeout: 5000
+        })
+      },
+      openURL: function (url) {
+        console.log(url)
+        return Quasar.utils.openURL(url)
+      },
+      initCamera() {
+        var video = document.querySelector('#videoCamera')
+
+        if (navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices
+            .getUserMedia({video: true})
+            .then(function (stream) {
+              video.srcObject = stream
+            })
+            .catch(function (err0r) {
+              console.log('Something went wrong!')
+            })
+        }
+      },
+      initScreenShare() {
+        var video = document.querySelector('#videoScreen')
+        navigator.mediaDevices
+          .getDisplayMedia({video: true})
+          .then(function (stream) {
+            video.srcObject = stream
+          })
+          .catch(function (err0r) {
+            console.log('Something went wrong!')
+          })
+      },
+      getPrice: function () {
+        self = this
+        if (self.copilot.show_price != 'None') {
+          LNbits.api
+            .request('GET', 'https://api.opennode.com/v1/rates', 'filla')
+            .then(function (response) {
+              self.price = String(
+                new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD'
+                }).format(response.data.data.BTCUSD.USD)
+              )
+            })
+            .catch(function (error) {
+              LNbits.utils.notifyApiError(error)
+            })
+        }
+      },
+      animation1: function () {
+        self = this
+        setTimeout(function () {
+          setInterval(function () {
+            self.connection.send('')
+            self.counter++
+            if (self.counter % 20 === 0) {
+              self.getPrice()
+            }
+          }, 1000)
+        }, 2000)
+      }
+    },
+    mounted() {
+      this.initCamera()
+    },
+    created: function () {
+      self = this
+      self.copilot = JSON.parse(localStorage.getItem('copilot'))
+
+      LNbits.api
+        .request(
+          'GET',
+          '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/launching/rocket',
+          'filla'
+        )
+        .then(function (response) {})
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+      if (location.protocol !== 'http:') {
+        this.connection = new WebSocket(
+          'wss://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/compose/' +
+            self.copilot.id
+        )
+      } else {
+        this.connection = new WebSocket(
+          'ws://' +
+            document.domain +
+            ':' +
+            location.port +
+            '/copilot/ws/compose/' +
+            self.copilot.id
+        )
+      }
+
+      this.connection.addEventListener('open', function (event) {
+        this.connection.send('')
+      })
+      var showNotif = this.showNotif
+
+      this.connection.addEventListener('message', function (event) {
+        res = event.data.split('-')
+        console.log(res[1])
+        if (res[0] != this.oldRes) {
+          this.oldRes = res[0]
+          if (res[1] == 'rocket') {
+            document.getElementById('animations').style.width = '40%'
+            document.getElementById('animations').src =
+              '/copilot/static/rocket.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'face') {
+            document.getElementById('animations').style.width = '35%'
+            document.getElementById('animations').src =
+              '/copilot/static/face.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'bitcoin') {
+            document.getElementById('animations').style.width = '30%'
+            document.getElementById('animations').src =
+              '/copilot/static/bitcoin.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'confetti') {
+            document.getElementById('animations').style.width = '100%'
+            document.getElementById('animations').style.height = '100%'
+            document.getElementById('animations').src =
+              '/copilot/static/confetti.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+              document.getElementById('animations').style.height = ''
+            }, 5000)
+          }
+          if (res[1] == 'martijn') {
+            document.getElementById('animations').style.width = '40%'
+            document.getElementById('animations').src =
+              '/copilot/static/martijn.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'rick') {
+            document.getElementById('animations').style.width = '40%'
+            document.getElementById('animations').src =
+              '/copilot/static/rick.gif'
+            setTimeout(function () {
+              document.getElementById('animations').src = ''
+            }, 5000)
+          }
+          if (res[1] == 'true') {
+            document.getElementById('videoCamera').style.width = '20%'
+            self.initScreenShare()
+          }
+          if (res[1] == 'false') {
+            document.getElementById('videoCamera').style.width = '100%'
+            document.getElementById('videoScreen').src = null
+          }
+          console.log(res[2])
+          if (res[2] != 'none') {
+            showNotif(res[2])
+          }
+        }
+      })
+
+      this.connection.addEventListener('close', function (event) {
+        console.log('The connection has been closed')
+      })
+      var animation1 = this.animation1
+      animation1()
+      var getPrice = this.getPrice
+      getPrice()
+    }
+  })
+</script>
+{% endblock %}

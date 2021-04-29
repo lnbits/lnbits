@@ -1,0 +1,172 @@
+<q-card>
+  <q-card-section>
+    <p>
+      StreamerCopilot: get tips via static QR (lnurl-pay) and show an
+      animation<br />
+      <small>
+        Created by, <a href="https://github.com/benarc">Ben Arc</a></small
+      >
+    </p>
+  </q-card-section>
+  <q-expansion-item
+    group="extras"
+    icon="swap_vertical_circle"
+    label="API info"
+    :content-inset-level="0.5"
+  >
+    <q-expansion-item group="api" dense expand-separator label="Create copilot">
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-blue">POST</span> /copilot/api/v1/copilot</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Body (application/json)
+          </h5>
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Returns 200 OK (application/json)
+          </h5>
+          <code>[&lt;copilot_object&gt;, ...]</code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X POST {{ request.url_root }}api/v1/copilot -d '{"title":
+            &lt;string&gt;, "animation": &lt;string&gt;,
+            "show_message":&lt;string&gt;, "amount": &lt;integer&gt;,
+            "lnurl_title": &lt;string&gt;}' -H "Content-type: application/json"
+            -H "X-Api-Key: {{g.user.wallets[0].adminkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+    <q-expansion-item group="api" dense expand-separator label="Update copilot">
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-blue">PUT</span>
+            /copilot/api/v1/copilot/&lt;copilot_id&gt;</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Body (application/json)
+          </h5>
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Returns 200 OK (application/json)
+          </h5>
+          <code>[&lt;copilot_object&gt;, ...]</code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X POST {{ request.url_root
+            }}api/v1/copilot/&lt;copilot_id&gt; -d '{"title": &lt;string&gt;,
+            "animation": &lt;string&gt;, "show_message":&lt;string&gt;,
+            "amount": &lt;integer&gt;, "lnurl_title": &lt;string&gt;}' -H
+            "Content-type: application/json" -H "X-Api-Key:
+            {{g.user.wallets[0].adminkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+
+    <q-expansion-item group="api" dense expand-separator label="Get copilot">
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-blue">GET</span>
+            /copilot/api/v1/copilot/&lt;copilot_id&gt;</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Body (application/json)
+          </h5>
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Returns 200 OK (application/json)
+          </h5>
+          <code>[&lt;copilot_object&gt;, ...]</code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X GET {{ request.url_root }}api/v1/copilot/&lt;copilot_id&gt;
+            -H "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+    <q-expansion-item group="api" dense expand-separator label="Get copilots">
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-blue">GET</span> /copilot/api/v1/copilots</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Body (application/json)
+          </h5>
+          <h5 class="text-caption q-mt-sm q-mb-none">
+            Returns 200 OK (application/json)
+          </h5>
+          <code>[&lt;copilot_object&gt;, ...]</code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X GET {{ request.url_root }}api/v1/copilots -H "X-Api-Key: {{
+            g.user.wallets[0].inkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+    <q-expansion-item
+      group="api"
+      dense
+      expand-separator
+      label="Delete a pay link"
+      class="q-pb-md"
+    >
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-pink">DELETE</span>
+            /copilot/api/v1/copilot/&lt;copilot_id&gt;</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">Returns 204 NO CONTENT</h5>
+          <code></code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X DELETE {{ request.url_root
+            }}api/v1/copilot/&lt;copilot_id&gt; -H "X-Api-Key: {{
+            g.user.wallets[0].adminkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+    <q-expansion-item
+      group="api"
+      dense
+      expand-separator
+      label="Trigger an animation"
+      class="q-pb-md"
+    >
+      <q-card>
+        <q-card-section>
+          <code
+            ><span class="text-blue">GET</span>
+            /api/v1/copilot/ws/&lt;copilot_id&gt;/&lt;comment&gt;/&lt;data&gt;</code
+          >
+          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+          <h5 class="text-caption q-mt-sm q-mb-none">Returns 200</h5>
+          <code></code>
+          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+          <code
+            >curl -X GET {{ request.url_root }}/api/v1/copilot/ws/&lt;string,
+            copilot_id&gt;/&lt;string, comment&gt;/&lt;string, gif name&gt; -H
+            "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+          </code>
+        </q-card-section>
+      </q-card>
+    </q-expansion-item>
+  </q-expansion-item>
+</q-card>
