@@ -19,7 +19,20 @@ from .models import Jukebox
 @jukebox_ext.route("/api/v1/jukebox", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_jukeboxs():
-    jsonify([jukebox._asdict() for jukebox in await get_jukeboxs(g.wallet.id)]),
+    try:
+        return (
+            jsonify(
+                [
+                    {
+                        **jukebox._asdict()
+                    }
+                    for jukebox in await get_jukeboxs(g.wallet.user)
+                ]
+            ),
+            HTTPStatus.OK,
+        )
+    except:
+        return "", HTTPStatus.NO_CONTENT
 
 
 ##################SPOTIFY AUTH#####################
@@ -61,6 +74,7 @@ async def api_check_credentials_check(sp_id):
 @api_check_wallet_key("admin")
 @api_validate_post_request(
     schema={
+        "user": {"type": "string", "empty": False, "required": True},
         "title": {"type": "string", "empty": False, "required": True},
         "wallet": {"type": "string", "empty": False, "required": True},
         "sp_user": {"type": "string", "empty": False, "required": True},
@@ -74,13 +88,27 @@ async def api_check_credentials_check(sp_id):
 )
 async def api_create_update_jukebox(item_id=None):
     if item_id:
-        jukebox = await update_jukebox(**g.data)
-    jukebox = await create_jukebox(**g.data)
+        jukebox = await update_jukebox(item_id, **g.data)
+    else:
+        jukebox = await create_jukebox(**g.data)
     return jsonify(jukebox._asdict()), HTTPStatus.CREATED
 
 
 @jukebox_ext.route("/api/v1/jukebox/<juke_id>", methods=["DELETE"])
 @api_check_wallet_key("admin")
 async def api_delete_item(juke_id):
-    shop = await delete_jukebox(juke_id)
-    return "", HTTPStatus.NO_CONTENT
+    await delete_jukebox(juke_id)
+    try:
+        return (
+            jsonify(
+                [
+                    {
+                        **jukebox._asdict()
+                    }
+                    for jukebox in await get_jukeboxs(g.wallet.user)
+                ]
+            ),
+            HTTPStatus.OK,
+        )
+    except:
+        return "", HTTPStatus.NO_CONTENT

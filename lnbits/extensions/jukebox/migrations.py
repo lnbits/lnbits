@@ -6,6 +6,7 @@ async def m001_initial(db):
         """
         CREATE TABLE jukebox (
             id TEXT PRIMARY KEY,
+            user TEXT,
             title TEXT,
             wallet TEXT,
             sp_user TEXT NOT NULL,

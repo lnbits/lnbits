@@ -9,6 +9,7 @@ from sqlite3 import Row
 
 class Jukebox(NamedTuple):
     id: str
+    user: str
     title: str
     wallet: str
     sp_user: str

@@ -2,20 +2,63 @@
 
 Vue.component(VueQrcode.name, VueQrcode)
 
-const pica = window.pica()
-
-
+var mapJukebox = obj => {
+  obj._data = _.clone(obj)
+  
+  obj.device = obj.sp_device.split("-")[0]
+  playlists = obj.sp_playlists.split(",")
+  var i;
+  playlistsar = []
+  for (i = 0; i < playlists.length; i++) {
+    playlistsar.push(playlists[i].split("-")[0])
+  }
+  obj.playlist = playlistsar.join()
+  return obj
+}
 
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data() {
     return {
+      JukeboxTable: {
+        columns: [
+          {
+            name: 'title',
+            align: 'left',
+            label: 'Title',
+            field: 'title'
+          },
+          {
+            name: 'device',
+            align: 'left',
+            label: 'Device',
+            field: 'device'
+          },
+          {
+            name: 'playlist',
+            align: 'left',
+            label: 'Playlist',
+            field: 'playlist'
+          },
+          {
+            name: 'price',
+            align: 'left',
+            label: 'Price',
+            field: 'price'
+          },
+        ],
+        pagination: {
+          rowsPerPage: 10
+        }
+      },
       isPwd: true,
       tokenFetched: true,
       devices: [],
+      filter: '',
       jukebox: {},
       playlists: [],
+      JukeboxLinks: [],
       step: 1,
       locationcbPath: "",
       locationcb: "",
@@ -27,20 +70,42 @@ new Vue({
     }
   },
   computed: {
-    printItems() {
-      return this.jukebox.items.filter(({enabled}) => enabled)
-    }
+
   },
   methods: {
+    getJukeboxes(){
+      self = this
+      LNbits.api
+      .request('GET', '/jukebox/api/v1/jukebox', self.g.user.wallets[0].inkey)
+      .then(function (response) {
+        self.JukeboxLinks = response.data.map(mapJukebox)
+      })
+      .catch(err => {
+       LNbits.utils.notifyApiError(err)
+      })
+    },
+    deleteJukebox(juke_id){
+      self = this
+      LNbits.api
+      .request('DELETE', '/jukebox/api/v1/jukebox/' + juke_id, self.g.user.wallets[0].adminkey)
+      .then(function (response) {
+        self.JukeboxLinks = _.reject(self.JukeboxLinks, function (obj) {
+          return obj.id === juke_id
+        })
+      })
+
+      .catch(err => {
+       LNbits.utils.notifyApiError(err)
+      })
+    },
     closeFormDialog() {
       this.jukeboxDialog.data = {}
       this.jukeboxDialog.show = false
       this.step = 1
     },
     submitSpotify() {
-
       self = this
-      console.log(self.jukeboxDialog.data)
+      self.jukeboxDialog.data.user = self.g.user.id
       self.requestAuthorization()
         this.$q.notify({
           spinner: true,
@@ -56,7 +121,6 @@ new Vue({
         .then(response => {
          if(response.data){
           var timerId = setInterval(function(){ 
-            console.log(response.data)
             if(!self.jukeboxDialog.data.sp_user){
               clearInterval(timerId);
             }
@@ -68,15 +132,7 @@ new Vue({
                self.jukeboxDialog.data.sp_access_token = response.data.sp_access_token
                self.step = 3
                self.fetchAccessToken()
-               
                clearInterval(timerId)
-               
-              // self.refreshPlaylists(response.data.sp_token)
-//               self.$q.notify({
-//                message: 'Success! App is now linked!',
-//                timeout: 3000
-//              })
-               //set devices, playlists
              }
             })
             .catch(err => {
@@ -97,7 +153,7 @@ new Vue({
       url += '&redirect_uri=' +  encodeURI(self.locationcbPath) + self.jukeboxDialog.data.sp_user
       url += "&show_dialog=true"
       url += '&scope=user-read-private user-read-email user-modify-playback-state user-read-playback-position user-library-read streaming user-read-playback-state user-read-recently-played playlist-read-private'
-      console.log(url)
+
       window.open(url)
     },
     openNewDialog() {
@@ -111,19 +167,16 @@ new Vue({
     },
     createJukebox(){
       self = this
-
+      this.jukeboxDialog.data.sp_playlists = this.jukeboxDialog.data.sp_playlists.join()
         LNbits.api.request(
           'PUT',
           '/jukebox/api/v1/jukebox/' + this.jukeboxDialog.data.sp_id,
           self.g.user.wallets[0].adminkey,
           self.jukeboxDialog.data
         )
-        .then(response => {
-          console.log(response.data)
-          
-        })
-        .catch(err => {
-         LNbits.utils.notifyApiError(err)
+        .then(function (response) {
+          self.JukeboxLinks.push(mapJukebox(response.data))
+          self.jukeboxDialog.show = false
         })
     },
 
@@ -156,12 +209,11 @@ new Vue({
       xhr.send(body)
       xhr.onload = function() {
         let responseObj = JSON.parse(xhr.response)
-        console.log(responseObj.devices[0])
         self.devices = []
         var i;
         for (i = 0; i < responseObj.devices.length; i++) {
           self.devices.push(responseObj.devices[i].name + "-" + responseObj.devices[i].id)
-          console.log(responseObj.devices[i].name)
+
         }
         
       }
@@ -191,20 +243,19 @@ new Vue({
       xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
       xhr.setRequestHeader('Authorization', 'Basic ' + btoa(this.jukeboxDialog.data.sp_user + ":" + this.jukeboxDialog.data.sp_secret))
       xhr.send(body)
-      console.log(('Authorization', 'Basic ' + btoa(this.jukeboxDialog.data.sp_user + ":" + this.jukeboxDialog.data.sp_secret)))
       xhr.onload = function() {
         let responseObj = JSON.parse(xhr.response)
-        alert(responseObj.access_token)
-        alert(responseObj.refresh_token)
         self.jukeboxDialog.data.sp_access_token = responseObj.access_token
         self.jukeboxDialog.data.sp_refresh_token = responseObj.refresh_token
-        console.log(self.jukeboxDialog.data)
         self.refreshPlaylists()
         self.refreshDevices()
       }
     },
   },
   created() {
+
+    var getJukeboxes = this.getJukeboxes
+    getJukeboxes()
     this.selectedWallet = this.g.user.wallets[0]
     this.locationcbPath = String([
       window.location.protocol,
@@ -212,7 +263,6 @@ new Vue({
       window.location.host,
       '/jukebox/api/v1/jukebox/spotify/cb/'
     ].join(''))
-    console.log(this.locationcbPath)
     this.locationcb = this.locationcbPath
   }
 })
