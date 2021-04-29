@@ -32,18 +32,22 @@ async def api_check_credentials_callbac(sp_user):
     sp_refresh_token = ""
     print(request.args)
     jukebox = await get_jukebox_by_user(sp_user)
-    if request.args.get('code'):
-        sp_code = request.args.get('code')
+    if request.args.get("code"):
+        sp_code = request.args.get("code")
         jukebox = await update_jukebox(
             sp_user=sp_user, sp_secret=jukebox.sp_secret, sp_access_token=sp_code
         )
-    if request.args.get('access_token'):
-        sp_access_token = request.args.get('access_token')
-        sp_refresh_token = request.args.get('refresh_token')
+    if request.args.get("access_token"):
+        sp_access_token = request.args.get("access_token")
+        sp_refresh_token = request.args.get("refresh_token")
         jukebox = await update_jukebox(
-            sp_user=sp_user, sp_secret=jukebox.sp_secret, sp_access_token=sp_access_token, sp_refresh_token=sp_refresh_token
+            sp_user=sp_user,
+            sp_secret=jukebox.sp_secret,
+            sp_access_token=sp_access_token,
+            sp_refresh_token=sp_refresh_token,
         )
     return "<h1>Success!</h1><h2>You can close this window</h2>"
+
 
 @jukebox_ext.route("/api/v1/jukebox/spotify/<sp_id>", methods=["GET"])
 @api_check_wallet_key("invoice")

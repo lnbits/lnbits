@@ -94,7 +94,7 @@ new Vue({
       var url = 'https://accounts.spotify.com/authorize'
       url += '?client_id=' + self.jukeboxDialog.data.sp_user
       url += '&response_type=code'
-      url += '&redirect_uri=' +  encodeURI(self.locationcbPath + self.jukeboxDialog.data.sp_user)
+      url += '&redirect_uri=' +  encodeURI(self.locationcbPath) + self.jukeboxDialog.data.sp_user
       url += "&show_dialog=true"
       url += '&scope=user-read-private user-read-email user-modify-playback-state user-read-playback-position user-library-read streaming user-read-playback-state user-read-recently-played playlist-read-private'
       console.log(url)
@@ -136,7 +136,7 @@ new Vue({
       xhr.send(body)
       xhr.onload = function() {
         let responseObj = JSON.parse(xhr.response)
-        console.log(responseObj.items)
+        self.playlists = []
         var i;
         for (i = 0; i < responseObj.items.length; i++) {
           self.playlists.push(responseObj.items[i].name + "-" + responseObj.items[i].id)
@@ -155,12 +155,15 @@ new Vue({
       xhr.setRequestHeader('Authorization', 'Bearer ' + this.jukeboxDialog.data.sp_access_token)
       xhr.send(body)
       xhr.onload = function() {
-        let responseObj = xhr.response
-        alert(responseObj)
+        let responseObj = JSON.parse(xhr.response)
+        console.log(responseObj.devices[0])
+        self.devices = []
         var i;
-        for (i = 0; i < responseObj.items.length; i++) {
-          self.devices.push(responseObj.items[i].name + "-" + responseObj.items[i].id)
+        for (i = 0; i < responseObj.devices.length; i++) {
+          self.devices.push(responseObj.devices[i].name + "-" + responseObj.devices[i].id)
+          console.log(responseObj.devices[i].name)
         }
+        
       }
     },
     refreshDevices(){
@@ -171,7 +174,7 @@ new Vue({
       self = this
       let body = "grant_type=authorization_code"
       body += "&code=" + self.jukeboxDialog.data.sp_access_token
-      body += '&redirect_uri=' +  encodeURI(self.locationcbPath + self.jukeboxDialog.data.sp_user)
+      body += '&redirect_uri=' +  encodeURI(self.locationcbPath) + self.jukeboxDialog.data.sp_user
       this.callAuthorizationApi(body)
     },
     refreshAccessToken(){

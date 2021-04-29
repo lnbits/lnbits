@@ -39,6 +39,7 @@ async def create_jukebox(
     assert jukebox, "Newly created Jukebox couldn't be retrieved"
     return jukebox
 
+
 async def update_jukebox(sp_user: str, **kwargs) -> Optional[Jukebox]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(

@@ -11,6 +11,7 @@ from . import jukebox_ext
 from .crud import get_jukebox
 from urllib.parse import unquote
 
+
 @jukebox_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
