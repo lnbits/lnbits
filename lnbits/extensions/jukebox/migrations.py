@@ -15,7 +15,8 @@ async def m001_initial(db):
             sp_refresh_token TEXT,
             sp_device TEXT,
             sp_playlists TEXT,
-            price INTEGER
+            price INTEGER,
+            profit INTEGER
         );
         """
     )

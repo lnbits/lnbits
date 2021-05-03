@@ -19,6 +19,7 @@ class Jukebox(NamedTuple):
     sp_device: str
     sp_playlists: str
     price: int
+    profit: int
 
     @classmethod
     def from_row(cls, row: Row) -> "Jukebox":

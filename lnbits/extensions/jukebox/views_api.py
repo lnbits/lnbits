@@ -22,12 +22,7 @@ async def api_get_jukeboxs():
     try:
         return (
             jsonify(
-                [
-                    {
-                        **jukebox._asdict()
-                    }
-                    for jukebox in await get_jukeboxs(g.wallet.user)
-                ]
+                [{**jukebox._asdict()} for jukebox in await get_jukeboxs(g.wallet.user)]
             ),
             HTTPStatus.OK,
         )
@@ -38,23 +33,23 @@ async def api_get_jukeboxs():
 ##################SPOTIFY AUTH#####################
 
 
-@jukebox_ext.route("/api/v1/jukebox/spotify/cb/<sp_user>", methods=["GET"])
-async def api_check_credentials_callbac(sp_user):
+@jukebox_ext.route("/api/v1/jukebox/spotify/cb/<juke_id>", methods=["GET"])
+async def api_check_credentials_callbac(juke_id):
+    print(request.args)
     sp_code = ""
     sp_access_token = ""
     sp_refresh_token = ""
-    print(request.args)
-    jukebox = await get_jukebox_by_user(sp_user)
+    jukebox = await get_jukebox(juke_id)
     if request.args.get("code"):
         sp_code = request.args.get("code")
         jukebox = await update_jukebox(
-            sp_user=sp_user, sp_secret=jukebox.sp_secret, sp_access_token=sp_code
+            juke_id=juke_id, sp_secret=jukebox.sp_secret, sp_access_token=sp_code
         )
     if request.args.get("access_token"):
         sp_access_token = request.args.get("access_token")
         sp_refresh_token = request.args.get("refresh_token")
         jukebox = await update_jukebox(
-            sp_user=sp_user,
+            juke_id=juke_id,
             sp_secret=jukebox.sp_secret,
             sp_access_token=sp_access_token,
             sp_refresh_token=sp_refresh_token,
@@ -70,7 +65,7 @@ async def api_check_credentials_check(sp_id):
 
 
 @jukebox_ext.route("/api/v1/jukebox/", methods=["POST"])
-@jukebox_ext.route("/api/v1/jukebox/<item_id>", methods=["PUT"])
+@jukebox_ext.route("/api/v1/jukebox/<juke_id>", methods=["PUT"])
 @api_check_wallet_key("admin")
 @api_validate_post_request(
     schema={
@@ -86,9 +81,9 @@ async def api_check_credentials_check(sp_id):
         "price": {"type": "string", "required": True},
     }
 )
-async def api_create_update_jukebox(item_id=None):
-    if item_id:
-        jukebox = await update_jukebox(item_id, **g.data)
+async def api_create_update_jukebox(juke_id=None):
+    if juke_id:
+        jukebox = await update_jukebox(juke_id=juke_id, **g.data)
     else:
         jukebox = await create_jukebox(**g.data)
     return jsonify(jukebox._asdict()), HTTPStatus.CREATED
@@ -101,12 +96,7 @@ async def api_delete_item(juke_id):
     try:
         return (
             jsonify(
-                [
-                    {
-                        **jukebox._asdict()
-                    }
-                    for jukebox in await get_jukeboxs(g.wallet.user)
-                ]
+                [{**jukebox._asdict()} for jukebox in await get_jukeboxs(g.wallet.user)]
             ),
             HTTPStatus.OK,
         )
