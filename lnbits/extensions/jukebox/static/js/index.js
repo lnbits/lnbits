@@ -227,6 +227,7 @@ new Vue({
       self.jukeboxDialog.data.sp_playlists = self.jukeboxDialog.data.sp_playlists.join()
       self.updateDB()
       self.jukeboxDialog.show = false
+      self.getJukeboxes()
     },
     updateDB(){
       self = this
@@ -234,14 +235,16 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/jukebox/api/v1/jukebox/' + self.jukeboxDialog.data.sp_id,
+          '/jukebox/api/v1/jukebox/' + this.jukeboxDialog.data.sp_id,
           self.g.user.wallets[0].adminkey,
           self.jukeboxDialog.data
         )
         .then(function (response) {
           console.log(response.data)
-          self.getJukeboxes()
-          //self.JukeboxLinks.push(mapJukebox(response.data))
+          if(this.jukeboxDialog.data.devices){
+            self.getJukeboxes()
+          }
+          self.JukeboxLinks.push(mapJukebox(response.data))
         })
     },
     playlistApi(method, url, body) {
