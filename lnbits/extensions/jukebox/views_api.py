@@ -102,3 +102,15 @@ async def api_delete_item(juke_id):
         )
     except:
         return "", HTTPStatus.NO_CONTENT
+
+
+
+################JUKEBOX ENDPOINTS##################
+
+
+@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>", methods=["GET"])
+async def api_get_jukebox_songs(sp_id):
+    jukebox = await get_jukebox(sp_id)
+    print(jukebox.playlists.split(",")[0].split("-")[1])
+
+    return jsonify(jukebox._asdict()), HTTPStatus.CREATED

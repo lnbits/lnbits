@@ -48,13 +48,11 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="link"
+                  icon="launch"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.displayUrl"
-                  target="_blank"
+                  @click="openQrCodeDialog(props.row.sp_id)"
                 >
-                  <q-tooltip> Jukebox link </q-tooltip>
+                  <q-tooltip> Jukebox QR </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td auto-width>
@@ -306,6 +304,36 @@
           </div>
         </q-step>
       </q-stepper>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="qrCodeDialog.show" position="top">
+    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+      <center><h5 class="q-my-none">Shareable Jukebox QR</h5></center>
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+      </q-responsive>
+      <div class="row q-mt-lg q-gutter-sm">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id, 'Link copied to clipboard!')"
+          >Copy jukebox link</q-btn
+        >
+        <q-btn
+          outline
+          color="grey"
+          type="a"
+          :href="qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id"
+          target="_blank"
+          >Open jukebox</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
     </q-card>
   </q-dialog>
 </div>

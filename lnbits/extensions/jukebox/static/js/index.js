@@ -72,11 +72,24 @@ new Vue({
         show: false,
         data: {}
       },
-      spotifyDialog: false
+      spotifyDialog: false,
+      qrCodeDialog: {
+        show: false,
+        data: null
+      }
     }
   },
   computed: {},
   methods: {
+    openQrCodeDialog: function (linkId) {
+      var link = _.findWhere(this.JukeboxLinks, {id: linkId})
+
+      this.qrCodeDialog.data = _.clone(link)
+      console.log(this.qrCodeDialog.data)
+      this.qrCodeDialog.data.url =
+        window.location.protocol + '//' + window.location.host
+      this.qrCodeDialog.show = true
+    },
     getJukeboxes() {
       self = this
       LNbits.api
@@ -123,6 +136,7 @@ new Vue({
       self.jukeboxDialog.data.sp_device = []
       self.jukeboxDialog.data.sp_playlists = []
       self.jukeboxDialog.data.sp_id = self.jukeboxDialog.data.id
+      self.jukeboxDialog.data.price = String(self.jukeboxDialog.data.price)
       self.jukeboxDialog.show = true
     },
     closeFormDialog() {
@@ -210,18 +224,24 @@ new Vue({
     },
     createJukebox() {
       self = this
-      console.log(this.jukeboxDialog.data)
-      this.jukeboxDialog.data.sp_playlists = this.jukeboxDialog.data.sp_playlists.join()
+      self.jukeboxDialog.data.sp_playlists = self.jukeboxDialog.data.sp_playlists.join()
+      self.updateDB()
+      self.jukeboxDialog.show = false
+    },
+    updateDB(){
+      self = this
+      console.log(self.jukeboxDialog.data)
       LNbits.api
         .request(
           'PUT',
-          '/jukebox/api/v1/jukebox/' + this.jukeboxDialog.data.sp_id,
+          '/jukebox/api/v1/jukebox/' + self.jukeboxDialog.data.sp_id,
           self.g.user.wallets[0].adminkey,
           self.jukeboxDialog.data
         )
         .then(function (response) {
-          self.JukeboxLinks.push(mapJukebox(response.data))
-          self.jukeboxDialog.show = false
+          console.log(response.data)
+          self.getJukeboxes()
+          //self.JukeboxLinks.push(mapJukebox(response.data))
         })
     },
     playlistApi(method, url, body) {
@@ -235,6 +255,10 @@ new Vue({
       )
       xhr.send(body)
       xhr.onload = function () {
+        if(xhr.status == 401){
+          self.refreshAccessToken()
+          self.playlistApi('GET', 'https://api.spotify.com/v1/me/playlists', null)
+        }
         let responseObj = JSON.parse(xhr.response)
         self.jukeboxDialog.data.playlists = null
         self.playlists = []
@@ -262,6 +286,10 @@ new Vue({
       )
       xhr.send(body)
       xhr.onload = function () {
+        if(xhr.status == 401){
+          self.refreshAccessToken()
+          self.deviceApi('GET', 'https://api.spotify.com/v1/me/player/devices', null)
+        }
         let responseObj = JSON.parse(xhr.response)
         self.jukeboxDialog.data.devices = []
 
@@ -319,7 +347,7 @@ new Vue({
         if (responseObj.access_token) {
           self.jukeboxDialog.data.sp_access_token = responseObj.access_token
           self.jukeboxDialog.data.sp_refresh_token = responseObj.refresh_token
-          console.log(responseObj)
+          self.updateDB()
         }
       }
     }
