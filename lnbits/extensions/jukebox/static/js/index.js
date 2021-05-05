@@ -332,6 +332,11 @@ new Vue({
     },
     callAuthorizationApi(body) {
       self = this
+      console.log(btoa(
+        this.jukeboxDialog.data.sp_user +
+          ':' +
+          this.jukeboxDialog.data.sp_secret
+      ))
       let xhr = new XMLHttpRequest()
       xhr.open('POST', 'https://accounts.spotify.com/api/token', true)
       xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')

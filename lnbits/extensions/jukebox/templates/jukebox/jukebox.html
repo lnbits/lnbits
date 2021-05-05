@@ -1,24 +1,104 @@
-{% extends "print.html" %} {% block page %} {% raw %}
-<div class="row justify-center">
-  <div v-for="item in items" class="q-my-sm q-mx-lg">
-    <div class="text-center q-ma-none q-mb-sm">{{ item.name }}</div>
-    <qrcode :value="item.lnurl" :options="{margin: 0, width: 250}"></qrcode>
-    <div class="text-center q-ma-none q-mt-sm">{{ item.price }}</div>
+{% extends "public.html" %} {% block page %} {% raw %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <p style="font-size: 22px">Currently playing</p>
+        <div class="row">
+          <div class="col-4">
+            <img style="width: 100px" :src="currentPlaylist[0].image" />
+          </div>
+          <div class="col-8">
+            <strong style="font-size: 20px"
+              >{{ currentPlaylist[0].name }}</strong
+            ><br />
+            <strong style="font-size: 15px"
+              >{{ currentPlaylist[0].artist }}</strong
+            >
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <p style="font-size: 22px">Pick a song</p>
+        <q-select
+          outlined
+          v-model="model"
+          :options="playlists"
+          label="playlists"
+        ></q-select>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-virtual-scroll
+          style="max-height: 300px"
+          :items="currentPlaylist"
+          separator
+        >
+          <template v-slot="{ item, index }">
+            <q-item :key="index" dense clickable v-ripple>
+              <q-item-section>
+                <q-item-label>
+                  {{ item.name }} - ({{ item.artist }})
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-virtual-scroll>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <p style="font-size: 21px">Queued</p>
+        <br />
+        <q-list bordered separator>
+          <q-item
+            bordered
+            v-for="song in queued"
+            :key="song.id"
+            clickable
+            v-ripple
+          >
+            <q-item-section prepend>
+              <img style="width: 50px" :src="song.image" />
+            </q-item-section>
+
+            <q-item-section>{{ song.name }} ({{ song.artist }})</q-item-section>
+          </q-item>
+        </q-list>
+      </q-card-section>
+    </q-card>
   </div>
 </div>
 {% endraw %} {% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<style></style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
     el: '#vue',
-    created: function () {
-      window.print()
-    },
-    data: function () {
+    mixins: [windowMixin],
+    data() {
       return {
-        items: JSON.parse('{{items | tojson}}')
+        currentPlaylist: JSON.parse('{{ firstPlaylist[0] | tojson }}'),
+        playlists: JSON.parse('{{ playlists | tojson }}'),
+        heavyList: [],
+        queued: []
       }
+    },
+    computed: {},
+    methods: {},
+    created() {
+      this.queued[0] = this.currentPlaylist[2]
+      this.queued[1] = this.currentPlaylist[5]
+      this.queued[2] = this.currentPlaylist[6]
+      this.queued[3] = this.currentPlaylist[7]
+      console.log(this.currentPlaylist)
     }
   })
 </script>

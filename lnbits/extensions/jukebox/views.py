@@ -10,6 +10,9 @@ from lnbits.core.crud import get_standalone_payment
 from . import jukebox_ext
 from .crud import get_jukebox
 from urllib.parse import unquote
+from .views_api import (
+    api_get_jukebox_songs,
+)
 
 
 @jukebox_ext.route("/")
@@ -22,5 +25,15 @@ async def index():
 @jukebox_ext.route("/<juke_id>")
 async def print_qr_codes(juke_id):
     jukebox = await get_jukebox(juke_id)
+    if not jukebox:
+        return "error"
+    firstPlaylist = await api_get_jukebox_songs(
+        juke_id, jukebox.sp_playlists.split(",")[0].split("-")[1]
+    )
+    print(firstPlaylist)
 
-    return await render_template("jukebox/jukebox.html", jukebox=jukebox)
+    return await render_template(
+        "jukebox/jukebox.html",
+        playlists=jukebox.sp_playlists.split(","),
+        firstPlaylist=firstPlaylist,
+    )

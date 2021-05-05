@@ -109,42 +109,49 @@ async def api_delete_item(juke_id):
 ################JUKEBOX ENDPOINTS##################
 
 
-@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>", methods=["GET"])
-async def api_get_jukebox_songs(sp_id):
+@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>/<sp_playlist>", methods=["GET"])
+async def api_get_jukebox_songs(sp_id, sp_playlist):
     jukebox = await get_jukebox(sp_id)
-    print(jukebox.sp_playlists.split(",")[0].split("-")[1])
+    tracks = []
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
-                "https://api.spotify.com/v1/playlists/"
-                + jukebox.sp_playlists.split(",")[0].split("-")[1]
-                + "/tracks",
+                "https://api.spotify.com/v1/playlists/" + sp_playlist + "/tracks",
                 timeout=40,
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
-            if r.json()["error"]["status"] == 401:
-                token = await api_get_token(sp_id)
-                if token['error'] == 'invalid_client':
-                    print("invalid")
-                    return ""
-                else:
-                    return await api_get_jukebox_songs(sp_id)
-            print(r.json()["items"])
-            resp = r.json()["items"][0]
-            print("id: " + resp["track"]["id"])
-            print("name: " + resp["track"]["name"])
-            print("album: " + resp["track"]["album"]["name"])
-            print("artist: " + resp["track"]["artists"][0]["name"])
-            print("image: " + resp["track"]["album"]["images"][0])
+            if "items" not in r.json():
+                if r.json()["error"]["status"] == 401:
+                    token = await api_get_token(sp_id)
+                    if token == False:
+                        print("invalid")
+                        return False
+                    else:
+                        return await api_get_jukebox_songs(sp_id, sp_playlist)
+            for item in r.json()["items"]:
+                tracks.append(
+                    {
+                        "id": item["track"]["id"],
+                        "name": item["track"]["name"],
+                        "album": item["track"]["album"]["name"],
+                        "artist": item["track"]["artists"][0]["name"],
+                        "image": item["track"]["album"]["images"][0]["url"],
+                    }
+                )
         except AssertionError:
             something = None
-    return jsonify(jukebox._asdict()), HTTPStatus.CREATED
+    print(jsonify(tracks))
+    return tracks, HTTPStatus.OK
 
 
-@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>", methods=["GET"])
 async def api_get_token(sp_id):
     jukebox = await get_jukebox(sp_id)
-    print(jukebox.sp_playlists.split(",")[0].split("-")[1])
+    print(
+        "Authorization: Bearer "
+        + base64.b64encode(
+            str(jukebox.sp_user + ":" + jukebox.sp_secret).encode("ascii")
+        ).decode("ascii")
+    )
     async with httpx.AsyncClient() as client:
         try:
             r = await client.post(
@@ -156,24 +163,20 @@ async def api_get_token(sp_id):
                     "client_id": jukebox.sp_user,
                 },
                 headers={
-                    "Authorization": "Bearer "
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": "Basic "
                     + base64.b64encode(
-                        (jukebox.sp_user + ":" + jukebox.sp_refresh_token).encode(
-                            "utf-8"
-                        )
+                        str(jukebox.sp_user + ":" + jukebox.sp_secret).encode("ascii")
                     ).decode("ascii"),
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
             )
-            print(r)
-            print(r.json())
-            if r.json()['error'] == 'invalid_client':
-                return r.json()
-            #await update_jukebox(
-            #    juke_id=sp_id,
-            #    sp_access_token=r.json()["access_token"],
-            #    sp_refresh_token=r.json()["refresh_token"],
-            #)
+            if "access_token" not in r.json():
+                return False
+            else:
+                await update_jukebox(
+                    juke_id=sp_id, sp_access_token=r.json()["access_token"]
+                )
         except AssertionError:
             something = None
-    return jsonify(jukebox._asdict()), HTTPStatus.CREATED
+    return True
