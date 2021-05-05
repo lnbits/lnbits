@@ -61,7 +61,7 @@ async def lnurl_callback(track_id):
     if not track:
         return jsonify({"status": "ERROR", "reason": "Couldn't find track."})
 
-    amount_received = int(request.args.get("amount"))
+    amount_received = int(request.args.get("amount") or 0)
 
     if amount_received < track.min_sendable:
         return (
