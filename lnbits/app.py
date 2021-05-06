@@ -114,10 +114,6 @@ def register_filters(app: QuartTrio):
 def register_request_hooks(app: QuartTrio):
     """Open the core db for each request so everything happens in a big transaction"""
 
-    @app.before_request
-    async def before_request():
-        g.nursery = app.nursery
-
     @app.after_request
     async def set_secure_headers(response):
         secure_headers.quart(response)
