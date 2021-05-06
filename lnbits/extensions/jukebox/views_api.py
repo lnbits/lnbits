@@ -16,7 +16,7 @@ from .crud import (
     delete_jukebox,
 )
 from .models import Jukebox
-
+from lnbits.core.services import create_invoice
 
 @jukebox_ext.route("/api/v1/jukebox", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -180,3 +180,14 @@ async def api_get_token(sp_id):
         except AssertionError:
             something = None
     return True
+
+
+######GET INVOICE
+
+
+@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>/<sp_song>/", methods=["GET"])
+async def api_get_jukebox_invoice(sp_id, sp_song):
+    jukebox = await get_jukebox(sp_id)
+    invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.amount,memo="Jukebox " + jukebox.name)
+
+    return invoice, HTTPStatus.OK

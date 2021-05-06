@@ -170,8 +170,8 @@ new Vue({
       self.requestAuthorization()
       self.$q.notify({
         spinner: true,
-        message: 'Fetching token',
-        timeout: 4000
+        message: 'Processing',
+        timeout: 10000
       })
       self.getSpotifyTokens()
     },
@@ -194,8 +194,33 @@ new Vue({
               if (self.jukeboxDialog.data.sp_access_token) {
                 self.refreshPlaylists()
                 self.refreshDevices()
-                self.step = 4
-                clearInterval(timerId)
+                if (self.devices.length < 1 && self.playlists.length < 1) {
+                  self.$q.notify({
+                    spinner: true,
+                    color: 'red',
+                    message:
+                      'Error! Make sure Spotify is open on the device you wish to use, and it has playlists',
+                    timeout: 10000
+                  })
+                  LNbits.api
+                    .request(
+                      'DELETE',
+                      '/jukebox/api/v1/jukebox/' + response.data.id,
+                      self.g.user.wallets[0].adminkey
+                    )
+                    .then(function (response) {
+                      self.getJukeboxes()
+                    })
+                    .catch(err => {
+                      LNbits.utils.notifyApiError(err)
+                    })
+                  clearInterval(timerId)
+                  self.closeFormDialog()
+                }
+                else{
+                  self.step = 4
+                  clearInterval(timerId)
+                }
               }
             }
           })
@@ -229,7 +254,7 @@ new Vue({
       self.jukeboxDialog.show = false
       self.getJukeboxes()
     },
-    updateDB(){
+    updateDB() {
       self = this
       console.log(self.jukeboxDialog.data)
       LNbits.api
@@ -241,10 +266,10 @@ new Vue({
         )
         .then(function (response) {
           console.log(response.data)
-          if(this.jukeboxDialog.data.devices){
+          if (self.jukeboxDialog.data.sp_playlists && self.jukeboxDialog.data.sp_devices) {
             self.getJukeboxes()
+           // self.JukeboxLinks.push(mapJukebox(response.data))
           }
-          self.JukeboxLinks.push(mapJukebox(response.data))
         })
     },
     playlistApi(method, url, body) {
@@ -258,9 +283,13 @@ new Vue({
       )
       xhr.send(body)
       xhr.onload = function () {
-        if(xhr.status == 401){
+        if (xhr.status == 401) {
           self.refreshAccessToken()
-          self.playlistApi('GET', 'https://api.spotify.com/v1/me/playlists', null)
+          self.playlistApi(
+            'GET',
+            'https://api.spotify.com/v1/me/playlists',
+            null
+          )
         }
         let responseObj = JSON.parse(xhr.response)
         self.jukeboxDialog.data.playlists = null
@@ -289,9 +318,13 @@ new Vue({
       )
       xhr.send(body)
       xhr.onload = function () {
-        if(xhr.status == 401){
+        if (xhr.status == 401) {
           self.refreshAccessToken()
-          self.deviceApi('GET', 'https://api.spotify.com/v1/me/player/devices', null)
+          self.deviceApi(
+            'GET',
+            'https://api.spotify.com/v1/me/player/devices',
+            null
+          )
         }
         let responseObj = JSON.parse(xhr.response)
         self.jukeboxDialog.data.devices = []
@@ -332,11 +365,13 @@ new Vue({
     },
     callAuthorizationApi(body) {
       self = this
-      console.log(btoa(
-        this.jukeboxDialog.data.sp_user +
-          ':' +
-          this.jukeboxDialog.data.sp_secret
-      ))
+      console.log(
+        btoa(
+          this.jukeboxDialog.data.sp_user +
+            ':' +
+            this.jukeboxDialog.data.sp_secret
+        )
+      )
       let xhr = new XMLHttpRequest()
       xhr.open('POST', 'https://accounts.spotify.com/api/token', true)
       xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
