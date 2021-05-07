@@ -1,6 +1,7 @@
 import sys
-import importlib
 import warnings
+import importlib
+import traceback
 
 from quart import g
 from quart_trio import QuartTrio
@@ -23,7 +24,6 @@ from .tasks import (
     invoice_listener,
     internal_invoice_listener,
     webhook_handler,
-    grab_app_for_later,
 )
 from .settings import WALLET
 
@@ -48,7 +48,7 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
     register_commands(app)
     register_request_hooks(app)
     register_async_tasks(app)
-    grab_app_for_later(app)
+    register_exception_handlers(app)
 
     return app
 
@@ -135,3 +135,21 @@ def register_async_tasks(app):
     @app.after_serving
     async def stop_listeners():
         pass
+
+
+def register_exception_handlers(app):
+    @app.errorhandler(Exception)
+    async def basic_error(err):
+        etype, value, tb = sys.exc_info()
+        traceback.print_exception(etype, err, tb)
+        exc = traceback.format_exc()
+        return (
+            "\n\n".join(
+                [
+                    "LNbits internal error!",
+                    exc,
+                    "If you believe this shouldn't be an error please bring it up on https://t.me/lnbits",
+                ]
+            ),
+            500,
+        )

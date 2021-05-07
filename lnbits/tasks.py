@@ -13,13 +13,6 @@ from lnbits.core.crud import (
 )
 from lnbits.core.services import redeem_lnurl_withdraw
 
-main_app: Optional[QuartTrio] = None
-
-
-def grab_app_for_later(app: QuartTrio):
-    global main_app
-    main_app = app
-
 
 deferred_async: List[Callable] = []
 
