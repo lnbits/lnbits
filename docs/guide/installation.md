@@ -17,6 +17,8 @@ cd lnbits/
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
+# you may need to export the quart variable
+export QUART_APP='lnbits.app:create_app()'
 ./venv/bin/quart assets
 ./venv/bin/quart migrate
 ./venv/bin/hypercorn -k trio --bind 0.0.0.0:5000 'lnbits.app:create_app()'
