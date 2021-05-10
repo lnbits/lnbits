@@ -25,7 +25,7 @@
         <p style="font-size: 22px">Pick a song</p>
         <q-select
           outlined
-          v-model="model"
+          v-model="playlist"
           :options="playlists"
           label="playlists"
         ></q-select>
@@ -85,8 +85,9 @@
     mixins: [windowMixin],
     data() {
       return {
-        currentPlaylist: JSON.parse('{{ firstPlaylist[0] | tojson }}'),
+        currentPlaylist: JSON.parse('{{ firstPlaylist | tojson }}'),
         playlists: JSON.parse('{{ playlists | tojson }}'),
+        playlist: '',
         heavyList: [],
         queued: []
       }
@@ -98,7 +99,6 @@
       this.queued[1] = this.currentPlaylist[5]
       this.queued[2] = this.currentPlaylist[6]
       this.queued[3] = this.currentPlaylist[7]
-      console.log(this.currentPlaylist)
     }
   })
 </script>

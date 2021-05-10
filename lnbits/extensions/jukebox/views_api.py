@@ -108,6 +108,7 @@ async def api_delete_item(juke_id):
 
 ################JUKEBOX ENDPOINTS##################
 
+######GET ACCESS TOKEN######
 
 @jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>/<sp_playlist>", methods=["GET"])
 async def api_get_jukebox_songs(sp_id, sp_playlist):
@@ -128,19 +129,19 @@ async def api_get_jukebox_songs(sp_id, sp_playlist):
                         return False
                     else:
                         return await api_get_jukebox_songs(sp_id, sp_playlist)
+            return r, HTTPStatus.OK
             for item in r.json()["items"]:
                 tracks.append(
                     {
-                        "id": item["track"]["id"],
-                        "name": item["track"]["name"],
-                        "album": item["track"]["album"]["name"],
-                        "artist": item["track"]["artists"][0]["name"],
-                        "image": item["track"]["album"]["images"][0]["url"],
+                        "id": str(item["track"]["id"]),
+                        "name": str(item["track"]["name"]),
+                        "album": str(item["track"]["album"]["name"]),
+                        "artist": str(item["track"]["artists"][0]["name"]),
+                        "image": str(item["track"]["album"]["images"][0]["url"]),
                     }
                 )
         except AssertionError:
             something = None
-    print(jsonify(tracks))
     return tracks, HTTPStatus.OK
 
 
@@ -188,6 +189,7 @@ async def api_get_token(sp_id):
 @jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>/<sp_song>/", methods=["GET"])
 async def api_get_jukebox_invoice(sp_id, sp_song):
     jukebox = await get_jukebox(sp_id)
-    invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.amount,memo="Jukebox " + jukebox.name)
-
+    invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.price,memo=jukebox.title)
+    
+    ####new table needed to store payment hashes
     return invoice, HTTPStatus.OK
