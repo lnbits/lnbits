@@ -177,8 +177,9 @@ new Vue({
     },
     getSpotifyTokens() {
       self = this
-
+      var counter = 0
       var timerId = setInterval(function () {
+        counter++
         if (!self.jukeboxDialog.data.sp_user) {
           clearInterval(timerId)
         }
@@ -217,7 +218,7 @@ new Vue({
                   clearInterval(timerId)
                   self.closeFormDialog()
                 }
-                else{
+                else {
                   self.step = 4
                   clearInterval(timerId)
                 }

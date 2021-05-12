@@ -3,6 +3,7 @@ from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from base64 import urlsafe_b64encode
 import base64
+import json
 
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 import httpx
@@ -110,8 +111,9 @@ async def api_delete_item(juke_id):
 
 ######GET ACCESS TOKEN######
 
-@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>/<sp_playlist>", methods=["GET"])
-async def api_get_jukebox_songs(sp_id, sp_playlist):
+
+@jukebox_ext.route("/api/v1/jukebox/jb/playlist/<sp_id>/<sp_playlist>", methods=["GET"])
+async def api_get_jukebox_son(sp_id, sp_playlist):
     jukebox = await get_jukebox(sp_id)
     tracks = []
     async with httpx.AsyncClient() as client:
@@ -128,21 +130,23 @@ async def api_get_jukebox_songs(sp_id, sp_playlist):
                         print("invalid")
                         return False
                     else:
-                        return await api_get_jukebox_songs(sp_id, sp_playlist)
-            return r, HTTPStatus.OK
+                        return await api_get_jukebox_son(sp_id, sp_playlist)
+                return r, HTTPStatus.OK
             for item in r.json()["items"]:
                 tracks.append(
                     {
-                        "id": str(item["track"]["id"]),
-                        "name": str(item["track"]["name"]),
-                        "album": str(item["track"]["album"]["name"]),
-                        "artist": str(item["track"]["artists"][0]["name"]),
-                        "image": str(item["track"]["album"]["images"][0]["url"]),
+                        'id': item["track"]["id"], 
+                        'name': item["track"]["name"],
+                        'album': item["track"]["album"]["name"],
+                        'artist': item["track"]["artists"][0]["name"],
+                        'image': item["track"]["album"]["images"][0]["url"]
                     }
                 )
         except AssertionError:
             something = None
-    return tracks, HTTPStatus.OK
+    return jsonify([track for track in tracks])
+
+   # return jsonify([track for track in tracks])
 
 
 async def api_get_token(sp_id):
@@ -185,11 +189,43 @@ async def api_get_token(sp_id):
 
 ######GET INVOICE
 
-
-@jukebox_ext.route("/api/v1/jukebox/jb/<sp_id>/<sp_song>/", methods=["GET"])
-async def api_get_jukebox_invoice(sp_id, sp_song):
+@jukebox_ext.route("/api/v1/jukebox/jb/invoice/<sp_id>/<song_id>", methods=["GET"])
+async def api_get_jukebox_invoice(sp_id, song_id):
     jukebox = await get_jukebox(sp_id)
     invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.price,memo=jukebox.title)
     
     ####new table needed to store payment hashes
-    return invoice, HTTPStatus.OK
+    return jsonify(invoice)
+
+
+@jukebox_ext.route("/api/v1/jukebox/jb/invoice/<invoice_id>", methods=["GET"])
+async def api_get_jukebox_check_invoice(invoice_id):
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                "https://api.spotify.com/v1/me/player/queue" + sp_playlist + "/tracks",
+                timeout=40,
+                headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+            )
+            if "items" not in r.json():
+                if r.json()["error"]["status"] == 401:
+                    token = await api_get_token(sp_id)
+                    if token == False:
+                        print("invalid")
+                        return False
+                    else:
+                        return await api_get_jukebox_son(sp_id, sp_playlist)
+                return r, HTTPStatus.OK
+            for item in r.json()["items"]:
+                tracks.append(
+                    {
+                        'id': item["track"]["id"], 
+                        'name': item["track"]["name"],
+                        'album': item["track"]["album"]["name"],
+                        'artist': item["track"]["artists"][0]["name"],
+                        'image': item["track"]["album"]["images"][0]["url"]
+                    }
+                )
+        except AssertionError:
+            something = None
+    return jsonify(invoice)
