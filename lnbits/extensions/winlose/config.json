@@ -1,0 +1,6 @@
+{
+    "name": "Win/Lose",
+    "short_description": "Game credits, users and payout backend",
+    "icon": "casino",
+    "contributors": ["gitnonymous"]
+}
