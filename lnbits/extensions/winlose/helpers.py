@@ -15,3 +15,21 @@ async def widFromWallet(user:str)->str:
     if row is None:
         return jsonify(error='No user found')
     return row[0]
+
+async def getUser(id:str, local:bool)-> dict:
+    if local:
+        row = await db.fetchone(f"SELECT * FROM users WHERE id = '{id}'")
+        if row is None:
+            return jsonify(error='No user found')
+        return dict(row)
+    else:
+        return dict(row)
+
+async def getUsers(admin_id:str, local:bool)-> dict:
+    if local:
+        row = await db.fetchall(f"SELECT * FROM users WHERE admin = '{admin_id}'")
+        if row is None:
+            return jsonify(error='No user found')
+        return [dict(ix) for ix in row]
+    else:
+        return dict(row)

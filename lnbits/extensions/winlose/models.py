@@ -9,6 +9,7 @@ class Setup(NamedTuple):
 class Users(NamedTuple):
     usr_id:str
     id:Optional[str]
+    admin:str
     payout_wallet:str
     credits:int
     active:bool
