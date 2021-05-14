@@ -16,7 +16,6 @@ class Users(NamedTuple):
     data:Optional[str]
 
 class Logs(NamedTuple):
-    id:Optional[int]
     usr:str
     cmd:str
     wl:Optional[str]

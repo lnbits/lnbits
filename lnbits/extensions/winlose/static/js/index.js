@@ -17,7 +17,27 @@ new Vue({
               { name: 'uid', align: 'left', label: 'User ID', field: 'uid', sortable: true},
               { name: 'wid', align: 'left', label: 'Wallet ID', field: 'wid', sortable: true },
             ],
-            data:[]
+            data:[],
+            visibleColumns:['b1', 'id','credits','active']
+          },
+          logs:{
+            table:{
+              columns:[
+                { name: 'usr', align: 'left', label: 'User', field: 'usr', sortable: true},
+                { name: 'wl', align: 'left', label: 'Win/Lose', field: 'wl', sortable: true},
+                { name: 'credits', align: 'left', label: 'Credits', field: 'credits', sortable: true},
+                { name: 'payout', align: 'left', label: 'Payout', field: 'payout', sortable: true},
+                { name: 'multi', align: 'left', label: 'Multi', field: 'multi', sortable: true},
+                { name: 'cmd', align: 'left', label: 'Command', field: 'cmd', sortable: true},
+                { name: 'time', align: 'left', label: 'Time', field: 'time', sortable: true},
+              ],
+              data:[]
+            }
+          }
+        },
+        user:{
+          show: false,
+          data:{
           }
         }
       }
@@ -46,7 +66,18 @@ new Vue({
       formReset(){
         this.form.data ={}
       },
-      exportCSV(){},
+      exportCSV(table){
+        table == 'users' &&(
+          LNbits.utils.exportCSV(
+            this.table.users.columns.filter((x,i)=> i >0), 
+            this.table.users.data)
+          )
+          
+        table == 'logs' && (
+            console.log('logs')
+        )
+
+      },
       init(p){
         const action ={}
         action.loadUsers = async () =>{
@@ -60,7 +91,7 @@ new Vue({
         }
         return action[p.func](p)
     },
-    usersTableData(data){
+      usersTableData(data){
       if(!data.length)return
       const evtsData = data.map(x=> ({
           id: x.id,
@@ -70,6 +101,34 @@ new Vue({
           active: x.active == 1 ? true : false
       }))
       return evtsData
+      },
+      logsTableData(data){
+        if(!data.length)return
+        const logsData = data.map(x=> ({
+            //id: x.id,
+            usr:x.usr,
+            wl: x.wl,
+            credits: x.credits,
+            payout: x.payout,
+            multi: x.multi,
+            cmd: x.cmd,
+            time: moment(x.time*1000).format('llll'),
+        }))
+        return logsData
+      },
+      async showUserInfo(id){
+        this.user.data = this.table.users.data.find(x=> x.id == id)
+        const {data} = await LNbits.api.request('GET',
+        `/winlose/api/v1/users?local=true&id=${id}&logs=true`,
+        this.g.user.wallets[0].inkey
+        )
+        data.success &&(
+          this.table.logs.data = this.logsTableData(data.success.logs),
+          this.user.data.balance = data.success.usr.balance,
+          this.user.data.credits = data.success.usr.credits,
+          this.user.show = true
+
+        )
       },
       async userActive(id){
         let item =  this.table.users.data.find(x=> x.id == id), change, res, payload={}
@@ -97,10 +156,23 @@ new Vue({
             // caption: response.data.lnurl_response
           })
         )
-      }
+      },
+      confirm (p) {
+        this.$q.dialog({
+          title: p.title || 'Confirm',
+          message: p.msg || 'Would you like to continue?',
+          cancel: true,
+          persistent: true
+        }).onOk(() => {
+          p?.ok == 'deleteUser' && this.deleteUser(p.id)
+        }).onOk(() => {
+        }).onCancel(() => {
+        }).onDismiss(() => {
+        })
+    },
     },
     created: async function () {
       let users = await this.init({func:'loadUsers'})
-      users.success && (this.table.users.data = this.usersTableData(users.success))
+      users.success && (this.table.users.data = this.usersTableData(users.success.usr))
     }
   })

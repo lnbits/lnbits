@@ -2,7 +2,16 @@ from quart import jsonify
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.services import create_invoice
 from .models import Setup, Users, Logs
-from .helpers import usrFromWallet, widFromWallet, getUser, getUsers
+from .helpers import (
+    usrFromWallet, 
+    widFromWallet, 
+    inKeyFromWallet,
+    getUser, 
+    getUsers, 
+    getLogs, 
+    createLog,
+    getPayoutBalance
+    )
 from typing import List, Optional
 from . import db
 import json, httpx
@@ -41,8 +50,10 @@ async def createdb_user(
             """,
             (usr_id, id, admin, payout_wallet,credits, active, data)
             )
+        await createLog(id, "User Created",None,None,None,None,None)
         return jsonify(success=True)
     except:
+        print('log error')
         return jsonify(error='Server error. User not created')
 
 async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
@@ -71,7 +82,8 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
                 local = False if local is None else True
                 rUser = await getUser(id, local)
                 return {'success':rUser}
-            except:
+            except ValueError:
+                print(ValueError)
                 return jsonify(error='User not created!')
     else:
         # manual add existing user form user managemnet
@@ -107,7 +119,25 @@ async def API_updateUser(p)-> dict:
 
 async def API_getUsers(params:dict)-> dict:
     local = params['local'] if 'local' in params else False
-    admin_id = await usrFromWallet(params['inKey'])
-    users = await getUsers(admin_id, local)
-    print(users)
-    return jsonify({'success':users})
+    logs = None
+    if 'id' in params:
+        usr = await getUser(params['id'], True) 
+        del usr['admin']   
+        inKey = await inKeyFromWallet(usr['usr_id'])
+        url = params['url'].rsplit('?', 1)[0]+'/payout/user'
+        balance = await getPayoutBalance(inKey, url)
+        if 'logs' in params and params['logs']:
+            logs = await getLogs(params['id'])
+        usr['balance'] = balance['balance']
+        # if not local:
+        del usr['usr_id']
+        del usr['payout_wallet']
+    else:
+        admin_id = await usrFromWallet(params['inKey'])
+        usr = await getUsers(admin_id, local)
+        # if local:
+        #     for u in usr: 
+        #         del u['admin']
+    data = {"usr":usr}
+    data['logs'] = logs if logs is not None else None
+    return jsonify({'success':data})
