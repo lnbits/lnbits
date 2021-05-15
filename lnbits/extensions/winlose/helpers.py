@@ -98,4 +98,6 @@ async def createLog(
         print(ValueError)
         return False
 
-    
+async def credits(id:str, credits:int)-> bool:
+    row =  await db.execute(f"UPDATE users SET credits = {credits} WHERE id = '{id}'")
+    return True

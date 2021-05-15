@@ -36,9 +36,13 @@ new Vue({
           }
         },
         user:{
+          wl:[],
           show: false,
           data:{
           }
+        },
+        api:{
+          base_url: location.origin
         }
       }
     },
@@ -47,7 +51,7 @@ new Vue({
         let payload, res
         auto
         ?(
-          payload = {},
+          payload = {}, this.form.data.id && (payload.id = this.form.data.id),
           res = (await LNbits.api.request('POST',`/winlose/api/v1/users?local=true`,this.g.user.wallets[0].inkey,
           payload)).data,
           res.success &&(
@@ -61,7 +65,21 @@ new Vue({
             this.form.show = false, this.formReset()
           )
         )
-        :(console.log(auto))
+        :( 
+          payload = {...this.form.data}, payload.auto = false,
+          res = (await LNbits.api.request('POST',`/winlose/api/v1/users?local=true`,this.g.user.wallets[0].inkey,
+          payload)).data,
+          res.success &&(
+            this.$q.notify({
+              timeout: 5000,
+              type: 'positive',
+              message: `User Created`,
+              // caption: response.data.lnurl_response
+            }),
+            this.table.users.data.push(this.usersTableData([res.success])[0]),
+            this.form.show = false, this.formReset()
+          )
+        )
       },
       formReset(){
         this.form.data ={}
@@ -145,8 +163,9 @@ new Vue({
         })
       },
       async deleteUser(id){
+        const  wlonly = this.user.wl[0] ? '?wl_only=true' : ''
         const {data} = await LNbits.api
-          .request('DELETE',`/winlose/api/v1/users/${id}`,this.g.user.wallets[0].inkey)
+          .request('DELETE',`/winlose/api/v1/users/${id}${wlonly}`,this.g.user.wallets[0].inkey)
         data.success &&(
           this.table.users.data = this.table.users.data.filter(x=> x.id !== id),
           this.$q.notify({
@@ -158,18 +177,45 @@ new Vue({
         )
       },
       confirm (p) {
+      if(p.check){
+        this.user.wl = []
+        this.$q.dialog({
+          title: p.title || 'Confirm',
+          message: p.msg || 'Would you like to continue?',
+          options: {
+            type: 'checkbox',
+            model: this.user.wl,
+            // inline: true
+            items: [
+              { label: 'WinLose Only', value: true, color: 'deep-purple' },
+            ]
+          },
+          cancel: true,
+          persistent: true
+        }).onOk((data) => {
+          p?.ok == 'deleteUser' && (this.user.wl = !data.length ? [false] : data, this.deleteUser(p.id))
+        }).onCancel(() => {
+        }).onDismiss(() => {
+        })
+      }else{
         this.$q.dialog({
           title: p.title || 'Confirm',
           message: p.msg || 'Would you like to continue?',
           cancel: true,
           persistent: true
         }).onOk(() => {
-          p?.ok == 'deleteUser' && this.deleteUser(p.id)
-        }).onOk(() => {
+          p?.ok == '' && this.deleteUser(p.id)
         }).onCancel(() => {
         }).onDismiss(() => {
         })
-    },
+      }
+      },
+      checkForm(){
+        let choice = true
+        this.form.data.uid !== null || this.form.data.uid !== '' && (choice =false)
+        this.form.data.wid !== null || this.form.data.wid !== '' && (choice =false)
+        return choice
+      }
     },
     created: async function () {
       let users = await this.init({func:'loadUsers'})

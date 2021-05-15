@@ -10,7 +10,8 @@ from .helpers import (
     getUsers, 
     getLogs, 
     createLog,
-    getPayoutBalance
+    getPayoutBalance,
+    credits
     )
 from typing import List, Optional
 from . import db
@@ -57,17 +58,18 @@ async def createdb_user(
         return jsonify(error='Server error. User not created')
 
 async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
-    data, url, local = data.values()
+    data, url, local, = data['data'], data['url'], data['local']
+    local = False if local is None else True
     id = data['id'] if 'id' in data is not None else urlsafe_short_hash()
+    user = await usrFromWallet(inKey)
     if auto:
         base_url = url.rsplit('/', 4)[0]
-        user = await usrFromWallet(inKey)
+        url = base_url+'/usermanager/api/v1/users'
         headers = {
             "Content-Type":"application/json",
             "X-Api-Key":inKey
             }
         payload={"admin_id": user, "wallet_name": "Payout", "user_name":id}
-        url = base_url+'/usermanager/api/v1/users'
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.post(
@@ -79,39 +81,44 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
                 uid = r.json()['id']
                 wid = await widFromWallet(uid)
                 newUser = await createdb_user(uid, id, user, wid, 0, True, None)
-                local = False if local is None else True
                 rUser = await getUser(id, local)
                 return {'success':rUser}
             except ValueError:
                 print(ValueError)
                 return jsonify(error='User not created!')
     else:
-        # manual add existing user form user managemnet
-        return user
+        uid, wid = data['uid'], data['wid']
+        newUser = await createdb_user(uid, id, user, wid, 0, True, None)
+        User = await getUser(id, local)
+        return {'success':User}
 
-async def API_deleteUser(id:str, url:str, inKey:str)->dict:
+async def API_deleteUser(id:str, url:str, inKey:str,wlOnly:bool)->dict:
     base_url = url.rsplit('/', 5)[0]
     user = await usrFromWallet(inKey)
     try:
         uid = (await getUser(id, True))['usr_id']
     except:
         uid = '123456jsjdka'
-    headers = {
-        "Content-Type":"application/json",
-        "X-Api-Key":inKey
-        }
-    url = base_url+'/usermanager/api/v1/users/'+uid
-    async with httpx.AsyncClient() as client:
-        r = await client.delete(
-            url,
-            headers=headers,
-            timeout=40,
-        )
-    if int(r.status_code) == 204:
+    if not wlOnly:
+        headers = {
+            "Content-Type":"application/json",
+            "X-Api-Key":inKey
+            }
+        url = base_url+'/usermanager/api/v1/users/'+uid
+        async with httpx.AsyncClient() as client:
+            r = await client.delete(
+                url,
+                headers=headers,
+                timeout=40,
+            )
+        if int(r.status_code) == 204:
+            await db.execute(f"DELETE FROM users WHERE id = '{id}'")
+            return jsonify({'success':{'id':id,'deleted':True}})
+        else:
+            return jsonify({'error':{'id':id,'deleted':False}}) 
+    else:
         await db.execute(f"DELETE FROM users WHERE id = '{id}'")
         return jsonify({'success':{'id':id,'deleted':True}})
-    else:
-        return jsonify({'error':{'id':id,'deleted':False}})  
 
 async def API_updateUser(p)-> dict:
     await db.execute(f"UPDATE users SET '{p['set']}' = {p['payload']} WHERE id = '{p['id']}'")
@@ -141,3 +148,17 @@ async def API_getUsers(params:dict)-> dict:
     data = {"usr":usr}
     data['logs'] = logs if logs is not None else None
     return jsonify({'success':data})
+
+async def API_lose(id:str, params:dict)->dict:
+    usr = await getUser(id, True)
+    acca = int(params["multi"])*-1 if 'multi' in params else -1
+    print(acca)
+    cred = int(usr['credits']) + acca
+    cred = 0 if cred < 0 else cred
+    credit_done = await credits(id, cred)
+    print(cred)
+    if credit_done:
+        return {"success": {"id":id, "credits":cred}}
+
+async def API_win(id:str, params:dict)->dict:
+    return {"success": 'win'}

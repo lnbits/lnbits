@@ -10,7 +10,9 @@ from .crud import(
     API_createUser,
     API_deleteUser,
     API_getUsers,
-    API_updateUser
+    API_updateUser,
+    API_lose,
+    API_win
 )
 
 # account authorized api calls
@@ -36,9 +38,16 @@ async def users_put():
     return update, HTTPStatus.OK
 
 @winlose_ext.route("/api/v1/users/<id>", methods=["DELETE"])
-@api_check_wallet_key('invoice')
+@api_check_wallet_key('admin')
 async def users_delete(id):
-    deleted = await API_deleteUser(id, request.url, request.headers['X-Api-Key'])
+    p = dict(request.args)
+    wlOnly = False
+    if 'wl_only' in p:
+        url = request.url.rsplit('?',1)[0]
+        wlOnly = p['wl_only']
+    else:
+        url = request.url
+    deleted = await API_deleteUser(id, url, request.headers['X-Api-Key'], wlOnly)
     return deleted, HTTPStatus.OK
 
 @winlose_ext.route("/api/v1/users", methods=["GET"])
@@ -50,9 +59,16 @@ async def users_get():
     users = await API_getUsers(params)
     return users, HTTPStatus.OK
 
-@winlose_ext.route("/api/v1/users/payout/<id>", methods=["GET"])
+@winlose_ext.route("/api/v1/lose/<id>", methods=["GET"])
 @api_check_wallet_key('invoice')
-async def users_payoutBalance_get_(id):
-    ikey = await inKeyFromWallet(id)
-    balance = await getPayoutBalance(ikey, request.url)
-    return balance, HTTPStatus.OK
+async def lose_get_(id):
+    params = dict(request.args)
+    lose = await API_lose(id, params)
+    return lose, HTTPStatus.OK
+
+@winlose_ext.route("/api/v1/win/<id>", methods=["GET"])
+@api_check_wallet_key('admin')
+async def win_get_(id):
+    params = dict(request.args)
+    win = await API_win(id, params)
+    return win, HTTPStatus.OK
