@@ -69,8 +69,9 @@ async def getPayoutBalance(inKey:str, url:str)->int:
         except:
             return jsonify(error=True)
 
-async def getLogs(usr_id:str)-> List:
-    row = await db.fetchall(f"SELECT * FROM logs WHERE usr = '{usr_id}'")
+async def getLogs(usr_id:str, limit:Optional[str])-> List:
+    t = 'LIMIT 20'if limit is None else '' if limit == 'all' else 'LIMIT '+limit
+    row = await db.fetchall(f"SELECT * FROM logs WHERE usr = '{usr_id}' ORDER BY time DESC {t}")
     if row is None:
         return jsonify({'success':[]})
     logs = [dict(ix) for ix in row]
@@ -98,6 +99,9 @@ async def createLog(
         print(ValueError)
         return False
 
-async def credits(id:str, credits:int)-> bool:
-    row =  await db.execute(f"UPDATE users SET credits = {credits} WHERE id = '{id}'")
-    return True
+async def handleCredits(id:str, credits:int)-> bool:
+    try:
+        row =  await db.execute(f"UPDATE users SET credits = {credits} WHERE id = '{id}'")
+        return True
+    except:
+        return False

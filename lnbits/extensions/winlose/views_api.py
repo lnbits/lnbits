@@ -12,12 +12,35 @@ from .crud import(
     API_getUsers,
     API_updateUser,
     API_lose,
-    API_win
+    API_win,
+    getSettings,
+    accountSetup
 )
 
 # account authorized api calls
 
 # local & remote
+@winlose_ext.route("/api/v1/settings", methods=["GET"])
+@api_check_wallet_key('invoice')
+async def settings_get():
+    usr = dict(request.headers)['X-Api-Key']
+    settings = await getSettings(usr,None)
+    return settings ,HTTPStatus.OK
+
+@winlose_ext.route("/api/v1/settings", methods=["POST"])
+@api_check_wallet_key('invoice')
+async def settings_post():
+    usr_id = await usrFromWallet(dict(request.headers)['X-Api-Key'])
+    json_data = json.loads(await request.data)
+    data = data if 'data' in json_data else None
+    settings = await accountSetup(
+        usr_id,
+        json_data['invoice_wallet'],
+        json_data['payout_wallet'],
+        data
+        )
+    return settings ,HTTPStatus.OK
+
 @winlose_ext.route("/api/v1/users", methods=["POST"])
 @api_check_wallet_key('invoice')
 async def users_post():
@@ -70,5 +93,6 @@ async def lose_get_(id):
 @api_check_wallet_key('admin')
 async def win_get_(id):
     params = dict(request.args)
+    params['url'] = request.url
     win = await API_win(id, params)
     return win, HTTPStatus.OK

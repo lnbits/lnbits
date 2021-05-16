@@ -1,6 +1,6 @@
 from quart import jsonify
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, pay_invoice
 from .models import Setup, Users, Logs
 from .helpers import (
     usrFromWallet, 
@@ -11,9 +11,9 @@ from .helpers import (
     getLogs, 
     createLog,
     getPayoutBalance,
-    credits
+    handleCredits
     )
-from typing import List, Optional
+from typing import List, Optional, Dict
 from . import db
 import json, httpx
 
@@ -23,7 +23,7 @@ async def accountSetup(
     payout_wallet:str,
     data:Optional[str]
 )-> Setup:
-    data = None if data is None else None
+    #data = None if data is None else None
     await db.execute(
         """
         INSERT OR REPLACE INTO setup (usr_id, invoice_wallet, payout_wallet,data)
@@ -31,7 +31,7 @@ async def accountSetup(
         """,
         (usr_id, invoice_wallet, payout_wallet, data)
         )
-    return jsonify(success='Account updated')
+    return jsonify({'success': 'Account Updated'})
 
 async def createdb_user(
     usr_id:str,
@@ -56,6 +56,16 @@ async def createdb_user(
     except:
         print('log error')
         return jsonify(error='Server error. User not created')
+
+async def getSettings(inKey:Optional[str], admin:Optional[str])->dict:
+    usr = admin if admin is not None else await usrFromWallet(inKey)
+    try:
+        row = await db.fetchone(f"SELECT * FROM setup WHERE usr_id = '{usr}'")
+        d = dict(row)
+        del d['usr_id']
+        return {"success": d}
+    except:
+        return jsonify({'success': {}})
 
 async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
     data, url, local, = data['data'], data['url'], data['local']
@@ -126,6 +136,7 @@ async def API_updateUser(p)-> dict:
 
 async def API_getUsers(params:dict)-> dict:
     local = params['local'] if 'local' in params else False
+    limit = params['limit'] if 'limit' in params else None 
     logs = None
     if 'id' in params:
         usr = await getUser(params['id'], True) 
@@ -134,7 +145,7 @@ async def API_getUsers(params:dict)-> dict:
         url = params['url'].rsplit('?', 1)[0]+'/payout/user'
         balance = await getPayoutBalance(inKey, url)
         if 'logs' in params and params['logs']:
-            logs = await getLogs(params['id'])
+            logs = await getLogs(params['id'], limit)
         usr['balance'] = balance['balance']
         # if not local:
         del usr['usr_id']
@@ -151,14 +162,101 @@ async def API_getUsers(params:dict)-> dict:
 
 async def API_lose(id:str, params:dict)->dict:
     usr = await getUser(id, True)
-    acca = int(params["multi"])*-1 if 'multi' in params else -1
-    print(acca)
-    cred = int(usr['credits']) + acca
-    cred = 0 if cred < 0 else cred
-    credit_done = await credits(id, cred)
-    print(cred)
-    if credit_done:
-        return {"success": {"id":id, "credits":cred}}
+    if not 'free_spin' in params:
+        acca = int(params["multi"])*-1 if 'multi' in params else -1
+        cred = int(usr['credits']) + acca
+        cred = 0 if cred < 0 else cred
+        credit_done = await handleCredits(id, cred)
+        if credit_done:
+            multi = params['multi'] if 'multi' in params else None
+            logged = await createLog(
+                id,
+                'lose',
+                'lose',
+                1,
+                multi,
+                None,
+                None
+                )
+            return {"success": {"id":id, "credits":cred}}
+    else:
+        spin_log = await createLog(
+                id,
+                'free spin',
+                None,
+                None,
+                None,
+                None,
+                None
+                )
+        return {"success": {"id":id, "credits":int(usr['credits'])}}
 
 async def API_win(id:str, params:dict)->dict:
-    return {"success": 'win'}
+    payout, credits, total_credits, bal = None,None,None,None
+    usr = await getUser(id, True)
+    if 'payout' in params:
+        try:
+            payout = int(params['payout'])
+            admin_id, usr_wallet = usr['admin'], usr['payout_wallet']
+            admin_wallet = (await getSettings(None, admin_id))['success']['payout_wallet']
+            payment_hash, payment_request = await create_invoice(
+                wallet_id=usr_wallet,
+                amount=payout,
+                memo=f"Payout - {id}")
+            done = await pay_invoice(wallet_id=admin_wallet, payment_request=payment_request)
+            try:
+                inKey = await inKeyFromWallet(usr['usr_id'])
+                url = params['url'].rsplit('?',1)[0]+'/payout'
+                bal = int((await getPayoutBalance(inKey, url))['balance']/1000)
+            except:
+                pass
+            log = await createLog(
+                    id,
+                    'payout',
+                    'win',
+                    None,
+                    None,
+                    payout,
+                    None
+                    )
+        except:
+            pass
+            #return error no spins used
+    if 'credits' in params:
+        credits = params['credits']
+        usr_cred = int((await getUser(id, True))['credits'])
+        total_credits = int(params['credits']) + usr_cred
+        credits_added = await handleCredits(id, total_credits)
+        if credits_added:
+            log = await createLog(
+                id,
+                'credits',
+                'win',
+                credits,
+                None,
+                None,
+                None
+                )
+        else:
+            pass
+            #return error not spins
+    if not 'free_spin' in params: 
+        acca = int(params["multi"])*-1 if 'multi' in params else -1
+        cred = int(usr['credits']) + acca
+        cred = 0 if cred < 0 else cred
+        credit_done = await handleCredits(id, cred)
+        if credit_done:
+            multi = params['multi'] if 'multi' in params else None
+            logged = await createLog(
+                id,
+                'win',
+                None,
+                1,
+                multi,
+                None,
+                None
+                )
+    win = int(credits) if credits is not None else payout
+    win_type = 'credits' if credits is not None else 'sat'
+    rem_credits = total_credits if total_credits is not None else int((await getUser(id, True))['credits'])
+    return {"success": {"id":id,"win":win, "type": win_type, "credits":rem_credits, "payout_balance": bal}}

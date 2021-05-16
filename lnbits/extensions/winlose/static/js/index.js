@@ -5,7 +5,8 @@ new Vue({
       return {
         form:{
           show:false,
-          data:{}
+          data:{},
+          settings: false
         },
         table:{
           users:{
@@ -21,24 +22,26 @@ new Vue({
             visibleColumns:['b1', 'id','credits','active']
           },
           logs:{
-            table:{
               columns:[
                 { name: 'usr', align: 'left', label: 'User', field: 'usr', sortable: true},
                 { name: 'wl', align: 'left', label: 'Win/Lose', field: 'wl', sortable: true},
-                { name: 'credits', align: 'left', label: 'Credits', field: 'credits', sortable: true},
-                { name: 'payout', align: 'left', label: 'Payout', field: 'payout', sortable: true},
-                { name: 'multi', align: 'left', label: 'Multi', field: 'multi', sortable: true},
+                { name: 'credits', align: 'center', label: 'Credits', field: 'credits', sortable: true},
+                { name: 'payout', align: 'center', label: 'Payout', field: 'payout', sortable: true},
+                { name: 'multi', align: 'center', label: 'Multi', field: 'multi', sortable: true},
                 { name: 'cmd', align: 'left', label: 'Command', field: 'cmd', sortable: true},
                 { name: 'time', align: 'left', label: 'Time', field: 'time', sortable: true},
               ],
-              data:[]
-            }
+              data:[],
+              visibleColumns:['wl','credits','payout','multi','cmd','time']
           }
         },
         user:{
           wl:[],
           show: false,
           data:{
+          },
+          settings:{
+            data:{}
           }
         },
         api:{
@@ -81,6 +84,24 @@ new Vue({
           )
         )
       },
+      async sendSettingsForm(){
+        const payload = {...this.form.data}
+        const res = (await LNbits.api.request('POST',`/winlose/api/v1/settings`,this.g.user.wallets[0].inkey,
+        payload)).data
+        res.success &&(
+          this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: res.success,
+            // caption: response.data.lnurl_response
+          }),
+         this.form.settings = false, this.formReset()
+        )
+      },
+      showSettingsForm(){
+        this.form.data = this.user.settings.data
+        this.form.settings = true
+      },
       formReset(){
         this.form.data ={}
       },
@@ -92,8 +113,10 @@ new Vue({
           )
           
         table == 'logs' && (
-            console.log('logs')
-        )
+          LNbits.utils.exportCSV(
+            this.table.logs.columns, 
+            this.table.logs.data)
+          )
 
       },
       init(p){
@@ -107,8 +130,17 @@ new Vue({
         )
             return data
         }
+        action.loadSettings = async () =>{
+            const {data} = await LNbits.api
+            .request(
+            'GET',
+            `/winlose/api/v1/settings`,
+            this.g.user.wallets[0].inkey
+        )
+            return data
+        }
         return action[p.func](p)
-    },
+      },
       usersTableData(data){
       if(!data.length)return
       const evtsData = data.map(x=> ({
@@ -123,11 +155,11 @@ new Vue({
       logsTableData(data){
         if(!data.length)return
         const logsData = data.map(x=> ({
-            //id: x.id,
+            id: x.id,
             usr:x.usr,
             wl: x.wl,
             credits: x.credits,
-            payout: x.payout,
+            payout: x.sats,
             multi: x.multi,
             cmd: x.cmd,
             time: moment(x.time*1000).format('llll'),
@@ -142,7 +174,7 @@ new Vue({
         )
         data.success &&(
           this.table.logs.data = this.logsTableData(data.success.logs),
-          this.user.data.balance = data.success.usr.balance,
+          this.user.data.balance = data.success.usr.balance/1000,
           this.user.data.credits = data.success.usr.credits,
           this.user.show = true
 
@@ -165,7 +197,7 @@ new Vue({
       async deleteUser(id){
         const  wlonly = this.user.wl[0] ? '?wl_only=true' : ''
         const {data} = await LNbits.api
-          .request('DELETE',`/winlose/api/v1/users/${id}${wlonly}`,this.g.user.wallets[0].inkey)
+          .request('DELETE',`/winlose/api/v1/users/${id}${wlonly}`,this.g.user.wallets[0].adminkey)
         data.success &&(
           this.table.users.data = this.table.users.data.filter(x=> x.id !== id),
           this.$q.notify({
@@ -220,5 +252,8 @@ new Vue({
     created: async function () {
       let users = await this.init({func:'loadUsers'})
       users.success && (this.table.users.data = this.usersTableData(users.success.usr))
+      let settings = await this.init({func: 'loadSettings'})
+      settings.success && (this.user.settings.data = settings.success)
+
     }
   })
