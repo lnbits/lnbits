@@ -23,3 +23,12 @@ class Logs(NamedTuple):
     multi:Optional[int]
     sats:Optional[int]
     data:Optional[str]
+
+class Payments(NamedTuple):
+    id:str
+    admin_id:str
+    usr_id:str
+    amount:int
+    credits:int
+    paid:bool
+    data:Optional[str]

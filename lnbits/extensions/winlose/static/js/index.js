@@ -26,13 +26,14 @@ new Vue({
                 { name: 'usr', align: 'left', label: 'User', field: 'usr', sortable: true},
                 { name: 'wl', align: 'left', label: 'Win/Lose', field: 'wl', sortable: true},
                 { name: 'credits', align: 'center', label: 'Credits', field: 'credits', sortable: true},
-                { name: 'payout', align: 'center', label: 'Payout', field: 'payout', sortable: true},
+                { name: 'sats', align: 'center', label: 'Sats', field: 'sats', sortable: true},
                 { name: 'multi', align: 'center', label: 'Multi', field: 'multi', sortable: true},
                 { name: 'cmd', align: 'left', label: 'Command', field: 'cmd', sortable: true},
                 { name: 'time', align: 'left', label: 'Time', field: 'time', sortable: true},
               ],
               data:[],
-              visibleColumns:['wl','credits','payout','multi','cmd','time']
+              visibleColumns:['wl','credits','sats','multi','cmd','time'],
+              limit: ''
           }
         },
         user:{
@@ -98,6 +99,19 @@ new Vue({
          this.form.settings = false, this.formReset()
         )
       },
+      async logsLimit(id){
+        const limit = !this.table.logs.limit ? '' : `&limit=${this.table.logs.limit}`
+        const {data} = await LNbits.api
+            .request(
+            'GET',
+            `/winlose/api/v1/users?local=true&id=${id}&logs=true${limit}`,
+            this.g.user.wallets[0].inkey
+        )
+        data.success &&(
+          this.table.logs.data = this.logsTableData(data.success.logs),
+          this.table.logs.limit = ''
+          )
+      },
       showSettingsForm(){
         this.form.data = this.user.settings.data
         this.form.settings = true
@@ -159,7 +173,7 @@ new Vue({
             usr:x.usr,
             wl: x.wl,
             credits: x.credits,
-            payout: x.sats,
+            sats: x.sats,
             multi: x.multi,
             cmd: x.cmd,
             time: moment(x.time*1000).format('llll'),
@@ -174,8 +188,9 @@ new Vue({
         )
         data.success &&(
           this.table.logs.data = this.logsTableData(data.success.logs),
-          this.user.data.balance = data.success.usr.balance/1000,
+          this.user.data.balance = LNbits.utils.formatSat(data.success.usr.balance/1000),
           this.user.data.credits = data.success.usr.credits,
+          this.user.data.id = id,
           this.user.show = true
 
         )

@@ -4,7 +4,7 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from . import winlose_ext
-from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance
+from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance, handlePaymentWebhook
 import json
 from .crud import(
     API_createUser,
@@ -13,6 +13,8 @@ from .crud import(
     API_updateUser,
     API_lose,
     API_win,
+    API_fund,
+    API_withdraw,
     getSettings,
     accountSetup
 )
@@ -87,6 +89,8 @@ async def users_get():
 async def lose_get_(id):
     params = dict(request.args)
     lose = await API_lose(id, params)
+    if 'error' in lose:
+        return lose, 400
     return lose, HTTPStatus.OK
 
 @winlose_ext.route("/api/v1/win/<id>", methods=["GET"])
@@ -96,3 +100,36 @@ async def win_get_(id):
     params['url'] = request.url
     win = await API_win(id, params)
     return win, HTTPStatus.OK
+
+@winlose_ext.route("/api/v1/fund/<id>", methods=["GET"])
+@api_check_wallet_key('invoice')
+async def fund_get_(id):
+    params = dict(request.args)
+    if not {'credits', 'amount'} <= set(params):
+        return {"error":"credits or amount parameters missing!"}, 400
+    params['inKey'] = request.headers['X-Api-Key']
+    params['url'] = request.url
+    fund = await API_fund(id, params)
+    if 'error' in fund:
+        return fund, 403
+    else:
+        return fund, HTTPStatus.OK
+
+@winlose_ext.route("/api/v1/withdraw/<id>", methods=["GET"])
+@api_check_wallet_key('admin')
+async def withdraw_get_(id):
+    params = dict(request.args)
+    params['inKey'] = request.headers['X-Api-Key']
+    params['url'] = request.url
+    withdraw = await API_withdraw(id, params)
+    if 'error' in withdraw:
+        return withdraw, 403
+    else:
+        return withdraw, HTTPStatus.OK
+
+# public api endpoints
+@winlose_ext.route("/api/v1/payments/<id>", methods=["POST"])
+async def payments_get_(id):
+    payment = await handlePaymentWebhook(id)
+    return payment, HTTPStatus.OK
+

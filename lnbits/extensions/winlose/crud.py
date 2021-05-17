@@ -1,7 +1,7 @@
 from quart import jsonify
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.services import create_invoice, pay_invoice
-from .models import Setup, Users, Logs
+from .models import Setup, Users, Logs, Payments
 from .helpers import (
     usrFromWallet, 
     widFromWallet, 
@@ -66,6 +66,28 @@ async def getSettings(inKey:Optional[str], admin:Optional[str])->dict:
         return {"success": d}
     except:
         return jsonify({'success': {}})
+
+async def addPayment(
+    id:str,
+    admin_id:str,
+    usr_id:str,
+    amount:int,
+    credits:int,
+    paid:False,
+    data:Optional[str]
+)->Payments:
+    try:
+        await db.execute(
+            """
+            INSERT INTO payments (id, admin_id, usr_id,amount,credits,paid,data)
+            VALUES (?,?,?,?,?,?,?)
+            """,
+            (id, admin_id, usr_id,amount,credits,paid,data)
+            )
+        return True
+    except:
+        print('log error')
+        return False
 
 async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
     data, url, local, = data['data'], data['url'], data['local']
@@ -162,6 +184,8 @@ async def API_getUsers(params:dict)-> dict:
 
 async def API_lose(id:str, params:dict)->dict:
     usr = await getUser(id, True)
+    if 'error' in usr:
+        return usr
     if not 'free_spin' in params:
         acca = int(params["multi"])*-1 if 'multi' in params else -1
         cred = int(usr['credits']) + acca
@@ -194,6 +218,22 @@ async def API_lose(id:str, params:dict)->dict:
 async def API_win(id:str, params:dict)->dict:
     payout, credits, total_credits, bal = None,None,None,None
     usr = await getUser(id, True)
+    if not 'free_spin' in params: 
+        acca = int(params["multi"])*-1 if 'multi' in params else -1
+        cred = int(usr['credits']) + acca
+        cred = 0 if cred < 0 else cred
+        credit_done = await handleCredits(id, cred)
+        if credit_done:
+            multi = params['multi'] if 'multi' in params else None
+            logged = await createLog(
+                id,
+                'win',
+                None,
+                1,
+                multi,
+                None,
+                None
+                )
     if 'payout' in params:
         try:
             payout = int(params['payout'])
@@ -226,7 +266,7 @@ async def API_win(id:str, params:dict)->dict:
         credits = params['credits']
         usr_cred = int((await getUser(id, True))['credits'])
         total_credits = int(params['credits']) + usr_cred
-        credits_added = await handleCredits(id, total_credits)
+        credits_added = await handleCredits(id, int(total_credits))
         if credits_added:
             log = await createLog(
                 id,
@@ -240,23 +280,41 @@ async def API_win(id:str, params:dict)->dict:
         else:
             pass
             #return error not spins
-    if not 'free_spin' in params: 
-        acca = int(params["multi"])*-1 if 'multi' in params else -1
-        cred = int(usr['credits']) + acca
-        cred = 0 if cred < 0 else cred
-        credit_done = await handleCredits(id, cred)
-        if credit_done:
-            multi = params['multi'] if 'multi' in params else None
-            logged = await createLog(
-                id,
-                'win',
-                None,
-                1,
-                multi,
-                None,
-                None
-                )
     win = int(credits) if credits is not None else payout
     win_type = 'credits' if credits is not None else 'sat'
     rem_credits = total_credits if total_credits is not None else int((await getUser(id, True))['credits'])
     return {"success": {"id":id,"win":win, "type": win_type, "credits":rem_credits, "payout_balance": bal}}
+
+async def API_fund(id:str, params:dict)->dict:
+    uni_id = urlsafe_short_hash()
+    user = await getUser(id, True )
+    if not user['active']:
+        return {"error":{"id":id, "active":False}}
+    admin_id = user['admin']
+    base_url=params['url'].rsplit('?', 1)[0].rsplit('/', 5)[0]
+    try:
+        pend_payments = await addPayment(
+            id=uni_id, admin_id=admin_id, usr_id=id, 
+            amount=params['amount'], credits=params['credits'],
+            paid=False, data=None)
+        if pend_payments:
+            webHook = base_url+f"/winlose/api/v1/payments/{uni_id}"
+            invoice_wallet = (await getSettings(None, admin_id))['success']['invoice_wallet']
+            payment_request, payment_hash = await create_invoice(
+                wallet_id=invoice_wallet,
+                amount=int(params['amount']),
+                memo=f"Fund - {id}",
+                webhook=webHook
+                )
+            return {"success":{"usr_id":id, "payment_hash": payment_hash, "payment_request": payment_request, "amount": int(params['amount'])}}
+        else:
+            pass
+    except:
+        return {"error": "Processing error. Try again!"}
+
+async def API_withdraw(id:str, params:dict)->dict:
+    user = await getUser(id, True )
+    if not user['active']:
+        return {"error":{"id":id, "active":False}}
+    else:
+        return {"success":"withdraw link"}

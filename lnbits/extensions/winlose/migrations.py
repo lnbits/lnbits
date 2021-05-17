@@ -39,3 +39,17 @@ async def m001_initial(db):
         );
         """
         )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS payments (
+            id TEXT PRIMARY KEY,
+            admin_id TEXT NOT NULL,
+            usr_id TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            credits INTEGER NOT NULL,
+            paid BOOLEAN NOT NULL,
+            data TEXT,
+            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+        );
+        """
+        )

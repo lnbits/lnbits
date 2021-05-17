@@ -27,7 +27,7 @@ async def inKeyFromWallet(user:str)->str:
 async def getUser(id:str, local:bool)-> dict:
     row = await db.fetchone(f"SELECT * FROM users WHERE id = '{id}'")
     if row is None:
-        return jsonify(error='No user found')
+        return {"error":"No user found"}
     if local:
         return dict(row)
     else:
@@ -101,7 +101,29 @@ async def createLog(
 
 async def handleCredits(id:str, credits:int)-> bool:
     try:
-        row =  await db.execute(f"UPDATE users SET credits = {credits} WHERE id = '{id}'")
+        row =  await db.execute(f"UPDATE users SET credits = {credits} WHERE id = '{str(id)}'")
         return True
-    except:
+    except ValueError:
         return False
+
+async def handlePaymentWebhook(id:str)->bool:
+    pay_row = dict(await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'"))
+    usr, amount, credits = pay_row['usr_id'], pay_row['amount'], pay_row['credits']
+    usr_credits = (await getUser(usr, False))['credits']
+    add_credits = await handleCredits(usr, int(usr_credits + credits))
+    if add_credits:
+        log = await createLog(
+            usr= usr,
+            cmd='fund',
+            wl=None,
+            credits=credits,
+            multi=None,
+            sats=amount,
+            data=None,
+        )
+        await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
+        return True
+    else:
+        #error
+        return False
+        
