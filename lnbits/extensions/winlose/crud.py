@@ -1,6 +1,6 @@
 from quart import jsonify
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.core.services import create_invoice, pay_invoice
+from lnbits.core.services import create_invoice, pay_invoice, check_invoice_status
 from .models import Setup, Users, Logs, Payments
 from .helpers import (
     usrFromWallet, 
@@ -11,7 +11,8 @@ from .helpers import (
     getLogs, 
     createLog,
     getPayoutBalance,
-    handleCredits
+    handleCredits,
+    numPayments
     )
 from typing import List, Optional, Dict
 from . import db
@@ -74,20 +75,87 @@ async def addPayment(
     amount:int,
     credits:int,
     paid:False,
+    cmd:str,
     data:Optional[str]
 )->Payments:
     try:
         await db.execute(
             """
-            INSERT INTO payments (id, admin_id, usr_id,amount,credits,paid,data)
-            VALUES (?,?,?,?,?,?,?)
+            INSERT INTO payments (id, admin_id, usr_id,amount,credits,paid,cmd,data)
+            VALUES (?,?,?,?,?,?,?,?)
             """,
-            (id, admin_id, usr_id,amount,credits,paid,data)
+            (id, admin_id, usr_id,amount,credits,paid,cmd,data)
             )
         return True
     except:
         print('log error')
         return False
+
+async def handlePaymentWebhook(id:str, params:dict)->dict:
+    if params:
+        if not {'withdraw'} <= set(params):
+            return {"error":"missing parameters"}
+        if params['withdraw'] == 'paid':
+            update_check = await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'")
+            if update_check is None:
+                return {"error": "No withdrawal found"}
+            uc = dict(update_check)
+            if uc['paid']:
+                return {"error":"Withdraw already processed"}
+            await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
+            log = await createLog(
+                usr= uc['usr_id'],
+                cmd='withdraw',
+                wl=None,
+                credits=None,
+                multi=None,
+                sats=uc['amount'],
+                data=None,
+            )
+            return {"success":{"id": id, "withdraw":True}}
+        elif params['withdraw'] == 'check':
+            if not 'inKey' in params:
+                return {"error":"Not Authorized"}
+            check_withdrawn = await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'")
+            if check_withdrawn is None:
+                return {"error": "No withdrawal found"}
+            ch_w = dict(check_withdrawn)
+            if not ch_w['paid']:
+                return {"success":{"id": id, "usr_id": ch_w["usr_id"],"withdraw": False}}
+            return {"success":{"id": id, "usr_id": ch_w["usr_id"],"withdraw": True, "amount": ch_w['amount']}}
+    else:
+        pay_row = await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'")
+        if pay_row is None:
+            return {"error":"No payment found"}
+        pay_row = dict(pay_row)
+        if pay_row['paid']:
+            c = await numPayments(pay_row['admin_id'])
+            print(c)
+            return {"error":"Payment already processed"}
+        # wal_id = (await getSettings(None, pay_row['admin_id']))['success']['invoice_wallet']
+        # pay_hash = json.loads(pay_row['data'])['payment_hash']
+        # pay_req = await check_invoice_status(wal_id, pay_hash)
+        # print(pay_req)
+        # if str(pay_req) != 'settled':# might need change if split payment
+        #     return {"error": "Payment not paid"}
+        await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
+        usr, amount, credits = pay_row['usr_id'], pay_row['amount'], pay_row['credits']
+        usr_credits = (await getUser(usr, False))['credits']
+        add_credits = await handleCredits(usr, int(usr_credits + credits))
+        if add_credits:
+            log = await createLog(
+                usr= usr,
+                cmd='fund',
+                wl=None,
+                credits=credits,
+                multi=None,
+                sats=amount,
+                data=None,
+            )
+            return {"success":{"id":id, "payment":"paid"}}
+        else:
+            #error
+            return {"error":"Not Authorized"}
 
 async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
     data, url, local, = data['data'], data['url'], data['local']
@@ -114,7 +182,7 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
                 wid = await widFromWallet(uid)
                 newUser = await createdb_user(uid, id, user, wid, 0, True, None)
                 rUser = await getUser(id, local)
-                return {'success':rUser}
+                return {"success":rUser}
             except ValueError:
                 print(ValueError)
                 return jsonify(error='User not created!')
@@ -122,7 +190,7 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
         uid, wid = data['uid'], data['wid']
         newUser = await createdb_user(uid, id, user, wid, 0, True, None)
         User = await getUser(id, local)
-        return {'success':User}
+        return {"success":User}
 
 async def API_deleteUser(id:str, url:str, inKey:str,wlOnly:bool)->dict:
     base_url = url.rsplit('/', 5)[0]
@@ -168,7 +236,7 @@ async def API_getUsers(params:dict)-> dict:
         balance = await getPayoutBalance(inKey, url)
         if 'logs' in params and params['logs']:
             logs = await getLogs(params['id'], limit)
-        usr['balance'] = balance['balance']
+        usr['balance'] = int(balance['balance']/1000)
         # if not local:
         del usr['usr_id']
         del usr['payout_wallet']
@@ -202,7 +270,7 @@ async def API_lose(id:str, params:dict)->dict:
                 None,
                 None
                 )
-            return {"success": {"id":id, "credits":cred}}
+            return {"success": {"id":id, "credits":cred, "deducted":acca}}
     else:
         spin_log = await createLog(
                 id,
@@ -213,7 +281,7 @@ async def API_lose(id:str, params:dict)->dict:
                 None,
                 None
                 )
-        return {"success": {"id":id, "credits":int(usr['credits'])}}
+        return {"success": {"id":id, "credits":int(usr['credits']), "deducted":0}}
 
 async def API_win(id:str, params:dict)->dict:
     payout, credits, total_credits, bal = None,None,None,None
@@ -283,7 +351,8 @@ async def API_win(id:str, params:dict)->dict:
     win = int(credits) if credits is not None else payout
     win_type = 'credits' if credits is not None else 'sat'
     rem_credits = total_credits if total_credits is not None else int((await getUser(id, True))['credits'])
-    return {"success": {"id":id,"win":win, "type": win_type, "credits":rem_credits, "payout_balance": bal}}
+    acca = acca if not 'free_spin' in params else 0
+    return {"success": {"id":id,"win":win, "type": win_type, "credits":rem_credits, "payout_balance": bal, "deducted":acca}}
 
 async def API_fund(id:str, params:dict)->dict:
     uni_id = urlsafe_short_hash()
@@ -293,28 +362,38 @@ async def API_fund(id:str, params:dict)->dict:
     admin_id = user['admin']
     base_url=params['url'].rsplit('?', 1)[0].rsplit('/', 5)[0]
     try:
+        webHook = base_url+f"/winlose/api/v1/payments/{uni_id}"
+        invoice_wallet = (await getSettings(None, admin_id))['success']['invoice_wallet']
+        payment_request, payment_hash = await create_invoice(
+            wallet_id=invoice_wallet,
+            amount=int(params['amount']),
+            memo=f"Fund - {id}",
+            webhook=webHook
+            )
+        data = json.dumps({"payment_hash": payment_hash})
         pend_payments = await addPayment(
-            id=uni_id, admin_id=admin_id, usr_id=id, 
-            amount=params['amount'], credits=params['credits'],
-            paid=False, data=None)
-        if pend_payments:
-            webHook = base_url+f"/winlose/api/v1/payments/{uni_id}"
-            invoice_wallet = (await getSettings(None, admin_id))['success']['invoice_wallet']
-            payment_request, payment_hash = await create_invoice(
-                wallet_id=invoice_wallet,
-                amount=int(params['amount']),
-                memo=f"Fund - {id}",
-                webhook=webHook
-                )
-            return {"success":{"usr_id":id, "payment_hash": payment_hash, "payment_request": payment_request, "amount": int(params['amount'])}}
-        else:
-            pass
+        id=uni_id, admin_id=admin_id, usr_id=id, 
+        amount=params['amount'], credits=params['credits'],
+        paid=False, cmd='payment', data=data)
+        return {"success":{"usr_id":id, "payment_hash": payment_hash, "payment_request": payment_request, "amount": int(params['amount'])}}
     except:
         return {"error": "Processing error. Try again!"}
 
 async def API_withdraw(id:str, params:dict)->dict:
-    user = await getUser(id, True )
-    if not user['active']:
+    usr = await getUser(id, True )
+    if not usr['active']:
         return {"error":{"id":id, "active":False}}
-    else:
-        return {"success":"withdraw link"}
+    inKey = await inKeyFromWallet(usr['usr_id'])
+    url = params['url']+'/withdraw'
+    bal = int((await getPayoutBalance(inKey, url))['balance'])
+    uni_id = urlsafe_short_hash()
+    withdraw_link  = None
+    # create drain withdraw link
+    if withdraw_link:
+        data = json.dumps({"withdraw_link": withdraw_link})
+        pend_withdraw = await addPayment(
+        id=uni_id, admin_id=usr['admin'], usr_id=id, 
+        amount=bal, credits=0,
+        paid=False, cmd='withdraw', data=data)
+        # return {"success":{"usr_id":id, "payment_hash": payment_hash, "payment_request": payment_request, "amount": bal}}
+    return {"success":"withdraw link"}

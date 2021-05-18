@@ -4,6 +4,7 @@ from typing import List, Optional
 from .models import Logs
 from . import db, wal_db
 import json, httpx
+from datetime import date, datetime 
 
 async def usrFromWallet(inKey:str)->str:
     row = await wal_db.fetchone(f"SELECT user FROM wallets WHERE inkey = '{inKey}'")
@@ -106,24 +107,8 @@ async def handleCredits(id:str, credits:int)-> bool:
     except ValueError:
         return False
 
-async def handlePaymentWebhook(id:str)->bool:
-    pay_row = dict(await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'"))
-    usr, amount, credits = pay_row['usr_id'], pay_row['amount'], pay_row['credits']
-    usr_credits = (await getUser(usr, False))['credits']
-    add_credits = await handleCredits(usr, int(usr_credits + credits))
-    if add_credits:
-        log = await createLog(
-            usr= usr,
-            cmd='fund',
-            wl=None,
-            credits=credits,
-            multi=None,
-            sats=amount,
-            data=None,
-        )
-        await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
-        return True
-    else:
-        #error
-        return False
-        
+async def numPayments(user:str)->int:
+    timestamp = int(datetime.timestamp(datetime.now()))
+    seven_days = timestamp - int(60*60*24*7)
+    count = await db.fetchall(f"SELECT COUNT(time) FROM payments WHERE paid = True AND admin_id = '{user}' AND cmd = 'payment' AND time >= {seven_days} ORDER BY time DESC")
+    return int(count[0][0])     

@@ -4,7 +4,7 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from . import winlose_ext
-from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance, handlePaymentWebhook
+from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance
 import json
 from .crud import(
     API_createUser,
@@ -15,6 +15,7 @@ from .crud import(
     API_win,
     API_fund,
     API_withdraw,
+    handlePaymentWebhook,
     getSettings,
     accountSetup
 )
@@ -130,6 +131,11 @@ async def withdraw_get_(id):
 # public api endpoints
 @winlose_ext.route("/api/v1/payments/<id>", methods=["POST"])
 async def payments_get_(id):
-    payment = await handlePaymentWebhook(id)
+    params = dict(request.args)
+    if 'X-Api-Key' in request.headers:
+        params['inKey'] = request.headers['X-Api-Key']
+    payment = await handlePaymentWebhook(id, params)
+    if 'error' in payment:
+        return payment, 400
     return payment, HTTPStatus.OK
 

@@ -48,6 +48,7 @@ async def m001_initial(db):
             amount INTEGER NOT NULL,
             credits INTEGER NOT NULL,
             paid BOOLEAN NOT NULL,
+            cmd TEXT NOT NULL,
             data TEXT,
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );

@@ -181,6 +181,7 @@ new Vue({
         return logsData
       },
       async showUserInfo(id){
+        this.user.show = true
         this.user.data = this.table.users.data.find(x=> x.id == id)
         const {data} = await LNbits.api.request('GET',
         `/winlose/api/v1/users?local=true&id=${id}&logs=true`,
@@ -188,11 +189,9 @@ new Vue({
         )
         data.success &&(
           this.table.logs.data = this.logsTableData(data.success.logs),
-          this.user.data.balance = LNbits.utils.formatSat(data.success.usr.balance/1000),
+          this.user.data.balance = LNbits.utils.formatSat(data.success.usr.balance),
           this.user.data.credits = data.success.usr.credits,
-          this.user.data.id = id,
-          this.user.show = true
-
+          this.user.data.id = id
         )
       },
       async userActive(id){

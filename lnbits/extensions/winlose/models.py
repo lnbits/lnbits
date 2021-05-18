@@ -31,4 +31,5 @@ class Payments(NamedTuple):
     amount:int
     credits:int
     paid:bool
+    cmd: str
     data:Optional[str]
