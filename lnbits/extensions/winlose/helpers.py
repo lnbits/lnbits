@@ -3,7 +3,7 @@ from lnbits.helpers import urlsafe_short_hash
 from typing import List, Optional
 from .models import Logs
 from . import db, wal_db
-import json, httpx
+import json, httpx, math
 from datetime import date, datetime 
 
 async def usrFromWallet(inKey:str)->str:
@@ -111,4 +111,10 @@ async def numPayments(user:str)->int:
     timestamp = int(datetime.timestamp(datetime.now()))
     seven_days = timestamp - int(60*60*24*7)
     count = await db.fetchall(f"SELECT COUNT(time) FROM payments WHERE paid = True AND admin_id = '{user}' AND cmd = 'payment' AND time >= {seven_days} ORDER BY time DESC")
-    return int(count[0][0])     
+    return int(count[0][0])   
+
+def klankyRachet(count:int)->float:
+    print(count)
+    percent = float(math.log10(count)/100)*2
+    fee = 0.01 if percent <= 0.04 else 0.1 if percent >= 0.074 else percent
+    return fee

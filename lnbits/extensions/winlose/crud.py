@@ -12,7 +12,8 @@ from .helpers import (
     createLog,
     getPayoutBalance,
     handleCredits,
-    numPayments
+    numPayments,
+    klankyRachet
     )
 from typing import List, Optional, Dict
 from . import db
@@ -129,8 +130,6 @@ async def handlePaymentWebhook(id:str, params:dict)->dict:
             return {"error":"No payment found"}
         pay_row = dict(pay_row)
         if pay_row['paid']:
-            c = await numPayments(pay_row['admin_id'])
-            print(c)
             return {"error":"Payment already processed"}
         # wal_id = (await getSettings(None, pay_row['admin_id']))['success']['invoice_wallet']
         # pay_hash = json.loads(pay_row['data'])['payment_hash']
@@ -364,6 +363,8 @@ async def API_fund(id:str, params:dict)->dict:
     try:
         webHook = base_url+f"/winlose/api/v1/payments/{uni_id}"
         invoice_wallet = (await getSettings(None, admin_id))['success']['invoice_wallet']
+        c = klankyRachet(await numPayments(admin_id))
+        print(c)
         payment_request, payment_hash = await create_invoice(
             wallet_id=invoice_wallet,
             amount=int(params['amount']),
