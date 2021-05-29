@@ -114,7 +114,8 @@
         </h5>
         <code
           >{"admin_id": &lt;string&gt;, "user_name": &lt;string&gt;,
-          "wallet_name": &lt;string&gt;}</code
+          "wallet_name": &lt;string&gt;,"email": &lt;Optional string&gt;
+          ,"password": &lt;Optional string&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
@@ -128,7 +129,8 @@
         <code
           >curl -X POST {{ request.url_root }}api/v1/users -d '{"admin_id": "{{
           g.user.id }}", "wallet_name": &lt;string&gt;, "user_name":
-          &lt;string&gt;}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
+          &lt;string&gt;, "email": &lt;Optional string&gt;, "password": &lt;
+          Optional string&gt;}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
           "Content-type: application/json"
         </code>
       </q-card-section>
