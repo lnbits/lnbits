@@ -48,6 +48,26 @@
       </q-card-section>
     </q-card>
   </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="GET user">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /usermanager/api/v1/users/&lt;user_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code>JSON list of users</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/users/&lt;user_id&gt; -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
   <q-expansion-item group="api" dense expand-separator label="GET wallets">
     <q-card>
       <q-card-section>
