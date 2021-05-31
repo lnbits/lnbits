@@ -17,7 +17,11 @@ from .models import Users, Wallets
 
 
 async def create_usermanager_user(
-    user_name: str, wallet_name: str, admin_id: str
+    user_name: str,
+    wallet_name: str,
+    admin_id: str,
+    email: Optional[str] = None,
+    password: Optional[str] = None,
 ) -> Users:
     account = await create_account()
     user = await get_user(account.id)
@@ -27,10 +31,10 @@ async def create_usermanager_user(
 
     await db.execute(
         """
-        INSERT INTO users (id, name, admin)
-        VALUES (?, ?, ?)
+        INSERT INTO users (id, name, admin, email, password)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (user.id, user_name, admin_id),
+        (user.id, user_name, admin_id, email, password),
     )
 
     await db.execute(

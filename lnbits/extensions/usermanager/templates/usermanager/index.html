@@ -157,6 +157,18 @@
           v-model.trim="userDialog.data.walname"
           label="Initial wallet name"
         ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="userDialog.data.email"
+          label="Email"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="userDialog.data.password"
+          label="Password"
+        ></q-input>
 
         <q-btn
           unelevated
@@ -224,7 +236,14 @@
         usersTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {name: 'name', align: 'left', label: 'Username', field: 'name'}
+            {name: 'name', align: 'left', label: 'Username', field: 'name'},
+            {name: 'email', align: 'left', label: 'Email', field: 'email'},
+            {
+              name: 'password',
+              align: 'left',
+              label: 'Password',
+              field: 'password'
+            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -299,7 +318,9 @@
           var data = {
             admin_id: this.g.user.id,
             user_name: this.userDialog.data.usrname,
-            wallet_name: this.userDialog.data.walname
+            wallet_name: this.userDialog.data.walname,
+            email: this.userDialog.data.email,
+            password: this.userDialog.data.password
           }
         }
 

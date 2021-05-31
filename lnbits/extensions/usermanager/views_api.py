@@ -33,19 +33,29 @@ async def api_usermanager_users():
     )
 
 
+@usermanager_ext.route("/api/v1/users/<user_id>", methods=["GET"])
+@api_check_wallet_key(key_type="invoice")
+async def api_usermanager_user(user_id):
+    user = await get_usermanager_user(user_id)
+    return (
+        jsonify(user._asdict()),
+        HTTPStatus.OK,
+    )
+
+
 @usermanager_ext.route("/api/v1/users", methods=["POST"])
 @api_check_wallet_key(key_type="invoice")
 @api_validate_post_request(
     schema={
-        "admin_id": {"type": "string", "empty": False, "required": True},
         "user_name": {"type": "string", "empty": False, "required": True},
         "wallet_name": {"type": "string", "empty": False, "required": True},
+        "admin_id": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "required": False},
+        "password": {"type": "string", "required": False},
     }
 )
 async def api_usermanager_users_create():
-    user = await create_usermanager_user(
-        g.data["user_name"], g.data["wallet_name"], g.data["admin_id"]
-    )
+    user = await create_usermanager_user(**g.data)
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 

@@ -267,12 +267,23 @@ async def get_payments(
 async def delete_expired_invoices(
     conn: Optional[Connection] = None,
 ) -> None:
+    # first we delete all invoices older than one month
+    await (conn or db).execute(
+        """
+        DELETE FROM apipayments
+        WHERE pending = 1 AND amount > 0 AND time < strftime('%s', 'now') - 2592000
+        """
+    )
+
+    # then we delete all expired invoices, checking one by one
     rows = await (conn or db).fetchall(
         """
         SELECT bolt11
         FROM apipayments
-        WHERE pending = 1 AND amount > 0 AND time < strftime('%s', 'now') - 86400
-    """
+        WHERE pending = 1
+          AND bolt11 IS NOT NULL
+          AND amount > 0 AND time < strftime('%s', 'now') - 86400
+        """
     )
     for (payment_request,) in rows:
         try:

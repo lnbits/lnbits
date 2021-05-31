@@ -3,7 +3,7 @@ import json
 import lnurl  # type: ignore
 import httpx
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import g, jsonify, make_response, url_for
+from quart import g, current_app, jsonify, make_response, url_for
 from http import HTTPStatus
 from binascii import unhexlify
 from typing import Dict, Union
@@ -310,8 +310,8 @@ async def api_payments_sse():
             await send_event.send(("keepalive", ""))
             await trio.sleep(25)
 
-    g.nursery.start_soon(payment_received)
-    g.nursery.start_soon(repeat_keepalive)
+    current_app.nursery.start_soon(payment_received)
+    current_app.nursery.start_soon(repeat_keepalive)
 
     async def send_events():
         try:
