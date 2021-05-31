@@ -169,10 +169,12 @@
         </q-step>
 
         <q-step :name="2" title="Add api keys" icon="vpn_key" :done="step > 2">
+          <img src="/jukebox/static/spotapi.gif" />
           To use this extension you need a Spotify client ID and client secret.
           You get these by creating an app in the Spotify developers dashboard
           <a
             target="_blank"
+            color="green-7"
             href="https://developer.spotify.com/dashboard/applications"
             >here</a
           >.
@@ -226,11 +228,19 @@
         </q-step>
 
         <q-step :name="3" title="Add Redirect URI" icon="link" :done="step > 3">
+          <img src="/jukebox/static/spotapi1.gif" />
           In the app go to edit-settings, set the redirect URI to this link
           <br /><small
             >{% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
             %}</small
           >
+          Setting can be found
+          <a
+            target="_blank"
+            color="green-7"
+            href="https://developer.spotify.com/dashboard/applications"
+            >here</a
+          >.
 
           <div class="row q-mt-md">
             <div class="col-4">
