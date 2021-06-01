@@ -110,9 +110,7 @@
         playlists: {},
         playlist: '',
         heavyList: [],
-        selectedWallet: {
-          inkey: '{{ inkey }}'
-        },
+        selectedWallet: {},
         receive: {
           dialogues: {
             first: false,
@@ -234,7 +232,15 @@
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
-      this.startPaymentNotifier()
+
+      // this.startPaymentNotifier()
+    },
+    mounted() {
+      self = this
+      self.selectedWallet['inkey'] = '{{ inkey }}'
+      LNbits.events.onInvoicePaid(self.selectedWallet, payment =>
+        console.log(payment)
+      )
     }
   })
 </script>

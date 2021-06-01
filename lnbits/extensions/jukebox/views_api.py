@@ -196,8 +196,10 @@ async def api_get_token(sp_id):
 async def api_get_jukebox_invoice(sp_id, song_id):
     jukebox = await get_jukebox(sp_id)
     
-    invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.price,memo=jukebox.title)
+    invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.price,memo=jukebox.title, extra={"tag": "jukebox"},)
+
     jukebox_payment = await create_jukebox_payment(song_id,invoice[0])
+    
     print(jukebox_payment)
     
     return jsonify(invoice, jukebox_payment)

@@ -400,6 +400,7 @@ new Vue({
     }
   },
   created() {
+    console.log(this.g.user.wallets[0])
     var getJukeboxes = this.getJukeboxes
     getJukeboxes()
     this.selectedWallet = this.g.user.wallets[0]
