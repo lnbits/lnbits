@@ -237,10 +237,8 @@
             color="green-7"
             size="xs"
             @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')"
-            ><small style="font-size: 60%"
-              >{% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
-              %}</small
-            ><q-tooltip> Click to copy URL </q-tooltip></q-btn
+            >{% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
+            %}<q-tooltip> Click to copy URL </q-tooltip></q-btn
           >
           <br />
           Settings can be found
