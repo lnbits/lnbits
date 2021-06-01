@@ -153,7 +153,10 @@ async def lnurl_full_withdraw_callback():
     pr = request.args.get("pr")
 
     async def pay():
-        await pay_invoice(wallet_id=wallet.id, payment_request=pr)
+        try:
+            await pay_invoice(wallet_id=wallet.id, payment_request=pr)
+        except:
+            pass
 
     current_app.nursery.start_soon(pay)
 
