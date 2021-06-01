@@ -82,7 +82,7 @@
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
   Vue.use(VueQrcodeReader)
-  var mapEvents = function (obj) {
+  var mapEvents = function(obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -94,7 +94,7 @@
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
-    data: function () {
+    data: function() {
       return {
         tickets: [],
         ticketsTable: {
@@ -119,35 +119,35 @@
       }
     },
     methods: {
-      hoverEmail: function (tmp) {
+      hoverEmail: function(tmp) {
         this.tickets.data.emailtemp = tmp
       },
-      closeCamera: function () {
+      closeCamera: function() {
         this.sendCamera.show = false
       },
-      showCamera: function () {
+      showCamera: function() {
         this.sendCamera.show = true
       },
-      decodeQR: function (res) {
+      decodeQR: function(res) {
         this.sendCamera.show = false
         var self = this
 
         LNbits.api
           .request('GET', '/events/api/v1/register/ticket/' + res)
-          .then(function (response) {
+          .then(function(response) {
             self.$q.notify({
               type: 'positive',
               message: 'Registered!'
             })
-            setTimeout(function () {
+            setTimeout(function() {
               window.location.reload()
             }, 2000)
           })
-          .catch(function (error) {
+          .catch(function(error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      getEventTickets: function () {
+      getEventTickets: function() {
         var self = this
         console.log('obj')
         LNbits.api
@@ -155,17 +155,17 @@
             'GET',
             '/events/api/v1/eventtickets/{{ wallet_id }}/{{ event_id }}'
           )
-          .then(function (response) {
-            self.tickets = response.data.map(function (obj) {
+          .then(function(response) {
+            self.tickets = response.data.map(function(obj) {
               return mapEvents(obj)
             })
           })
-          .catch(function (error) {
+          .catch(function(error) {
             LNbits.utils.notifyApiError(error)
           })
       }
     },
-    created: function () {
+    created: function() {
       this.getEventTickets()
     }
   })
