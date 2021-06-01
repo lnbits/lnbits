@@ -89,9 +89,9 @@ async def api_check_credentials_check(sp_id):
 )
 async def api_create_update_jukebox(juke_id=None):
     if juke_id:
-        jukebox = await update_jukebox(juke_id=juke_id, **g.data)
+        jukebox = await update_jukebox(juke_id=juke_id, inkey = g.wallet.inkey, **g.data)
     else:
-        jukebox = await create_jukebox(**g.data)
+        jukebox = await create_jukebox(inkey = g.wallet.inkey, **g.data)
     return jsonify(jukebox._asdict()), HTTPStatus.CREATED
 
 
@@ -190,7 +190,7 @@ async def api_get_token(sp_id):
     return True
 
 
-######GET INVOICE
+######GET INVOICE STUFF
 
 @jukebox_ext.route("/api/v1/jukebox/jb/invoice/<sp_id>/<song_id>", methods=["GET"])
 async def api_get_jukebox_invoice(sp_id, song_id):
@@ -200,39 +200,76 @@ async def api_get_jukebox_invoice(sp_id, song_id):
     jukebox_payment = await create_jukebox_payment(song_id,invoice[0])
     print(jukebox_payment)
     
-    ####new table needed to store payment hashes
     return jsonify(invoice, jukebox_payment)
 
 
-@jukebox_ext.route("/api/v1/jukebox/jb/invoicecheck/<payment_hash>/<sp_id>", methods=["GET"])
-async def api_get_jukebox_check_invoice(sp_id, payment_hash):
+@jukebox_ext.route("/api/v1/jukebox/jb/invoicepaid/<payment_hash>/<sp_id>", methods=["GET"])
+async def api_get_jukebox_invoice_paid(sp_id, payment_hash):
     jukebox = await get_jukebox(sp_id)
-    status = await check_invoice_status(jukebox.wallet, payment_hash)
-    is_paid = not status.pending
-    if is_paid:
-        jukebox_payment = await update_jukebox_payment(payment_hash, paid = True)
-        print("https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device)      
-        async with httpx.AsyncClient() as client:
+    jukebox_payment = await update_jukebox_payment(payment_hash, paid = True)
+    print("https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device)      
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device,
+                timeout=40,
+                headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+            )
+            if r.json()["error"]["status"] == 401:
+                token = await api_get_token(sp_id)
+                if token == False:
+                    print("invalid")
+                    return jsonify({"error": "Something went wrong"})
+                else:
+                    return await api_get_jukebox_invoice_paid(sp_id, payment_hash)
+            if r.json()["error"]["status"] == 400:
+                return jsonify({"error": "Something went wrong"})    
+            return jsonify(r), HTTPStatus.OK
+        except AssertionError:
+            something = None
+            return jsonify({"error": "Something went wrong"})
+    if not is_paid:
+        return jsonify({"status": False})
+    return jsonify({"error": "Something went wrong"})
+
+############################GET TRACKS
+
+@jukebox_ext.route("/api/v1/jukebox/jb/currently/<sp_id>", methods=["GET"])
+async def api_get_jukebox_currently(sp_id):
+    jukebox = await get_jukebox(sp_id)
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                "https://api.spotify.com/v1/me/player/currently-playing?market=ES",
+                timeout=40,
+                headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+            )
             try:
-                r = await client.get(
-                    "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device,
-                    timeout=40,
-                    headers={"Authorization": "Bearer " + jukebox.sp_access_token},
-                )
+                if r.json()["item"]:
+                    track = {
+                        'id': r.json()["item"]["id"], 
+                        'name': r.json()["item"]["name"],
+                        'album': r.json()["item"]["album"]["name"],
+                        'artist': r.json()["item"]["artists"][0]["name"],
+                        'image': r.json()["item"]["album"]["images"][0]["url"]
+                    }
+                return track, HTTPStatus.OK
+            except AssertionError:
+                something = None
+            try:
                 if r.json()["error"]["status"] == 401:
                     token = await api_get_token(sp_id)
                     if token == False:
                         print("invalid")
                         return jsonify({"error": "Something went wrong"})
                     else:
-                        return await api_get_jukebox_check_invoice(sp_id, payment_hash)
-                if r.json()["error"]["status"] == 400:
+                        return await api_get_jukebox_currently(sp_id)
+                elif r.json()["error"]["status"] == 400:
                     return jsonify({"error": "Something went wrong"})
-                
-                return r, HTTPStatus.OK
-            except AssertionError:
-                something = None
+            except ValueError:
                 return jsonify({"error": "Something went wrong"})
-    if not is_paid:
-        return jsonify({"status": False})
+            
+        except AssertionError:
+            something = None
+            return jsonify({"error": "Something went wrong"})
     return jsonify({"error": "Something went wrong"})

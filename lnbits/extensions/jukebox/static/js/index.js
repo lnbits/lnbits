@@ -168,12 +168,12 @@ new Vue({
     authAccess() {
       self = this
       self.requestAuthorization()
+      self.getSpotifyTokens()
       self.$q.notify({
         spinner: true,
         message: 'Processing',
         timeout: 10000
       })
-      self.getSpotifyTokens()
     },
     getSpotifyTokens() {
       self = this
@@ -195,6 +195,7 @@ new Vue({
               if (self.jukeboxDialog.data.sp_access_token) {
                 self.refreshPlaylists()
                 self.refreshDevices()
+                setTimeout(function () {}, 2000)
                 if (self.devices.length < 1 && self.playlists.length < 1) {
                   self.$q.notify({
                     spinner: true,
@@ -217,8 +218,7 @@ new Vue({
                     })
                   clearInterval(timerId)
                   self.closeFormDialog()
-                }
-                else {
+                } else {
                   self.step = 4
                   clearInterval(timerId)
                 }
@@ -228,7 +228,7 @@ new Vue({
           .catch(err => {
             LNbits.utils.notifyApiError(err)
           })
-      }, 5000)
+      }, 3000)
     },
     requestAuthorization() {
       self = this
@@ -267,9 +267,12 @@ new Vue({
         )
         .then(function (response) {
           console.log(response.data)
-          if (self.jukeboxDialog.data.sp_playlists && self.jukeboxDialog.data.sp_devices) {
+          if (
+            self.jukeboxDialog.data.sp_playlists &&
+            self.jukeboxDialog.data.sp_devices
+          ) {
             self.getJukeboxes()
-           // self.JukeboxLinks.push(mapJukebox(response.data))
+            // self.JukeboxLinks.push(mapJukebox(response.data))
           }
         })
     },

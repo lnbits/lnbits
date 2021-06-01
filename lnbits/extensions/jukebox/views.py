@@ -29,7 +29,8 @@ async def print_qr_codes(juke_id):
         "jukebox/jukebox.html",
         playlists=jukebox.sp_playlists.split(","),
         juke_id=juke_id,
-        price=jukebox.price
+        price=jukebox.price,
+        inkey=jukebox.inkey
     )
 
 

@@ -12,6 +12,7 @@ class Jukebox(NamedTuple):
     user: str
     title: str
     wallet: str
+    inkey: str
     sp_user: str
     sp_secret: str
     sp_access_token: str
@@ -32,12 +33,4 @@ class JukeboxPayment(NamedTuple):
 
     @classmethod
     def from_row(cls, row: Row) -> "JukeboxPayment":
-        return cls(**dict(row))
-
-class JukeboxQueue(NamedTuple):
-    jukebox_id: str
-    queue: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "JukeboxQueue":
         return cls(**dict(row))
