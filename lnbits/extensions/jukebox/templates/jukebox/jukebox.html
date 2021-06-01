@@ -141,6 +141,7 @@
             second: false
           },
           paymentReq: '',
+          paymentHash: '',
           name: '',
           artist: '',
           image: '',
@@ -151,6 +152,13 @@
     },
     computed: {},
     methods: {
+      cancelPayment: function () {
+        this.paymentReq = null
+        clearInterval(this.paymentDialog.checker)
+        if (this.paymentDialog.dismissMsg) {
+          this.paymentDialog.dismissMsg()
+        }
+      },
       closeReceiveDialog() {},
       payForSong(song_id, name, artist, image) {
         self = this
@@ -161,6 +169,7 @@
         self.receive.dialogues.first = true
       },
       getInvoice(song_id) {
+        self = this
         LNbits.api
           .request(
             'GET',
@@ -170,9 +179,38 @@
               song_id
           )
           .then(function (response) {
+            console.log('response.data')
             console.log(response.data)
-            self.receive.paymentReq = response.data[1]
+            console.log('response.data')
+            self.receive.paymentReq = response.data[0][1]
+            self.receive.paymentHash = response.data[0][0]
             self.receive.dialogues.second = true
+
+            pChecker = setInterval(function () {
+              axios
+                .get(
+                  '/jukebox/api/v1/jukebox/jb/invoicecheck/' +
+                    self.receive.paymentHash +
+                    '/{{ juke_id }}'
+                )
+                .then(function (res) {
+                  console.log(res.data)
+                  if (res.data.status == true) {
+                    console.log('pooooooo')
+                    // self.cancelPayment()
+                    clearInterval(pChecker)
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Payment received!',
+                      icon: null
+                    })
+                    self.receive.dialogues.second = false
+                  }
+                })
+                .catch(err => {
+                  LNbits.utils.notifyApiError(err)
+                })
+            }, 5000)
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)

@@ -20,3 +20,28 @@ async def m001_initial(db):
         );
         """
     )
+async def m002_initial(db):
+    """
+    Initial jukebox_payment table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE jukebox_payment (
+            payment_hash TEXT PRIMARY KEY,
+            song_id TEXT,
+            paid BOOL
+        );
+        """
+    )
+async def m003_initial(db):
+    """
+    Initial jukebox_queue table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE jukebox_queue (
+            jukebox_id TEXT PRIMARY KEY,
+            queue TEXT
+        );
+        """
+    )

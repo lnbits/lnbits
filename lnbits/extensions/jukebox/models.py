@@ -24,3 +24,20 @@ class Jukebox(NamedTuple):
     @classmethod
     def from_row(cls, row: Row) -> "Jukebox":
         return cls(**dict(row))
+
+class JukeboxPayment(NamedTuple):
+    payment_hash: str
+    song_id: str
+    paid: bool
+
+    @classmethod
+    def from_row(cls, row: Row) -> "JukeboxPayment":
+        return cls(**dict(row))
+
+class JukeboxQueue(NamedTuple):
+    jukebox_id: str
+    queue: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "JukeboxQueue":
+        return cls(**dict(row))

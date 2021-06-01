@@ -15,9 +15,12 @@ from .crud import (
     get_jukebox_by_user,
     get_jukeboxs,
     delete_jukebox,
+    create_jukebox_payment,
+    get_jukebox_payment,
+    update_jukebox_payment,
 )
 from .models import Jukebox
-from lnbits.core.services import create_invoice
+from lnbits.core.services import create_invoice, check_invoice_status
 
 @jukebox_ext.route("/api/v1/jukebox", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -192,40 +195,44 @@ async def api_get_token(sp_id):
 @jukebox_ext.route("/api/v1/jukebox/jb/invoice/<sp_id>/<song_id>", methods=["GET"])
 async def api_get_jukebox_invoice(sp_id, song_id):
     jukebox = await get_jukebox(sp_id)
+    
     invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.price,memo=jukebox.title)
+    jukebox_payment = await create_jukebox_payment(song_id,invoice[0])
+    print(jukebox_payment)
     
     ####new table needed to store payment hashes
-    return jsonify(invoice)
+    return jsonify(invoice, jukebox_payment)
 
 
-@jukebox_ext.route("/api/v1/jukebox/jb/invoice/<invoice_id>", methods=["GET"])
-async def api_get_jukebox_check_invoice(invoice_id):
-    async with httpx.AsyncClient() as client:
-        try:
-            r = await client.get(
-                "https://api.spotify.com/v1/me/player/queue" + sp_playlist + "/tracks",
-                timeout=40,
-                headers={"Authorization": "Bearer " + jukebox.sp_access_token},
-            )
-            if "items" not in r.json():
+@jukebox_ext.route("/api/v1/jukebox/jb/invoicecheck/<payment_hash>/<sp_id>", methods=["GET"])
+async def api_get_jukebox_check_invoice(sp_id, payment_hash):
+    jukebox = await get_jukebox(sp_id)
+    status = await check_invoice_status(jukebox.wallet, payment_hash)
+    is_paid = not status.pending
+    if is_paid:
+        jukebox_payment = await update_jukebox_payment(payment_hash, paid = True)
+        print("https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device)      
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.get(
+                    "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device,
+                    timeout=40,
+                    headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+                )
                 if r.json()["error"]["status"] == 401:
                     token = await api_get_token(sp_id)
                     if token == False:
                         print("invalid")
-                        return False
+                        return jsonify({"error": "Something went wrong"})
                     else:
-                        return await api_get_jukebox_son(sp_id, sp_playlist)
+                        return await api_get_jukebox_check_invoice(sp_id, payment_hash)
+                if r.json()["error"]["status"] == 400:
+                    return jsonify({"error": "Something went wrong"})
+                
                 return r, HTTPStatus.OK
-            for item in r.json()["items"]:
-                tracks.append(
-                    {
-                        'id': item["track"]["id"], 
-                        'name': item["track"]["name"],
-                        'album': item["track"]["album"]["name"],
-                        'artist': item["track"]["artists"][0]["name"],
-                        'image': item["track"]["album"]["images"][0]["url"]
-                    }
-                )
-        except AssertionError:
-            something = None
-    return jsonify(invoice)
+            except AssertionError:
+                something = None
+                return jsonify({"error": "Something went wrong"})
+    if not is_paid:
+        return jsonify({"status": False})
+    return jsonify({"error": "Something went wrong"})

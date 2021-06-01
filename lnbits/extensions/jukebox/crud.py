@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from . import db
-from .models import Jukebox
+from .models import Jukebox, JukeboxPayment
 from lnbits.helpers import urlsafe_short_hash
 
 
@@ -78,3 +78,72 @@ async def delete_jukebox(juke_id: str):
         """,
         (juke_id),
     )
+
+#####################################PAYMENTS
+
+async def create_jukebox_payment(
+    song_id: str,
+    payment_hash: str
+) -> Jukebox:
+    result = await db.execute(
+        """
+        INSERT INTO jukebox_payment (payment_hash, song_id, paid)
+        VALUES (?, ?, ?)
+        """,
+        (
+            payment_hash,
+            song_id,
+            False,
+        ),
+    )
+    jukebox_payment = await get_jukebox_payment(payment_hash)
+    assert jukebox_payment, "Newly created Jukebox Payment couldn't be retrieved"
+    return jukebox_payment
+
+
+async def update_jukebox_payment(payment_hash: str, **kwargs) -> Optional[JukeboxPayment]:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(
+        f"UPDATE jukebox_payment SET {q} WHERE payment_hash = ?", (*kwargs.values(), payment_hash)
+    )
+    return await get_jukebox_payment(payment_hash)
+
+
+async def get_jukebox_payment(payment_hash: str) -> Optional[JukeboxPayment]:
+    row = await db.fetchone("SELECT * FROM jukebox_payment WHERE payment_hash = ?", (payment_hash,))
+    return JukeboxPayment(**row) if row else None
+
+
+##################################SONGS QUEUED
+
+async def create_jukebox_queue(
+    song_id: str,
+    payment_hash: str
+) -> Jukebox:
+    result = await db.execute(
+        """
+        INSERT INTO jukebox_payment (payment_hash, song_id, paid)
+        VALUES (?, ?, ?)
+        """,
+        (
+            payment_hash,
+            song_id,
+            False,
+        ),
+    )
+    jukebox_payment = await get_jukebox_payment(payment_hash)
+    assert jukebox_payment, "Newly created Jukebox Payment couldn't be retrieved"
+    return jukebox_payment
+
+
+async def update_jukebox_payment(payment_hash: str, **kwargs) -> Optional[JukeboxPayment]:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(
+        f"UPDATE jukebox_payment SET {q} WHERE payment_hash = ?", (*kwargs.values(), payment_hash)
+    )
+    return await get_jukebox_payment(payment_hash)
+
+
+async def get_jukebox_payment(payment_hash: str) -> Optional[JukeboxPayment]:
+    row = await db.fetchone("SELECT * FROM jukebox_payment WHERE payment_hash = ?", (payment_hash,))
+    return JukeboxPayment(**row) if row else None
