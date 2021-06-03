@@ -8,7 +8,7 @@ from . import db
 from .crud import get_balance_notify
 from .models import Payment
 
-sse_listeners: List[trio.MemorySendChannel] = []
+api_invoice_listeners: List[trio.MemorySendChannel] = []
 
 
 async def register_listeners():
@@ -20,7 +20,7 @@ async def register_listeners():
 async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
     async for payment in invoice_paid_chan:
         # send information to sse channel
-        await dispatch_sse(payment)
+        await dispatch_invoice_listener(payment)
 
         # dispatch webhook
         if payment.webhook and not payment.webhook_status:
@@ -40,13 +40,13 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
                     pass
 
 
-async def dispatch_sse(payment: Payment):
-    for send_channel in sse_listeners:
+async def dispatch_invoice_listener(payment: Payment):
+    for send_channel in api_invoice_listeners:
         try:
             send_channel.send_nowait(payment)
         except trio.WouldBlock:
             print("removing sse listener", send_channel)
-            sse_listeners.remove(send_channel)
+            api_invoice_listeners.remove(send_channel)
 
 
 async def dispatch_webhook(payment: Payment):
