@@ -14,6 +14,7 @@ core_app: Blueprint = Blueprint(
 
 from .views.api import *  # noqa
 from .views.generic import *  # noqa
+from .views.public_api import *  # noqa
 from .tasks import register_listeners
 
 from lnbits.tasks import record_async
