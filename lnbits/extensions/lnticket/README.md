@@ -15,7 +15,7 @@ Possible applications include, paid support ticketing, PAYG language services, c
    - give it a small description
    - set the amount you want to charge, per **word**, for people to contact you\
      ![form settings](https://i.imgur.com/AsXeVet.png)
-3. Your new contact form will appear on the **Forms** section. Note that you can create various forms with different rates per word, for different purposes\
+3. Your new contact form will appear on the _Forms_ section. Note that you can create various forms with different rates per word, for different purposes\
    ![forms section](https://i.imgur.com/gg71HhM.png)
 4. When a user wants to reach out to you, they will get to the contact form. They can fill out some information:
    - a name
@@ -25,5 +25,5 @@ Possible applications include, paid support ticketing, PAYG language services, c
      ![user view of form](https://i.imgur.com/DWGJWQz.png)
    - after submiting the Lightning Network invoice will pop up and after payment the message will be sent to you\
      ![contact form payment](https://i.imgur.com/7heGsiO.png)
-5. Back in "Support ticket" extension you'll get the messages your fans, users, haters, etc, sent you on the **Tickets** section\
-   ![tickets](https://i.imgur.com/PVo9pl7.png)
+5. Back in "Support ticket" extension you'll get the messages your fans, users, haters, etc, sent you on the _Tickets_ section\
+   ![tickets](https://i.imgur.com/dGhJ6Ok.png)
