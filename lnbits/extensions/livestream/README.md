@@ -15,8 +15,12 @@ The revenue will be sent to a wallet created specifically for that producer, wit
 ## Usage
 
 1. Start by adding a track\
-   ![add new track](https://i.imgur.com/Cu0eGrW.jpg) - set the producer, or choose an existing one - set the track name - define a minimum price where a user can download the track - set the download URL, where user will be redirected if he tips the livestream and the tip is equal or above the set price\
-   ![track settings](https://i.imgur.com/HTJYwcW.jpg)
+   ![add new track](https://i.imgur.com/Cu0eGrW.jpg)
+   - set the producer, or choose an existing one
+   - set the track name
+   - define a minimum price where a user can download the track
+   - set the download URL, where user will be redirected if he tips the livestream and the tip is equal or above the set price\
+     ![track settings](https://i.imgur.com/HTJYwcW.jpg)
 2. Adjust the percentage of the pay you want to take from the user's tips. 10%, the default, means that the DJ will keep 10% of all the tips sent by users. The other 90% will go to an auto generated producer wallet\
    ![adjust percentage](https://i.imgur.com/9weHKAB.jpg)
 3. For every different producer added, when adding tracks, a wallet is generated for them\

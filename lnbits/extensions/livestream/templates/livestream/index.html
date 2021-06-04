@@ -27,8 +27,8 @@
           <div class="col">
             {% raw %}
             <q-btn unelevated color="deep-purple" type="submit">
-              {{ nextCurrentTrack === livestream.current_track ? 'Stop' : 'Set'
-              }} current track
+              {{ nextCurrentTrack && nextCurrentTrack ===
+              livestream.current_track ? 'Stop' : 'Set' }} current track
             </q-btn>
             {% endraw %}
           </div>
