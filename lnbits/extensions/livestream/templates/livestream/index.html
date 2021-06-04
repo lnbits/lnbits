@@ -18,17 +18,17 @@
               fill-input
               input-debounce="0"
               :options="sortedTracks.map(track => track.id)"
-              option-value="id"
               :option-label="getTrackLabel"
               options-dense
               label="Current track"
+              option-value="id"
             />
           </div>
           <div class="col">
             {% raw %}
             <q-btn unelevated color="deep-purple" type="submit">
-              {{ nextCurrentTrack === livestream.current_track ? 'Stop' : 'Set'
-              }} current track
+              {{ nextCurrentTrack && nextCurrentTrack ===
+              livestream.current_track ? 'Stop' : 'Set' }} current track
             </q-btn>
             {% endraw %}
           </div>
