@@ -5,7 +5,6 @@ from typing import NamedTuple, Optional, Dict
 from sqlite3 import Row
 from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
-from lnurl.models import LnurlPaySuccessAction, MessageAction, UrlAction  # type: ignore
 
 
 class PayLink(NamedTuple):
@@ -36,15 +35,21 @@ class PayLink(NamedTuple):
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.description]]))
 
-    def success_action(self, payment_hash: str) -> Optional[LnurlPaySuccessAction]:
+    def success_action(self, payment_hash: str) -> Optional[Dict]:
         if self.success_url:
             url: ParseResult = urlparse(self.success_url)
             qs: Dict = parse_qs(url.query)
             qs["payment_hash"] = payment_hash
             url = url._replace(query=urlencode(qs, doseq=True))
-            raw: str = urlunparse(url)
-            return UrlAction(url=raw, description=self.success_text)
+            return {
+                "tag": "url",
+                "description": self.success_text or "~",
+                "url": urlunparse(url),
+            }
         elif self.success_text:
-            return MessageAction(message=self.success_text)
+            return {
+                "tag": "message",
+                "message": self.success_text,
+            }
         else:
             return None
