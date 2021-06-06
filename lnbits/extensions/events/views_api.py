@@ -195,6 +195,9 @@ async def api_event_register_ticket(ticket_id):
     if not ticket:
         return jsonify({"message": "Ticket does not exist."}), HTTPStatus.FORBIDDEN
 
+    if not ticket.paid:
+        return jsonify({"message": "Ticket not paid for."}), HTTPStatus.FORBIDDEN
+
     if ticket.registered == True:
         return jsonify({"message": "Ticket already registered"}), HTTPStatus.FORBIDDEN
 

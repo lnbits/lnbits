@@ -95,10 +95,13 @@ async def api_lnurl_callback(link_id):
         extra={"tag": "lnurlp", "link": link.id, "comment": comment},
     )
 
-    resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=link.success_action(payment_hash),
-        routes=[],
-    )
+    resp = {
+        "routes": [],
+        "pr": payment_request,
+    }
 
-    return jsonify(resp.dict()), HTTPStatus.OK
+    success_action = link.success_action(payment_hash)
+    if success_action:
+        resp["success_action"] = success_action
+
+    return jsonify(), HTTPStatus.OK

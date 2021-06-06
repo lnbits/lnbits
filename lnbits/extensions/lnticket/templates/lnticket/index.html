@@ -230,7 +230,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapLNTicket = function (obj) {
+  var mapLNTicket = function(obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -243,7 +243,7 @@
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
-    data: function () {
+    data: function() {
       return {
         forms: [],
         tickets: [],
@@ -294,7 +294,7 @@
       }
     },
     methods: {
-      getTickets: function () {
+      getTickets: function() {
         var self = this
 
         LNbits.api
@@ -303,40 +303,40 @@
             '/lnticket/api/v1/tickets?all_wallets',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            self.tickets = response.data.map(function (obj) {
+          .then(function(response) {
+            self.tickets = response.data.map(function(obj) {
               return mapLNTicket(obj)
             })
           })
       },
-      deleteTicket: function (ticketId) {
+      deleteTicket: function(ticketId) {
         var self = this
         var tickets = _.findWhere(this.tickets, {id: ticketId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this ticket')
-          .onOk(function () {
+          .onOk(function() {
             LNbits.api
               .request(
                 'DELETE',
                 '/lnticket/api/v1/tickets/' + ticketId,
                 _.findWhere(self.g.user.wallets, {id: tickets.wallet}).inkey
               )
-              .then(function (response) {
-                self.tickets = _.reject(self.tickets, function (obj) {
+              .then(function(response) {
+                self.tickets = _.reject(self.tickets, function(obj) {
                   return obj.id == ticketId
                 })
               })
-              .catch(function (error) {
+              .catch(function(error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
       },
-      exportticketsCSV: function () {
+      exportticketsCSV: function() {
         LNbits.utils.exportCSV(this.ticketsTable.columns, this.tickets)
       },
 
-      getForms: function () {
+      getForms: function() {
         var self = this
 
         LNbits.api
@@ -345,13 +345,13 @@
             '/lnticket/api/v1/forms?all_wallets',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            self.forms = response.data.map(function (obj) {
+          .then(function(response) {
+            self.forms = response.data.map(function(obj) {
               return mapLNTicket(obj)
             })
           })
       },
-      sendFormData: function () {
+      sendFormData: function() {
         var wallet = _.findWhere(this.g.user.wallets, {
           id: this.formDialog.data.wallet
         })
@@ -364,20 +364,20 @@
         }
       },
 
-      createForm: function (wallet, data) {
+      createForm: function(wallet, data) {
         var self = this
         LNbits.api
           .request('POST', '/lnticket/api/v1/forms', wallet.inkey, data)
-          .then(function (response) {
+          .then(function(response) {
             self.forms.push(mapLNTicket(response.data))
             self.formDialog.show = false
             self.formDialog.data = {}
           })
-          .catch(function (error) {
+          .catch(function(error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      updateformDialog: function (formId) {
+      updateformDialog: function(formId) {
         var link = _.findWhere(this.forms, {id: formId})
         console.log(link.id)
         this.formDialog.data.id = link.id
@@ -387,7 +387,7 @@
         this.formDialog.data.costpword = link.costpword
         this.formDialog.show = true
       },
-      updateForm: function (wallet, data) {
+      updateForm: function(wallet, data) {
         var self = this
         console.log(data)
 
@@ -398,47 +398,47 @@
             wallet.inkey,
             data
           )
-          .then(function (response) {
-            self.forms = _.reject(self.forms, function (obj) {
+          .then(function(response) {
+            self.forms = _.reject(self.forms, function(obj) {
               return obj.id == data.id
             })
             self.forms.push(mapLNTicket(response.data))
             self.formDialog.show = false
             self.formDialog.data = {}
           })
-          .catch(function (error) {
+          .catch(function(error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      deleteForm: function (formsId) {
+      deleteForm: function(formsId) {
         var self = this
         var forms = _.findWhere(this.forms, {id: formsId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this form link?')
-          .onOk(function () {
+          .onOk(function() {
             LNbits.api
               .request(
                 'DELETE',
                 '/lnticket/api/v1/forms/' + formsId,
                 _.findWhere(self.g.user.wallets, {id: forms.wallet}).inkey
               )
-              .then(function (response) {
-                self.forms = _.reject(self.forms, function (obj) {
+              .then(function(response) {
+                self.forms = _.reject(self.forms, function(obj) {
                   return obj.id == formsId
                 })
               })
-              .catch(function (error) {
+              .catch(function(error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
       },
-      exportformsCSV: function () {
+      exportformsCSV: function() {
         LNbits.utils.exportCSV(this.formsTable.columns, this.forms)
       }
     },
 
-    created: function () {
+    created: function() {
       if (this.g.user.wallets.length) {
         this.getTickets()
         this.getForms()

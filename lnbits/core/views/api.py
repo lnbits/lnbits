@@ -20,7 +20,7 @@ from ..services import (
     pay_invoice,
     perform_lnurlauth,
 )
-from ..tasks import sse_listeners
+from ..tasks import api_invoice_listeners
 
 
 @core_app.route("/api/v1/wallet", methods=["GET"])
@@ -295,7 +295,7 @@ async def api_payments_sse():
     send_payment, receive_payment = trio.open_memory_channel(0)
 
     print("adding sse listener", send_payment)
-    sse_listeners.append(send_payment)
+    api_invoice_listeners.append(send_payment)
 
     send_event, event_to_send = trio.open_memory_channel(0)
 

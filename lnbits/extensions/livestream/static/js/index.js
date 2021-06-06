@@ -37,6 +37,7 @@ new Vue({
   },
   methods: {
     getTrackLabel(trackId) {
+      if (!trackId) return
       let track = this.tracksMap[trackId]
       return `${track.name}, ${this.producersMap[track.producer].name}`
     },
@@ -162,6 +163,7 @@ new Vue({
         })
     },
     updateCurrentTrack(track) {
+      console.log(this.nextCurrentTrack, this.livestream)
       if (this.livestream.current_track === track) {
         // if clicking the same, stop it
         track = 0
@@ -175,6 +177,7 @@ new Vue({
         )
         .then(() => {
           this.livestream.current_track = track
+          this.nextCurrentTrack = track
           this.$q.notify({
             message: `Current track updated.`,
             timeout: 700
