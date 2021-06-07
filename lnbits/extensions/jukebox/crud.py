@@ -80,12 +80,11 @@ async def delete_jukebox(juke_id: str):
         (juke_id),
     )
 
+
 #####################################PAYMENTS
 
-async def create_jukebox_payment(
-    song_id: str,
-    payment_hash: str
-) -> JukeboxPayment:
+
+async def create_jukebox_payment(song_id: str, payment_hash: str) -> JukeboxPayment:
     result = await db.execute(
         """
         INSERT INTO jukebox_payment (payment_hash, song_id, paid)
@@ -102,14 +101,19 @@ async def create_jukebox_payment(
     return jukebox_payment
 
 
-async def update_jukebox_payment(payment_hash: str, **kwargs) -> Optional[JukeboxPayment]:
+async def update_jukebox_payment(
+    payment_hash: str, **kwargs
+) -> Optional[JukeboxPayment]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE jukebox_payment SET {q} WHERE payment_hash = ?", (*kwargs.values(), payment_hash)
+        f"UPDATE jukebox_payment SET {q} WHERE payment_hash = ?",
+        (*kwargs.values(), payment_hash),
     )
     return await get_jukebox_payment(payment_hash)
 
 
 async def get_jukebox_payment(payment_hash: str) -> Optional[JukeboxPayment]:
-    row = await db.fetchone("SELECT * FROM jukebox_payment WHERE payment_hash = ?", (payment_hash,))
+    row = await db.fetchone(
+        "SELECT * FROM jukebox_payment WHERE payment_hash = ?", (payment_hash,)
+    )
     return JukeboxPayment(**row) if row else None

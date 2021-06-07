@@ -17,10 +17,14 @@ async def m001_initial(db):
             sp_device TEXT,
             sp_playlists TEXT,
             price INTEGER,
-            profit INTEGER
+            profit INTEGER,
+            queue TEXT,
+            last_checked
         );
         """
     )
+
+
 async def m002_initial(db):
     """
     Initial jukebox_payment table.
@@ -29,6 +33,7 @@ async def m002_initial(db):
         """
         CREATE TABLE jukebox_payment (
             payment_hash TEXT PRIMARY KEY,
+            juke_id TEXT,
             song_id TEXT,
             paid BOOL
         );
