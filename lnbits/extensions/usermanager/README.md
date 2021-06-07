@@ -21,3 +21,6 @@ For example, a games developer may be developing a game that needs each user to 
    ![user wallet](https://i.imgur.com/gAyajbx.png)
 5. If you need to create more wallets for some user, click "NEW WALLET" at the top\
    ![multiple wallets](https://i.imgur.com/wovVnim.png)
+   - select the existing user
+   - set a wallet name\
+     ![new wallet](https://i.imgur.com/sGwG8dC.png)

@@ -343,7 +343,7 @@
             self.userDialog.show = false
             self.userDialog.data = {}
             data = {}
-            this.getWallets()
+            self.getWallets()
           })
           .catch(function(error) {
             LNbits.utils.notifyApiError(error)
