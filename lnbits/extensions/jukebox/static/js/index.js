@@ -204,7 +204,7 @@ new Vue({
                     spinner: true,
                     color: 'red',
                     message:
-                      'Error! Make sure Spotify is open on the device you wish to use, and it has playlists',
+                      'Error! Make sure Spotify is open on the device you wish to use, has playlists, and is playing something',
                     timeout: 10000
                   })
                   LNbits.api
