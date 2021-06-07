@@ -22,6 +22,7 @@ from .crud import (
 from .models import Jukebox
 from lnbits.core.services import create_invoice, check_invoice_status
 
+
 @jukebox_ext.route("/api/v1/jukebox", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_jukeboxs():
@@ -41,7 +42,6 @@ async def api_get_jukeboxs():
 
 @jukebox_ext.route("/api/v1/jukebox/spotify/cb/<juke_id>", methods=["GET"])
 async def api_check_credentials_callbac(juke_id):
-    print(request.args)
     sp_code = ""
     sp_access_token = ""
     sp_refresh_token = ""
@@ -89,9 +89,10 @@ async def api_check_credentials_check(sp_id):
 )
 async def api_create_update_jukebox(juke_id=None):
     if juke_id:
-        jukebox = await update_jukebox(juke_id=juke_id, inkey = g.wallet.inkey, **g.data)
+        jukebox = await update_jukebox(juke_id=juke_id, inkey=g.wallet.inkey, **g.data)
     else:
-        jukebox = await create_jukebox(inkey = g.wallet.inkey, **g.data)
+        jukebox = await create_jukebox(inkey=g.wallet.inkey, **g.data)
+
     return jsonify(jukebox._asdict()), HTTPStatus.CREATED
 
 
@@ -130,7 +131,7 @@ async def api_get_jukebox_son(sp_id, sp_playlist):
                 if r.json()["error"]["status"] == 401:
                     token = await api_get_token(sp_id)
                     if token == False:
-                        print("invalid")
+
                         return False
                     else:
                         return await api_get_jukebox_son(sp_id, sp_playlist)
@@ -138,28 +139,24 @@ async def api_get_jukebox_son(sp_id, sp_playlist):
             for item in r.json()["items"]:
                 tracks.append(
                     {
-                        'id': item["track"]["id"], 
-                        'name': item["track"]["name"],
-                        'album': item["track"]["album"]["name"],
-                        'artist': item["track"]["artists"][0]["name"],
-                        'image': item["track"]["album"]["images"][0]["url"]
+                        "id": item["track"]["id"],
+                        "name": item["track"]["name"],
+                        "album": item["track"]["album"]["name"],
+                        "artist": item["track"]["artists"][0]["name"],
+                        "image": item["track"]["album"]["images"][0]["url"],
                     }
                 )
         except AssertionError:
             something = None
     return jsonify([track for track in tracks])
 
-   # return jsonify([track for track in tracks])
+
+# return jsonify([track for track in tracks])
 
 
 async def api_get_token(sp_id):
     jukebox = await get_jukebox(sp_id)
-    print(
-        "Authorization: Bearer "
-        + base64.b64encode(
-            str(jukebox.sp_user + ":" + jukebox.sp_secret).encode("ascii")
-        ).decode("ascii")
-    )
+
     async with httpx.AsyncClient() as client:
         try:
             r = await client.post(
@@ -192,49 +189,63 @@ async def api_get_token(sp_id):
 
 ######GET INVOICE STUFF
 
+
 @jukebox_ext.route("/api/v1/jukebox/jb/invoice/<sp_id>/<song_id>", methods=["GET"])
 async def api_get_jukebox_invoice(sp_id, song_id):
     jukebox = await get_jukebox(sp_id)
-    
-    invoice = await create_invoice(wallet_id=jukebox.wallet,amount=jukebox.price,memo=jukebox.title, extra={"tag": "jukebox"},)
 
-    jukebox_payment = await create_jukebox_payment(song_id,invoice[0])
-    
-    print(jukebox_payment)
-    
+    invoice = await create_invoice(
+        wallet_id=jukebox.wallet,
+        amount=jukebox.price,
+        memo=jukebox.title,
+        extra={"tag": "jukebox"},
+    )
+
+    jukebox_payment = await create_jukebox_payment(song_id, invoice[0])
+
     return jsonify(invoice, jukebox_payment)
 
 
-@jukebox_ext.route("/api/v1/jukebox/jb/invoicepaid/<payment_hash>/<sp_id>", methods=["GET"])
-async def api_get_jukebox_invoice_paid(sp_id, payment_hash):
+@jukebox_ext.route(
+    "/api/v1/jukebox/jb/invoicep/<sp_id>/<payment_hash>", methods=["GET"]
+)
+async def api_get_jukebox_invoice_paid(payment_hash, sp_id):
     jukebox = await get_jukebox(sp_id)
-    jukebox_payment = await update_jukebox_payment(payment_hash, paid = True)
-    print("https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device)      
+    print(jukebox)
+    paid = await check_invoice_status(jukebox.wallet, payment_hash)
+    if paid:
+        jukebox_payment = await update_jukebox_payment(payment_hash, paid=True)
+    else:
+        return jsonify({"error": "Invoice not paid"})
     async with httpx.AsyncClient() as client:
-        try:
-            r = await client.get(
-                "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A" + jukebox_payment.song_id + "&device_id=" + jukebox.sp_device,
-                timeout=40,
-                headers={"Authorization": "Bearer " + jukebox.sp_access_token},
-            )
-            if r.json()["error"]["status"] == 401:
-                token = await api_get_token(sp_id)
-                if token == False:
-                    print("invalid")
-                    return jsonify({"error": "Something went wrong"})
-                else:
-                    return await api_get_jukebox_invoice_paid(sp_id, payment_hash)
-            if r.json()["error"]["status"] == 400:
-                return jsonify({"error": "Something went wrong"})    
-            return jsonify(r), HTTPStatus.OK
-        except AssertionError:
-            something = None
+
+        r = await client.post(
+            "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A"
+            + jukebox_payment.song_id
+            + "&device_id="
+            + jukebox.sp_device.split("-")[1],
+            timeout=40,
+            headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+        )
+        print(r)
+        if r.json()["error"]["status"] == 401:
+            token = await api_get_token(sp_id)
+            if token == False:
+                return jsonify({"error": "Something went wrong"})
+            else:
+                return await api_get_jukebox_invoice_paid(sp_id, payment_hash)
+        if r.json()["error"]["status"] == 400:
             return jsonify({"error": "Something went wrong"})
-    if not is_paid:
-        return jsonify({"status": False})
-    return jsonify({"error": "Something went wrong"})
+        return jsonify(r), HTTPStatus.OK
+
+
+#  if not is_paid:
+#      return jsonify({"status": False})
+#  return jsonify({"error": "Something went wrong"})
+
 
 ############################GET TRACKS
+
 
 @jukebox_ext.route("/api/v1/jukebox/jb/currently/<sp_id>", methods=["GET"])
 async def api_get_jukebox_currently(sp_id):
@@ -249,11 +260,11 @@ async def api_get_jukebox_currently(sp_id):
             try:
                 if r.json()["item"]:
                     track = {
-                        'id': r.json()["item"]["id"], 
-                        'name': r.json()["item"]["name"],
-                        'album': r.json()["item"]["album"]["name"],
-                        'artist': r.json()["item"]["artists"][0]["name"],
-                        'image': r.json()["item"]["album"]["images"][0]["url"]
+                        "id": r.json()["item"]["id"],
+                        "name": r.json()["item"]["name"],
+                        "album": r.json()["item"]["album"]["name"],
+                        "artist": r.json()["item"]["artists"][0]["name"],
+                        "image": r.json()["item"]["album"]["images"][0]["url"],
                     }
                 return track, HTTPStatus.OK
             except AssertionError:
@@ -262,7 +273,7 @@ async def api_get_jukebox_currently(sp_id):
                 if r.json()["error"]["status"] == 401:
                     token = await api_get_token(sp_id)
                     if token == False:
-                        print("invalid")
+
                         return jsonify({"error": "Something went wrong"})
                     else:
                         return await api_get_jukebox_currently(sp_id)
@@ -270,7 +281,7 @@ async def api_get_jukebox_currently(sp_id):
                     return jsonify({"error": "Something went wrong"})
             except ValueError:
                 return jsonify({"error": "Something went wrong"})
-            
+
         except AssertionError:
             something = None
             return jsonify({"error": "Something went wrong"})

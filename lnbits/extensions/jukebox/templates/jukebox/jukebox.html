@@ -111,6 +111,7 @@
         playlist: '',
         heavyList: [],
         selectedWallet: {},
+        paid: false,
         receive: {
           dialogues: {
             first: false,
@@ -166,15 +167,65 @@
               song_id
           )
           .then(function (response) {
-            console.log('response.data')
-            console.log(response.data)
-            console.log('response.data')
+
             self.receive.paymentReq = response.data[0][1]
             self.receive.paymentHash = response.data[0][0]
             self.receive.dialogues.second = true
+            var refreshIntervalId = setInterval(function () {
+              self.checkInvoice(self.receive.paymentHash)
+              if(self.paid){
+                self.receive.dialogues.first = false
+                self.receive.dialogues.second = false
+                self.$q.notify({
+                    message:
+                    'Processing',
+                  })
+                  console.log('/api/v1/jukebox/jb/invoicepaid/' + self.receive.paymentHash + '/{{ juke_id }}')
+                LNbits.api
+          .request(
+            'GET',
+            '/api/v1/jukebox/jb/invoicepaid/' + self.receive.paymentHash + '/{{ juke_id }}')
+            .then(function (response) {
+                self.$q.notify({
+                    color: 'green',
+                    message:
+                    'Success! "' + self.receive.name +  '" will be played soon',
+                    timeout: 2000
+                  })
+                clearInterval(refreshIntervalId)
+            })
+            .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+                
+          }
+            }, 2000)
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
+          })
+      },
+      checkInvoice: function (paymentHash) {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/public/v1/payment/' + paymentHash,
+            'filla'
+          )
+          .then(function (response) {
+            console.log(response)
+            if (response) {
+              self.paid = true
+              return 
+            }
+            else{
+              self.paid = false
+              return
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
           })
       },
       getCurrent() {

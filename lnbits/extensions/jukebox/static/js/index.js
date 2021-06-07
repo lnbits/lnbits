@@ -165,10 +165,10 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    authAccess() {
+     authAccess() {
       self = this
-      self.requestAuthorization()
-      self.getSpotifyTokens()
+       self.requestAuthorization()
+       self.getSpotifyTokens()
       self.$q.notify({
         spinner: true,
         message: 'Processing',
@@ -195,7 +195,10 @@ new Vue({
               if (self.jukeboxDialog.data.sp_access_token) {
                 self.refreshPlaylists()
                 self.refreshDevices()
-                setTimeout(function () {}, 2000)
+                console.log("this.devices")
+                console.log(self.devices)
+                console.log("this.devices")
+                setTimeout(function () {
                 if (self.devices.length < 1 && self.playlists.length < 1) {
                   self.$q.notify({
                     spinner: true,
@@ -205,7 +208,7 @@ new Vue({
                     timeout: 10000
                   })
                   LNbits.api
-                    .request(
+                   .request(
                       'DELETE',
                       '/jukebox/api/v1/jukebox/' + response.data.id,
                       self.g.user.wallets[0].adminkey
@@ -222,6 +225,7 @@ new Vue({
                   self.step = 4
                   clearInterval(timerId)
                 }
+              }, 2000)
               }
             }
           })
@@ -305,6 +309,7 @@ new Vue({
             responseObj.items[i].name + '-' + responseObj.items[i].id
           )
         }
+        console.log(self.playlists)
       }
     },
     refreshPlaylists() {
@@ -342,15 +347,15 @@ new Vue({
         }
       }
     },
-    refreshDevices() {
+     refreshDevices() {
       self = this
-      self.deviceApi(
+       self.deviceApi(
         'GET',
         'https://api.spotify.com/v1/me/player/devices',
         null
       )
     },
-    fetchAccessToken(code) {
+     fetchAccessToken(code) {
       self = this
       let body = 'grant_type=authorization_code'
       body += '&code=' + code
@@ -358,22 +363,22 @@ new Vue({
         '&redirect_uri=' +
         encodeURI(self.locationcbPath + self.jukeboxDialog.data.sp_id)
 
-      this.callAuthorizationApi(body)
+       self.callAuthorizationApi(body)
     },
-    refreshAccessToken() {
+     refreshAccessToken() {
       self = this
       let body = 'grant_type=refresh_token'
       body += '&refresh_token=' + self.jukeboxDialog.data.sp_refresh_token
       body += '&client_id=' + self.jukeboxDialog.data.sp_user
-      this.callAuthorizationApi(body)
+       self.callAuthorizationApi(body)
     },
-    callAuthorizationApi(body) {
+     callAuthorizationApi(body) {
       self = this
       console.log(
         btoa(
-          this.jukeboxDialog.data.sp_user +
+          self.jukeboxDialog.data.sp_user +
             ':' +
-            this.jukeboxDialog.data.sp_secret
+            self.jukeboxDialog.data.sp_secret
         )
       )
       let xhr = new XMLHttpRequest()
@@ -383,9 +388,9 @@ new Vue({
         'Authorization',
         'Basic ' +
           btoa(
-            this.jukeboxDialog.data.sp_user +
+            self.jukeboxDialog.data.sp_user +
               ':' +
-              this.jukeboxDialog.data.sp_secret
+              self.jukeboxDialog.data.sp_secret
           )
       )
       xhr.send(body)
