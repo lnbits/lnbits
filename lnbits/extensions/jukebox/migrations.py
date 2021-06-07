@@ -19,7 +19,7 @@ async def m001_initial(db):
             price INTEGER,
             profit INTEGER,
             queue TEXT,
-            last_checked
+            last_checked TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
         """
     )

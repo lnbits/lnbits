@@ -5,6 +5,7 @@ from http import HTTPStatus
 import trio
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.core.models import Payment
+from functools import wraps
 
 import json
 from . import jukebox_ext

@@ -21,8 +21,8 @@ async def create_jukebox(
     juke_id = urlsafe_short_hash()
     result = await db.execute(
         """
-        INSERT INTO jukebox (id, user, title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO jukebox (id, user, title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit, queue)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             juke_id,
@@ -37,6 +37,7 @@ async def create_jukebox(
             sp_playlists,
             int(price),
             0,
+            "[]",
         ),
     )
     jukebox = await get_jukebox(juke_id)
@@ -84,14 +85,17 @@ async def delete_jukebox(juke_id: str):
 #####################################PAYMENTS
 
 
-async def create_jukebox_payment(song_id: str, payment_hash: str) -> JukeboxPayment:
+async def create_jukebox_payment(
+    song_id: str, payment_hash: str, juke_id: str
+) -> JukeboxPayment:
     result = await db.execute(
         """
-        INSERT INTO jukebox_payment (payment_hash, song_id, paid)
-        VALUES (?, ?, ?)
+        INSERT INTO jukebox_payment (payment_hash, juke_id, song_id, paid)
+        VALUES (?, ?, ?, ?)
         """,
         (
             payment_hash,
+            juke_id,
             song_id,
             False,
         ),

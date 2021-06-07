@@ -184,7 +184,7 @@
                 LNbits.api
           .request(
             'GET',
-            '/api/v1/jukebox/jb/invoicepaid/' + self.receive.paymentHash + '/{{ juke_id }}')
+            '/jukebox/api/v1/jukebox/jb/invoicep/{{ juke_id }}/' + self.receive.paymentHash)
             .then(function (response) {
                 self.$q.notify({
                     color: 'green',

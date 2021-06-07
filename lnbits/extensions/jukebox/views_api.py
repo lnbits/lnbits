@@ -203,24 +203,28 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         extra={"tag": "jukebox"},
     )
 
-    jukebox_payment = await create_jukebox_payment(song_id, invoice[0])
+    jukebox_payment = await create_jukebox_payment(song_id, invoice[0], juke_id)
 
     return jsonify(invoice, jukebox_payment)
 
 
-@jukebox_ext.route(
-    "/api/v1/jukebox/jb/invoicep/<juke_id>/<payment_hash>", methods=["GET"]
-)
-async def api_get_jukebox_invoice_paid(payment_hash, juke_id):
+@jukebox_ext.route("/api/v1/jukebox/jb/invoicep/<juke_id>/<pay_hash>", methods=["GET"])
+async def api_get_jukebox_invoice_paid(juke_id, pay_hash):
     jukebox = await get_jukebox(juke_id)
     print(jukebox)
-    paid = await check_invoice_status(jukebox.wallet, payment_hash)
-    if paid:
-        jukebox_payment = await update_jukebox_payment(payment_hash, paid=True)
+    paid = await check_invoice_status(jukebox.wallet, pay_hash)
+    if paid.paid:
+        jukebox_payment = await update_jukebox_payment(pay_hash, paid=True)
     else:
         return jsonify({"error": "Invoice not paid"})
     queue = await add_to_song_queue(jukebox_payment.song_id, jukebox_payment.juke_id)
     return queue
+
+
+@jukebox_ext.route("/api/v1/jukebox/jb/invoicep/<cunt>", methods=["GET"])
+async def api_get_jukebox_invoice_cunt(cunt):
+
+    return cunt
 
 
 ############################QUEUE SONG
@@ -229,6 +233,7 @@ async def api_get_jukebox_invoice_paid(payment_hash, juke_id):
 async def add_to_song_queue(song_id, juke_id):
     jukebox = await get_jukebox(juke_id)
     queue = jukebox.queue
+    print(queue[0])
     queue.append(song_id)
     # Add song to back of queue
     jukebox = await update_jukebox(juke_id=juke_id, queue=queue)
