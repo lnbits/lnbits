@@ -10,6 +10,7 @@ import time
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 import httpx
 from . import jukebox_ext
+from .views import broadcast
 from .crud import (
     create_jukebox,
     update_jukebox,
@@ -121,7 +122,7 @@ async def api_delete_item(juke_id):
 @jukebox_ext.route(
     "/api/v1/jukebox/jb/playlist/<juke_id>/<sp_playlist>", methods=["GET"]
 )
-async def api_get_jukebox_son(juke_id, sp_playlist):
+async def api_get_jukebox_song(juke_id, sp_playlist):
     jukebox = await get_jukebox(juke_id)
     tracks = []
     async with httpx.AsyncClient() as client:
@@ -138,7 +139,7 @@ async def api_get_jukebox_son(juke_id, sp_playlist):
 
                         return False
                     else:
-                        return await api_get_jukebox_son(juke_id, sp_playlist)
+                        return await api_get_jukebox_song(juke_id, sp_playlist)
                 return r, HTTPStatus.OK
             for item in r.json()["items"]:
                 tracks.append(
@@ -153,9 +154,6 @@ async def api_get_jukebox_son(juke_id, sp_playlist):
         except AssertionError:
             something = None
     return jsonify([track for track in tracks])
-
-
-# return jsonify([track for track in tracks])
 
 
 async def api_get_token(juke_id):
@@ -221,11 +219,9 @@ async def api_get_jukebox_invoice_paid(payment_hash, juke_id):
         jukebox_payment = await update_jukebox_payment(payment_hash, paid=True)
     else:
         return jsonify({"error": "Invoice not paid"})
+    queue = await add_to_song_queue(jukebox_payment.song_id, jukebox_payment.juke_id)
+    return queue
 
-
-#  if not is_paid:
-#      return jsonify({"status": False})
-#  return jsonify({"error": "Something went wrong"})
 
 ############################QUEUE SONG
 
@@ -245,7 +241,7 @@ async def add_to_song_queue(song_id, juke_id):
                 async with httpx.AsyncClient() as client:
                     r = await client.post(
                         "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A"
-                        + jukebox_payment.song_id
+                        + queued[0]
                         + "&device_id="
                         + jukebox.sp_device.split("-")[1],
                         timeout=40,
@@ -256,36 +252,11 @@ async def add_to_song_queue(song_id, juke_id):
                 queued = queued[1:]
                 jukebox = await update_jukebox(juke_id=juke_id, queue=queued)
                 queued = jukebox.queue
+            broadcast(
+                json.dumps({"juke_id": juke_id, "queue": queued, "current": song})
+            )
             jukebox = await update_jukebox(juke_id=juke_id, last_checked=time.time())
-
-    # if current track playing isnt at the front of the queue, add it to queue
-
-    print(jukebox)
-    paid = await check_invoice_status(jukebox.wallet, payment_hash)
-    if paid:
-        jukebox_payment = await update_jukebox_payment(payment_hash, paid=True)
-    else:
-        return jsonify({"error": "Invoice not paid"})
-    async with httpx.AsyncClient() as client:
-
-        r = await client.post(
-            "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A"
-            + jukebox_payment.song_id
-            + "&device_id="
-            + jukebox.sp_device.split("-")[1],
-            timeout=40,
-            headers={"Authorization": "Bearer " + jukebox.sp_access_token},
-        )
-        print(r)
-        if r.json()["error"]["status"] == 401:
-            token = await api_get_token(juke_id)
-            if token == False:
-                return jsonify({"error": "Something went wrong"})
-            else:
-                return await api_get_jukebox_invoice_paid(juke_id, payment_hash)
-        if r.json()["error"]["status"] == 400:
-            return jsonify({"error": "Something went wrong"})
-        return jsonify(r), HTTPStatus.OK
+    return jsonify(jukebox), HTTPStatus.OK
 
 
 ############################GET TRACKS
