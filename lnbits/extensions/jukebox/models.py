@@ -21,8 +21,6 @@ class Jukebox(NamedTuple):
     sp_playlists: str
     price: int
     profit: int
-    queue: list
-    last_checked: int
 
     @classmethod
     def from_row(cls, row: Row) -> "Jukebox":

@@ -3,6 +3,7 @@ from typing import List, Optional
 from . import db
 from .models import Jukebox, JukeboxPayment
 from lnbits.helpers import urlsafe_short_hash
+import json
 
 
 async def create_jukebox(
@@ -21,8 +22,8 @@ async def create_jukebox(
     juke_id = urlsafe_short_hash()
     result = await db.execute(
         """
-        INSERT INTO jukebox (id, user, title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit, queue)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO jukebox (id, user, title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             juke_id,
@@ -37,7 +38,6 @@ async def create_jukebox(
             sp_playlists,
             int(price),
             0,
-            "[]",
         ),
     )
     jukebox = await get_jukebox(juke_id)

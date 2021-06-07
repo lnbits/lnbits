@@ -33,37 +33,3 @@ async def print_qr_codes(juke_id):
         price=jukebox.price,
         inkey=jukebox.inkey,
     )
-
-
-##################WEBSOCKET ROUTES########################
-
-
-connected_websockets = set()
-
-
-def collect_websocket(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        global connected_websockets
-        send_channel, receive_channel = trio.open_memory_channel(0)
-        connected_websockets.add(send_channel)
-        try:
-            return await func(receive_channel, *args, **kwargs)
-        finally:
-            connected_websockets.remove(send_channel)
-
-    return wrapper
-
-
-@jukebox_ext.websocket("/ws")
-@collect_websocket
-async def wss(receive_channel):
-    while True:
-        data = await receive_channel.receive()
-        await websocket.send(data)
-
-
-async def broadcast(message):
-    print(connected_websockets)
-    for queue in connected_websockets:
-        await queue.send(f"{message}")

@@ -199,7 +199,7 @@ new Vue({
                 console.log(self.devices)
                 console.log("this.devices")
                 setTimeout(function () {
-                if (self.devices.length < 1 && self.playlists.length < 1) {
+                if (self.devices.length < 1 || self.playlists.length < 1) {
                   self.$q.notify({
                     spinner: true,
                     color: 'red',

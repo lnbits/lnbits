@@ -17,9 +17,7 @@ async def m001_initial(db):
             sp_device TEXT,
             sp_playlists TEXT,
             price INTEGER,
-            profit INTEGER,
-            queue TEXT,
-            last_checked TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            profit INTEGER
         );
         """
     )
