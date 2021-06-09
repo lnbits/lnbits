@@ -1,27 +1,29 @@
 <h1>Subdomains Extension</h1>
 
-So the goal of the extension is to allow the owner of a domain to sell their subdomain to the anyone who is willing to pay some money for it.
+So the goal of the extension is to allow the owner of a domain to sell subdomains to anyone who is willing to pay some money for it.
+
+[![video tutorial livestream](http://img.youtube.com/vi/O1X0fy3uNpw/0.jpg)](https://youtu.be/O1X0fy3uNpw 'video tutorial subdomains')
 
 ## Requirements
 
-- Free cloudflare account
-- Cloudflare as a dns server provider
-- Cloudflare TOKEN and Cloudflare zone-id where the domain is parked
+- Free Cloudflare account
+- Cloudflare as a DNS server provider
+- Cloudflare TOKEN and Cloudflare zone-ID where the domain is parked
 
 ## Usage
 
-1. Register at cloudflare and setup your domain with them. (Just follow instructions they provide...)
-2. Change DNS server at your domain registrar to point to cloudflare's
-3. Get Cloudflare zoneID for your domain
+1. Register at Cloudflare and setup your domain with them. (Just follow instructions they provide...)
+2. Change DNS server at your domain registrar to point to Cloudflare's
+3. Get Cloudflare zone-ID for your domain
    <img src="https://i.imgur.com/xOgapHr.png">
-4. get Cloudflare API TOKEN
+4. Get Cloudflare API TOKEN
    <img src="https://i.imgur.com/BZbktTy.png">  
    <img src="https://i.imgur.com/YDZpW7D.png">
-5. Open the lnbits subdomains extension and register your domain with lnbits
+5. Open the LNBits subdomains extension and register your domain
 6. Click on the button in the table to open the public form that was generated for your domain
 
-- Extension also supports webhooks so you can get notified when someone buys a new domain
-  <img src="https://i.imgur.com/hiauxeR.png">
+   - Extension also supports webhooks so you can get notified when someone buys a new subdomain\
+     <img src="https://i.imgur.com/hiauxeR.png">
 
 ## API Endpoints
 
@@ -35,8 +37,6 @@ So the goal of the extension is to allow the owner of a domain to sell their sub
   - POST /api/v1/subdomains/<domain_id>
   - GET /api/v1/subdomains/<payment_hash>
   - DELETE /api/v1/subdomains/<subdomain_id>
-
-## Useful
 
 ### Cloudflare
 
