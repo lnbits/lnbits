@@ -1,0 +1,90 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="How to use"
+  :content-inset-level="0.5"
+>
+  <q-card>
+    <q-card-section>
+      <p>
+        Add some wallets to the list of "Target Wallets", each with an
+        associated <em>percent</em>. After saving, every time any payment
+        arrives at the "Source Wallet" that payment will be split with the
+        target wallets according to their percent.
+      </p>
+      <p>This is valid for every payment, doesn't matter how it was created.</p>
+      <p>Target wallets can be any wallet from this same LNbits instance.</p>
+      <p>
+        To remove a wallet from the targets list, just erase its fields and
+        save. To remove all, click "Clear" then save.
+      </p>
+    </q-card-section>
+  </q-card>
+</q-expansion-item>
+
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="List Target Wallets"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /splitpayments/api/v1/targets</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code
+          >[{"wallet": &lt;wallet id&gt;, "alias": &lt;chosen name for this
+          wallet&gt;, "percent": &lt;number between 1 and 100&gt;}, ...]</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/livestream -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Set Target Wallets"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">PUT</span>
+          /splitpayments/api/v1/targets</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X PUT {{ request.url_root }}api/v1/splitpayments/targets -H
+          "X-Api-Key: {{ g.user.wallets[0].adminkey }}" -H 'Content-Type:
+          application/json' -d '{"targets": [{"wallet": &lt;wallet id or invoice
+          key&gt;, "alias": &lt;name to identify this&gt;, "percent": &lt;number
+          between 1 and 100&gt;}, ...]}'
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>

@@ -104,4 +104,4 @@ async def api_lnurl_callback(link_id):
     if success_action:
         resp["success_action"] = success_action
 
-    return jsonify(), HTTPStatus.OK
+    return jsonify(resp), HTTPStatus.OK

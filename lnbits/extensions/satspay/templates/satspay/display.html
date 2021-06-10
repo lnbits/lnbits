@@ -169,7 +169,7 @@
             ></q-icon>
             <q-btn
               outline
-              v-if="'{{ charge.webhook }}' != 'None'"
+              v-if="'{{ charge.webhook }}' != None"
               type="a"
               href="{{ charge.completelink }}"
               label="{{ charge.completelinktext }}"

@@ -62,7 +62,9 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    closeFormDialog() {},
+    closeFormDialog() {
+      this.resetFormData()
+    },
     openQrCodeDialog(linkId) {
       var link = _.findWhere(this.payLinks, {id: linkId})
       if (link.currency) this.updateFiatRate(link.currency)
@@ -116,6 +118,13 @@ new Vue({
         this.createPayLink(wallet, data)
       }
     },
+    resetFormData() {
+      this.formDialog = {
+        show: false,
+        fixedAmount: true,
+        data: {}
+      }
+    },
     updatePayLink(wallet, data) {
       let values = _.omit(
         _.pick(
@@ -147,6 +156,7 @@ new Vue({
           this.payLinks = _.reject(this.payLinks, obj => obj.id === data.id)
           this.payLinks.push(mapPayLink(response.data))
           this.formDialog.show = false
+          this.resetFormData()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -158,6 +168,7 @@ new Vue({
         .then(response => {
           this.payLinks.push(mapPayLink(response.data))
           this.formDialog.show = false
+          this.resetFormData()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
