@@ -48,7 +48,13 @@ async def api_check_credentials_callbac(juke_id):
     sp_code = ""
     sp_access_token = ""
     sp_refresh_token = ""
-    jukebox = await get_jukebox(juke_id)
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
     if request.args.get("code"):
         sp_code = request.args.get("code")
         jukebox = await update_jukebox(
@@ -122,8 +128,14 @@ async def api_delete_item(juke_id):
 @jukebox_ext.route(
     "/api/v1/jukebox/jb/playlist/<juke_id>/<sp_playlist>", methods=["GET"]
 )
-async def api_get_jukebox_song(juke_id, sp_playlist):
-    jukebox = await get_jukebox(juke_id)
+async def api_get_jukebox_song(juke_id, sp_playlist, retry=False):
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
     tracks = []
     async with httpx.AsyncClient() as client:
         try:
@@ -137,8 +149,15 @@ async def api_get_jukebox_song(juke_id, sp_playlist):
                     token = await api_get_token(juke_id)
                     if token == False:
                         return False
+                    elif retry:
+                        return (
+                            jsonify({"error": "Failed to get auth"}),
+                            HTTPStatus.FORBIDDEN,
+                        )
                     else:
-                        return await api_get_jukebox_song(juke_id, sp_playlist)
+                        return await api_get_jukebox_song(
+                            juke_id, sp_playlist, retry=True
+                        )
                 return r, HTTPStatus.OK
             for item in r.json()["items"]:
                 tracks.append(
@@ -156,7 +175,13 @@ async def api_get_jukebox_song(juke_id, sp_playlist):
 
 
 async def api_get_token(juke_id):
-    jukebox = await get_jukebox(juke_id)
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
 
     async with httpx.AsyncClient() as client:
         try:
@@ -188,12 +213,63 @@ async def api_get_token(juke_id):
     return True
 
 
+######CHECK DEVICE
+
+
+@jukebox_ext.route("/api/v1/jukebox/jb/<juke_id>", methods=["GET"])
+async def api_get_jukebox_device_check(juke_id, retry=False):
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
+    async with httpx.AsyncClient() as client:
+        rDevice = await client.get(
+            "https://api.spotify.com/v1/me/player/devices",
+            timeout=40,
+            headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+        )
+
+        if rDevice.status_code == 204 or rDevice.status_code == 200:
+            return (
+                rDevice,
+                HTTPStatus.OK,
+            )
+        elif rDevice.status_code == 401 or rDevice.status_code == 403:
+            token = await api_get_token(juke_id)
+            if token == False:
+                return (
+                    jsonify({"error": "No device connected"}),
+                    HTTPStatus.FORBIDDEN,
+                )
+            elif retry:
+                return (
+                    jsonify({"error": "Failed to get auth"}),
+                    HTTPStatus.FORBIDDEN,
+                )
+            else:
+                return api_get_jukebox_device_check(juke_id, retry=True)
+        else:
+            return (
+                jsonify({"error": "No device connected"}),
+                HTTPStatus.FORBIDDEN,
+            )
+
+
 ######GET INVOICE STUFF
 
 
 @jukebox_ext.route("/api/v1/jukebox/jb/invoice/<juke_id>/<song_id>", methods=["GET"])
 async def api_get_jukebox_invoice(juke_id, song_id):
-    jukebox = await get_jukebox(juke_id)
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
 
     invoice = await create_invoice(
         wallet_id=jukebox.wallet,
@@ -211,7 +287,13 @@ async def api_get_jukebox_invoice(juke_id, song_id):
     "/api/v1/jukebox/jb/checkinvoice/<pay_hash>/<juke_id>", methods=["GET"]
 )
 async def api_get_jukebox_invoice_check(pay_hash, juke_id):
-    jukebox = await get_jukebox(juke_id)
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
     try:
         status = await check_invoice_status(jukebox.wallet, pay_hash)
         is_paid = not status.pending
@@ -229,8 +311,14 @@ async def api_get_jukebox_invoice_check(pay_hash, juke_id):
 @jukebox_ext.route(
     "/api/v1/jukebox/jb/invoicep/<song_id>/<juke_id>/<pay_hash>", methods=["GET"]
 )
-async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash):
-    jukebox = await get_jukebox(juke_id)
+async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
     jukebox_payment = await get_jukebox_payment(pay_hash)
     if jukebox_payment.paid:
         async with httpx.AsyncClient() as client:
@@ -239,7 +327,16 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash):
                 timeout=40,
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
-            if r.status_code == 204:
+            rDevice = await client.get(
+                "https://api.spotify.com/v1/me/player",
+                timeout=40,
+                headers={"Authorization": "Bearer " + jukebox.sp_access_token},
+            )
+            isPlaying = False
+            if rDevice.status_code == 200:
+                isPlaying = rDevice.json()["is_playing"]
+
+            if r.status_code == 204 or isPlaying == False:
                 async with httpx.AsyncClient() as client:
                     uri = ["spotify:track:" + song_id]
                     r = await client.put(
@@ -258,9 +355,14 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash):
                                 jsonify({"error": "Invoice not paid"}),
                                 HTTPStatus.FORBIDDEN,
                             )
+                        elif retry:
+                            return (
+                                jsonify({"error": "Failed to get auth"}),
+                                HTTPStatus.FORBIDDEN,
+                            )
                         else:
                             return api_get_jukebox_invoice_paid(
-                                song_id, juke_id, pay_hash
+                                song_id, juke_id, pay_hash, retry=True
                             )
                     else:
                         return (
@@ -287,6 +389,11 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash):
                                 jsonify({"error": "Invoice not paid"}),
                                 HTTPStatus.OK,
                             )
+                        elif retry:
+                            return (
+                                jsonify({"error": "Failed to get auth"}),
+                                HTTPStatus.FORBIDDEN,
+                            )
                         else:
                             return await api_get_jukebox_invoice_paid(
                                 song_id, juke_id, pay_hash
@@ -303,6 +410,11 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash):
                         jsonify({"error": "Invoice not paid"}),
                         HTTPStatus.OK,
                     )
+                elif retry:
+                    return (
+                        jsonify({"error": "Failed to get auth"}),
+                        HTTPStatus.FORBIDDEN,
+                    )
                 else:
                     return await api_get_jukebox_invoice_paid(
                         song_id, juke_id, pay_hash
@@ -314,8 +426,14 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash):
 
 
 @jukebox_ext.route("/api/v1/jukebox/jb/currently/<juke_id>", methods=["GET"])
-async def api_get_jukebox_currently(juke_id):
-    jukebox = await get_jukebox(juke_id)
+async def api_get_jukebox_currently(juke_id, retry=False):
+    try:
+        jukebox = await get_jukebox(juke_id)
+    except:
+        return (
+            jsonify({"error": "No Jukebox"}),
+            HTTPStatus.FORBIDDEN,
+        )
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
@@ -326,16 +444,20 @@ async def api_get_jukebox_currently(juke_id):
             if r.status_code == 204:
                 return jsonify({"error": "Nothing"}), HTTPStatus.OK
             elif r.status_code == 200:
-                response = r.json()
-                response["item"]
-                track = {
-                    "id": response["item"]["id"],
-                    "name": response["item"]["name"],
-                    "album": response["item"]["album"]["name"],
-                    "artist": response["item"]["artists"][0]["name"],
-                    "image": response["item"]["album"]["images"][0]["url"],
-                }
-                return track, HTTPStatus.OK
+                try:
+                    response = r.json()
+                    response["item"]
+                    track = {
+                        "id": response["item"]["id"],
+                        "name": response["item"]["name"],
+                        "album": response["item"]["album"]["name"],
+                        "artist": response["item"]["artists"][0]["name"],
+                        "image": response["item"]["album"]["images"][0]["url"],
+                    }
+                    return track, HTTPStatus.OK
+                except:
+                    return jsonify("Something went wrong"), HTTPStatus.NOT_FOUND
+
             elif r.status_code == 401:
                 token = await api_get_token(juke_id)
                 if token == False:
@@ -343,8 +465,13 @@ async def api_get_jukebox_currently(juke_id):
                         jsonify({"error": "Invoice not paid"}),
                         HTTPStatus.FORBIDDEN,
                     )
+                elif retry:
+                    return (
+                        jsonify({"error": "Failed to get auth"}),
+                        HTTPStatus.FORBIDDEN,
+                    )
                 else:
-                    return await api_get_jukebox_currently(juke_id)
+                    return await api_get_jukebox_currently(juke_id, retry=True)
             else:
                 return jsonify("Something went wrong"), HTTPStatus.NOT_FOUND
         except AssertionError:
