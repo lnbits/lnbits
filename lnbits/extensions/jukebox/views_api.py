@@ -1,10 +1,6 @@
 from quart import g, jsonify, request
 from http import HTTPStatus
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
-from base64 import urlsafe_b64encode
 import base64
-import json
-import time
 from lnbits.core.crud import get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 
@@ -15,14 +11,12 @@ from .crud import (
     create_jukebox,
     update_jukebox,
     get_jukebox,
-    get_jukebox_by_user,
     get_jukeboxs,
     delete_jukebox,
     create_jukebox_payment,
     get_jukebox_payment,
     update_jukebox_payment,
 )
-from .models import Jukebox
 from lnbits.core.services import create_invoice, check_invoice_status
 
 

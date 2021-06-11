@@ -161,7 +161,7 @@
                     'GET',
                     '/jukebox/api/v1/jukebox/jb/invoicep/' + song_id + '/{{ juke_id }}/' + self.receive.paymentHash)
                   .then(function (response1) {
-                    console.log(response1)
+                 
                     if (response1.data[2] == song_id) {
                       setTimeout(function(){ self.getCurrent() }, 500)
                       self.$q.notify({
@@ -201,7 +201,7 @@
             'filla'
           )
           .then(function (response) {
-            console.log(response.data.paid)
+           
             self.paid = response.data.paid
           })
           .catch(function (error) {
@@ -216,7 +216,7 @@
             '/jukebox/api/v1/jukebox/jb/currently/{{juke_id}}')
           .then(function (res) {
             if (res.data.id) {
-              console.log(res.data)
+             
               self.currentlyPlaying = res.data
             }
           })

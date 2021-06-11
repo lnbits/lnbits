@@ -5,13 +5,11 @@ from http import HTTPStatus
 import trio
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.core.models import Payment
-from functools import wraps
 
 import json
 from . import jukebox_ext
 from .crud import get_jukebox
 from .views_api import api_get_jukebox_device_check
-from urllib.parse import unquote
 
 
 @jukebox_ext.route("/")

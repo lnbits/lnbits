@@ -3,7 +3,6 @@ from typing import List, Optional
 from . import db
 from .models import Jukebox, JukeboxPayment
 from lnbits.helpers import urlsafe_short_hash
-import json
 
 
 async def create_jukebox(
