@@ -129,7 +129,7 @@ async def lnurl_full_withdraw():
                 _external=True,
             ),
             "k1": "0",
-            "minWithdrawable": 1 if wallet.withdrawable_balance else 0,
+            "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
             "maxWithdrawable": wallet.withdrawable_balance,
             "defaultDescription": f"{LNBITS_SITE_TITLE} balance withdraw from {wallet.id[0:5]}",
             "balanceCheck": url_for(
