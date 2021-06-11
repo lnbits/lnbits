@@ -61,14 +61,20 @@ function generateChart(canvas, payments) {
           type: 'bar',
           label: 'in',
           barPercentage: 0.75,
-          backgroundColor: window.Color('rgb(76,175,80)').alpha(0.5).rgbString() // green
+          backgroundColor: window
+            .Color('rgb(76,175,80)')
+            .alpha(0.5)
+            .rgbString() // green
         },
         {
           data: data.outcome,
           type: 'bar',
           label: 'out',
           barPercentage: 0.75,
-          backgroundColor: window.Color('rgb(233,30,99)').alpha(0.5).rgbString() // pink
+          backgroundColor: window
+            .Color('rgb(233,30,99)')
+            .alpha(0.5)
+            .rgbString() // pink
         }
       ]
     },
@@ -109,7 +115,7 @@ function generateChart(canvas, payments) {
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
-  data: function () {
+  data: function() {
     return {
       user: LNbits.map.user(window.user),
       receive: {
@@ -119,6 +125,8 @@ new Vue({
         paymentHash: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
+        units: ['sat'],
+        unit: 'sat',
         data: {
           amount: null,
           memo: ''
@@ -186,58 +194,59 @@ new Vue({
     }
   },
   computed: {
-    formattedBalance: function () {
+    formattedBalance: function() {
       return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
     },
-    filteredPayments: function () {
+    filteredPayments: function() {
       var q = this.paymentsTable.filter
       if (!q || q === '') return this.payments
 
       return LNbits.utils.search(this.payments, q)
     },
-    canPay: function () {
+    canPay: function() {
       if (!this.parse.invoice) return false
       return this.parse.invoice.sat <= this.balance
     },
-    pendingPaymentsExist: function () {
+    pendingPaymentsExist: function() {
       return this.payments
         ? _.where(this.payments, {pending: 1}).length > 0
         : false
     }
   },
   filters: {
-    msatoshiFormat: function (value) {
+    msatoshiFormat: function(value) {
       return LNbits.utils.formatSat(value / 1000)
     }
   },
   methods: {
-    paymentTableRowKey: function (row) {
+    paymentTableRowKey: function(row) {
       return row.payment_hash + row.amount
     },
-    closeCamera: function () {
+    closeCamera: function() {
       this.parse.camera.show = false
     },
-    showCamera: function () {
+    showCamera: function() {
       this.parse.camera.show = true
     },
-    showChart: function () {
+    showChart: function() {
       this.paymentsChart.show = true
       this.$nextTick(() => {
         generateChart(this.$refs.canvas, this.payments)
       })
     },
-    showReceiveDialog: function () {
+    showReceiveDialog: function() {
       this.receive.show = true
       this.receive.status = 'pending'
       this.receive.paymentReq = null
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
+      this.receive.unit = 'sat'
       this.receive.paymentChecker = null
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
     },
-    showParseDialog: function () {
+    showParseDialog: function() {
       this.parse.show = true
       this.parse.invoice = null
       this.parse.lnurlpay = null
@@ -247,17 +256,17 @@ new Vue({
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
-    closeReceiveDialog: function () {
+    closeReceiveDialog: function() {
       setTimeout(() => {
         clearInterval(this.receive.paymentChecker)
       }, 10000)
     },
-    closeParseDialog: function () {
+    closeParseDialog: function() {
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
       }, 10000)
     },
-    onPaymentReceived: function (paymentHash) {
+    onPaymentReceived: function(paymentHash) {
       this.fetchPayments()
       this.fetchBalance()
 
@@ -267,13 +276,15 @@ new Vue({
         clearInterval(this.receive.paymentChecker)
       }
     },
-    createInvoice: function () {
+    createInvoice: function() {
       this.receive.status = 'loading'
+
       LNbits.api
         .createInvoice(
           this.g.wallet,
           this.receive.data.amount,
           this.receive.data.memo,
+          this.receive.unit,
           this.receive.lnurl && this.receive.lnurl.callback
         )
         .then(response => {
@@ -324,12 +335,12 @@ new Vue({
           this.receive.status = 'pending'
         })
     },
-    decodeQR: function (res) {
+    decodeQR: function(res) {
       this.parse.data.request = res
       this.decodeRequest()
       this.parse.camera.show = false
     },
-    decodeRequest: function () {
+    decodeRequest: function() {
       this.parse.show = true
 
       if (this.parse.data.request.startsWith('lightning:')) {
@@ -433,7 +444,7 @@ new Vue({
 
       this.parse.invoice = Object.freeze(cleanInvoice)
     },
-    payInvoice: function () {
+    payInvoice: function() {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
         message: 'Processing payment...'
@@ -465,7 +476,7 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    payLnurl: function () {
+    payLnurl: function() {
       let dismissPaymentMsg = this.$q.notify({
         timeout: 0,
         message: 'Processing payment...'
@@ -549,7 +560,7 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    authLnurl: function () {
+    authLnurl: function() {
       let dismissAuthMsg = this.$q.notify({
         timeout: 10,
         message: 'Performing authentication...'
@@ -580,14 +591,14 @@ new Vue({
           }
         })
     },
-    deleteWallet: function (walletId, user) {
+    deleteWallet: function(walletId, user) {
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this wallet?')
         .onOk(() => {
           LNbits.href.deleteWallet(walletId, user)
         })
     },
-    fetchPayments: function () {
+    fetchPayments: function() {
       return LNbits.api.getPayments(this.g.wallet).then(response => {
         this.payments = response.data
           .map(obj => {
@@ -598,7 +609,7 @@ new Vue({
           })
       })
     },
-    fetchBalance: function () {
+    fetchBalance: function() {
       LNbits.api.getWallet(this.g.wallet).then(response => {
         this.balance = Math.round(response.data.balance / 1000)
         EventHub.$emit('update-wallet-balance', [
@@ -607,20 +618,29 @@ new Vue({
         ])
       })
     },
-    exportCSV: function () {
+    exportCSV: function() {
       LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments)
     }
   },
   watch: {
-    payments: function () {
+    payments: function() {
       this.fetchBalance()
     }
   },
-  created: function () {
+  created: function() {
     this.fetchBalance()
     this.fetchPayments()
+
+    LNbits.api
+      .request('GET', '/api/v1/currencies')
+      .then(response => {
+        this.receive.units = ['sat', ...response.data]
+      })
+      .catch(err => {
+        LNbits.utils.notifyApiError(err)
+      })
   },
-  mounted: function () {
+  mounted: function() {
     // show disclaimer
     if (
       this.$refs.disclaimer &&
