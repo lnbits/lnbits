@@ -328,15 +328,13 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
             rDevice = await client.get(
-                "https://api.spotify.com/v1/me/player",
+                "https://api.spotify.com/v1/me/player/devices",
                 timeout=40,
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
-            isPlaying = False
-            if rDevice.status_code == 200:
-                isPlaying = rDevice.json()["is_playing"]
+            ]
 
-            if r.status_code == 204 or isPlaying == False:
+            if r.status_code == 204 and rDevice.json()["devices"] > 0:
                 async with httpx.AsyncClient() as client:
                     uri = ["spotify:track:" + song_id]
                     r = await client.put(
@@ -369,7 +367,7 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
                             jsonify({"error": "Invoice not paid"}),
                             HTTPStatus.FORBIDDEN,
                         )
-            elif r.status_code == 200:
+            elif r.status_code == 200 and rDevice.json()["devices"] > 0:
                 async with httpx.AsyncClient() as client:
                     r = await client.post(
                         "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A"
@@ -419,7 +417,7 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
                     return await api_get_jukebox_invoice_paid(
                         song_id, juke_id, pay_hash
                     )
-    return jsonify({"error": "Invoice not paid"}), HTTPStatus.OK
+    return jsonify({"error": "Failed to play"}), HTTPStatus.FORBIDDEN
 
 
 ############################GET TRACKS
