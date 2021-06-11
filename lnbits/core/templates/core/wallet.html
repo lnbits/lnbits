@@ -313,12 +313,21 @@
         <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
       </p>
 
+      <q-select
+        filled
+        dense
+        v-model="receive.unit"
+        type="text"
+        label="Unit"
+        :options="receive.units"
+      ></q-select>
       <q-input
         filled
         dense
         v-model.number="receive.data.amount"
         type="number"
-        label="Amount (sat) *"
+        :label="`Amount (${receive.unit}) *`"
+        :step="receive.unit != 'sat' ? '0.001' : '1'"
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"

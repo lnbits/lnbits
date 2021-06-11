@@ -10,6 +10,7 @@ from typing import Dict, Union
 
 from lnbits import bolt11
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 
 from .. import core_app, db
 from ..crud import save_balance_check
@@ -47,13 +48,14 @@ async def api_payments():
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
-        "amount": {"type": "integer", "min": 1, "required": True},
+        "amount": {"type": "number", "min": 0.001, "required": True},
         "memo": {
             "type": "string",
             "empty": False,
             "required": True,
             "excludes": "description_hash",
         },
+        "unit": {"type": "string", "empty": False, "required": True},
         "description_hash": {
             "type": "string",
             "empty": False,
@@ -73,6 +75,13 @@ async def api_payments_create_invoice():
     else:
         description_hash = b""
         memo = g.data["memo"]
+
+    #convert fiat to satoshis
+    if g.data["unit"] != 'sat':
+        print(g.data["amount"])
+        price_in_sats = await fiat_amount_as_satoshis(g.data["amount"], g.data["unit"])
+        g.data["amount"] = price_in_sats
+        print(g.data["amount"], price_in_sats)
 
     async with db.connect() as conn:
         try:
@@ -435,3 +444,7 @@ async def api_perform_lnurlauth():
     if err:
         return jsonify({"reason": err.reason}), HTTPStatus.SERVICE_UNAVAILABLE
     return "", HTTPStatus.OK
+
+@core_app.route("/api/v1/currencies", methods=["GET"])
+async def api_list_currencies_available():
+    return jsonify(list(currencies.keys()))
