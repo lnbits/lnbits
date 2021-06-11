@@ -22,13 +22,17 @@ async def index():
 
 
 @jukebox_ext.route("/<juke_id>")
-async def print_qr_codes(juke_id):
+async def connect_to_jukebox(juke_id):
     jukebox = await get_jukebox(juke_id)
     if not jukebox:
         return "error"
-    device = await api_get_jukebox_device_check(juke_id)
-    devices = json.loads(device[0].text)
-    if len(devices["devices"]) > 0:
+    deviceCheck = await api_get_jukebox_device_check(juke_id)
+    devices = json.loads(deviceCheck[0].text)
+    deviceConnected = False
+    for device in devices["devices"]:
+        if device["id"] == jukebox.sp_device.split("-")[1]:
+            deviceConnected = True
+    if deviceConnected:
         return await render_template(
             "jukebox/jukebox.html",
             playlists=jukebox.sp_playlists.split(","),

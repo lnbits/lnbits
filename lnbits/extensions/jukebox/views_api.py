@@ -328,13 +328,15 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
             rDevice = await client.get(
-                "https://api.spotify.com/v1/me/player/devices",
+                "https://api.spotify.com/v1/me/player",
                 timeout=40,
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
-            ]
+            isPlaying = False
+            if rDevice.status_code == 200:
+                isPlaying = rDevice.json()["is_playing"]
 
-            if r.status_code == 204 and rDevice.json()["devices"] > 0:
+            if r.status_code == 204 or isPlaying == False:
                 async with httpx.AsyncClient() as client:
                     uri = ["spotify:track:" + song_id]
                     r = await client.put(
@@ -367,7 +369,7 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
                             jsonify({"error": "Invoice not paid"}),
                             HTTPStatus.FORBIDDEN,
                         )
-            elif r.status_code == 200 and rDevice.json()["devices"] > 0:
+            elif r.status_code == 200:
                 async with httpx.AsyncClient() as client:
                     r = await client.post(
                         "https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A"
@@ -417,7 +419,7 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
                     return await api_get_jukebox_invoice_paid(
                         song_id, juke_id, pay_hash
                     )
-    return jsonify({"error": "Failed to play"}), HTTPStatus.FORBIDDEN
+    return jsonify({"error": "Invoice not paid"}), HTTPStatus.OK
 
 
 ############################GET TRACKS
@@ -444,7 +446,7 @@ async def api_get_jukebox_currently(juke_id, retry=False):
             elif r.status_code == 200:
                 try:
                     response = r.json()
-                    response["item"]
+
                     track = {
                         "id": response["item"]["id"],
                         "name": response["item"]["name"],
@@ -452,7 +454,7 @@ async def api_get_jukebox_currently(juke_id, retry=False):
                         "artist": response["item"]["artists"][0]["name"],
                         "image": response["item"]["album"]["images"][0]["url"],
                     }
-                    return track, HTTPStatus.OK
+                    return jsonify(track), HTTPStatus.OK
                 except:
                     return jsonify("Something went wrong"), HTTPStatus.NOT_FOUND
 

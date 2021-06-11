@@ -163,7 +163,7 @@
                   .then(function (response1) {
                     console.log(response1)
                     if (response1.data[2] == song_id) {
-
+                      setTimeout(function(){ self.getCurrent() }, 500)
                       self.$q.notify({
                         color: 'green',
                         message:
@@ -182,13 +182,14 @@
                     response1 = []
                   })
               }
-            }, 4000)
+            }, 5000)
 
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
           })
-        self.getCurrent()
+          
+
       },
       checkInvoice(juke_id, paymentHash) {
 
@@ -215,6 +216,7 @@
             '/jukebox/api/v1/jukebox/jb/currently/{{juke_id}}')
           .then(function (res) {
             if (res.data.id) {
+              console.log(res.data)
               self.currentlyPlaying = res.data
             }
           })
