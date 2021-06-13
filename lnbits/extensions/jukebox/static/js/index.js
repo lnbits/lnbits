@@ -186,7 +186,7 @@ new Vue({
         LNbits.api
           .request(
             'GET',
-            '/jukebox/api/v1/jukebox/spotify/' + self.jukeboxDialog.data.sp_id,
+            '/jukebox/api/v1/jukebox/' + self.jukeboxDialog.data.sp_id,
             self.g.user.wallets[0].inkey
           )
           .then(response => {
