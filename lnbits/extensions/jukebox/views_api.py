@@ -3,6 +3,7 @@ from http import HTTPStatus
 import base64
 from lnbits.core.crud import get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
+import json
 
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 import httpx
@@ -21,7 +22,7 @@ from lnbits.core.services import create_invoice, check_invoice_status
 
 
 @jukebox_ext.route("/api/v1/jukebox", methods=["GET"])
-@api_check_wallet_key("invoice")
+@api_check_wallet_key("admin")
 async def api_get_jukeboxs():
     try:
         return (
@@ -66,10 +67,10 @@ async def api_check_credentials_callbac(juke_id):
     return "<h1>Success!</h1><h2>You can close this window</h2>"
 
 
-@jukebox_ext.route("/api/v1/jukebox/spotify/<sp_id>", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_check_credentials_check(sp_id):
-    jukebox = await get_jukebox(sp_id)
+@jukebox_ext.route("/api/v1/jukebox/<juke_id>", methods=["GET"])
+@api_check_wallet_key("admin")
+async def api_check_credentials_check(juke_id):
+    jukebox = await get_jukebox(juke_id)
     return jsonify(jukebox._asdict()), HTTPStatus.CREATED
 
 
@@ -87,7 +88,7 @@ async def api_check_credentials_check(sp_id):
         "sp_refresh_token": {"type": "string", "required": False},
         "sp_device": {"type": "string", "required": False},
         "sp_playlists": {"type": "string", "required": False},
-        "price": {"type": "string", "required": True},
+        "price": {"type": "string", "required": False},
     }
 )
 async def api_create_update_jukebox(juke_id=None):
@@ -263,6 +264,23 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         return (
             jsonify({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
+        )
+    try:
+        deviceCheck = await api_get_jukebox_device_check(juke_id)
+        devices = json.loads(deviceCheck[0].text)
+        deviceConnected = False
+        for device in devices["devices"]:
+            if device["id"] == jukebox.sp_device.split("-")[1]:
+                deviceConnected = True
+        if not deviceConnected:
+            return (
+                jsonify({"error": "No device connected"}),
+                HTTPStatus.NOT_FOUND,
+            )
+    except:
+        return (
+            jsonify({"error": "No device connected"}),
+            HTTPStatus.NOT_FOUND,
         )
 
     invoice = await create_invoice(

@@ -93,7 +93,7 @@ new Vue({
     getJukeboxes() {
       self = this
       LNbits.api
-        .request('GET', '/jukebox/api/v1/jukebox', self.g.user.wallets[0].inkey)
+        .request('GET', '/jukebox/api/v1/jukebox', self.g.user.wallets[0].adminkey)
         .then(function (response) {
           self.JukeboxLinks = response.data.map(mapJukebox)
         })

@@ -161,9 +161,9 @@
                     'GET',
                     '/jukebox/api/v1/jukebox/jb/invoicep/' + song_id + '/{{ juke_id }}/' + self.receive.paymentHash)
                   .then(function (response1) {
-                 
+
                     if (response1.data[2] == song_id) {
-                      setTimeout(function(){ self.getCurrent() }, 500)
+                      setTimeout(function () { self.getCurrent() }, 500)
                       self.$q.notify({
                         color: 'green',
                         message:
@@ -186,10 +186,15 @@
 
           })
           .catch(err => {
-            LNbits.utils.notifyApiError(err)
-          })
-          
 
+            self.$q.notify({
+              color: 'warning',
+              html: true,
+              message:
+                '<center>Device is not connected! <br/> Ask the host to turn on their device and have Spotify open</center>',
+              timeout: 5000
+            })
+          })
       },
       checkInvoice(juke_id, paymentHash) {
 
@@ -201,7 +206,7 @@
             'filla'
           )
           .then(function (response) {
-           
+
             self.paid = response.data.paid
           })
           .catch(function (error) {
@@ -216,7 +221,7 @@
             '/jukebox/api/v1/jukebox/jb/currently/{{juke_id}}')
           .then(function (res) {
             if (res.data.id) {
-             
+
               self.currentlyPlaying = res.data
             }
           })
