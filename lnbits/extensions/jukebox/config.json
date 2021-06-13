@@ -1,0 +1,6 @@
+{
+  "name": "SpotifyJukebox",
+  "short_description": "Spotify jukebox middleware",
+  "icon": "radio",
+  "contributors": ["benarc"]
+}
