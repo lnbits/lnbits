@@ -187,7 +187,7 @@ new Vue({
           .request(
             'GET',
             '/jukebox/api/v1/jukebox/' + self.jukeboxDialog.data.sp_id,
-            self.g.user.wallets[0].inkey
+            self.g.user.wallets[0].adminkey
           )
           .then(response => {
             if (response.data.sp_access_token) {
