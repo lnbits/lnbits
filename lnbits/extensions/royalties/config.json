@@ -1,0 +1,6 @@
+{
+    "name": "Royalties",
+    "short_description": "Issue and create royalty invoices",
+    "icon": "loyalty",
+    "contributors": ["gitnonymous"]
+}
