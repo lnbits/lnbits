@@ -1,0 +1,66 @@
+<template>
+    {%raw%}
+<q-card>
+    <q-table
+    class="q-pa-sm"
+    dense
+    flat
+    title="Users"
+    :data="table.users.data"
+    :columns="table.users.columns"
+    :visible-columns="table.users.visibleColumns"
+    row-key="name"
+    />
+    <template v-slot:top-right>
+      <q-btn flat color="grey" @click="exportCSV('users')">Export to CSV</q-btn>
+    </template>
+    <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td key="b1" :props="props" auto-width>
+            <q-btn
+                class="text-red"
+                unelevated
+                dense
+                size="xs"
+                icon="cancel"
+                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                @click="confirm({check: true, id:props.row.id, ok:'deleteUser', title:'Delete User', msg:'Do you want to delete the user?'})"
+              ></q-btn>
+              <q-btn
+              unelevated
+              dense
+              size="xs"
+              icon="search"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="showUserInfo(props.row.id)"
+            ></q-btn>
+          </q-td>
+          <q-td key="id" :props="props" auto-width>
+            {{props.row.id}}
+          </q-td>
+          <q-td key="credits" :props="props" auto-width>
+            {{props.row.credits}}
+          </q-td>
+          <q-td key="active" :props="props" auto-width class="text-capitalize">
+            <q-btn
+              flat
+              size="xs"
+              style="font-size: 10px;"
+              class="text-bold q-mr-md"
+              :color="props.row.active ? 'green' : 'grey-5'"
+              @click="userActive(props.row.id)"
+              >{{props.row.active}}</q-btn>
+          </q-td>
+          <q-td key="uid" :props="props" auto-width>
+            {{props.row.uid}}
+          </q-td>
+          <q-td key="wid" :props="props" auto-width>
+            {{props.row.wid}}
+          </q-td>
+        </q-tr>
+      </template>
+    </q-table>
+
+</q-card>
+    {%endraw%}
+</template> 

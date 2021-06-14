@@ -1,0 +1,38 @@
+<template>
+    {%raw%}
+    <div class="column items-start">
+        <code><span class="text-light-green text-bold">POST</span> winlose/api/v1/users</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Headers</h5>
+        <code>{"X-Api-Key": "<i>{{ g.user.wallets[0].inkey }}</i>"}</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Query Parameters "winlose/api/v1/users?&lt;params&gt;"</h5>
+        <code>auto=&lt;boolean&gt; false; Create user with details. Optional.</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">json body</h5>
+        <span class="text-caption q-my-sm">Manually Add User</span>
+        <code>
+                {
+                    "id": &lt;string&gt;, //unique user id
+                    "uid": &lt;string&gt; //user management user id
+                    "wid": &lt;string&gt; //user management wallet id
+                }
+        </code>
+        <span class="text-caption q-my-sm">Automatically Add User - Optional add ID.</span>
+        <code>{} empty body  or  {"id": &lt;string&gt;, //unique user id} to create user automatically</code>
+        <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
+            Returns 200 OK (application/json)
+        </h5>
+        <code>
+            {
+                "success": {
+                    "active": &lt;boolean&gt;,
+                    "credits": &lt;int&gt;,
+                    "id": &lt;string&gt;
+                }
+            }
+            </code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Curl example</h5>
+        <code
+            >curl {{ api.base_url }}/winlose/api/v1/users -H "X-Api-Key:
+            <i>{{ g.user.wallets[0].inkey}}</i>" -d '{}'</code>
+    </div>
+    {%endraw%}
+</template

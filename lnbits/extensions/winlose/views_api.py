@@ -4,7 +4,7 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from . import winlose_ext
-from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance
+from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance, accountRecovery
 import json
 from .crud import(
     API_createUser,
@@ -127,6 +127,16 @@ async def withdraw_get_(id):
         return withdraw, 403
     else:
         return withdraw, HTTPStatus.OK
+
+@winlose_ext.route("/api/v1/recovery", methods=["POST"])
+@api_check_wallet_key('admin')
+async def recovery_post():
+    json_data = json.loads(await request.data)
+    #data = data if 'data' in json_data else None
+    recovery = await accountRecovery(json_data)
+    if 'error' in recovery:
+        return recovery, 400
+    return recovery ,HTTPStatus.OK
 
 # public api endpoints
 @winlose_ext.route("/api/v1/payments/<id>", methods=["POST"])

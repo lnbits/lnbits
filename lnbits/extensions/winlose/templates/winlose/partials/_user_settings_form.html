@@ -1,0 +1,37 @@
+<q-dialog v-model="form.settings" @hide="formReset(null)">
+    <q-card class="q-pa-lg lnbits__dialog-card">
+        <span class="row justify-between">
+            <span class="text-h6">Account Settings</span>
+        </span>
+        <q-form @submit="sendSettingsForm" class="q-mt-md q-gutter-md">
+            <q-select
+                filled
+                dense
+                emit-value
+                v-model.trim="form.data.invoice_wallet"
+                :options="g.user.walletOptions"
+                label="Invoice Wallet"
+                ></q-select>
+            <q-select
+                filled
+                dense
+                emit-value
+                v-model.trim="form.data.payout_wallet"
+                :options="g.user.walletOptions"
+                label="Payout Wallett"
+                ></q-select>
+            <div class="row q-mt-lg">
+                <q-btn
+                unelevated
+                color="deep-purple"
+                type="submit"
+                :disabled="
+                form.data.payout_wallet == null ||
+                form.data.invoice_wallet == null
+                 "
+                >Update Settings</q-btn>
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            </div>
+        </q-form>
+    </q-card>
+</q-dialog>

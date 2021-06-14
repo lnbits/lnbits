@@ -1,0 +1,56 @@
+
+<template>
+    {%raw%}
+    <div class="column items-start">
+        <code><span class="text-light-green text-bold">GET</span> winlose/api/v1/users</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Headers</h5>
+        <code>{"X-Api-Key": "<i>{{ g.user.wallets[0].inkey }}</i>"}</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Query Parameters "winlose/api/v1/users?&lt;params&gt;"</h5>
+        <code><span class="text-bold">id</span>=&lt;string&gt; User id. Optional.</code>
+        <code><span class="text-bold">log</span>s=&lt;boolean&gt; User logs. Optional.</code>
+        <code><span class="text-bold">limit</span>=&lt;int, string&gt; "all" gets all logs. 30 will limit logs to 30. Default is 20. Optional.</code>
+        <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
+            Returns 200 OK (application/json) if "id" query
+        </h5>
+        <code>
+            {
+                "success": {
+                "logs": null, // if logs query passed will return []
+                "usr": {
+                    "active": &lt;int&gt;, // truthy.
+                    "balance": &lt;int&gt;, // payout balance in satoshis.
+                    "credits": &lt;int&gt;, // remaining credits.
+                    "data": null, // json if exists.
+                    "id": &lt;string&gt;, // wl user id.
+                    "time": &lt;int&gt; // unix time in secs.
+                    }
+                }
+            }
+            </code>
+        <h5 class="text-caption q-mt-sm q-mb-none text-bold">No Query Parameters "winlose/api/v1/users" - All Users</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
+            Returns 200 OK (application/json)
+        </h5>
+        <code>
+            {
+                "success": {
+                "logs": null,
+                "usr": [
+                        {
+                        "active": &lt;int&gt;, // truthy.
+                        "credits": &lt;int&gt;, // remaining credits.
+                        "data": null, // json if exists.
+                        "id": &lt;string&gt;, // wl user id.
+                        "time": &lt;int&gt; // unix time in secs.
+                        }
+                    ] &lt;array&gt;
+                }
+            }
+            </code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Curl example</h5>
+        <code
+            >curl {{ api.base_url }}/winlose/api/v1/users -H "X-Api-Key:
+            <i>{{  g.user.wallets[0].inkey}}</i></code>
+    </div>
+    {%endraw%}
+</template

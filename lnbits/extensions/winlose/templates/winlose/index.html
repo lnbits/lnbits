@@ -1,0 +1,33 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    {% include "winlose/partials/_create_user_card.html" %} 
+    {% include "winlose/partials/_users_table.html" %} 
+  </div>
+  <div class="col-12 col-md-5 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits Win/Lose extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>  {% include "winlose/partials/_api.html" %}  </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% include "winlose/partials/_user_settings_form.html" %}
+{% include "winlose/partials/_create_user_form.html" %}
+{% include "winlose/partials/_user_info.html" %}
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<style>
+  code{
+    word-wrap:break-word;
+  }
+  .logs .q-table-control{
+    width:100%;
+  }
+</style>
+<script src="static/js/index.js"></script>
+{% endblock %}

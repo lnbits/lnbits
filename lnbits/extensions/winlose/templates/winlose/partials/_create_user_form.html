@@ -1,0 +1,41 @@
+<q-dialog v-model="form.show" @hide="formReset(null)">
+    <q-card class="q-pa-lg lnbits__dialog-card">
+        <span class="row justify-between">
+            <span class="text-h6">Create User</span>
+            <q-btn color="purple" flat icon="my_library_add" label="Auto Create" @click="sendFormData(true)"/></q-btn>
+        </span>
+        <q-form @submit="sendFormData(checkForm)" class="q-mt-md q-gutter-md">
+            <q-input
+                filled
+                dense
+                v-model.trim="form.data.id"
+                type="text"
+                label="ID (Unique identifier)"
+                ></q-input>
+            <q-input
+                filled
+                dense
+                v-model.trim="form.data.uid"
+                type="text"
+                label="Account User ID"
+                ></q-input>
+            <q-input
+                filled
+                dense
+                v-model.trim="form.data.wid"
+                type="text"
+                label="Wallet ID"
+                ></q-input>
+            <div class="row q-mt-lg">
+                <q-btn
+                unelevated
+                color="deep-purple"
+                type="submit"
+                :disabled="
+                form.data.id == null "
+                >Create user</q-btn>
+                <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
+            </div>
+        </q-form>
+    </q-card>
+</q-dialog>

@@ -1,0 +1,30 @@
+<template>
+    {%raw%}
+    <div class="column items-start">
+        <code><span class="text-light-green text-bold">PUT</span> winlose/api/v1/users</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Headers</h5>
+        <code>{"X-Api-Key": "<i>{{ g.user.wallets[0].inkey }}</i>"}</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">json body</h5>
+        <span class="text-caption q-my-sm">Active Status</span>
+        <code>
+                {
+                    "id": &lt;string&gt;, // unique user id
+                    "payload": &lt;boolean&gt;, // true or false
+                    "set":"active"
+                }
+        </code>
+        <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
+            Returns 200 OK (application/json)
+        </h5>
+        <code>
+            {
+                "success": &lt;string&gt; // "User updated" use success as truthy
+            }
+            </code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Curl example</h5>
+        <code
+            >curl {{ api.base_url }}/winlose/api/v1/users -H "X-Api-Key:
+            <i>{{  g.user.wallets[0].inkey}}</i>" -d '{"id": "winlose user id", "payload": true, "set":"active"}'</code>
+    </div>
+    {%endraw%}
+</template

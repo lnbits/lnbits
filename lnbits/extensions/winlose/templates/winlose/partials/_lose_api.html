@@ -1,0 +1,30 @@
+<template>
+    {%raw%}
+    <div class="column items-start">
+        <code><span class="text-light-green text-bold">GET</span> winlose/api/v1/lose/&lt;id&gt;</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Headers - admin key required</h5>
+        <code>{"X-Api-Key": "<i>{{ g.user.wallets[0].adminkey }}</i>"}</code>
+        <h5 class="text-caption text-grey-7 q-my-sm text-bold">Query Parameters "winlose/api/v1/lose?&lt;params&gt;"</h5>
+        <code>multi=&lt;int&gt; 1,2 etc. Multiplies the base credit of 1 to be deducted from the credits. Optional.</code>
+        <q-separator class="q-mb-sm"></q-separator>    
+        <code>free_spin=&lt;boolean&gt; true; Prevents credit deduction. Awards a "Free-Spin". Optional.</code>
+       
+        <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
+            Returns 200 OK (application/json)
+        </h5>
+        <code>
+            {
+                "success": {
+                    "credits": &lt;int&gt;, // remaining credits
+                    "id": &lt;string&gt;, // user id
+                    "deducted": &lt;int&gt; // amount of credits deducted. 0 is "free_spin"
+                }
+            }
+            </code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Curl example</h5>
+        <code
+            >curl {{ api.base_url }}/winlose/api/v1/lose -H "X-Api-Key:
+            <i>{{  g.user.wallets[0].adminkey}}</i>"</code>
+    </div>
+    {%endraw%}
+</template

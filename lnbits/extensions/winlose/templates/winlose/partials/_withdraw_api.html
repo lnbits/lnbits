@@ -1,0 +1,30 @@
+<template>
+    {%raw%}
+    <div class="column items-start">
+        <code><span class="text-light-green text-bold">GET</span> winlose/api/v1/withdraw/&lt;id&gt;</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Headers - admin key required.</h5>
+        <code>{"X-Api-Key": "<i>{{ g.user.wallets[0].adminkey }}</i>"}</code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Query Parameters "winlose/api/v1/withdraw?&lt;params&gt;"</h5>
+        <code>amount=&lt;int&gt; amount in sataoshis. Required.</code>
+        <code>credits=&lt;int&gt; amount of credits account will be incremented by. 1,2 etc. Required.</code>
+        <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
+            Returns 200 OK (application/json)
+        </h5>
+        <code>
+            {
+                "success": {
+                    "amount": &lt;int&gt;, // invoice amount in satoshis.
+                    "payment_hash": &lt;string&gt;, // used to create QRcode for payment.
+                    "payment_request": &lt;string&gt;, needed to poll server for settled payment.
+                    "usr_id": &lt;string&gt;, wl user id.
+                    "payment_id": &lt;string&gt; db payment id.
+                }
+            }
+        </code>
+        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Curl example</h5>
+        <code
+            >curl {{ api.base_url }}/winlose/api/v1/withdraw/&lt;wl user_id&gt; -H "X-Api-Key:
+            <i>{{  g.user.wallets[0].adminkey}}</i>"</code>
+    </div>
+    {%endraw%}
+</template

@@ -15,6 +15,7 @@ async def m001_initial(db):
         CREATE TABLE IF NOT EXISTS users (
             usr_id TEXT PRIMARY KEY,
             id TEXT NOT NULL,
+            lnurl_auth TEXT,
             admin TEXT NOT NULL,
             payout_wallet TEXT NOT NULL,
             credits INTEGER NOT NULL,
