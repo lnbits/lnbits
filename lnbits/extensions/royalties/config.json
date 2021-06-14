@@ -2,5 +2,17 @@
     "name": "Royalties",
     "short_description": "Issue and create royalty invoices",
     "icon": "loyalty",
-    "contributors": ["gitnonymous"]
+    "contributors": ["gitnonymous"],
+    "royalties":[
+        {
+            "url":"https://lnbitsio.duckdns.org",
+            "key":"dsjkfhhdfh1286386",
+            "percentage": 70
+        },
+        {
+            "url":"https://lnbits.com",
+            "key":"dsjkfhhdfh475jhedfs",
+            "percentage": 30
+        }
+    ]
 }
