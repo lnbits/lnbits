@@ -46,12 +46,6 @@ new Vue({
             align: 'left',
             label: 'Price',
             field: 'price'
-          },
-          {
-            name: 'profit',
-            align: 'left',
-            label: 'Profit',
-            field: 'profit'
           }
         ],
         pagination: {
@@ -81,7 +75,7 @@ new Vue({
   },
   computed: {},
   methods: {
-    openQrCodeDialog: function (linkId) {
+    openQrCodeDialog: function(linkId) {
       var link = _.findWhere(this.JukeboxLinks, {id: linkId})
 
       this.qrCodeDialog.data = _.clone(link)
@@ -93,8 +87,12 @@ new Vue({
     getJukeboxes() {
       self = this
       LNbits.api
-        .request('GET', '/jukebox/api/v1/jukebox', self.g.user.wallets[0].adminkey)
-        .then(function (response) {
+        .request(
+          'GET',
+          '/jukebox/api/v1/jukebox',
+          self.g.user.wallets[0].adminkey
+        )
+        .then(function(response) {
           self.JukeboxLinks = response.data.map(mapJukebox)
         })
         .catch(err => {
@@ -105,15 +103,15 @@ new Vue({
       self = this
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this Jukebox?')
-        .onOk(function () {
+        .onOk(function() {
           LNbits.api
             .request(
               'DELETE',
               '/jukebox/api/v1/jukebox/' + juke_id,
               self.g.user.wallets[0].adminkey
             )
-            .then(function (response) {
-              self.JukeboxLinks = _.reject(self.JukeboxLinks, function (obj) {
+            .then(function(response) {
+              self.JukeboxLinks = _.reject(self.JukeboxLinks, function(obj) {
                 return obj.id === juke_id
               })
             })
@@ -123,7 +121,7 @@ new Vue({
             })
         })
     },
-    updateJukebox: function (linkId) {
+    updateJukebox: function(linkId) {
       self = this
       var link = _.findWhere(self.JukeboxLinks, {id: linkId})
       self.jukeboxDialog.data = _.clone(link._data)
@@ -165,10 +163,10 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-     authAccess() {
+    authAccess() {
       self = this
-       self.requestAuthorization()
-       self.getSpotifyTokens()
+      self.requestAuthorization()
+      self.getSpotifyTokens()
       self.$q.notify({
         spinner: true,
         message: 'Processing',
@@ -178,7 +176,7 @@ new Vue({
     getSpotifyTokens() {
       self = this
       var counter = 0
-      var timerId = setInterval(function () {
+      var timerId = setInterval(function() {
         counter++
         if (!self.jukeboxDialog.data.sp_user) {
           clearInterval(timerId)
@@ -195,37 +193,37 @@ new Vue({
               if (self.jukeboxDialog.data.sp_access_token) {
                 self.refreshPlaylists()
                 self.refreshDevices()
-                console.log("this.devices")
+                console.log('this.devices')
                 console.log(self.devices)
-                console.log("this.devices")
-                setTimeout(function () {
-                if (self.devices.length < 1 || self.playlists.length < 1) {
-                  self.$q.notify({
-                    spinner: true,
-                    color: 'red',
-                    message:
-                      'Error! Make sure Spotify is open on the device you wish to use, has playlists, and is playing something',
-                    timeout: 10000
-                  })
-                  LNbits.api
-                   .request(
-                      'DELETE',
-                      '/jukebox/api/v1/jukebox/' + response.data.id,
-                      self.g.user.wallets[0].adminkey
-                    )
-                    .then(function (response) {
-                      self.getJukeboxes()
+                console.log('this.devices')
+                setTimeout(function() {
+                  if (self.devices.length < 1 || self.playlists.length < 1) {
+                    self.$q.notify({
+                      spinner: true,
+                      color: 'red',
+                      message:
+                        'Error! Make sure Spotify is open on the device you wish to use, has playlists, and is playing something',
+                      timeout: 10000
                     })
-                    .catch(err => {
-                      LNbits.utils.notifyApiError(err)
-                    })
-                  clearInterval(timerId)
-                  self.closeFormDialog()
-                } else {
-                  self.step = 4
-                  clearInterval(timerId)
-                }
-              }, 2000)
+                    LNbits.api
+                      .request(
+                        'DELETE',
+                        '/jukebox/api/v1/jukebox/' + response.data.id,
+                        self.g.user.wallets[0].adminkey
+                      )
+                      .then(function(response) {
+                        self.getJukeboxes()
+                      })
+                      .catch(err => {
+                        LNbits.utils.notifyApiError(err)
+                      })
+                    clearInterval(timerId)
+                    self.closeFormDialog()
+                  } else {
+                    self.step = 4
+                    clearInterval(timerId)
+                  }
+                }, 2000)
               }
             }
           })
@@ -269,7 +267,7 @@ new Vue({
           self.g.user.wallets[0].adminkey,
           self.jukeboxDialog.data
         )
-        .then(function (response) {
+        .then(function(response) {
           console.log(response.data)
           if (
             self.jukeboxDialog.data.sp_playlists &&
@@ -290,7 +288,7 @@ new Vue({
         'Bearer ' + this.jukeboxDialog.data.sp_access_token
       )
       xhr.send(body)
-      xhr.onload = function () {
+      xhr.onload = function() {
         if (xhr.status == 401) {
           self.refreshAccessToken()
           self.playlistApi(
@@ -326,7 +324,7 @@ new Vue({
         'Bearer ' + this.jukeboxDialog.data.sp_access_token
       )
       xhr.send(body)
-      xhr.onload = function () {
+      xhr.onload = function() {
         if (xhr.status == 401) {
           self.refreshAccessToken()
           self.deviceApi(
@@ -347,15 +345,15 @@ new Vue({
         }
       }
     },
-     refreshDevices() {
+    refreshDevices() {
       self = this
-       self.deviceApi(
+      self.deviceApi(
         'GET',
         'https://api.spotify.com/v1/me/player/devices',
         null
       )
     },
-     fetchAccessToken(code) {
+    fetchAccessToken(code) {
       self = this
       let body = 'grant_type=authorization_code'
       body += '&code=' + code
@@ -363,16 +361,16 @@ new Vue({
         '&redirect_uri=' +
         encodeURI(self.locationcbPath + self.jukeboxDialog.data.sp_id)
 
-       self.callAuthorizationApi(body)
+      self.callAuthorizationApi(body)
     },
-     refreshAccessToken() {
+    refreshAccessToken() {
       self = this
       let body = 'grant_type=refresh_token'
       body += '&refresh_token=' + self.jukeboxDialog.data.sp_refresh_token
       body += '&client_id=' + self.jukeboxDialog.data.sp_user
-       self.callAuthorizationApi(body)
+      self.callAuthorizationApi(body)
     },
-     callAuthorizationApi(body) {
+    callAuthorizationApi(body) {
       self = this
       console.log(
         btoa(
@@ -394,7 +392,7 @@ new Vue({
           )
       )
       xhr.send(body)
-      xhr.onload = function () {
+      xhr.onload = function() {
         let responseObj = JSON.parse(xhr.response)
         if (responseObj.access_token) {
           self.jukeboxDialog.data.sp_access_token = responseObj.access_token
