@@ -1,11 +1,11 @@
-# from sqlite3 import Row
-# from typing import NamedTuple
+from typing import NamedTuple, Optional
 
+class Royalty(NamedTuple):
+    id:str
+    paid:bool
+    data:str
 
-# class royalties(NamedTuple):
-#    id: str
-#    wallet: str
-#
-#    @classmethod
-#    def from_row(cls, row: Row) -> "royalties":
-#        return cls(**dict(row))
+class RoyaltyAccount(NamedTuple):
+    id:str
+    wallet:str
+    

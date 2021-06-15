@@ -5,13 +5,13 @@
     "contributors": ["gitnonymous"],
     "royalties":[
         {
-            "url":"https://lnbitsio.duckdns.org",
-            "key":"dsjkfhhdfh1286386",
+            "url":"http://0.0.0.0:5000",
+            "key":"cT5VUfTtPfQSS498gJpcuK",
             "percentage": 70
         },
         {
-            "url":"https://lnbits.com",
-            "key":"dsjkfhhdfh475jhedfs",
+            "url":"http://0.0.0.0:5000",
+            "key":"kaBMaU9TyeSrjZqqTwDZgf",
             "percentage": 30
         }
     ]

@@ -1,0 +1,41 @@
+<template>
+    {%raw%}
+<q-card>
+    <q-table
+    class="q-pa-sm"
+    dense
+    flat
+    title="Royalty Accounts"
+    :data="table.data.data"
+    :columns="table.data.columns"
+    row-key="name"
+    />
+    <template v-slot:top-right>
+      <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+    </template>
+    <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td key="b1" :props="props" auto-width>
+            <q-btn
+                class="text-red"
+                unelevated
+                dense
+                size="xs"
+                icon="cancel"
+                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                @click="confirm({check: true, id:props.row.id, ok:'deleteAccount', title:'Delete Account', msg:'Do you want to delete the account?'})"
+              ></q-btn>
+          </q-td>
+          <q-td key="id" :props="props" auto-width>
+            {{props.row.id}}
+          </q-td>
+          <q-td key="wallet" :props="props" auto-width>
+            {{props.row.wallet}}
+          </q-td>
+        </q-tr>
+      </template>
+    </q-table>
+
+</q-card>
+    {%endraw%}
+</template> 

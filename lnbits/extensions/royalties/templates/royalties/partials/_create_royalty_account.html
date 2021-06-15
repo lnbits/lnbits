@@ -1,0 +1,31 @@
+<template>
+    <q-card>
+        <q-card-section>
+            <q-form @submit="formSubmit" class="q-gutter-md">
+                <q-select
+                    filled
+                    dense
+                    emit-value
+                    v-model="form.royalty.data.wallet"
+                    :options="g.user.walletOptions"
+                    label="Wallet *"
+                    ></q-select>
+                <q-input
+                    filled
+                    dense
+                    v-model.trim="form.royalty.data.id"
+                    type="text"
+                    label="ID (blank for auto generate)"
+                ></q-input>
+                <q-btn
+                  unelevated
+                  color="deep-purple"
+                  type="submit"
+                  icon-right="loyalty"
+                  label="Create royalty account"
+                  :disabled="form.royalty.data.wallet == null"
+                  ></q-btn>
+            </q-form>
+        </q-card-section>
+      </q-card>
+</template>
