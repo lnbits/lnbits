@@ -91,6 +91,16 @@
             <h5 class="text-subtitle1 q-my-none">Tickets</h5>
           </div>
           <div class="col-auto">
+            <q-btn
+              flat
+              color="grey"
+              icon="autorenew"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="getTickets"
+              ><q-tooltip> Refresh Tickets </q-tooltip></q-btn
+            >
+          </div>
+          <div class="col-auto">
             <q-btn flat color="grey" @click="exportticketsCSV"
               >Export to CSV</q-btn
             >
