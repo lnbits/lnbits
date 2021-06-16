@@ -1,5 +1,5 @@
 <h1><strong>LN</strong>bits Royalties Extension</h1>
-<h2>Get Paid per Transaction</h2>
+<h2>Get Paid Per Transaction</h2>
 
 The extension allows LNbits developers to charge a royalty fee per transaction when clients use their extension.
 
