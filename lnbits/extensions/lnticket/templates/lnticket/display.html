@@ -77,7 +77,7 @@
 
 {% endblock %} {% block scripts %}
 <script>
-  console.log('{{ form_costpword }}')
+  //console.log('{{ form_costpword }}')
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
@@ -139,7 +139,7 @@
       },
       startPaymentNotifier() {
         this.cancelListener()
-        console.log(this.wallet)
+
         this.cancelListener = LNbits.events.onInvoicePaid(
           this.wallet,
           payment => {

@@ -90,7 +90,7 @@
           <div class="col">
             <h5 class="text-subtitle1 q-my-none">Tickets</h5>
           </div>
-          <div class="col-auto">
+          <!-- <div class="col-auto">
             <q-btn
               flat
               color="grey"
@@ -99,7 +99,7 @@
               @click="getTickets"
               ><q-tooltip> Refresh Tickets </q-tooltip></q-btn
             >
-          </div>
+          </div> -->
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportticketsCSV"
               >Export to CSV</q-btn
@@ -240,7 +240,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapLNTicket = function (obj) {
+  const mapLNTicket = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -291,7 +291,8 @@
             {name: 'name', align: 'left', label: 'Name', field: 'name'},
             {name: 'email', align: 'left', label: 'Email', field: 'email'},
             {name: 'ltext', align: 'left', label: 'Ticket', field: 'ltext'},
-            {name: 'sats', align: 'left', label: 'Cost', field: 'sats'}
+            {name: 'sats', align: 'left', label: 'Cost', field: 'sats'},
+            {name: 'paid', align: 'left', label: 'Paid', field: 'paid'}
           ],
           pagination: {
             rowsPerPage: 10
@@ -300,7 +301,8 @@
         formDialog: {
           show: false,
           data: {}
-        }
+        },
+        cancelListener: () => {}
       }
     },
     methods: {
@@ -314,9 +316,12 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.tickets = response.data.map(function (obj) {
-              return mapLNTicket(obj)
-            })
+            self.tickets = response.data
+              .map(function (obj) {
+                if (!obj?.paid) return
+                return mapLNTicket(obj)
+              })
+              .filter(v => v)
           })
       },
       deleteTicket: function (ticketId) {
@@ -446,6 +451,22 @@
       },
       exportformsCSV: function () {
         LNbits.utils.exportCSV(this.formsTable.columns, this.forms)
+      },
+      startPaymentNotifier() {
+        this.cancelListener()
+
+        this.cancelListener = LNbits.events.onInvoicePaid(
+          this.g.user.wallets[0],
+          payment => {
+            this.getTickets()
+
+            this.$q.notify({
+              type: 'positive',
+              message: 'Sent, thank you!',
+              icon: 'thumb_up'
+            })
+          }
+        )
       }
     },
 
@@ -453,6 +474,7 @@
       if (this.g.user.wallets.length) {
         this.getTickets()
         this.getForms()
+        this.startPaymentNotifier()
       }
     }
   })
