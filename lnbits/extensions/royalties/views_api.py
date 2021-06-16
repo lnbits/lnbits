@@ -6,15 +6,12 @@ from . import royalties_ext
 import json
 from .crud import (
     create_royalty,
-    royalty,
     generate_royalty,
     pay_royalty,
     create_royalty_account,
     get_royalty_account,
     delete_royalty_account
 )
-
-
 
 # account authorized api calls
 # setup royalty
@@ -29,16 +26,6 @@ async def royalty_db_post():
         return _royalty, 400
     return _royalty, HTTPStatus.OK
 
-@royalties_ext.route("/api/v1/r_create", methods=["POST"])
-@api_check_wallet_key('invoice')
-async def roy_db_get():
-    inkey = dict(request.headers)['X-Api-Key']
-    amount = request.args.get('amount')
-    data = await royalty(inkey, int(amount))
-    if 'error' in data:
-        return data, 400
-    return data, HTTPStatus.OK
-
 @royalties_ext.route("/api/v1/account", methods=["GET"])
 @royalties_ext.route("/api/v1/account", methods=["POST"])
 @royalties_ext.route("/api/v1/account", methods=["DELETE"])
@@ -47,10 +34,9 @@ async def royalty_account():
     method = str(request.method)
     if method == 'POST':
         data = json.loads(await request.data)
-        print(data)
-        id, wallet = data.values()
+        id = data['id']
         id = id if id is not None else urlsafe_short_hash()
-        account = await create_royalty_account(id, wallet)
+        account = await create_royalty_account(id, data['wallet'])
         if 'error' in account:
             return account, 400
         return account, HTTPStatus.OK
@@ -82,3 +68,23 @@ async def invoice_pay_post(id):
     if 'error' in pay_royalties:
         return pay_royalties, 400
     return pay_royalties, HTTPStatus.OK
+
+# test api
+# from .crud import royalty
+# from lnbits.core.crud import get_wallet_for_key
+# from lnbits.core.services import create_invoice
+# @royalties_ext.route("/api/v1/r_create", methods=["GET"])
+# @api_check_wallet_key('invoice')
+# async def roy_db_get():
+#     invoice_amount = 100
+#     inkey = dict(request.headers)['X-Api-Key']
+#     wallet = (await get_wallet_for_key(inkey))[0]
+#     amount = 20
+#     response = await royalty(inkey,amount)
+#     payment_request, payment_hash = await create_invoice(
+#     wallet_id=wallet,
+#     amount=invoice_amount,
+#     memo="<invoice memo>",
+#     webhook= response['success']
+#     )
+#     return {"success":payment_hash}, HTTPStatus.OK

@@ -13,12 +13,6 @@ PORT = env.int("PORT", default=5000)
 L_HOST = f"http://{HOST}:{PORT}"
 
 async def royalty(inkey:str, amount:int) -> dict:
-    # from environs import Env ## add to imports
-    # env = Env()
-    # env.read_env()
-    # HOST = env.str("HOST", default="0.0.0.0")
-    # PORT = env.int("PORT", default=5000)
-    # L_HOST = f"http://{HOST}:{PORT}"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     payload = []
     with open(dir_path+'/config.json') as config_file:
@@ -30,7 +24,8 @@ async def royalty(inkey:str, amount:int) -> dict:
                     "inkey":inkey,
                     "amount":amount, 
                     "payment_request":"",
-                    "paid":False, 
+                    "paid":False,
+                    "percentage":royalty['percentage'],
                     "url": royalty['url']+url_endpoint+'?amount='+str(int(amount*(royalty['percentage']/100)))
                 }
             )
@@ -46,16 +41,7 @@ async def royalty(inkey:str, amount:int) -> dict:
                 timeout=40
             )
             response = r.json()
-            #temporary invoice. Do in stack
-            wallet = (await get_wallet_for_key(inkey))[0]
-            payment_request, payment_hash = await create_invoice(
-                wallet_id=wallet,
-                amount=100,
-                memo="test invoice",
-                webhook= response['success']
-            )
-            # return response
-            return {"success":payment_hash}
+            return response
         except:
             return {"error": "Royalty error"}
 
@@ -81,7 +67,6 @@ async def pay_royalty(id:str) -> dict:
     row = dict(row)
     all_payments = True
     data = json.loads(row['data'])
-    print(data)
     for rlty in data:
         if rlty['paid']:
             pass
@@ -99,20 +84,21 @@ async def pay_royalty(id:str) -> dict:
                             wallet_id=wallet, 
                             payment_request=response['success']['payment_hash']
                         )
-                        print(paid)
                         rlty['payment_request'] = response['success']['payment_hash']
                         rlty['paid'] = True
-                        continue
+                        pass
                     except:
                         rlty['payment_request'] = response['success']['payment_hash']
                         all_payments = False
-                        continue
+                        pass
                 else:
                     print('http request error')
-                    continue
+                    pass
             except:
-                pass 
+                all_payments = False
+                pass
     await db.execute("UPDATE royalties SET paid = ?, data = ? WHERE id = ?",(all_payments, json.dumps(data), id))
+    await unpaidRoyalties()
     #returns nothing
     return {"success": "paid"}
 
@@ -168,3 +154,56 @@ async def delete_royalty_account(id:str)-> dict:
         return {"success":"Account deleted"}
     except:
         return {"error": "Database error!"}
+
+async def unpaidRoyalties():
+    row = await db.fetchall("SELECT * FROM royalties WHERE paid = FALSE")
+    row = [dict(ix) for ix in row]
+    for royalty in row:
+        id = royalty['id']
+        all_payments = True
+        data = json.loads(royalty['data'])
+        for item in data:
+            if item['paid']:
+                pass
+            elif item['payment_request'] is None:
+                async with httpx.AsyncClient() as client:
+                    try:
+                        r = await client.get(
+                            item['url'],
+                            timeout=40
+                        )
+                        response = r.json()
+                        if 'success' in response:
+                            wallet = (await get_wallet_for_key(item['inkey']))[0]
+                            try:
+                                paid = await pay_invoice(
+                                    wallet_id=wallet, 
+                                    payment_request=response['success']['payment_hash']
+                                )
+                                item['payment_request'] = response['success']['payment_hash']
+                                item['paid'] = True
+                                pass
+                            except:
+                                item['payment_request'] = response['success']['payment_hash']
+                                all_payments = False
+                                pass
+                        else:
+                            print('http request error')
+                            pass
+                    except:
+                        all_payments = False
+                        pass
+            else:
+                wallet = (await get_wallet_for_key(item['inkey']))[0]
+                try:
+                    paid = await pay_invoice(
+                        wallet_id=wallet, 
+                        payment_request=item['payment_request']
+                    )
+                    item['paid'] = True
+                    pass
+                except:
+                    all_payments = False
+                    pass
+        await db.execute("UPDATE royalties SET paid = ?, data = ? WHERE id = ?",(all_payments, json.dumps(data), id)) 
+    return

@@ -1,3 +1,59 @@
 <template>
-    
+    <q-expansion-item
+        group="royalties"
+        icon="settings_ethernet"
+        label="Setup Code"
+        >
+        <q-separator></q-separator>
+            <q-list>  
+                <q-expansion-item
+                    icon="looks_one"
+                    label="Import code"
+                    >
+                    <q-list>
+                        <q-item > 
+                            {% include "royalties/partials/_api_import_code.html" %}
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+            </q-list>
+            <q-separator></q-separator>
+            <q-list>  
+                <q-expansion-item
+                    icon="looks_two"
+                    label="Code Stack"
+                    >
+                    <q-list>
+                        <q-item>
+                            {% include "royalties/partials/_api_code_stack.html" %}
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+            </q-list>
+            <q-separator></q-separator>
+            <q-list>  
+                <q-expansion-item
+                    icon="looks_3"
+                    label="Royalty Function"
+                    >
+                    <q-list>
+                        <q-item>
+                            {% include "royalties/partials/_api_functions.html" %}
+                        </q-item>
+                    </q-list>
+                </q-expansion-item>
+            </q-list>
+    </q-expansion-item>
+    <q-separator></q-separator>
+    <q-expansion-item
+        group="royalties"
+        icon="loyalty"
+        label="Create Royalty Account"
+        >
+        <q-list>
+            <q-item>
+                {% include "royalties/partials/_create_royalty_account_api.html" %}
+            </q-item>
+        </q-list>
+    </q-expansion-item>
 </template>

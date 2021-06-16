@@ -1,0 +1,25 @@
+<template>
+    <code>
+        <pre>
+# collect invoice variables
+
+inkey = &lt;invoice key&gt;
+wallet = (await get_wallet_for_key(inkey))[0]
+invoice_amount = &lt;amount in sats&gt;
+
+# calculate royalty fee
+
+amount = &lt;amount in sats&gt;
+response = await royalty(inkey, amount)
+
+# create invoice and return to front end.
+
+payment_request, payment_hash = await create_invoice(
+    wallet_id=wallet,
+    amount=invoice_amount,
+    memo="&lt;invoice memo&gt;",
+    webhook= response['success']
+)
+        </pre>
+    </code>
+</template>

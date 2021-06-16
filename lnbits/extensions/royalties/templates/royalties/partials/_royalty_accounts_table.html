@@ -23,7 +23,7 @@
                 size="xs"
                 icon="cancel"
                 :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                @click="confirm({check: true, id:props.row.id, ok:'deleteAccount', title:'Delete Account', msg:'Do you want to delete the account?'})"
+                @click="confirm({id:props.row.id, ok:'deleteAccount', title:'Delete Account', msg:'Do you want to delete the account?'})"
               ></q-btn>
           </q-td>
           <q-td key="id" :props="props" auto-width>

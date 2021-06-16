@@ -2,17 +2,5 @@
     "name": "Royalties",
     "short_description": "Issue and create royalty invoices",
     "icon": "loyalty",
-    "contributors": ["gitnonymous"],
-    "royalties":[
-        {
-            "url":"http://0.0.0.0:5000",
-            "key":"cT5VUfTtPfQSS498gJpcuK",
-            "percentage": 70
-        },
-        {
-            "url":"http://0.0.0.0:5000",
-            "key":"kaBMaU9TyeSrjZqqTwDZgf",
-            "percentage": 30
-        }
-    ]
+    "contributors": ["gitnonymous"]
 }

@@ -1,0 +1,36 @@
+<template>
+    <div class="column items-start">
+        <span class="q-mb-md text-grey-7">Add the following to the imports in your .py file.</span>
+        <code>from environs import Env</code>
+        <code>from lnbits.core.crud import get_wallet_for_key</code>
+        <code>from lnbits.core.services import create_invoice</code>
+        <span class="q-my-md text-grey-7">Add the following to import and declare env variables</span>
+        <code>env = Env()</code>
+        <code>env.read_env()</code>
+        <code>HOST = env.str("HOST", default="0.0.0.0")</code>
+        <code>PORT = env.int("PORT", default=5000)</code>
+        <code>L_HOST = f"http://{HOST}:{PORT}"</code>
+        <span class="q-my-md text-grey-7">Add the following to the config.json file.</span>
+        <code>
+            
+<pre>"royalties":[
+    {
+        "url":"https://lnbitsio.duckdns.org",
+        "key":"cT5VUfTtPfQSS498gJpcuK",
+        "percentage": 10
+    },
+    {
+        "url":"https://lnbits.com",
+        "key":"kaBMaU9TyeSrjZqqTwDZgf",
+        "percentage": 30
+    },
+    {
+        "url":"&lt;your domain here&gt;",
+        "key":"&lt;your royalty account id here&gt;",
+        "percentage": 60
+    }
+] </pre>
+           
+        </code>
+    </div>
+</template>
