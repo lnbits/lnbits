@@ -291,8 +291,7 @@
             {name: 'name', align: 'left', label: 'Name', field: 'name'},
             {name: 'email', align: 'left', label: 'Email', field: 'email'},
             {name: 'ltext', align: 'left', label: 'Ticket', field: 'ltext'},
-            {name: 'sats', align: 'left', label: 'Cost', field: 'sats'},
-            {name: 'paid', align: 'left', label: 'Paid', field: 'paid'}
+            {name: 'sats', align: 'left', label: 'Cost', field: 'sats'}
           ],
           pagination: {
             rowsPerPage: 10
@@ -462,8 +461,8 @@
 
             this.$q.notify({
               type: 'positive',
-              message: 'Sent, thank you!',
-              icon: 'thumb_up'
+              message: 'New ticket arrived!',
+              icon: 'textsms'
             })
           }
         )
