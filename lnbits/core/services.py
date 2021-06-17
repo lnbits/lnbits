@@ -229,10 +229,10 @@ async def redeem_lnurl_withdraw(
         pass
 
     async with httpx.AsyncClient() as client:
-        await client.get(
-            res["callback"],
-            params=params,
-        )
+        try:
+            await client.get(res["callback"], params=params)
+        except Exception:
+            pass
 
 
 async def perform_lnurlauth(
