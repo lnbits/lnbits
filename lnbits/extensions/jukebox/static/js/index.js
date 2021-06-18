@@ -75,7 +75,7 @@ new Vue({
   },
   computed: {},
   methods: {
-    openQrCodeDialog: function(linkId) {
+    openQrCodeDialog: function (linkId) {
       var link = _.findWhere(this.JukeboxLinks, {id: linkId})
 
       this.qrCodeDialog.data = _.clone(link)
@@ -92,7 +92,7 @@ new Vue({
           '/jukebox/api/v1/jukebox',
           self.g.user.wallets[0].adminkey
         )
-        .then(function(response) {
+        .then(function (response) {
           self.JukeboxLinks = response.data.map(mapJukebox)
         })
         .catch(err => {
@@ -103,15 +103,15 @@ new Vue({
       self = this
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this Jukebox?')
-        .onOk(function() {
+        .onOk(function () {
           LNbits.api
             .request(
               'DELETE',
               '/jukebox/api/v1/jukebox/' + juke_id,
               self.g.user.wallets[0].adminkey
             )
-            .then(function(response) {
-              self.JukeboxLinks = _.reject(self.JukeboxLinks, function(obj) {
+            .then(function (response) {
+              self.JukeboxLinks = _.reject(self.JukeboxLinks, function (obj) {
                 return obj.id === juke_id
               })
             })
@@ -121,7 +121,7 @@ new Vue({
             })
         })
     },
-    updateJukebox: function(linkId) {
+    updateJukebox: function (linkId) {
       self = this
       var link = _.findWhere(self.JukeboxLinks, {id: linkId})
       self.jukeboxDialog.data = _.clone(link._data)
@@ -176,7 +176,7 @@ new Vue({
     getSpotifyTokens() {
       self = this
       var counter = 0
-      var timerId = setInterval(function() {
+      var timerId = setInterval(function () {
         counter++
         if (!self.jukeboxDialog.data.sp_user) {
           clearInterval(timerId)
@@ -196,7 +196,7 @@ new Vue({
                 console.log('this.devices')
                 console.log(self.devices)
                 console.log('this.devices')
-                setTimeout(function() {
+                setTimeout(function () {
                   if (self.devices.length < 1 || self.playlists.length < 1) {
                     self.$q.notify({
                       spinner: true,
@@ -211,7 +211,7 @@ new Vue({
                         '/jukebox/api/v1/jukebox/' + response.data.id,
                         self.g.user.wallets[0].adminkey
                       )
-                      .then(function(response) {
+                      .then(function (response) {
                         self.getJukeboxes()
                       })
                       .catch(err => {
@@ -267,7 +267,7 @@ new Vue({
           self.g.user.wallets[0].adminkey,
           self.jukeboxDialog.data
         )
-        .then(function(response) {
+        .then(function (response) {
           console.log(response.data)
           if (
             self.jukeboxDialog.data.sp_playlists &&
@@ -288,7 +288,7 @@ new Vue({
         'Bearer ' + this.jukeboxDialog.data.sp_access_token
       )
       xhr.send(body)
-      xhr.onload = function() {
+      xhr.onload = function () {
         if (xhr.status == 401) {
           self.refreshAccessToken()
           self.playlistApi(
@@ -324,7 +324,7 @@ new Vue({
         'Bearer ' + this.jukeboxDialog.data.sp_access_token
       )
       xhr.send(body)
-      xhr.onload = function() {
+      xhr.onload = function () {
         if (xhr.status == 401) {
           self.refreshAccessToken()
           self.deviceApi(
@@ -392,7 +392,7 @@ new Vue({
           )
       )
       xhr.send(body)
-      xhr.onload = function() {
+      xhr.onload = function () {
         let responseObj = JSON.parse(xhr.response)
         if (responseObj.access_token) {
           self.jukeboxDialog.data.sp_access_token = responseObj.access_token
