@@ -6,6 +6,7 @@ __pycache__
 *$py.class
 .mypy_cache
 .vscode
+*-lock.json
 
 *.egg
 *.egg-info
