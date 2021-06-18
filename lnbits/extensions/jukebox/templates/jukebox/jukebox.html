@@ -134,14 +134,6 @@
       }
     },
     methods: {
-      // cancelPayment: function () {
-      //   this.paymentReq = null
-      //
-      //   if (this.paymentDialog.dismissMsg) {
-      //     this.paymentDialog.dismissMsg()
-      //   }
-      // },
-      // closeReceiveDialog() {},
       payForSong(song_id, name, artist, image) {
         self = this
         self.receive.name = name
@@ -272,8 +264,6 @@
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
-
-      // this.startPaymentNotifier()
     }
   })
 </script>
