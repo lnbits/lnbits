@@ -56,5 +56,5 @@ sudo chown 1000:1000 ./data/
 Then the image can be run as:
 ```
 docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits
-``
+```
 Finally you can access the lnbits on your machine port 5000.
