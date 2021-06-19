@@ -55,7 +55,7 @@ async def api_payments():
             "required": True,
             "excludes": "description_hash",
         },
-        "unit": {"type": "string", "empty": False, "required": True},
+        "unit": {"type": "string", "empty": False, "required": False},
         "description_hash": {
             "type": "string",
             "empty": False,
@@ -76,18 +76,17 @@ async def api_payments_create_invoice():
         description_hash = b""
         memo = g.data["memo"]
 
-    #convert fiat to satoshis
-    if g.data["unit"] != 'sat':
-        print(g.data["amount"])
+    if g.data.get("unit") or "sat" == "sat":
+        amount = g.data["amount"]
+    else:
         price_in_sats = await fiat_amount_as_satoshis(g.data["amount"], g.data["unit"])
-        g.data["amount"] = price_in_sats
-        print(g.data["amount"], price_in_sats)
+        amount = price_in_sats
 
     async with db.connect() as conn:
         try:
             payment_hash, payment_request = await create_invoice(
                 wallet_id=g.wallet.id,
-                amount=g.data["amount"],
+                amount=amount,
                 memo=memo,
                 description_hash=description_hash,
                 extra=g.data.get("extra"),
@@ -444,6 +443,7 @@ async def api_perform_lnurlauth():
     if err:
         return jsonify({"reason": err.reason}), HTTPStatus.SERVICE_UNAVAILABLE
     return "", HTTPStatus.OK
+
 
 @core_app.route("/api/v1/currencies", methods=["GET"])
 async def api_list_currencies_available():
