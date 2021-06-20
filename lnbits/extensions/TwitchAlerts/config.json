@@ -1,6 +1,6 @@
 {
-    "name": "Build your own!",
-    "short_description": "Join us, make an extension",
-    "icon": "info",
-    "contributors": ["github_username"]
+    "name": "Twitch Alerts",
+    "short_description": "Integrate Bitcoin donations into your stream alerts!",
+    "icon": "notifications_active",
+    "contributors": ["Fittiboy"]
 }
