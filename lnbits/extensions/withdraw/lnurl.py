@@ -98,19 +98,21 @@ async def api_lnurl_callback(unique_hash):
             HTTPStatus.OK,
         )
 
-    try:
-        await pay_invoice(
-            wallet_id=link.wallet,
-            payment_request=payment_request,
-            max_sat=link.max_withdrawable,
-            extra={"tag": "withdraw"},
-        )
 
+    try:
         usescsv = ""
         for x in range(1, link.uses - link.used):
             usecv = link.usescsv.split(",")
             usescsv += "," + str(usecv[x])
+        usecsvback = usescsv
         usescsv = usescsv[1:]
+
+        changesback = {
+            "open_time": link.wait_time,
+            "used": link.used,
+            "usescsv": usecsvback,
+        }
+
         changes = {
             "open_time": link.wait_time + now,
             "used": link.used + 1,
@@ -118,11 +120,21 @@ async def api_lnurl_callback(unique_hash):
         }
 
         await update_withdraw_link(link.id, **changes)
+
+        await pay_invoice(
+            wallet_id=link.wallet,
+            payment_request=payment_request,
+            max_sat=link.max_withdrawable,
+            extra={"tag": "withdraw"},
+        )
     except ValueError as e:
+        await update_withdraw_link(link.id, **changesback)
         return jsonify({"status": "ERROR", "reason": str(e)})
     except PermissionError:
+        await update_withdraw_link(link.id, **changesback)
         return jsonify({"status": "ERROR", "reason": "Withdraw link is empty."})
     except Exception as e:
+        await update_withdraw_link(link.id, **changesback)
         return jsonify({"status": "ERROR", "reason": str(e)})
 
     return jsonify({"status": "OK"}), HTTPStatus.OK
