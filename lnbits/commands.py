@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 import warnings
 import click
 import importlib

@@ -1,5 +1,5 @@
 import json
-import trio  # type: ignore
+import trio
 
 from lnbits.core.models import Payment
 from lnbits.core.crud import create_payment

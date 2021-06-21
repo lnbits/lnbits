@@ -3,7 +3,7 @@ try:
 except ImportError:  # pragma: nocover
     LightningRpc = None
 
-import trio  # type: ignore
+import trio
 import random
 import json
 

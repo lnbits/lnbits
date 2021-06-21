@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 import datetime
 from http import HTTPStatus
 from quart import jsonify

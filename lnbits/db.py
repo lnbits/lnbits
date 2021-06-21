@@ -3,7 +3,7 @@ import trio
 from contextlib import asynccontextmanager
 from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy_aio import TRIO_STRATEGY  # type: ignore
-from sqlalchemy_aio.base import AsyncConnection
+from sqlalchemy_aio.base import AsyncConnection  # type: ignore
 
 from .settings import LNBITS_DATA_FOLDER
 

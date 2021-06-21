@@ -1,6 +1,6 @@
 from http import HTTPStatus
 from quart.json import jsonify
-import trio  # type: ignore
+import trio
 import httpx
 
 from .crud import get_domain, set_subdomain_paid
