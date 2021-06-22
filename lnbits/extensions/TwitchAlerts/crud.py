@@ -59,7 +59,7 @@ async def create_donation(
     return await get_donation(id)
 
 
-async def post_donation(donation_id: str) -> None:
+async def post_donation(donation_id: str) -> bool:
     donation = await get_donation(donation_id)
     if donation.posted:
         return False
