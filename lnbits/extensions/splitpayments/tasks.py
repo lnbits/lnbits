@@ -47,7 +47,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     # and reduce it by the amount we're going to send to the producer
     await core_db.execute(
         """
-        UPDATE apipayments
+        UPDATE splitpayments.apipayments
         SET extra = ?, amount = ?
         WHERE hash = ?
           AND checking_id NOT LIKE 'internal_%'

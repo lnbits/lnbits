@@ -66,7 +66,7 @@ async def dispatch_webhook(payment: Payment):
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
     await db.execute(
         """
-        UPDATE apipayments SET webhook_status = ?
+        UPDATE core.apipayments SET webhook_status = ?
         WHERE hash = ?
         """,
         (status, payment.payment_hash),

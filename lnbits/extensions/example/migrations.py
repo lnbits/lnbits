@@ -2,10 +2,10 @@
 
 #    await db.execute(
 #        """
-#        CREATE TABLE IF NOT EXISTS example (
+#        CREATE TABLE example.example (
 #            id TEXT PRIMARY KEY,
 #            wallet TEXT NOT NULL,
-#            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+#            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
 #        );
 #    """
 #    )

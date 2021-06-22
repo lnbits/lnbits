@@ -4,9 +4,9 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE jukebox (
+        CREATE TABLE jukebox.jukebox (
             id TEXT PRIMARY KEY,
-            user TEXT,
+            "user" TEXT,
             title TEXT,
             wallet TEXT,
             inkey TEXT,
@@ -29,7 +29,7 @@ async def m002_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE jukebox_payment (
+        CREATE TABLE jukebox.jukebox_payment (
             payment_hash TEXT PRIMARY KEY,
             juke_id TEXT,
             song_id TEXT,

@@ -28,7 +28,14 @@ class LNbitsWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         async with httpx.AsyncClient() as client:
-            r = await client.get(url=f"{self.endpoint}/api/v1/wallet", headers=self.key)
+            try:
+                r = await client.get(
+                    url=f"{self.endpoint}/api/v1/wallet", headers=self.key
+                )
+            except Exception as exc:
+                return StatusResponse(
+                    f"Failed to connect to {self.endpoint} due to: {exc}", 0
+                )
 
         try:
             data = r.json()

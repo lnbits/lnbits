@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from urllib.parse import urlparse
 
 from lnbits import bolt11
-from lnbits.db import Connection
+from lnbits.db import Connection, POSTGRES
 from lnbits.settings import DEFAULT_WALLET_NAME
 
 from . import db
@@ -43,13 +43,14 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
 
     if user:
         extensions = await (conn or db).fetchall(
-            "SELECT extension FROM extensions WHERE user = ? AND active = 1", (user_id,)
+            """SELECT extension FROM extensions WHERE "user" = ? AND active""",
+            (user_id,),
         )
         wallets = await (conn or db).fetchall(
             """
             SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
             FROM wallets
-            WHERE user = ?
+            WHERE "user" = ?
             """,
             (user_id,),
         )
@@ -70,14 +71,14 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
 
 
 async def update_user_extension(
-    *, user_id: str, extension: str, active: int, conn: Optional[Connection] = None
+    *, user_id: str, extension: str, active: bool, conn: Optional[Connection] = None
 ) -> None:
     await (conn or db).execute(
         """
-        INSERT OR REPLACE INTO extensions (user, extension, active)
-        VALUES (?, ?, ?)
+        INSERT INTO extensions ("user", extension, active) VALUES (?, ?, ?)
+        ON CONFLICT ("user", extension) DO UPDATE SET active = ?
         """,
-        (user_id, extension, active),
+        (user_id, extension, active, active),
     )
 
 
@@ -94,7 +95,7 @@ async def create_wallet(
     wallet_id = uuid4().hex
     await (conn or db).execute(
         """
-        INSERT INTO wallets (id, name, user, adminkey, inkey)
+        INSERT INTO wallets (id, name, "user", adminkey, inkey)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -119,10 +120,10 @@ async def delete_wallet(
         """
         UPDATE wallets AS w
         SET
-            user = 'del:' || w.user,
+            "user" = 'del:' || w."user",
             adminkey = 'del:' || w.adminkey,
             inkey = 'del:' || w.inkey
-        WHERE id = ? AND user = ?
+        WHERE id = ? AND "user" = ?
         """,
         (wallet_id, user_id),
     )
@@ -218,7 +219,10 @@ async def get_payments(
     clause: List[str] = []
 
     if since != None:
-        clause.append("time > ?")
+        if db.type == POSTGRES:
+            clause.append("time > to_timestamp(?)")
+        else:
+            clause.append("time > ?")
         args.append(since)
 
     if wallet_id:
@@ -228,9 +232,9 @@ async def get_payments(
     if complete and pending:
         pass
     elif complete:
-        clause.append("((amount > 0 AND pending = 0) OR amount < 0)")
+        clause.append("((amount > 0 AND pending = false) OR amount < 0)")
     elif pending:
-        clause.append("pending = 1")
+        clause.append("pending = true")
     else:
         pass
 
@@ -269,20 +273,21 @@ async def delete_expired_invoices(
 ) -> None:
     # first we delete all invoices older than one month
     await (conn or db).execute(
-        """
+        f"""
         DELETE FROM apipayments
-        WHERE pending = 1 AND amount > 0 AND time < strftime('%s', 'now') - 2592000
+        WHERE pending = true AND amount > 0
+          AND time < {db.timestamp_now} - {db.interval_seconds(2592000)}
         """
     )
 
     # then we delete all expired invoices, checking one by one
     rows = await (conn or db).fetchall(
-        """
+        f"""
         SELECT bolt11
         FROM apipayments
-        WHERE pending = 1
+        WHERE pending = true
           AND bolt11 IS NOT NULL
-          AND amount > 0 AND time < strftime('%s', 'now') - 86400
+          AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
         """
     )
     for (payment_request,) in rows:
@@ -298,7 +303,7 @@ async def delete_expired_invoices(
         await (conn or db).execute(
             """
             DELETE FROM apipayments
-            WHERE pending = 1 AND hash = ?
+            WHERE pending = true AND hash = ?
             """,
             (invoice.payment_hash,),
         )
@@ -337,7 +342,7 @@ async def create_payment(
             payment_hash,
             preimage,
             amount,
-            int(pending),
+            pending,
             memo,
             fee,
             json.dumps(extra)
@@ -361,7 +366,7 @@ async def update_payment_status(
     await (conn or db).execute(
         "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
         (
-            int(pending),
+            pending,
             checking_id,
         ),
     )
@@ -406,10 +411,10 @@ async def save_balance_check(
 
     await (conn or db).execute(
         """
-        INSERT OR REPLACE INTO balance_check (wallet, service, url)
-        VALUES (?, ?, ?)
+        INSERT INTO balance_check (wallet, service, url) VALUES (?, ?, ?)
+        ON CONFLICT (wallet, service) DO UPDATE SET url = ?
         """,
-        (wallet_id, domain, url),
+        (wallet_id, domain, url, url),
     )
 
 
@@ -445,10 +450,10 @@ async def save_balance_notify(
 ):
     await (conn or db).execute(
         """
-        INSERT OR REPLACE INTO balance_notify (wallet, url)
-        VALUES (?, ?)
+        INSERT INTO balance_notify (wallet, url) VALUES (?, ?)
+        ON CONFLICT (wallet) DO UPDATE SET url = ?
         """,
-        (wallet_id, url),
+        (wallet_id, url, url),
     )
 
 

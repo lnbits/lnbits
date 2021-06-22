@@ -3,9 +3,9 @@ async def m001_initial(db):
     Initial offlineshop tables.
     """
     await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS shops (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        f"""
+        CREATE TABLE offlineshop.shops (
+            id {db.serial_primary_key},
             wallet TEXT NOT NULL,
             method TEXT NOT NULL,
             wordlist TEXT
@@ -14,10 +14,10 @@ async def m001_initial(db):
     )
 
     await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS items (
-            shop INTEGER NOT NULL REFERENCES shop (id),
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        f"""
+        CREATE TABLE offlineshop.items (
+            shop INTEGER NOT NULL REFERENCES {db.references_schema}shops (id),
+            id {db.serial_primary_key},
             name TEXT NOT NULL,
             description TEXT NOT NULL,
             image TEXT, -- image/png;base64,...

@@ -23,6 +23,8 @@ LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str(
     "LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data")
 )
+LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
+
 LNBITS_ALLOWED_USERS: List[str] = env.list(
     "LNBITS_ALLOWED_USERS", default=[], subcast=str
 )

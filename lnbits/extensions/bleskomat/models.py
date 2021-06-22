@@ -100,7 +100,7 @@ class BleskomatLnurl(NamedTuple):
         now = int(time.time())
         result = await conn.execute(
             """
-            UPDATE bleskomat_lnurls
+            UPDATE bleskomat.bleskomat_lnurls
             SET remaining_uses = remaining_uses - 1, updated_time = ?
             WHERE id = ?
                 AND remaining_uses > 0

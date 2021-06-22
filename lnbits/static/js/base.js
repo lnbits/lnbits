@@ -190,7 +190,7 @@ window.LNbits = {
       obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
-      obj.isPaid = obj.pending === 0
+      obj.isPaid = !obj.pending
       obj._q = [obj.memo, obj.sat].join(' ').toLowerCase()
       return obj
     }

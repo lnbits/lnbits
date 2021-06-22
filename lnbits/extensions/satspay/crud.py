@@ -42,9 +42,9 @@ async def create_charge(
         payment_request = None
     await db.execute(
         """
-        INSERT INTO charges (
+        INSERT INTO satspay.charges (
             id,
-            user,
+            "user",
             description,
             onchainwallet,
             onchainaddress,
@@ -83,24 +83,26 @@ async def create_charge(
 async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE charges SET {q} WHERE id = ?", (*kwargs.values(), charge_id)
+        f"UPDATE satspay.charges SET {q} WHERE id = ?", (*kwargs.values(), charge_id)
     )
-    row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
+    row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None
 
 
 async def get_charge(charge_id: str) -> Charges:
-    row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
+    row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None
 
 
 async def get_charges(user: str) -> List[Charges]:
-    rows = await db.fetchall("SELECT * FROM charges WHERE user = ?", (user,))
+    rows = await db.fetchall(
+        """SELECT * FROM satspay.charges WHERE "user" = ?""", (user,)
+    )
     return [Charges.from_row(row) for row in rows]
 
 
 async def delete_charge(charge_id: str) -> None:
-    await db.execute("DELETE FROM charges WHERE id = ?", (charge_id,))
+    await db.execute("DELETE FROM satspay.charges WHERE id = ?", (charge_id,))
 
 
 async def check_address_balance(charge_id: str) -> List[Charges]:
@@ -124,5 +126,5 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
             )
             if invoice_status.paid:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
-    row = await db.fetchone("SELECT * FROM charges WHERE id = ?", (charge_id,))
+    row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None

@@ -1,36 +1,107 @@
 import os
 import trio
+import psycopg2
 from contextlib import asynccontextmanager
 from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy_aio import TRIO_STRATEGY  # type: ignore
 from sqlalchemy_aio.base import AsyncConnection  # type: ignore
 
-from .settings import LNBITS_DATA_FOLDER
+from .settings import LNBITS_DATA_FOLDER, LNBITS_DATABASE_URL
+
+POSTGRES = "POSTGRES"
+SQLITE = "SQLITE"
 
 
-class Connection:
-    def __init__(self, conn: AsyncConnection):
+class Compat:
+    type = "<inherited>"
+    schema = "<inherited>"
+
+    def interval_seconds(self, seconds: int) -> str:
+        if self.type == POSTGRES:
+            return f"interval '{seconds} seconds'"
+        elif self.type == SQLITE:
+            return f"{seconds}"
+        return "<nothing>"
+
+    @property
+    def timestamp_now(self) -> str:
+        if self.type == POSTGRES:
+            return "now()"
+        elif self.type == SQLITE:
+            return "(strftime('%s', 'now'))"
+        return "<nothing>"
+
+    @property
+    def serial_primary_key(self) -> str:
+        if self.type == POSTGRES:
+            return "SERIAL PRIMARY KEY"
+        elif self.type == SQLITE:
+            return "INTEGER PRIMARY KEY AUTOINCREMENT"
+        return "<nothing>"
+
+    @property
+    def references_schema(self) -> str:
+        if self.type == POSTGRES:
+            return f"{self.schema}."
+        elif self.type == SQLITE:
+            return ""
+        return "<nothing>"
+
+
+class Connection(Compat):
+    def __init__(self, conn: AsyncConnection, txn, typ, name, schema):
         self.conn = conn
+        self.txn = txn
+        self.type = typ
+        self.name = name
+        self.schema = schema
+
+    def rewrite_query(self, query) -> str:
+        if self.type == POSTGRES:
+            query = query.replace("%", "%%")
+            query = query.replace("?", "%s")
+        return query
 
     async def fetchall(self, query: str, values: tuple = ()) -> list:
-        result = await self.conn.execute(query, values)
+        result = await self.conn.execute(self.rewrite_query(query), values)
         return await result.fetchall()
 
     async def fetchone(self, query: str, values: tuple = ()):
-        result = await self.conn.execute(query, values)
+        result = await self.conn.execute(self.rewrite_query(query), values)
         row = await result.fetchone()
         await result.close()
         return row
 
     async def execute(self, query: str, values: tuple = ()):
-        return await self.conn.execute(query, values)
+        return await self.conn.execute(self.rewrite_query(query), values)
 
 
-class Database:
+class Database(Compat):
     def __init__(self, db_name: str):
-        self.db_name = db_name
-        db_path = os.path.join(LNBITS_DATA_FOLDER, f"{db_name}.sqlite3")
-        self.engine = create_engine(f"sqlite:///{db_path}", strategy=TRIO_STRATEGY)
+        self.name = db_name
+
+        if LNBITS_DATABASE_URL:
+            database_uri = LNBITS_DATABASE_URL
+            self.type = POSTGRES
+
+            DEC2FLOAT = psycopg2.extensions.new_type(
+                psycopg2.extensions.DECIMAL.values,
+                "DEC2FLOAT",
+                lambda value, curs: float(value) if value is not None else None,
+            )
+            psycopg2.extensions.register_type(DEC2FLOAT)
+        else:
+            self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
+            database_uri = f"sqlite:///{self.path}"
+            self.type = SQLITE
+
+        self.schema = self.name
+        if self.name.startswith("ext_"):
+            self.schema = self.name[4:]
+        else:
+            self.schema = None
+
+        self.engine = create_engine(database_uri, strategy=TRIO_STRATEGY)
         self.lock = trio.StrictFIFOLock()
 
     @asynccontextmanager
@@ -38,8 +109,20 @@ class Database:
         await self.lock.acquire()
         try:
             async with self.engine.connect() as conn:
-                async with conn.begin():
-                    yield Connection(conn)
+                async with conn.begin() as txn:
+                    wconn = Connection(conn, txn, self.type, self.name, self.schema)
+
+                    if self.schema:
+                        if self.type == POSTGRES:
+                            await wconn.execute(
+                                f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
+                            )
+                        elif self.type == SQLITE:
+                            await wconn.execute(
+                                f"ATTACH '{self.path}' AS {self.schema}"
+                            )
+
+                    yield wconn
         finally:
             self.lock.release()
 
