@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
 
-from . import TwitchAlerts_ext
+from . import twitchalerts_ext
 from .crud import (
     get_charge_details,
     create_donation,
@@ -14,7 +14,7 @@ from .crud import (
 from ..satspay.crud import create_charge, get_charge
 
 
-@TwitchAlerts_ext.route("/api/v1/createservice", methods=["POST"])
+@twitchalerts_ext.route("/api/v1/createservice", methods=["POST"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -30,20 +30,20 @@ async def api_create_service():
     """Create a service, which holds data about how/where to post donations"""
     service = await create_service(**g.data)
     redirect_url = request.scheme + "://" + request.headers["Host"]
-    redirect_url += f"/TwitchAlerts/?created={str(service.id)}"
+    redirect_url += f"/twitchalerts/?created={str(service.id)}"
     return redirect(redirect_url)
 
 
-@TwitchAlerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
+@twitchalerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
 async def api_authenticate_service(service_id):
     code = request.args.get('code')
     redirect_uri = request.scheme + "://" + request.headers["Host"]
-    redirect_uri += f"/TwitchAlerts/api/v1/authenticate/{service_id}"
+    redirect_uri += f"/twitchalerts/api/v1/authenticate/{service_id}"
     url = await authenticate_service(service_id, code, redirect_uri)
     return redirect(url)
 
 
-@TwitchAlerts_ext.route("/api/v1/createdonation", methods=["POST"])
+@twitchalerts_ext.route("/api/v1/createdonation", methods=["POST"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -63,7 +63,7 @@ async def api_create_donation():
         amount=g.data["sats"],
         completelink="https://twitch.tv/Fitti",
         completelinktext="Back to Stream!",
-        webhook=webhook_base + "/TwitchAlerts/api/v1/postdonation",
+        webhook=webhook_base + "/twitchalerts/api/v1/postdonation",
         **charge_details)
     await create_donation(
         id=charge.id,
@@ -76,7 +76,7 @@ async def api_create_donation():
     return redirect(f"/satspay/{charge.id}")
 
 
-@TwitchAlerts_ext.route("/api/v1/postdonation", methods=["POST"])
+@twitchalerts_ext.route("/api/v1/postdonation", methods=["POST"])
 # @api_validate_post_request(
 #     schema={
 #         "id": {"type": "string", "required": True},

@@ -137,7 +137,7 @@ async def authenticate_service(service_id, code, redirect_uri):
     print(response)
     token = response['access_token']
     await service_add_token(service_id, token)
-    return f"/TwitchAlerts/?usr={user}"
+    return f"/twitchalerts/?usr={user}"
 
 
 async def service_add_token(service_id, token):
