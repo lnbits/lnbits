@@ -2,7 +2,7 @@ from sqlite3 import Row
 from typing import NamedTuple, Optional
 
 
-class Donations(NamedTuple):
+class Donation(NamedTuple):
     id: str
     name: str
     cur_code: str
@@ -12,11 +12,11 @@ class Donations(NamedTuple):
     posted: bool
 
     @classmethod
-    def from_row(cls, row: Row) -> "Donations":
+    def from_row(cls, row: Row) -> "Donation":
         return cls(**dict(row))
 
 
-class Services(NamedTuple):
+class Service(NamedTuple):
     id: int
     twitchuser: str
     client_id: str
@@ -28,5 +28,5 @@ class Services(NamedTuple):
     token: Optional[int]
 
     @classmethod
-    def from_row(cls, row: Row) -> "Services":
+    def from_row(cls, row: Row) -> "Service":
         return cls(**dict(row))

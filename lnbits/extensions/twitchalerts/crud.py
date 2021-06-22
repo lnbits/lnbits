@@ -1,5 +1,5 @@
 from . import db
-from .models import Donations, Services
+from .models import Donation, Service
 
 from ..satspay.crud import delete_charge
 
@@ -32,7 +32,7 @@ async def create_donation(
     amount: float,
     service: int,
     posted: bool = False,
-) -> Donations:
+) -> Donation:
     await db.execute(
         """
         INSERT INTO Donations (
@@ -81,7 +81,7 @@ async def create_service(
     wallet: str,
     servicename: str,
     onchain: str = None,
-) -> Services:
+) -> Service:
     result = await db.execute(
         """
         INSERT INTO Services (
@@ -110,12 +110,12 @@ async def create_service(
     return service
 
 
-async def get_service(service_id: int) -> Optional[Services]:
+async def get_service(service_id: int) -> Optional[Service]:
     row = await db.fetchone(
         "SELECT * FROM Services WHERE id = ?",
         (service_id,)
     )
-    return Services.from_row(row) if row else None
+    return Service.from_row(row) if row else None
 
 
 async def authenticate_service(service_id, code, redirect_uri):
@@ -160,17 +160,17 @@ async def delete_service(service_id: int) -> None:
         await delete_donation(row["id"])
 
 
-async def get_donation(donation_id: str) -> Optional[Donations]:
+async def get_donation(donation_id: str) -> Optional[Donation]:
     row = await db.fetchone(
         "SELECT * FROM Donations WHERE id = ?",
         (donation_id,)
     )
-    return Donations.from_row(row) if row else None
+    return Donation.from_row(row) if row else None
 
 
 async def delete_donation(donation_id: str) -> None:
     await db.execute(
-        "DELETE FROM Donatoins WHERE id = ?",
+        "DELETE FROM Donations WHERE id = ?",
         (donation_id,)
     )
     await delete_charge(donation_id)
