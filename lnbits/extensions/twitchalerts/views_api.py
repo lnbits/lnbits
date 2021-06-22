@@ -1,4 +1,4 @@
-from quart import g, redirect, request
+from quart import g, redirect, request, jsonify
 from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
@@ -93,8 +93,17 @@ async def api_post_donation():
     if charge and charge.paid:
         print("This endpoint works!")
         if await post_donation(donation_id):
-            return "Posted!", HTTPStatus.OK
+            return (
+                jsonify({"message": "Posted!"}),
+                HTTPStatus.OK
+            )
         else:
-            return "Already posted!", HTTPStatus.BAD_REQUEST
+            return (
+                jsonify({"message": "Already posted!"}),
+                HTTPStatus.BAD_REQUEST
+            )
     else:
-        return "Not a paid charge!", HTTPStatus.BAD_REQUEST
+        return (
+            jsonify({"message": "Not a paid charge!"}),
+            HTTPStatus.BAD_REQUEST
+        )
