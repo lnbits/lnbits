@@ -9,6 +9,7 @@ from .crud import (
     create_donation,
     post_donation,
     create_service,
+    get_service,
     authenticate_service
 )
 from ..satspay.crud import create_charge, get_charge
@@ -34,11 +35,45 @@ async def api_create_service():
     return redirect(redirect_url)
 
 
+@twitchalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
+async def api_get_access(service_id):
+    service = await get_service(service_id)
+    if service:
+        uri_base = request.scheme + "://"
+        uri_base += request.headers["Host"] + "/twitchalerts/api/v1"
+        redirect_uri = uri_base + f"/authenticate/{service_id}"
+        params = {
+            "response_type": "code",
+            "client_id": service.client_id,
+            "client_secret": service.client_secret,
+            "redirect_uri": redirect_uri,
+            "scope": "donations.create",
+            "state": service.state
+        }
+        endpoint_url = "https://streamlabs.com/api/v1.0/authorize/?"
+        querystring = "&".join(
+            [f"{key}={value}" for key, value in params.items()]
+        )
+        redirect_url = endpoint_url + querystring
+        return redirect(redirect_url)
+    else:
+        return (
+            jsonify({"message": "Service does not exist!"}),
+            HTTPStatus.BAD_REQUEST
+        )
+
+
 @twitchalerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
 async def api_authenticate_service(service_id):
     code = request.args.get('code')
-    redirect_uri = request.scheme + "://" + request.headers["Host"]
-    redirect_uri += f"/twitchalerts/api/v1/authenticate/{service_id}"
+    state = request.args.get('state')
+    service = await get_service(service_id)
+    if service.state != state:
+        return (
+            jsonify({"message": "State doesn't match!"}),
+            HTTPStatus.BAD_Request
+        )
+    redirect_uri = f"/twitchalerts/api/v1/authenticate/{service_id}"
     url = await authenticate_service(service_id, code, redirect_uri)
     return redirect(url)
 

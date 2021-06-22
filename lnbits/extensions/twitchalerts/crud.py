@@ -6,6 +6,8 @@ from ..satspay.crud import delete_charge
 import httpx
 
 from typing import Optional
+
+from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.crud import get_wallet
 
 
@@ -80,6 +82,7 @@ async def create_service(
     client_secret: str,
     wallet: str,
     servicename: str,
+    state: str = None,
     onchain: str = None,
 ) -> Service:
     result = await db.execute(
@@ -91,9 +94,10 @@ async def create_service(
             wallet,
             servicename,
             authenticated,
+            state,
             onchain
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             twitchuser,
@@ -102,6 +106,7 @@ async def create_service(
             wallet,
             servicename,
             False,
+            urlsafe_short_hash(),
             onchain,
         ),
     )

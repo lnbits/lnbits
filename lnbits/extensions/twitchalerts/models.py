@@ -18,6 +18,7 @@ class Donation(NamedTuple):
 
 class Service(NamedTuple):
     id: int
+    state: str
     twitchuser: str
     client_id: str
     client_secret: str
