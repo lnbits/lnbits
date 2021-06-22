@@ -95,6 +95,6 @@ async def api_post_donation():
         if await post_donation(donation_id):
             return "Posted!", HTTPStatus.OK
         else:
-            return "Already posted!", HTTPStatus.OK
+            return "Already posted!", HTTPStatus.BAD_REQUEST
     else:
-        return "Not a paid charge!", HTTPStatus.OK
+        return "Not a paid charge!", HTTPStatus.BAD_REQUEST
