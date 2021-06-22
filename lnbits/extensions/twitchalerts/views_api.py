@@ -77,20 +77,11 @@ async def api_create_donation():
 
 
 @twitchalerts_ext.route("/api/v1/postdonation", methods=["POST"])
-# @api_validate_post_request(
-#     schema={
-#         "id": {"type": "string", "required": True},
-#         "description": {"type": "string", "allow_unknown": True},
-#         "onchainaddress": {"type": "string", "allow_unknown": True},
-#         "payment_request": {"type": "string", "allow_unknown": True},
-#         "payment_hash": {"type": "string", "allow_unknown": True},
-#         "time": {"type": "integer", "allow_unknown": True},
-#         "amount": {"type": "integer", "allow_unknown": True},
-#         "paid": {"type": "boolean", "allow_unknown": True},
-#         "timestamp": {"type": "integer", "allow_unknown": True},
-#         "completelink": {"type": "string", "allow_unknown": True},
-#     }
-# )
+@api_validate_post_request(
+    schema={
+        "id": {"type": "string", "required": True},
+    }
+)
 async def api_post_donation():
     """Posts a paid donation to Stremalabs/StreamElements.
 
