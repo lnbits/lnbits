@@ -2,6 +2,7 @@ from quart import g, redirect, request, jsonify
 from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
+from lnbits.core.crud import get_wallet
 
 from . import twitchalerts_ext
 from .crud import (
@@ -30,8 +31,10 @@ from ..satspay.crud import create_charge, get_charge
 async def api_create_service():
     """Create a service, which holds data about how/where to post donations"""
     service = await create_service(**g.data)
+    wallet = await get_wallet(service.wallet)
+    user = wallet.user
     redirect_url = request.scheme + "://" + request.headers["Host"]
-    redirect_url += f"/twitchalerts/?created={str(service.id)}"
+    redirect_url += f"/twitchalerts/?usr={user}&created={str(service.id)}"
     return redirect(redirect_url)
 
 
@@ -45,7 +48,6 @@ async def api_get_access(service_id):
         params = {
             "response_type": "code",
             "client_id": service.client_id,
-            "client_secret": service.client_secret,
             "redirect_uri": redirect_uri,
             "scope": "donations.create",
             "state": service.state
@@ -73,7 +75,8 @@ async def api_authenticate_service(service_id):
             jsonify({"message": "State doesn't match!"}),
             HTTPStatus.BAD_Request
         )
-    redirect_uri = f"/twitchalerts/api/v1/authenticate/{service_id}"
+    redirect_uri = request.scheme + "://" + request.headers["Host"]
+    redirect_uri += f"/twitchalerts/api/v1/authenticate/{service_id}"
     url = await authenticate_service(service_id, code, redirect_uri)
     return redirect(url)
 
