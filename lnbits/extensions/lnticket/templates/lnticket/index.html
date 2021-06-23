@@ -317,7 +317,7 @@
           .then(function (response) {
             self.tickets = response.data
               .map(function (obj) {
-                if (obj.paid){
+                if (obj.paid) {
                   return mapLNTicket(obj)
                 }
               })
