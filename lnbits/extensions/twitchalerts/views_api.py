@@ -77,8 +77,14 @@ async def api_authenticate_service(service_id):
         )
     redirect_uri = request.scheme + "://" + request.headers["Host"]
     redirect_uri += f"/twitchalerts/api/v1/authenticate/{service_id}"
-    url = await authenticate_service(service_id, code, redirect_uri)
-    return redirect(url)
+    url, success = await authenticate_service(service_id, code, redirect_uri)
+    if success:
+        return redirect(url)
+    else:
+        return (
+            jsonify({"message": "Service already authenticated!"}),
+            HTTPStatus.BAD_REQUEST
+        )
 
 
 @twitchalerts_ext.route("/api/v1/createdonation", methods=["POST"])

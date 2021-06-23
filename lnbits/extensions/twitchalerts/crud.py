@@ -141,15 +141,18 @@ async def authenticate_service(service_id, code, redirect_uri):
         response = (await client.post(url, data=data)).json()
     print(response)
     token = response['access_token']
-    await service_add_token(service_id, token)
-    return f"/twitchalerts/?usr={user}"
+    success = await service_add_token(service_id, token)
+    return f"/twitchalerts/?usr={user}", success
 
 
 async def service_add_token(service_id, token):
+    if (await get_service(service_id)).authenticated:
+        return False
     db.execute(
-        "UPDATE Services SET token = ? where id = ?",
+        "UPDATE Services SET authenticated = 1, token = ? where id = ?",
         (token, service_id,),
     )
+    return True
 
 
 async def delete_service(service_id: int) -> None:
