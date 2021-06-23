@@ -27,9 +27,9 @@ async def create_copilot(
     animation2webhook: Optional[str] = None,
     animation3webhook: Optional[str] = None,
     lnurl_title: Optional[str] = None,
-    show_message: Optional[int] = None,
-    show_ack: Optional[int] = None,
-    show_price: Optional[int] = None,
+    show_message: Optional[int] = 0,
+    show_ack: Optional[int] = 0,
+    show_price: Optional[int] = 0,
     amount_made: Optional[int] = None,
 ) -> Copilots:
     copilot_id = urlsafe_short_hash()

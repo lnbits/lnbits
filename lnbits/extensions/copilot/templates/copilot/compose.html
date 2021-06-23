@@ -183,7 +183,7 @@
 
         const obj = JSON.stringify({
           event: "bts:subscribe",
-          data: { channel: "live_trades_btcusd" },
+          data: { channel: "live_trades_" + self.copilot.show_price},
         })
 
         this.connectionBitStamp.onmessage = function (e) {

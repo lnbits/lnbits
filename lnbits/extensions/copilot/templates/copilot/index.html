@@ -104,6 +104,9 @@
                   <q-tooltip> Delete copilot </q-tooltip>
                 </q-btn>
               </q-td>
+              <q-td auto-width>
+                 <q-btn flat dense size="xs" @click="openUpdateCopilotLink(props.row.id)" icon="edit" color="light-blue"></q-btn>
+              </q-td>
               <q-td
                 v-for="col in props.cols"
                 :key="col.name"
@@ -344,6 +347,16 @@
         </div>
         <div class="row q-mt-lg">
           <q-btn
+            v-if="formDialogCopilot.data.id"
+            unelevated
+            color="deep-purple"
+            :disable="
+                formDialogCopilot.data.title == ''"
+            type="submit"
+            >Update Copilot</q-btn
+          >
+          <q-btn
+            v-else
             unelevated
             color="deep-purple"
             :disable="
@@ -472,10 +485,19 @@
       sendFormDataCopilot: function () {
         var self = this
         console.log(self.formDialogCopilot.data.animation1threshold)
-        this.createCopilot(
+        if(self.formDialogCopilot.data.id){
+          this.updateCopilot(
           self.g.user.wallets[0].adminkey,
           self.formDialogCopilot.data
         )
+        }
+        else{
+          this.createCopilot(
+          self.g.user.wallets[0].adminkey,
+          self.formDialogCopilot.data
+        )
+        }
+      
       },
 
       createCopilot: function (wallet, data) {
@@ -533,26 +555,53 @@
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=400,height=450,left=10,top=400'
         open('../copilot/pn/', '_blank', params)
       },
-      deleteCopilotLink: function (chargeId) {
+      deleteCopilotLink: function (copilotId) {
         var self = this
-        var link = _.findWhere(this.CopilotLinks, {id: chargeId})
+        var link = _.findWhere(this.CopilotLinks, {id: copilotId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/copilot/api/v1/copilot/' + chargeId,
+                '/copilot/api/v1/copilot/' + copilotId,
                 self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
                 self.CopilotLinks = _.reject(self.CopilotLinks, function (obj) {
-                  return obj.id === chargeId
+                  return obj.id === copilotId
                 })
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
+          })
+      },
+      openUpdateCopilotLink: function (copilotId) {
+        var self = this
+        var copilot = _.findWhere(this.CopilotLinks, {id: copilotId})
+        self.formDialogCopilot.data = _.clone(copilot._data)
+        self.formDialogCopilot.show = true
+      },
+      updateCopilot: function (wallet, data) {
+        var self = this
+        var updatedData = {}
+        console.log(data)
+        for (const property in data) {
+          if(data[property]){
+            updatedData[property] = data[property]
+          }
+        }
+        console.log(updatedData)
+
+        LNbits.api
+          .request('PUT', '/copilot/api/v1/copilot/' + updatedData.id, wallet, updatedData)
+          .then(function (response) {
+            self.CopilotLinks.push(mapCopilot(response.data))
+            self.formDialogCopilot.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
           })
       },
       exportcopilotCSV: function () {

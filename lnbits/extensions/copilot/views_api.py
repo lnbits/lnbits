@@ -29,22 +29,23 @@ from .crud import (
         "title": {"type": "string", "empty": False, "required": True},
         "lnurl_toggle": {"type": "integer", "empty": False, "required": True},
         "wallet": {"type": "string", "empty": False, "required": False},
-        "animation1": {"type": "string", "required": False},
-        "animation2": {"type": "string", "required": False},
-        "animation3": {"type": "string", "required": False},
-        "animation1threshold": {"type": "string", "required": False},
-        "animation2threshold": {"type": "string", "required": False},
-        "animation3threshold": {"type": "string", "required": False},
-        "animation1webhook": {"type": "string", "required": False},
-        "animation2webhook": {"type": "string", "required": False},
-        "animation3webhook": {"type": "string", "required": False},
-        "lnurl_title": {"type": "string", "empty": False, "required": False},
-        "show_message": {"type": "integer", "empty": False, "required": False},
-        "show_ack": {"type": "integer", "empty": False, "required": True},
-        "show_price": {"type": "integer", "empty": False, "required": True},
+        "animation1": {"type": "string", "empty": True, "required": False},
+        "animation2": {"type": "string", "empty": True, "required": False},
+        "animation3": {"type": "string", "empty": True, "required": False},
+        "animation1threshold": {"type": "string", "empty": True, "required": False},
+        "animation2threshold": {"type": "string", "empty": True, "required": False},
+        "animation3threshold": {"type": "string", "empty": True, "required": False},
+        "animation1webhook": {"type": "string", "empty": True, "required": False},
+        "animation2webhook": {"type": "string", "empty": True, "required": False},
+        "animation3webhook": {"type": "string", "empty": True, "required": False},
+        "lnurl_title": {"type": "string", "empty": True, "required": False},
+        "show_message": {"type": "integer", "empty": True, "required": False},
+        "show_ack": {"type": "integer", "empty": True, "required": True},
+        "show_price": {"type": "string", "empty": True},
     }
 )
 async def api_copilot_create_or_update(copilot_id=None):
+    print("dfbad")
     if not copilot_id:
         copilot = await create_copilot(user=g.wallet.user, **g.data)
         return jsonify(copilot._asdict()), HTTPStatus.CREATED
