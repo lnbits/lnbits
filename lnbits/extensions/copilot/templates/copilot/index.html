@@ -494,8 +494,25 @@
 
       createCopilot: function (wallet, data) {
         var self = this
+        var updatedData = {}
+        for (const property in data) {
+          if (data[property]) {
+            updatedData[property] = data[property]
+          }
+          if (property == 'animation1threshold' && data[property]) {
+            console.log(data[property])
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation2threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation3threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+        }
+        console.log(updatedData)
         LNbits.api
-          .request('POST', '/copilot/api/v1/copilot', wallet, data)
+          .request('POST', '/copilot/api/v1/copilot', wallet, updatedData)
           .then(function (response) {
             self.CopilotLinks.push(mapCopilot(response.data))
             self.formDialogCopilot.show = false

@@ -11,7 +11,7 @@ class Copilots(NamedTuple):
     id: str
     user: str
     title: str
-    lnurl_toggle: str
+    lnurl_toggle: int
     wallet: str
     animation1: str
     animation2: str
@@ -25,7 +25,7 @@ class Copilots(NamedTuple):
     lnurl_title: str
     show_message: int
     show_ack: int
-    show_price: str
+    show_price: int
     amount_made: int
     timestamp: int
     fullscreen_cam: int

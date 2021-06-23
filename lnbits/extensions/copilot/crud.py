@@ -15,7 +15,7 @@ from quart import jsonify
 async def create_copilot(
     title: str,
     user: str,
-    lnurl_toggle: str,
+    lnurl_toggle: Optional[int] = 0,
     wallet: Optional[str] = None,
     animation1: Optional[str] = None,
     animation2: Optional[str] = None,
