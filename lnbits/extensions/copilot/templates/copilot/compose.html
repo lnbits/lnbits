@@ -135,18 +135,23 @@
             console.log('Something went wrong!')
           })
       },
-      pushAnim(content){
+      pushAnim(content) {
         document.getElementById('animations').style.width = content[0]
         document.getElementById('animations').src = content[1]
-        setTimeout(function(){ document.getElementById('animations').src = '' }, 5000)
+        setTimeout(function () {
+          document.getElementById('animations').src = ''
+        }, 5000)
       },
-      launch(){
+      launch() {
         self = this
-        console.log("poo")
+        console.log('poo')
         LNbits.api
           .request(
             'GET',
-            '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/launching/rocket')
+            '/copilot/api/v1/copilot/ws/' +
+              self.copilot.id +
+              '/launching/rocket'
+          )
           .then(function (response1) {
             self.$q.notify({
               color: 'green',
@@ -156,7 +161,7 @@
           .catch(err => {
             LNbits.utils.notifyApiError(err)
           })
-      },
+      }
     },
     mounted() {
       this.initCamera()
@@ -168,9 +173,8 @@
       LNbits.api
         .request(
           'GET',
-          '/copilot/api/v1/copilot/' +
-            self.copilot.id,
-            localStorage.getItem('inkey')
+          '/copilot/api/v1/copilot/' + self.copilot.id,
+          localStorage.getItem('inkey')
         )
         .then(function (response) {
           self.copilot = response.data
@@ -178,108 +182,113 @@
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
-  
-        this.connectionBitStamp = new WebSocket('wss://ws.bitstamp.net')
 
-        const obj = JSON.stringify({
-          event: "bts:subscribe",
-          data: { channel: "live_trades_" + self.copilot.show_price},
-        })
+      this.connectionBitStamp = new WebSocket('wss://ws.bitstamp.net')
 
-        this.connectionBitStamp.onmessage = function (e) {
-          console.log(JSON.parse(e.data).data.price)
-          console.log(self.copilot)
-          if(self.copilot.show_price){
-            if(self.copilot.show_price == "btcusd"){
-              self.price = String(
-                new Intl.NumberFormat('en-US', {
+      const obj = JSON.stringify({
+        event: 'bts:subscribe',
+        data: {channel: 'live_trades_' + self.copilot.show_price}
+      })
+
+      this.connectionBitStamp.onmessage = function (e) {
+        console.log(JSON.parse(e.data).data.price)
+        console.log(self.copilot)
+        if (self.copilot.show_price) {
+          if (self.copilot.show_price == 'btcusd') {
+            self.price = String(
+              new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD'
-                }).format(JSON.parse(e.data).data.price)
-              )
-            }
-            else if(self.copilot.show_price == "btceur"){
-              self.price = String(
-                new Intl.NumberFormat('en-US', {
+              }).format(JSON.parse(e.data).data.price)
+            )
+          } else if (self.copilot.show_price == 'btceur') {
+            self.price = String(
+              new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'EUR'
-                }).format(JSON.parse(e.data).data.price)
-              )
-            }
-            else if(self.copilot.show_price == "btcgbp"){
-              self.price = String(
-                new Intl.NumberFormat('en-US', {
+              }).format(JSON.parse(e.data).data.price)
+            )
+          } else if (self.copilot.show_price == 'btcgbp') {
+            self.price = String(
+              new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'GBP'
-                }).format(JSON.parse(e.data).data.price)
-              )
-            }
+              }).format(JSON.parse(e.data).data.price)
+            )
           }
         }
-        this.connectionBitStamp.onopen = () => this.connectionBitStamp.send(obj)
-      
-        const fetch = (data) => new Promise(resolve => setTimeout(resolve, 5000, this.pushAnim(data)))
+      }
+      this.connectionBitStamp.onopen = () => this.connectionBitStamp.send(obj)
 
-        const addTask = (() => {
-          let pending = Promise.resolve();
-          const run = async (data) => {
-            try {
-              await pending;
-            } finally {
-              return fetch(data);
-            }
+      const fetch = data =>
+        new Promise(resolve => setTimeout(resolve, 5000, this.pushAnim(data)))
+
+      const addTask = (() => {
+        let pending = Promise.resolve()
+        const run = async data => {
+          try {
+            await pending
+          } finally {
+            return fetch(data)
           }
-          return (data) => (pending = run(data))
-        })();
+        }
+        return data => (pending = run(data))
+      })()
 
       if (location.protocol !== 'http:') {
-        localUrl = 'wss://' +
-            document.domain +
-            ':' +
-            location.port +
-            '/copilot/ws/' + self.copilot.id + '/'
+        localUrl =
+          'wss://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/copilot/ws/' +
+          self.copilot.id +
+          '/'
       } else {
-        localUrl = 'ws://' +
-            document.domain +
-            ':' +
-            location.port +
-            '/copilot/ws/' + self.copilot.id + '/'
+        localUrl =
+          'ws://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/copilot/ws/' +
+          self.copilot.id +
+          '/'
       }
       this.connection = new WebSocket(localUrl)
       this.connection.onmessage = function (e) {
-          console.log(e.data)
-          res = e.data.split('-')
-          if (res[0] == 'rocket') {
-            addTask(['40%', '/copilot/static/rocket.gif'])
-          }
-          if (res[0] == 'face') {
-            addTask(['35%', '/copilot/static/face.gif'])
-          }
-          if (res[0] == 'bitcoin') {
-            addTask(['30%', '/copilot/static/bitcoin.gif'])
-          }
-          if (res[0] == 'confetti') {
-            addTask(['100%', '/copilot/static/confetti.gif'])
-          }
-          if (res[0] == 'martijn') {
-            addTask(['40%', '/copilot/static/martijn.gif'])
-          }
-          if (res[0] == 'rick') {
-            addTask(['40%', '/copilot/static/rick.gif'])
-          }
-          if (res[0] == 'true') {
-            document.getElementById('videoCamera').style.width = '20%'
-            self.initScreenShare()
-          }
-          if (res[0] == 'false') {
-            document.getElementById('videoCamera').style.width = '100%'
-            document.getElementById('videoScreen').src = null
-          }
-          console.log(res[1])
-          if (res[1] != 'none') {
-            showNotif(res[1])
-          }
+        console.log(e.data)
+        res = e.data.split('-')
+        if (res[0] == 'rocket') {
+          addTask(['40%', '/copilot/static/rocket.gif'])
         }
+        if (res[0] == 'face') {
+          addTask(['35%', '/copilot/static/face.gif'])
+        }
+        if (res[0] == 'bitcoin') {
+          addTask(['30%', '/copilot/static/bitcoin.gif'])
+        }
+        if (res[0] == 'confetti') {
+          addTask(['100%', '/copilot/static/confetti.gif'])
+        }
+        if (res[0] == 'martijn') {
+          addTask(['40%', '/copilot/static/martijn.gif'])
+        }
+        if (res[0] == 'rick') {
+          addTask(['40%', '/copilot/static/rick.gif'])
+        }
+        if (res[0] == 'true') {
+          document.getElementById('videoCamera').style.width = '20%'
+          self.initScreenShare()
+        }
+        if (res[0] == 'false') {
+          document.getElementById('videoCamera').style.width = '100%'
+          document.getElementById('videoScreen').src = null
+        }
+        console.log(res[1])
+        if (res[1] != 'none') {
+          showNotif(res[1])
+        }
+      }
       this.connection.onopen = () => this.launch
     }
   })

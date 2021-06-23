@@ -129,7 +129,8 @@
         LNbits.api
           .request(
             'GET',
-            '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/none/' + name)
+            '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/none/' + name
+          )
           .then(function (response1) {
             self.$q.notify({
               color: 'green',
@@ -139,7 +140,7 @@
           .catch(err => {
             LNbits.utils.notifyApiError(err)
           })
-      },
+      }
     },
     created: function () {
       self = this

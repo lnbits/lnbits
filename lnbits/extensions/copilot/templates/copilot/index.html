@@ -105,7 +105,14 @@
                 </q-btn>
               </q-td>
               <q-td auto-width>
-                 <q-btn flat dense size="xs" @click="openUpdateCopilotLink(props.row.id)" icon="edit" color="light-blue"></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateCopilotLink(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
               </q-td>
               <q-td
                 v-for="col in props.cols"
@@ -326,15 +333,14 @@
         </div>
 
         <div class="q-gutter-sm">
-                <q-select
-                filled
-                dense
-                style="width:50%"
-                v-model.trim="formDialogCopilot.data.show_price"
-                :options="currencyOptions"
-                label="Show price"
-               />
-     
+          <q-select
+            filled
+            dense
+            style="width: 50%"
+            v-model.trim="formDialogCopilot.data.show_price"
+            :options="currencyOptions"
+            label="Show price"
+          />
         </div>
         <div class="q-gutter-sm">
           <div class="row">
@@ -485,19 +491,17 @@
       sendFormDataCopilot: function () {
         var self = this
         console.log(self.formDialogCopilot.data.animation1threshold)
-        if(self.formDialogCopilot.data.id){
+        if (self.formDialogCopilot.data.id) {
           this.updateCopilot(
-          self.g.user.wallets[0].adminkey,
-          self.formDialogCopilot.data
-        )
-        }
-        else{
+            self.g.user.wallets[0].adminkey,
+            self.formDialogCopilot.data
+          )
+        } else {
           this.createCopilot(
-          self.g.user.wallets[0].adminkey,
-          self.formDialogCopilot.data
-        )
+            self.g.user.wallets[0].adminkey,
+            self.formDialogCopilot.data
+          )
         }
-      
       },
 
       createCopilot: function (wallet, data) {
@@ -588,14 +592,19 @@
         var updatedData = {}
         console.log(data)
         for (const property in data) {
-          if(data[property]){
+          if (data[property]) {
             updatedData[property] = data[property]
           }
         }
         console.log(updatedData)
 
         LNbits.api
-          .request('PUT', '/copilot/api/v1/copilot/' + updatedData.id, wallet, updatedData)
+          .request(
+            'PUT',
+            '/copilot/api/v1/copilot/' + updatedData.id,
+            wallet,
+            updatedData
+          )
           .then(function (response) {
             self.CopilotLinks.push(mapCopilot(response.data))
             self.formDialogCopilot.show = false
