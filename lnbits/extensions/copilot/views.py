@@ -58,3 +58,36 @@ async def ws_compose(copilot_id):
 async def updater(data, comment, copilot):
     global socket_relay
     socket_relay[copilot] = shortuuid.uuid()[:5] + "-" + str(data) + "-" + str(comment)
+
+
+
+
+##################WEBSOCKET ROUTES########################
+
+# socket_relay is a list where the control panel or
+# lnurl endpoints can leave a message for the compose window
+
+connected_websockets = set()
+
+
+def collect_websocket(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        global connected_websockets
+        send_channel, receive_channel = trio.open_memory_channel(0)
+        connected_websockets.add(send_channel)
+        try:
+            return await func(receive_channel, *args, **kwargs)
+        finally:
+            connected_websockets.remove(send_channel)
+
+    return wrapper
+
+
+@copilot_ext.websocket("/ws")
+@collect_websocket
+async def wss(receive_channel):
+
+    while True:
+        data = await receive_channel.receive()
+        await websocket.send(data)
