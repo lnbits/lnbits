@@ -23,7 +23,7 @@ async def m001_initial(db):
             lnurl_title TEXT,
             show_message INTEGER,
             show_ack INTEGER,
-            show_price INTEGER,
+            show_price TEXT,
             amount_made INTEGER,
             fullscreen_cam INTEGER,
             iframe_url TEXT,

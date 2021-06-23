@@ -323,13 +323,15 @@
         </div>
 
         <div class="q-gutter-sm">
-          <div class="row">
-            <q-checkbox
-              v-model="formDialogCopilot.data.show_price"
-              left-label
-              label="Show bitcoin price"
-            ></q-checkbox>
-          </div>
+                <q-select
+                filled
+                dense
+                style="width:50%"
+                v-model.trim="formDialogCopilot.data.show_price"
+                :options="currencyOptions"
+                label="Show price"
+               />
+     
         </div>
         <div class="q-gutter-sm">
           <div class="row">
@@ -453,7 +455,8 @@
           show: false,
           data: null
         },
-        options: ['bitcoin', 'confetti', 'rocket', 'face', 'martijn', 'rick']
+        options: ['bitcoin', 'confetti', 'rocket', 'face', 'martijn', 'rick'],
+        currencyOptions: ['btcusd', 'btceur', 'btcgbp']
       }
     },
     methods: {
@@ -512,6 +515,7 @@
           )
           .then(function (response) {
             localStorage.setItem('copilot', JSON.stringify(response.data))
+            localStorage.setItem('inkey', self.g.user.wallets[0].inkey)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
