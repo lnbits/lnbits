@@ -110,8 +110,9 @@
         this.connection.send(String(url))
       },
       fullscreenToggle: function () {
+        self = this
         console.log(this.fullscreen_cam)
-        this.connection.send(String(this.fullscreen_cam))
+        self.animationBTN(String(this.fullscreen_cam))
         if (this.fullscreen_cam) {
           this.fullscreen_cam = false
         } else {
@@ -121,49 +122,28 @@
       openCompose: function () {
         let params =
           'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1200,height=644,left=410,top=100'
-
-        open('./copilot/cp/', 'test', params)
+        open('../cp/', 'test', params)
       },
       animationBTN: function (name) {
-        this.connection.send(name)
+        self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/none/' + name)
+          .then(function (response1) {
+            self.$q.notify({
+              color: 'green',
+              message: 'Sent!'
+            })
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
       },
-      stfu: function (name) {
-        this.connection.send('')
-      }
     },
     created: function () {
       self = this
       self.copilot = JSON.parse(localStorage.getItem('copilot'))
-
-      if (location.protocol == 'https:') {
-        console.log(location.protocol)
-        self.connection = new WebSocket(
-          'wss://' +
-            document.domain +
-            ':' +
-            location.port +
-            '/copilot/ws/panel/' +
-            self.copilot.id
-        )
-      } else {
-        self.connection = new WebSocket(
-          'ws://' +
-            document.domain +
-            ':' +
-            location.port +
-            '/copilot/ws/panel/' +
-            self.copilot.id
-        )
-      }
-      self.connection.addEventListener('open', function (event) {})
-
-      self.connection.addEventListener('message', function (event) {
-        console.log('Message from server ', event.data)
-      })
-
-      self.connection.addEventListener('close', function (event) {
-        console.log('The connection has been closed')
-      })
     }
   })
 </script>

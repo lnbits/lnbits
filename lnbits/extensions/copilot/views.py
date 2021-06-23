@@ -37,6 +37,7 @@ connected_websockets = defaultdict(set)
 @copilot_ext.websocket("/ws/<id>/")
 async def wss(id):
     copilot = await get_copilot(id)
+    print(copilot)
     if not copilot:
         return "", HTTPStatus.FORBIDDEN
     global connected_websockets
@@ -53,6 +54,5 @@ async def updater(copilot_id, data, comment):
     copilot = await get_copilot(copilot_id)
     if not copilot:
         return
-    print(connected_websockets)
     for queue in connected_websockets[copilot_id]:
         await queue.send(f"{data + '-' + comment}")

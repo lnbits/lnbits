@@ -71,14 +71,17 @@ async def api_copilots_retrieve():
 @api_check_wallet_key("invoice")
 async def api_copilot_retrieve(copilot_id):
     copilot = await get_copilot(copilot_id)
-
     if not copilot:
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
-
+    if not copilot.lnurl_toggle:
+        return (
+            jsonify({**copilot._asdict()}),
+            HTTPStatus.OK,
+        )
     return (
-        jsonify({**copilot._asdict(), **{"lnurl": copilot.lnurl}}),
-        HTTPStatus.OK,
-    )
+            jsonify({**copilot._asdict(), **{"lnurl": copilot.lnurl}}),
+            HTTPStatus.OK,
+        )
 
 
 @copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["DELETE"])
@@ -97,7 +100,6 @@ async def api_copilot_delete(copilot_id):
 @copilot_ext.route("/api/v1/copilot/ws/<copilot_id>/<comment>/<data>", methods=["GET"])
 async def api_copilot_ws_relay(copilot_id, comment, data):
     copilot = await get_copilot(copilot_id)
-
     if not copilot:
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
     try:

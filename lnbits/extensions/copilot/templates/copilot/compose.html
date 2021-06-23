@@ -87,6 +87,8 @@
         counter: 1,
         colours: ['teal', 'purple', 'indigo', 'pink', 'green'],
         copilot: {},
+        animQueue: [],
+        queue: false,
         lnurl: ''
       }
     },
@@ -133,36 +135,24 @@
             console.log('Something went wrong!')
           })
       },
-      getPrice: function () {
+      launch(){
         self = this
-        if (self.copilot.show_price != 'None') {
-          LNbits.api
-            .request('GET', 'https://api.opennode.com/v1/rates', 'filla')
-            .then(function (response) {
-              self.price = String(
-                new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD'
-                }).format(response.data.data.BTCUSD.USD)
-              )
+        console.log("poo")
+        LNbits.api
+          .request(
+            'GET',
+            '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/launching/rocket')
+          .then(function (response1) {
+            self.$q.notify({
+              color: 'green',
+              message: 'Sent!'
             })
-            .catch(function (error) {
-              LNbits.utils.notifyApiError(error)
-            })
-        }
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
       },
-      animation1: function () {
-        self = this
-        setTimeout(function () {
-          setInterval(function () {
-            self.connection.send('')
-            self.counter++
-            if (self.counter % 20 === 0) {
-              self.getPrice()
-            }
-          }, 1000)
-        }, 2000)
-      }
+      
     },
     mounted() {
       this.initCamera()
@@ -171,47 +161,45 @@
       self = this
       self.copilot = JSON.parse(localStorage.getItem('copilot'))
 
-      LNbits.api
-        .request(
-          'GET',
-          '/copilot/api/v1/copilot/ws/' + self.copilot.id + '/launching/rocket',
-          'filla'
-        )
-        .then(function (response) {})
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
+        this.connectionBitStamp = new WebSocket('wss://ws.bitstamp.net')
+
+        const obj = JSON.stringify({
+          event: "bts:subscribe",
+          data: { channel: "live_trades_btcusd" },
         })
+
+        this.connectionBitStamp.onmessage = function (e) {
+          console.log(JSON.parse(e.data).data.price)
+          self.price = String(
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD'
+            }).format(JSON.parse(e.data).data.price)
+          )
+        }
+        this.connectionBitStamp.onopen = () => this.connectionBitStamp.send(obj)
+
       if (location.protocol !== 'http:') {
-        this.connection = new WebSocket(
-          'wss://' +
+        localUrl = 'wss://' +
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/compose/' +
-            self.copilot.id
-        )
+            '/copilot/ws/' + self.copilot.id + '/'
       } else {
-        this.connection = new WebSocket(
-          'ws://' +
+        localUrl = 'ws://' +
             document.domain +
             ':' +
             location.port +
-            '/copilot/ws/compose/' +
-            self.copilot.id
-        )
+            '/copilot/ws/' + self.copilot.id + '/'
       }
-
-      this.connection.addEventListener('open', function (event) {
-        this.connection.send('')
-      })
-      var showNotif = this.showNotif
-
-      this.connection.addEventListener('message', function (event) {
-        res = event.data.split('-')
-        console.log(res[1])
-        if (res[0] != this.oldRes) {
-          this.oldRes = res[0]
-          if (res[1] == 'rocket') {
+      this.connection = new WebSocket(localUrl)
+      this.connection.onmessage = function (e) {
+          console.log(e.data)
+          
+          res = e.data.split('-')
+            if (res[0] != this.oldRes) {
+              this.oldRes = res[0]
+          if (res[0] == 'rocket') {
             document.getElementById('animations').style.width = '40%'
             document.getElementById('animations').src =
               '/copilot/static/rocket.gif'
@@ -219,7 +207,7 @@
               document.getElementById('animations').src = ''
             }, 5000)
           }
-          if (res[1] == 'face') {
+          if (res[0] == 'face') {
             document.getElementById('animations').style.width = '35%'
             document.getElementById('animations').src =
               '/copilot/static/face.gif'
@@ -227,7 +215,7 @@
               document.getElementById('animations').src = ''
             }, 5000)
           }
-          if (res[1] == 'bitcoin') {
+          if (res[0] == 'bitcoin') {
             document.getElementById('animations').style.width = '30%'
             document.getElementById('animations').src =
               '/copilot/static/bitcoin.gif'
@@ -235,7 +223,7 @@
               document.getElementById('animations').src = ''
             }, 5000)
           }
-          if (res[1] == 'confetti') {
+          if (res[0] == 'confetti') {
             document.getElementById('animations').style.width = '100%'
             document.getElementById('animations').style.height = '100%'
             document.getElementById('animations').src =
@@ -245,7 +233,7 @@
               document.getElementById('animations').style.height = ''
             }, 5000)
           }
-          if (res[1] == 'martijn') {
+          if (res[0] == 'martijn') {
             document.getElementById('animations').style.width = '40%'
             document.getElementById('animations').src =
               '/copilot/static/martijn.gif'
@@ -253,36 +241,29 @@
               document.getElementById('animations').src = ''
             }, 5000)
           }
-          if (res[1] == 'rick') {
-            document.getElementById('animations').style.width = '40%'
-            document.getElementById('animations').src =
-              '/copilot/static/rick.gif'
-            setTimeout(function () {
-              document.getElementById('animations').src = ''
-            }, 5000)
+          if (res[0] == 'rick') {
+            this.animQueue.push({size: '40%', location: '/copilot/static/rick.gif'})
           }
-          if (res[1] == 'true') {
+          if(self.queue == false){
+            for()
+
+          }
+          if (res[0] == 'true') {
             document.getElementById('videoCamera').style.width = '20%'
             self.initScreenShare()
           }
-          if (res[1] == 'false') {
+          if (res[0] == 'false') {
             document.getElementById('videoCamera').style.width = '100%'
             document.getElementById('videoScreen').src = null
           }
-          console.log(res[2])
-          if (res[2] != 'none') {
-            showNotif(res[2])
+          console.log(res[1])
+          if (res[1] != 'none') {
+            showNotif(res[1])
           }
+          this.oldRes = ''
+            }
         }
-      })
-
-      this.connection.addEventListener('close', function (event) {
-        console.log('The connection has been closed')
-      })
-      var animation1 = this.animation1
-      animation1()
-      var getPrice = this.getPrice
-      getPrice()
+      this.connection.onopen = () => this.launch
     }
   })
 </script>
