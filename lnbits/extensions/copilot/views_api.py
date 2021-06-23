@@ -100,5 +100,8 @@ async def api_copilot_ws_relay(copilot_id, comment, data):
 
     if not copilot:
         return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
-    await updater(data, comment, copilot_id)
+    try:
+        await updater(copilot_id, data, comment)
+    except:
+        return "", HTTPStatus.FORBIDDEN
     return "", HTTPStatus.OK
