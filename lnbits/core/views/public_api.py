@@ -32,6 +32,24 @@ async def api_public_payment_longpolling(payment_hash):
     print("adding standalone invoice listener", payment_hash, send_payment)
     api_invoice_listeners.append(send_payment)
 
-    async for payment in receive_payment:
-        if payment.payment_hash == payment_hash:
-            return jsonify({"status": "paid"}), HTTPStatus.OK
+    response = None
+
+    async def payment_info_receiver(cancel_scope):
+        async for payment in receive_payment:
+            if payment.payment_hash == payment_hash:
+                nonlocal response
+                response = (jsonify({"status": "paid"}), HTTPStatus.OK)
+                cancel_scope.cancel()
+
+    async def timeouter(cancel_scope):
+        await trio.sleep(45)
+        cancel_scope.cancel()
+
+    async with trio.open_nursery() as nursery:
+        nursery.start_soon(payment_info_receiver, nursery.cancel_scope)
+        nursery.start_soon(timeouter, nursery.cancel_scope)
+
+    if response:
+        return response
+    else:
+        return jsonify({"message": "timeout"}), HTTPStatus.REQUEST_TIMEOUT
