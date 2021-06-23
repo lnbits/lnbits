@@ -1,5 +1,5 @@
 {% extends "public.html" %} {% block page %}
-<div class="q-pa-sm" style="width: 300px; margin: 10px auto">
+<div class="q-pa-sm" style="width: 240px; margin: 10px auto">
   <q-card class="my-card">
     <div class="column">
       <div class="col">
@@ -10,12 +10,12 @@
             dense
             @click="openCompose"
             icon="face"
-            style="font-size: 80px"
+            style="font-size: 60px"
           ></q-btn>
         </center>
       </div>
       <center>
-        <div class="col" style="margin: 15px; font-size: 25px">
+        <div class="col" style="margin: 15px; font-size: 22px">
           Title: {% raw %} {{ copilot.title }} {% endraw %}
         </div>
       </center>
@@ -28,6 +28,7 @@
               color="primary"
               @click="fullscreenToggle"
               label="Screen share"
+              size="sm"
             >
             </q-btn>
           </div>
@@ -39,6 +40,7 @@
               color="primary"
               @click="animationBTN('rocket')"
               label="rocket"
+              size="sm"
             />
           </div>
           <div class="col">
@@ -47,6 +49,7 @@
               color="primary"
               @click="animationBTN('confetti')"
               label="confetti"
+              size="sm"
             />
           </div>
           <div class="col">
@@ -55,6 +58,7 @@
               color="primary"
               @click="animationBTN('face')"
               label="face"
+              size="sm"
             />
           </div>
         </div>
@@ -65,6 +69,7 @@
               color="primary"
               @click="animationBTN('rick')"
               label="rick"
+              size="sm"
             />
           </div>
           <div class="col">
@@ -73,6 +78,7 @@
               color="primary"
               @click="animationBTN('martijn')"
               label="martijn"
+              size="sm"
             />
           </div>
           <div class="col">
@@ -81,6 +87,7 @@
               color="primary"
               @click="animationBTN('bitcoin')"
               label="bitcoin"
+              size="sm"
             />
           </div>
         </div>

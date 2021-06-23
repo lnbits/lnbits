@@ -112,7 +112,9 @@
                   @click="openUpdateCopilotLink(props.row.id)"
                   icon="edit"
                   color="light-blue"
-                ></q-btn>
+                >
+                  <q-tooltip> Edit copilot </q-tooltip>
+                </q-btn>
               </q-td>
               <q-td
                 v-for="col in props.cols"
@@ -408,22 +410,8 @@
     data: function () {
       return {
         filter: '',
-        watchonlyactive: false,
-        balance: null,
-        checker: null,
-        walletLinks: [],
         CopilotLinks: [],
         CopilotLinksObj: [],
-        onchainwallet: '',
-        currentaddress: '',
-        Addresses: {
-          show: false,
-          data: null
-        },
-        mempool: {
-          endpoint: ''
-        },
-
         CopilotsTable: {
           columns: [
             {
@@ -466,7 +454,7 @@
             lnurl_toggle: false,
             show_message: false,
             show_ack: false,
-            show_price: false,
+            show_price: 'None',
             title: ''
           }
         },
@@ -475,7 +463,7 @@
           data: null
         },
         options: ['bitcoin', 'confetti', 'rocket', 'face', 'martijn', 'rick'],
-        currencyOptions: ['btcusd', 'btceur', 'btcgbp']
+        currencyOptions: ['None', 'btcusd', 'btceur', 'btcgbp']
       }
     },
     methods: {
@@ -556,7 +544,7 @@
       openCopilotPanel: function (copilot_id) {
         this.getCopilot(copilot_id)
         let params =
-          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=400,height=450,left=10,top=400'
+          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=300,height=450,left=10,top=400'
         open('../copilot/pn/', '_blank', params)
       },
       deleteCopilotLink: function (copilotId) {
@@ -595,6 +583,16 @@
           if (data[property]) {
             updatedData[property] = data[property]
           }
+          if (property == 'animation1threshold' && data[property]) {
+            console.log(data[property])
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation2threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation3threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
         }
         console.log(updatedData)
 
@@ -606,6 +604,9 @@
             updatedData
           )
           .then(function (response) {
+            self.CopilotLinks = _.reject(self.CopilotLinks, function (obj) {
+              return obj.id === updatedData.id
+            })
             self.CopilotLinks.push(mapCopilot(response.data))
             self.formDialogCopilot.show = false
           })

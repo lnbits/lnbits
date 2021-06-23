@@ -27,20 +27,20 @@ from .crud import (
 @api_validate_post_request(
     schema={
         "title": {"type": "string", "empty": False, "required": True},
-        "lnurl_toggle": {"type": "integer", "empty": False, "required": True},
+        "lnurl_toggle": {"type": "integer", "empty": False},
         "wallet": {"type": "string", "empty": False, "required": False},
         "animation1": {"type": "string", "empty": True, "required": False},
         "animation2": {"type": "string", "empty": True, "required": False},
         "animation3": {"type": "string", "empty": True, "required": False},
-        "animation1threshold": {"type": "string", "empty": True, "required": False},
-        "animation2threshold": {"type": "string", "empty": True, "required": False},
-        "animation3threshold": {"type": "string", "empty": True, "required": False},
+        "animation1threshold": {"type": "integer", "empty": True, "required": False},
+        "animation2threshold": {"type": "integer", "empty": True, "required": False},
+        "animation3threshold": {"type": "integer", "empty": True, "required": False},
         "animation1webhook": {"type": "string", "empty": True, "required": False},
         "animation2webhook": {"type": "string", "empty": True, "required": False},
         "animation3webhook": {"type": "string", "empty": True, "required": False},
         "lnurl_title": {"type": "string", "empty": True, "required": False},
         "show_message": {"type": "integer", "empty": True, "required": False},
-        "show_ack": {"type": "integer", "empty": True, "required": True},
+        "show_ack": {"type": "integer", "empty": True},
         "show_price": {"type": "string", "empty": True},
     }
 )
