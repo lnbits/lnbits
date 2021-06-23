@@ -7,7 +7,6 @@ from quart import g
 from quart_trio import QuartTrio
 from quart_cors import cors  # type: ignore
 from quart_compress import Compress  # type: ignore
-from secure import SecureHeaders  # type: ignore
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
@@ -27,8 +26,6 @@ from .tasks import (
 )
 from .settings import WALLET
 
-secure_headers = SecureHeaders(hsts=False, xfo=False)
-
 
 def create_app(config_object="lnbits.settings") -> QuartTrio:
     """Create application factory.
@@ -46,7 +43,6 @@ def create_app(config_object="lnbits.settings") -> QuartTrio:
     register_blueprints(app)
     register_filters(app)
     register_commands(app)
-    register_request_hooks(app)
     register_async_tasks(app)
     register_exception_handlers(app)
 
@@ -110,15 +106,6 @@ def register_filters(app: QuartTrio):
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
     app.jinja_env.globals["LNBITS_VERSION"] = app.config["LNBITS_COMMIT"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
-
-
-def register_request_hooks(app: QuartTrio):
-    """Open the core db for each request so everything happens in a big transaction"""
-
-    @app.after_request
-    async def set_secure_headers(response):
-        secure_headers.quart(response)
-        return response
 
 
 def register_async_tasks(app):

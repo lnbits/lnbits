@@ -37,7 +37,6 @@ quart-cors==0.4.0
 quart-trio==0.7.0
 represent==1.6.0.post0
 rfc3986==1.4.0
-secure==0.2.1
 shortuuid==1.0.1
 six==1.15.0
 sniffio==1.2.0
