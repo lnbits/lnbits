@@ -152,15 +152,17 @@ class EclairWallet(Wallet):
         url = urllib.parse.urlsplit(self.url)
         ws_url = f"ws://{url.netloc}/ws"
 
-        try:
-            async with open_websocket_url(ws_url, extra_headers=[('Authorization', self.auth["Authorization"])]) as ws:
-                message = await ws.get_message()
-                if message["type"] == "payment-received":
-                    print('Received message: %s' % message)
-                    yield message["paymentHash"]
+        while True:
+            try:
+                async with open_websocket_url(ws_url, extra_headers=[('Authorization', self.auth["Authorization"])]) as ws:
+                    message = await ws.get_message()
+                    if "payment-received" in message["type"]:
+                        print('Received message: %s' % message)
+                        yield message["paymentHash"]
 
-        except OSError as ose:
-            pass
+            except OSError as ose:
+                print('OSE', ose)
+                pass
 
-        print("lost connection to eclair's websocket, retrying in 5 seconds")
-        await trio.sleep(5)
+            print("lost connection to eclair's websocket, retrying in 5 seconds")
+            await trio.sleep(5)
