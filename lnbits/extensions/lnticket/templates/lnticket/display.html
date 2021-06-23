@@ -77,7 +77,7 @@
 
 {% endblock %} {% block scripts %}
 <script>
-  console.log('{{ form_costpword }}')
+  //console.log('{{ form_costpword }}')
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
@@ -99,7 +99,11 @@
           show: false,
           status: 'pending',
           paymentReq: null
-        }
+        },
+        wallet: {
+          inkey: ''
+        },
+        cancelListener: () => {}
       }
     },
     computed: {
@@ -128,11 +132,34 @@
       },
 
       closeReceiveDialog: function () {
-        var checker = this.receive.paymentChecker
+        var checker = this.startPaymentNotifier
         dismissMsg()
 
-        clearInterval(paymentChecker)
         setTimeout(function () {}, 10000)
+      },
+      startPaymentNotifier() {
+        this.cancelListener()
+
+        this.cancelListener = LNbits.events.onInvoicePaid(
+          this.wallet,
+          payment => {
+            this.receive = {
+              show: false,
+              status: 'complete',
+              paymentReq: null
+            }
+            dismissMsg()
+
+            this.formDialog.data.name = ''
+            this.formDialog.data.email = ''
+            this.formDialog.data.text = ''
+            this.$q.notify({
+              type: 'positive',
+              message: 'Sent, thank you!',
+              icon: 'thumb_up'
+            })
+          }
+        )
       },
       Invoice: function () {
         var self = this
@@ -158,39 +185,15 @@
               status: 'pending',
               paymentReq: self.paymentReq
             }
-
-            paymentChecker = setInterval(function () {
-              axios
-                .get('/lnticket/api/v1/tickets/' + self.paymentCheck)
-                .then(function (res) {
-                  if (res.data.paid) {
-                    clearInterval(paymentChecker)
-                    self.receive = {
-                      show: false,
-                      status: 'complete',
-                      paymentReq: null
-                    }
-                    dismissMsg()
-
-                    self.formDialog.data.name = ''
-                    self.formDialog.data.email = ''
-                    self.formDialog.data.text = ''
-                    self.$q.notify({
-                      type: 'positive',
-                      message: 'Sent, thank you!',
-                      icon: 'thumb_up'
-                    })
-                  }
-                })
-                .catch(function (error) {
-                  LNbits.utils.notifyApiError(error)
-                })
-            }, 2000)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       }
+    },
+    created() {
+      this.wallet.inkey = '{{form_wallet}}'
+      this.startPaymentNotifier()
     }
   })
 </script>

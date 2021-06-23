@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 
 from .commands import migrate_databases, transpile_scss, bundle_vendored
 

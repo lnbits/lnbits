@@ -1,0 +1,98 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card class="q-pa-sm col-5">
+      <q-card-section class="q-pa-none text-center">
+        <q-form class="q-gutter-md">
+          <q-select
+            filled
+            dense
+            :options="g.user.wallets"
+            :value="selectedWallet"
+            label="Source Wallet:"
+            option-label="name"
+            @input="changedWallet"
+          >
+          </q-select>
+        </q-form>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-pa-sm col-5">
+      <q-card-section class="q-pa-none text-center">
+        <div class="col">
+          <h5 class="text-subtitle1 q-my-none">Target Wallets</h5>
+        </div>
+
+        <q-form class="q-gutter-md" @submit="saveTargets">
+          <div
+            class="q-gutter-md row items-start"
+            style="flex-wrap: nowrap"
+            v-for="(target, t) in targets"
+          >
+            <q-input
+              dense
+              outlined
+              v-model="target.wallet"
+              label="Wallet"
+              :hint="t === targets.length - 1 ? 'A wallet ID or invoice key.' : undefined"
+              @input="targetChanged(false)"
+            ></q-input>
+            <q-input
+              dense
+              outlined
+              v-model="target.alias"
+              label="Alias"
+              :hint="t === targets.length - 1 ? 'A name to identify this target wallet locally.' : undefined"
+              @input="targetChanged(false)"
+            ></q-input>
+            <q-input
+              dense
+              outlined
+              v-model.number="target.percent"
+              label="Split Share"
+              :hint="t === targets.length - 1 ? 'How much of the incoming payments will go to the target wallet.' : undefined"
+              suffix="%"
+              @input="targetChanged(true, t)"
+            ></q-input>
+          </div>
+
+          <q-row class="row justify-evenly q-pa-lg">
+            <q-col>
+              <q-btn unelevated outline color="purple" @click="clearTargets">
+                Clear
+              </q-btn>
+            </q-col>
+
+            <q-col>
+              <q-btn
+                unelevated
+                color="deep-purple"
+                type="submit"
+                :disabled="!isDirty"
+              >
+                Save Targets
+              </q-btn>
+            </q-col>
+          </q-row>
+        </q-form>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits SplitPayments extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "splitpayments/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/splitpayments/static/js/index.js"></script>
+{% endblock %}

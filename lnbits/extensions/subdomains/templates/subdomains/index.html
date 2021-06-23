@@ -452,7 +452,10 @@
           id: this.domainDialog.data.wallet
         })
         var data = this.domainDialog.data
-        data.allowed_record_types = data.allowed_record_types.join(', ')
+        data.allowed_record_types =
+          typeof data.allowed_record_types === 'string'
+            ? data.allowed_record_types
+            : data.allowed_record_types.join(', ')
         console.log(this.domainDialog)
         if (data.id) {
           this.updateDomain(wallet, data)

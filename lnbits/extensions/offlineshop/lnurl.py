@@ -49,7 +49,7 @@ async def lnurl_callback(item_id):
         min = price * 995
         max = price * 1010
 
-    amount_received = int(request.args.get("amount"))
+    amount_received = int(request.args.get("amount") or 0)
     if amount_received < min:
         return jsonify(
             LnurlErrorResponse(

@@ -22,7 +22,7 @@ async def create_charge(
     lnbitswallet: Optional[str] = None,
     webhook: Optional[str] = None,
     completelink: Optional[str] = None,
-    completelinktext: Optional[str] = None,
+    completelinktext: Optional[str] = "Back to Merchant",
     time: Optional[int] = None,
     amount: Optional[int] = None,
 ) -> Charges:

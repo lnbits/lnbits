@@ -1,0 +1,9 @@
+{
+  "name": "SplitPayments",
+  "short_description": "Split incoming payments to other wallets.",
+  "icon": "call_split",
+  "contributors": [
+    "fiatjaf",
+    "cryptograffiti"
+  ]
+}

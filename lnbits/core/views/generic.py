@@ -2,6 +2,7 @@ from os import path
 from http import HTTPStatus
 from quart import (
     g,
+    current_app,
     abort,
     jsonify,
     request,
@@ -128,7 +129,7 @@ async def lnurl_full_withdraw():
                 _external=True,
             ),
             "k1": "0",
-            "minWithdrawable": 1 if wallet.withdrawable_balance else 0,
+            "minWithdrawable": 1000 if wallet.withdrawable_balance else 0,
             "maxWithdrawable": wallet.withdrawable_balance,
             "defaultDescription": f"{LNBITS_SITE_TITLE} balance withdraw from {wallet.id[0:5]}",
             "balanceCheck": url_for(
@@ -152,9 +153,12 @@ async def lnurl_full_withdraw_callback():
     pr = request.args.get("pr")
 
     async def pay():
-        await pay_invoice(wallet_id=wallet.id, payment_request=pr)
+        try:
+            await pay_invoice(wallet_id=wallet.id, payment_request=pr)
+        except:
+            pass
 
-    g.nursery.start_soon(pay)
+    current_app.nursery.start_soon(pay)
 
     balance_notify = request.args.get("balanceNotify")
     if balance_notify:
@@ -197,7 +201,7 @@ async def lnurlwallet():
         user = await get_user(account.id, conn=conn)
         wallet = await create_wallet(user_id=user.id, conn=conn)
 
-    g.nursery.start_soon(
+    current_app.nursery.start_soon(
         redeem_lnurl_withdraw,
         wallet.id,
         request.args.get("lightning"),
