@@ -40,7 +40,6 @@ connected_websockets = defaultdict(set)
 @copilot_ext.websocket("/ws/<id>/")
 async def wss(id):
     copilot = await get_copilot(id)
-    print(copilot)
     if not copilot:
         return "", HTTPStatus.FORBIDDEN
     global connected_websockets

@@ -107,7 +107,6 @@
         })
       },
       openURL: function (url) {
-        console.log(url)
         return Quasar.utils.openURL(url)
       },
       initCamera() {
@@ -147,7 +146,6 @@
       },
       launch() {
         self = this
-        console.log('poo')
         LNbits.api
           .request(
             'GET',
@@ -172,7 +170,6 @@
     created: function () {
       self = this
       self.copilot = JSON.parse(localStorage.getItem('copilot'))
-      console.log(localStorage.getItem('inkey'))
       LNbits.api
         .request(
           'GET',
@@ -194,8 +191,6 @@
       })
 
       this.connectionBitStamp.onmessage = function (e) {
-        console.log(JSON.parse(e.data).data.price)
-        console.log(self.copilot)
         if (self.copilot.show_price) {
           if (self.copilot.show_price == 'btcusd') {
             self.price = String(
@@ -259,7 +254,6 @@
       }
       this.connection = new WebSocket(localUrl)
       this.connection.onmessage = function (e) {
-        console.log(e.data)
         res = e.data.split('-')
         if (res[0] == 'rocket') {
           addTask(['40%', '/copilot/static/rocket.gif', res[1]])

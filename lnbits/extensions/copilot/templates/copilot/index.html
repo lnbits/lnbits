@@ -478,7 +478,6 @@
       },
       sendFormDataCopilot: function () {
         var self = this
-        console.log(self.formDialogCopilot.data.animation1threshold)
         if (self.formDialogCopilot.data.id) {
           this.updateCopilot(
             self.g.user.wallets[0].adminkey,
@@ -500,7 +499,6 @@
             updatedData[property] = data[property]
           }
           if (property == 'animation1threshold' && data[property]) {
-            console.log(data[property])
             updatedData[property] = parseInt(data[property])
           }
           if (property == 'animation2threshold' && data[property]) {
@@ -510,7 +508,6 @@
             updatedData[property] = parseInt(data[property])
           }
         }
-        console.log(updatedData)
         LNbits.api
           .request('POST', '/copilot/api/v1/copilot', wallet, updatedData)
           .then(function (response) {
@@ -595,13 +592,11 @@
       updateCopilot: function (wallet, data) {
         var self = this
         var updatedData = {}
-        console.log(data)
         for (const property in data) {
           if (data[property]) {
             updatedData[property] = data[property]
           }
           if (property == 'animation1threshold' && data[property]) {
-            console.log(data[property])
             updatedData[property] = parseInt(data[property])
           }
           if (property == 'animation2threshold' && data[property]) {
@@ -611,7 +606,6 @@
             updatedData[property] = parseInt(data[property])
           }
         }
-        console.log(updatedData)
 
         LNbits.api
           .request(

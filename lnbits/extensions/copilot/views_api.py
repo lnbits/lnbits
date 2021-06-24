@@ -45,7 +45,6 @@ from .crud import (
     }
 )
 async def api_copilot_create_or_update(copilot_id=None):
-    print("dfbad")
     if not copilot_id:
         copilot = await create_copilot(user=g.wallet.user, **g.data)
         return jsonify(copilot._asdict()), HTTPStatus.CREATED
