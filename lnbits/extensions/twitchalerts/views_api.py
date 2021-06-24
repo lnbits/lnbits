@@ -101,11 +101,13 @@ async def api_authenticate_service(service_id):
 async def api_create_donation():
     """Takes data from donation form and creates+returns SatsPay charge"""
     webhook_base = request.scheme + "://" + request.headers["Host"]
-    charge_details = await get_charge_details(g.data["service"])
+    service_id = g.data["service"]
+    service = await get_service(service_id)
+    charge_details = await get_charge_details(service.id)
     name = g.data.get("name", "Anonymous")
     charge = await create_charge(
         amount=g.data["sats"],
-        completelink="https://twitch.tv/Fitti",
+        completelink=f"https://twitch.tv/{service.twitchuser}",
         completelinktext="Back to Stream!",
         webhook=webhook_base + "/twitchalerts/api/v1/postdonation",
         **charge_details)
