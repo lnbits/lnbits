@@ -101,11 +101,11 @@
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
-  new Vue({
+      Vue({
     el: '#vue',
     mixins: [windowMixin],
     data() {
-      return {
+      r     {
         fullscreen_cam: true,
         textareaModel: '',
         iframe: '',
@@ -119,9 +119,9 @@
       fullscreenToggle: function () {
         self = this
         self.animationBTN(String(this.fullscreen_cam))
-        if (this.fullscreen_cam) {
+          (this.fullscreen_cam) {
           this.fullscreen_cam = false
-        } else {
+        }   {
           this.fullscreen_cam = true
         }
       },
