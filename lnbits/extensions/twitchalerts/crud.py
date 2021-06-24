@@ -19,7 +19,7 @@ async def get_charge_details(service_id):
         "description": f"TwitchAlerts donation for service {str(service_id)}",
         "time": 1440,
     }
-    service = get_service(service_id)
+    service = await get_service(service_id)
     wallet_id = service.wallet
     wallet = await get_wallet(wallet_id)
     user = wallet.user
@@ -186,7 +186,7 @@ async def authenticate_service(service_id, code, redirect_uri):
 async def service_add_token(service_id, token):
     if (await get_service(service_id)).authenticated:
         return False
-    db.execute(
+    await db.execute(
         "UPDATE Services SET authenticated = 1, token = ? where id = ?",
         (token, service_id,),
     )
