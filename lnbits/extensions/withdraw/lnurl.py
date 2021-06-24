@@ -98,7 +98,6 @@ async def api_lnurl_callback(unique_hash):
             HTTPStatus.OK,
         )
 
-
     try:
         usescsv = ""
         for x in range(1, link.uses - link.used):

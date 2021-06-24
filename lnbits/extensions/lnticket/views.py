@@ -29,5 +29,5 @@ async def display(form_id):
         form_name=form.name,
         form_desc=form.description,
         form_costpword=form.costpword,
-        form_wallet=wallet.inkey
+        form_wallet=wallet.inkey,
     )
