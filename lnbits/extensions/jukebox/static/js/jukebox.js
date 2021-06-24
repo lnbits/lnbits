@@ -6,14 +6,9 @@ new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data() {
-    return {
-    }
+    return {}
   },
   computed: {},
-  methods: {
-  
-  },
-  created() {
-
-  }
+  methods: {},
+  created() {}
 })

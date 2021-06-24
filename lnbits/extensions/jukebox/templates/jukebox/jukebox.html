@@ -9,7 +9,8 @@
             <img style="width: 100px" :src="currentPlay.image" />
           </div>
           <div class="col-8">
-            <strong style="font-size: 20px">{{ currentPlay.name }}</strong><br />
+            <strong style="font-size: 20px">{{ currentPlay.name }}</strong
+            ><br />
             <strong style="font-size: 15px">{{ currentPlay.artist }}</strong>
           </div>
         </div>
@@ -19,15 +20,30 @@
     <q-card class="q-mt-lg">
       <q-card-section>
         <p style="font-size: 22px">Pick a song</p>
-        <q-select outlined v-model="playlist" :options="playlists" label="playlists" @input="selectPlaylist()">
+        <q-select
+          outlined
+          v-model="playlist"
+          :options="playlists"
+          label="playlists"
+          @input="selectPlaylist()"
+        >
         </q-select>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-virtual-scroll style="max-height: 300px" :items="currentPlaylist" separator>
+        <q-virtual-scroll
+          style="max-height: 300px"
+          :items="currentPlaylist"
+          separator
+        >
           <template v-slot="{ item, index }">
-            <q-item :key="index" dense clickable v-ripple
-              @click="payForSong(item.id, item.name, item.artist, item.image)">
+            <q-item
+              :key="index"
+              dense
+              clickable
+              v-ripple
+              @click="payForSong(item.id, item.name, item.artist, item.image)"
+            >
               <q-item-section>
                 <q-item-label>
                   {{ item.name }} - ({{ item.artist }})
@@ -55,7 +71,8 @@
       </q-card-section>
       <br />
       <div class="row q-mt-lg q-gutter-sm">
-        <q-btn outline color="grey" @click="getInvoice(receive.id)">Play for {% endraw %}{{ price }}{% raw %} sats
+        <q-btn outline color="grey" @click="getInvoice(receive.id)"
+          >Play for {% endraw %}{{ price }}{% raw %} sats
         </q-btn>
       </div>
     </q-card>
@@ -63,10 +80,16 @@
   <q-dialog v-model="receive.dialogues.second" position="top">
     <q-card class="q-pa-lg lnbits__dialog-card">
       <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-        <qrcode :value="'lightning:' + receive.paymentReq" :options="{width: 800}" class="rounded-borders"></qrcode>
+        <qrcode
+          :value="'lightning:' + receive.paymentReq"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
       </q-responsive>
       <div class="row q-mt-lg q-gutter-sm">
-        <q-btn outline color="grey" @click="copyText(receive.paymentReq)">Copy invoice</q-btn>
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+          >Copy invoice</q-btn
+        >
       </div>
     </q-card>
   </q-dialog>
@@ -84,7 +107,7 @@
       return {
         currentPlaylist: [],
         currentlyPlaying: {},
-        cancelListener: () => { },
+        cancelListener: () => {},
         playlists: {},
         playlist: '',
         heavyList: [],
@@ -118,7 +141,7 @@
           this.paymentDialog.dismissMsg()
         }
       },
-      closeReceiveDialog() { },
+      closeReceiveDialog() {},
       payForSong(song_id, name, artist, image) {
         self = this
         self.receive.name = name
@@ -133,12 +156,11 @@
           .request(
             'GET',
             '/jukebox/api/v1/jukebox/jb/invoice/' +
-            '{{ juke_id }}' +
-            '/' +
-            song_id
+              '{{ juke_id }}' +
+              '/' +
+              song_id
           )
           .then(function (response) {
-
             self.receive.paymentReq = response.data[0][1]
             self.receive.paymentHash = response.data[0][0]
             self.receive.dialogues.second = true
@@ -153,21 +175,27 @@
                 self.receive.dialogues.first = false
                 self.receive.dialogues.second = false
                 self.$q.notify({
-                  message:
-                    'Processing',
+                  message: 'Processing'
                 })
                 LNbits.api
                   .request(
                     'GET',
-                    '/jukebox/api/v1/jukebox/jb/invoicep/' + song_id + '/{{ juke_id }}/' + self.receive.paymentHash)
+                    '/jukebox/api/v1/jukebox/jb/invoicep/' +
+                      song_id +
+                      '/{{ juke_id }}/' +
+                      self.receive.paymentHash
+                  )
                   .then(function (response1) {
-
                     if (response1.data[2] == song_id) {
-                      setTimeout(function () { self.getCurrent() }, 500)
+                      setTimeout(function () {
+                        self.getCurrent()
+                      }, 500)
                       self.$q.notify({
                         color: 'green',
                         message:
-                          'Success! "' + self.receive.name + '" will be played soon',
+                          'Success! "' +
+                          self.receive.name +
+                          '" will be played soon',
                         timeout: 3000
                       })
 
@@ -176,17 +204,14 @@
                     }
                   })
                   .catch(err => {
-
                     LNbits.utils.notifyApiError(err)
                     self.paid = false
                     response1 = []
                   })
               }
             }, 3000)
-
           })
           .catch(err => {
-
             self.$q.notify({
               color: 'warning',
               html: true,
@@ -197,16 +222,17 @@
           })
       },
       checkInvoice(juke_id, paymentHash) {
-
         var self = this
         LNbits.api
           .request(
             'GET',
-            '/jukebox/api/v1/jukebox/jb/checkinvoice/' + juke_id + '/' + paymentHash,
+            '/jukebox/api/v1/jukebox/jb/checkinvoice/' +
+              juke_id +
+              '/' +
+              paymentHash,
             'filla'
           )
           .then(function (response) {
-
             self.paid = response.data.paid
           })
           .catch(function (error) {
@@ -214,21 +240,16 @@
           })
       },
       getCurrent() {
-
         LNbits.api
-          .request(
-            'GET',
-            '/jukebox/api/v1/jukebox/jb/currently/{{juke_id}}')
+          .request('GET', '/jukebox/api/v1/jukebox/jb/currently/{{juke_id}}')
           .then(function (res) {
             if (res.data.id) {
-
               self.currentlyPlaying = res.data
             }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-
       },
       selectPlaylist() {
         self = this
@@ -236,9 +257,9 @@
           .request(
             'GET',
             '/jukebox/api/v1/jukebox/jb/playlist/' +
-            '{{ juke_id }}' +
-            '/' +
-            self.playlist.split(',')[0].split('-')[1]
+              '{{ juke_id }}' +
+              '/' +
+              self.playlist.split(',')[0].split('-')[1]
           )
           .then(function (response) {
             self.currentPlaylist = response.data
@@ -247,7 +268,7 @@
             LNbits.utils.notifyApiError(err)
           })
       },
-      currentSong() { }
+      currentSong() {}
     },
     created() {
       this.getCurrent()
@@ -258,9 +279,9 @@
         .request(
           'GET',
           '/jukebox/api/v1/jukebox/jb/playlist/' +
-          '{{ juke_id }}' +
-          '/' +
-          self.playlists[0].split(',')[0].split('-')[1]
+            '{{ juke_id }}' +
+            '/' +
+            self.playlists[0].split(',')[0].split('-')[1]
         )
         .then(function (response) {
           self.currentPlaylist = response.data
