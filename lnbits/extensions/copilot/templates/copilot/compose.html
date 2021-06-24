@@ -138,8 +138,8 @@
       pushAnim(content) {
         document.getElementById('animations').style.width = content[0]
         document.getElementById('animations').src = content[1]
-        if (content[1] != 'none') {
-          self.showNotif(content[1])
+        if (content[2] != 'none') {
+          self.showNotif(content[2])
         }
         setTimeout(function () {
           document.getElementById('animations').src = ''

@@ -11,11 +11,13 @@ import trio
 import shortuuid
 from . import copilot_ext
 
+
 @copilot_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
     return await render_template("copilot/index.html", user=g.user)
+
 
 @copilot_ext.route("/cp/")
 async def compose():
@@ -34,6 +36,7 @@ async def panel():
 
 connected_websockets = defaultdict(set)
 
+
 @copilot_ext.websocket("/ws/<id>/")
 async def wss(id):
     copilot = await get_copilot(id)
@@ -49,6 +52,7 @@ async def wss(id):
             await websocket.send(data)
     finally:
         connected_websockets[id].remove(send_channel)
+
 
 async def updater(copilot_id, data, comment):
     copilot = await get_copilot(copilot_id)

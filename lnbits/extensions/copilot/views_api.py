@@ -80,9 +80,9 @@ async def api_copilot_retrieve(copilot_id):
             HTTPStatus.OK,
         )
     return (
-            jsonify({**copilot._asdict(), **{"lnurl": copilot.lnurl}}),
-            HTTPStatus.OK,
-        )
+        jsonify({**copilot._asdict(), **{"lnurl": copilot.lnurl}}),
+        HTTPStatus.OK,
+    )
 
 
 @copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["DELETE"])
