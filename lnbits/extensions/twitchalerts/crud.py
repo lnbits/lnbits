@@ -5,6 +5,9 @@ from ..satspay.crud import delete_charge
 
 import httpx
 
+from http import HTTPStatus
+from quart import jsonify
+
 from typing import Optional
 
 from lnbits.helpers import urlsafe_short_hash
@@ -28,11 +31,12 @@ async def get_charge_details(service_id):
 
 async def create_donation(
     id: str,
-    name: str,
     cur_code: str,
     sats: int,
     amount: float,
     service: int,
+    name: str = "Anonymous",
+    message: str = "",
     posted: bool = False,
 ) -> Donation:
     await db.execute(
@@ -40,17 +44,19 @@ async def create_donation(
         INSERT INTO Donations (
             id,
             name,
+            message,
             cur_code,
             sats,
             amount,
             service,
             posted
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             id,
             name,
+            message,
             cur_code,
             sats,
             amount,
@@ -61,19 +67,51 @@ async def create_donation(
     return await get_donation(id)
 
 
-async def post_donation(donation_id: str) -> bool:
+async def post_donation(donation_id: str) -> tuple:
     donation = await get_donation(donation_id)
+    if not donation:
+        return (
+            jsonify({"message": "Donation not found!"}),
+            HTTPStatus.BAD_REQUEST
+        )
     if donation.posted:
-        return False
+        return (
+            jsonify({"message": "Donation has already been posted!"}),
+            HTTPStatus.BAD_REQUEST
+        )
     service = await get_service(donation.service)
-    servicename = service.servicename
-    if servicename == "Streamlabs":
-        pass
+    if service.servicename == "Streamlabs":
+        url = "https://streamlabs.com/api/v1.0/donations"
+        data = {
+                "name": donation.name,
+                "message": donation.message,
+                "identifier": "LNbits",
+                "amount": donation.amount,
+                "currency": donation.cur_code.upper(),
+                "access_token": service.token,
+        }
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, data=data)
+        print(response.json())
+        status = [s for s in list(HTTPStatus) if s == response.status_code][0]
+    elif service.servicename == "StreamElements":
+        return (
+            jsonify({"message": "StreamElements not yet supported!"}),
+            HTTPStatus.BAD_REQUEST
+        )
+    else:
+        return (
+            jsonify({"message": "Unsopported servicename"}),
+            HTTPStatus.BAD_REQUEST
+        )
     await db.execute(
         "UPDATE Donations SET posted = 1 WHERE id = ?",
         (donation_id,)
     )
-    return True
+    return (
+        jsonify(response.json()),
+        status
+    )
 
 
 async def create_service(

@@ -133,19 +133,8 @@ async def api_post_donation():
     data = await request.get_json(force=True)
     donation_id = data.get("id", "No ID")
     charge = await get_charge(donation_id)
-    print(charge)
     if charge and charge.paid:
-        print("This endpoint works!")
-        if await post_donation(donation_id):
-            return (
-                jsonify({"message": "Posted!"}),
-                HTTPStatus.OK
-            )
-        else:
-            return (
-                jsonify({"message": "Already posted!"}),
-                HTTPStatus.BAD_REQUEST
-            )
+        return await post_donation(donation_id)
     else:
         return (
             jsonify({"message": "Not a paid charge!"}),
