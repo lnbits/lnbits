@@ -317,9 +317,8 @@
           .then(function (response) {
             self.tickets = response.data
               .map(function (obj) {
-                if (obj.paid) {
-                  return mapLNTicket(obj)
-                }
+                if (!obj?.paid) return
+                return mapLNTicket(obj)
               })
               .filter(v => v)
           })
