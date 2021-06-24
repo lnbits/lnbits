@@ -20,6 +20,7 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
     async for payment in invoice_paid_chan:
         await on_invoice_paid(payment)
 
+
 async def on_invoice_paid(payment: Payment) -> None:
     if "lnticket" != payment.extra.get("tag"):
         # not a lnticket invoice
@@ -33,4 +34,4 @@ async def on_invoice_paid(payment: Payment) -> None:
     await payment.set_pending(False)
     await set_ticket_paid(payment.payment_hash)
     _ticket = await get_ticket(payment.checking_id)
-    print('ticket', _ticket)
+    print("ticket", _ticket)
