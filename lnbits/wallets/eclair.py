@@ -61,7 +61,7 @@ class EclairWallet(Wallet):
             try:
                 data = r.json()
                 if "error" in data:
-                    print('ERROR', data["error"])
+                    print(f"ERROR-{key}", data["error"])
                     raise EclairError(data["error"])
             except:
                 raise UnknownError(r.text)
@@ -156,8 +156,9 @@ class EclairWallet(Wallet):
             try:
                 async with open_websocket_url(ws_url, extra_headers=[('Authorization', self.auth["Authorization"])]) as ws:
                     message = await ws.get_message()
+                    print('Received message: %s' % message)
+
                     if "payment-received" in message["type"]:
-                        print('Received message: %s' % message)
                         yield message["paymentHash"]
 
             except OSError as ose:
