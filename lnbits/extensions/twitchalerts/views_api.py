@@ -96,19 +96,19 @@ async def api_authenticate_service(service_id):
 
 
 @twitchalerts_ext.route("/api/v1/donations", methods=["POST"])
-@api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
         "name": {"type": "string"},
         "sats": {"type": "integer", "required": True},
         "service": {"type": "integer", "required": True},
-        "cur_code": {"type": "string", "required": True},
-        "amount": {"type": "float", "required": True}
+        "message": {"type": "string"}
     }
 )
 async def api_create_donation():
     """Takes data from donation form and creates+returns SatsPay charge"""
-    price = await btc_price("USD")
+    cur_code = "USD"
+    price = await btc_price(cur_code)
+    message = g.data.get("message", "")
     amount = g.data["sats"] * (10 ** (-8)) * price
     webhook_base = request.scheme + "://" + request.headers["Host"]
     service_id = g.data["service"]
@@ -124,13 +124,17 @@ async def api_create_donation():
     await create_donation(
         id=charge.id,
         wallet=service.wallet,
+        message=message,
         name=name,
-        cur_code=g.data["cur_code"],
+        cur_code=cur_code,
         sats=g.data["sats"],
         amount=amount,
         service=g.data["service"],
     )
-    return redirect(f"/satspay/{charge.id}")
+    return (
+        jsonify({"redirect_url": f"/satspay/{charge.id}"}),
+        HTTPStatus.OK
+    )
 
 
 @twitchalerts_ext.route("/api/v1/postdonation", methods=["POST"])

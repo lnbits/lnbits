@@ -3,79 +3,50 @@
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
-        <h3 class="q-my-none">Donate Bitcoin to {{ twitchuser }}!</h3>
+        <h5 class="q-my-none">Donate Bitcoin to {{ twitchuser }}</h5>
         <br />
         <q-form @submit="Invoice()" class="q-gutter-md">
           <q-input
             filled
             dense
-            v-model.trim="formDialog.data.name"
+            v-model.trim="donationDialog.data.name"
             type="name"
-            label="Your Name"
+            label="Your Name (leave blank for Anonymous donation)"
           ></q-input>
           <q-input
             filled
             dense
-            v-model.trim="formDialog.data.amount"
+            v-model.number="donationDialog.data.sats"
             type="number"
+            min=1
+            suffix=sats
+            :rules="[val => val > 0 || 'Choose a positive number of sats!']"
             label="Amount of sats"
           ></q-input>
           <q-input
             filled
             dense
-            v-model.number="formDialog.data.text"
+            v-model.trim="donationDialog.data.message"
             type="textarea"
-            label="Donation Message"
+            label="Donation Message (you can leave this blank too)"
           ></q-input>
-          <p>{% raw %}{{amountWords}}{% endraw %}</p>
           <div class="row q-mt-lg">
             <q-btn
               unelevated
               color="deep-purple"
-              :disable="formDialog.data.name == '' || formDialog.data.text == ''"
+              :disable="donationDialog.data.sats < 1 || !donationDialog.data.sats"
               type="submit"
               >Submit</q-btn
-            >
-            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto"
-              >Cancel</q-btn
             >
           </div>
         </q-form>
       </q-card-section>
     </q-card>
   </div>
-
-  <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
-    <q-card
-      v-if="!receive.paymentReq"
-      class="q-pa-lg q-pt-xl lnbits__dialog-card"
-    >
-    </q-card>
-    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <div class="text-center q-mb-lg">
-        <a :href="'lightning:' + receive.paymentReq">
-          <q-responsive :ratio="1" class="q-mx-xl">
-            <qrcode
-              :value="paymentReq"
-              :options="{width: 340}"
-              class="rounded-borders"
-            ></qrcode>
-          </q-responsive>
-        </a>
-      </div>
-      <div class="row q-mt-lg">
-        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
-          >Copy invoice</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
 </div>
 
 {% endblock %} {% block scripts %}
 <script>
-  console.log('{{ form_costpword }}')
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
@@ -85,12 +56,12 @@
       return {
         paymentReq: null,
         redirectUrl: null,
-        formDialog: {
+        donationDialog: {
           show: false,
           data: {
             name: '',
-            email: '',
-            text: ''
+            sats: '',
+            message: ''
           }
         },
         receive: {
@@ -100,93 +71,21 @@
         }
       }
     },
-    computed: {
-      amountWords() {
-        var regex = /\s+/gi
-        var nwords = this.formDialog.data.text
-          .trim()
-          .replace(regex, ' ')
-          .split(' ').length
-        var sats = nwords * parseInt('{{ form_costpword }}')
-        if (sats === parseInt('{{ form_costpword }}')) {
-          return '0 Sats to pay'
-        } else {
-          this.formDialog.data.sats = sats
-          return sats + ' Sats to pay'
-        }
-      }
-    },
 
     methods: {
-      resetForm: function (e) {
-        e.preventDefault()
-        this.formDialog.data.name = ''
-        this.formDialog.data.email = ''
-        this.formDialog.data.text = ''
-      },
-
-      closeReceiveDialog: function () {
-        var checker = this.receive.paymentChecker
-        dismissMsg()
-
-        clearInterval(paymentChecker)
-        setTimeout(function () {}, 10000)
-      },
       Invoice: function () {
         var self = this
         axios
-          .post('/lnticket/api/v1/tickets/{{ form_id }}', {
-            form: '{{ form_id }}',
-            name: self.formDialog.data.name,
-            email: self.formDialog.data.email,
-            ltext: self.formDialog.data.text,
-            sats: self.formDialog.data.sats
+          .post('/twitchalerts/api/v1/donations', {
+            service: {{ service }},
+            name: self.donationDialog.data.name,
+            sats: self.donationDialog.data.sats,
+            message: self.donationDialog.data.message
           })
           .then(function (response) {
-            self.paymentReq = response.data.payment_request
-            self.paymentCheck = response.data.payment_hash
-
-            dismissMsg = self.$q.notify({
-              timeout: 0,
-              message: 'Waiting for payment...'
-            })
-
-            self.receive = {
-              show: true,
-              status: 'pending',
-              paymentReq: self.paymentReq
-            }
-
-            paymentChecker = setInterval(function () {
-              axios
-                .get('/lnticket/api/v1/tickets/' + self.paymentCheck)
-                .then(function (res) {
-                  if (res.data.paid) {
-                    clearInterval(paymentChecker)
-                    self.receive = {
-                      show: false,
-                      status: 'complete',
-                      paymentReq: null
-                    }
-                    dismissMsg()
-
-                    self.formDialog.data.name = ''
-                    self.formDialog.data.email = ''
-                    self.formDialog.data.text = ''
-                    self.$q.notify({
-                      type: 'positive',
-                      message: 'Sent, thank you!',
-                      icon: 'thumb_up'
-                    })
-                  }
-                })
-                .catch(function (error) {
-                  LNbits.utils.notifyApiError(error)
-                })
-            }, 2000)
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
+            self.redirect_url = response.data.redirect_url
+            console.log(self.redirect_url)
+            window.location.href = self.redirect_url
           })
       }
     }
