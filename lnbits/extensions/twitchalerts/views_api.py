@@ -108,18 +108,21 @@ async def api_create_donation():
     """Takes data from donation form and creates+returns SatsPay charge"""
     cur_code = "USD"
     price = await btc_price(cur_code)
+    sats = g.data["sats"]
     message = g.data.get("message", "")
-    amount = g.data["sats"] * (10 ** (-8)) * price
+    amount = sats * (10 ** (-8)) * price
     webhook_base = request.scheme + "://" + request.headers["Host"]
     service_id = g.data["service"]
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
     name = g.data.get("name", "Anonymous")
+    description = f"{sats} sats donation from {name} to {service.twitchuser}"
     charge = await create_charge(
-        amount=g.data["sats"],
+        amount=sats,
         completelink=f"https://twitch.tv/{service.twitchuser}",
         completelinktext="Back to Stream!",
         webhook=webhook_base + "/twitchalerts/api/v1/postdonation",
+        description=description,
         **charge_details)
     await create_donation(
         id=charge.id,

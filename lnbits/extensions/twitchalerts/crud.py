@@ -16,7 +16,6 @@ from lnbits.core.crud import get_wallet
 
 async def get_charge_details(service_id):
     details = {
-        "description": f"TwitchAlerts donation for service {str(service_id)}",
         "time": 1440,
     }
     service = await get_service(service_id)
