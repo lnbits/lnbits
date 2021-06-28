@@ -13,7 +13,13 @@ from .helpers import (
     get_js_vendored,
     url_for_vendored,
 )
-from .settings import LNBITS_PATH
+from .settings import (
+    LNBITS_PATH,
+    LNBITS_PRIMARY_COLOR,
+    LNBITS_SECONDARY_COLOR,
+    LNBITS_BG_COLOR,
+    LNBITS_DARKCARD_COLOR,
+)
 
 
 @click.command("migrate")

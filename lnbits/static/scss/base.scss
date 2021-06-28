@@ -1,23 +1,52 @@
-$dark-background: #1f2234;
-$dark-card-background: #333646;
-
+$themes: (
+  'classic': (
+    primary: #673ab7,
+    secondary: #9c27b0,
+    dark: #1f2234,
+    info: #333646,
+    marginal-bg: #1f2234,
+    marginal-text: #fff
+  ),
+  'dark': (
+    primary: #3b2169,
+    secondary: #551561,
+    dark: #020203,
+    info: #15161d,
+    marginal-bg: #1f2234,
+    marginal-text: #fff
+  ),
+  'light': (
+    primary: #703ec7,
+    secondary: #a32cb8,
+    dark: #4c4c74,
+    info: #555974,
+    marginal-bg: #1f2234,
+    marginal-text: #fff
+  ),
+  'green': (
+    primary: #3ab77d,
+    secondary: #27b065,
+    dark: #1f342b,
+    info: #334642,
+    marginal-bg: #1f2234,
+    marginal-text: #fff
+  )
+);
+@each $theme, $colors in $themes {
+  [data-theme='#{$theme}'] {
+    @each $name, $color in $colors {
+      .bg-#{$name} {
+        background: $color !important;
+      }
+      .text-#{$name} {
+        color: $color !important;
+      }
+    }
+  }
+}
 
 [v-cloak] {
   display: none;
-}
-
-.bg-lnbits-dark {
-  background-color: $dark-background;
-}
-
-body.body--dark,
-body.body--dark .q-drawer--dark,
-body.body--dark .q-menu--dark {
-  background: $dark-background;
-}
-
-body.body--dark .q-card--dark {
-  background: $dark-card-background;
 }
 
 body.body--dark .q-table--dark {
@@ -25,7 +54,7 @@ body.body--dark .q-table--dark {
 }
 
 body.body--light,
-body.body--light .q-drawer  {
+body.body--light .q-drawer {
   background: whitesmoke;
 }
 

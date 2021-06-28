@@ -29,7 +29,12 @@ LNBITS_ALLOWED_USERS: List[str] = env.list(
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
     "LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str
 )
+
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
+LNBITS_PRIMARY_COLOR = env.str("LNBITS_PRIMARY_COLOR", default="#673ab7")
+LNBITS_SECONDARY_COLOR = env.str("LNBITS_SECONDARY_COLOR", default="#9c27b0")
+LNBITS_BG_COLOR = env.str("LNBITS_BG_COLOR", default="#1f2234")
+LNBITS_DARKCARD_COLOR = env.str("LNBITS_DARKCARD_COLOR", default="#333646")
 
 WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
