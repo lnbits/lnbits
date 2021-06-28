@@ -6,6 +6,7 @@ from .helpers import (
     usrFromWallet, 
     widFromWallet, 
     inKeyFromWallet,
+    adminKeyFromWallet,
     getUser, 
     getUsers, 
     getLogs, 
@@ -96,36 +97,52 @@ async def addPayment(
 
 async def handlePaymentWebhook(id:str, params:dict)->dict:
     if params:
-        if not {'withdraw'} <= set(params):
+        if not {'withdraw', 'ln_id', 'hash'} <= set(params):
             return {"error":"missing parameters"}
-        if params['withdraw'] == 'paid':
+        if params['withdraw'] == 'check':
+            if not 'inKey' in params:
+                return {"error":"Not Authorized"}
             update_check = await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'")
             if update_check is None:
                 return {"error": "No withdrawal found"}
             uc = dict(update_check)
             if uc['paid']:
-                return {"error":"Withdraw already processed"}
-            await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
-            log = await createLog(
-                usr= uc['usr_id'],
-                cmd='withdraw',
-                wl=None,
-                credits=None,
-                multi=None,
-                sats=uc['amount'],
-                data=None,
-            )
-            return {"success":{"id": id, "withdraw":True}}
-        elif params['withdraw'] == 'check':
-            if not 'inKey' in params:
-                return {"error":"Not Authorized"}
-            check_withdrawn = await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'")
-            if check_withdrawn is None:
-                return {"error": "No withdrawal found"}
-            ch_w = dict(check_withdrawn)
-            if not ch_w['paid']:
-                return {"success":{"id": id, "usr_id": ch_w["usr_id"],"withdraw": False}}
-            return {"success":{"id": id, "usr_id": ch_w["usr_id"],"withdraw": True, "amount": ch_w['amount']}}
+                return {"success":{"withdraw":True, "id": id, "amount":uc['amount']}}
+            usr_inkey = await inKeyFromWallet((await getUser(uc['usr_id'],True,None,None))['usr_id'])
+            print(usr_inkey)
+            # async call to check used need onion option
+            url = 'https://'+params['host']+'/withdraw/api/v1/links/'+params['ln_id']
+            headers = {
+                "Content-Type":"application/json",
+                "X-Api-Key":usr_inkey
+            }
+            lnurlw_status = None
+            async with httpx.AsyncClient() as client:
+                try:
+                    r = await client.get(
+                        url,
+                        headers=headers,
+                        timeout=40,
+                    )
+                    lnurlw_status = r.json()
+                except:
+                    return {"error": "Withdraw link error!"}
+            #if true then db and return {"success":{"paid":True, "id": id}}
+            print(lnurlw_status)
+            if lnurlw_status['used']:
+                await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
+                log = await createLog(
+                    usr= uc['usr_id'],
+                    cmd='withdraw',
+                    wl=None,
+                    credits=None,
+                    multi=None,
+                    sats=uc['amount'],
+                    data=None,
+                )
+                return {"success":{"withdraw":True, "id": id, "amount": uc['amount']}}
+            else:
+                return {"success":{"withdraw":False, "id": id}}
     else:
         pay_row = await db.fetchone(f"SELECT * FROM payments WHERE id = '{id}'")
         if pay_row is None:
@@ -384,13 +401,10 @@ async def API_fund(id:str, params:dict)->dict:
     if not user['active']:
         return {"error":{"id":id, "active":False}}
     admin_id = user['admin']
-    
     try:
         webHook = str(L_HOST+f"/winlose/api/v1/payments/{uni_id}")
-        print(webHook)
         invoice_wallet = (await getSettings(None, admin_id))['success']['invoice_wallet']
-        c = await klankyRachet(await numPayments(admin_id))
-        print(c)
+        #c = await klankyRachet(await numPayments(admin_id))
         payment_request, payment_hash = await create_invoice(
             wallet_id=invoice_wallet,
             amount=int(params['amount']),
@@ -411,17 +425,49 @@ async def API_withdraw(id:str, params:dict)->dict:
     usr = await getUser(id, True ,None,None)
     if not usr['active']:
         return {"error":{"id":id, "active":False}}
+    protocol = params['url'].rsplit('//', 1)[0].rsplit(':', 1)[0]
+    if protocol != 'https':
+        return {"error": "withdrawal must be over https"}
     inKey = await inKeyFromWallet(usr['usr_id'])
-    url = L_HOST+'/withdraw'
+    adminKey = await adminKeyFromWallet(usr['usr_id'])
+    url = protocol+'://'+params['host']+'/withdraw/api/v1/links'
     bal = int((await getPayoutBalance(inKey, url))['balance'])
+    if bal == 0:
+        return {"error": "No funds available"}
+    bal = int(bal/1000)
     uni_id = urlsafe_short_hash()
-    withdraw_link  = None
-    # create drain withdraw link
+    headers = {
+            "Content-Type":"application/json",
+            "X-Api-Key":adminKey
+            }
+    payload={
+        "title": "Withdraw - "+id, 
+        "min_withdrawable": bal, 
+        "max_withdrawable": bal, 
+        "uses": 1, 
+        "wait_time": 1, 
+        "is_unique": True
+        }
+    withdraw_link  =  None
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.post(
+                url,
+                headers=headers, 
+                json=payload,
+                timeout=40,
+            )
+            withdraw_link = r.json()
+        except:
+            return {"error": "Withdraw link error!"}
+    chk_url = protocol+"://"+params['host']+"/winlose/api/v1/payments/"+uni_id+"?withdraw=check&ln_id="+withdraw_link['id']+"&hash="+withdraw_link['unique_hash']
+    print(chk_url)
     if withdraw_link:
         data = json.dumps({"withdraw_link": withdraw_link})
         pend_withdraw = await addPayment(
         id=uni_id, admin_id=usr['admin'], usr_id=id, 
         amount=bal, credits=0,
         paid=False, cmd='withdraw', data=data)
-        # return {"success":{"usr_id":id, "payment_hash": payment_hash, "payment_request": payment_request, "amount": bal}}
-    return {"success":"withdraw link"}
+        return {"success":{"lnurl":withdraw_link['lnurl'], "chk_url":chk_url, "amount": bal}}
+    else:
+        return {"error": "Server Error"}

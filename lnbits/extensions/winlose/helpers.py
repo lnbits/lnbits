@@ -31,9 +31,16 @@ async def inKeyFromWallet(user:str)->str:
     else:
         return row[0]
 
+async def adminKeyFromWallet(user:str)->str:
+    row = await wal_db.fetchone(f"SELECT adminkey FROM wallets WHERE user = '{user}'")
+    if row is None:
+        return '0'
+    else:
+        return row[0]
+
 async def getUser(id:str, local:bool, lnurl_auth:Optional[str], params:Optional[dict])-> dict:
     if lnurl_auth:
-        if "admin" in params:
+        if params is not None and "admin" in params:
             row = await db.fetchone("SELECT * FROM users WHERE lnurl_auth = ? AND admin = ?",(lnurl_auth, params['admin']))
         else:
             row = await db.fetchone(f"SELECT * FROM users WHERE lnurl_auth = '{lnurl_auth}'")
@@ -72,7 +79,6 @@ async def getPayoutBalance(inKey:str, url:str)->int:
         }
     #base_url = url.rsplit('/', 6)[0]
     base_url = L_HOST
-    print(base_url)
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
@@ -81,7 +87,6 @@ async def getPayoutBalance(inKey:str, url:str)->int:
                 timeout=40,
             )
             balance = r.json()
-            print(balance)
             return balance
         except:
             return jsonify(error=True)

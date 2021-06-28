@@ -120,6 +120,7 @@ async def fund_get_(id):
 @api_check_wallet_key('admin')
 async def withdraw_get_(id):
     params = dict(request.args)
+    params['host'] = request.headers['Host']
     params['inKey'] = request.headers['X-Api-Key']
     params['url'] = request.url
     withdraw = await API_withdraw(id, params)
@@ -142,6 +143,7 @@ async def recovery_post():
 @winlose_ext.route("/api/v1/payments/<id>", methods=["POST"])
 async def payments_get_(id):
     params = dict(request.args)
+    params['host'] = request.headers['Host']
     if 'X-Api-Key' in request.headers:
         params['inKey'] = request.headers['X-Api-Key']
     payment = await handlePaymentWebhook(id, params)
