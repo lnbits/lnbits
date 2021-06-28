@@ -17,7 +17,8 @@ from .crud import (
     get_services,
     authenticate_service,
     update_donation,
-    update_service
+    update_service,
+    delete_service
 )
 from ..satspay.crud import create_charge, get_charge
 
@@ -252,5 +253,24 @@ async def api_delete_donation(donation_id):
             HTTPStatus.FORBIDDEN
         )
     await delete_donation(donation_id)
+
+    return "", HTTPStatus.NO_CONTENT
+
+
+@twitchalerts_ext.route("/api/v1/services/<service_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_delete_service(service_id):
+    service = await get_service(service_id)
+    if not service:
+        return (
+            jsonify({"message": "No service with this ID!"}),
+            HTTPStatus.NOT_FOUND
+        )
+    if service.wallet != g.wallet.id:
+        return (
+            jsonify({"message": "Not authorized to delete this service!"}),
+            HTTPStatus.FORBIDDEN
+        )
+    await delete_service(service_id)
 
     return "", HTTPStatus.NO_CONTENT

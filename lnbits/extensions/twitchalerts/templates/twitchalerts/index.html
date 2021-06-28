@@ -50,22 +50,22 @@
                   icon="link"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   type="a"
+                  :href="props.row.authUrl"
+                  target="_blank"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="send"
+                  :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
+                  type="a"
                   :href="props.row.displayUrl"
                   target="_blank"
                 ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
-              </q-td>
-              <q-td auto-width>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="updateserviceDialog(props.row.id)"
-                  icon="edit"
-                  color="light-blue"
-                ></q-btn>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -237,7 +237,8 @@
       'YYYY-MM-DD HH:mm'
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.displayUrl = ['/twitchalerts/api/v1/getaccess/', obj.id].join('')
+    obj.authUrl = ['/twitchalerts/api/v1/getaccess/', obj.id].join('')
+    obj.displayUrl =  ['/twitchalerts/', obj.state].join('')
     return obj
   }
 
@@ -364,11 +365,7 @@
         })
         var data = this.serviceDialog.data
 
-        if (data.id) {
-          this.updateService(wallet, data)
-        } else {
-          this.createService(wallet, data)
-        }
+        this.createService(wallet, data)
       },
 
       createService: function(wallet, data) {
@@ -394,29 +391,6 @@
         this.serviceDialog.data.client_id = link.client_id
         this.serviceDialog.data.client_secret = link.client_secret
         this.serviceDialog.show = true
-      },
-      updateService: function(wallet, data) {
-        var self = this
-        console.log(data)
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/twitchalerts/api/v1/services/' + data.id,
-            wallet.inkey,
-            data
-          )
-          .then(function(response) {
-            self.services = _.reject(self.services, function(obj) {
-              return obj.id == data.id
-            })
-            self.services.push(mapTwitchAlerts(response.data))
-            self.serviceDialog.show = false
-            self.serviceDialog.data = {}
-          })
-          .catch(function(error) {
-            LNbits.utils.notifyApiError(error)
-          })
       },
       deleteService: function(servicesId) {
         var self = this
