@@ -156,11 +156,18 @@ async def create_service(
     return service
 
 
-async def get_service(service_id: int) -> Optional[Service]:
-    row = await db.fetchone(
-        "SELECT * FROM Services WHERE id = ?",
-        (service_id,)
-    )
+async def get_service(service_id: int,
+                      by_state: str = None) -> Optional[Service]:
+    if by_state:
+        row = await db.fetchone(
+            "SELECT * FROM Services WHERE state = ?",
+            (by_state,)
+        )
+    else:
+        row = await db.fetchone(
+            "SELECT * FROM Services WHERE id = ?",
+            (service_id,)
+        )
     return Service.from_row(row) if row else None
 
 
