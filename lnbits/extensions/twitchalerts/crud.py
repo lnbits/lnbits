@@ -161,6 +161,14 @@ async def get_service(service_id: int) -> Optional[Service]:
     return Service.from_row(row) if row else None
 
 
+async def get_services(wallet_id: str) -> Optional[list]:
+    rows = await db.fetchall(
+        "SELECT * FROM Services WHERE wallet = ?",
+        (wallet_id,)
+    )
+    return [Service.from_row(row) for row in rows] if rows else None
+
+
 async def authenticate_service(service_id, code, redirect_uri):
     # The API token is passed in the querystring as 'code'
     service = await get_service(service_id)
@@ -212,6 +220,18 @@ async def get_donation(donation_id: str) -> Optional[Donation]:
         (donation_id,)
     )
     return Donation.from_row(row) if row else None
+
+
+async def get_donations(wallet_id: str) -> Optional[list]:
+    services = await get_services(wallet_id)
+    service_ids = [service.id for service in services]
+    rows = []
+    for service_id in service_ids:
+        rows.append(await db.fetchall(
+            "SELECT * FROM Donations WHERE service = ?",
+            (service_id,)
+        ))
+    return [Donation.from_row(row) for row in rows] if rows else None
 
 
 async def delete_donation(donation_id: str) -> None:

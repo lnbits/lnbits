@@ -2,13 +2,14 @@ from quart import g, redirect, request, jsonify
 from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
-from lnbits.core.crud import get_wallet
+from lnbits.core.crud import get_wallet, get_user
 
 from . import twitchalerts_ext
 from .crud import (
     get_charge_details,
     create_donation,
     post_donation,
+    get_donations,
     create_service,
     get_service,
     authenticate_service
@@ -142,3 +143,15 @@ async def api_post_donation():
             jsonify({"message": "Not a paid charge!"}),
             HTTPStatus.BAD_REQUEST
         )
+
+
+@twitchalerts_ext.route("/api/v1/donations", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_get_donations():
+    wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    return (
+        jsonify([
+            donation._asdict() for donation in await get_donations(wallet_ids)
+        ]),
+        HTTPStatus.OK,
+    )
