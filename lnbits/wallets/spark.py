@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 import json
 import httpx
 import random

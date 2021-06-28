@@ -1,5 +1,5 @@
 import json
-import trio  # type: ignore
+import trio
 import httpx
 from os import getenv
 from http import HTTPStatus

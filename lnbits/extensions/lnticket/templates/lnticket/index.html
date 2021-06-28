@@ -90,6 +90,16 @@
           <div class="col">
             <h5 class="text-subtitle1 q-my-none">Tickets</h5>
           </div>
+          <!-- <div class="col-auto">
+            <q-btn
+              flat
+              color="grey"
+              icon="autorenew"
+              :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="getTickets"
+              ><q-tooltip> Refresh Tickets </q-tooltip></q-btn
+            >
+          </div> -->
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportticketsCSV"
               >Export to CSV</q-btn
@@ -230,7 +240,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapLNTicket = function (obj) {
+  const mapLNTicket = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -290,7 +300,8 @@
         formDialog: {
           show: false,
           data: {}
-        }
+        },
+        cancelListener: () => {}
       }
     },
     methods: {
@@ -304,9 +315,12 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.tickets = response.data.map(function (obj) {
-              return mapLNTicket(obj)
-            })
+            self.tickets = response.data
+              .map(function (obj) {
+                if (!obj?.paid) return
+                return mapLNTicket(obj)
+              })
+              .filter(v => v)
           })
       },
       deleteTicket: function (ticketId) {
@@ -355,6 +369,7 @@
         var wallet = _.findWhere(this.g.user.wallets, {
           id: this.formDialog.data.wallet
         })
+        this.formDialog.data.inkey = wallet.inkey
         var data = this.formDialog.data
 
         if (data.id) {
@@ -366,6 +381,7 @@
 
       createForm: function (wallet, data) {
         var self = this
+        console.log('create', data)
         LNbits.api
           .request('POST', '/lnticket/api/v1/forms', wallet.inkey, data)
           .then(function (response) {
@@ -379,7 +395,7 @@
       },
       updateformDialog: function (formId) {
         var link = _.findWhere(this.forms, {id: formId})
-        console.log(link.id)
+
         this.formDialog.data.id = link.id
         this.formDialog.data.wallet = link.wallet
         this.formDialog.data.name = link.name
@@ -389,8 +405,7 @@
       },
       updateForm: function (wallet, data) {
         var self = this
-        console.log(data)
-
+        console.log('update', data)
         LNbits.api
           .request(
             'PUT',
@@ -435,6 +450,22 @@
       },
       exportformsCSV: function () {
         LNbits.utils.exportCSV(this.formsTable.columns, this.forms)
+      },
+      startPaymentNotifier() {
+        this.cancelListener()
+
+        this.cancelListener = LNbits.events.onInvoicePaid(
+          this.g.user.wallets[0],
+          payment => {
+            this.getTickets()
+
+            this.$q.notify({
+              type: 'positive',
+              message: 'New ticket arrived!',
+              icon: 'textsms'
+            })
+          }
+        )
       }
     },
 
@@ -442,6 +473,7 @@
       if (this.g.user.wallets.length) {
         this.getTickets()
         this.getForms()
+        this.startPaymentNotifier()
       }
     }
   })

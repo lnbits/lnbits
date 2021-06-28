@@ -88,6 +88,12 @@ async def api_link_create_or_update(link_id=None):
     ):
         return jsonify({"message": "Must use full satoshis."}), HTTPStatus.BAD_REQUEST
 
+    if "success_url" in g.data and g.data["success_url"][:8] != "https://":
+        return (
+            jsonify({"message": "Success URL must be secure https://..."}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
     if link_id:
         link = await get_pay_link(link_id)
 

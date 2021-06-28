@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE shops (
+        CREATE TABLE IF NOT EXISTS shops (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             wallet TEXT NOT NULL,
             method TEXT NOT NULL,
@@ -15,7 +15,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE items (
+        CREATE TABLE IF NOT EXISTS items (
             shop INTEGER NOT NULL REFERENCES shop (id),
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,

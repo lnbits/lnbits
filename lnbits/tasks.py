@@ -1,5 +1,5 @@
 import time
-import trio  # type: ignore
+import trio
 from http import HTTPStatus
 from typing import Optional, List, Callable
 from quart_trio import QuartTrio
@@ -12,13 +12,6 @@ from lnbits.core.crud import (
     get_balance_checks,
 )
 from lnbits.core.services import redeem_lnurl_withdraw
-
-main_app: Optional[QuartTrio] = None
-
-
-def grab_app_for_later(app: QuartTrio):
-    global main_app
-    main_app = app
 
 
 deferred_async: List[Callable] = []
