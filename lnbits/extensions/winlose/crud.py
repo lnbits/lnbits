@@ -141,7 +141,7 @@ async def handlePaymentWebhook(id:str, params:dict)->dict:
         #     return {"error": "Payment not paid"}
         await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
         usr, amount, credits = pay_row['usr_id'], pay_row['amount'], pay_row['credits']
-        usr_credits = (await getUser(usr, False,None))['credits']
+        usr_credits = (await getUser(usr, False,None,None))['credits']
         add_credits = await handleCredits(usr, int(usr_credits + credits))
         if add_credits:
             log = await createLog(
@@ -165,7 +165,7 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
     lnurl_auth = data['lnurl_auth'] if 'lnurl_auth' in data else None
     user = await usrFromWallet(inKey)
     ### check if user already exists
-    ch_lnurl = f"OR lnurl_auth = '{lnurl_auth}'" if lnurl_auth is not None else ''
+    ch_lnurl = f"OR lnurl_auth = '{lnurl_auth}' AND admin = '{user}'" if lnurl_auth is not None else ''
     row = await db.fetchone(f"SELECT * FROM users WHERE id = '{id}' {ch_lnurl}")
     if row is not None:
         return {"error": "User already created"}
@@ -193,7 +193,7 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
                     usr_id=uid, id=id, lnurl_auth=lnurl_auth, 
                     admin=user, payout_wallet=wid, 
                     credits=0, active=True, data=None)
-                rUser = await getUser(id, False, None)
+                rUser = await getUser(id, False, None,None)
                 return {"success":rUser}
             except ValueError:
                 print(ValueError)
@@ -204,7 +204,7 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
             usr_id=uid, id=id, lnurl_auth=None, 
             admin=user, payout_wallet=wid, 
             credits=0, active=True, data=None)
-        User = await getUser(id, local, None)
+        User = await getUser(id, local, None,None)
         return {"success":User}
 
 async def API_deleteUser(id:str, url:str, inKey:str,wlOnly:bool)->dict:
@@ -212,7 +212,7 @@ async def API_deleteUser(id:str, url:str, inKey:str,wlOnly:bool)->dict:
     base_url = L_HOST
     user = await usrFromWallet(inKey)
     try:
-        uid = (await getUser(id, True, None))['usr_id']
+        uid = (await getUser(id, True, None,None))['usr_id']
     except:
         uid = '123456jsjdka'
     if not wlOnly:
@@ -242,15 +242,16 @@ async def API_updateUser(p)-> dict:
 
 async def API_getUsers(params:dict)-> dict:
     local = params['local'] if 'local' in params else False
-    limit = params['limit'] if 'limit' in params else None 
+    limit = params['limit'] if 'limit' in params else None
+    admin_id = await usrFromWallet(params['inKey'])
     logs = None
     if 'id' in params:
         if params['id'] == 'lnurl_auth':
-            usr = await getUser(params['id'], True,params['lnurl_auth'])
+            usr = await getUser(params['id'], True,params['lnurl_auth'],{"admin":admin_id})
             if 'error' in usr:
                 return usr
         else:    
-            usr = await getUser(params['id'], True,None)
+            usr = await getUser(params['id'], True,None,None)
             if 'error' in usr:
                 return usr 
         del usr['admin']   
@@ -265,7 +266,6 @@ async def API_getUsers(params:dict)-> dict:
         del usr['payout_wallet']
         del usr['lnurl_auth']
     else:
-        admin_id = await usrFromWallet(params['inKey'])
         usr = await getUsers(admin_id, local)
         # if local:
         #     for u in usr: 
@@ -275,12 +275,13 @@ async def API_getUsers(params:dict)-> dict:
     return {"success":data}
 
 async def API_lose(id:str, params:dict)->dict:
-    usr = await getUser(id, True, None)
+    usr = await getUser(id, True, None,None)
     if 'error' in usr:
         return usr
     if not 'free_spin' in params:
         acca = int(params["multi"])*-1 if 'multi' in params else -1
         cred = int(usr['credits']) + acca
+        print(cred)
         cred = 0 if cred < 0 else cred
         credit_done = await handleCredits(id, cred)
         if credit_done:
@@ -309,11 +310,10 @@ async def API_lose(id:str, params:dict)->dict:
 
 async def API_win(id:str, params:dict)->dict:
     payout, credits, total_credits, bal = None,None,None,None
-    usr = await getUser(id, True, None)
+    usr = await getUser(id, True, None,None)
     if not 'free_spin' in params: 
         acca = int(params["multi"])*-1 if 'multi' in params else -1
         cred = int(usr['credits']) + acca
-        cred = 0 if cred < 0 else cred
         credit_done = await handleCredits(id, cred)
         if credit_done:
             multi = params['multi'] if 'multi' in params else None
@@ -356,7 +356,7 @@ async def API_win(id:str, params:dict)->dict:
             #return error no spins used
     if 'credits' in params:
         credits = params['credits']
-        usr_cred = int((await getUser(id, True,None))['credits'])
+        usr_cred = int((await getUser(id, True,None,None))['credits'])
         total_credits = int(params['credits']) + usr_cred
         credits_added = await handleCredits(id, int(total_credits))
         if credits_added:
@@ -374,13 +374,13 @@ async def API_win(id:str, params:dict)->dict:
             #return error not spins
     win = int(credits) if credits is not None else payout
     win_type = 'credits' if credits is not None else 'sat'
-    rem_credits = total_credits if total_credits is not None else int((await getUser(id, True,None))['credits'])
+    rem_credits = total_credits if total_credits is not None else int((await getUser(id, True,None,None))['credits'])
     acca = acca if not 'free_spin' in params else 0
     return {"success": {"id":id,"win":win, "type": win_type, "credits":rem_credits, "payout_balance": bal, "deducted":acca}}
 
 async def API_fund(id:str, params:dict)->dict:
     uni_id = urlsafe_short_hash()
-    user = await getUser(id, True, None )
+    user = await getUser(id, True, None,None )
     if not user['active']:
         return {"error":{"id":id, "active":False}}
     admin_id = user['admin']
@@ -408,11 +408,11 @@ async def API_fund(id:str, params:dict)->dict:
         return {"error": "Processing error. Try again!"}
 
 async def API_withdraw(id:str, params:dict)->dict:
-    usr = await getUser(id, True ,None)
+    usr = await getUser(id, True ,None,None)
     if not usr['active']:
         return {"error":{"id":id, "active":False}}
     inKey = await inKeyFromWallet(usr['usr_id'])
-    url = params['url']+'/withdraw'
+    url = L_HOST+'/withdraw'
     bal = int((await getPayoutBalance(inKey, url))['balance'])
     uni_id = urlsafe_short_hash()
     withdraw_link  = None

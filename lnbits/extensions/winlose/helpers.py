@@ -31,9 +31,12 @@ async def inKeyFromWallet(user:str)->str:
     else:
         return row[0]
 
-async def getUser(id:str, local:bool, lnurl_auth:Optional[str])-> dict:
+async def getUser(id:str, local:bool, lnurl_auth:Optional[str], params:Optional[dict])-> dict:
     if lnurl_auth:
-        row = await db.fetchone(f"SELECT * FROM users WHERE lnurl_auth = '{lnurl_auth}'")
+        if "admin" in params:
+            row = await db.fetchone("SELECT * FROM users WHERE lnurl_auth = ? AND admin = ?",(lnurl_auth, params['admin']))
+        else:
+            row = await db.fetchone(f"SELECT * FROM users WHERE lnurl_auth = '{lnurl_auth}'")
     else:
         row = await db.fetchone(f"SELECT * FROM users WHERE id = '{id}'")
     if row is None:
@@ -93,8 +96,11 @@ async def getLogs(usr_id:str, limit:Optional[str])-> List:
 
 async def accountRecovery(params:dict)->dict:
     try:
+        user_exists = await db.fetchone("SELECT * FROM users WHERE lnurl_auth = ?",(params['linking_key']))
+        if user_exists is not None:
+            return {"error": "Account already exists!"}
         row =  await db.execute("UPDATE users SET lnurl_auth = ? WHERE lnurl_auth = ? ",(params['linking_key'],params['recovery_key']))
-        usr = await getUser('lnurl_auth', False, params['linking_key'])
+        usr = await getUser('lnurl_auth', False, params['linking_key'],None)
         return json.dumps({"success": usr})
     except ValueError:
         return {"error": "Unable to recover account"}
