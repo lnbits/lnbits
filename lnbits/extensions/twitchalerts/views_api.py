@@ -157,7 +157,8 @@ async def api_get_services():
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     services = []
     for wallet_id in wallet_ids:
-        services += await get_services(wallet_id)
+        new_services = await get_services(wallet_id)
+        services += new_services if new_services else []
     return (
         jsonify([
             service._asdict() for service in services
@@ -172,7 +173,8 @@ async def api_get_donations():
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     donations = []
     for wallet_id in wallet_ids:
-        donations += await get_donations(wallet_id)
+        new_donations = await get_donations(wallet_id)
+        donations += new_donations if new_donations else []
     return (
         jsonify([
             donation._asdict() for donation in donations

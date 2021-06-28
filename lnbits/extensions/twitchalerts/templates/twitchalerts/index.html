@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="deep-purple" @click="serviceDialog.show = true"
           >New Service</q-btn
         >
       </q-card-section>
@@ -62,7 +62,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="updateformDialog(props.row.id)"
+                  @click="updateserviceDialog(props.row.id)"
                   icon="edit"
                   color="light-blue"
                 ></q-btn>
@@ -162,14 +162,14 @@
     </q-card>
   </div>
 
-  <q-dialog v-model="formDialog.show" position="top">
+  <q-dialog v-model="serviceDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendServiceData" class="q-gutter-md">
         <q-select
           filled
           dense
           emit-value
-          v-model="formDialog.data.wallet"
+          v-model="serviceDialog.data.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
         >
@@ -177,7 +177,7 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialog.data.twitchuser"
+          v-model.trim="serviceDialog.data.twitchuser"
           type="name"
           label="Twitch Username *"
         ></q-input>
@@ -185,7 +185,7 @@
           filled
           dense
           emit-value
-          v-model="formDialog.data.servicename"
+          v-model="serviceDialog.data.servicename"
           :options="servicenames"
           label="Streamlabs"
           hint="The service you use for alerts. (Currently only Streamlabs)"
@@ -193,20 +193,20 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialog.data.client_id"
+          v-model.trim="serviceDialog.data.client_id"
           type="name"
           label="Client ID *"
         ></q-input>
         <q-input
           filled
           dense
-          v-model.trim="formDialog.data.client_secret"
+          v-model.trim="serviceDialog.data.client_secret"
           type="name"
           label="Client Secret *"
         ></q-input>
         <div class="row q-mt-lg">
           <q-btn
-            v-if="formDialog.data.id"
+            v-if="serviceDialog.data.id"
             unelevated
             color="deep-purple"
             type="submit"
@@ -217,7 +217,7 @@
             v-else
             unelevated
             color="deep-purple"
-            :disable="formDialog.data.client_id == null || formDialog.data.client_secret == 0 || formDialog.data.twitchuser == null"
+            :disable="serviceDialog.data.client_id == null || serviceDialog.data.client_secret == 0 || serviceDialog.data.twitchuser == null"
             type="submit"
             >Create Service</q-btn
           >
@@ -237,7 +237,7 @@
       'YYYY-MM-DD HH:mm'
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.displayUrl = ['/twitchalerts/', obj.id].join('')
+    obj.displayUrl = ['/twitchalerts/api/v1/getaccess/', obj.id].join('')
     return obj
   }
 
@@ -246,7 +246,7 @@
     mixins: [windowMixin],
     data: function() {
       return {
-        servicenames: ["Streamlabs"],
+        servicenames: ['Streamlabs'],
         services: [],
         donations: [],
         servicesTable: {
@@ -294,7 +294,7 @@
             rowsPerPage: 10
           }
         },
-        formDialog: {
+        serviceDialog: {
           show: false,
           data: {}
         }
@@ -360,9 +360,9 @@
       },
       sendServiceData: function() {
         var wallet = _.findWhere(this.g.user.wallets, {
-          id: this.formDialog.data.wallet
+          id: this.serviceDialog.data.wallet
         })
-        var data = this.formDialog.data
+        var data = this.serviceDialog.data
 
         if (data.id) {
           this.updateService(wallet, data)
@@ -377,22 +377,23 @@
           .request('POST', '/twitchalerts/api/v1/services', wallet.inkey, data)
           .then(function(response) {
             self.services.push(mapTwitchAlerts(response.data))
-            self.formDialog.show = false
-            self.formDialog.data = {}
+            self.serviceDialog.show = false
+            self.serviceDialog.data = {}
           })
           .catch(function(error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      updateformDialog: function(formId) {
-        var link = _.findWhere(this.services, {id: formId})
+      updateserviceDialog: function(serviceId) {
+        var link = _.findWhere(this.services, {id: serviceId})
         console.log(link.id)
-        this.formDialog.data.id = link.id
-        this.formDialog.data.wallet = link.wallet
-        this.formDialog.data.name = link.name
-        this.formDialog.data.description = link.description
-        this.formDialog.data.costpword = link.costpword
-        this.formDialog.show = true
+        this.serviceDialog.data.id = link.id
+        this.serviceDialog.data.wallet = link.wallet
+        this.serviceDialog.data.twitchuser = link.twitchuser
+        this.serviceDialog.data.servicename = link.servicename
+        this.serviceDialog.data.client_id = link.client_id
+        this.serviceDialog.data.client_secret = link.client_secret
+        this.serviceDialog.show = true
       },
       updateService: function(wallet, data) {
         var self = this
@@ -410,8 +411,8 @@
               return obj.id == data.id
             })
             self.services.push(mapTwitchAlerts(response.data))
-            self.formDialog.show = false
-            self.formDialog.data = {}
+            self.serviceDialog.show = false
+            self.serviceDialog.data = {}
           })
           .catch(function(error) {
             LNbits.utils.notifyApiError(error)

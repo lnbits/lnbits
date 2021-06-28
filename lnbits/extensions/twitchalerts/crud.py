@@ -243,8 +243,8 @@ async def delete_donation(donation_id: str) -> None:
 
 async def update_donation(donation_id: str, **kwargs) -> Donation:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE form SET {q} WHERE id = ?", (*kwargs.values(),
-                     donation_id))
+    await db.execute(f"UPDATE Donations SET {q} WHERE id = ?",
+                     (*kwargs.values(), donation_id))
     row = await db.fetchone("SELECT * FROM Donations WHERE id = ?",
                             (donation_id,))
     assert row, "Newly updated donation couldn't be retrieved"
@@ -253,8 +253,8 @@ async def update_donation(donation_id: str, **kwargs) -> Donation:
 
 async def update_service(service_id: str, **kwargs) -> Donation:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE form SET {q} WHERE id = ?", (*kwargs.values(),
-                     service_id))
+    await db.execute(f"UPDATE Services SET {q} WHERE id = ?",
+                     (*kwargs.values(), service_id))
     row = await db.fetchone("SELECT * FROM Services WHERE id = ?",
                             (service_id,))
     assert row, "Newly updated service couldn't be retrieved"
