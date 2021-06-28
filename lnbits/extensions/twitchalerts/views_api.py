@@ -9,15 +9,20 @@ from .crud import (
     get_charge_details,
     create_donation,
     post_donation,
+    get_donation,
     get_donations,
+    delete_donation,
     create_service,
     get_service,
-    authenticate_service
+    get_services,
+    authenticate_service,
+    update_donation,
+    update_service
 )
 from ..satspay.crud import create_charge, get_charge
 
 
-@twitchalerts_ext.route("/api/v1/createservice", methods=["POST"])
+@twitchalerts_ext.route("/api/v1/services", methods=["POST"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -88,7 +93,7 @@ async def api_authenticate_service(service_id):
         )
 
 
-@twitchalerts_ext.route("/api/v1/createdonation", methods=["POST"])
+@twitchalerts_ext.route("/api/v1/donations", methods=["POST"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -114,6 +119,7 @@ async def api_create_donation():
         **charge_details)
     await create_donation(
         id=charge.id,
+        wallet=service.wallet,
         name=name,
         cur_code=g.data["cur_code"],
         sats=g.data["sats"],
@@ -145,13 +151,104 @@ async def api_post_donation():
         )
 
 
+@twitchalerts_ext.route("/api/v1/services", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_get_services():
+    wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    services = []
+    for wallet_id in wallet_ids:
+        services += await get_services(wallet_id)
+    return (
+        jsonify([
+            service._asdict() for service in services
+        ] if services else []),
+        HTTPStatus.OK,
+    )
+
+
 @twitchalerts_ext.route("/api/v1/donations", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_donations():
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    donations = []
+    for wallet_id in wallet_ids:
+        donations += await get_donations(wallet_id)
     return (
         jsonify([
-            donation._asdict() for donation in await get_donations(wallet_ids)
-        ]),
+            donation._asdict() for donation in donations
+        ] if donations else []),
         HTTPStatus.OK,
     )
+
+
+@twitchalerts_ext.route("/api/v1/donations/<donation_id>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+async def api_update_donation(donation_id=None):
+    if donation_id:
+        donation = await get_donation(donation_id)
+
+        if not donation:
+            return (
+                jsonify({"message": "Donation does not exist."}),
+                HTTPStatus.NOT_FOUND
+            )
+
+        if donation.wallet != g.wallet.id:
+            return (
+                jsonify({"message": "Not your donation."}),
+                HTTPStatus.FORBIDDEN
+            )
+
+        donation = await update_donation(donation_id, **g.data)
+    else:
+        return (
+            jsonify({"message": "No donation ID specified"}),
+            HTTPStatus.BAD_REQUEST
+        )
+    return jsonify(donation._asdict()), HTTPStatus.CREATED
+
+
+@twitchalerts_ext.route("/api/v1/services/<service_id>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+async def api_update_service(service_id=None):
+    if service_id:
+        service = await get_service(service_id)
+
+        if not service:
+            return (
+                jsonify({"message": "Service does not exist."}),
+                HTTPStatus.NOT_FOUND
+            )
+
+        if service.wallet != g.wallet.id:
+            return (
+                jsonify({"message": "Not your service."}),
+                HTTPStatus.FORBIDDEN
+            )
+
+        service = await update_service(service_id, **g.data)
+    else:
+        return (
+            jsonify({"message": "No service ID specified"}),
+            HTTPStatus.BAD_REQUEST
+        )
+    return jsonify(service._asdict()), HTTPStatus.CREATED
+
+
+@twitchalerts_ext.route("/api/v1/donations/<donation_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_delete_donation(donation_id):
+    donation = await get_donation(donation_id)
+    if not donation:
+        return (
+            jsonify({"message": "No donation with this ID!"}),
+            HTTPStatus.NOT_FOUND
+        )
+    if donation.wallet != g.wallet.id:
+        return (
+            jsonify({"message": "Not authorized to delete this donation!"}),
+            HTTPStatus.FORBIDDEN
+        )
+    await delete_donation(donation_id)
+
+    return "", HTTPStatus.NO_CONTENT

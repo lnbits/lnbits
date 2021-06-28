@@ -4,6 +4,7 @@ from typing import NamedTuple, Optional
 
 class Donation(NamedTuple):
     id: str
+    wallet: str
     name: str
     message: str
     cur_code: str

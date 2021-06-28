@@ -31,6 +31,7 @@ async def get_charge_details(service_id):
 
 async def create_donation(
     id: str,
+    wallet: str,
     cur_code: str,
     sats: int,
     amount: float,
@@ -43,6 +44,7 @@ async def create_donation(
         """
         INSERT INTO Donations (
             id,
+            wallet,
             name,
             message,
             cur_code,
@@ -51,10 +53,11 @@ async def create_donation(
             service,
             posted
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             id,
+            wallet,
             name,
             message,
             cur_code,
@@ -223,14 +226,10 @@ async def get_donation(donation_id: str) -> Optional[Donation]:
 
 
 async def get_donations(wallet_id: str) -> Optional[list]:
-    services = await get_services(wallet_id)
-    service_ids = [service.id for service in services]
-    rows = []
-    for service_id in service_ids:
-        rows.append(await db.fetchall(
-            "SELECT * FROM Donations WHERE service = ?",
-            (service_id,)
-        ))
+    rows = await db.fetchall(
+        "SELECT * FROM Donations WHERE wallet = ?",
+        (wallet_id,)
+    )
     return [Donation.from_row(row) for row in rows] if rows else None
 
 
@@ -240,3 +239,23 @@ async def delete_donation(donation_id: str) -> None:
         (donation_id,)
     )
     await delete_charge(donation_id)
+
+
+async def update_donation(donation_id: str, **kwargs) -> Donation:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(f"UPDATE form SET {q} WHERE id = ?", (*kwargs.values(),
+                     donation_id))
+    row = await db.fetchone("SELECT * FROM Donations WHERE id = ?",
+                            (donation_id,))
+    assert row, "Newly updated donation couldn't be retrieved"
+    return Donation(**row)
+
+
+async def update_service(service_id: str, **kwargs) -> Donation:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(f"UPDATE form SET {q} WHERE id = ?", (*kwargs.values(),
+                     service_id))
+    row = await db.fetchone("SELECT * FROM Services WHERE id = ?",
+                            (service_id,))
+    assert row, "Newly updated service couldn't be retrieved"
+    return Service(**row)

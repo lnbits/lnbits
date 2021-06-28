@@ -177,31 +177,30 @@
         <q-input
           filled
           dense
-          v-model.trim="formDialog.data.username"
+          v-model.trim="formDialog.data.twitchuser"
           type="name"
           label="Twitch Username *"
         ></q-input>
-        <q-input
+        <q-select
           filled
           dense
-          v-model.trim="formDialog.data.service"
-          type="text"
+          emit-value
+          v-model="formDialog.data.servicename"
+          :options="servicenames"
           label="Streamlabs"
           hint="The service you use for alerts. (Currently only Streamlabs)"
-          readonly
-          placeholder="Streamlabs"
-        ></q-input>
+        ></q-select>
         <q-input
           filled
           dense
-          v-model.trim="formDialog.data.clientid"
+          v-model.trim="formDialog.data.client_id"
           type="name"
           label="Client ID *"
         ></q-input>
         <q-input
           filled
           dense
-          v-model.trim="formDialog.data.clientsecret"
+          v-model.trim="formDialog.data.client_secret"
           type="name"
           label="Client Secret *"
         ></q-input>
@@ -218,7 +217,7 @@
             v-else
             unelevated
             color="deep-purple"
-            :disable="formDialog.data.clientid == null || formDialog.data.clientsecret == 0 || formDialog.data.username == null"
+            :disable="formDialog.data.client_id == null || formDialog.data.client_secret == 0 || formDialog.data.twitchuser == null"
             type="submit"
             >Create Service</q-btn
           >
@@ -247,30 +246,37 @@
     mixins: [windowMixin],
     data: function() {
       return {
+        servicenames: ["Streamlabs"],
         services: [],
         donations: [],
         servicesTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {name: 'username', align: 'left', label: 'Twitch Username', field: 'username'},
+            {name: 'twitchuser', align: 'left', label: 'Twitch Username', field: 'twitchuser'},
             {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
             {
-              name: 'service',
+              name: 'servicename',
               align: 'left',
               label: 'Service',
-              field: 'service'
+              field: 'servicename'
             },
             {
-              name: 'clientid',
+              name: 'client_id',
               align: 'left',
               label: 'Client ID',
-              field: 'clientid'
+              field: 'client_id'
             },
             {
-              name: 'clientsecret',
+              name: 'client_secret',
               align: 'left',
               label: 'Client Secret',
-              field: 'clientsecret'
+              field: 'client_secret'
+            },
+            {
+              name: 'authenticated',
+              align: 'left',
+              label: 'Authenticated',
+              field: 'authenticated'
             }
           ],
           pagination: {
@@ -310,17 +316,17 @@
             })
           })
       },
-      deleteDonation: function(ticketId) {
+      deleteDonation: function(donationId) {
         var self = this
-        var donations = _.findWhere(this.donations, {id: ticketId})
+        var donations = _.findWhere(this.donations, {id: donationId})
 
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this ticket')
+          .confirmDialog('Are you sure you want to delete this donation?')
           .onOk(function() {
             LNbits.api
               .request(
                 'DELETE',
-                '/twitchalerts/api/v1/donations/' + ticketId,
+                '/twitchalerts/api/v1/donations/' + donationId,
                 _.findWhere(self.g.user.wallets, {id: donations.wallet}).inkey
               )
               .then(function(response) {
@@ -343,7 +349,7 @@
         LNbits.api
           .request(
             'GET',
-            '/twitchalerts/api/v1/services?all_wallets',
+            '/twitchalerts/api/v1/services',
             this.g.user.wallets[0].inkey
           )
           .then(function(response) {

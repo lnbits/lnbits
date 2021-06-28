@@ -21,6 +21,7 @@ async def m001_initial(db):
         """
         CREATE TABLE IF NOT EXISTS Donations (
             id TEXT PRIMARY KEY,
+            wallet TEXT NOT NULL,
             name TEXT NOT NULL,
             message TEXT NOT NULL,
             cur_code TEXT NOT NULL,
