@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
 from lnbits.core.crud import get_wallet, get_user
+from lnbits.utils.exchange_rates import btc_price
 
 from . import twitchalerts_ext
 from .crud import (
@@ -107,6 +108,8 @@ async def api_authenticate_service(service_id):
 )
 async def api_create_donation():
     """Takes data from donation form and creates+returns SatsPay charge"""
+    price = await btc_price("USD")
+    amount = g.data["sats"] * (10 ** (-8)) * price
     webhook_base = request.scheme + "://" + request.headers["Host"]
     service_id = g.data["service"]
     service = await get_service(service_id)
@@ -124,7 +127,7 @@ async def api_create_donation():
         name=name,
         cur_code=g.data["cur_code"],
         sats=g.data["sats"],
-        amount=g.data["amount"],
+        amount=amount,
         service=g.data["service"],
     )
     return redirect(f"/satspay/{charge.id}")
