@@ -7,6 +7,7 @@
     {% endfor %}
     <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
+
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -21,7 +22,7 @@
 
   <body>
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
-      <q-header bordered class="bg-lnbits-dark">
+      <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
           {% block drawer_toggle %}
           <q-btn
@@ -93,7 +94,7 @@
           <q-btn
             flat
             dense
-            :color="($q.dark.isActive) ? 'white' : 'deep-purple'"
+            :color="($q.dark.isActive) ? 'white' : 'primary'"
             icon="code"
             type="a"
             href="https://github.com/lnbits/lnbits"

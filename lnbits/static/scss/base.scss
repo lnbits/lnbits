@@ -12,7 +12,7 @@ $themes: (
     secondary: #551561,
     dark: #020203,
     info: #15161d,
-    marginal-bg: #1f2234,
+    marginal-bg: #020203,
     marginal-text: #fff
   ),
   'light': (
@@ -20,7 +20,7 @@ $themes: (
     secondary: #a32cb8,
     dark: #4c4c74,
     info: #555974,
-    marginal-bg: #1f2234,
+    marginal-bg: #4c4c74,
     marginal-text: #fff
   ),
   'green': (
@@ -28,11 +28,26 @@ $themes: (
     secondary: #27b065,
     dark: #1f342b,
     info: #334642,
-    marginal-bg: #1f2234,
+    marginal-bg: #1f342b,
     marginal-text: #fff
   )
 );
+
 @each $theme, $colors in $themes {
+  @each $name, $color in $colors {
+    @if $name == 'dark' {
+      body.body--dark [data-theme='#{$theme}'],
+      [data-theme='#{$theme}'] .q-drawer--dark,
+      [data-theme='#{$theme}'] .q-menu--dark {
+        background: $color !important;
+      }
+    }
+    @if $name == 'info' {
+      [data-theme='#{$theme}'] .q-card--dark {
+        background: $color !important;
+      }
+    }
+  }
   [data-theme='#{$theme}'] {
     @each $name, $color in $colors {
       .bg-#{$name} {
@@ -51,11 +66,6 @@ $themes: (
 
 body.body--dark .q-table--dark {
   background: transparent;
-}
-
-body.body--light,
-body.body--light .q-drawer {
-  background: whitesmoke;
 }
 
 body.body--dark .q-field--error {
