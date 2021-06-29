@@ -7,22 +7,6 @@ $themes: (
     marginal-bg: #1f2234,
     marginal-text: #fff
   ),
-  'dark': (
-    primary: #3b2169,
-    secondary: #551561,
-    dark: #020203,
-    info: #15161d,
-    marginal-bg: #020203,
-    marginal-text: #fff
-  ),
-  'light': (
-    primary: #703ec7,
-    secondary: #a32cb8,
-    dark: #4c4c74,
-    info: #555974,
-    marginal-bg: #4c4c74,
-    marginal-text: #fff
-  ),
   'green': (
     primary: #3ab77d,
     secondary: #27b065,
@@ -30,6 +14,14 @@ $themes: (
     info: #334642,
     marginal-bg: #1f342b,
     marginal-text: #fff
+  ),
+  'orange': (
+    primary: #b7763a,
+    secondary: #b07927,
+    dark: #34291f,
+    info: #463f33,
+    marginal-bg: #342a1f,
+    marginal-text: rgb(255, 255, 255)
   )
 );
 

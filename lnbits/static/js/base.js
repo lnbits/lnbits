@@ -311,7 +311,13 @@ window.windowMixin = {
       }
     }
   },
+  
   methods: {
+    changeColor: function(newValue) {
+      document.body.setAttribute('data-theme', newValue)
+      console.log(document.body.getAttribute('data-theme'))
+      console.log(newValue)
+    },
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)

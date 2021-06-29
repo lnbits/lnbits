@@ -47,13 +47,51 @@
             >
           </q-badge>
           {% endblock %}
+          <q-btn-dropdown
+            dense
+            flat
+            round
+            size="sm"
+            icon="dashboard_customize"
+            class="q-pl-md"
+          >
+            <div class="row no-wrap q-pa-md">
+              <q-btn
+                dense
+                flat
+                @click="changeColor('classic')"
+                icon="format_color_fill"
+                color="deep-purple"
+                size="md"
+              >
+              </q-btn
+              ><q-btn
+                dense
+                flat
+                @click="changeColor('green')"
+                icon="format_color_fill"
+                color="green"
+                size="md"
+              >
+              </q-btn
+              ><q-btn
+                dense
+                flat
+                @click="changeColor('orange')"
+                icon="format_color_fill"
+                color="orange"
+                size="md"
+              >
+              </q-btn>
+            </div>
+          </q-btn-dropdown>
+
           <q-btn
             dense
             flat
             round
             @click="toggleDarkMode"
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
-            class="q-ml-lg"
             size="sm"
           >
             <q-tooltip>Toggle Dark Mode</q-tooltip>
