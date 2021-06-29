@@ -106,6 +106,7 @@ def register_filters(app: QuartTrio):
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
     app.jinja_env.globals["LNBITS_VERSION"] = app.config["LNBITS_COMMIT"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
+    app.jinja_env.globals["LNBITS_ENABLED_SAVING_FORMATS"] = app.config["LNBITS_ENABLED_SAVING_FORMATS"]
 
 
 def register_async_tasks(app):

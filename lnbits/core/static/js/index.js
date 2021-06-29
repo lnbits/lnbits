@@ -7,7 +7,9 @@ new Vue({
         show: false,
         data: {}
       },
-      walletName: ''
+      walletName: '',
+      savingFormats: null,
+      savedUsers: null
     }
   },
   methods: {
@@ -20,6 +22,14 @@ new Vue({
         message: 'Processing...',
         icon: null
       })
+    }
+  },
+  mounted: function () {
+    let allowSaving = JSON.parse(window.localStorage.getItem('lnbits.saving'))
+    let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
+    if (allowSaving) {
+      this.savingFormats = allowSaving.formats
+      this.savedUsers = users
     }
   }
 })

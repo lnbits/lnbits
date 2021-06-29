@@ -14,7 +14,7 @@ from quart import (
 
 from lnbits.core import core_app, db
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE, LNBITS_SITE_TITLE
+from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE, LNBITS_SITE_TITLE, LNBITS_ENABLED_SAVING_FORMATS
 
 from ..crud import (
     create_account,
@@ -37,8 +37,10 @@ async def favicon():
 
 @core_app.route("/")
 async def home():
+    store_account =  LNBITS_ENABLED_SAVING_FORMATS if LNBITS_ENABLED_SAVING_FORMATS else 0
+    
     return await render_template(
-        "core/index.html", lnurl=request.args.get("lightning", None)
+        "core/index.html", lnurl=request.args.get("lightning", None), store_account=store_account
     )
 
 
@@ -73,6 +75,7 @@ async def wallet():
     wallet_id = request.args.get("wal", type=str)
     wallet_name = request.args.get("nme", type=str)
     service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
+    store_account =  LNBITS_ENABLED_SAVING_FORMATS if LNBITS_ENABLED_SAVING_FORMATS else 0
 
     # just wallet_name: create a new user, then create a new wallet for user with wallet_name
     # just user_id: return the first user wallet or create one if none found (with default wallet_name)
@@ -104,7 +107,7 @@ async def wallet():
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
     return await render_template(
-        "core/wallet.html", user=user, wallet=wallet, service_fee=service_fee
+        "core/wallet.html", user=user, wallet=wallet, service_fee=service_fee, store_account=store_account
     )
 
 

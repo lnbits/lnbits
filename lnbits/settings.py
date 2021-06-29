@@ -36,6 +36,11 @@ DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wall
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
+LNBITS_STORE_WALLET_BROWSER = env.bool("LNBITS_STORE_WALLET_BROWSER", default=False)
+
+LNBITS_ENABLED_SAVING_FORMATS: List[str] = env.list(
+    "LNBITS_ENABLED_SAVING_FORMATS", default=[], subcast=str 
+)
 
 try:
     LNBITS_COMMIT = (

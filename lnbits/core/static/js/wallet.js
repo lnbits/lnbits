@@ -184,7 +184,11 @@ new Vue({
         show: false,
         location: window.location
       },
-      balance: 0
+      balance: 0,
+      savingFormats: null,
+      savedUser: {
+        activeFormat: null
+      }
     }
   },
   computed: {
@@ -614,6 +618,35 @@ new Vue({
     },
     exportCSV: function () {
       LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments)
+    },
+    saveUserToLocal: function (del = false) {
+      if (this.savedUser.activeFormat != 'local') return
+      let _users = JSON.parse(window.localStorage.getItem('lnbits.users')) || []
+      let users = _users.filter(obj => obj.id != this.user.id)
+
+      let saveUser = {
+        id: this.user.id,
+        activeFormat: this.savedUser.activeFormat
+        // maybe in the future store wallets ?
+        // wallets: this.user.wallets.map(cur => ({
+        //   id: cur.id,
+        //   name: cur.name,
+        //   url: `/wallet?usr=${this.user.id}&wal=${cur.id}`
+        // }))
+      }
+      window.localStorage.setItem(
+        'lnbits.users',
+        JSON.stringify(del ? [...users] : [...users, saveUser])
+      )
+    },
+    setActiveFormat: function (format) {
+      if (this.savedUser.activeFormat == format) {
+        this.saveUserToLocal(true)
+        this.savedUser.activeFormat = null
+      } else {
+        this.savedUser.activeFormat = format
+        this.saveUserToLocal()
+      }
     }
   },
   watch: {
@@ -644,7 +677,16 @@ new Vue({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
 
-    // listen to incoming payments
+    let allowSaving = JSON.parse(window.localStorage.getItem('lnbits.saving'))
+    let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
+    if (allowSaving) {
+      this.savingFormats = allowSaving.formats
+      if (users && users.map(c => c.id).includes(this.user.id)) {
+        let user = users.find(cur => cur.id == this.user.id)
+        this.savedUser = user
+      }
+    }
+
     LNbits.events.onInvoicePaid(this.g.wallet, payment =>
       this.onPaymentReceived(payment.payment_hash)
     )

@@ -35,6 +35,69 @@
       </q-card-section>
     </q-card>
 
+    <q-card v-if="savingFormats">
+      <q-card-section>
+        <template>
+          <q-btn
+            unelevated
+            color="deep-purple"
+            label="upload wallet file"
+            v-if="savingFormats.includes('download')"
+          >
+          </q-btn>
+        </template>
+        <template>
+          <q-btn
+            unelevated
+            color="deep-purple"
+            label="saved in local storage"
+            v-if="savingFormats.includes('local') &&  savedUsers"
+          >
+            {% raw %}
+            <q-menu :offset="[0, 10]">
+              <q-list>
+                <q-item
+                  clickable
+                  v-close-popup
+                  v-for="user in savedUsers"
+                  :key="user.id"
+                >
+                  <a
+                    :href="'/wallet?usr=' + user.id"
+                    style="text-decoration: none; display: flex"
+                    class="text-dark"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ user.id }}</q-item-label>
+                    </q-item-section>
+                  </a>
+                </q-item>
+              </q-list>
+            </q-menu>
+            {% endraw %}
+          </q-btn>
+        </template>
+        <template>
+          <q-btn
+            unelevated
+            color="deep-purple"
+            label="login"
+            v-if="savingFormats.includes('login')"
+          >
+          </q-btn>
+        </template>
+        <template>
+          <q-btn
+            unelevated
+            color="deep-purple"
+            label="lnurlauth"
+            v-if="savingFormats.includes('lnurlauth')"
+          >
+          </q-btn>
+        </template>
+      </q-card-section>
+    </q-card>
+
     <q-card>
       <q-card-section>
         <h3 class="q-my-none"><strong>LN</strong>bits</h3>
