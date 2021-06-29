@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="amilkDialog.show = true"
+        <q-btn unelevated color="primary" @click="amilkDialog.show = true"
           >New AMilk</q-btn
         >
       </q-card-section>
@@ -109,7 +109,7 @@
         ></q-input>
         <q-btn
           unelevated
-          color="deep-purple"
+          color="primary"
           :disable="amilkDialog.data.amount == null || amilkDialog.data.amount < 0 || amilkDialog.data.lnurl == null"
           type="submit"
           >Create amilk</q-btn

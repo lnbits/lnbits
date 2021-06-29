@@ -36,8 +36,8 @@ $themes: (
 @each $theme, $colors in $themes {
   @each $name, $color in $colors {
     @if $name == 'dark' {
-      body.body--dark [data-theme='#{$theme}'],
       [data-theme='#{$theme}'] .q-drawer--dark,
+      body.body--dark [data-theme='#{$theme}'] .q-layout,
       [data-theme='#{$theme}'] .q-menu--dark {
         background: $color !important;
       }

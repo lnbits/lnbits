@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >New Event</q-btn
         >
       </q-card-section>
@@ -267,14 +267,14 @@
           <q-btn
             v-if="formDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Event</q-btn
           >
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="formDialog.data.wallet == null || formDialog.data.name == null || formDialog.data.info == null || formDialog.data.closing_date == null || formDialog.data.event_start_date == null || formDialog.data.event_end_date == null || formDialog.data.amount_tickets == null || formDialog.data.price_per_ticket == null"
             type="submit"
             >Create Event</q-btn
