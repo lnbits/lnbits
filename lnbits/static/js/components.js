@@ -35,7 +35,7 @@ Vue.component('lnbits-wallet-list', {
         <q-item-section side>
           <q-avatar size="md"
             :color="(activeWallet && activeWallet.id === wallet.id)
-              ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
+              ? (($q.dark.isActive) ? 'primary' : 'primary')
               : 'grey-5'">
             <q-icon name="flash_on" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
