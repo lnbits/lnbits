@@ -5,10 +5,7 @@
     <q-card>
       <q-card-section>
         {% raw %}
-        <q-btn
-          unelevated
-          color="deep-purple"
-          @click="formDialogCopilot.show = true"
+        <q-btn unelevated color="primary" @click="formDialogCopilot.show = true"
           >New copilot instance
         </q-btn>
       </q-card-section>
@@ -357,7 +354,7 @@
           <q-btn
             v-if="formDialogCopilot.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 formDialogCopilot.data.title == ''"
             type="submit"
@@ -366,7 +363,7 @@
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 formDialogCopilot.data.title == ''"
             type="submit"

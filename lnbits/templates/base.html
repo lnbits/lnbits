@@ -7,6 +7,7 @@
     {% endfor %}
     <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
+
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -19,9 +20,9 @@
     {% block head_scripts %}{% endblock %}
   </head>
 
-  <body>
-    <q-layout id="vue" view="hHh lpR lfr" v-cloak>
-      <q-header bordered class="bg-lnbits-dark">
+  <body data-theme="classic">
+    <q-layout :color="dark" id="vue" view="hHh lpR lfr" v-cloak>
+      <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
           {% block drawer_toggle %}
           <q-btn
@@ -46,13 +47,76 @@
             >
           </q-badge>
           {% endblock %}
+          <q-btn-dropdown
+            dense
+            flat
+            round
+            size="sm"
+            icon="dashboard_customize"
+            class="q-pl-md"
+          >
+            <div class="row no-wrap q-pa-md">
+              <q-btn
+                dense
+                flat
+                @click="changeColor('classic')"
+                icon="format_color_fill"
+                color="deep-purple"
+                size="md"
+                ><q-tooltip>classic</q-tooltip> </q-btn
+              ><q-btn
+                dense
+                flat
+                @click="changeColor('mint')"
+                icon="format_color_fill"
+                color="green"
+                size="md"
+                ><q-tooltip>mint</q-tooltip> </q-btn
+              ><q-btn
+                dense
+                flat
+                @click="changeColor('autumn')"
+                icon="format_color_fill"
+                color="brown"
+                size="md"
+                ><q-tooltip>autumn</q-tooltip>
+              </q-btn>
+              <q-btn
+                dense
+                flat
+                @click="changeColor('flamingo')"
+                icon="format_color_fill"
+                color="pink-3"
+                size="md"
+                ><q-tooltip>flamingo</q-tooltip>
+              </q-btn>
+              <q-btn
+                dense
+                flat
+                @click="changeColor('monochrome')"
+                icon="format_color_fill"
+                color="grey"
+                size="md"
+                ><q-tooltip>monochrome</q-tooltip>
+              </q-btn>
+              <q-btn
+                dense
+                flat
+                @click="changeColor('quasar')"
+                icon="format_color_fill"
+                color="blue"
+                size="md"
+                ><q-tooltip>quasar</q-tooltip>
+              </q-btn>
+            </div>
+          </q-btn-dropdown>
+
           <q-btn
             dense
             flat
             round
             @click="toggleDarkMode"
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
-            class="q-ml-lg"
             size="sm"
           >
             <q-tooltip>Toggle Dark Mode</q-tooltip>
@@ -93,7 +157,7 @@
           <q-btn
             flat
             dense
-            :color="($q.dark.isActive) ? 'white' : 'deep-purple'"
+            :color="($q.dark.isActive) ? 'white' : 'primary'"
             icon="code"
             type="a"
             href="https://github.com/lnbits/lnbits"
