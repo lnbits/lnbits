@@ -1,32 +1,84 @@
-$dark-background: #1f2234;
-$dark-card-background: #333646;
+$themes: (
+  'classic': (
+    primary: #673ab7,
+    secondary: #9c27b0,
+    dark: #1f2234,
+    info: #333646,
+    marginal-bg: #1f2234,
+    marginal-text: #fff
+  ),
+  'mint': (
+    primary: #3ab77d,
+    secondary: #27b065,
+    dark: #1f342b,
+    info: #334642,
+    marginal-bg: #1f342b,
+    marginal-text: #fff
+  ),
+  'autumn': (
+    primary: #b7763a,
+    secondary: #b07927,
+    dark: #34291f,
+    info: #463f33,
+    marginal-bg: #342a1f,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'flamingo': (
+    primary: #d11d53,
+    secondary: #db3e6d,
+    dark: #e75480,
+    info: #ec7599,
+    marginal-bg: #e75480,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'monochrome': (
+    primary: #494949,
+    secondary: #6b6b6b,
+    dark: #000,
+    info: rgb(39, 39, 39),
+    marginal-bg: #000,
+    marginal-text: rgb(255, 255, 255)
+  )
+);
 
+[data-theme='quasar'] .q-drawer--dark {
+  background: #121212 !important;
+}
+
+@each $theme, $colors in $themes {
+  @each $name, $color in $colors {
+    @if $name == 'dark' {
+      [data-theme='#{$theme}'] .q-drawer--dark,
+      body[data-theme='#{$theme}'].body--dark,
+      [data-theme='#{$theme}'] .q-menu--dark {
+        background: $color !important;
+      }
+    }
+    @if $name == 'info' {
+      [data-theme='#{$theme}'] .q-card--dark,
+      [data-theme='#{$theme}'] .q-stepper--dark {
+        background: $color !important;
+      }
+    }
+  }
+  [data-theme='#{$theme}'] {
+    @each $name, $color in $colors {
+      .bg-#{$name} {
+        background: $color !important;
+      }
+      .text-#{$name} {
+        color: $color !important;
+      }
+    }
+  }
+}
 
 [v-cloak] {
   display: none;
 }
 
-.bg-lnbits-dark {
-  background-color: $dark-background;
-}
-
-body.body--dark,
-body.body--dark .q-drawer--dark,
-body.body--dark .q-menu--dark {
-  background: $dark-background;
-}
-
-body.body--dark .q-card--dark {
-  background: $dark-card-background;
-}
-
 body.body--dark .q-table--dark {
   background: transparent;
-}
-
-body.body--light,
-body.body--light .q-drawer  {
-  background: whitesmoke;
 }
 
 body.body--dark .q-field--error {

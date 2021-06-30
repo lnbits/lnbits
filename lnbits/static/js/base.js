@@ -311,7 +311,14 @@ window.windowMixin = {
       }
     }
   },
+
   methods: {
+    changeColor: function (newValue) {
+      document.body.setAttribute('data-theme', newValue)
+      console.log(document.body.getAttribute('data-theme'))
+      console.log(newValue)
+      this.$q.localStorage.set('lnbits.theme', newValue)
+    },
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
@@ -328,6 +335,12 @@ window.windowMixin = {
   },
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
+    if (this.$q.localStorage.getItem('lnbits.theme')) {
+      document.body.setAttribute(
+        'data-theme',
+        this.$q.localStorage.getItem('lnbits.theme')
+      )
+    }
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
     }

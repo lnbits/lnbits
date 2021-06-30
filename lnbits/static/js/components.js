@@ -35,7 +35,7 @@ Vue.component('lnbits-wallet-list', {
         <q-item-section side>
           <q-avatar size="md"
             :color="(activeWallet && activeWallet.id === wallet.id)
-              ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
+              ? (($q.dark.isActive) ? 'primary' : 'primary')
               : 'grey-5'">
             <q-icon name="flash_on" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
@@ -118,7 +118,7 @@ Vue.component('lnbits-extension-list', {
         <q-item-section side>
           <q-avatar size="md"
             :color="(extension.isActive)
-              ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
+              ? (($q.dark.isActive) ? 'primary' : 'primary')
               : 'grey-5'">
             <q-icon :name="extension.icon" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
@@ -219,7 +219,7 @@ Vue.component('lnbits-payment-details', {
       </div>
       <div class="row" v-for="entry in extras">
         <div class="col-3">
-          <q-badge v-if="hasTag" color="purple" text-color="white">
+          <q-badge v-if="hasTag" color="secondary" text-color="white">
             extra
           </q-badge>
           <b>{{ entry.key }}</b>:

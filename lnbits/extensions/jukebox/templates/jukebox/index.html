@@ -6,7 +6,7 @@
       <q-card-section>
         <q-btn
           unelevated
-          color="green-7"
+          color="primary"
           class="q-ma-lg"
           @click="openNewDialog()"
           >Add Spotify Jukebox</q-btn
@@ -108,8 +108,8 @@
     <q-card class="q-pa-md q-pt-lg q-mt-md" style="width: 100%">
       <q-stepper
         v-model="step"
-        active-color="green-7"
-        inactive-color="green-10"
+        active-color="primary"
+        inactive-color="secondary"
         vertical
         animated
       >
@@ -149,15 +149,15 @@
             <div class="col-4">
               <q-btn
                 v-if="jukeboxDialog.data.title != null && jukeboxDialog.data.price != null && jukeboxDialog.data.wallet != null"
-                color="green-7"
+                color="primary"
                 @click="step = 2"
                 >Continue</q-btn
               >
-              <q-btn v-else color="green-7" disable>Continue</q-btn>
+              <q-btn v-else color="primary" disable>Continue</q-btn>
             </div>
             <div class="col-8">
               <q-btn
-                color="green-7"
+                color="primary"
                 class="float-right"
                 @click="closeFormDialog"
                 >Cancel</q-btn
@@ -208,17 +208,17 @@
             <div class="col-4">
               <q-btn
                 v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
-                color="green-7"
+                color="primary"
                 @click="submitSpotifyKeys"
                 >Submit keys</q-btn
               >
-              <q-btn v-else color="green-7" disable color="green-7"
+              <q-btn v-else color="primary" disable color="primary"
                 >Submit keys</q-btn
               >
             </div>
             <div class="col-8">
               <q-btn
-                color="green-7"
+                color="primary"
                 class="float-right"
                 @click="closeFormDialog"
                 >Cancel</q-btn
@@ -237,7 +237,7 @@
             dense
             outline
             unelevated
-            color="green-7"
+            color="primary"
             size="xs"
             @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')"
             >{% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
@@ -256,17 +256,17 @@
             <div class="col-4">
               <q-btn
                 v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
-                color="green-7"
+                color="primary"
                 @click="authAccess"
                 >Authorise access</q-btn
               >
-              <q-btn v-else color="green-7" disable color="green-7"
+              <q-btn v-else color="primary" disable color="primary"
                 >Authorise access</q-btn
               >
             </div>
             <div class="col-8">
               <q-btn
-                color="green-7"
+                color="primary"
                 class="float-right"
                 @click="closeFormDialog"
                 >Cancel</q-btn
@@ -281,7 +281,7 @@
           :name="4"
           title="Select playlists"
           icon="queue_music"
-          active-color="green-8"
+          active-color="primary"
           :done="step > 4"
         >
           <q-select
@@ -307,15 +307,15 @@
             <div class="col-5">
               <q-btn
                 v-if="jukeboxDialog.data.sp_device != null && jukeboxDialog.data.sp_playlists != null"
-                color="green-7"
+                color="primary"
                 @click="createJukebox"
                 >Create Jukebox</q-btn
               >
-              <q-btn v-else color="green-7" disable>Create Jukebox</q-btn>
+              <q-btn v-else color="primary" disable>Create Jukebox</q-btn>
             </div>
             <div class="col-7">
               <q-btn
-                color="green-7"
+                color="primary"
                 class="float-right"
                 @click="closeFormDialog"
                 >Cancel</q-btn
