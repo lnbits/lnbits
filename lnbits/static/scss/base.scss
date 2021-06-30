@@ -25,7 +25,7 @@ $themes: (
   ),
   'flamingo': (
     primary: #c64242,
-    secondary: #ff7474,
+    secondary: #cf5656,
     dark: #e75480,
     info: #ec7599,
     marginal-bg: #e75480,
@@ -55,7 +55,8 @@ $themes: (
       }
     }
     @if $name == 'info' {
-      [data-theme='#{$theme}'] .q-card--dark {
+      [data-theme='#{$theme}'] .q-card--dark,
+      [data-theme='#{$theme}'] .q-stepper--dark {
         background: $color !important;
       }
     }

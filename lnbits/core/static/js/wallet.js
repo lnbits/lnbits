@@ -111,7 +111,6 @@ new Vue({
   mixins: [windowMixin],
   data: function () {
     return {
-      
       user: LNbits.map.user(window.user),
       receive: {
         show: false,
@@ -623,7 +622,6 @@ new Vue({
     }
   },
   created: function () {
-    
     this.fetchBalance()
     this.fetchPayments()
 
@@ -637,7 +635,6 @@ new Vue({
       })
   },
   mounted: function () {
-    
     // show disclaimer
     if (
       this.$refs.disclaimer &&
