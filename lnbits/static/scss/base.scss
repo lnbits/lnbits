@@ -7,7 +7,7 @@ $themes: (
     marginal-bg: #1f2234,
     marginal-text: #fff
   ),
-  'green': (
+  'mint': (
     primary: #3ab77d,
     secondary: #27b065,
     dark: #1f342b,
@@ -15,15 +15,35 @@ $themes: (
     marginal-bg: #1f342b,
     marginal-text: #fff
   ),
-  'orange': (
+  'autumn': (
     primary: #b7763a,
     secondary: #b07927,
     dark: #34291f,
     info: #463f33,
     marginal-bg: #342a1f,
     marginal-text: rgb(255, 255, 255)
+  ),
+  'flamingo': (
+    primary: #c64242,
+    secondary: #ff7474,
+    dark: #e75480,
+    info: #ec7599,
+    marginal-bg: #e75480,
+    marginal-text: rgb(255, 255, 255)
+  ),
+  'monochrome': (
+    primary: #494949,
+    secondary: #6b6b6b,
+    dark: #000,
+    info: rgb(39, 39, 39),
+    marginal-bg: #000,
+    marginal-text: rgb(255, 255, 255)
   )
 );
+
+[data-theme='quasar'] .q-drawer--dark {
+  background: #121212 !important;
+}
 
 @each $theme, $colors in $themes {
   @each $name, $color in $colors {
