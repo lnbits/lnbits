@@ -41,8 +41,12 @@ $themes: (
   )
 );
 
-[data-theme='quasar'] .q-drawer--dark {
+[data-theme='salvador'] .q-drawer--dark {
   background: #121212 !important;
+}
+
+[data-theme='salvador'] .q-header {
+  background: #0f47af !important;
 }
 
 @each $theme, $colors in $themes {
