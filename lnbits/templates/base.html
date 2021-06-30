@@ -48,6 +48,7 @@
           </q-badge>
           {% endblock %}
           <q-btn-dropdown
+            v-if="g.allowedThemes"
             dense
             flat
             round
@@ -65,6 +66,7 @@
                 size="md"
                 ><q-tooltip>classic</q-tooltip> </q-btn
               ><q-btn
+                v-if="g.allowedThemes.includes('mint')"
                 dense
                 flat
                 @click="changeColor('mint')"
@@ -73,6 +75,7 @@
                 size="md"
                 ><q-tooltip>mint</q-tooltip> </q-btn
               ><q-btn
+                v-if="g.allowedThemes.includes('autumn')"
                 dense
                 flat
                 @click="changeColor('autumn')"
@@ -82,6 +85,7 @@
                 ><q-tooltip>autumn</q-tooltip>
               </q-btn>
               <q-btn
+                v-if="g.allowedThemes.includes('flamingo')"
                 dense
                 flat
                 @click="changeColor('flamingo')"
@@ -91,6 +95,7 @@
                 ><q-tooltip>flamingo</q-tooltip>
               </q-btn>
               <q-btn
+                v-if="g.allowedThemes.includes('monochrome')"
                 dense
                 flat
                 @click="changeColor('monochrome')"
@@ -100,6 +105,7 @@
                 ><q-tooltip>monochrome</q-tooltip>
               </q-btn>
               <q-btn
+                v-if="g.allowedThemes.includes('quasar')"
                 dense
                 flat
                 @click="changeColor('quasar')"
@@ -179,6 +185,12 @@
     <!---->
     <script src="/static/js/base.js"></script>
     <script src="/static/js/components.js"></script>
+    <script type="text/javascript">
+      const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
+      if(themes && themes.length) {
+        window.allowedThemes = themes.trim()
+      }
+    </script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

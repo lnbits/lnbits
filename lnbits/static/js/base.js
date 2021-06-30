@@ -307,7 +307,8 @@ window.windowMixin = {
         extensions: [],
         user: null,
         wallet: null,
-        payments: []
+        payments: [],
+        allowedThemes: null
       }
     }
   },
@@ -335,6 +336,7 @@ window.windowMixin = {
   },
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
+    this.g.allowedThemes = window.allowedThemes
     if (this.$q.localStorage.getItem('lnbits.theme')) {
       document.body.setAttribute(
         'data-theme',

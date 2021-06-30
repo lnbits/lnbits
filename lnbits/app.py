@@ -104,6 +104,7 @@ def register_assets(app: QuartTrio):
 def register_filters(app: QuartTrio):
     """Jinja filters."""
     app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
+    app.jinja_env.globals["LNBITS_THEME_OPTIONS"] = app.config["LNBITS_THEME_OPTIONS"]
     app.jinja_env.globals["LNBITS_VERSION"] = app.config["LNBITS_COMMIT"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
 
