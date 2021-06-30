@@ -26,9 +26,9 @@ $themes: (
   'flamingo': (
     primary: #d11d53,
     secondary: #db3e6d,
-    dark: #bb2f59,
+    dark: #803a45,
     info: #ec7599,
-    marginal-bg: #bb2f59,
+    marginal-bg: #803a45,
     marginal-text: rgb(255, 255, 255)
   ),
   'monochrome': (
@@ -40,14 +40,6 @@ $themes: (
     marginal-text: rgb(255, 255, 255)
   )
 );
-
-[data-theme='salvador'] .q-drawer--dark {
-  background: #121212 !important;
-}
-
-[data-theme='salvador'] .q-header {
-  background: #0f47af !important;
-}
 
 @each $theme, $colors in $themes {
   @each $name, $color in $colors {
@@ -75,6 +67,21 @@ $themes: (
       }
     }
   }
+}
+[data-theme='salvador'] .q-drawer--dark {
+  background: #242424 !important;
+}
+
+[data-theme='salvador'] .q-header {
+  background: #0f47af !important;
+}
+
+[data-theme='flamingo'] .q-drawer--dark {
+  background: #e75480 !important;
+}
+
+[data-theme='flamingo'] .q-header {
+  background: #e75480 !important;
 }
 
 [v-cloak] {
