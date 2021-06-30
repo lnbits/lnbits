@@ -39,13 +39,13 @@ async def adminKeyFromWallet(user:str)->str:
         return row[0]
 
 async def getUser(id:str, local:bool, lnurl_auth:Optional[str], params:Optional[dict])-> dict:
-    if lnurl_auth:
+    if lnurl_auth is not None:
         if params is not None and "admin" in params:
             row = await db.fetchone("SELECT * FROM users WHERE lnurl_auth = ? AND admin = ?",(lnurl_auth, params['admin']))
         else:
-            row = await db.fetchone(f"SELECT * FROM users WHERE lnurl_auth = '{lnurl_auth}'")
+            row = await db.fetchone("SELECT * FROM users WHERE lnurl_auth = ?",(lnurl_auth))
     else:
-        row = await db.fetchone(f"SELECT * FROM users WHERE id = '{id}'")
+        row = await db.fetchone("SELECT * FROM users WHERE id = ?",(id))
     if row is None:
         return {"error":"No user found"}
     if local:

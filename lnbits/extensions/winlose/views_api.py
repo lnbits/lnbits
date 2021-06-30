@@ -143,6 +143,8 @@ async def recovery_post():
 @winlose_ext.route("/api/v1/payments/<id>", methods=["POST"])
 async def payments_get_(id):
     params = dict(request.args)
+    if not params:
+        params['payment'] = True
     params['host'] = request.headers['Host']
     if 'X-Api-Key' in request.headers:
         params['inKey'] = request.headers['X-Api-Key']

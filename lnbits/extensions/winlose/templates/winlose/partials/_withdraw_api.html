@@ -4,21 +4,28 @@
         <code><span class="text-light-green text-bold">GET</span> winlose/api/v1/withdraw/&lt;id&gt;</code>
         <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Headers - admin key required.</h5>
         <code>{"X-Api-Key": "<i>{{ g.user.wallets[0].adminkey }}</i>"}</code>
-        <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Query Parameters "winlose/api/v1/withdraw?&lt;params&gt;"</h5>
-        <code>amount=&lt;int&gt; amount in sataoshis. Required.</code>
-        <code>credits=&lt;int&gt; amount of credits account will be incremented by. 1,2 etc. Required.</code>
+        <div class="q-my-xs">Withdrawals can only be claimed once! Add the account user id to withdraw their sats.</div>
         <h5 class="text-caption q-mt-sm q-mb-none text-grey-7 text-bold">
             Returns 200 OK (application/json)
         </h5>
+        <span>Withdraw request</span>
         <code>
             {
                 "success": {
-                    "amount": &lt;int&gt;, // invoice amount in satoshis.
-                    "payment_hash": &lt;string&gt;, // used to create QRcode for payment.
-                    "payment_request": &lt;string&gt;, needed to poll server for settled payment.
-                    "usr_id": &lt;string&gt;, wl user id.
-                    "payment_id": &lt;string&gt; db payment id.
-                }
+                    "lnurl": &lt;string&gt;, // Withdraw lnurlw. Used to create QRcode for withdrawal.
+                    "chk_url": &lt;string&gt;, // Use to check for Withdrawal.
+                    "amount": &lt;int&gt;, // Withdraw amount in satoshis.
+                    }
+            }
+        </code>
+        <span class="q-mt-md">Withdraw check</span>
+        <code>
+            {
+                "success": {
+                    "withdraw":&lt;boolean&gt;,  // true; Sats have been withdrawn. false; Not yet withdrawn.
+                    "id":  &lt;string&gt;, // ID of the withdrawal.
+                    "amount": &lt;int&gt;, // Withdrawn amount in satoshis.
+                    }
             }
         </code>
         <h5 class="text-caption text-grey-7 q-mt-sm q-mb-none text-bold">Curl example</h5>

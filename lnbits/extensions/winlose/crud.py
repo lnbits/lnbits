@@ -96,7 +96,7 @@ async def addPayment(
         return False
 
 async def handlePaymentWebhook(id:str, params:dict)->dict:
-    if params:
+    if not 'payment' in params:
         if not {'withdraw', 'ln_id', 'hash'} <= set(params):
             return {"error":"missing parameters"}
         if params['withdraw'] == 'check':
@@ -156,7 +156,7 @@ async def handlePaymentWebhook(id:str, params:dict)->dict:
         # print(pay_req)
         # if str(pay_req) != 'settled':# might need change if split payment
         #     return {"error": "Payment not paid"}
-        await db.execute(f"UPDATE payments SET paid = True WHERE id = '{id}'")
+        await db.execute("UPDATE payments SET paid = TRUE WHERE id = ?",(id))
         usr, amount, credits = pay_row['usr_id'], pay_row['amount'], pay_row['credits']
         usr_credits = (await getUser(usr, False,None,None))['credits']
         add_credits = await handleCredits(usr, int(usr_credits + credits))
@@ -210,7 +210,7 @@ async def API_createUser(inKey:str, auto:bool, data:Optional[str])-> dict:
                     usr_id=uid, id=id, lnurl_auth=lnurl_auth, 
                     admin=user, payout_wallet=wid, 
                     credits=0, active=True, data=None)
-                rUser = await getUser(id, False, None,None)
+                rUser = await getUser(id, False, lnurl_auth,None)
                 return {"success":rUser}
             except ValueError:
                 print(ValueError)
@@ -426,7 +426,7 @@ async def API_withdraw(id:str, params:dict)->dict:
     if not usr['active']:
         return {"error":{"id":id, "active":False}}
     protocol = params['url'].rsplit('//', 1)[0].rsplit(':', 1)[0]
-    if protocol != 'https':
+    if protocol != 'https': # need to add support for TOR
         return {"error": "withdrawal must be over https"}
     inKey = await inKeyFromWallet(usr['usr_id'])
     adminKey = await adminKeyFromWallet(usr['usr_id'])
@@ -461,7 +461,6 @@ async def API_withdraw(id:str, params:dict)->dict:
         except:
             return {"error": "Withdraw link error!"}
     chk_url = protocol+"://"+params['host']+"/winlose/api/v1/payments/"+uni_id+"?withdraw=check&ln_id="+withdraw_link['id']+"&hash="+withdraw_link['unique_hash']
-    print(chk_url)
     if withdraw_link:
         data = json.dumps({"withdraw_link": withdraw_link})
         pend_withdraw = await addPayment(
