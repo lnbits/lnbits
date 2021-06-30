@@ -9,7 +9,7 @@
             <h5 class="text-subtitle1 q-my-none">Items</h5>
           </div>
           <div class="col q-ml-lg">
-            <q-btn unelevated color="deep-purple" @click="openNewDialog()"
+            <q-btn unelevated color="primary" @click="openNewDialog()"
               >Add new item</q-btn
             >
           </div>
@@ -111,7 +111,7 @@
           <q-btn
             type="a"
             outline
-            color="purple"
+            color="secondary"
             :href="'print?items=' + printItems.map(({id}) => id).join(',')"
             >Print QR Codes</q-btn
           >
@@ -123,7 +123,7 @@
       <q-tabs
         v-model="confirmationMethod"
         no-caps
-        class="bg-purple text-white shadow-2"
+        class="bg-dark text-white shadow-2"
       >
         <q-tab name="wordlist" label="Wordlist"></q-tab>
         <q-tab name="totp" label="TOTP (Google Authenticator)"></q-tab>
@@ -151,7 +151,7 @@
             >
               <q-btn
                 unelevated
-                color="deep-purple"
+                color="primary"
                 type="submit"
                 :disabled="!wordlistTainted"
               >
@@ -180,7 +180,7 @@
             >
               <q-btn
                 unelevated
-                color="deep-purple"
+                color="primary"
                 :disabled="offlineshop.method === 'totp'"
                 @click="setMethod"
               >
@@ -199,7 +199,7 @@
 
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disabled="offlineshop.method === 'none'"
             @click="setMethod"
           >
@@ -308,7 +308,7 @@
             <div class="col q-ml-lg">
               <q-btn
                 unelevated
-                color="deep-purple"
+                color="primary"
                 :disable="disabledAddItemButton()"
                 type="submit"
               >

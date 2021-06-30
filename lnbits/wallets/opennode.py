@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 import hmac
 import httpx
 from http import HTTPStatus

@@ -174,7 +174,7 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    deletePayLink: linkId => {
+    deletePayLink(linkId) {
       var link = _.findWhere(this.payLinks, {id: linkId})
 
       LNbits.utils
@@ -215,7 +215,6 @@ new Vue({
         getPayLinks()
       }, 20000)
     }
-
     LNbits.api
       .request('GET', '/lnurlp/api/v1/currencies')
       .then(response => {

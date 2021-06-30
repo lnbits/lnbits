@@ -1,0 +1,289 @@
+{% extends "public.html" %} {% block page %}<q-page>
+  <video
+    autoplay="true"
+    id="videoScreen"
+    style="width: 100%"
+    class="fixed-bottom-right"
+  ></video>
+  <video
+    autoplay="true"
+    id="videoCamera"
+    style="width: 100%"
+    class="fixed-bottom-right"
+  ></video>
+  <img src="" style="width: 100%" id="animations" class="fixed-bottom-left" />
+
+  <div
+    v-if="copilot.lnurl_toggle == 1"
+    class="rounded-borders column fixed-right"
+    style="
+      width: 250px;
+      background-color: white;
+      height: 300px;
+      margin-top: 10%;
+    "
+  >
+    <div class="col">
+      <qrcode
+        :value="copilot.lnurl"
+        :options="{width:250}"
+        class="rounded-borders"
+      ></qrcode>
+      <center class="absolute-bottom" style="color: black; font-size: 20px">
+        {% raw %}{{ copilot.lnurl_title }}{% endraw %}
+      </center>
+    </div>
+  </div>
+
+  <h2
+    v-if="copilot.show_price != 0"
+    class="text-bold fixed-bottom-left"
+    style="
+      margin: 60px 60px;
+      font-size: 110px;
+      text-shadow: 4px 8px 4px black;
+      color: white;
+    "
+  >
+    {% raw %}{{ price }}{% endraw %}
+  </h2>
+  <p
+    v-if="copilot.show_ack != 0"
+    class="fixed-top"
+    style="
+      font-size: 22px;
+      text-shadow: 2px 4px 1px black;
+      color: white;
+      padding-left: 40%;
+    "
+  >
+    Powered by LNbits/StreamerCopilot
+  </p>
+</q-page>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<style>
+  body.body--dark .q-drawer,
+  body.body--dark .q-footer,
+  body.body--dark .q-header,
+  .q-drawer,
+  .q-footer,
+  .q-header {
+    display: none;
+  }
+  .q-page {
+    padding: 0px;
+  }
+</style>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data() {
+      return {
+        price: '',
+        counter: 1,
+        colours: ['teal', 'purple', 'indigo', 'pink', 'green'],
+        copilot: {},
+        animQueue: [],
+        queue: false,
+        lnurl: ''
+      }
+    },
+    methods: {
+      showNotif: function (userMessage) {
+        var colour = this.colours[
+          Math.floor(Math.random() * this.colours.length)
+        ]
+        this.$q.notify({
+          color: colour,
+          icon: 'chat_bubble_outline',
+          html: true,
+          message: '<h4 style="color: white;">' + userMessage + '</h4>',
+          position: 'top-left',
+          timeout: 5000
+        })
+      },
+      openURL: function (url) {
+        return Quasar.utils.openURL(url)
+      },
+      initCamera() {
+        var video = document.querySelector('#videoCamera')
+
+        if (navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices
+            .getUserMedia({video: true})
+            .then(function (stream) {
+              video.srcObject = stream
+            })
+            .catch(function (err0r) {
+              console.log('Something went wrong!')
+            })
+        }
+      },
+      initScreenShare() {
+        var video = document.querySelector('#videoScreen')
+        navigator.mediaDevices
+          .getDisplayMedia({video: true})
+          .then(function (stream) {
+            video.srcObject = stream
+          })
+          .catch(function (err0r) {
+            console.log('Something went wrong!')
+          })
+      },
+      pushAnim(content) {
+        document.getElementById('animations').style.width = content[0]
+        document.getElementById('animations').src = content[1]
+        if (content[2] != 'none') {
+          self.showNotif(content[2])
+        }
+        setTimeout(function () {
+          document.getElementById('animations').src = ''
+        }, 5000)
+      },
+      launch() {
+        self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/copilot/api/v1/copilot/ws/' +
+              self.copilot.id +
+              '/launching/rocket'
+          )
+          .then(function (response1) {
+            self.$q.notify({
+              color: 'green',
+              message: 'Sent!'
+            })
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+      }
+    },
+    mounted() {
+      this.initCamera()
+    },
+    created: function () {
+      self = this
+      self.copilot = JSON.parse(localStorage.getItem('copilot'))
+      LNbits.api
+        .request(
+          'GET',
+          '/copilot/api/v1/copilot/' + self.copilot.id,
+          localStorage.getItem('inkey')
+        )
+        .then(function (response) {
+          self.copilot = response.data
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+
+      this.connectionBitStamp = new WebSocket('wss://ws.bitstamp.net')
+
+      const obj = JSON.stringify({
+        event: 'bts:subscribe',
+        data: {channel: 'live_trades_' + self.copilot.show_price}
+      })
+
+      this.connectionBitStamp.onmessage = function (e) {
+        if (self.copilot.show_price) {
+          if (self.copilot.show_price == 'btcusd') {
+            self.price = String(
+              new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+              }).format(JSON.parse(e.data).data.price)
+            )
+          } else if (self.copilot.show_price == 'btceur') {
+            self.price = String(
+              new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'EUR'
+              }).format(JSON.parse(e.data).data.price)
+            )
+          } else if (self.copilot.show_price == 'btcgbp') {
+            self.price = String(
+              new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'GBP'
+              }).format(JSON.parse(e.data).data.price)
+            )
+          }
+        }
+      }
+      this.connectionBitStamp.onopen = () => this.connectionBitStamp.send(obj)
+
+      const fetch = data =>
+        new Promise(resolve => setTimeout(resolve, 5000, this.pushAnim(data)))
+
+      const addTask = (() => {
+        let pending = Promise.resolve()
+        const run = async data => {
+          try {
+            await pending
+          } finally {
+            return fetch(data)
+          }
+        }
+        return data => (pending = run(data))
+      })()
+
+      if (location.protocol !== 'http:') {
+        localUrl =
+          'wss://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/copilot/ws/' +
+          self.copilot.id +
+          '/'
+      } else {
+        localUrl =
+          'ws://' +
+          document.domain +
+          ':' +
+          location.port +
+          '/copilot/ws/' +
+          self.copilot.id +
+          '/'
+      }
+      this.connection = new WebSocket(localUrl)
+      this.connection.onmessage = function (e) {
+        res = e.data.split('-')
+        if (res[0] == 'rocket') {
+          addTask(['40%', '/copilot/static/rocket.gif', res[1]])
+        }
+        if (res[0] == 'face') {
+          addTask(['35%', '/copilot/static/face.gif', res[1]])
+        }
+        if (res[0] == 'bitcoin') {
+          addTask(['30%', '/copilot/static/bitcoin.gif', res[1]])
+        }
+        if (res[0] == 'confetti') {
+          addTask(['100%', '/copilot/static/confetti.gif', res[1]])
+        }
+        if (res[0] == 'martijn') {
+          addTask(['40%', '/copilot/static/martijn.gif', res[1]])
+        }
+        if (res[0] == 'rick') {
+          addTask(['40%', '/copilot/static/rick.gif', res[1]])
+        }
+        if (res[0] == 'true') {
+          document.getElementById('videoCamera').style.width = '20%'
+          self.initScreenShare()
+        }
+        if (res[0] == 'false') {
+          document.getElementById('videoCamera').style.width = '100%'
+          document.getElementById('videoScreen').src = null
+        }
+      }
+      this.connection.onopen = () => this.launch
+    }
+  })
+</script>
+{% endblock %}

@@ -8,7 +8,7 @@
         {% if lnurl %}
         <q-btn
           unelevated
-          color="deep-purple"
+          color="primary"
           @click="processing"
           type="a"
           href="{{ url_for('core.lnurlwallet', lightning=lnurl) }}"
@@ -25,7 +25,7 @@
           ></q-input>
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="walletName == ''"
             type="submit"
             >Add a new wallet</q-btn
@@ -88,7 +88,12 @@
   <div class="col-12 col-md-3 col-lg-3">
     <div class="row q-col-gutter-lg justify-center">
       <div class="col-6 col-sm-4 col-md-8 q-gutter-y-sm">
-        <q-btn flat color="purple" label="Runs on" class="full-width"></q-btn>
+        <q-btn
+          flat
+          color="secondary"
+          label="Runs on"
+          class="full-width"
+        ></q-btn>
         <div class="row">
           <div class="col">
             <a href="https://github.com/ElementsProject/lightning">

@@ -4,18 +4,36 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="green-7" class="q-ma-lg" @click="openNewDialog()">Add Spotify Jukebox</q-btn>
+        <q-btn
+          unelevated
+          color="primary"
+          class="q-ma-lg"
+          @click="openNewDialog()"
+          >Add Spotify Jukebox</q-btn
+        >
 
         {% raw %}
 
-        <q-table flat dense :data="JukeboxLinks" row-key="id" :columns="JukeboxTable.columns"
-          :pagination.sync="JukeboxTable.pagination" :filter="filter">
+        <q-table
+          flat
+          dense
+          :data="JukeboxLinks"
+          row-key="id"
+          :columns="JukeboxTable.columns"
+          :pagination.sync="JukeboxTable.pagination"
+          :filter="filter"
+        >
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
               <q-th auto-width></q-th>
 
-              <q-th v-for="col in props.cols" :key="col.name" :props="props" auto-width>
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
                 <div v-if="col.name == 'id'"></div>
                 <div v-else>{{ col.label }}</div>
               </q-th>
@@ -26,18 +44,43 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td auto-width>
-                <q-btn unelevated dense size="xs" icon="launch" :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openQrCodeDialog(props.row.sp_id)">
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="launch"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openQrCodeDialog(props.row.sp_id)"
+                >
                   <q-tooltip> Jukebox QR </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td auto-width>
-                <q-btn flat dense size="xs" @click="updateJukebox(props.row.id)" icon="edit" color="light-blue"></q-btn>
-                <q-btn flat dense size="xs" @click="deleteJukebox(props.row.id)" icon="cancel" color="pink">
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateJukebox(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteJukebox(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                >
                   <q-tooltip> Delete Jukebox </q-tooltip>
                 </q-btn>
               </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props" auto-width>
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
                 <div v-if="col.name == 'id'"></div>
                 <div v-else>{{ col.value }}</div>
               </q-td>
@@ -63,23 +106,62 @@
 
   <q-dialog v-model="jukeboxDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-md q-pt-lg q-mt-md" style="width: 100%">
-      <q-stepper v-model="step" active-color="green-7" inactive-color="green-10" vertical animated>
-        <q-step :name="1" title="Pick wallet, price" icon="account_balance_wallet" :done="step > 1">
-          <q-input filled class="q-pt-md" dense v-model.trim="jukeboxDialog.data.title" label="Jukebox name"></q-input>
-          <q-select class="q-pb-md q-pt-md" filled dense emit-value v-model="jukeboxDialog.data.wallet"
-            :options="g.user.walletOptions" label="Wallet to use"></q-select>
-          <q-input filled dense v-model.trim="jukeboxDialog.data.price" type="number" max="1440" label="Price per track"
-            class="q-pb-lg">
+      <q-stepper
+        v-model="step"
+        active-color="primary"
+        inactive-color="secondary"
+        vertical
+        animated
+      >
+        <q-step
+          :name="1"
+          title="Pick wallet, price"
+          icon="account_balance_wallet"
+          :done="step > 1"
+        >
+          <q-input
+            filled
+            class="q-pt-md"
+            dense
+            v-model.trim="jukeboxDialog.data.title"
+            label="Jukebox name"
+          ></q-input>
+          <q-select
+            class="q-pb-md q-pt-md"
+            filled
+            dense
+            emit-value
+            v-model="jukeboxDialog.data.wallet"
+            :options="g.user.walletOptions"
+            label="Wallet to use"
+          ></q-select>
+          <q-input
+            filled
+            dense
+            v-model.trim="jukeboxDialog.data.price"
+            type="number"
+            max="1440"
+            label="Price per track"
+            class="q-pb-lg"
+          >
           </q-input>
           <div class="row">
             <div class="col-4">
               <q-btn
                 v-if="jukeboxDialog.data.title != null && jukeboxDialog.data.price != null && jukeboxDialog.data.wallet != null"
-                color="green-7" @click="step = 2">Continue</q-btn>
-              <q-btn v-else color="green-7" disable>Continue</q-btn>
+                color="primary"
+                @click="step = 2"
+                >Continue</q-btn
+              >
+              <q-btn v-else color="primary" disable>Continue</q-btn>
             </div>
             <div class="col-8">
-              <q-btn color="green-7" class="float-right" @click="closeFormDialog">Cancel</q-btn>
+              <q-btn
+                color="primary"
+                class="float-right"
+                @click="closeFormDialog"
+                >Cancel</q-btn
+              >
             </div>
           </div>
 
@@ -90,26 +172,57 @@
           <img src="/jukebox/static/spotapi.gif" />
           To use this extension you need a Spotify client ID and client secret.
           You get these by creating an app in the Spotify developers dashboard
-          <a target="_blank" style="color:#43a047" href="https://developer.spotify.com/dashboard/applications">here</a>.
-          <q-input filled class="q-pb-md q-pt-md" dense v-model.trim="jukeboxDialog.data.sp_user" label="Client ID">
+          <a
+            target="_blank"
+            style="color: #43a047"
+            href="https://developer.spotify.com/dashboard/applications"
+            >here</a
+          >.
+          <q-input
+            filled
+            class="q-pb-md q-pt-md"
+            dense
+            v-model.trim="jukeboxDialog.data.sp_user"
+            label="Client ID"
+          >
           </q-input>
 
-          <q-input dense v-model="jukeboxDialog.data.sp_secret" filled :type="isPwd ? 'password' : 'text'"
-            label="Client secret">
+          <q-input
+            dense
+            v-model="jukeboxDialog.data.sp_secret"
+            filled
+            :type="isPwd ? 'password' : 'text'"
+            label="Client secret"
+          >
             <template #append>
-              <q-icon :name="isPwd ? 'visibility_off' : 'visibility'" class="cursor-pointer" @click="isPwd = !isPwd">
+              <q-icon
+                :name="isPwd ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="isPwd = !isPwd"
+              >
               </q-icon>
             </template>
           </q-input>
 
           <div class="row q-mt-md">
             <div class="col-4">
-              <q-btn v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
-                color="green-7" @click="submitSpotifyKeys">Submit keys</q-btn>
-              <q-btn v-else color="green-7" disable color="green-7">Submit keys</q-btn>
+              <q-btn
+                v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
+                color="primary"
+                @click="submitSpotifyKeys"
+                >Submit keys</q-btn
+              >
+              <q-btn v-else color="primary" disable color="primary"
+                >Submit keys</q-btn
+              >
             </div>
             <div class="col-8">
-              <q-btn color="green-7" class="float-right" @click="closeFormDialog">Cancel</q-btn>
+              <q-btn
+                color="primary"
+                class="float-right"
+                @click="closeFormDialog"
+                >Cancel</q-btn
+              >
             </div>
           </div>
 
@@ -120,42 +233,93 @@
           <img src="/jukebox/static/spotapi1.gif" />
           In the app go to edit-settings, set the redirect URI to this link
           <br />
-          <q-btn dense outline unelevated color="green-7" size="xs"
-            @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')">{% raw %}{{ locationcb
-            }}{{ jukeboxDialog.data.sp_id }}{% endraw
+          <q-btn
+            dense
+            outline
+            unelevated
+            color="primary"
+            size="xs"
+            @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')"
+            >{% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
             %}<q-tooltip> Click to copy URL </q-tooltip>
           </q-btn>
           <br />
           Settings can be found
-          <a target="_blank" style="color:#43a047" href="https://developer.spotify.com/dashboard/applications">here</a>.
+          <a
+            target="_blank"
+            style="color: #43a047"
+            href="https://developer.spotify.com/dashboard/applications"
+            >here</a
+          >.
 
           <div class="row q-mt-md">
             <div class="col-4">
-              <q-btn v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
-                color="green-7" @click="authAccess">Authorise access</q-btn>
-              <q-btn v-else color="green-7" disable color="green-7">Authorise access</q-btn>
+              <q-btn
+                v-if="jukeboxDialog.data.sp_secret != null && jukeboxDialog.data.sp_user != null && tokenFetched"
+                color="primary"
+                @click="authAccess"
+                >Authorise access</q-btn
+              >
+              <q-btn v-else color="primary" disable color="primary"
+                >Authorise access</q-btn
+              >
             </div>
             <div class="col-8">
-              <q-btn color="green-7" class="float-right" @click="closeFormDialog">Cancel</q-btn>
+              <q-btn
+                color="primary"
+                class="float-right"
+                @click="closeFormDialog"
+                >Cancel</q-btn
+              >
             </div>
           </div>
 
           <br />
         </q-step>
 
-        <q-step :name="4" title="Select playlists" icon="queue_music" active-color="green-8" :done="step > 4">
-          <q-select class="q-pb-md q-pt-md" filled dense emit-value v-model="jukeboxDialog.data.sp_device"
-            :options="devices" label="Device jukebox will play to"></q-select>
-          <q-select class="q-pb-md" filled dense multiple emit-value v-model="jukeboxDialog.data.sp_playlists"
-            :options="playlists" label="Playlists available to the jukebox"></q-select>
+        <q-step
+          :name="4"
+          title="Select playlists"
+          icon="queue_music"
+          active-color="primary"
+          :done="step > 4"
+        >
+          <q-select
+            class="q-pb-md q-pt-md"
+            filled
+            dense
+            emit-value
+            v-model="jukeboxDialog.data.sp_device"
+            :options="devices"
+            label="Device jukebox will play to"
+          ></q-select>
+          <q-select
+            class="q-pb-md"
+            filled
+            dense
+            multiple
+            emit-value
+            v-model="jukeboxDialog.data.sp_playlists"
+            :options="playlists"
+            label="Playlists available to the jukebox"
+          ></q-select>
           <div class="row q-mt-md">
             <div class="col-5">
-              <q-btn v-if="jukeboxDialog.data.sp_device != null && jukeboxDialog.data.sp_playlists != null"
-                color="green-7" @click="createJukebox">Create Jukebox</q-btn>
-              <q-btn v-else color="green-7" disable>Create Jukebox</q-btn>
+              <q-btn
+                v-if="jukeboxDialog.data.sp_device != null && jukeboxDialog.data.sp_playlists != null"
+                color="primary"
+                @click="createJukebox"
+                >Create Jukebox</q-btn
+              >
+              <q-btn v-else color="primary" disable>Create Jukebox</q-btn>
             </div>
             <div class="col-7">
-              <q-btn color="green-7" class="float-right" @click="closeFormDialog">Cancel</q-btn>
+              <q-btn
+                color="primary"
+                class="float-right"
+                @click="closeFormDialog"
+                >Cancel</q-btn
+              >
             </div>
           </div>
         </q-step>
@@ -169,15 +333,28 @@
         <h5 class="q-my-none">Shareable Jukebox QR</h5>
       </center>
       <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-        <qrcode :value="qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id" :options="{width: 800}"
-          class="rounded-borders"></qrcode>
+        <qrcode
+          :value="qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
       </q-responsive>
       <div class="row q-mt-lg q-gutter-sm">
-        <q-btn outline color="grey"
-          @click="copyText(qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id, 'Link copied to clipboard!')">
-          Copy jukebox link</q-btn>
-        <q-btn outline color="grey" type="a" :href="qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id"
-          target="_blank">Open jukebox</q-btn>
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id, 'Link copied to clipboard!')"
+        >
+          Copy jukebox link</q-btn
+        >
+        <q-btn
+          outline
+          color="grey"
+          type="a"
+          :href="qrCodeDialog.data.url + '/jukebox/' + qrCodeDialog.data.id"
+          target="_blank"
+          >Open jukebox</q-btn
+        >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>

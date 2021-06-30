@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE livestreams (
+        CREATE TABLE IF NOT EXISTS livestreams (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             wallet TEXT NOT NULL,
             fee_pct INTEGER NOT NULL DEFAULT 10,
@@ -15,7 +15,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE producers (
+        CREATE TABLE IF NOT EXISTS producers (
             livestream INTEGER NOT NULL REFERENCES livestreams (id),
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user TEXT NOT NULL,
@@ -27,7 +27,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE tracks (
+        CREATE TABLE IF NOT EXISTS tracks (
             livestream INTEGER NOT NULL REFERENCES livestreams (id),
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             download_url TEXT,

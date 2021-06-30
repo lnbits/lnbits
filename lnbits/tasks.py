@@ -1,5 +1,5 @@
 import time
-import trio  # type: ignore
+import trio
 from http import HTTPStatus
 from typing import Optional, List, Callable
 from quart_trio import QuartTrio

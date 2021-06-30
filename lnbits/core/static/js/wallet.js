@@ -119,6 +119,8 @@ new Vue({
         paymentHash: null,
         minMax: [0, 2100000000000000],
         lnurl: null,
+        units: ['sat'],
+        unit: 'sat',
         data: {
           amount: null,
           memo: ''
@@ -233,6 +235,7 @@ new Vue({
       this.receive.paymentHash = null
       this.receive.data.amount = null
       this.receive.data.memo = null
+      this.receive.unit = 'sat'
       this.receive.paymentChecker = null
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
@@ -269,11 +272,13 @@ new Vue({
     },
     createInvoice: function () {
       this.receive.status = 'loading'
+
       LNbits.api
         .createInvoice(
           this.g.wallet,
           this.receive.data.amount,
           this.receive.data.memo,
+          this.receive.unit,
           this.receive.lnurl && this.receive.lnurl.callback
         )
         .then(response => {
@@ -619,6 +624,15 @@ new Vue({
   created: function () {
     this.fetchBalance()
     this.fetchPayments()
+
+    LNbits.api
+      .request('GET', '/api/v1/currencies')
+      .then(response => {
+        this.receive.units = ['sat', ...response.data]
+      })
+      .catch(err => {
+        LNbits.utils.notifyApiError(err)
+      })
   },
   mounted: function () {
     // show disclaimer

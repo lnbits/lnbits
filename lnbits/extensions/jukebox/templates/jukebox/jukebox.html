@@ -199,6 +199,7 @@
             self.receive.paymentReq = response.data[0][1]
             self.receive.paymentHash = response.data[0][0]
             self.receive.dialogues.second = true
+
             self.$q.notify({
               message: 'Processing'
             })

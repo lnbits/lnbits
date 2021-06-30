@@ -1,0 +1,637 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        {% raw %}
+        <q-btn unelevated color="primary" @click="formDialogCopilot.show = true"
+          >New copilot instance
+        </q-btn>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Copilots</h5>
+          </div>
+
+          <div class="col-auto">
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+            <q-btn flat color="grey" @click="exportcopilotCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          flat
+          dense
+          :data="CopilotLinks"
+          row-key="id"
+          :columns="CopilotsTable.columns"
+          :pagination.sync="CopilotsTable.pagination"
+          :filter="filter"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
+
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.label }}</div>
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="apps"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openCopilotPanel(props.row.id)"
+                >
+                  <q-tooltip> Panel </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="face"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openCopilotCompose(props.row.id)"
+                >
+                  <q-tooltip> Compose window </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteCopilotLink(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                >
+                  <q-tooltip> Delete copilot </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateCopilotLink(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                  <q-tooltip> Edit copilot </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.value }}</div>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits StreamCopilot Extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "copilot/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+  <q-dialog
+    v-model="formDialogCopilot.show"
+    position="top"
+    @hide="closeFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormDataCopilot" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogCopilot.data.title"
+          type="text"
+          label="Title"
+        ></q-input>
+        <div class="row">
+          <q-checkbox
+            v-model="formDialogCopilot.data.lnurl_toggle"
+            label="Include lnurl payment QR? (requires https)"
+            left-label
+          ></q-checkbox>
+        </div>
+
+        <div v-if="formDialogCopilot.data.lnurl_toggle">
+          <q-checkbox
+            v-model="formDialogCopilot.data.show_message"
+            left-label
+            label="Show lnurl-pay messages? (supported by few wallets)"
+          ></q-checkbox>
+
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="formDialogCopilot.data.wallet"
+            :options="g.user.walletOptions"
+            label="Wallet *"
+          ></q-select>
+
+          <q-expansion-item
+            group="api"
+            dense
+            expand-separator
+            label="Payment threshold 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-select
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation1"
+                      :options="options"
+                      label="Animation"
+                    />
+                  </div>
+
+                  <div class="col q-pl-xs">
+                    <q-input
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation1threshold"
+                      type="number"
+                      label="From *sats"
+                      :min="10"
+                    >
+                    </q-input>
+                  </div>
+                  <div class="col q-pl-xs">
+                    <q-input
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation1webhook"
+                      type="text"
+                      label="Webhook"
+                    >
+                    </q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            group="api"
+            dense
+            expand-separator
+            label="Payment threshold 2 (Must be higher than last)"
+          >
+            <q-card>
+              <q-card-section>
+                <div
+                  class="row"
+                  v-if="formDialogCopilot.data.animation1threshold > 0"
+                >
+                  <div class="col">
+                    <q-select
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation2"
+                      :options="options"
+                      label="Animation"
+                    />
+                  </div>
+
+                  <div class="col q-pl-xs">
+                    <q-input
+                      filled
+                      dense
+                      v-model="formDialogCopilot.data.animation2threshold"
+                      type="number"
+                      label="From *sats"
+                      :min="formDialogCopilot.data.animation1threshold"
+                    >
+                    </q-input>
+                  </div>
+                  <div class="col q-pl-xs">
+                    <q-input
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation2webhook"
+                      type="text"
+                      label="Webhook"
+                    >
+                    </q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            group="api"
+            dense
+            expand-separator
+            label="Payment threshold 3 (Must be higher than last)"
+          >
+            <q-card>
+              <q-card-section>
+                <div
+                  class="row"
+                  v-if="formDialogCopilot.data.animation2threshold > formDialogCopilot.data.animation1threshold"
+                >
+                  <div class="col">
+                    <q-select
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation3"
+                      :options="options"
+                      label="Animation"
+                    />
+                  </div>
+
+                  <div class="col q-pl-xs">
+                    <q-input
+                      filled
+                      dense
+                      v-model="formDialogCopilot.data.animation3threshold"
+                      type="number"
+                      label="From *sats"
+                      :min="formDialogCopilot.data.animation2threshold"
+                    >
+                    </q-input>
+                  </div>
+                  <div class="col q-pl-xs">
+                    <q-input
+                      filled
+                      dense
+                      v-model.trim="formDialogCopilot.data.animation3webhook"
+                      type="text"
+                      label="Webhook"
+                    >
+                    </q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialogCopilot.data.lnurl_title"
+            type="text"
+            max="1440"
+            label="Lnurl title (message with QR code)"
+          >
+          </q-input>
+        </div>
+
+        <div class="q-gutter-sm">
+          <q-select
+            filled
+            dense
+            style="width: 50%"
+            v-model.trim="formDialogCopilot.data.show_price"
+            :options="currencyOptions"
+            label="Show price"
+          />
+        </div>
+        <div class="q-gutter-sm">
+          <div class="row">
+            <q-checkbox
+              v-model="formDialogCopilot.data.show_ack"
+              left-label
+              label="Show 'powered by LNbits'"
+            ></q-checkbox>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialogCopilot.data.id"
+            unelevated
+            color="primary"
+            :disable="
+                formDialogCopilot.data.title == ''"
+            type="submit"
+            >Update Copilot</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="
+                formDialogCopilot.data.title == ''"
+            type="submit"
+            >Create Copilot</q-btn
+          >
+          <q-btn @click="cancelCopilot" flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<style></style>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  var mapCopilot = obj => {
+    obj._data = _.clone(obj)
+    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
+    obj.time = obj.time + 'mins'
+
+    if (obj.time_elapsed) {
+      obj.date = 'Time elapsed'
+    } else {
+      obj.date = Quasar.utils.date.formatDate(
+        new Date((obj.theTime - 3600) * 1000),
+        'HH:mm:ss'
+      )
+    }
+    obj.displayComposeUrl = ['/copilot/cp/', obj.id].join('')
+    obj.displayPanelUrl = ['/copilot/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        filter: '',
+        CopilotLinks: [],
+        CopilotLinksObj: [],
+        CopilotsTable: {
+          columns: [
+            {
+              name: 'theId',
+              align: 'left',
+              label: 'id',
+              field: 'id'
+            },
+            {
+              name: 'lnurl_toggle',
+              align: 'left',
+              label: 'Show lnurl pay link',
+              field: 'lnurl_toggle'
+            },
+            {
+              name: 'title',
+              align: 'left',
+              label: 'title',
+              field: 'title'
+            },
+            {
+              name: 'amount_made',
+              align: 'left',
+              label: 'amount made',
+              field: 'amount_made'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        passedCopilot: {},
+        formDialog: {
+          show: false,
+          data: {}
+        },
+        formDialogCopilot: {
+          show: false,
+          data: {
+            lnurl_toggle: false,
+            show_message: false,
+            show_ack: false,
+            show_price: 'None',
+            title: ''
+          }
+        },
+        qrCodeDialog: {
+          show: false,
+          data: null
+        },
+        options: ['bitcoin', 'confetti', 'rocket', 'face', 'martijn', 'rick'],
+        currencyOptions: ['None', 'btcusd', 'btceur', 'btcgbp']
+      }
+    },
+    methods: {
+      cancelCopilot: function (data) {
+        var self = this
+        self.formDialogCopilot.show = false
+      },
+      closeFormDialog: function () {
+        this.formDialog.data = {
+          is_unique: false
+        }
+      },
+      sendFormDataCopilot: function () {
+        var self = this
+        if (self.formDialogCopilot.data.id) {
+          this.updateCopilot(
+            self.g.user.wallets[0].adminkey,
+            self.formDialogCopilot.data
+          )
+        } else {
+          this.createCopilot(
+            self.g.user.wallets[0].adminkey,
+            self.formDialogCopilot.data
+          )
+        }
+      },
+
+      createCopilot: function (wallet, data) {
+        var self = this
+        var updatedData = {}
+        for (const property in data) {
+          if (data[property]) {
+            updatedData[property] = data[property]
+          }
+          if (property == 'animation1threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation2threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation3threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+        }
+        LNbits.api
+          .request('POST', '/copilot/api/v1/copilot', wallet, updatedData)
+          .then(function (response) {
+            self.CopilotLinks.push(mapCopilot(response.data))
+            self.formDialogCopilot.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getCopilots: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/copilot/api/v1/copilot',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.CopilotLinks = response.data.map(mapCopilot)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getCopilot: function (copilot_id) {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/copilot/api/v1/copilot/' + copilot_id,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            localStorage.setItem('copilot', JSON.stringify(response.data))
+            localStorage.setItem('inkey', self.g.user.wallets[0].inkey)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      openCopilotCompose: function (copilot_id) {
+        this.getCopilot(copilot_id)
+        let params =
+          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=1200,height=644,left=410,top=100'
+        open('../copilot/cp/', '_blank', params)
+      },
+      openCopilotPanel: function (copilot_id) {
+        this.getCopilot(copilot_id)
+        let params =
+          'scrollbars=no, resizable=no,status=no,location=no,toolbar=no,menubar=no,width=300,height=450,left=10,top=400'
+        open('../copilot/pn/', '_blank', params)
+      },
+      deleteCopilotLink: function (copilotId) {
+        var self = this
+        var link = _.findWhere(this.CopilotLinks, {id: copilotId})
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this pay link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/copilot/api/v1/copilot/' + copilotId,
+                self.g.user.wallets[0].adminkey
+              )
+              .then(function (response) {
+                self.CopilotLinks = _.reject(self.CopilotLinks, function (obj) {
+                  return obj.id === copilotId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      openUpdateCopilotLink: function (copilotId) {
+        var self = this
+        var copilot = _.findWhere(this.CopilotLinks, {id: copilotId})
+        self.formDialogCopilot.data = _.clone(copilot._data)
+        self.formDialogCopilot.show = true
+      },
+      updateCopilot: function (wallet, data) {
+        var self = this
+        var updatedData = {}
+        for (const property in data) {
+          if (data[property]) {
+            updatedData[property] = data[property]
+          }
+          if (property == 'animation1threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation2threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation3threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+        }
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/copilot/api/v1/copilot/' + updatedData.id,
+            wallet,
+            updatedData
+          )
+          .then(function (response) {
+            self.CopilotLinks = _.reject(self.CopilotLinks, function (obj) {
+              return obj.id === updatedData.id
+            })
+            self.CopilotLinks.push(mapCopilot(response.data))
+            self.formDialogCopilot.show = false
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      exportcopilotCSV: function () {
+        var self = this
+        LNbits.utils.exportCSV(self.CopilotsTable.columns, this.CopilotLinks)
+      }
+    },
+    created: function () {
+      var self = this
+      var getCopilots = this.getCopilots
+      getCopilots()
+    }
+  })
+</script>
+{% endblock %}

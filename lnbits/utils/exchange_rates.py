@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 import httpx
 from typing import Callable, NamedTuple
 

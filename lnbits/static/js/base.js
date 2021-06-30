@@ -14,11 +14,18 @@ window.LNbits = {
         data: data
       })
     },
-    createInvoice: function (wallet, amount, memo, lnurlCallback = null) {
+    createInvoice: async function (
+      wallet,
+      amount,
+      memo,
+      unit = 'sat',
+      lnurlCallback = null
+    ) {
       return this.request('post', '/api/v1/payments', wallet.inkey, {
         out: false,
         amount: amount,
         memo: memo,
+        unit: unit,
         lnurl_callback: lnurlCallback
       })
     },
@@ -300,11 +307,17 @@ window.windowMixin = {
         extensions: [],
         user: null,
         wallet: null,
-        payments: []
+        payments: [],
+        allowedThemes: null
       }
     }
   },
+
   methods: {
+    changeColor: function (newValue) {
+      document.body.setAttribute('data-theme', newValue)
+      this.$q.localStorage.set('lnbits.theme', newValue)
+    },
     toggleDarkMode: function () {
       this.$q.dark.toggle()
       this.$q.localStorage.set('lnbits.darkMode', this.$q.dark.isActive)
@@ -321,6 +334,13 @@ window.windowMixin = {
   },
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
+    this.g.allowedThemes = window.allowedThemes
+    if (this.$q.localStorage.getItem('lnbits.theme')) {
+      document.body.setAttribute(
+        'data-theme',
+        this.$q.localStorage.getItem('lnbits.theme')
+      )
+    }
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
     }
