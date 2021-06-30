@@ -315,8 +315,6 @@ window.windowMixin = {
   methods: {
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
-      console.log(document.body.getAttribute('data-theme'))
-      console.log(newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
     },
     toggleDarkMode: function () {
