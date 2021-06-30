@@ -9,13 +9,13 @@
     :columns="table.logs.columns"
     row-key="name"
     :visible-columns="table.logs.visibleColumns"
-    />
+    >
     <template v-slot:top-left>
       <span class="row justify-center items-center q-gutter-sm">
         <span class="text-h6">Logs</span>
         <q-btn flat color="grey" @click="exportCSV('logs')">Export to CSV</q-btn>
         <q-form @submit="logsLimit(user.data.id)">
-          <q-input dense rounded outlined v-model="table.logs.limit" label="Fetch Logs" style="width:130px;"/>
+          <q-input dense rounded outlined v-model="table.logs.limit" label="Fetch Logs" style="width:130px;">
             <template v-slot:append>
               <q-icon name="search" @click="logsLimit(user.data.id)" class="cursor-pointer"/>
             </template>
