@@ -1,4 +1,4 @@
-async def m001_initial(db): 
+async def m001_initial(db):
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS setup (
@@ -9,7 +9,7 @@ async def m001_initial(db):
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
         """
-        )
+    )
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -24,7 +24,7 @@ async def m001_initial(db):
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
         """
-        )
+    )
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS logs (
@@ -39,7 +39,7 @@ async def m001_initial(db):
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
         """
-        )
+    )
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS payments (
@@ -54,4 +54,4 @@ async def m001_initial(db):
             time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
         );
         """
-        )
+    )

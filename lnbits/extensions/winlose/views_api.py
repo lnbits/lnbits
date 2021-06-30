@@ -23,38 +23,48 @@ from .crud import(
 # account authorized api calls
 
 # local & remote
+
+
 @winlose_ext.route("/api/v1/settings", methods=["GET"])
 @api_check_wallet_key('invoice')
 async def settings_get():
     usr = dict(request.headers)['X-Api-Key']
-    settings = await getSettings(usr,None)
-    return settings ,HTTPStatus.OK
+    settings = await getSettings(usr, None)
+    return settings, HTTPStatus.OK
+
 
 @winlose_ext.route("/api/v1/settings", methods=["POST"])
 @api_check_wallet_key('invoice')
 async def settings_post():
     usr_id = await usrFromWallet(dict(request.headers)['X-Api-Key'])
     json_data = json.loads(await request.data)
-    data = data if 'data' in json_data else None
+    data = json_data['data'] if 'data' in json_data else None
     settings = await accountSetup(
         usr_id,
         json_data['invoice_wallet'],
         json_data['payout_wallet'],
         data
-        )
-    return settings ,HTTPStatus.OK
+    )
+    return settings, HTTPStatus.OK
+
 
 @winlose_ext.route("/api/v1/users", methods=["POST"])
 @api_check_wallet_key('invoice')
 async def users_post():
-    local = dict(request.args)['local'] if 'local' in dict(request.args) else None
+    usr = dict(request.headers)['X-Api-Key']
+    settings = await getSettings(usr, None)
+    if not settings['success']:
+        return {'error': 'No Settings for the account'}, 400
+    local = dict(request.args)['local'] if 'local' in dict(
+        request.args) else None
     data = json.loads(await request.data)
     auto = True if not 'auto' in data else data['auto']
     user = await API_createUser(
         request.headers['X-Api-Key'],
         auto,
-        {"data":data, "url":request.url, "local":local})
-    return user,HTTPStatus.OK
+        {"data": data, "url": request.url, "local": local})
+    return user, HTTPStatus.OK
+
 
 @winlose_ext.route("/api/v1/users", methods=["PUT"])
 @api_check_wallet_key('invoice')
@@ -63,18 +73,20 @@ async def users_put():
     update = await API_updateUser(data)
     return update, HTTPStatus.OK
 
+
 @winlose_ext.route("/api/v1/users/<id>", methods=["DELETE"])
 @api_check_wallet_key('admin')
 async def users_delete(id):
     p = dict(request.args)
     wlOnly = False
     if 'wl_only' in p:
-        url = request.url.rsplit('?',1)[0]
+        url = request.url.rsplit('?', 1)[0]
         wlOnly = p['wl_only']
     else:
         url = request.url
     deleted = await API_deleteUser(id, url, request.headers['X-Api-Key'], wlOnly)
     return deleted, HTTPStatus.OK
+
 
 @winlose_ext.route("/api/v1/users", methods=["GET"])
 @api_check_wallet_key('invoice')
@@ -85,6 +97,7 @@ async def users_get():
     users = await API_getUsers(params)
     return users, HTTPStatus.OK
 
+
 @winlose_ext.route("/api/v1/lose/<id>", methods=["GET"])
 @api_check_wallet_key('invoice')
 async def lose_get_(id):
@@ -94,6 +107,7 @@ async def lose_get_(id):
         return lose, 400
     return lose, HTTPStatus.OK
 
+
 @winlose_ext.route("/api/v1/win/<id>", methods=["GET"])
 @api_check_wallet_key('admin')
 async def win_get_(id):
@@ -102,12 +116,13 @@ async def win_get_(id):
     win = await API_win(id, params)
     return win, HTTPStatus.OK
 
+
 @winlose_ext.route("/api/v1/fund/<id>", methods=["GET"])
 @api_check_wallet_key('invoice')
 async def fund_get_(id):
     params = dict(request.args)
     if not {'credits', 'amount'} <= set(params):
-        return {"error":"credits or amount parameters missing!"}, 400
+        return {"error": "credits or amount parameters missing!"}, 400
     params['inKey'] = request.headers['X-Api-Key']
     params['url'] = request.url
     fund = await API_fund(id, params)
@@ -115,6 +130,7 @@ async def fund_get_(id):
         return fund, 403
     else:
         return fund, HTTPStatus.OK
+
 
 @winlose_ext.route("/api/v1/withdraw/<id>", methods=["GET"])
 @api_check_wallet_key('admin')
@@ -129,6 +145,7 @@ async def withdraw_get_(id):
     else:
         return withdraw, HTTPStatus.OK
 
+
 @winlose_ext.route("/api/v1/recovery", methods=["POST"])
 @api_check_wallet_key('admin')
 async def recovery_post():
@@ -137,9 +154,11 @@ async def recovery_post():
     recovery = await accountRecovery(json_data)
     if 'error' in recovery:
         return recovery, 400
-    return recovery ,HTTPStatus.OK
+    return recovery, HTTPStatus.OK
 
 # public api endpoints
+
+
 @winlose_ext.route("/api/v1/payments/<id>", methods=["POST"])
 async def payments_get_(id):
     params = dict(request.args)
@@ -152,4 +171,3 @@ async def payments_get_(id):
     if 'error' in payment:
         return payment, 400
     return payment, HTTPStatus.OK
-
