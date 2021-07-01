@@ -46,6 +46,11 @@ async def adminKeyFromWallet(user: str) -> str:
         return row[0]
 
 
+async def checkWalletExists(wallet: str) -> bool:
+    row = await wal_db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet))
+    return True if row is not None else False
+
+
 async def getUser(
     id: str, local: bool, lnurl_auth: Optional[str], params: Optional[dict]
 ) -> dict:

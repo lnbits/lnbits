@@ -130,47 +130,62 @@ new Vue({
           message: 'Settings are required before creating an account'
         })
       let payload, res
-      auto
-        ? ((payload = {}),
-          this.form.data.id && (payload.id = this.form.data.id),
-          (res = (
-            await LNbits.api.request(
-              'POST',
-              `/winlose/api/v1/users?local=true`,
-              this.g.user.wallets[0].inkey,
-              payload
-            )
-          ).data),
-          res.success &&
-            (this.$q.notify({
-              timeout: 5000,
-              type: 'positive',
-              message: `User Created`
-              // caption: response.data.lnurl_response
-            }),
-            this.table.users.data.push(this.usersTableData([res.success])[0]),
-            (this.form.show = false),
-            this.formReset()))
-        : ((payload = {...this.form.data}),
-          (payload.auto = false),
-          (res = (
-            await LNbits.api.request(
-              'POST',
-              `/winlose/api/v1/users?local=true`,
-              this.g.user.wallets[0].inkey,
-              payload
-            )
-          ).data),
-          res.success &&
-            (this.$q.notify({
-              timeout: 5000,
-              type: 'positive',
-              message: `User Created`
-              // caption: response.data.lnurl_response
-            }),
-            this.table.users.data.push(this.usersTableData([res.success])[0]),
-            (this.form.show = false),
-            this.formReset()))
+      if (auto) {
+        payload = {}
+        this.form.data.id && (payload.id = this.form.data.id)
+        res = (
+          await LNbits.api.request(
+            'POST',
+            `/winlose/api/v1/users?local=true`,
+            this.g.user.wallets[0].inkey,
+            payload
+          )
+        ).data
+        res.success &&
+          (this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: `User Created`
+            // caption: response.data.lnurl_response
+          }),
+          this.table.users.data.push(this.usersTableData([res.success])[0]),
+          (this.form.show = false),
+          this.formReset())
+      } else {
+        payload = {...this.form.data}
+        payload.auto = false
+        if ([payload.uid, payload.wid].some(x => !x)) {
+          return this.$q.notify({
+            timeout: 5000,
+            type: 'negative',
+            message: 'User ID and Wallet ID required!'
+          })
+        }
+        res = (
+          await LNbits.api.request(
+            'POST',
+            `/winlose/api/v1/users?local=true`,
+            this.g.user.wallets[0].inkey,
+            payload
+          )
+        ).data
+        res.success &&
+          (this.$q.notify({
+            timeout: 5000,
+            type: 'positive',
+            message: `User Created`
+            // caption: response.data.lnurl_response
+          }),
+          this.table.users.data.push(this.usersTableData([res.success])[0]),
+          (this.form.show = false),
+          this.formReset())
+        res.error &&
+          this.$q.notify({
+            timeout: 5000,
+            type: 'negative',
+            message: res.error
+          })
+      }
     },
     async sendSettingsForm() {
       const payload = {...this.form.data}
@@ -367,11 +382,10 @@ new Vue({
     },
     checkForm() {
       let choice = true
-      this.form.data.uid !== null ||
-        (this.form.data.uid !== '' && (choice = false))
-      this.form.data.wid !== null ||
-        (this.form.data.wid !== '' && (choice = false))
-      return choice
+      let data = {...this.form.data}
+      data.uid && data.uid !== '' && (choice = false)
+      data.wid && data.wid !== '' && (choice = false)
+      return this.sendFormData(choice)
     }
   },
   created: async function () {
