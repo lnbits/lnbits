@@ -2,7 +2,7 @@
     <q-card class="q-pa-lg lnbits__dialog-card">
         <span class="row justify-between">
             <span class="text-h6">Create User</span>
-            <q-btn color="purple" flat icon="my_library_add" label="Auto Create" @click="sendFormData(true)"></q-btn>
+            <q-btn color="secondary" flat icon="my_library_add" label="Auto Create" @click="sendFormData(true)"></q-btn>
         </span>
         <q-form @submit="sendFormData(checkForm)" class="q-mt-md q-gutter-md">
             <q-input
@@ -29,7 +29,7 @@
             <div class="row q-mt-lg">
                 <q-btn
                 unelevated
-                color="deep-purple"
+                color="primary"
                 type="submit"
                 :disabled="
                 form.data.id == null "
