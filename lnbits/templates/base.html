@@ -39,7 +39,7 @@
             <strong>LN</strong>bits {% endif %} {% endblock %}
           </q-toolbar-title>
           {% block beta %}
-          <q-badge color="yellow" text-color="black">
+          <q-badge color="yellow" text-color="black" class="q-mr-md">
             <span
               ><span v-show="$q.screen.gt.sm"
                 >USE WITH CAUTION - LNbits wallet is still in </span
@@ -86,7 +86,7 @@
                 ><q-tooltip>autumn</q-tooltip>
               </q-btn>
               <q-btn
-                v-if="g.allowedThemes.includes('flamingo')"
+                v-if="g.allowedThemes.includes('monochrome')"
                 dense
                 flat
                 @click="changeColor('monochrome')"
@@ -96,7 +96,7 @@
                 ><q-tooltip>monochrome</q-tooltip>
               </q-btn>
               <q-btn
-                v-if="g.allowedThemes.includes('monochrome')"
+                v-if="g.allowedThemes.includes('salvador')"
                 dense
                 flat
                 @click="changeColor('salvador')"
@@ -106,7 +106,7 @@
                 ><q-tooltip>elSalvador</q-tooltip>
               </q-btn>
               <q-btn
-                v-if="g.allowedThemes.includes('quasar')"
+                v-if="g.allowedThemes.includes('flamingo')"
                 dense
                 flat
                 @click="changeColor('flamingo')"
