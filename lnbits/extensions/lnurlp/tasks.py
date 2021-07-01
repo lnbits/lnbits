@@ -54,7 +54,7 @@ async def mark_webhook_sent(payment: Payment, status: int) -> None:
 
     await core_db.execute(
         """
-        UPDATE lnurlp.apipayments SET extra = ?
+        UPDATE apipayments SET extra = ?
         WHERE hash = ?
         """,
         (json.dumps(payment.extra), payment.payment_hash),
