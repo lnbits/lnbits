@@ -31,7 +31,7 @@ LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
 )
 
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
-LNBITS_THEME_OPTIONS = env.str("LNBITS_THEME_OPTIONS", default="classic,green,orange")
+LNBITS_THEME_OPTIONS: List[str] = env.list("LNBITS_THEME_OPTIONS", default="classic,green,orange", subcast=str)
 
 WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")

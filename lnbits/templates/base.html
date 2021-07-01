@@ -48,7 +48,7 @@
           </q-badge>
           {% endblock %}
           <q-btn-dropdown
-            v-if="g.allowedThemes"
+            v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense
             flat
             round
@@ -58,6 +58,7 @@
           >
             <div class="row no-wrap q-pa-md">
               <q-btn
+                v-if="g.allowedThemes.includes('classic')"
                 dense
                 flat
                 @click="changeColor('classic')"
@@ -188,7 +189,7 @@
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
       if(themes && themes.length) {
-        window.allowedThemes = themes.trim()
+        window.allowedThemes = themes.map(str => str.trim())
       }
     </script>
     {% block scripts %}{% endblock %}

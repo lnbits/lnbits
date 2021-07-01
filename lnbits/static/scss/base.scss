@@ -53,6 +53,13 @@ $themes: (
       [data-theme='#{$theme}'] .q-menu--dark {
         background: $color !important;
       }
+
+      /* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+      // set a darker body bg for all themes, when in "dark mode"
+      body[data-theme='#{$theme}'].body--dark {
+        background: scale-color($color, $lightness: -60%);
+      }
+      */
     }
     @if $name == 'info' {
       [data-theme='#{$theme}'] .q-card--dark,
