@@ -334,13 +334,26 @@ window.windowMixin = {
   },
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
-    this.g.allowedThemes = window.allowedThemes
+    this.g.allowedThemes = window.allowedThemes ?? ['classic']
+
+    // failsafe if admin changes themes halfway
+    if (
+      this.$q.localStorage.getItem('lnbits.theme') &&
+      !this.g.allowedThemes.includes(
+        this.$q.localStorage.getItem('lnbits.theme')
+      )
+    ) {
+      console.log('allowedThemes changed by Admin', this.g.allowedThemes[0])
+      this.changeColor(this.g.allowedThemes[0])
+    }
+
     if (this.$q.localStorage.getItem('lnbits.theme')) {
       document.body.setAttribute(
         'data-theme',
         this.$q.localStorage.getItem('lnbits.theme')
       )
     }
+
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
     }
