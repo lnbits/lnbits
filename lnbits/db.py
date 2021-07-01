@@ -1,6 +1,6 @@
 import os
 import trio
-import psycopg2
+from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy import create_engine  # type: ignore
 from sqlalchemy_aio import TRIO_STRATEGY  # type: ignore
@@ -13,8 +13,8 @@ SQLITE = "SQLITE"
 
 
 class Compat:
-    type = "<inherited>"
-    schema = "<inherited>"
+    type: Optional[str] = "<inherited>"
+    schema: Optional[str] = "<inherited>"
 
     def interval_seconds(self, seconds: int) -> str:
         if self.type == POSTGRES:
@@ -83,6 +83,8 @@ class Database(Compat):
         if LNBITS_DATABASE_URL:
             database_uri = LNBITS_DATABASE_URL
             self.type = POSTGRES
+
+            import psycopg2  # type: ignore
 
             DEC2FLOAT = psycopg2.extensions.new_type(
                 psycopg2.extensions.DECIMAL.values,
