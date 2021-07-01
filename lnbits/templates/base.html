@@ -21,7 +21,7 @@
   </head>
 
   <body data-theme="classic">
-    <q-layout :color="dark" id="vue" view="hHh lpR lfr" v-cloak>
+    <q-layout id="vue" view="hHh lpR lfr" v-cloak>
       <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
           {% block drawer_toggle %}
@@ -89,16 +89,6 @@
                 v-if="g.allowedThemes.includes('flamingo')"
                 dense
                 flat
-                @click="changeColor('flamingo')"
-                icon="format_color_fill"
-                color="pink-3"
-                size="md"
-                ><q-tooltip>flamingo</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="g.allowedThemes.includes('monochrome')"
-                dense
-                flat
                 @click="changeColor('monochrome')"
                 icon="format_color_fill"
                 color="grey"
@@ -106,14 +96,24 @@
                 ><q-tooltip>monochrome</q-tooltip>
               </q-btn>
               <q-btn
+                v-if="g.allowedThemes.includes('monochrome')"
+                dense
+                flat
+                @click="changeColor('salvador')"
+                icon="format_color_fill"
+                color="blue-10"
+                size="md"
+                ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
                 v-if="g.allowedThemes.includes('quasar')"
                 dense
                 flat
-                @click="changeColor('quasar')"
+                @click="changeColor('flamingo')"
                 icon="format_color_fill"
-                color="blue"
+                color="pink-3"
                 size="md"
-                ><q-tooltip>quasar</q-tooltip>
+                ><q-tooltip>flamingo</q-tooltip>
               </q-btn>
             </div>
           </q-btn-dropdown>
