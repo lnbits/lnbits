@@ -1,43 +1,53 @@
 <template>
-    {%raw%}
-<q-card class="full-width logs" style="max-height:500px;">
+  {%raw%}
+  <q-card class="full-width logs" style="max-height: 500px">
     <q-table
-    class="q-pa-sm"
-    dense
-    flat
-    :data="table.logs.data"
-    :columns="table.logs.columns"
-    row-key="name"
-    :visible-columns="table.logs.visibleColumns"
+      class="q-pa-sm"
+      dense
+      flat
+      :data="table.logs.data"
+      :columns="table.logs.columns"
+      row-key="name"
+      :visible-columns="table.logs.visibleColumns"
     >
-    <template v-slot:top-left>
-      <span class="row justify-center items-center q-gutter-sm">
-        <span class="text-h6">Logs</span>
-        <q-btn flat color="grey" @click="exportCSV('logs')">Export to CSV</q-btn>
-        <q-form @submit="logsLimit(user.data.id)">
-          <q-input dense rounded outlined v-model="table.logs.limit" label="Fetch Logs" style="width:130px;">
-            <template v-slot:append>
-              <q-icon name="search" @click="logsLimit(user.data.id)" class="cursor-pointer"/>
-            </template>
-          </q-input>
-        </q-form>
-      </span> 
-    </template>
-    <template v-slot:body="props">
+      <template v-slot:top-left>
+        <span class="row justify-center items-center q-gutter-sm">
+          <span class="text-h6">Logs</span>
+          <q-btn flat color="grey" @click="exportCSV('logs')"
+            >Export to CSV</q-btn
+          >
+          <q-form @submit="logsLimit(user.data.id)">
+            <q-input
+              dense
+              rounded
+              outlined
+              v-model="table.logs.limit"
+              label="Fetch Logs"
+              style="width: 130px"
+            >
+              <template v-slot:append>
+                <q-icon
+                  name="search"
+                  @click="logsLimit(user.data.id)"
+                  class="cursor-pointer"
+                />
+              </template>
+            </q-input>
+          </q-form>
+        </span>
+      </template>
+      <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="id" :props="props" auto-width>
-            {{props.row.id}}
-          </q-td>
-          <q-td key="usr" :props="props" auto-width>
-            {{props.row.usr}}
-          </q-td>
+          <q-td key="id" :props="props" auto-width> {{props.row.id}} </q-td>
+          <q-td key="usr" :props="props" auto-width> {{props.row.usr}} </q-td>
           <q-td key="wl" :props="props" auto-width>
             <q-icon
               name="flash_on"
               size="xs"
               :class="props.row.wl == 'win' ? 'text-purple q-mr-xs' : 'text-deep-purple q-mr-xs'"
               v-if="props.row.wl"
-              ></q-icon>{{props.row.wl}}
+            ></q-icon
+            >{{props.row.wl}}
           </q-td>
           <q-td key="credits" :props="props" auto-width>
             {{props.row.credits}}
@@ -48,15 +58,11 @@
           <q-td key="multi" :props="props" auto-width>
             {{props.row.multi}}
           </q-td>
-          <q-td key="cmd" :props="props" auto-width>
-            {{props.row.cmd}}
-          </q-td>
-          <q-td key="time" :props="props" auto-width>
-            {{props.row.time}}
-          </q-td>
+          <q-td key="cmd" :props="props" auto-width> {{props.row.cmd}} </q-td>
+          <q-td key="time" :props="props" auto-width> {{props.row.time}} </q-td>
         </q-tr>
       </template>
     </q-table>
-</q-card>
-    {%endraw%}
-</template> 
+  </q-card>
+  {%endraw%}
+</template>

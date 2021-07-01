@@ -1,102 +1,66 @@
-<q-expansion-item
-group="extras"
-icon="swap_vertical_circle"
-label="API info"
->
-<q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-            icon="person_add"
-            label="Create User"
-            >
-            <q-list>
-                <q-item>{% include "winlose/partials/_create_user_api.html" %}
-                </q-item>
-            </q-list>
-        </q-expansion-item>
-    </q-list>
-<q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-            icon="group"
-            label="Get User(s)"
-            >
-            <q-list>
-                <q-item>{% include "winlose/partials/_get_users_api.html" %}
-                </q-item>
-            </q-list>
-        </q-expansion-item>
-    </q-list>
-    <q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-            icon="swap_vertial_circle"
-            label="Update User"
-            >
-            <q-list>
-                <q-item>{% include "winlose/partials/_update_user_api.html" %}
-                </q-item>
-            </q-list>
-        </q-expansion-item>
-    </q-list>
-<q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-            icon="delete"
-            label="Delete User"
-            >
-            <q-list>
-                <q-item>{% include "winlose/partials/_delete_user_api.html" %}
-                </q-item>
-            </q-list>
-        </q-expansion-item>
-    </q-list>
-<q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-            icon="sentiment_satisfied"
-            label="Win"
-            >
-            <q-list>
-                <q-item>{% include "winlose/partials/_win_api.html" %}
-                </q-item>
-            </q-list>
-        </q-expansion-item>
-    </q-list>
-    <q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-        icon="sentiment_dissatisfied"
-        label="Lose"
-        >
-        <q-list>
-            <q-item>{% include "winlose/partials/_lose_api.html" %}
-            </q-item>
-        </q-list>
+<q-expansion-item group="extras" icon="swap_vertical_circle" label="API info">
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="person_add" label="Create User">
+      <q-list>
+        <q-item>{% include "winlose/partials/_create_user_api.html" %} </q-item>
+      </q-list>
     </q-expansion-item>
-    </q-list>
-<q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-        icon="attach_money"
-        label="Fund Credits"
-        >
-        <q-list>
-            <q-item>{% include "winlose/partials/_funding_api.html" %}
-            </q-item>
-        </q-list>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="group" label="Get User(s)">
+      <q-list>
+        <q-item>{% include "winlose/partials/_get_users_api.html" %} </q-item>
+      </q-list>
     </q-expansion-item>
-    </q-list>
-<q-separator></q-separator>
-    <q-list>  
-        <q-expansion-item
-        icon="account_balance_wallet"
-        label="Withdraw Satoshis"
-        >
-        <q-list>
-            <q-item>{% include "winlose/partials/_withdraw_api.html" %}
-            </q-item>
-        </q-list>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="swap_vertial_circle" label="Update User">
+      <q-list>
+        <q-item>{% include "winlose/partials/_update_user_api.html" %} </q-item>
+      </q-list>
     </q-expansion-item>
-    </q-list>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="delete" label="Delete User">
+      <q-list>
+        <q-item>{% include "winlose/partials/_delete_user_api.html" %} </q-item>
+      </q-list>
+    </q-expansion-item>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="sentiment_satisfied" label="Win">
+      <q-list>
+        <q-item>{% include "winlose/partials/_win_api.html" %} </q-item>
+      </q-list>
+    </q-expansion-item>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="sentiment_dissatisfied" label="Lose">
+      <q-list>
+        <q-item>{% include "winlose/partials/_lose_api.html" %} </q-item>
+      </q-list>
+    </q-expansion-item>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="attach_money" label="Fund Credits">
+      <q-list>
+        <q-item>{% include "winlose/partials/_funding_api.html" %} </q-item>
+      </q-list>
+    </q-expansion-item>
+  </q-list>
+  <q-separator></q-separator>
+  <q-list>
+    <q-expansion-item icon="account_balance_wallet" label="Withdraw Satoshis">
+      <q-list>
+        <q-item>{% include "winlose/partials/_withdraw_api.html" %} </q-item>
+      </q-list>
+    </q-expansion-item>
+  </q-list>
 </q-expansion-item>

@@ -1,21 +1,29 @@
 <template>
-    {%raw%}
-    <q-dialog v-model="user.show">
-        <q-card class="q-pa-md lnbits__dialog-card column items-center">
-            <q-toolbar>
-                <q-toolbar-title class="row justify-center"><span class="text-weight-bold ellipsis" style="font-size: 1.1rem;">{{user.data?.id || 'id'}}</span></q-toolbar-title>
-                <q-btn flat round dense icon="close" v-close-popup />
-            </q-toolbar>
-            <q-separator></q-separator>
-            <span class="text-bold q-pa-xs ellipsis full-width text-center" style="font-size:3rem;">{{user.data?.balance || 0}}
-                <span style="font-size:1.5rem;" class="text-purple">sat</span></span>
-            <q-separator></q-separator>
-            <span class="text-bold q-pa-xs" style="font-size:3rem;">{{user.data?.credits || 0}}
-                <span style="font-size:1.5rem" class="text-purple">credits</span></span>
-            <q-separator></q-separator>
-            {%endraw%}
-            {% include "winlose/partials/_logs_table.html" %}
-        </q-card>
-    </q-dialog>
-    
+  {%raw%}
+  <q-dialog v-model="user.show">
+    <q-card class="q-pa-md lnbits__dialog-card column items-center">
+      <q-toolbar>
+        <q-toolbar-title class="row justify-center"
+          ><span class="text-weight-bold ellipsis" style="font-size: 1.1rem"
+            >{{user.data?.id || 'id'}}</span
+          ></q-toolbar-title
+        >
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-toolbar>
+      <q-separator></q-separator>
+      <span
+        class="text-bold q-pa-xs ellipsis full-width text-center"
+        style="font-size: 3rem"
+        >{{user.data?.balance || 0}}
+        <span style="font-size: 1.5rem" class="text-purple">sat</span></span
+      >
+      <q-separator></q-separator>
+      <span class="text-bold q-pa-xs" style="font-size: 3rem"
+        >{{user.data?.credits || 0}}
+        <span style="font-size: 1.5rem" class="text-purple">credits</span></span
+      >
+      <q-separator></q-separator>
+      {%endraw%} {% include "winlose/partials/_logs_table.html" %}
+    </q-card>
+  </q-dialog>
 </template>
