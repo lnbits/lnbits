@@ -34,15 +34,17 @@
           ></q-btn>
           {% endblock %}
           <q-toolbar-title>
-            {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
-            SITE_TITLE }} {% else %}
-            <strong>LN</strong>bits {% endif %} {% endblock %}
+            <q-btn flat no-caps dense size="lg" type="a" href="/">
+              {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
+              SITE_TITLE }} {% else %} <strong>LN</strong>bits {% endif %} {%
+              endblock %}</q-btn
+            >
           </q-toolbar-title>
           {% block beta %}
           <q-badge color="yellow" text-color="black" class="q-mr-md">
             <span
               ><span v-show="$q.screen.gt.sm"
-                >USE WITH CAUTION - LNbits wallet is still in </span
+                >USE WITH CAUTION - {{SITE_TITLE}} wallet is still in </span
               >BETA</span
             >
           </q-badge>
