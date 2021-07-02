@@ -1,5 +1,6 @@
 import os
 import trio
+import time
 from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy import create_engine  # type: ignore
@@ -9,6 +10,7 @@ from sqlalchemy_aio.base import AsyncConnection  # type: ignore
 from .settings import LNBITS_DATA_FOLDER, LNBITS_DATABASE_URL
 
 POSTGRES = "POSTGRES"
+COCKROACH = "COCKROACH"
 SQLITE = "SQLITE"
 
 
@@ -17,7 +19,7 @@ class Compat:
     schema: Optional[str] = "<inherited>"
 
     def interval_seconds(self, seconds: int) -> str:
-        if self.type == POSTGRES:
+        if self.type in {POSTGRES, COCKROACH}:
             return f"interval '{seconds} seconds'"
         elif self.type == SQLITE:
             return f"{seconds}"
@@ -25,7 +27,7 @@ class Compat:
 
     @property
     def timestamp_now(self) -> str:
-        if self.type == POSTGRES:
+        if self.type in {POSTGRES, COCKROACH}:
             return "now()"
         elif self.type == SQLITE:
             return "(strftime('%s', 'now'))"
@@ -33,7 +35,7 @@ class Compat:
 
     @property
     def serial_primary_key(self) -> str:
-        if self.type == POSTGRES:
+        if self.type in {POSTGRES, COCKROACH}:
             return "SERIAL PRIMARY KEY"
         elif self.type == SQLITE:
             return "INTEGER PRIMARY KEY AUTOINCREMENT"
@@ -41,7 +43,7 @@ class Compat:
 
     @property
     def references_schema(self) -> str:
-        if self.type == POSTGRES:
+        if self.type in {POSTGRES, COCKROACH}:
             return f"{self.schema}."
         elif self.type == SQLITE:
             return ""
@@ -57,7 +59,7 @@ class Connection(Compat):
         self.schema = schema
 
     def rewrite_query(self, query) -> str:
-        if self.type == POSTGRES:
+        if self.type in {POSTGRES, COCKROACH}:
             query = query.replace("%", "%%")
             query = query.replace("?", "%s")
         return query
@@ -82,16 +84,30 @@ class Database(Compat):
 
         if LNBITS_DATABASE_URL:
             database_uri = LNBITS_DATABASE_URL
-            self.type = POSTGRES
+
+            if database_uri.startswith("cockroachdb://"):
+                self.type = COCKROACH
+            else:
+                self.type = POSTGRES
 
             import psycopg2  # type: ignore
 
-            DEC2FLOAT = psycopg2.extensions.new_type(
-                psycopg2.extensions.DECIMAL.values,
-                "DEC2FLOAT",
-                lambda value, curs: float(value) if value is not None else None,
+            psycopg2.extensions.register_type(
+                psycopg2.extensions.new_type(
+                    psycopg2.extensions.DECIMAL.values,
+                    "DEC2FLOAT",
+                    lambda value, curs: float(value) if value is not None else None,
+                )
             )
-            psycopg2.extensions.register_type(DEC2FLOAT)
+            psycopg2.extensions.register_type(
+                psycopg2.extensions.new_type(
+                    psycopg2.extensions.TIME.values + psycopg2.extensions.DATE.values,
+                    "DATE2INT",
+                    lambda value, curs: time.mktime(value.timetuple())
+                    if value is not None
+                    else None,
+                )
+            )
         else:
             self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
             database_uri = f"sqlite:///{self.path}"
@@ -115,7 +131,7 @@ class Database(Compat):
                     wconn = Connection(conn, txn, self.type, self.name, self.schema)
 
                     if self.schema:
-                        if self.type == POSTGRES:
+                        if self.type in {POSTGRES, COCKROACH}:
                             await wconn.execute(
                                 f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
                             )

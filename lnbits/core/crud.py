@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from urllib.parse import urlparse
 
 from lnbits import bolt11
-from lnbits.db import Connection, POSTGRES
+from lnbits.db import Connection, POSTGRES, COCKROACH
 from lnbits.settings import DEFAULT_WALLET_NAME
 
 from . import db
@@ -221,6 +221,8 @@ async def get_payments(
     if since != None:
         if db.type == POSTGRES:
             clause.append("time > to_timestamp(?)")
+        elif db.type == COCKROACH:
+            clause.append("time > cast(? AS timestamp)")
         else:
             clause.append("time > ?")
         args.append(since)
