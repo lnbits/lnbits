@@ -38,7 +38,7 @@ async def create_copilot(
         """
         INSERT INTO copilots (
             id,
-            user,
+            "user",
             lnurl_toggle,
             wallet,
             title,
@@ -101,7 +101,7 @@ async def get_copilot(copilot_id: str) -> Copilots:
 
 
 async def get_copilots(user: str) -> List[Copilots]:
-    rows = await db.fetchall("SELECT * FROM copilots WHERE user = ?", (user,))
+    rows = await db.fetchall("""SELECT * FROM copilots WHERE "user" = ?""", (user,))
     return [Copilots.from_row(row) for row in rows]
 
 
