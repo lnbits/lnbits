@@ -3,6 +3,7 @@ from quart import g, render_template
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from pyngrok import conf, ngrok
+from . import ngrok_ext
 
 def log_event_callback(log):
     string = str(log)
@@ -16,8 +17,6 @@ def log_event_callback(log):
 conf.get_default().log_event_callback = log_event_callback
 
 ngrok_tunnel = ngrok.connect(5000)
-
-from . import ngrok_ext
 
 @ngrok_ext.route("/")
 @validate_uuids(["usr"], required=True)
