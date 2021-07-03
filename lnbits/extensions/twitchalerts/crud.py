@@ -14,7 +14,19 @@ from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.crud import get_wallet
 
 
+async def get_service_redirect_uri(request, service_id):
+    """Return the service's redirect URI, to be given to the third party API"""
+    uri_base = request.scheme + "://"
+    uri_base += request.headers["Host"] + "/twitchalerts/api/v1"
+    redirect_uri = uri_base + f"/authenticate/{service_id}"
+    return redirect_uri
+
+
 async def get_charge_details(service_id):
+    """Return the default details for a satspay charge
+
+    These might be different depending for services implemented in the future.
+    """
     details = {
         "time": 1440,
     }
@@ -39,6 +51,7 @@ async def create_donation(
     message: str = "",
     posted: bool = False,
 ) -> Donation:
+    """Create a new Donation"""
     await db.execute(
         """
         INSERT INTO Donations (
@@ -70,6 +83,10 @@ async def create_donation(
 
 
 async def post_donation(donation_id: str) -> tuple:
+    """Post donations to their respective third party APIs
+
+    If the donation has already been posted, it will not be posted again.
+    """
     donation = await get_donation(donation_id)
     if not donation:
         return (
@@ -125,6 +142,7 @@ async def create_service(
     state: str = None,
     onchain: str = None,
 ) -> Service:
+    """Create a new Service"""
     result = await db.execute(
         """
         INSERT INTO Services (
@@ -157,6 +175,12 @@ async def create_service(
 
 async def get_service(service_id: int,
                       by_state: str = None) -> Optional[Service]:
+    """Return a service either by ID or, available, by state
+
+    Each Service's donation page is reached through its "state" hash
+    instead of the ID, preventing accidental payments to the wrong
+    streamer via typos like 2 -> 3.
+    """
     if by_state:
         row = await db.fetchone(
             "SELECT * FROM Services WHERE state = ?",
@@ -171,6 +195,7 @@ async def get_service(service_id: int,
 
 
 async def get_services(wallet_id: str) -> Optional[list]:
+    """Return all services belonging assigned to the wallet_id"""
     rows = await db.fetchall(
         "SELECT * FROM Services WHERE wallet = ?",
         (wallet_id,)
@@ -179,6 +204,7 @@ async def get_services(wallet_id: str) -> Optional[list]:
 
 
 async def authenticate_service(service_id, code, redirect_uri):
+    """Use authentication code from third party API to retreive access token"""
     # The API token is passed in the querystring as 'code'
     service = await get_service(service_id)
     wallet = await get_wallet(service.wallet)
@@ -201,6 +227,12 @@ async def authenticate_service(service_id, code, redirect_uri):
 
 
 async def service_add_token(service_id, token):
+    """Add access token to its corresponding Service
+
+    This also sets authenticated = 1 to make sure the token
+    is not overwritten.
+    Tokens for Streamlabs never need to be refreshed.
+    """
     if (await get_service(service_id)).authenticated:
         return False
     await db.execute(
@@ -211,6 +243,7 @@ async def service_add_token(service_id, token):
 
 
 async def delete_service(service_id: int) -> None:
+    """Delete a Service and all corresponding Donations"""
     await db.execute(
         "DELETE FROM Services WHERE id = ?",
         (service_id,)
@@ -224,6 +257,7 @@ async def delete_service(service_id: int) -> None:
 
 
 async def get_donation(donation_id: str) -> Optional[Donation]:
+    """Return a Donation"""
     row = await db.fetchone(
         "SELECT * FROM Donations WHERE id = ?",
         (donation_id,)
@@ -232,6 +266,7 @@ async def get_donation(donation_id: str) -> Optional[Donation]:
 
 
 async def get_donations(wallet_id: str) -> Optional[list]:
+    """Return all Donations assigned to wallet_id"""
     rows = await db.fetchall(
         "SELECT * FROM Donations WHERE wallet = ?",
         (wallet_id,)
@@ -240,6 +275,7 @@ async def get_donations(wallet_id: str) -> Optional[list]:
 
 
 async def delete_donation(donation_id: str) -> None:
+    """Delete a Donation and its corresponding statspay charge"""
     await db.execute(
         "DELETE FROM Donations WHERE id = ?",
         (donation_id,)
@@ -248,6 +284,7 @@ async def delete_donation(donation_id: str) -> None:
 
 
 async def update_donation(donation_id: str, **kwargs) -> Donation:
+    """Update a Donation"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(f"UPDATE Donations SET {q} WHERE id = ?",
                      (*kwargs.values(), donation_id))
@@ -258,6 +295,7 @@ async def update_donation(donation_id: str, **kwargs) -> Donation:
 
 
 async def update_service(service_id: str, **kwargs) -> Donation:
+    """Update a service"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(f"UPDATE Services SET {q} WHERE id = ?",
                      (*kwargs.values(), service_id))

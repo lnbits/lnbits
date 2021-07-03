@@ -8,6 +8,7 @@ from lnbits.utils.exchange_rates import btc_price
 from . import twitchalerts_ext
 from .crud import (
     get_charge_details,
+    get_service_redirect_uri,
     create_donation,
     post_donation,
     get_donation,
@@ -48,11 +49,12 @@ async def api_create_service():
 
 @twitchalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
 async def api_get_access(service_id):
+    """Redirect to Streamlabs' Approve/Decline page for API access for Service
+    with service_id
+    """
     service = await get_service(service_id)
     if service:
-        uri_base = request.scheme + "://"
-        uri_base += request.headers["Host"] + "/twitchalerts/api/v1"
-        redirect_uri = uri_base + f"/authenticate/{service_id}"
+        redirect_uri = await get_service_redirect_uri(request, service_id)
         params = {
             "response_type": "code",
             "client_id": service.client_id,
@@ -75,6 +77,11 @@ async def api_get_access(service_id):
 
 @twitchalerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
 async def api_authenticate_service(service_id):
+    """Endpoint visited via redirect during third party API authentication
+
+    If successful, an API access token will be added to the service, and
+    the user will be redirected to index.html.
+    """
     code = request.args.get('code')
     state = request.args.get('state')
     service = await get_service(service_id)
@@ -105,11 +112,13 @@ async def api_authenticate_service(service_id):
     }
 )
 async def api_create_donation():
-    """Takes data from donation form and creates+returns SatsPay charge"""
+    """Take data from donation form and return satspay charge"""
+    # Currency is hardcoded while frotnend is limited
     cur_code = "USD"
-    price = await btc_price(cur_code)
     sats = g.data["sats"]
     message = g.data.get("message", "")
+    # Fiat amount is calculated here while frontend is limited
+    price = await btc_price(cur_code)
     amount = sats * (10 ** (-8)) * price
     webhook_base = request.scheme + "://" + request.headers["Host"]
     service_id = g.data["service"]
@@ -147,7 +156,7 @@ async def api_create_donation():
     }
 )
 async def api_post_donation():
-    """Posts a paid donation to Stremalabs/StreamElements.
+    """Post a paid donation to Stremalabs/StreamElements.
 
     This endpoint acts as a webhook for the SatsPayServer extension."""
     data = await request.get_json(force=True)
@@ -165,6 +174,7 @@ async def api_post_donation():
 @twitchalerts_ext.route("/api/v1/services", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_services():
+    """Return list of all services assigned to wallet with given invoice key"""
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     services = []
     for wallet_id in wallet_ids:
@@ -181,6 +191,9 @@ async def api_get_services():
 @twitchalerts_ext.route("/api/v1/donations", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_donations():
+    """Return list of all donations assigned to wallet with given invoice
+    key
+    """
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     donations = []
     for wallet_id in wallet_ids:
@@ -197,6 +210,7 @@ async def api_get_donations():
 @twitchalerts_ext.route("/api/v1/donations/<donation_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 async def api_update_donation(donation_id=None):
+    """Update a donation with the data given in the request"""
     if donation_id:
         donation = await get_donation(donation_id)
 
@@ -224,6 +238,7 @@ async def api_update_donation(donation_id=None):
 @twitchalerts_ext.route("/api/v1/services/<service_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 async def api_update_service(service_id=None):
+    """Update a service with the data given in the request"""
     if service_id:
         service = await get_service(service_id)
 
@@ -251,6 +266,7 @@ async def api_update_service(service_id=None):
 @twitchalerts_ext.route("/api/v1/donations/<donation_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_delete_donation(donation_id):
+    """Delete the donation with the given donation_id"""
     donation = await get_donation(donation_id)
     if not donation:
         return (
@@ -270,6 +286,7 @@ async def api_delete_donation(donation_id):
 @twitchalerts_ext.route("/api/v1/services/<service_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_delete_service(service_id):
+    """Delete the service with the given service_id"""
     service = await get_service(service_id)
     if not service:
         return (

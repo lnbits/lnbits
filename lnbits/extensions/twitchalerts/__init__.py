@@ -4,7 +4,10 @@ from lnbits.db import Database
 db = Database("ext_twitchalerts")
 
 twitchalerts_ext: Blueprint = Blueprint(
-    "twitchalerts", __name__, static_folder="static", template_folder="templates"
+    "twitchalerts",
+    __name__,
+    static_folder="static",
+    template_folder="templates"
 )
 
 

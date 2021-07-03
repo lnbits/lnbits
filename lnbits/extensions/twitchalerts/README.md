@@ -1,6 +1,6 @@
 <h1>Example Extension</h1>
 <h2>*tagline*</h2>
-This is an TwitchAlerts extension to help you organise and build you own.
+The TwitchAlerts extension allows you to integrate Bitcoin Lightning (and on-chain) paymnents in to your existing Streamlabs alerts!
 
 Try to include an image
 <img src="https://i.imgur.com/9i4xcQB.png">
