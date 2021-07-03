@@ -17,9 +17,9 @@ conf.get_default().log_event_callback = log_event_callback
 
 ngrok_tunnel = ngrok.connect(5000)
 
-from . import freetunnel_ext
+from . import ngrok_ext
 
-@freetunnel_ext.route("/")
+@ngrok_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 
@@ -29,4 +29,4 @@ async def index():
 #    return row
 #    return "Access and use your lnbits instance here: " + string5
 #    return Ngrok.from_row(row) if row else None
-    return await render_template("freetunnel/index.html", ngrok=string5)
+    return await render_template("ngrok/index.html", ngrok=string5)
