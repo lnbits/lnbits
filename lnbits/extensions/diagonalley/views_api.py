@@ -250,7 +250,9 @@ async def api_diagonalleys_order_shipped(order_id):
                 order_id,
             ),
         )
-        order = db.fetchone("SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,))
+        order = db.fetchone(
+            "SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,)
+        )
 
     return (
         jsonify(
@@ -268,12 +270,16 @@ async def api_diagonalleys_order_shipped(order_id):
 )
 async def api_diagonalleys_stall_products(indexer_id):
     with open_ext_db("diagonalley") as db:
-        rows = db.fetchone("SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,))
+        rows = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
         print(rows[1])
         if not rows:
             return jsonify({"message": "Indexer does not exist."}), HTTPStatus.NOT_FOUND
 
-        products = db.fetchone("SELECT * FROM diagonalley.products WHERE wallet = ?", (rows[1],))
+        products = db.fetchone(
+            "SELECT * FROM diagonalley.products WHERE wallet = ?", (rows[1],)
+        )
         if not products:
             return jsonify({"message": "No products"}), HTTPStatus.NOT_FOUND
 
@@ -293,7 +299,9 @@ async def api_diagonalleys_stall_products(indexer_id):
 )
 async def api_diagonalleys_stall_checkshipped(checking_id):
     with open_ext_db("diagonalley") as db:
-        rows = db.fetchone("SELECT * FROM diagonalley.orders WHERE invoiceid = ?", (checking_id,))
+        rows = db.fetchone(
+            "SELECT * FROM diagonalley.orders WHERE invoiceid = ?", (checking_id,)
+        )
 
     return jsonify({"shipped": rows["shipped"]}), HTTPStatus.OK
 

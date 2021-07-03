@@ -56,7 +56,9 @@ async def get_usermanager_user(user_id: str) -> Optional[Users]:
 
 
 async def get_usermanager_users(user_id: str) -> List[Users]:
-    rows = await db.fetchall("SELECT * FROM usermanager.users WHERE admin = ?", (user_id,))
+    rows = await db.fetchall(
+        "SELECT * FROM usermanager.users WHERE admin = ?", (user_id,)
+    )
     return [Users(**row) for row in rows]
 
 
@@ -89,17 +91,23 @@ async def create_usermanager_wallet(
 
 
 async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
-    row = await db.fetchone("SELECT * FROM usermanager.wallets WHERE id = ?", (wallet_id,))
+    row = await db.fetchone(
+        "SELECT * FROM usermanager.wallets WHERE id = ?", (wallet_id,)
+    )
     return Wallets(**row) if row else None
 
 
 async def get_usermanager_wallets(admin_id: str) -> Optional[Wallets]:
-    rows = await db.fetchall("SELECT * FROM usermanager.wallets WHERE admin = ?", (admin_id,))
+    rows = await db.fetchall(
+        "SELECT * FROM usermanager.wallets WHERE admin = ?", (admin_id,)
+    )
     return [Wallets(**row) for row in rows]
 
 
 async def get_usermanager_users_wallets(user_id: str) -> Optional[Wallets]:
-    rows = await db.fetchall("""SELECT * FROM usermanager.wallets WHERE "user" = ?""", (user_id,))
+    rows = await db.fetchall(
+        """SELECT * FROM usermanager.wallets WHERE "user" = ?""", (user_id,)
+    )
     return [Wallets(**row) for row in rows]
 
 

@@ -9,7 +9,9 @@ async def m001_initial(db):
             description TEXT NOT NULL,
             costpword INTEGER NOT NULL,
             amountmade INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
@@ -24,7 +26,9 @@ async def m001_initial(db):
             name TEXT NOT NULL,
             wallet TEXT NOT NULL,
             sats INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
@@ -43,12 +47,16 @@ async def m002_changed(db):
             wallet TEXT NOT NULL,
             sats INTEGER NOT NULL,
             paid BOOLEAN NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
 
-    for row in [list(row) for row in await db.fetchall("SELECT * FROM lnticket.tickets")]:
+    for row in [
+        list(row) for row in await db.fetchall("SELECT * FROM lnticket.tickets")
+    ]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -97,7 +105,9 @@ async def m003_changed(db):
             description TEXT NOT NULL,
             costpword INTEGER NOT NULL,
             amountmade INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )

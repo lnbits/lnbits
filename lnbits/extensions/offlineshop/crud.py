@@ -22,7 +22,9 @@ async def get_shop(id: int) -> Optional[Shop]:
 
 
 async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
-    row = await db.fetchone("SELECT * FROM offlineshop.shops WHERE wallet = ?", (wallet,))
+    row = await db.fetchone(
+        "SELECT * FROM offlineshop.shops WHERE wallet = ?", (wallet,)
+    )
 
     if not row:
         # create on the fly
@@ -83,7 +85,9 @@ async def update_item(
 
 
 async def get_item(id: int) -> Optional[Item]:
-    row = await db.fetchone("SELECT * FROM offlineshop.items WHERE id = ?  LIMIT 1", (id,))
+    row = await db.fetchone(
+        "SELECT * FROM offlineshop.items WHERE id = ?  LIMIT 1", (id,)
+    )
     return Item(**dict(row)) if row else None
 
 

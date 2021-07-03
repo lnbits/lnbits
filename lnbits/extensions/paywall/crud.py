@@ -30,7 +30,9 @@ async def create_paywall(
 
 
 async def get_paywall(paywall_id: str) -> Optional[Paywall]:
-    row = await db.fetchone("SELECT * FROM paywall.paywalls WHERE id = ?", (paywall_id,))
+    row = await db.fetchone(
+        "SELECT * FROM paywall.paywalls WHERE id = ?", (paywall_id,)
+    )
 
     return Paywall.from_row(row) if row else None
 

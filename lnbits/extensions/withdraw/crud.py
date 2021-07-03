@@ -57,7 +57,9 @@ async def create_withdraw_link(
 
 
 async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
-    row = await db.fetchone("SELECT * FROM withdraw.withdraw_link WHERE id = ?", (link_id,))
+    row = await db.fetchone(
+        "SELECT * FROM withdraw.withdraw_link WHERE id = ?", (link_id,)
+    )
     if not row:
         return None
 
@@ -97,9 +99,12 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
 async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE withdraw.withdraw_link SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+        f"UPDATE withdraw.withdraw_link SET {q} WHERE id = ?",
+        (*kwargs.values(), link_id),
     )
-    row = await db.fetchone("SELECT * FROM withdraw.withdraw_link WHERE id = ?", (link_id,))
+    row = await db.fetchone(
+        "SELECT * FROM withdraw.withdraw_link WHERE id = ?", (link_id,)
+    )
     return WithdrawLink.from_row(row) if row else None
 
 
@@ -134,7 +139,9 @@ async def create_hash_check(
 
 
 async def get_hash_check(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
-    rowid = await db.fetchone("SELECT * FROM withdraw.hash_check WHERE id = ?", (the_hash,))
+    rowid = await db.fetchone(
+        "SELECT * FROM withdraw.hash_check WHERE id = ?", (the_hash,)
+    )
     rowlnurl = await db.fetchone(
         "SELECT * FROM withdraw.hash_check WHERE lnurl_id = ?", (lnurl_id,)
     )
