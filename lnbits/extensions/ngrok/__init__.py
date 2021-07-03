@@ -1,4 +1,7 @@
 from quart import Blueprint
+from lnbits.db import Database
+
+db = Database("ext_example")
 
 ngrok_ext: Blueprint = Blueprint("ngrok", __name__, template_folder="templates")
 
