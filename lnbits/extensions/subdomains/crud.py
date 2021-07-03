@@ -152,13 +152,17 @@ async def update_domain(domain_id: str, **kwargs) -> Domains:
     await db.execute(
         f"UPDATE subdomains.domain SET {q} WHERE id = ?", (*kwargs.values(), domain_id)
     )
-    row = await db.fetchone("SELECT * FROM subdomains.domain WHERE id = ?", (domain_id,))
+    row = await db.fetchone(
+        "SELECT * FROM subdomains.domain WHERE id = ?", (domain_id,)
+    )
     assert row, "Newly updated domain couldn't be retrieved"
     return Domains(**row)
 
 
 async def get_domain(domain_id: str) -> Optional[Domains]:
-    row = await db.fetchone("SELECT * FROM subdomains.domain WHERE id = ?", (domain_id,))
+    row = await db.fetchone(
+        "SELECT * FROM subdomains.domain WHERE id = ?", (domain_id,)
+    )
     return Domains(**row) if row else None
 
 

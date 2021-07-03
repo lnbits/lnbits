@@ -161,9 +161,9 @@ def _trim_to_bytes(barr):
 
 def _readable_scid(short_channel_id: int) -> str:
     return "{blockheight}x{transactionindex}x{outputindex}".format(
-        blockheight=((short_channel_id >> 40) & 0xFFFFFF),
-        transactionindex=((short_channel_id >> 16) & 0xFFFFFF),
-        outputindex=(short_channel_id & 0xFFFF),
+        blockheight=((short_channel_id >> 40) & 0xffffff),
+        transactionindex=((short_channel_id >> 16) & 0xffffff),
+        outputindex=(short_channel_id & 0xffff),
     )
 
 

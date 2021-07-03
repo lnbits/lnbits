@@ -30,7 +30,9 @@ async def create_ticket(
 
 
 async def set_ticket_paid(payment_hash: str) -> Tickets:
-    row = await db.fetchone("SELECT * FROM lnticket.ticket WHERE id = ?", (payment_hash,))
+    row = await db.fetchone(
+        "SELECT * FROM lnticket.ticket WHERE id = ?", (payment_hash,)
+    )
     if row[7] == False:
         await db.execute(
             """
@@ -124,7 +126,9 @@ async def create_form(
 
 async def update_form(form_id: str, **kwargs) -> Forms:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(f"UPDATE lnticket.form SET {q} WHERE id = ?", (*kwargs.values(), form_id))
+    await db.execute(
+        f"UPDATE lnticket.form SET {q} WHERE id = ?", (*kwargs.values(), form_id)
+    )
     row = await db.fetchone("SELECT * FROM lnticket.form WHERE id = ?", (form_id,))
     assert row, "Newly updated form couldn't be retrieved"
     return Forms(**row)

@@ -20,8 +20,9 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
     async for payment in invoice_paid_chan:
         await on_invoice_paid(payment)
 
+
 async def on_invoice_paid(payment: Payment) -> None:
-        if "jukebox" != payment.extra.get("tag"):
-            # not a jukebox invoice
-            return
-        await update_jukebox_payment(payment.payment_hash, paid=True)
+    if "jukebox" != payment.extra.get("tag"):
+        # not a jukebox invoice
+        return
+    await update_jukebox_payment(payment.payment_hash, paid=True)
