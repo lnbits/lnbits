@@ -25,9 +25,4 @@ ngrok_tunnel = ngrok.connect(5000)
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
-    #    row = await db.fetchone("SELECT * FROM ngrok")
-
-    #    return row
-    #    return "Access and use your lnbits instance here: " + string5
-    #    return Ngrok.from_row(row) if row else None
     return await render_template("ngrok/index.html", ngrok=string5)
