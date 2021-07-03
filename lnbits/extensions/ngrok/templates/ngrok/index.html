@@ -40,4 +40,14 @@
   </div>
 </div>
 
+{% endblock %}{% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {}
+    }
+  })
+</script>
 {% endblock %}
