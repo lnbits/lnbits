@@ -10,11 +10,6 @@
         </h5>
         <q-separator class="q-my-lg"></q-separator>
         <p><a href="{{ ngrok }}" target="_blank">{{ ngrok }}</a></p>
-        <p>
-          Note that if you restart your device, your device will generate a new
-          url. If anyone is using your old one for wallets, lnurls, etc.,
-          whatever they are doing will stop working.
-        </p>
       </q-card-section>
     </q-card>
   </div>
@@ -25,12 +20,21 @@
         <h6 class="text-subtitle1 q-my-none">Ngrok extension</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
-        <q-separator></q-separator>
-        <q-list>
-          {% include "tpos/_api_docs.html" %}
-          <q-separator></q-separator>
-          {% include "tpos/_tpos.html" %}
-        </q-list>
+        <q-card>
+          <q-card-section>
+            <p>
+              Note that if you restart your device, your device will generate a
+              new url. If anyone is using your old one for wallets, lnurls,
+              etc., whatever they are doing will stop working.
+            </p>
+            <small
+              >Created by
+              <a href="https://github.com/supertestnet" target="_blank"
+                >Supertestnet</a
+              >.</small
+            >
+          </q-card-section>
+        </q-card>
       </q-card-section>
     </q-card>
   </div>
