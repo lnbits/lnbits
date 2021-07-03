@@ -5,6 +5,7 @@ from lnbits.decorators import check_user_exists, validate_uuids
 from pyngrok import conf, ngrok
 from . import ngrok_ext
 
+
 def log_event_callback(log):
     string = str(log)
     string2 = string[string.find('url="https') : string.find('url="https') + 40]
@@ -13,6 +14,7 @@ def log_event_callback(log):
         string4 = string3[4:]
         global string5
         string5 = string4.replace('"', "")
+
 
 conf.get_default().log_event_callback = log_event_callback
 

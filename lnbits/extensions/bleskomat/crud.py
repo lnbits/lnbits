@@ -42,7 +42,9 @@ async def create_bleskomat(
 
 
 async def get_bleskomat(bleskomat_id: str) -> Optional[Bleskomat]:
-    row = await db.fetchone("SELECT * FROM bleskomat.bleskomats WHERE id = ?", (bleskomat_id,))
+    row = await db.fetchone(
+        "SELECT * FROM bleskomat.bleskomats WHERE id = ?", (bleskomat_id,)
+    )
     return Bleskomat(**row) if row else None
 
 
@@ -66,9 +68,12 @@ async def get_bleskomats(wallet_ids: Union[str, List[str]]) -> List[Bleskomat]:
 async def update_bleskomat(bleskomat_id: str, **kwargs) -> Optional[Bleskomat]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE bleskomat.bleskomats SET {q} WHERE id = ?", (*kwargs.values(), bleskomat_id)
+        f"UPDATE bleskomat.bleskomats SET {q} WHERE id = ?",
+        (*kwargs.values(), bleskomat_id),
     )
-    row = await db.fetchone("SELECT * FROM bleskomat.bleskomats WHERE id = ?", (bleskomat_id,))
+    row = await db.fetchone(
+        "SELECT * FROM bleskomat.bleskomats WHERE id = ?", (bleskomat_id,)
+    )
     return Bleskomat(**row) if row else None
 
 
@@ -108,5 +113,7 @@ async def create_bleskomat_lnurl(
 
 async def get_bleskomat_lnurl(secret: str) -> Optional[BleskomatLnurl]:
     hash = generate_bleskomat_lnurl_hash(secret)
-    row = await db.fetchone("SELECT * FROM bleskomat.bleskomat_lnurls WHERE hash = ?", (hash,))
+    row = await db.fetchone(
+        "SELECT * FROM bleskomat.bleskomat_lnurls WHERE hash = ?", (hash,)
+    )
     return BleskomatLnurl(**row) if row else None

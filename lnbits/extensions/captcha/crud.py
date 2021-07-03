@@ -30,7 +30,9 @@ async def create_captcha(
 
 
 async def get_captcha(captcha_id: str) -> Optional[Captcha]:
-    row = await db.fetchone("SELECT * FROM captcha.captchas WHERE id = ?", (captcha_id,))
+    row = await db.fetchone(
+        "SELECT * FROM captcha.captchas WHERE id = ?", (captcha_id,)
+    )
 
     return Captcha.from_row(row) if row else None
 

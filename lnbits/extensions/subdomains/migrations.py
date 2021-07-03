@@ -13,7 +13,9 @@ async def m001_initial(db):
             cost INTEGER NOT NULL,
             amountmade INTEGER NOT NULL,
             allowed_record_types TEXT NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
@@ -31,7 +33,9 @@ async def m001_initial(db):
             duration INTEGER NOT NULL,
             paid BOOLEAN NOT NULL,
             record_type TEXT NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT """ + db.timestamp_now + """
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )

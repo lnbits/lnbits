@@ -47,7 +47,9 @@ async def m002_change_withdraw_table(db):
         """
     )
 
-    for row in [list(row) for row in await db.fetchall("SELECT * FROM withdraw.withdraw_links")]:
+    for row in [
+        list(row) for row in await db.fetchall("SELECT * FROM withdraw.withdraw_links")
+    ]:
         usescsv = ""
 
         for i in range(row[5]):

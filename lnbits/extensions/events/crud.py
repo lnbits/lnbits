@@ -151,13 +151,18 @@ async def delete_event(event_id: str) -> None:
 
 async def get_event_tickets(event_id: str, wallet_id: str) -> List[Tickets]:
     rows = await db.fetchall(
-        "SELECT * FROM events.ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id)
+        "SELECT * FROM events.ticket WHERE wallet = ? AND event = ?",
+        (wallet_id, event_id),
     )
     return [Tickets(**row) for row in rows]
 
 
 async def reg_ticket(ticket_id: str) -> List[Tickets]:
-    await db.execute("UPDATE events.ticket SET registered = ? WHERE id = ?", (True, ticket_id))
+    await db.execute(
+        "UPDATE events.ticket SET registered = ? WHERE id = ?", (True, ticket_id)
+    )
     ticket = await db.fetchone("SELECT * FROM events.ticket WHERE id = ?", (ticket_id,))
-    rows = await db.fetchall("SELECT * FROM events.ticket WHERE event = ?", (ticket[1],))
+    rows = await db.fetchall(
+        "SELECT * FROM events.ticket WHERE event = ?", (ticket[1],)
+    )
     return [Tickets(**row) for row in rows]

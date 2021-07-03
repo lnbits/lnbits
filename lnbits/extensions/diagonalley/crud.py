@@ -57,16 +57,21 @@ def update_diagonalleys_product(product_id: str, **kwargs) -> Optional[Indexers]
 
     with open_ext_db("diagonalley") as db:
         db.execute(
-            f"UPDATE diagonalley.products SET {q} WHERE id = ?", (*kwargs.values(), product_id)
+            f"UPDATE diagonalley.products SET {q} WHERE id = ?",
+            (*kwargs.values(), product_id),
         )
-        row = db.fetchone("SELECT * FROM diagonalley.products WHERE id = ?", (product_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
+        )
 
     return get_diagonalleys_indexer(product_id)
 
 
 def get_diagonalleys_product(product_id: str) -> Optional[Products]:
     with open_ext_db("diagonalley") as db:
-        row = db.fetchone("SELECT * FROM diagonalley.products WHERE id = ?", (product_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
+        )
 
     return Products(**row) if row else None
 
@@ -131,16 +136,21 @@ def update_diagonalleys_indexer(indexer_id: str, **kwargs) -> Optional[Indexers]
 
     with open_ext_db("diagonalley") as db:
         db.execute(
-            f"UPDATE diagonalley.indexers SET {q} WHERE id = ?", (*kwargs.values(), indexer_id)
+            f"UPDATE diagonalley.indexers SET {q} WHERE id = ?",
+            (*kwargs.values(), indexer_id),
         )
-        row = db.fetchone("SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
 
     return get_diagonalleys_indexer(indexer_id)
 
 
 def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
     with open_ext_db("diagonalley") as db:
-        roww = db.fetchone("SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,))
+        roww = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
     try:
         x = httpx.get(roww["indexeraddress"] + "/" + roww["ratingkey"])
         if x.status_code == 200:
@@ -166,7 +176,9 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
     except:
         print("An exception occurred")
     with open_ext_db("diagonalley") as db:
-        row = db.fetchone("SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
     return Indexers(**row) if row else None
 
 
@@ -285,7 +297,8 @@ def get_diagonalleys_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
                     ),
                 )
                 rows = db.fetchall(
-                    f"SELECT * FROM diagonalley.orders WHERE wallet IN ({q})", (*wallet_ids,)
+                    f"SELECT * FROM diagonalley.orders WHERE wallet IN ({q})",
+                    (*wallet_ids,),
                 )
     return [Orders(**row) for row in rows]
 
