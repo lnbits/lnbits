@@ -25,4 +25,4 @@ ngrok_tunnel = ngrok.connect(5000)
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
-    return await render_template("ngrok/index.html", ngrok=string5)
+    return await render_template("ngrok/index.html", ngrok=string5, user=g.user)
