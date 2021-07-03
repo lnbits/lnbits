@@ -12,4 +12,4 @@ import pyngrok
 from quart import jsonify
 from http import HTTPStatus
 
-from . import freetunnel_ext
+from . import ngrok_ext
