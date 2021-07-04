@@ -1,0 +1,32 @@
+from typing import NamedTuple
+from sqlite3 import Row
+
+class Admin(NamedTuple):
+    user: str
+    site_title: str
+    tagline: str
+    primary_color: str
+    secondary_color: str
+    allowed_users: str
+    default_wallet_name: str
+    data_folder: str
+    disabled_ext: str
+    force_https: str
+    service_fee: str
+    funding_source: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Admin":
+        return cls(**dict(row))
+
+class Funding(NamedTuple):
+    endpoint: str
+    port: str
+    read_key: str
+    invoice_key: bool
+    admin_key: bool
+    cert: bool
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Funding":
+        return cls(**dict(row))

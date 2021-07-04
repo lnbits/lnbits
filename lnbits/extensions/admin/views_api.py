@@ -3,7 +3,8 @@ from http import HTTPStatus
 from .crud import update_wallet_balance
 from lnbits.extensions.admin import admin_ext
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.core.crud import get_admin, get_wallet
+from lnbits.core.crud import get_wallet
+from .crud import get_admin
 
 
 @admin_ext.route("/api/v1/admin/<wallet_id>", methods=["POST"])

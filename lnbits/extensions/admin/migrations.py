@@ -47,16 +47,16 @@ async def m001_create_admin_table(db):
         """
         CREATE TABLE IF NOT EXISTS admin (
             user TEXT,
-            site_title TEXT NOT NULL,
+            site_title TEXT,
             tagline TEXT,
-            primary_color TEXT NOT NULL,
-            secondary_color TEXT NOT NULL,
+            primary_color TEXT,
+            secondary_color TEXT,
             allowed_users TEXT,
             default_wallet_name TEXT,
             data_folder TEXT,
             disabled_ext TEXT,
-            force_https BOOLEAN NOT NULL,
-            service_fee INT NOT NULL,
+            force_https BOOLEAN,
+            service_fee INT,
             funding_source TEXT
         );
     """
