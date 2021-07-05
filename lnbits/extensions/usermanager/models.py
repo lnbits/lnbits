@@ -6,7 +6,7 @@ class Users(NamedTuple):
     id: str
     name: str
     admin: str
-    email: str
+    discord_id: str
     password: str
 
 
