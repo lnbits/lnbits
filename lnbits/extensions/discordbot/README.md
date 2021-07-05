@@ -13,7 +13,7 @@ For example, a games developer may be developing a game that needs each user to 
 2. Fill the user information\
    - username
    - the generated wallet name, user can create other wallets later on
-   - email
+   - discord_id
    - set a password
      ![user information](https://i.imgur.com/40du7W5.png)
 3. After creating your user, it will appear in the **Users** section, and a user's wallet in the **Wallets** section.
