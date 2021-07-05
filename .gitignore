@@ -32,3 +32,5 @@ __bundle__
 
 node_modules
 lnbits/static/bundle.*
+
+data
