@@ -1,12 +1,10 @@
-LNbits
-======
+# LNbits
 
 [![github-tests-badge]][github-tests]
 [![github-mypy-badge]][github-mypy]
 [![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
-
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
@@ -16,11 +14,11 @@ Use [lnbits.com](https://lnbits.com), or run your own LNbits server!
 
 LNbits is a very simple Python server that sits on top of any funding source, and can be used as:
 
-* Accounts system to mitigate the risk of exposing applications to your full balance, via unique API keys for each wallet
-* Extendable platform for exploring lightning-network functionality via LNbits extension framework
-* Part of a development stack via LNbits API
-* Fallback wallet for the LNURL scheme
-* Instant wallet for LN demonstrations
+- Accounts system to mitigate the risk of exposing applications to your full balance, via unique API keys for each wallet
+- Extendable platform for exploring lightning-network functionality via LNbits extension framework
+- Part of a development stack via LNbits API
+- Fallback wallet for the LNURL scheme
+- Instant wallet for LN demonstrations
 
 LNbits can run on top of any lightning-network funding source, currently there is support for LND, c-lightning, Spark, LNpay, OpenNode, lntxbot, with more being added regularly.
 
@@ -33,6 +31,10 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 ## Running LNbits
 
 See the [install guide](docs/guide/installation.md) for details on installation and setup.
+
+### LNbits running on Umbrel behind Tor
+
+If you want to run LNbits on your Umbrel but want it to be reached through clearnet, _Uxellodunum_ made an extensive [guide](https://community.getumbrel.com/t/guide-lnbits-without-tor/604) on how to do it.
 
 ### Contributing to LNbits
 
@@ -64,14 +66,13 @@ Example use would be an ATM, which utilises LNURL, if the user scans the QR with
 ## LNbits as an insta-wallet
 
 Wallets can be easily generated and given out to people at events (one click multi-wallet generation to be added soon).
-"Go to this  website", has a lot less friction than "Download this app".
+"Go to this website", has a lot less friction than "Download this app".
 
 ![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
 
 ## Tip us
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
-
 
 [docs]: https://lnbits.org/
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
