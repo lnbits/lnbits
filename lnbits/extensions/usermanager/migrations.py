@@ -8,7 +8,7 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             admin TEXT NOT NULL,
-            discord_id TEXT,
+            email TEXT,
             password TEXT
         );
     """

@@ -20,7 +20,7 @@ async def create_usermanager_user(
     user_name: str,
     wallet_name: str,
     admin_id: str,
-    discord_id: Optional[str] = None,
+    email: Optional[str] = None,
     password: Optional[str] = None,
 ) -> Users:
     account = await create_account()
@@ -31,10 +31,10 @@ async def create_usermanager_user(
 
     await db.execute(
         """
-        INSERT INTO usermanager.users (id, name, admin, discord_id, password)
+        INSERT INTO usermanager.users (id, name, admin, email, password)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (user.id, user_name, admin_id, discord_id, password),
+        (user.id, user_name, admin_id, email, password),
     )
 
     await db.execute(

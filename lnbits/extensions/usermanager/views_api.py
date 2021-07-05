@@ -50,7 +50,7 @@ async def api_usermanager_user(user_id):
         "user_name": {"type": "string", "empty": False, "required": True},
         "wallet_name": {"type": "string", "empty": False, "required": True},
         "admin_id": {"type": "string", "empty": False, "required": True},
-        "discord_id": {"type": "string", "required": False},
+        "email": {"type": "string", "required": False},
         "password": {"type": "string", "required": False},
     }
 )

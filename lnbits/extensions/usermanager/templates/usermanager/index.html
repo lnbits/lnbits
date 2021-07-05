@@ -160,8 +160,8 @@
         <q-input
           filled
           dense
-          v-model.trim="userDialog.data.discord_id"
-          label="discord_id"
+          v-model.trim="userDialog.data.email"
+          label="Email"
         ></q-input>
         <q-input
           filled
@@ -237,7 +237,7 @@
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Username', field: 'name'},
-            {name: 'discord_id', align: 'left', label: 'discord_id', field: 'discord_id'},
+            {name: 'email', align: 'left', label: 'Email', field: 'email'},
             {
               name: 'password',
               align: 'left',
@@ -319,7 +319,7 @@
             admin_id: this.g.user.id,
             user_name: this.userDialog.data.usrname,
             wallet_name: this.userDialog.data.walname,
-            discord_id: this.userDialog.data.discord_id,
+            email: this.userDialog.data.email,
             password: this.userDialog.data.password
           }
         }
