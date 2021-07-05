@@ -137,7 +137,7 @@
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "usermanager/_api_docs.html" %} </q-list>
+        <q-list> {% include "discordbot/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
@@ -214,7 +214,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapUserManager = function (obj) {
+  var mapdiscordbot = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -296,12 +296,12 @@
         LNbits.api
           .request(
             'GET',
-            '/usermanager/api/v1/users',
+            '/discordbot/api/v1/users',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.users = response.data.map(function (obj) {
-              return mapUserManager(obj)
+              return mapdiscordbot(obj)
             })
           })
       },
@@ -334,12 +334,12 @@
         LNbits.api
           .request(
             'POST',
-            '/usermanager/api/v1/users',
+            '/discordbot/api/v1/users',
             this.g.user.wallets[0].inkey,
             data
           )
           .then(function (response) {
-            self.users.push(mapUserManager(response.data))
+            self.users.push(mapdiscordbot(response.data))
             self.userDialog.show = false
             self.userDialog.data = {}
             data = {}
@@ -359,7 +359,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/usermanager/api/v1/users/' + userId,
+                '/discordbot/api/v1/users/' + userId,
                 self.g.user.wallets[0].inkey
               )
               .then(function (response) {
@@ -385,12 +385,12 @@
         LNbits.api
           .request(
             'GET',
-            '/usermanager/api/v1/wallets',
+            '/discordbot/api/v1/wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.wallets = response.data.map(function (obj) {
-              return mapUserManager(obj)
+              return mapdiscordbot(obj)
             })
           })
       },
@@ -420,12 +420,12 @@
         LNbits.api
           .request(
             'POST',
-            '/usermanager/api/v1/wallets',
+            '/discordbot/api/v1/wallets',
             this.g.user.wallets[0].inkey,
             data
           )
           .then(function (response) {
-            self.wallets.push(mapUserManager(response.data))
+            self.wallets.push(mapdiscordbot(response.data))
             self.walletDialog.show = false
             self.walletDialog.data = {}
             data = {}
@@ -443,7 +443,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/usermanager/api/v1/wallets/' + userId,
+                '/discordbot/api/v1/wallets/' + userId,
                 self.g.user.wallets[0].inkey
               )
               .then(function (response) {

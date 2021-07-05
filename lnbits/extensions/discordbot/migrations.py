@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE usermanager.users (
+        CREATE TABLE discordbot.users (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             admin TEXT NOT NULL,
@@ -19,7 +19,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE usermanager.wallets (
+        CREATE TABLE discordbot.wallets (
             id TEXT PRIMARY KEY,
             admin TEXT NOT NULL,
             name TEXT NOT NULL,

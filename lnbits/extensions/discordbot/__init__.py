@@ -1,10 +1,10 @@
 from quart import Blueprint
 from lnbits.db import Database
 
-db = Database("ext_usermanager")
+db = Database("ext_discordbot")
 
-usermanager_ext: Blueprint = Blueprint(
-    "usermanager", __name__, static_folder="static", template_folder="templates"
+discordbot_ext: Blueprint = Blueprint(
+    "discordbot", __name__, static_folder="static", template_folder="templates"
 )
 
 
