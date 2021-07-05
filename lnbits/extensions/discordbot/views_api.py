@@ -4,18 +4,18 @@ from http import HTTPStatus
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
-from . import usermanager_ext
+from . import discordbot_ext
 from .crud import (
-    create_usermanager_user,
-    get_usermanager_user,
-    get_usermanager_users,
-    get_usermanager_wallet_transactions,
-    delete_usermanager_user,
-    create_usermanager_wallet,
-    get_usermanager_wallet,
-    get_usermanager_wallets,
-    get_usermanager_users_wallets,
-    delete_usermanager_wallet,
+    create_discordbot_user,
+    get_discordbot_user,
+    get_discordbot_users,
+    get_discordbot_wallet_transactions,
+    delete_discordbot_user,
+    create_discordbot_wallet,
+    get_discordbot_wallet,
+    get_discordbot_wallets,
+    get_discordbot_users_wallets,
+    delete_discordbot_wallet,
 )
 from lnbits.core import update_user_extension
 
@@ -23,27 +23,27 @@ from lnbits.core import update_user_extension
 ### Users
 
 
-@usermanager_ext.route("/api/v1/users", methods=["GET"])
+@discordbot_ext.route("/api/v1/users", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_users():
+async def api_discordbot_users():
     user_id = g.wallet.user
     return (
-        jsonify([user._asdict() for user in await get_usermanager_users(user_id)]),
+        jsonify([user._asdict() for user in await get_discordbot_users(user_id)]),
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/users/<user_id>", methods=["GET"])
+@discordbot_ext.route("/api/v1/users/<user_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_user(user_id):
-    user = await get_usermanager_user(user_id)
+async def api_discordbot_user(user_id):
+    user = await get_discordbot_user(user_id)
     return (
         jsonify(user._asdict()),
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/users", methods=["POST"])
+@discordbot_ext.route("/api/v1/users", methods=["POST"])
 @api_check_wallet_key(key_type="invoice")
 @api_validate_post_request(
     schema={
@@ -54,25 +54,25 @@ async def api_usermanager_user(user_id):
         "password": {"type": "string", "required": False},
     }
 )
-async def api_usermanager_users_create():
-    user = await create_usermanager_user(**g.data)
+async def api_discordbot_users_create():
+    user = await create_discordbot_user(**g.data)
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 
-@usermanager_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])
+@discordbot_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_users_delete(user_id):
-    user = await get_usermanager_user(user_id)
+async def api_discordbot_users_delete(user_id):
+    user = await get_discordbot_user(user_id)
     if not user:
         return jsonify({"message": "User does not exist."}), HTTPStatus.NOT_FOUND
-    await delete_usermanager_user(user_id)
+    await delete_discordbot_user(user_id)
     return "", HTTPStatus.NO_CONTENT
 
 
 ###Activate Extension
 
 
-@usermanager_ext.route("/api/v1/extensions", methods=["POST"])
+@discordbot_ext.route("/api/v1/extensions", methods=["POST"])
 @api_check_wallet_key(key_type="invoice")
 @api_validate_post_request(
     schema={
@@ -81,7 +81,7 @@ async def api_usermanager_users_delete(user_id):
         "active": {"type": "boolean", "required": True},
     }
 )
-async def api_usermanager_activate_extension():
+async def api_discordbot_activate_extension():
     user = await get_user(g.data["userid"])
     if not user:
         return jsonify({"message": "no such user"}), HTTPStatus.NOT_FOUND
@@ -94,7 +94,7 @@ async def api_usermanager_activate_extension():
 ###Wallets
 
 
-@usermanager_ext.route("/api/v1/wallets", methods=["POST"])
+@discordbot_ext.route("/api/v1/wallets", methods=["POST"])
 @api_check_wallet_key(key_type="invoice")
 @api_validate_post_request(
     schema={
@@ -103,52 +103,52 @@ async def api_usermanager_activate_extension():
         "admin_id": {"type": "string", "empty": False, "required": True},
     }
 )
-async def api_usermanager_wallets_create():
-    user = await create_usermanager_wallet(
+async def api_discordbot_wallets_create():
+    user = await create_discordbot_wallet(
         g.data["user_id"], g.data["wallet_name"], g.data["admin_id"]
     )
     return jsonify(user._asdict()), HTTPStatus.CREATED
 
 
-@usermanager_ext.route("/api/v1/wallets", methods=["GET"])
+@discordbot_ext.route("/api/v1/wallets", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallets():
+async def api_discordbot_wallets():
     admin_id = g.wallet.user
     return (
         jsonify(
-            [wallet._asdict() for wallet in await get_usermanager_wallets(admin_id)]
+            [wallet._asdict() for wallet in await get_discordbot_wallets(admin_id)]
         ),
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
+@discordbot_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallet_transactions(wallet_id):
-    return jsonify(await get_usermanager_wallet_transactions(wallet_id)), HTTPStatus.OK
+async def api_discordbot_wallet_transactions(wallet_id):
+    return jsonify(await get_discordbot_wallet_transactions(wallet_id)), HTTPStatus.OK
 
 
-@usermanager_ext.route("/api/v1/wallets/<user_id>", methods=["GET"])
+@discordbot_ext.route("/api/v1/wallets/<user_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_users_wallets(user_id):
-    wallet = await get_usermanager_users_wallets(user_id)
+async def api_discordbot_users_wallets(user_id):
+    wallet = await get_discordbot_users_wallets(user_id)
     return (
         jsonify(
             [
                 wallet._asdict()
-                for wallet in await get_usermanager_users_wallets(user_id)
+                for wallet in await get_discordbot_users_wallets(user_id)
             ]
         ),
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])
+@discordbot_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])
 @api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallets_delete(wallet_id):
-    wallet = await get_usermanager_wallet(wallet_id)
+async def api_discordbot_wallets_delete(wallet_id):
+    wallet = await get_discordbot_wallet(wallet_id)
     if not wallet:
         return jsonify({"message": "Wallet does not exist."}), HTTPStatus.NOT_FOUND
 
-    await delete_usermanager_wallet(wallet_id, wallet.user)
+    await delete_discordbot_wallet(wallet_id, wallet.user)
     return "", HTTPStatus.NO_CONTENT
