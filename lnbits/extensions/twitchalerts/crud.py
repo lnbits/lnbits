@@ -67,17 +67,7 @@ async def create_donation(
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (
-            id,
-            wallet,
-            name,
-            message,
-            cur_code,
-            sats,
-            amount,
-            service,
-            posted
-        ),
+        (id, wallet, name, message, cur_code, sats, amount, service, posted),
     )
     return await get_donation(id)
 
@@ -89,48 +79,35 @@ async def post_donation(donation_id: str) -> tuple:
     """
     donation = await get_donation(donation_id)
     if not donation:
-        return (
-            jsonify({"message": "Donation not found!"}),
-            HTTPStatus.BAD_REQUEST
-        )
+        return (jsonify({"message":
+                         "Donation not found!"}), HTTPStatus.BAD_REQUEST)
     if donation.posted:
-        return (
-            jsonify({"message": "Donation has already been posted!"}),
-            HTTPStatus.BAD_REQUEST
-        )
+        return (jsonify({"message": "Donation has already been posted!"}),
+                HTTPStatus.BAD_REQUEST)
     service = await get_service(donation.service)
     if service.servicename == "Streamlabs":
         url = "https://streamlabs.com/api/v1.0/donations"
         data = {
-                "name": donation.name,
-                "message": donation.message,
-                "identifier": "LNbits",
-                "amount": donation.amount,
-                "currency": donation.cur_code.upper(),
-                "access_token": service.token,
+            "name": donation.name,
+            "message": donation.message,
+            "identifier": "LNbits",
+            "amount": donation.amount,
+            "currency": donation.cur_code.upper(),
+            "access_token": service.token,
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, data=data)
         print(response.json())
         status = [s for s in list(HTTPStatus) if s == response.status_code][0]
     elif service.servicename == "StreamElements":
-        return (
-            jsonify({"message": "StreamElements not yet supported!"}),
-            HTTPStatus.BAD_REQUEST
-        )
+        return (jsonify({"message": "StreamElements not yet supported!"}),
+                HTTPStatus.BAD_REQUEST)
     else:
-        return (
-            jsonify({"message": "Unsopported servicename"}),
-            HTTPStatus.BAD_REQUEST
-        )
-    await db.execute(
-        "UPDATE Donations SET posted = 1 WHERE id = ?",
-        (donation_id,)
-    )
-    return (
-        jsonify(response.json()),
-        status
-    )
+        return (jsonify({"message":
+                         "Unsopported servicename"}), HTTPStatus.BAD_REQUEST)
+    await db.execute("UPDATE Donations SET posted = 1 WHERE id = ?",
+                     (donation_id, ))
+    return (jsonify(response.json()), status)
 
 
 async def create_service(
@@ -182,24 +159,18 @@ async def get_service(service_id: int,
     streamer via typos like 2 -> 3.
     """
     if by_state:
-        row = await db.fetchone(
-            "SELECT * FROM Services WHERE state = ?",
-            (by_state,)
-        )
+        row = await db.fetchone("SELECT * FROM Services WHERE state = ?",
+                                (by_state, ))
     else:
-        row = await db.fetchone(
-            "SELECT * FROM Services WHERE id = ?",
-            (service_id,)
-        )
+        row = await db.fetchone("SELECT * FROM Services WHERE id = ?",
+                                (service_id, ))
     return Service.from_row(row) if row else None
 
 
 async def get_services(wallet_id: str) -> Optional[list]:
     """Return all services belonging assigned to the wallet_id"""
-    rows = await db.fetchall(
-        "SELECT * FROM Services WHERE wallet = ?",
-        (wallet_id,)
-    )
+    rows = await db.fetchall("SELECT * FROM Services WHERE wallet = ?",
+                             (wallet_id, ))
     return [Service.from_row(row) for row in rows] if rows else None
 
 
@@ -237,49 +208,40 @@ async def service_add_token(service_id, token):
         return False
     await db.execute(
         "UPDATE Services SET authenticated = 1, token = ? where id = ?",
-        (token, service_id,),
+        (
+            token,
+            service_id,
+        ),
     )
     return True
 
 
 async def delete_service(service_id: int) -> None:
     """Delete a Service and all corresponding Donations"""
-    await db.execute(
-        "DELETE FROM Services WHERE id = ?",
-        (service_id,)
-    )
-    rows = await db.fetchall(
-        "SELECT * FROM Donations WHERE service = ?",
-        (service_id,)
-    )
+    await db.execute("DELETE FROM Services WHERE id = ?", (service_id, ))
+    rows = await db.fetchall("SELECT * FROM Donations WHERE service = ?",
+                             (service_id, ))
     for row in rows:
         await delete_donation(row["id"])
 
 
 async def get_donation(donation_id: str) -> Optional[Donation]:
     """Return a Donation"""
-    row = await db.fetchone(
-        "SELECT * FROM Donations WHERE id = ?",
-        (donation_id,)
-    )
+    row = await db.fetchone("SELECT * FROM Donations WHERE id = ?",
+                            (donation_id, ))
     return Donation.from_row(row) if row else None
 
 
 async def get_donations(wallet_id: str) -> Optional[list]:
     """Return all Donations assigned to wallet_id"""
-    rows = await db.fetchall(
-        "SELECT * FROM Donations WHERE wallet = ?",
-        (wallet_id,)
-    )
+    rows = await db.fetchall("SELECT * FROM Donations WHERE wallet = ?",
+                             (wallet_id, ))
     return [Donation.from_row(row) for row in rows] if rows else None
 
 
 async def delete_donation(donation_id: str) -> None:
     """Delete a Donation and its corresponding statspay charge"""
-    await db.execute(
-        "DELETE FROM Donations WHERE id = ?",
-        (donation_id,)
-    )
+    await db.execute("DELETE FROM Donations WHERE id = ?", (donation_id, ))
     await delete_charge(donation_id)
 
 
@@ -289,7 +251,7 @@ async def update_donation(donation_id: str, **kwargs) -> Donation:
     await db.execute(f"UPDATE Donations SET {q} WHERE id = ?",
                      (*kwargs.values(), donation_id))
     row = await db.fetchone("SELECT * FROM Donations WHERE id = ?",
-                            (donation_id,))
+                            (donation_id, ))
     assert row, "Newly updated donation couldn't be retrieved"
     return Donation(**row)
 
@@ -300,6 +262,6 @@ async def update_service(service_id: str, **kwargs) -> Donation:
     await db.execute(f"UPDATE Services SET {q} WHERE id = ?",
                      (*kwargs.values(), service_id))
     row = await db.fetchone("SELECT * FROM Services WHERE id = ?",
-                            (service_id,))
+                            (service_id, ))
     assert row, "Newly updated service couldn't be retrieved"
     return Service(**row)
