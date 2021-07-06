@@ -32,4 +32,9 @@ class Funding(NamedTuple):
 
     @classmethod
     def from_row(cls, row: Row) -> "Funding":
-        return cls(**dict(row))
+        data = dict(row)
+        return cls(**data)
+
+    # @classmethod
+    # def from_row(cls, row: Row) -> "Funding":
+    #     return cls(**dict(row))

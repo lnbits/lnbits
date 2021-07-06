@@ -112,6 +112,7 @@ async def m001_create_funding_table(db):
     LNPayWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LNPayWallet",))
     LntxbotWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LntxbotWallet",))
     OpenNodeWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("OpenNodeWallet",))
+    SparkWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("SparkWallet",))
 
 
     await db.execute(
@@ -213,5 +214,19 @@ async def m001_create_funding_table(db):
             getenv("OPENNODE_API_ENDPOINT"),
             getenv("OPENNODE_INVOICE_KEY"),
             getenv("OPENNODE_ADMIN_KEY"),
+        ),
+    )
+
+    await db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "SparkWallet",
+            getenv("SPARK_URL"),
+            getenv("SPARK_INVOICE_KEY"), #doesn't exist
+            getenv("SPARK_TOKEN"),
         ),
     )
