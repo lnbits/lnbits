@@ -1,26 +1,34 @@
-# User Manager
+# Discord Bot
 
-## Make and manage users/wallets
+## Provide LNbits wallets for all your Discord users
 
-To help developers use LNbits to manage their users, the User Manager extension allows the creation and management of users and wallets.
+_This extension is a modifed version of LNbits [User Manager](../usermanager/README.md)_
 
-For example, a games developer may be developing a game that needs each user to have their own wallet, LNbits can be included in the developers stack as the user and wallet manager. Or someone wanting to manage their family's wallets (wife, children, parents, etc...) or you want to host a community Lightning Network node and want to manage wallets for the users.
+The intended usage of this extension is to connect it to a specifically designed [Discord Bot](https://github.com/chrislennon/lnbits-discord-bot) leveraging LNbits as a community based lightning node.
+
+## Setup
+This bot can target [lnbits.com](https://lnbits.com) or a self hosted instance.
+
+To setup and run the bot instructions are located [here](https://github.com/chrislennon/lnbits-discord-bot#installation) 
 
 ## Usage
+This bot will allow users to interact with it in the following ways [full command list](https://github.com/chrislennon/lnbits-discord-bot#commands):
 
-1. Click the button "NEW USER" to create a new user\
-   ![new user](https://i.imgur.com/4yZyfJE.png)
-2. Fill the user information\
-   - username
-   - the generated wallet name, user can create other wallets later on
-   - discord_id
-   - set a password
-     ![user information](https://i.imgur.com/40du7W5.png)
-3. After creating your user, it will appear in the **Users** section, and a user's wallet in the **Wallets** section.
-4. Next you can share the wallet with the corresponding user\
-   ![user wallet](https://i.imgur.com/gAyajbx.png)
-5. If you need to create more wallets for some user, click "NEW WALLET" at the top\
-   ![multiple wallets](https://i.imgur.com/wovVnim.png)
-   - select the existing user you wish to add the wallet
-   - set a wallet name\
-     ![new wallet](https://i.imgur.com/sGwG8dC.png)
+`/create` Will create a wallet for the Discord user 
+  - (currently limiting 1 Discord user == 1 LNbits user == 1 user wallet)
+
+![create](https://imgur.com/CWdDusE.png)
+
+`/balance` Will show the balance of the users wallet.
+
+![balance](https://imgur.com/tKeReCp.png)
+
+`/tip @user [amount]` Will sent money from one user to another
+  - If the recieving user does not have a wallet, one will be created for them
+  - The receiving user will receive a direct message from the bot with a link to their wallet
+
+![tip](https://imgur.com/K3tnChK.png)
+
+`/payme [amount] [description]` Will open an invoice that can be paid by any user
+
+![payme](https://imgur.com/dFvAqL3.png)
