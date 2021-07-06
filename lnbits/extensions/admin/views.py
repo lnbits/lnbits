@@ -15,4 +15,7 @@ async def index():
     admin = await get_admin(user_id)
     funding = await get_funding()
 
-    return render_template("admin/index.html", user=g.user, admin=admin, funding=funding)
+    print('ADMIN', admin)
+    print('FUNDING', funding)
+
+    return await render_template("admin/index.html", user=g.user, admin=admin, funding=funding)

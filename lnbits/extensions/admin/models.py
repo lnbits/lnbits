@@ -17,11 +17,12 @@ class Admin(NamedTuple):
 
     @classmethod
     def from_row(cls, row: Row) -> "Admin":
-        return cls(**dict(row))
+        data = dict(row)
+        return cls(**data)
 
 class Funding(NamedTuple):
     id: str
-    endbackend_walletpoint: str
+    backend_wallet: str
     endpoint: str
     port: str
     read_key: str
@@ -34,7 +35,3 @@ class Funding(NamedTuple):
     def from_row(cls, row: Row) -> "Funding":
         data = dict(row)
         return cls(**data)
-
-    # @classmethod
-    # def from_row(cls, row: Row) -> "Funding":
-    #     return cls(**dict(row))

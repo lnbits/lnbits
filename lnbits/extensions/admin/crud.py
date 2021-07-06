@@ -42,10 +42,9 @@ async def get_admin(
     LntxbotWallet: Optional[str] =  '',
     LNPayWallet: Optional[str] =  '',
     LnbitsWallet: Optional[str] =  '',
-    OpenNodeWallet: Optional[str] =  '',
-    conn: Optional[Connection] = None,
+    OpenNodeWallet: Optional[str] =  ''
 ) -> Optional[Admin]:
-    await (conn or db).execute(
+    await db.execute(
         """
         UPDATE admin
         SET user = ?, site_title = ?, tagline = ?, primary_color = ?, secondary_color = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?, funding_source = ?
@@ -66,8 +65,8 @@ async def get_admin(
             funding_source_primary,
         ),
     )
-    row = await (conn or db).fetchone("SELECT * FROM admin WHERE 1")
-    return Admin.from_row(row) if row else None
+    row = await db.fetchone("SELECT * FROM admin WHERE 1")
+    return [Admin.from_row(row) if row else None]
 
 async def get_funding(
     # CLightningWallet: Optional[str] =  '',
@@ -99,49 +98,49 @@ async def get_funding(
     # )
     # print('ROW', available_sources)
     rows = await db.fetchall("SELECT * FROM funding")
-    print('ROWS', [Funding.from_row(row) for row in rows])
+    # print('ROWS', [Funding.from_row(row) for row in rows])
 
     return [Funding.from_row(row) for row in rows]
 
-async def old_get_funding(
-    CLightningWallet: Optional[str] =  '',
-    LndRestWallet: Optional[str] =  '',
-    LndWallet: Optional[str] =  '',
-    LntxbotWallet: Optional[str] =  '',
-    LNPayWallet: Optional[str] =  '',
-    LnbitsWallet: Optional[str] =  '',
-    OpenNodeWallet: Optional[str] =  '',
-    SparkWallet: Optional[str] =  '',
-    ) -> List[Funding]:
-    sources = [CLightningWallet, LndRestWallet, LndWallet, LntxbotWallet, LNPayWallet, LnbitsWallet, OpenNodeWallet]
-    for source in sources:
-        fsource = ['1','1','1','1','1','1','1','1','1','1']
-        tsource = source.split(',')
-        print(tsource)
-        num = 0
-        for ttsource in tsource:
-            fsource[num] = ttsource
-            num = num + 1
-        print(fsource)
-        if int(fsource[7]) == 1:
-            await (conn or db).execute(
-                """
-                UPDATE funding
-                SET backend_wallet = ?, endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?
-                WHERE backend_wallet = ?
-                """,
-            (
-                fsource[0],
-                fsource[1],
-                fsource[2],
-                fsource[3],
-                fsource[4],
-                fsource[5],
-                fsource[8],
-                ''
-           ),
-        )
-
-    rows = await db.fetchall("SELECT * FROM funding")
-    print(rows)
-    return [Funding.from_row(row) for row in rows]
+# async def old_get_funding(
+#     CLightningWallet: Optional[str] =  '',
+#     LndRestWallet: Optional[str] =  '',
+#     LndWallet: Optional[str] =  '',
+#     LntxbotWallet: Optional[str] =  '',
+#     LNPayWallet: Optional[str] =  '',
+#     LnbitsWallet: Optional[str] =  '',
+#     OpenNodeWallet: Optional[str] =  '',
+#     SparkWallet: Optional[str] =  '',
+#     ) -> List[Funding]:
+#     sources = [CLightningWallet, LndRestWallet, LndWallet, LntxbotWallet, LNPayWallet, LnbitsWallet, OpenNodeWallet]
+#     for source in sources:
+#         fsource = ['1','1','1','1','1','1','1','1','1','1']
+#         tsource = source.split(',')
+#         print(tsource)
+#         num = 0
+#         for ttsource in tsource:
+#             fsource[num] = ttsource
+#             num = num + 1
+#         print(fsource)
+#         if int(fsource[7]) == 1:
+#             await (conn or db).execute(
+#                 """
+#                 UPDATE funding
+#                 SET backend_wallet = ?, endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?
+#                 WHERE backend_wallet = ?
+#                 """,
+#             (
+#                 fsource[0],
+#                 fsource[1],
+#                 fsource[2],
+#                 fsource[3],
+#                 fsource[4],
+#                 fsource[5],
+#                 fsource[8],
+#                 ''
+#            ),
+#         )
+#
+#     rows = await db.fetchall("SELECT * FROM funding")
+#     print(rows)
+#     return [Funding.from_row(row) for row in rows]
