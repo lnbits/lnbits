@@ -1,6 +1,6 @@
 {
     "name": "Discord Bot",
-    "short_description": "Interface for Discord bot user manager.",
-    "icon": "person_add",
+    "short_description": "Interface to a Discord bot.",
+    "icon": "smart_toy",
     "contributors": ["chrislennon"]
 }
