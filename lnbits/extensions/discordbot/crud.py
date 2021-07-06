@@ -20,8 +20,7 @@ async def create_discordbot_user(
     user_name: str,
     wallet_name: str,
     admin_id: str,
-    discord_id: Optional[str] = None,
-    password: Optional[str] = None,
+    discord_id: str,
 ) -> Users:
     account = await create_account()
     user = await get_user(account.id)
@@ -31,10 +30,10 @@ async def create_discordbot_user(
 
     await db.execute(
         """
-        INSERT INTO discordbot.users (id, name, admin, discord_id, password)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO discordbot.users (id, name, admin, discord_id)
+        VALUES (?, ?, ?, ?)
         """,
-        (user.id, user_name, admin_id, discord_id, password),
+        (user.id, user_name, admin_id, discord_id),
     )
 
     await db.execute(

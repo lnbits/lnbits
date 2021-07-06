@@ -133,7 +133,7 @@
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits User Manager Extension</h6>
+        <h6 class="text-subtitle1 q-my-none">LNbits Discord Bot Extension</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -162,12 +162,6 @@
           dense
           v-model.trim="userDialog.data.discord_id"
           label="discord_id"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="userDialog.data.password"
-          label="Password"
         ></q-input>
 
         <q-btn
@@ -238,12 +232,6 @@
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Username', field: 'name'},
             {name: 'discord_id', align: 'left', label: 'discord_id', field: 'discord_id'},
-            {
-              name: 'password',
-              align: 'left',
-              label: 'Password',
-              field: 'password'
-            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -319,8 +307,7 @@
             admin_id: this.g.user.id,
             user_name: this.userDialog.data.usrname,
             wallet_name: this.userDialog.data.walname,
-            discord_id: this.userDialog.data.discord_id,
-            password: this.userDialog.data.password
+            discord_id: this.userDialog.data.discord_id
           }
         }
 
