@@ -20,12 +20,15 @@ class Admin(NamedTuple):
         return cls(**dict(row))
 
 class Funding(NamedTuple):
+    id: str
+    endbackend_walletpoint: str
     endpoint: str
     port: str
     read_key: str
-    invoice_key: bool
-    admin_key: bool
-    cert: bool
+    invoice_key: str
+    admin_key: str
+    cert: str
+    balance: int
 
     @classmethod
     def from_row(cls, row: Row) -> "Funding":

@@ -65,7 +65,7 @@ async def get_admin(
         ),
     )
     row = await (conn or db).fetchone("SELECT * FROM admin WHERE 1")
-    return Admin(**row) if row else None
+    return Admin.from_row(row) if row else None
 
 async def get_funding(
     CLightningWallet: Optional[str] =  '',
@@ -90,7 +90,7 @@ async def get_funding(
             await (conn or db).execute(
                 """
                 UPDATE funding
-                SET endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?
+                SET backend_wallet = ?, endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?
                 WHERE backend_wallet = ?
                 """,
             (
@@ -104,5 +104,5 @@ async def get_funding(
            ),
         )
 
-    rows = await (conn or db).fetchone("SELECT * FROM funding")
-    return [Funding(**row) for row in rows]
+    rows = await (conn or db).fetchall("SELECT * FROM funding")
+    return [Funding.from_row(row) for row in rows]
