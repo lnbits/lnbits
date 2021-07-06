@@ -190,7 +190,7 @@ window.LNbits = {
       obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
       obj.isIn = obj.amount > 0
       obj.isOut = obj.amount < 0
-      obj.isPaid = obj.pending === 0
+      obj.isPaid = !obj.pending
       obj._q = [obj.memo, obj.sat].join(' ').toLowerCase()
       return obj
     }
@@ -307,7 +307,8 @@ window.windowMixin = {
         extensions: [],
         user: null,
         wallet: null,
-        payments: []
+        payments: [],
+        allowedThemes: null
       }
     }
   },
@@ -315,8 +316,6 @@ window.windowMixin = {
   methods: {
     changeColor: function (newValue) {
       document.body.setAttribute('data-theme', newValue)
-      console.log(document.body.getAttribute('data-theme'))
-      console.log(newValue)
       this.$q.localStorage.set('lnbits.theme', newValue)
     },
     toggleDarkMode: function () {
@@ -335,12 +334,26 @@ window.windowMixin = {
   },
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
+    this.g.allowedThemes = window.allowedThemes ?? ['classic']
+
+    // failsafe if admin changes themes halfway
+    if (
+      this.$q.localStorage.getItem('lnbits.theme') &&
+      !this.g.allowedThemes.includes(
+        this.$q.localStorage.getItem('lnbits.theme')
+      )
+    ) {
+      console.log('allowedThemes changed by Admin', this.g.allowedThemes[0])
+      this.changeColor(this.g.allowedThemes[0])
+    }
+
     if (this.$q.localStorage.getItem('lnbits.theme')) {
       document.body.setAttribute(
         'data-theme',
         this.$q.localStorage.getItem('lnbits.theme')
       )
     }
+
     if (window.user) {
       this.g.user = Object.freeze(window.LNbits.map.user(window.user))
     }

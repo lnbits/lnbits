@@ -46,12 +46,6 @@ new Vue({
             align: 'left',
             label: 'Price',
             field: 'price'
-          },
-          {
-            name: 'profit',
-            align: 'left',
-            label: 'Profit',
-            field: 'profit'
           }
         ],
         pagination: {

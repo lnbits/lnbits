@@ -14,7 +14,7 @@ async def create_ticket(
 ) -> Tickets:
     await db.execute(
         """
-        INSERT INTO ticket (id, wallet, event, name, email, registered, paid)
+        INSERT INTO events.ticket (id, wallet, event, name, email, registered, paid)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (payment_hash, wallet, event, name, email, False, False),
@@ -26,11 +26,11 @@ async def create_ticket(
 
 
 async def set_ticket_paid(payment_hash: str) -> Tickets:
-    row = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
+    row = await db.fetchone("SELECT * FROM events.ticket WHERE id = ?", (payment_hash,))
     if row[6] != True:
         await db.execute(
             """
-            UPDATE ticket
+            UPDATE events.ticket
             SET paid = true
             WHERE id = ?
             """,
@@ -44,7 +44,7 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
         amount_tickets = eventdata.amount_tickets - 1
         await db.execute(
             """
-            UPDATE events
+            UPDATE events.events
             SET sold = ?, amount_tickets = ?
             WHERE id = ?
             """,
@@ -57,7 +57,7 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
 
 
 async def get_ticket(payment_hash: str) -> Optional[Tickets]:
-    row = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (payment_hash,))
+    row = await db.fetchone("SELECT * FROM events.ticket WHERE id = ?", (payment_hash,))
     return Tickets(**row) if row else None
 
 
@@ -67,13 +67,13 @@ async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM ticket WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM events.ticket WHERE wallet IN ({q})", (*wallet_ids,)
     )
     return [Tickets(**row) for row in rows]
 
 
 async def delete_ticket(payment_hash: str) -> None:
-    await db.execute("DELETE FROM ticket WHERE id = ?", (payment_hash,))
+    await db.execute("DELETE FROM events.ticket WHERE id = ?", (payment_hash,))
 
 
 # EVENTS
@@ -93,7 +93,7 @@ async def create_event(
     event_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO events (id, wallet, name, info, closing_date, event_start_date, event_end_date, amount_tickets, price_per_ticket, sold)
+        INSERT INTO events.events (id, wallet, name, info, closing_date, event_start_date, event_end_date, amount_tickets, price_per_ticket, sold)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -118,7 +118,7 @@ async def create_event(
 async def update_event(event_id: str, **kwargs) -> Events:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE events SET {q} WHERE id = ?", (*kwargs.values(), event_id)
+        f"UPDATE events.events SET {q} WHERE id = ?", (*kwargs.values(), event_id)
     )
     event = await get_event(event_id)
     assert event, "Newly updated event couldn't be retrieved"
@@ -126,7 +126,7 @@ async def update_event(event_id: str, **kwargs) -> Events:
 
 
 async def get_event(event_id: str) -> Optional[Events]:
-    row = await db.fetchone("SELECT * FROM events WHERE id = ?", (event_id,))
+    row = await db.fetchone("SELECT * FROM events.events WHERE id = ?", (event_id,))
     return Events(**row) if row else None
 
 
@@ -136,14 +136,14 @@ async def get_events(wallet_ids: Union[str, List[str]]) -> List[Events]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM events WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM events.events WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
     return [Events(**row) for row in rows]
 
 
 async def delete_event(event_id: str) -> None:
-    await db.execute("DELETE FROM events WHERE id = ?", (event_id,))
+    await db.execute("DELETE FROM events.events WHERE id = ?", (event_id,))
 
 
 # EVENTTICKETS
@@ -151,13 +151,18 @@ async def delete_event(event_id: str) -> None:
 
 async def get_event_tickets(event_id: str, wallet_id: str) -> List[Tickets]:
     rows = await db.fetchall(
-        "SELECT * FROM ticket WHERE wallet = ? AND event = ?", (wallet_id, event_id)
+        "SELECT * FROM events.ticket WHERE wallet = ? AND event = ?",
+        (wallet_id, event_id),
     )
     return [Tickets(**row) for row in rows]
 
 
 async def reg_ticket(ticket_id: str) -> List[Tickets]:
-    await db.execute("UPDATE ticket SET registered = ? WHERE id = ?", (True, ticket_id))
-    ticket = await db.fetchone("SELECT * FROM ticket WHERE id = ?", (ticket_id,))
-    rows = await db.fetchall("SELECT * FROM ticket WHERE event = ?", (ticket[1],))
+    await db.execute(
+        "UPDATE events.ticket SET registered = ? WHERE id = ?", (True, ticket_id)
+    )
+    ticket = await db.fetchone("SELECT * FROM events.ticket WHERE id = ?", (ticket_id,))
+    rows = await db.fetchall(
+        "SELECT * FROM events.ticket WHERE event = ?", (ticket[1],)
+    )
     return [Tickets(**row) for row in rows]

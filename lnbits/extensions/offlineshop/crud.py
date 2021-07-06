@@ -8,7 +8,7 @@ from .models import Shop, Item
 async def create_shop(*, wallet_id: str) -> int:
     result = await db.execute(
         """
-        INSERT INTO shops (wallet, wordlist, method)
+        INSERT INTO offlineshop.shops (wallet, wordlist, method)
         VALUES (?, ?, 'wordlist')
         """,
         (wallet_id, "\n".join(animals)),
@@ -17,12 +17,14 @@ async def create_shop(*, wallet_id: str) -> int:
 
 
 async def get_shop(id: int) -> Optional[Shop]:
-    row = await db.fetchone("SELECT * FROM shops WHERE id = ?", (id,))
+    row = await db.fetchone("SELECT * FROM offlineshop.shops WHERE id = ?", (id,))
     return Shop(**dict(row)) if row else None
 
 
 async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
-    row = await db.fetchone("SELECT * FROM shops WHERE wallet = ?", (wallet,))
+    row = await db.fetchone(
+        "SELECT * FROM offlineshop.shops WHERE wallet = ?", (wallet,)
+    )
 
     if not row:
         # create on the fly
@@ -34,7 +36,7 @@ async def get_or_create_shop_by_wallet(wallet: str) -> Optional[Shop]:
 
 async def set_method(shop: int, method: str, wordlist: str = "") -> Optional[Shop]:
     await db.execute(
-        "UPDATE shops SET method = ?, wordlist = ? WHERE id = ?",
+        "UPDATE offlineshop.shops SET method = ?, wordlist = ? WHERE id = ?",
         (method, wordlist, shop),
     )
     return await get_shop(shop)
@@ -50,7 +52,7 @@ async def add_item(
 ) -> int:
     result = await db.execute(
         """
-        INSERT INTO items (shop, name, description, image, price, unit)
+        INSERT INTO offlineshop.items (shop, name, description, image, price, unit)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (shop, name, description, image, price, unit),
@@ -69,7 +71,7 @@ async def update_item(
 ) -> int:
     await db.execute(
         """
-        UPDATE items SET
+        UPDATE offlineshop.items SET
           name = ?,
           description = ?,
           image = ?,
@@ -83,19 +85,21 @@ async def update_item(
 
 
 async def get_item(id: int) -> Optional[Item]:
-    row = await db.fetchone("SELECT * FROM items WHERE id = ?  LIMIT 1", (id,))
+    row = await db.fetchone(
+        "SELECT * FROM offlineshop.items WHERE id = ?  LIMIT 1", (id,)
+    )
     return Item(**dict(row)) if row else None
 
 
 async def get_items(shop: int) -> List[Item]:
-    rows = await db.fetchall("SELECT * FROM items WHERE shop = ?", (shop,))
+    rows = await db.fetchall("SELECT * FROM offlineshop.items WHERE shop = ?", (shop,))
     return [Item(**dict(row)) for row in rows]
 
 
 async def delete_item_from_shop(shop: int, item_id: int):
     await db.execute(
         """
-        DELETE FROM items WHERE shop = ? AND id = ?
+        DELETE FROM offlineshop.items WHERE shop = ? AND id = ?
         """,
         (shop, item_id),
     )

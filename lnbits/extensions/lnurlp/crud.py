@@ -18,7 +18,7 @@ async def create_pay_link(
 ) -> PayLink:
     result = await db.execute(
         """
-        INSERT INTO pay_links (
+        INSERT INTO lnurlp.pay_links (
             wallet,
             description,
             min,
@@ -52,7 +52,7 @@ async def create_pay_link(
 
 
 async def get_pay_link(link_id: int) -> Optional[PayLink]:
-    row = await db.fetchone("SELECT * FROM pay_links WHERE id = ?", (link_id,))
+    row = await db.fetchone("SELECT * FROM lnurlp.pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 
 
@@ -63,7 +63,7 @@ async def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[PayLink]:
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
-        SELECT * FROM pay_links WHERE wallet IN ({q})
+        SELECT * FROM lnurlp.pay_links WHERE wallet IN ({q})
         ORDER BY Id
         """,
         (*wallet_ids,),
@@ -75,20 +75,20 @@ async def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[PayLink]:
 async def update_pay_link(link_id: int, **kwargs) -> Optional[PayLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+        f"UPDATE lnurlp.pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
     )
-    row = await db.fetchone("SELECT * FROM pay_links WHERE id = ?", (link_id,))
+    row = await db.fetchone("SELECT * FROM lnurlp.pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 
 
 async def increment_pay_link(link_id: int, **kwargs) -> Optional[PayLink]:
     q = ", ".join([f"{field[0]} = {field[0]} + ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+        f"UPDATE lnurlp.pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
     )
-    row = await db.fetchone("SELECT * FROM pay_links WHERE id = ?", (link_id,))
+    row = await db.fetchone("SELECT * FROM lnurlp.pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 
 
 async def delete_pay_link(link_id: int) -> None:
-    await db.execute("DELETE FROM pay_links WHERE id = ?", (link_id,))
+    await db.execute("DELETE FROM lnurlp.pay_links WHERE id = ?", (link_id,))

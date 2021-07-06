@@ -1,0 +1,6 @@
+{
+    "name": "Ngrok",
+    "short_description": "Serve lnbits over https for free using ngrok",
+    "icon": "trip_origin",
+    "contributors": ["supertestnet"]
+}

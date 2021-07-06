@@ -2,7 +2,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS bleskomats (
+        CREATE TABLE bleskomat.bleskomats (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             api_key_id TEXT NOT NULL,
@@ -19,7 +19,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS bleskomat_lnurls (
+        CREATE TABLE bleskomat.bleskomat_lnurls (
             id TEXT PRIMARY KEY,
             bleskomat TEXT NOT NULL,
             wallet TEXT NOT NULL,
