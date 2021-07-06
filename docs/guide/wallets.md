@@ -43,8 +43,7 @@ Using this wallet requires the installation of the `lndgrpc` and `purerpc` Pytho
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndRestWallet**
 - `LND_REST_ENDPOINT`: ip_address
 - `LND_REST_CERT`: /file/path/tls.cert
-- `LND_GRPC_MACAROON`: /file/path/admin.macaroon
-
+- `LND_REST_MACAROON`: "HEXSTRING"
 
 ### LNbits
 
