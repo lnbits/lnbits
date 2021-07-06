@@ -4,7 +4,13 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from . import winlose_ext
-from .helpers import usrFromWallet, inKeyFromWallet, getPayoutBalance, accountRecovery, checkWalletExists
+from .helpers import (
+    usrFromWallet,
+    inKeyFromWallet,
+    getPayoutBalance,
+    accountRecovery,
+    checkWalletExists,
+)
 import json
 from .crud import (
     API_createUser,
@@ -56,7 +62,7 @@ async def users_post():
     data = json.loads(await request.data)
     print(data)
     if {"uid", "wid"} <= set(data):
-        wal_check = await checkWalletExists(data['wid'])
+        wal_check = await checkWalletExists(data["wid"])
         if not wal_check:
             return {"error": "No wallet found!"}, HTTPStatus.OK
     auto = True if not "auto" in data else data["auto"]

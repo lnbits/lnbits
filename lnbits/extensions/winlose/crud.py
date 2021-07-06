@@ -282,7 +282,7 @@ async def API_deleteUser(id: str, url: str, inKey: str, wlOnly: bool) -> dict:
 
 async def API_updateUser(p) -> dict:
     await db.execute(
-        f"UPDATE users SET '{p['set']}' = {p['payload']} WHERE id = '{p['id']}'"
+        f"UPDATE users SET {p['set']} = {p['payload']} WHERE id = '{p['id']}'"
     )
     return {"success": "User updated"}
 
