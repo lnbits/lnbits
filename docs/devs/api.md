@@ -13,24 +13,54 @@ API reference
 
 * `/api/v1`
 
-  * `/wallet`  
+  * `/wallet`  </p>
+  GET  wallet details  </p>
   Headers  
-  {"X-Api-Key": "\<admin-key\>"}  
+  {"X-Api-Key": "\<admin-key\>"}  </p>
   Returns 200 OK (application/json)  
-  {"id": <string>, "name": <string>, "balance": <int>}  </p>
+  {"id": \<string\>, "name": \<string\>, "balance": \<int\>}  
+  or  
+  {"message": \<string\>} (error message)  </p>
     _Curl example_  
   curl \<base_url + /api/v1/wallet\> -H "X-Api-Key: \<admin-key\>"  </p>
   _Python example_  
   headers = {"X-Api-Key": "\<admin-key\>", "Content-type": "application/json"}  
-  requests.get(\<base_url\> + "/usermanager/api/v1/wallets/", headers=headers)  
+  requests.get(\<base_url\> + "/api/v1/wallet", headers=headers)  
   
-  * `/payments`
-
-
-
-
-Simple Python example of a service accounts system (work in progress)
-=====================================================================
+  * `/payments`  </p>
+  POST  invoice creation (incoming)  </p>
+  Headers  
+  {"X-Api-Key": "\<admin-key\> or \<invoice-key\>"}  </p>
+  Body (application/json)  
+  {"out": false, "amount": \<int\>, "memo": \<string\>}  </p>
+  Returns 201 CREATED (application/json)  
+  {"payment_hash": \<string\>, "payment_request": \<string\>}  
+  or  
+  {"message": \<string\>} (error message)  </p>
+  _Curl example_  
+  curl -X POST \<base_url + /api/v1/payments\> -d '{"out": false, "amount": \<int\>, "memo": \<string\>, "webhook": \<url:string\>}' -H "X-Api-Key: \<admin-key\> or \<invoice-key\>" -H "Content-type: application/json"  </p>
+  _Python example_  
+  headers = {"X-Api-Key": "\<admin-key\> or \<invoice-key\>", "Content-type": "application/json"}  
+  data = {"out": False, "amount": \<int\>, "memo": \<string\>}  
+  requests.post(\<base_url\> + "/api/v1/payments/", data=json.dumps(data), headers=headers) </p>
+  * `/payments`  </p>
+  POST  invoice payment (outgoing)  </p>
+  Headers  
+  {"X-Api-Key": "\<admin-key\>"}  </p>
+  Body (application/json)  
+  {"out": true, "bolt11": \<string\>}  </p>
+  Returns 201 CREATED (application/json)  
+  {"payment_hash": \<string\>}  
+  or  
+  {"message": \<string\>} (error message)  </p>
+  _Curl example_  
+  curl -X POST \<base_url + /api/v1/payments\> -d '{"out": true, "bolt11": \<string\>}' -H "X-Api-Key: \<admin-key\>" -H "Content-type: application/json"  </p>
+  _Python example_  
+  headers = {"X-Api-Key": "\<admin-key\>", "Content-type": "application/json"}  
+  data = {"out": True, "bolt11": \<string\>}  
+  requests.post(\<base_url\> + "/api/v1/payments/", data=json.dumps(data), headers=headers) </p>
+</br></br></br>
+## Simple Python example of a service accounts system (work in progress)
 
 ```
 import requests, json
