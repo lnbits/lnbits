@@ -404,7 +404,7 @@
         this.formDialog.show = true
       },
       updateForm: function (wallet, data) {
-        var self = this
+        let self = this
         console.log('update', data)
         LNbits.api
           .request(
@@ -426,8 +426,8 @@
           })
       },
       deleteForm: function (formsId) {
-        var self = this
-        var forms = _.findWhere(this.forms, {id: formsId})
+        let self = this
+        let forms = _.findWhere(this.forms, {id: formsId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this form link?')
