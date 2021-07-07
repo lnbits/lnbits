@@ -28,6 +28,7 @@ class Funding(NamedTuple):
     admin_key: str
     cert: str
     balance: int
+    selected: int
 
     @classmethod
     def from_row(cls, row: Row) -> "Funding":

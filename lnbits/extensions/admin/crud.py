@@ -63,7 +63,7 @@ async def get_admin(
         ),
     )
     row = await db.fetchone("SELECT * FROM admin WHERE 1")
-    return [Admin.from_row(row) if row else None]
+    return Admin.from_row(row) if row else None
 
 
 async def get_funding() -> List[Funding]:
