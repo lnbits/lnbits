@@ -532,7 +532,8 @@
       self.data.admin.data_folder = '{{admin.data_folder}}'
       self.data.admin.funding_source_primary = '{{admin.funding_source}}'
       self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(',')
-      funding = JSON.parse('{{ funding  | tojson }}')
+      funding = JSON.parse(String('{{ funding  | tojson|safe }}'))
+      console.log(funding[0].backend_wallet)
       self.data.admin.LndRestWallet[6] = 'LndRestWallet'
       self.data.admin.CLightningWallet[6] = 'CLightningWallet'
       self.data.admin.LndWallet[6] = 'LndWallet'
@@ -542,14 +543,14 @@
       self.data.admin.OpenNodeWallet[6] = 'OpenNodeWallet'
       var i
       for (i = 0; i < funding.length; i++) {
-        if (funding[i][1] == 'CLightningWallet') {
+        if (funding[i].backend_wallet == 'CLightningWallet') {
           self.data.admin.CLightningWallet[0] = funding[i][2]
           if (self.data.admin.funding_source_primary == 'CLightningWallet') {
             self.data.admin.CLightningWallet[6] =
               'CLightningWallet (main funding source)'
           }
         }
-        if (funding[i][1] == 'LndRestWallet') {
+        if (funding[i].backend_wallet == 'LndRestWallet') {
           self.data.admin.LndRestWallet[0] = funding[i][2]
           self.data.admin.LndRestWallet[2] = funding[i][4]
           self.data.admin.LndRestWallet[3] = funding[i][5]
@@ -560,7 +561,7 @@
               'LndRestWallet (main funding source)'
           }
         }
-        if (funding[i][1] == 'LndWallet') {
+        if (funding[i].backend_wallet == 'LndWallet') {
           self.data.admin.LndWallet[0] = funding[i][2] //endpoint
           self.data.admin.LndWallet[1] = funding[i][3] //port
           self.data.admin.LndWallet[2] = funding[i][4] //read
@@ -571,7 +572,7 @@
             self.data.admin.LndWallet[6] = 'LndWallet (main funding source)' //label
           }
         }
-        if (funding[i][1] == 'LntxbotWallet') {
+        if (funding[i].backend_wallet == 'LntxbotWallet') {
           self.data.admin.LntxbotWallet[3] = funding[i][5]
           self.data.admin.LntxbotWallet[4] = funding[i][6]
 
@@ -580,7 +581,7 @@
               'LntxbotWallet (main funding source)'
           }
         }
-        if (funding[i][1] == 'LNPayWallet') {
+        if (funding[i].backend_wallet == 'LNPayWallet') {
           self.data.admin.LNPayWallet[2] = funding[i][4]
           self.data.admin.LNPayWallet[3] = funding[i][5]
           self.data.admin.LNPayWallet[4] = funding[i][6]
@@ -590,7 +591,7 @@
             self.data.admin.LNPayWallet[6] = 'LNPayWallet (main funding source)'
           }
         }
-        if (funding[i][1] == 'LnbitsWallet') {
+        if (funding[i].backend_wallet == 'LnbitsWallet') {
           self.data.admin.LnbitsWallet[0] = funding[i][2]
           self.data.admin.LnbitsWallet[2] = funding[i][4]
           self.data.admin.LnbitsWallet[3] = funding[i][5]
@@ -601,7 +602,7 @@
               'LnbitsWallet (main funding source)'
           }
         }
-        if (funding[i][1] == 'OpenNodeWallet') {
+        if (funding[i].backend_wallet == 'OpenNodeWallet') {
           self.data.admin.OpenNodeWallet[2] = funding[i][4]
           self.data.admin.OpenNodeWallet[3] = funding[i][5]
           self.data.admin.OpenNodeWallet[4] = funding[i][6]
