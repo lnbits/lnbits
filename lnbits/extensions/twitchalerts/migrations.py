@@ -1,6 +1,7 @@
 async def m001_initial(db):
 
-    await db.execute("""
+    await db.execute(
+        """
         CREATE TABLE IF NOT EXISTS Services (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             state TEXT NOT NULL,
@@ -13,9 +14,11 @@ async def m001_initial(db):
             authenticated BOOLEAN NOT NULL,
             token TEXT
         );
-        """)
+        """
+    )
 
-    await db.execute("""
+    await db.execute(
+        """
         CREATE TABLE IF NOT EXISTS Donations (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
@@ -28,4 +31,5 @@ async def m001_initial(db):
             posted BOOLEAN NOT NULL,
             FOREIGN KEY(service) REFERENCES Services(id)
         );
-        """)
+        """
+    )

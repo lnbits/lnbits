@@ -6,6 +6,7 @@ class Donation(NamedTuple):
     """A Donation simply contains all the necessary information about a
     user's donation to a streamer
     """
+
     id: str  # This ID always corresponds to a satspay charge ID
     wallet: str
     name: str  # Name of the donor
@@ -26,6 +27,7 @@ class Service(NamedTuple):
 
     Currently, Streamlabs is the only supported Service.
     """
+
     id: int
     state: str  # A random hash used during authentication
     twitchuser: str  # The Twitch streamer's username

@@ -21,6 +21,6 @@ async def donation(state):
     service = await get_service(0, by_state=state)
     if not service:
         abort(HTTPStatus.NOT_FOUND, "Service does not exist.")
-    return await render_template("twitchalerts/display.html",
-                                 twitchuser=service.twitchuser,
-                                 service=service.id)
+    return await render_template(
+        "twitchalerts/display.html", twitchuser=service.twitchuser, service=service.id
+    )

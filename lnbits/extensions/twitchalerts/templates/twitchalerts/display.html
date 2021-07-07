@@ -18,8 +18,8 @@
             dense
             v-model.number="donationDialog.data.sats"
             type="number"
-            min=1
-            suffix=sats
+            min="1"
+            suffix="sats"
             :rules="[val => val > 0 || 'Choose a positive number of sats!']"
             label="Amount of sats"
           ></q-input>
