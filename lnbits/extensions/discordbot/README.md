@@ -23,7 +23,7 @@ This bot will allow users to interact with it in the following ways [full comman
 
 ![balance](https://imgur.com/tKeReCp.png)
 
-`/tip @user [amount]` Will sent money from one user to another
+`/tip @user [amount]` Will send money from one user to another
   - If the recieving user does not have a wallet, one will be created for them
   - The receiving user will receive a direct message from the bot with a link to their wallet
 
