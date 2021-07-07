@@ -4,7 +4,8 @@ from sqlite3 import Row
 class Admin(NamedTuple):
     user: str
     site_title: str
-    tagline: str
+    site_tagline: str
+    site_description:str
     allowed_users: str
     default_wallet_name: str
     data_folder: str

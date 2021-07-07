@@ -19,7 +19,10 @@ async def m001_create_admin_table(db):
         site_title = getenv("LNBITS_SITE_TITLE")
 
     if getenv("LNBITS_SITE_TAGLINE"):
-        tagline = getenv("LNBITS_SITE_TAGLINE")
+        site_tagline = getenv("LNBITS_SITE_TAGLINE")
+
+    if getenv("LNBITS_SITE_DESCRIPTION"):
+        site_description = getenv("LNBITS_SITE_DESCRIPTION")
 
     if getenv("LNBITS_ALLOWED_USERS"):
         allowed_users = getenv("LNBITS_ALLOWED_USERS")
@@ -47,7 +50,8 @@ async def m001_create_admin_table(db):
         CREATE TABLE IF NOT EXISTS admin (
             user TEXT,
             site_title TEXT,
-            tagline TEXT,
+            site_tagline TEXT,
+            site_description TEXT,
             allowed_users TEXT,
             default_wallet_name TEXT,
             data_folder TEXT,
@@ -60,13 +64,14 @@ async def m001_create_admin_table(db):
     )
     await db.execute(
         """
-        INSERT INTO admin (user, site_title, tagline, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO admin (user, site_title, site_tagline, site_description, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user,
             site_title,
-            tagline,
+            site_tagline,
+            site_description,
             allowed_users,
             default_wallet_name,
             data_folder,

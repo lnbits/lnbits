@@ -23,14 +23,15 @@ def update_wallet_balance(wallet_id: str, amount: int) -> str:
     return "success"
 
 
-async def get_admin(
+async def update_admin(
     user: Optional[str] = None,
-    site_title: Optional[str] = "LNbits",
-    tagline: Optional[str] = "Lightning-network wallet/accounts system",
+    site_title: Optional[str] = "",
+    site_tagline: Optional[str] = "",
+    site_description: Optional[str] = "",
     allowed_users: Optional[str] = None,
     default_wallet_name: Optional[str] = None,
     data_folder: Optional[str] = None,
-    disabled_ext: Optional[str] = "amilk",
+    disabled_ext: Optional[str] = "",
     force_https: Optional[bool] = True,
     service_fee: Optional[int] = 0,
     funding_source_primary: Optional[str] = "",
@@ -46,13 +47,14 @@ async def get_admin(
     await db.execute(
         """
         UPDATE admin
-        SET user = ?, site_title = ?, tagline = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?, funding_source = ?
+        SET user = ?, site_title = ?, site_tagline = ?, site_description = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?, funding_source = ?
         WHERE 1
         """,
         (
             user,
             site_title,
-            tagline,
+            site_tagline,
+            site_description,
             allowed_users,
             default_wallet_name,
             data_folder,
@@ -62,6 +64,10 @@ async def get_admin(
             funding_source_primary,
         ),
     )
+    row = await db.fetchone("SELECT * FROM admin WHERE 1")
+    return Admin.from_row(row) if row else None
+
+async def get_admin() -> List[Admin]:
     row = await db.fetchone("SELECT * FROM admin WHERE 1")
     return Admin.from_row(row) if row else None
 

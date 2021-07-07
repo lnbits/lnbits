@@ -11,8 +11,9 @@ from lnbits.settings import WALLET
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
-    user_id = request.args.get("usr", type=str)
-    admin = await get_admin(user_id)
+    user_id = g.user
+    print(user_id.id)
+    admin = await get_admin()
     funding = await get_funding()
 
     return await render_template("admin/index.html", user=g.user, admin=admin, funding=funding)
