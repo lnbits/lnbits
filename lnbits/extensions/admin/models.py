@@ -7,6 +7,7 @@ class Admin(NamedTuple):
     site_tagline: str
     site_description:str
     allowed_users: str
+    admin_user: str
     default_wallet_name: str
     data_folder: str
     disabled_ext: str
