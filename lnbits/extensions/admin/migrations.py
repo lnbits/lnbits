@@ -61,7 +61,7 @@ async def m001_create_admin_table(db):
     await db.execute(
         """
         INSERT INTO admin (user, site_title, tagline, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user,

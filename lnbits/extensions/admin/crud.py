@@ -27,8 +27,6 @@ async def get_admin(
     user: Optional[str] = None,
     site_title: Optional[str] = "LNbits",
     tagline: Optional[str] = "Lightning-network wallet/accounts system",
-    primary_color: Optional[str] = None,
-    secondary_color: Optional[str] = None,
     allowed_users: Optional[str] = None,
     default_wallet_name: Optional[str] = None,
     data_folder: Optional[str] = None,
@@ -48,15 +46,13 @@ async def get_admin(
     await db.execute(
         """
         UPDATE admin
-        SET user = ?, site_title = ?, tagline = ?, primary_color = ?, secondary_color = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?, funding_source = ?
+        SET user = ?, site_title = ?, tagline = ?, allowed_users = ?, default_wallet_name = ?, data_folder = ?, disabled_ext = ?, force_https = ?, service_fee = ?, funding_source = ?
         WHERE 1
         """,
         (
             user,
             site_title,
             tagline,
-            primary_color,
-            secondary_color,
             allowed_users,
             default_wallet_name,
             data_folder,
