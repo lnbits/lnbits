@@ -7,8 +7,6 @@ async def m001_create_admin_table(db):
     user = None
     site_title = None
     tagline = ""
-    primary_color = "#673ab7"
-    secondary_color = "#9c27b0"
     allowed_users = None
     default_wallet_name = None
     data_folder = None
@@ -50,8 +48,6 @@ async def m001_create_admin_table(db):
             user TEXT,
             site_title TEXT,
             tagline TEXT,
-            primary_color TEXT,
-            secondary_color TEXT,
             allowed_users TEXT,
             default_wallet_name TEXT,
             data_folder TEXT,
@@ -64,15 +60,13 @@ async def m001_create_admin_table(db):
     )
     await db.execute(
         """
-        INSERT INTO admin (user, site_title, tagline, primary_color, secondary_color, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
+        INSERT INTO admin (user, site_title, tagline, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user,
             site_title,
             tagline,
-            primary_color,
-            secondary_color,
             allowed_users,
             default_wallet_name,
             data_folder,

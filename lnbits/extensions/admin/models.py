@@ -5,8 +5,6 @@ class Admin(NamedTuple):
     user: str
     site_title: str
     tagline: str
-    primary_color: str
-    secondary_color: str
     allowed_users: str
     default_wallet_name: str
     data_folder: str

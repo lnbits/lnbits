@@ -34,49 +34,6 @@
             ></q-input>
           </div>
         </div>
-        <div class="row">
-          <div class="col">
-            <q-input
-              filled
-              v-model="data.admin.primary_color"
-              class="q-pr-md"
-              class="my-input"
-              label="Primary Color"
-              hint="Color theme your LNbits"
-            >
-              <template v-slot:append>
-                <q-icon name="colorize" class="cursor-pointer">
-                  <q-popup-proxy
-                    transition-show="scale"
-                    transition-hide="scale"
-                  >
-                    <q-color v-model="data.admin.primary_color"></q-color>
-                  </q-popup-proxy>
-                </q-icon>
-              </template>
-            </q-input>
-          </div>
-          <div class="col">
-            <q-input
-              filled
-              v-model="data.admin.secondary_color"
-              :rules="['anyColor']"
-              class="my-input"
-              label="Secondary Color"
-            >
-              <template v-slot:append>
-                <q-icon name="colorize" class="cursor-pointer">
-                  <q-popup-proxy
-                    transition-show="scale"
-                    transition-hide="scale"
-                  >
-                    <q-color v-model="data.admin.secondary_color"></q-color>
-                  </q-popup-proxy>
-                </q-icon>
-              </template>
-            </q-input>
-          </div>
-        </div>
 
         <div class="row">
           <div class="col">
@@ -509,8 +466,6 @@
           admin: {
             site_title: 'LNbits',
             tagline: 'Free and open source wallet system',
-            primary_color: '#FF00FF',
-            secondary_color: '#FF00FF',
             funding_source_primary: '',
             funding_source_edited: '',
             service_fee: 0,
@@ -560,8 +515,6 @@
       self.data.admin.allowed_users = ''
       self.data.admin.site_title = '{{admin.site_title}}'
       self.data.admin.tagline = '{{admin.tagline}}'
-      self.data.admin.primary_color = '{{admin.primary_color}}'
-      self.data.admin.secondary_color = '{{admin.secondary_color}}'
       self.data.admin.service_fee = parseInt('{{admin.service_fee}}')
       self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}'
       self.data.admin.data_folder = '{{admin.data_folder}}'
@@ -688,8 +641,6 @@
         var data = self.data
         data.admin.senddata.site_title = data.admin.site_title
         data.admin.senddata.tagline = data.admin.tagline
-        data.admin.senddata.primary_color = data.admin.primary_color
-        data.admin.senddata.secondary_color = data.admin.secondary_color
         data.admin.senddata.funding_source_primary =
           data.admin.funding_source_primary
         data.admin.senddata.funding_source_edited =
