@@ -5,7 +5,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="domainDialog.show = true"
+        <q-btn unelevated color="primary" @click="domainDialog.show = true"
           >New Domain</q-btn
         >
       </q-card-section>
@@ -149,17 +149,17 @@
         </q-table>
       </q-card-section>
     </q-card>
-    <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
-      <q-card>
-        <q-card-section>
-          <h6 class="text-subtitle1 q-my-none">LNbits Subdomain extension</h6>
-        </q-card-section>
-        <q-card-section class="q-pa-none">
-          <q-separator></q-separator>
-          <q-list> {% include "subdomains/_api_docs.html" %} </q-list>
-        </q-card-section>
-      </q-card>
-    </div>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits Subdomain extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "subdomains/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
   </div>
 
   <q-dialog v-model="domainDialog.show" position="top">
@@ -233,14 +233,14 @@
           <q-btn
             v-if="domainDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Form</q-btn
           >
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="domainDialog.data.cost == null || domainDialog.data.cost < 0 || domainDialog.data.domain == null"
             type="submit"
             >Create Domain</q-btn

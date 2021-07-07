@@ -4,10 +4,10 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="userDialog.show = true"
+        <q-btn unelevated color="primary" @click="userDialog.show = true"
           >New User</q-btn
         >
-        <q-btn unelevated color="deep-purple" @click="walletDialog.show = true"
+        <q-btn unelevated color="primary" @click="walletDialog.show = true"
           >New Wallet
         </q-btn>
       </q-card-section>
@@ -172,7 +172,7 @@
 
         <q-btn
           unelevated
-          color="deep-purple"
+          color="primary"
           :disable="userDialog.data.walname == null"
           type="submit"
           >Create User</q-btn
@@ -202,7 +202,7 @@
         ></q-input>
         <q-btn
           unelevated
-          color="deep-purple"
+          color="primary"
           :disable="walletDialog.data.walname == null"
           type="submit"
           >Create Wallet</q-btn
@@ -214,7 +214,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapUserManager = function(obj) {
+  var mapUserManager = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -228,7 +228,7 @@
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
-    data: function() {
+    data: function () {
       return {
         wallets: [],
         users: [],
@@ -277,8 +277,8 @@
       }
     },
     computed: {
-      userOptions: function() {
-        return this.users.map(function(obj) {
+      userOptions: function () {
+        return this.users.map(function (obj) {
           console.log(obj.id)
           return {
             value: String(obj.id),
@@ -290,7 +290,7 @@
     methods: {
       ///////////////Users////////////////////////////
 
-      getUsers: function() {
+      getUsers: function () {
         var self = this
 
         LNbits.api
@@ -299,20 +299,20 @@
             '/usermanager/api/v1/users',
             this.g.user.wallets[0].inkey
           )
-          .then(function(response) {
-            self.users = response.data.map(function(obj) {
+          .then(function (response) {
+            self.users = response.data.map(function (obj) {
               return mapUserManager(obj)
             })
           })
       },
 
-      openUserUpdateDialog: function(linkId) {
+      openUserUpdateDialog: function (linkId) {
         var link = _.findWhere(this.users, {id: linkId})
 
         this.userDialog.data = _.clone(link._data)
         this.userDialog.show = true
       },
-      sendUserFormData: function() {
+      sendUserFormData: function () {
         if (this.userDialog.data.id) {
         } else {
           var data = {
@@ -329,7 +329,7 @@
         }
       },
 
-      createUser: function(data) {
+      createUser: function (data) {
         var self = this
         LNbits.api
           .request(
@@ -338,48 +338,48 @@
             this.g.user.wallets[0].inkey,
             data
           )
-          .then(function(response) {
+          .then(function (response) {
             self.users.push(mapUserManager(response.data))
             self.userDialog.show = false
             self.userDialog.data = {}
             data = {}
             self.getWallets()
           })
-          .catch(function(error) {
+          .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      deleteUser: function(userId) {
+      deleteUser: function (userId) {
         var self = this
 
         console.log(userId)
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this User link?')
-          .onOk(function() {
+          .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
                 '/usermanager/api/v1/users/' + userId,
                 self.g.user.wallets[0].inkey
               )
-              .then(function(response) {
-                self.users = _.reject(self.users, function(obj) {
+              .then(function (response) {
+                self.users = _.reject(self.users, function (obj) {
                   return obj.id == userId
                 })
               })
-              .catch(function(error) {
+              .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
       },
 
-      exportUsersCSV: function() {
+      exportUsersCSV: function () {
         LNbits.utils.exportCSV(this.usersTable.columns, this.users)
       },
 
       ///////////////Wallets////////////////////////////
 
-      getWallets: function() {
+      getWallets: function () {
         var self = this
 
         LNbits.api
@@ -388,19 +388,19 @@
             '/usermanager/api/v1/wallets',
             this.g.user.wallets[0].inkey
           )
-          .then(function(response) {
-            self.wallets = response.data.map(function(obj) {
+          .then(function (response) {
+            self.wallets = response.data.map(function (obj) {
               return mapUserManager(obj)
             })
           })
       },
-      openWalletUpdateDialog: function(linkId) {
+      openWalletUpdateDialog: function (linkId) {
         var link = _.findWhere(this.users, {id: linkId})
 
         this.walletDialog.data = _.clone(link._data)
         this.walletDialog.show = true
       },
-      sendWalletFormData: function() {
+      sendWalletFormData: function () {
         if (this.walletDialog.data.id) {
         } else {
           var data = {
@@ -415,7 +415,7 @@
         }
       },
 
-      createWallet: function(data) {
+      createWallet: function (data) {
         var self = this
         LNbits.api
           .request(
@@ -424,43 +424,43 @@
             this.g.user.wallets[0].inkey,
             data
           )
-          .then(function(response) {
+          .then(function (response) {
             self.wallets.push(mapUserManager(response.data))
             self.walletDialog.show = false
             self.walletDialog.data = {}
             data = {}
           })
-          .catch(function(error) {
+          .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      deleteWallet: function(userId) {
+      deleteWallet: function (userId) {
         var self = this
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this wallet link?')
-          .onOk(function() {
+          .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
                 '/usermanager/api/v1/wallets/' + userId,
                 self.g.user.wallets[0].inkey
               )
-              .then(function(response) {
-                self.wallets = _.reject(self.wallets, function(obj) {
+              .then(function (response) {
+                self.wallets = _.reject(self.wallets, function (obj) {
                   return obj.id == userId
                 })
               })
-              .catch(function(error) {
+              .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
       },
-      exportWalletsCSV: function() {
+      exportWalletsCSV: function () {
         LNbits.utils.exportCSV(this.walletsTable.columns, this.wallets)
       }
     },
-    created: function() {
+    created: function () {
       if (this.g.user.wallets.length) {
         this.getUsers()
         this.getWallets()

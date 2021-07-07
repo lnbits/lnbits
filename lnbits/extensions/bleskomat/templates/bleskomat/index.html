@@ -11,7 +11,7 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >Add Bleskomat</q-btn
         >
       </q-card-section>
@@ -150,14 +150,14 @@
           <q-btn
             v-if="formDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Bleskomat</q-btn
           >
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 formDialog.data.wallet == null ||
                 formDialog.data.name == null ||

@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >New paywall</q-btn
         >
       </q-card-section>
@@ -141,7 +141,7 @@
             <q-item-section avatar>
               <q-checkbox
                 v-model="formDialog.data.remembers"
-                color="deep-purple"
+                color="primary"
               ></q-checkbox>
             </q-item-section>
             <q-item-section>
@@ -157,7 +157,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="formDialog.data.amount == null || formDialog.data.amount < 0 || formDialog.data.url == null || formDialog.data.memo == null"
             type="submit"
             >Create paywall</q-btn

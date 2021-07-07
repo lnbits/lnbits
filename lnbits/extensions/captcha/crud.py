@@ -18,7 +18,7 @@ async def create_captcha(
     captcha_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO captchas (id, wallet, url, memo, description, amount, remembers)
+        INSERT INTO captcha.captchas (id, wallet, url, memo, description, amount, remembers)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (captcha_id, wallet_id, url, memo, description, amount, int(remembers)),
@@ -30,7 +30,9 @@ async def create_captcha(
 
 
 async def get_captcha(captcha_id: str) -> Optional[Captcha]:
-    row = await db.fetchone("SELECT * FROM captchas WHERE id = ?", (captcha_id,))
+    row = await db.fetchone(
+        "SELECT * FROM captcha.captchas WHERE id = ?", (captcha_id,)
+    )
 
     return Captcha.from_row(row) if row else None
 
@@ -41,11 +43,11 @@ async def get_captchas(wallet_ids: Union[str, List[str]]) -> List[Captcha]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM captchas WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM captcha.captchas WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
     return [Captcha.from_row(row) for row in rows]
 
 
 async def delete_captcha(captcha_id: str) -> None:
-    await db.execute("DELETE FROM captchas WHERE id = ?", (captcha_id,))
+    await db.execute("DELETE FROM captcha.captchas WHERE id = ?", (captcha_id,))

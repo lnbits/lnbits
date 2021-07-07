@@ -1,4 +1,4 @@
-import trio  # type: ignore
+import trio
 import httpx
 import json
 import base64

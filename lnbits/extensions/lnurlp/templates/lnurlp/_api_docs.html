@@ -7,7 +7,7 @@
   <q-expansion-item group="api" dense expand-separator label="List pay links">
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span> /api/v1/links</code>
+        <code><span class="text-blue">GET</span> /lnurlp/api/v1/links</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -27,7 +27,7 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /api/v1/links/&lt;pay_id&gt;</code
+          ><span class="text-blue">GET</span> /lnurlp/api/v1/links/&lt;pay_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -52,11 +52,11 @@
   >
     <q-card>
       <q-card-section>
-        <code><span class="text-green">POST</span> /api/v1/links</code>
+        <code><span class="text-green">POST</span> /lnurlp/api/v1/links</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-        <code>{"description": &lt;string&gt; "amount": &lt;integer&gt;}</code>
+        <code>{"description": &lt;string&gt; "amount": &lt;integer&gt; "max": &lt;integer&gt; "min": &lt;integer&gt; "comment_chars": &lt;integer&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
         </h5>
@@ -64,7 +64,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.url_root }}api/v1/links -d '{"description":
-          &lt;string&gt;, "amount": &lt;integer&gt;}' -H "Content-type:
+          &lt;string&gt;, "amount": &lt;integer&gt;, "max": &lt;integer&gt;, "min": &lt;integer&gt;, "comment_chars": &lt;integer&gt;}' -H "Content-type:
           application/json" -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
@@ -80,7 +80,7 @@
       <q-card-section>
         <code
           ><span class="text-green">PUT</span>
-          /api/v1/links/&lt;pay_id&gt;</code
+          /lnurlp/api/v1/links/&lt;pay_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -111,7 +111,7 @@
       <q-card-section>
         <code
           ><span class="text-pink">DELETE</span>
-          /api/v1/links/&lt;pay_id&gt;</code
+          /lnurlp/api/v1/links/&lt;pay_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />

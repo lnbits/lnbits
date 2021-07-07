@@ -202,9 +202,7 @@ new Vue({
       return this.parse.invoice.sat <= this.balance
     },
     pendingPaymentsExist: function () {
-      return this.payments
-        ? _.where(this.payments, {pending: 1}).length > 0
-        : false
+      return this.payments.findIndex(payment => payment.pending) !== -1
     }
   },
   filters: {

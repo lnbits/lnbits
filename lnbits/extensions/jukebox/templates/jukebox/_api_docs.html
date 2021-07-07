@@ -1,24 +1,33 @@
 <q-card-section>
-  To use this extension you need a Spotify client ID and client secret. You
-  get these by creating an app in the Spotify developers dashboard
-  <a style="color:#43a047" href="https://developer.spotify.com/dashboard/applications">here </a>
-  <br /><br />Select the playlists you want people to be able to pay for,
-  share the frontend page, profit :) <br /><br />
-  Made by, <a style="color:#43a047" href="https://twitter.com/arcbtc">benarc</a>. Inspired by,
-  <a style="color:#43a047" href="https://twitter.com/pirosb3/status/1056263089128161280">pirosb3</a>.
+  To use this extension you need a Spotify client ID and client secret. You get
+  these by creating an app in the Spotify developers dashboard
+  <a
+    style="color: #43a047"
+    href="https://developer.spotify.com/dashboard/applications"
+    >here
+  </a>
+  <br /><br />Select the playlists you want people to be able to pay for, share
+  the frontend page, profit :) <br /><br />
+  Made by,
+  <a style="color: #43a047" href="https://twitter.com/arcbtc">benarc</a>.
+  Inspired by,
+  <a
+    style="color: #43a047"
+    href="https://twitter.com/pirosb3/status/1056263089128161280"
+    >pirosb3</a
+  >.
 </q-card-section>
 
-
-
-
-
-
-<q-expansion-item group="extras" icon="swap_vertical_circle" label="API info" :content-inset-level="0.5">
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
   <q-expansion-item group="api" dense expand-separator label="List jukeboxes">
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span>
-          /jukebox/api/v1/jukebox</code>
+        <code><span class="text-blue">GET</span> /jukebox/api/v1/jukebox</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -27,7 +36,8 @@
         </h5>
         <code>[&lt;jukebox_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET {{ request.url_root }}api/v1/jukebox -H "X-Api-Key: {{
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/jukebox -H "X-Api-Key: {{
           g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
@@ -36,8 +46,10 @@
   <q-expansion-item group="api" dense expand-separator label="Get jukebox">
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span>
-          /jukebox/api/v1/jukebox/&lt;juke_id&gt;</code>
+        <code
+          ><span class="text-blue">GET</span>
+          /jukebox/api/v1/jukebox/&lt;juke_id&gt;</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -46,36 +58,44 @@
         </h5>
         <code>&lt;jukebox_object&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET {{ request.url_root }}api/v1/jukebox/&lt;juke_id&gt; -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/jukebox/&lt;juke_id&gt; -H
+          "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
-  <q-expansion-item group="api" dense expand-separator label="Create/update track">
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create/update track"
+  >
     <q-card>
       <q-card-section>
-        <code><span class="text-green">POST/PUT</span>
-          /jukebox/api/v1/jukebox/</code>
+        <code
+          ><span class="text-green">POST/PUT</span>
+          /jukebox/api/v1/jukebox/</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
-        <h5 class="text-caption q-mt-sm q-mb-none">
-          Body (application/json)
-        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
         <code>&lt;jukbox_object&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST {{ request.url_root }}api/v1/jukebox/ -d
-          '{"user": &lt;string, user_id&gt;,
-          "title": &lt;string&gt;, "wallet":&lt;string&gt;, "sp_user":
-          &lt;string, spotify_user_account&gt;, "sp_secret": &lt;string, spotify_user_secret&gt;, "sp_access_token":
-          &lt;string, not_required&gt;, "sp_refresh_token":
-          &lt;string, not_required&gt;, "sp_device": &lt;string, spotify_user_secret&gt;, "sp_playlists":
-          &lt;string, not_required&gt;, "price":
-          &lt;integer, not_required&gt;}' -H "Content-type:
-          application/json" -H "X-Api-Key: {{g.user.wallets[0].adminkey }}"
+        <code
+          >curl -X POST {{ request.url_root }}api/v1/jukebox/ -d '{"user":
+          &lt;string, user_id&gt;, "title": &lt;string&gt;,
+          "wallet":&lt;string&gt;, "sp_user": &lt;string,
+          spotify_user_account&gt;, "sp_secret": &lt;string,
+          spotify_user_secret&gt;, "sp_access_token": &lt;string,
+          not_required&gt;, "sp_refresh_token": &lt;string, not_required&gt;,
+          "sp_device": &lt;string, spotify_user_secret&gt;, "sp_playlists":
+          &lt;string, not_required&gt;, "price": &lt;integer, not_required&gt;}'
+          -H "Content-type: application/json" -H "X-Api-Key:
+          {{g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -83,8 +103,10 @@
   <q-expansion-item group="api" dense expand-separator label="Delete jukebox">
     <q-card>
       <q-card-section>
-        <code><span class="text-red">DELETE</span>
-          /jukebox/api/v1/jukebox/&lt;juke_id&gt;</code>
+        <code
+          ><span class="text-red">DELETE</span>
+          /jukebox/api/v1/jukebox/&lt;juke_id&gt;</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -93,9 +115,11 @@
         </h5>
         <code>&lt;jukebox_object&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X DELETE {{ request.url_root }}api/v1/jukebox/&lt;juke_id&gt; -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+        <code
+          >curl -X DELETE {{ request.url_root }}api/v1/jukebox/&lt;juke_id&gt;
+          -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
-  </q-expansion-item>
+  </q-expansion-item></q-expansion-item
+>

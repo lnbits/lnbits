@@ -17,14 +17,14 @@
         ></q-icon>
         {% raw %}
         <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
-        {{ extension.shortDescription }} {% endraw %}
+        <small>{{ extension.shortDescription }} </small>{% endraw %}
       </q-card-section>
       <q-separator></q-separator>
       <q-card-actions>
         <div v-if="extension.isEnabled">
           <q-btn
             flat
-            color="deep-purple"
+            color="primary"
             type="a"
             :href="[extension.url, '?usr=', g.user.id].join('')"
             >Open</q-btn
@@ -41,7 +41,7 @@
         <q-btn
           v-else
           flat
-          color="deep-purple"
+          color="primary"
           type="a"
           :href="['{{ url_for('core.extensions') }}', '?usr=', g.user.id, '&enable=', extension.code].join('')"
         >

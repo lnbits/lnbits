@@ -2,7 +2,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS events (
+        CREATE TABLE events.events (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -13,21 +13,25 @@ async def m001_initial(db):
             amount_tickets INTEGER NOT NULL,
             price_per_ticket INTEGER NOT NULL,
             sold INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS tickets (
+        CREATE TABLE events.tickets (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             event TEXT NOT NULL,
             name TEXT NOT NULL,
             email TEXT NOT NULL,
             registered BOOLEAN NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
@@ -37,7 +41,7 @@ async def m002_changed(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS ticket (
+        CREATE TABLE events.ticket (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             event TEXT NOT NULL,
@@ -45,12 +49,14 @@ async def m002_changed(db):
             email TEXT NOT NULL,
             registered BOOLEAN NOT NULL,
             paid BOOLEAN NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
 
-    for row in [list(row) for row in await db.fetchall("SELECT * FROM tickets")]:
+    for row in [list(row) for row in await db.fetchall("SELECT * FROM events.tickets")]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -61,7 +67,7 @@ async def m002_changed(db):
         usescsv = usescsv[1:]
         await db.execute(
             """
-            INSERT INTO ticket (
+            INSERT INTO events.ticket (
                 id,
                 wallet,
                 event,
@@ -82,4 +88,4 @@ async def m002_changed(db):
                 True,
             ),
         )
-    await db.execute("DROP TABLE tickets")
+    await db.execute("DROP TABLE events.tickets")
