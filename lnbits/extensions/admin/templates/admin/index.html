@@ -82,14 +82,14 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.CLightningWallet[6]"
+            :label="data.admin.CLightningWallet.backend_wallet"
             @click="data.admin.CLightningWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
                 <q-input
                   filled
-                  v-model="data.admin.CLightningWallet[0]"
+                  v-model="data.admin.CLightningWallet.endpoint"
                   label="GRPC Endpoint"
                   class="q-pr-md"
                   hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
@@ -101,7 +101,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LndRestWallet[6]"
+            :label="data.admin.LndRestWallet.backend_wallet"
             @click="data.admin.LndRestWallet[7] = 1"
           >
             <q-card>
@@ -110,7 +110,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndRestWallet[0]"
+                      v-model="data.admin.CLightningWallet.endpoint"
                       label="LND REST Endpoint"
                       class="q-pr-md"
                       hint="default 127.0.0.1"
@@ -471,23 +471,6 @@
             service_fee: 0,
             disabled_ext: '',
             edited: [],
-            CLightningWallet: [
-              '',
-              '',
-              '',
-              '',
-              '',
-              '',
-              '',
-              0,
-              'CLightningWallet'
-            ],
-            LndRestWallet: ['', '', '', '', '', '', '', 0, 'LndRestWallet'],
-            LndWallet: ['', '', '', '', '', '', '', 0, 'LndWallet'],
-            LntxbotWallet: ['', '', '', '', '', '', '', 0, 'LntxbotWallet'],
-            LNPayWallet: ['', '', '', '', '', '', '', 0, 'LNPayWallet'],
-            LnbitsWallet: ['', '', '', '', '', '', '', 0, 'LnbitsWallet'],
-            OpenNodeWallet: ['', '', '', '', '', '', '', 0, 'OpenNodeWallet'],
             senddata: {}
           }
         },
@@ -519,7 +502,6 @@
     },
     created: function () {
       var self = this
-
       if (usr != null) {
         self.cancel.on = true
       }
@@ -533,86 +515,11 @@
       self.data.admin.funding_source_primary = '{{admin.funding_source}}'
       self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(',')
       funding = JSON.parse(String('{{ funding  | tojson|safe }}'))
-      console.log(funding[0].backend_wallet)
-      self.data.admin.LndRestWallet[6] = 'LndRestWallet'
-      self.data.admin.CLightningWallet[6] = 'CLightningWallet'
-      self.data.admin.LndWallet[6] = 'LndWallet'
-      self.data.admin.LntxbotWallet[6] = 'LntxbotWallet'
-      self.data.admin.LNPayWallet[6] = 'LNPayWallet'
-      self.data.admin.LnbitsWallet[6] = 'LnbitsWallet'
-      self.data.admin.OpenNodeWallet[6] = 'OpenNodeWallet'
       var i
       for (i = 0; i < funding.length; i++) {
-        if (funding[i].backend_wallet == 'CLightningWallet') {
-          self.data.admin.CLightningWallet[0] = funding[i][2]
-          if (self.data.admin.funding_source_primary == 'CLightningWallet') {
-            self.data.admin.CLightningWallet[6] =
-              'CLightningWallet (main funding source)'
-          }
-        }
-        if (funding[i].backend_wallet == 'LndRestWallet') {
-          self.data.admin.LndRestWallet[0] = funding[i][2]
-          self.data.admin.LndRestWallet[2] = funding[i][4]
-          self.data.admin.LndRestWallet[3] = funding[i][5]
-          self.data.admin.LndRestWallet[4] = funding[i][6]
-          self.data.admin.LndRestWallet[5] = funding[i][7]
-          if (self.data.admin.funding_source_primary == 'LndRestWallet') {
-            self.data.admin.LndRestWallet[6] =
-              'LndRestWallet (main funding source)'
-          }
-        }
-        if (funding[i].backend_wallet == 'LndWallet') {
-          self.data.admin.LndWallet[0] = funding[i][2] //endpoint
-          self.data.admin.LndWallet[1] = funding[i][3] //port
-          self.data.admin.LndWallet[2] = funding[i][4] //read
-          self.data.admin.LndWallet[3] = funding[i][5] //invoice
-          self.data.admin.LndWallet[4] = funding[i][6] //admin
-          self.data.admin.LndWallet[5] = funding[i][7] //cert
-          if (self.data.admin.funding_source_primary == 'LndWallet') {
-            self.data.admin.LndWallet[6] = 'LndWallet (main funding source)' //label
-          }
-        }
-        if (funding[i].backend_wallet == 'LntxbotWallet') {
-          self.data.admin.LntxbotWallet[3] = funding[i][5]
-          self.data.admin.LntxbotWallet[4] = funding[i][6]
-
-          if (self.data.admin.funding_source_primary == 'LntxbotWallet') {
-            self.data.admin.LntxbotWallet[6] =
-              'LntxbotWallet (main funding source)'
-          }
-        }
-        if (funding[i].backend_wallet == 'LNPayWallet') {
-          self.data.admin.LNPayWallet[2] = funding[i][4]
-          self.data.admin.LNPayWallet[3] = funding[i][5]
-          self.data.admin.LNPayWallet[4] = funding[i][6]
-          self.data.admin.LNPayWallet[5] = funding[i][7]
-
-          if (self.data.admin.funding_source_primary == 'LNPayWallet') {
-            self.data.admin.LNPayWallet[6] = 'LNPayWallet (main funding source)'
-          }
-        }
-        if (funding[i].backend_wallet == 'LnbitsWallet') {
-          self.data.admin.LnbitsWallet[0] = funding[i][2]
-          self.data.admin.LnbitsWallet[2] = funding[i][4]
-          self.data.admin.LnbitsWallet[3] = funding[i][5]
-          self.data.admin.LnbitsWallet[4] = funding[i][6]
-
-          if (self.data.admin.funding_source_primary == 'LnbitsWallet') {
-            self.data.admin.LnbitsWallet[6] =
-              'LnbitsWallet (main funding source)'
-          }
-        }
-        if (funding[i].backend_wallet == 'OpenNodeWallet') {
-          self.data.admin.OpenNodeWallet[2] = funding[i][4]
-          self.data.admin.OpenNodeWallet[3] = funding[i][5]
-          self.data.admin.OpenNodeWallet[4] = funding[i][6]
-
-          if (self.data.admin.funding_source_primary == 'OpenNodeWallet') {
-            self.data.admin.OpenNodeWallet[6] =
-              'OpenNodeWallet (main funding source)'
-          }
-        }
+        self.data.admin[funding[i].backend_wallet] = funding[i]
       }
+      console.log(self.data.admin.CLightningWallet.id)
     },
     methods: {
       topupWallet: function () {
