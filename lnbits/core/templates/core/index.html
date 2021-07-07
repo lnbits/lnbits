@@ -35,12 +35,12 @@
       </q-card-section>
     </q-card>
 
-    <q-card v-if="savingFormats">
+    <q-card v-if="savingFormats && savingFormats.length && savedUsers">
       <q-card-section>
         <template>
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             label="upload wallet file"
             v-if="savingFormats.includes('download')"
           >
@@ -49,9 +49,9 @@
         <template>
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             label="saved in local storage"
-            v-if="savingFormats.includes('local') &&  savedUsers"
+            v-if="savingFormats.includes('local')"
           >
             {% raw %}
             <q-menu :offset="[0, 10]">
@@ -80,7 +80,7 @@
         <template>
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             label="login"
             v-if="savingFormats.includes('login')"
           >
@@ -89,7 +89,7 @@
         <template>
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             label="lnurlauth"
             v-if="savingFormats.includes('lnurlauth')"
           >

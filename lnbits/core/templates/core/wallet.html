@@ -220,18 +220,18 @@
   </div>
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
-      <q-card-section>
-        <h6 class="text-subtitle1 q-mt-none q-mb-sm">
+      <q-card-section class="row">
+        <h6 class="col-8 text-subtitle1 q-mt-none q-mb-sm">
           {{ SITE_TITLE }} wallet: <strong><em>{{ wallet.name }}</em></strong>
         </h6>
-        <div class="col-6 text-right" v-if="savingFormats">
+        <div class="col-4 text-right" v-if="savingFormats">
           <template v-if="savingFormats.includes('lnurlauth')">
             <q-btn
               unelevated
               dense
-              size="md"
+              size="sm"
               icon="qr_code"
-              :text-color="savedUser.activeFormat == 'lnurlauth' ? 'deep-purple' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              :text-color="savedUser.activeFormat == 'lnurlauth' ? 'primary' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               @click="() => {}"
               ><q-tooltip> LNURL-Auth </q-tooltip></q-btn
             ></template
@@ -240,9 +240,9 @@
             ><q-btn
               unelevated
               dense
-              size="md"
+              size="sm"
               icon="storage"
-              :text-color="savedUser.activeFormat == 'local' ? 'deep-purple' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              :text-color="savedUser.activeFormat == 'local' ? 'primary' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               @click="() => setActiveFormat('local')"
               ><q-tooltip>
                 Account wil be stored in browser's local storage
@@ -253,9 +253,9 @@
             <q-btn
               unelevated
               dense
-              size="md"
+              size="sm"
               icon="http"
-              :text-color="savedUser.activeFormat == 'url' ? 'deep-purple' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              :text-color="savedUser.activeFormat == 'url' ? 'primary' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               @click="() => {}"
               ><q-tooltip> Account as URL </q-tooltip></q-btn
             ></template
@@ -264,11 +264,22 @@
             <q-btn
               unelevated
               dense
-              size="md"
+              size="sm"
               icon="file_download"
-              :text-color="savedUser.activeFormat == 'download' ? 'deep-purple' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              :text-color="savedUser.activeFormat == 'download' ? 'primary' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
               @click="() => {}"
               ><q-tooltip> Download wallet file </q-tooltip></q-btn
+            ></template
+          >
+          <template v-if="savingFormats.includes('login')">
+            <q-btn
+              unelevated
+              dense
+              size="sm"
+              icon="face"
+              :text-color="savedUser.activeFormat == 'login' ? 'primary' : ($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+              @click="() => {}"
+              ><q-tooltip> Login </q-tooltip></q-btn
             ></template
           >
         </div>

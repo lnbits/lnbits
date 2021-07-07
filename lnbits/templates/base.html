@@ -196,11 +196,16 @@
       if(themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
-      if(saving && saving.length) {
+      if(saving) {
         let obj = {
           formats: saving.map(str => str.trim())
         }
         window.localStorage.setItem('lnbits.saving', JSON.stringify(obj))
+
+        // NOT SURE IF IT'S A DESIRABLE EFFECT...
+        if(!saving.length || !obj.formats.includes('local')) {
+          window.localStorage.removeItem('lnbits.users')
+        }
       }
     </script>
     {% block scripts %}{% endblock %}

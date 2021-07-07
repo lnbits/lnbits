@@ -9,7 +9,8 @@ new Vue({
       },
       walletName: '',
       savingFormats: null,
-      savedUsers: null
+      savedUsers: null,
+      showSavingOpts: null
     }
   },
   methods: {
