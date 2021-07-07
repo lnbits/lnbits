@@ -105,33 +105,6 @@ async def m001_create_funding_table(db):
     """
     )
 
-    # Get the funding source rows back if they exist
-
-    CLightningWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("CLightningWallet",)
-    )
-    LnbitsWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("LnbitsWallet",)
-    )
-    LndWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("LndWallet",)
-    )
-    LndRestWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("LndRestWallet",)
-    )
-    LNPayWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("LNPayWallet",)
-    )
-    LntxbotWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("LntxbotWallet",)
-    )
-    OpenNodeWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("OpenNodeWallet",)
-    )
-    SparkWallet = await db.fetchall(
-        "SELECT * FROM funding WHERE backend_wallet = ?", ("SparkWallet",)
-    )
-
     await db.execute(
         """
         INSERT INTO funding (id, backend_wallet, endpoint, selected)
@@ -142,6 +115,19 @@ async def m001_create_funding_table(db):
             "CLightningWallet",
             getenv("CLIGHTNING_RPC"),
             1 if funding_wallet == "CLightningWallet" else 0,
+        ),
+    )
+    await db.execute(
+        """
+        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            urlsafe_short_hash(),
+            "SparkWallet",
+            getenv("SPARK_URL"),
+            getenv("SPARK_TOKEN"),
+            1 if funding_wallet == "SparkWallet" else 0,
         ),
     )
 
@@ -199,7 +185,7 @@ async def m001_create_funding_table(db):
             urlsafe_short_hash(),
             "LNPayWallet",
             getenv("LNPAY_API_ENDPOINT"),
-            getenv("LNPAY_ADMIN_KEY"),
+            getenv("LNPAY_WALLET_KEY"),
             getenv("LNPAY_API_KEY"),  # this is going in as the cert
             1 if funding_wallet == "LNPayWallet" else 0,
         ),

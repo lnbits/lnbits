@@ -101,6 +101,42 @@
           <q-expansion-item
             expand-separator
             icon="payments"
+            :label="data.admin.SparkWallet.backend_wallet"
+            @click="data.admin.SparkWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.SparkWallet.endpoint"
+                      label="LND REST Endpoint"
+                      class="q-pr-md"
+                      hint="ie http://localhost:9737/rpc"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.SparkWallet.admin_key"
+                      label="Access token"
+                      class="q-pr-md"
+                      hint="Your access token"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
             :label="data.admin.LndRestWallet.backend_wallet"
             @click="data.admin.LndRestWallet[7] = 1"
           >
@@ -110,7 +146,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.CLightningWallet.endpoint"
+                      v-model="data.admin.LndRestWallet.endpoint"
                       label="LND REST Endpoint"
                       class="q-pr-md"
                       hint="default 127.0.0.1"
@@ -122,7 +158,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndRestWallet[5]"
+                      v-model="data.admin.LndRestWallet.cert"
                       label="LND self-signed cert"
                       class="q-pr-md"
                       hint="Location of your ssl cert"
@@ -131,30 +167,10 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndRestWallet[4]"
+                      v-model="data.admin.LndRestWallet.admin_key"
                       label="LND admin macaroon"
                       class="q-pr-md"
                       hint="Your admin macaroon as hex or location"
-                    ></q-input>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LndRestWallet[3]"
-                      label="LND invoice macaroon"
-                      class="q-pr-md"
-                      hint="Your invoice macaroon as hex or location"
-                    ></q-input>
-                  </div>
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LndRestWallet[2]"
-                      label="LND read macaroon"
-                      class="q-pr-md"
-                      hint="Your read macaroon as hex or location"
                     ></q-input>
                   </div>
                 </div>
@@ -165,7 +181,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LndWallet[6]"
+            :label="data.admin.LndWallet.backend_wallet"
             @click="data.admin.LndWallet[7] = 1"
           >
             <q-card>
@@ -174,7 +190,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet[0]"
+                      v-model="data.admin.LndWallet.endpoint"
                       label="LND GRPC Endpoint"
                       class="q-pr-md"
                       hint="default 127.0.0.1"
@@ -183,7 +199,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet[1]"
+                      v-model="data.admin.LndWallet.port"
                       label="LND GRPC port"
                       class="q-pr-md"
                       hint="Deafault 11009"
@@ -195,7 +211,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet[5]"
+                      v-model="data.admin.LndWallet.cert"
                       label="LND self-signed cert"
                       class="q-pr-md"
                       hint="Location of your ssl cert"
@@ -204,30 +220,10 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet[4]"
+                      v-model="data.admin.LndWallet.admin_key"
                       label="LND admin macaroon"
                       class="q-pr-md"
                       hint="Your admin macaroon as hex or location"
-                    ></q-input>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LndWallet[3]"
-                      label="LND invoice macaroon"
-                      class="q-pr-md"
-                      hint="Your invoice macaroon as hex or location"
-                    ></q-input>
-                  </div>
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LndWallet[2]"
-                      label="LND read macaroon"
-                      class="q-pr-md"
-                      hint="Your read macaroon as hex or location"
                     ></q-input>
                   </div>
                 </div>
@@ -238,7 +234,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LntxbotWallet[6]"
+            :label="data.admin.LntxbotWallet.backend_wallet"
             @click="data.admin.LntxbotWallet[7] = 1"
           >
             <q-card>
@@ -247,20 +243,13 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LntxbotWallet[4]"
+                      v-model="data.admin.LntxbotWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md"
                       hint="use /api in LNTXBOT"
                     ></q-input>
                   </div>
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LntxbotWallet[3]"
-                      label="Invoice key"
-                      class="q-pr-md"
-                    ></q-input>
-                  </div>
+                  <div class="col"></div>
                 </div>
               </q-card-section>
             </q-card>
@@ -269,7 +258,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LNPayWallet[6]"
+            :label="data.admin.LNPayWallet.backend_wallet"
             @click="data.admin.LNPayWallet[7] = 1"
           >
             <q-card>
@@ -278,7 +267,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LNPayWallet[5]"
+                      v-model="data.admin.LNPayWallet.cert"
                       label="API key"
                       class="q-pr-md"
                     ></q-input>
@@ -286,27 +275,9 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LNPayWallet[4]"
+                      v-model="data.admin.LNPayWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md q-pb-md"
-                    ></q-input>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LNPayWallet[3]"
-                      label="Invoice key"
-                      class="q-pr-md"
-                    ></q-input>
-                  </div>
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LNPayWallet[2]"
-                      label="Read key"
-                      class="q-pr-md"
                     ></q-input>
                   </div>
                 </div>
@@ -317,7 +288,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LnbitsWallet[6]"
+            :label="data.admin.LnbitsWallet.backend_wallet"
             @click="data.admin.LnbitsWallet[7] = 1"
           >
             <q-card>
@@ -326,7 +297,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LnbitsWallet[0]"
+                      v-model="data.admin.LnbitsWallet.endpoint"
                       label="LNbits endpoint"
                       class="q-pr-md"
                       hint="ie https://lnbits.com, default 127.0.0.1"
@@ -338,19 +309,12 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LnbitsWallet[4]"
+                      v-model="data.admin.LnbitsWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md q-pb-md"
                     ></q-input>
                   </div>
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.LnbitsWallet[3]"
-                      label="Invoice key"
-                      class="q-pr-md"
-                    ></q-input>
-                  </div>
+                  <div class="col"></div>
                 </div>
               </q-card-section>
             </q-card>
@@ -359,7 +323,7 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.OpenNodeWallet[6]"
+            :label="data.admin.OpenNodeWallet.backend_wallet"
             @click="data.admin.OpenNodeWallet[7] = 1"
           >
             <q-card>
@@ -368,19 +332,12 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.OpenNodeWallet[4]"
+                      v-model="data.admin.OpenNodeWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md"
                     ></q-input>
                   </div>
-                  <div class="col">
-                    <q-input
-                      filled
-                      v-model="data.admin.OpenNodeWallet[3]"
-                      label="Invoice key"
-                      class="q-pr-md"
-                    ></q-input>
-                  </div>
+                  <div class="col"></div>
                 </div>
               </q-card-section>
             </q-card>
@@ -519,7 +476,7 @@
       for (i = 0; i < funding.length; i++) {
         self.data.admin[funding[i].backend_wallet] = funding[i]
       }
-      console.log(self.data.admin.CLightningWallet.id)
+      console.log(self.data.admin)
     },
     methods: {
       topupWallet: function () {
