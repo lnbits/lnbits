@@ -4,12 +4,13 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" @click="userDialog.show = true"
-          >New User</q-btn
-        >
-        <q-btn unelevated color="primary" @click="walletDialog.show = true"
-          >New Wallet
-        </q-btn>
+        🚨Currently this requires you to run the (NodeJs) Discord bot yourself🚨<br/><br/>
+        To do so, please follow the instructions located at <a href="https://github.com/chrislennon/lnbits-discord-bot/#installation">on Github</a><br/>
+        
+        A one click install bot is in the works, watch this space.<br/><br/>
+
+        Here is visual representation the components in this setup<br/>
+        <img src="/discordbot/static/stack.png" width="100%" height="200">
       </q-card-section>
     </q-card>
 
@@ -141,70 +142,6 @@
       </q-card-section>
     </q-card>
   </div>
-
-  <q-dialog v-model="userDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="sendUserFormData" class="q-gutter-md">
-        <q-input
-          filled
-          dense
-          v-model.trim="userDialog.data.usrname"
-          label="Username"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="userDialog.data.walname"
-          label="Initial wallet name"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="userDialog.data.discord_id"
-          label="discord_id"
-        ></q-input>
-
-        <q-btn
-          unelevated
-          color="primary"
-          :disable="userDialog.data.walname == null"
-          type="submit"
-          >Create User</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </q-form>
-    </q-card>
-  </q-dialog>
-
-  <q-dialog v-model="walletDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="sendWalletFormData" class="q-gutter-md">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="walletDialog.data.user"
-          :options="userOptions"
-          label="User *"
-        >
-        </q-select>
-        <q-input
-          filled
-          dense
-          v-model.trim="walletDialog.data.walname"
-          label="Wallet name"
-        ></q-input>
-        <q-btn
-          unelevated
-          color="primary"
-          :disable="walletDialog.data.walname == null"
-          type="submit"
-          >Create Wallet</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </q-form>
-    </q-card>
-  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
