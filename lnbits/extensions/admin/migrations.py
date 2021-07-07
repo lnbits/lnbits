@@ -2,6 +2,7 @@ from sqlalchemy.exc import OperationalError  # type: ignore
 from os import getenv
 from lnbits.helpers import urlsafe_short_hash
 
+
 async def m001_create_admin_table(db):
     user = None
     site_title = None
@@ -14,7 +15,7 @@ async def m001_create_admin_table(db):
     disabled_ext = None
     force_https = True
     service_fee = 0
-    funding_source = ''
+    funding_source = ""
 
     if getenv("LNBITS_SITE_TITLE"):
         site_title = getenv("LNBITS_SITE_TITLE")
@@ -105,15 +106,30 @@ async def m001_create_funding_table(db):
 
     # Get the funding source rows back if they exist
 
-    CLightningWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("CLightningWallet",))
-    LnbitsWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LnbitsWallet",))
-    LndWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LndWallet",))
-    LndRestWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LndRestWallet",))
-    LNPayWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LNPayWallet",))
-    LntxbotWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("LntxbotWallet",))
-    OpenNodeWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("OpenNodeWallet",))
-    SparkWallet = await db.fetchall("SELECT * FROM funding WHERE backend_wallet = ?", ("SparkWallet",))
-
+    CLightningWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("CLightningWallet",)
+    )
+    LnbitsWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("LnbitsWallet",)
+    )
+    LndWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("LndWallet",)
+    )
+    LndRestWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("LndRestWallet",)
+    )
+    LNPayWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("LNPayWallet",)
+    )
+    LntxbotWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("LntxbotWallet",)
+    )
+    OpenNodeWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("OpenNodeWallet",)
+    )
+    SparkWallet = await db.fetchall(
+        "SELECT * FROM funding WHERE backend_wallet = ?", ("SparkWallet",)
+    )
 
     await db.execute(
         """
@@ -125,15 +141,14 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO funding (id, backend_wallet, endpoint, admin_key)
+        VALUES (?, ?, ?, ?)
         """,
         (
             urlsafe_short_hash(),
             "LnbitsWallet",
             getenv("LNBITS_ENDPOINT"),
-            getenv("LNBITS_INVOICE_MACAROON"),
-            getenv("LNBITS_ADMIN_MACAROON"),
+            getenv("LNBITS_KEY"),
         ),
     )
 
@@ -153,7 +168,6 @@ async def m001_create_funding_table(db):
             getenv("LND_CERT"),
         ),
     )
-
 
     await db.execute(
         """
@@ -187,7 +201,6 @@ async def m001_create_funding_table(db):
         ),
     )
 
-
     await db.execute(
         """
         INSERT INTO funding (id, backend_wallet, endpoint, invoice_key, admin_key)
@@ -201,7 +214,6 @@ async def m001_create_funding_table(db):
             getenv("LNTXBOT_ADMIN_KEY"),
         ),
     )
-
 
     await db.execute(
         """
@@ -226,7 +238,7 @@ async def m001_create_funding_table(db):
             urlsafe_short_hash(),
             "SparkWallet",
             getenv("SPARK_URL"),
-            getenv("SPARK_INVOICE_KEY"), #doesn't exist
+            getenv("SPARK_INVOICE_KEY"),  # doesn't exist
             getenv("SPARK_TOKEN"),
         ),
     )
