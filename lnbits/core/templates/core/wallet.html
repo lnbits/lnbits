@@ -22,7 +22,7 @@
         <div class="col">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             class="full-width"
             @click="showParseDialog"
             >Paste Request</q-btn
@@ -31,7 +31,7 @@
         <div class="col">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             class="full-width"
             @click="showReceiveDialog"
             >Create Invoice</q-btn
@@ -40,7 +40,7 @@
         <div class="col">
           <q-btn
             unelevated
-            color="purple"
+            color="secondary"
             icon="photo_camera"
             @click="showCamera"
             >scan
@@ -220,9 +220,9 @@
   </div>
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
-      <q-card-section class="row">
-        <h6 class="text-subtitle1 q-mt-none q-mb-sm col-6">
-          LNbits wallet: <strong><em>{{ wallet.name }}</em></strong>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-mt-none q-mb-sm">
+          {{ SITE_TITLE }} wallet: <strong><em>{{ wallet.name }}</em></strong>
         </h6>
         <div class="col-6 text-right" v-if="savingFormats">
           <template v-if="savingFormats.includes('lnurlauth')">
@@ -390,7 +390,7 @@
       <div v-if="receive.status == 'pending'" class="row q-mt-lg">
         <q-btn
           unelevated
-          color="deep-purple"
+          color="primary"
           :disable="receive.data.memo == null || receive.data.amount == null || receive.data.amount <= 0"
           type="submit"
         >
@@ -403,7 +403,7 @@
       </div>
       <q-spinner
         v-if="receive.status == 'loading'"
-        color="deep-purple"
+        color="primary"
         size="2.55em"
       ></q-spinner>
     </q-form>
@@ -443,7 +443,7 @@
       </p>
       {% endraw %}
       <div v-if="canPay" class="row q-mt-lg">
-        <q-btn unelevated color="deep-purple" @click="payInvoice">Pay</q-btn>
+        <q-btn unelevated color="primary" @click="payInvoice">Pay</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
       <div v-else class="row q-mt-lg">
@@ -471,7 +471,7 @@
           <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
         </p>
         <div class="row q-mt-lg">
-          <q-btn unelevated color="deep-purple" type="submit">Login</q-btn>
+          <q-btn unelevated color="primary" type="submit">Login</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -533,9 +533,7 @@
           </div>
         </div>
         <div class="row q-mt-lg">
-          <q-btn unelevated color="deep-purple" type="submit"
-            >Send satoshis</q-btn
-          >
+          <q-btn unelevated color="primary" type="submit">Send satoshis</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -560,7 +558,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="parse.data.request == ''"
             type="submit"
             >Read</q-btn

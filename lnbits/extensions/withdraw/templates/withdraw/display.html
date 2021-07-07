@@ -7,7 +7,7 @@
           {% if link.is_spent %}
           <q-badge color="red" class="q-mb-md">Withdraw is spent.</q-badge>
           {% endif %}
-          <a href="{{ link.lnurl }}">
+          <a href="lightning://{{ link.lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
                 :value="this.here + '/?lightning={{link.lnurl }}'"

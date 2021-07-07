@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS amilks (
+        CREATE TABLE amilk.amilks (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             lnurl TEXT NOT NULL,

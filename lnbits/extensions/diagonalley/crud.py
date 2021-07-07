@@ -34,7 +34,7 @@ def create_diagonalleys_product(
         product_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
-            INSERT INTO products (id, wallet, product, categories, description, image, price, quantity)
+            INSERT INTO diagonalley.products (id, wallet, product, categories, description, image, price, quantity)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -57,16 +57,21 @@ def update_diagonalleys_product(product_id: str, **kwargs) -> Optional[Indexers]
 
     with open_ext_db("diagonalley") as db:
         db.execute(
-            f"UPDATE products SET {q} WHERE id = ?", (*kwargs.values(), product_id)
+            f"UPDATE diagonalley.products SET {q} WHERE id = ?",
+            (*kwargs.values(), product_id),
         )
-        row = db.fetchone("SELECT * FROM products WHERE id = ?", (product_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
+        )
 
     return get_diagonalleys_indexer(product_id)
 
 
 def get_diagonalleys_product(product_id: str) -> Optional[Products]:
     with open_ext_db("diagonalley") as db:
-        row = db.fetchone("SELECT * FROM products WHERE id = ?", (product_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
+        )
 
     return Products(**row) if row else None
 
@@ -78,7 +83,7 @@ def get_diagonalleys_products(wallet_ids: Union[str, List[str]]) -> List[Product
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(
-            f"SELECT * FROM products WHERE wallet IN ({q})", (*wallet_ids,)
+            f"SELECT * FROM diagonalley.products WHERE wallet IN ({q})", (*wallet_ids,)
         )
 
     return [Products(**row) for row in rows]
@@ -86,7 +91,7 @@ def get_diagonalleys_products(wallet_ids: Union[str, List[str]]) -> List[Product
 
 def delete_diagonalleys_product(product_id: str) -> None:
     with open_ext_db("diagonalley") as db:
-        db.execute("DELETE FROM products WHERE id = ?", (product_id,))
+        db.execute("DELETE FROM diagonalley.products WHERE id = ?", (product_id,))
 
 
 ###Indexers
@@ -106,7 +111,7 @@ def create_diagonalleys_indexer(
         indexer_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
-            INSERT INTO indexers (id, wallet, shopname, indexeraddress, online, rating, shippingzone1, shippingzone2, zone1cost, zone2cost, email)
+            INSERT INTO diagonalley.indexers (id, wallet, shopname, indexeraddress, online, rating, shippingzone1, shippingzone2, zone1cost, zone2cost, email)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -131,16 +136,21 @@ def update_diagonalleys_indexer(indexer_id: str, **kwargs) -> Optional[Indexers]
 
     with open_ext_db("diagonalley") as db:
         db.execute(
-            f"UPDATE indexers SET {q} WHERE id = ?", (*kwargs.values(), indexer_id)
+            f"UPDATE diagonalley.indexers SET {q} WHERE id = ?",
+            (*kwargs.values(), indexer_id),
         )
-        row = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
 
     return get_diagonalleys_indexer(indexer_id)
 
 
 def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
     with open_ext_db("diagonalley") as db:
-        roww = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
+        roww = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
     try:
         x = httpx.get(roww["indexeraddress"] + "/" + roww["ratingkey"])
         if x.status_code == 200:
@@ -148,7 +158,7 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
             print("poo")
             with open_ext_db("diagonalley") as db:
                 db.execute(
-                    "UPDATE indexers SET online = ? WHERE id = ?",
+                    "UPDATE diagonalley.indexers SET online = ? WHERE id = ?",
                     (
                         True,
                         indexer_id,
@@ -157,7 +167,7 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
         else:
             with open_ext_db("diagonalley") as db:
                 db.execute(
-                    "UPDATE indexers SET online = ? WHERE id = ?",
+                    "UPDATE diagonalley.indexers SET online = ? WHERE id = ?",
                     (
                         False,
                         indexer_id,
@@ -166,7 +176,9 @@ def get_diagonalleys_indexer(indexer_id: str) -> Optional[Indexers]:
     except:
         print("An exception occurred")
     with open_ext_db("diagonalley") as db:
-        row = db.fetchone("SELECT * FROM indexers WHERE id = ?", (indexer_id,))
+        row = db.fetchone(
+            "SELECT * FROM diagonalley.indexers WHERE id = ?", (indexer_id,)
+        )
     return Indexers(**row) if row else None
 
 
@@ -177,7 +189,7 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(
-            f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,)
+            f"SELECT * FROM diagonalley.indexers WHERE wallet IN ({q})", (*wallet_ids,)
         )
 
         for r in rows:
@@ -186,7 +198,7 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
                 if x.status_code == 200:
                     with open_ext_db("diagonalley") as db:
                         db.execute(
-                            "UPDATE indexers SET online = ? WHERE id = ?",
+                            "UPDATE diagonalley.indexers SET online = ? WHERE id = ?",
                             (
                                 True,
                                 r["id"],
@@ -195,7 +207,7 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
                 else:
                     with open_ext_db("diagonalley") as db:
                         db.execute(
-                            "UPDATE indexers SET online = ? WHERE id = ?",
+                            "UPDATE diagonalley.indexers SET online = ? WHERE id = ?",
                             (
                                 False,
                                 r["id"],
@@ -206,14 +218,14 @@ def get_diagonalleys_indexers(wallet_ids: Union[str, List[str]]) -> List[Indexer
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(
-            f"SELECT * FROM indexers WHERE wallet IN ({q})", (*wallet_ids,)
+            f"SELECT * FROM diagonalley.indexers WHERE wallet IN ({q})", (*wallet_ids,)
         )
     return [Indexers(**row) for row in rows]
 
 
 def delete_diagonalleys_indexer(indexer_id: str) -> None:
     with open_ext_db("diagonalley") as db:
-        db.execute("DELETE FROM indexers WHERE id = ?", (indexer_id,))
+        db.execute("DELETE FROM diagonalley.indexers WHERE id = ?", (indexer_id,))
 
 
 ###Orders
@@ -236,7 +248,7 @@ def create_diagonalleys_order(
         order_id = urlsafe_b64encode(uuid4().bytes_le).decode("utf-8")
         db.execute(
             """
-            INSERT INTO orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
+            INSERT INTO diagonalley.orders (id, productid, wallet, product, quantity, shippingzone, address, email, invoiceid, paid, shipped)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -259,7 +271,7 @@ def create_diagonalleys_order(
 
 def get_diagonalleys_order(order_id: str) -> Optional[Orders]:
     with open_ext_db("diagonalley") as db:
-        row = db.fetchone("SELECT * FROM orders WHERE id = ?", (order_id,))
+        row = db.fetchone("SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,))
 
     return Orders(**row) if row else None
 
@@ -271,25 +283,26 @@ def get_diagonalleys_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
     with open_ext_db("diagonalley") as db:
         q = ",".join(["?"] * len(wallet_ids))
         rows = db.fetchall(
-            f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,)
+            f"SELECT * FROM diagonalley.orders WHERE wallet IN ({q})", (*wallet_ids,)
         )
     for r in rows:
         PAID = (await WALLET.get_invoice_status(r["invoiceid"])).paid
         if PAID:
             with open_ext_db("diagonalley") as db:
                 db.execute(
-                    "UPDATE orders SET paid = ? WHERE id = ?",
+                    "UPDATE diagonalley.orders SET paid = ? WHERE id = ?",
                     (
                         True,
                         r["id"],
                     ),
                 )
                 rows = db.fetchall(
-                    f"SELECT * FROM orders WHERE wallet IN ({q})", (*wallet_ids,)
+                    f"SELECT * FROM diagonalley.orders WHERE wallet IN ({q})",
+                    (*wallet_ids,),
                 )
     return [Orders(**row) for row in rows]
 
 
 def delete_diagonalleys_order(order_id: str) -> None:
     with open_ext_db("diagonalley") as db:
-        db.execute("DELETE FROM orders WHERE id = ?", (order_id,))
+        db.execute("DELETE FROM diagonalley.orders WHERE id = ?", (order_id,))

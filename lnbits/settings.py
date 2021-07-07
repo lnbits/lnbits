@@ -23,13 +23,25 @@ LNBITS_PATH = path.dirname(path.realpath(__file__))
 LNBITS_DATA_FOLDER = env.str(
     "LNBITS_DATA_FOLDER", default=path.join(LNBITS_PATH, "data")
 )
+LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
+
 LNBITS_ALLOWED_USERS: List[str] = env.list(
     "LNBITS_ALLOWED_USERS", default=[], subcast=str
 )
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
     "LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str
 )
+
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
+LNBITS_SITE_TAGLINE = env.str(
+    "LNBITS_SITE_TAGLINE", default="free and open-source lightning wallet"
+)
+LNBITS_SITE_DESCRIPTION = env.str("LNBITS_SITE_DESCRIPTION", default="")
+LNBITS_THEME_OPTIONS: List[str] = env.list(
+    "LNBITS_THEME_OPTIONS",
+    default="classic, flamingo, mint, salvador, monochrome, autumn",
+    subcast=str,
+)
 
 WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")

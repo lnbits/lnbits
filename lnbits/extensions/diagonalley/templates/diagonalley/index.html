@@ -4,10 +4,10 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="productDialog.show = true"
+        <q-btn unelevated color="primary" @click="productDialog.show = true"
           >New Product</q-btn
         >
-        <q-btn unelevated color="deep-purple" @click="indexerDialog.show = true"
+        <q-btn unelevated color="primary" @click="indexerDialog.show = true"
           >New Indexer
           <q-tooltip>
             Frontend shop your stall will list its products in
@@ -282,7 +282,7 @@
           <q-btn
             v-if="productDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Product</q-btn
           >
@@ -290,7 +290,7 @@
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="productDialog.data.image == null
               || productDialog.data.product == null
               || productDialog.data.description == null
@@ -374,7 +374,7 @@
           <q-btn
             v-if="indexerDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Indexer</q-btn
           >
@@ -382,7 +382,7 @@
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="indexerDialog.data.shopname == null
               || indexerDialog.data.shippingzone1 == null
               || indexerDialog.data.indexeraddress == null

@@ -6,13 +6,10 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn
-          unelevated
-          color="deep-purple"
-          @click="simpleformDialog.show = true"
+        <q-btn unelevated color="primary" @click="simpleformDialog.show = true"
           >Quick vouchers</q-btn
         >
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >Advanced withdraw link(s)</q-btn
         >
       </q-card-section>
@@ -197,7 +194,7 @@
             <q-item-section avatar>
               <q-checkbox
                 v-model="formDialog.data.is_unique"
-                color="deep-purple"
+                color="primary"
               ></q-checkbox>
             </q-item-section>
             <q-item-section>
@@ -216,14 +213,14 @@
           <q-btn
             v-if="formDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update withdraw link</q-btn
           >
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 formDialog.data.wallet == null ||
                 formDialog.data.title == null ||
@@ -281,7 +278,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 simpleformDialog.data.wallet == null ||
 
@@ -324,7 +321,7 @@
         qrCodeDialog.data.uses }}
         <q-linear-progress
           :value="qrCodeDialog.data.used / qrCodeDialog.data.uses"
-          color="deep-purple"
+          color="primary"
           class="q-mt-sm"
         ></q-linear-progress>
       </p>

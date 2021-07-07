@@ -7,6 +7,7 @@
     {% endfor %}
     <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
+
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -19,9 +20,9 @@
     {% block head_scripts %}{% endblock %}
   </head>
 
-  <body>
+  <body data-theme="classic">
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
-      <q-header bordered class="bg-lnbits-dark">
+      <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
           {% block drawer_toggle %}
           <q-btn
@@ -33,26 +34,98 @@
           ></q-btn>
           {% endblock %}
           <q-toolbar-title>
-            {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
-            SITE_TITLE }} {% else %}
-            <strong>LN</strong>bits {% endif %} {% endblock %}
+            <q-btn flat no-caps dense size="lg" type="a" href="/">
+              {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
+              SITE_TITLE }} {% else %} <strong>LN</strong>bits {% endif %} {%
+              endblock %}</q-btn
+            >
           </q-toolbar-title>
           {% block beta %}
-          <q-badge color="yellow" text-color="black">
+          <q-badge color="yellow" text-color="black" class="q-mr-md">
             <span
               ><span v-show="$q.screen.gt.sm"
-                >USE WITH CAUTION - LNbits wallet is still in </span
+                >USE WITH CAUTION - {{SITE_TITLE}} wallet is still in </span
               >BETA</span
             >
           </q-badge>
           {% endblock %}
+          <q-btn-dropdown
+            v-if="g.allowedThemes && g.allowedThemes.length > 1"
+            dense
+            flat
+            round
+            size="sm"
+            icon="dashboard_customize"
+            class="q-pl-md"
+          >
+            <div class="row no-wrap q-pa-md">
+              <q-btn
+                v-if="g.allowedThemes.includes('classic')"
+                dense
+                flat
+                @click="changeColor('classic')"
+                icon="format_color_fill"
+                color="deep-purple"
+                size="md"
+                ><q-tooltip>classic</q-tooltip> </q-btn
+              ><q-btn
+                v-if="g.allowedThemes.includes('mint')"
+                dense
+                flat
+                @click="changeColor('mint')"
+                icon="format_color_fill"
+                color="green"
+                size="md"
+                ><q-tooltip>mint</q-tooltip> </q-btn
+              ><q-btn
+                v-if="g.allowedThemes.includes('autumn')"
+                dense
+                flat
+                @click="changeColor('autumn')"
+                icon="format_color_fill"
+                color="brown"
+                size="md"
+                ><q-tooltip>autumn</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('monochrome')"
+                dense
+                flat
+                @click="changeColor('monochrome')"
+                icon="format_color_fill"
+                color="grey"
+                size="md"
+                ><q-tooltip>monochrome</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('salvador')"
+                dense
+                flat
+                @click="changeColor('salvador')"
+                icon="format_color_fill"
+                color="blue-10"
+                size="md"
+                ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('flamingo')"
+                dense
+                flat
+                @click="changeColor('flamingo')"
+                icon="format_color_fill"
+                color="pink-3"
+                size="md"
+                ><q-tooltip>flamingo</q-tooltip>
+              </q-btn>
+            </div>
+          </q-btn-dropdown>
+
           <q-btn
             dense
             flat
             round
             @click="toggleDarkMode"
             :icon="($q.dark.isActive) ? 'brightness_3' : 'wb_sunny'"
-            class="q-ml-lg"
             size="sm"
           >
             <q-tooltip>Toggle Dark Mode</q-tooltip>
@@ -84,16 +157,18 @@
       >
         <q-toolbar>
           <q-toolbar-title class="text-caption">
-            <strong>LN</strong>bits, free and open-source lightning
-            wallet/accounts system
+            {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
-            <small>Commit version: {{LNBITS_VERSION}}</small>
+
+            <small v-if="'{{SITE_TITLE}}' == 'LNbits'"
+              >Commit version: {{LNBITS_VERSION}}</small
+            >
           </q-toolbar-title>
           <q-space></q-space>
           <q-btn
             flat
             dense
-            :color="($q.dark.isActive) ? 'white' : 'deep-purple'"
+            :color="($q.dark.isActive) ? 'white' : 'primary'"
             icon="code"
             type="a"
             href="https://github.com/lnbits/lnbits"
@@ -116,13 +191,16 @@
     <script src="/static/js/base.js"></script>
     <script src="/static/js/components.js"></script>
     <script type="text/javascript">
+      const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
       const saving = {{ LNBITS_ENABLED_SAVING_FORMATS  | tojson }}
+      if(themes && themes.length) {
+        window.allowedThemes = themes.map(str => str.trim())
+      }
       if(saving && saving.length) {
         let obj = {
           formats: saving.map(str => str.trim())
         }
         window.localStorage.setItem('lnbits.saving', JSON.stringify(obj))
-      }
     </script>
     {% block scripts %}{% endblock %}
   </body>

@@ -4,10 +4,10 @@ async def m001_initial(db):
     """
 
     await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS copilots (
+        f"""
+        CREATE TABLE copilot.copilots (
             id TEXT NOT NULL PRIMARY KEY,
-            user TEXT,
+            "user" TEXT,
             title TEXT,
             lnurl_toggle INTEGER,
             wallet TEXT,
@@ -27,7 +27,7 @@ async def m001_initial(db):
             amount_made INTEGER,
             fullscreen_cam INTEGER,
             iframe_url TEXT,
-            timestamp TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
         );
     """
     )
