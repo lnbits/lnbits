@@ -4,13 +4,15 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        🚨Currently this requires you to run the (NodeJs) Discord bot yourself🚨<br/><br/>
-        To do so, please follow the instructions located at <a href="https://github.com/chrislennon/lnbits-discord-bot/#installation">on Github</a><br/>
-        
-        A one click install bot is in the works, watch this space.<br/><br/>
+        <center><img src="/discordbot/static/stack.png" height="200" /></center>
+        This extension is designed to be used through its API by a Discord Bot,
+        currently you have to install the bot
+        <a
+          href="https://github.com/chrislennon/lnbits-discord-bot/#installation"
+          >yourself</a
+        ><br />
 
-        Here is visual representation the components in this setup<br/>
-        <img src="/discordbot/static/stack.png" width="100%" height="200">
+        Soon™ there will be a much easier one-click install discord bot...
       </q-card-section>
     </q-card>
 
@@ -168,7 +170,12 @@
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Username', field: 'name'},
-            {name: 'discord_id', align: 'left', label: 'discord_id', field: 'discord_id'},
+            {
+              name: 'discord_id',
+              align: 'left',
+              label: 'discord_id',
+              field: 'discord_id'
+            }
           ],
           pagination: {
             rowsPerPage: 10
