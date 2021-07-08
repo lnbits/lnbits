@@ -1,6 +1,7 @@
 import trio
 import json
 import httpx
+import random
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
@@ -98,8 +99,10 @@ class LntxbotWallet(Wallet):
 
             return PaymentResponse(False, None, 0, None, error_message)
 
+        label = "lbs{}".format(random.random())
         data = r.json()
-        checking_id = data["payment_hash"]
+
+        checking_id = label  # data["payment_hash"]
         fee_msat = -data["fee_msat"]
         preimage = data["payment_preimage"]
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
