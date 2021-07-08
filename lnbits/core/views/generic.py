@@ -14,7 +14,12 @@ from quart import (
 
 from lnbits.core import core_app, db
 from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.settings import LNBITS_ALLOWED_USERS, SERVICE_FEE, LNBITS_SITE_TITLE, LNBITS_ENABLED_SAVING_FORMATS
+from lnbits.settings import (
+    LNBITS_ALLOWED_USERS,
+    SERVICE_FEE,
+    LNBITS_SITE_TITLE,
+    LNBITS_ENABLED_SAVING_FORMATS,
+)
 
 from ..crud import (
     create_account,
