@@ -99,9 +99,9 @@ class LntxbotWallet(Wallet):
             return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()
-        checking_id = data["payment_hash"]
-        fee_msat = -data["fee_msat"]
-        preimage = data["payment_preimage"]
+        checking_id = data.get("payment_hash") or "lntxbot_internal_"+str(hash(r))
+        fee_msat = -(data.get("fee_msat") or 0)
+        preimage = data.get("payment_preimage")
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
