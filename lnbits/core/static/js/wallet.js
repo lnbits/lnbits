@@ -675,6 +675,12 @@ new Vue({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
 
+    const removeURLQuery = url => {
+      //let currentUrl = url
+      let cleanUrl = url.split('?')[0]
+      return cleanUrl
+    }
+
     let allowSaving = JSON.parse(window.localStorage.getItem('lnbits.saving'))
     let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
     if (allowSaving) {
@@ -682,6 +688,14 @@ new Vue({
       if (users && users.map(c => c.id).includes(this.user.id)) {
         let user = users.find(cur => cur.id == this.user.id)
         this.savedUser = user
+
+        window.history.pushState(
+          {usr: this.user.id},
+          '',
+          removeURLQuery(window.location.href)
+        )
+
+        console.log(window.history)
       }
     }
 
