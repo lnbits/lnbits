@@ -11,7 +11,7 @@
   <div class="col-8">
     <q-card class="q-mr-md">
       <q-form
-        @submit="LaunchLNbits"
+        @submit="UpdateLNbits"
         @reset="cancelAdmin"
         class="q-px-md q-py-md"
       >
@@ -442,12 +442,16 @@
           ],
 
           admin: {
-            site_title: 'LNbits',
-            tagline: 'Free and open source wallet system',
-            funding_source_primary: '',
-            funding_source_edited: '',
-            service_fee: 0,
-            disabled_ext: '',
+            user: '{{ user.id }}',
+            site_title: '{{admin.site_title}}',
+            tagline: '{{admin.site_tagline}}',
+            description: '{{admin.site_description}}',
+            admin_user: '{{admin.admin_user}}',
+            service_fee: parseInt('{{admin.service_fee}}'),
+            default_wallet_name: '{{admin.default_wallet_name}}',
+            data_folder: '{{admin.data_folder}}',
+            funding_source_primary: '{{admin.funding_source}}',
+            disabled_ext: '{{admin.disabled_ext}}'.split(','),
             edited: [],
             senddata: {}
           }
@@ -483,18 +487,6 @@
       if (usr != null) {
         self.cancel.on = true
       }
-      self.data.admin.user = '{{ user.id }}'
-      self.data.admin.allowed_users = ''
-      self.data.admin.site_title = '{{admin.site_title}}'
-      self.data.admin.tagline = '{{admin.site_tagline}}'
-      self.data.admin.description = '{{admin.site_description}}'
-      self.data.admin.admin_user = '{{admin.admin_user}}'
-      console.log(self.data.admin.admin_user)
-      self.data.admin.service_fee = parseInt('{{admin.service_fee}}')
-      self.data.admin.default_wallet_name = '{{admin.default_wallet_name}}'
-      self.data.admin.data_folder = '{{admin.data_folder}}'
-      self.data.admin.funding_source_primary = '{{admin.funding_source}}'
-      self.data.admin.disabled_ext = '{{admin.disabled_ext}}'.split(',')
       funding = JSON.parse(String('{{ funding  | tojson|safe }}'))
       var i
       for (i = 0; i < funding.length; i++) {
@@ -537,41 +529,23 @@
         self.data.admin.edited.push(source)
         console.log(self.data.admin.edited)
       },
-      LaunchLNbits: function () {
+      UpdateLNbits: function (data) {
         var self = this
-        var data = self.data
-        data.admin.senddata.site_title = data.admin.site_title
-        data.admin.senddata.tagline = data.admin.tagline
-        data.admin.senddata.funding_source_primary =
-          data.admin.funding_source_primary
-        data.admin.senddata.funding_source_edited =
-          data.admin.funding_source_edited
-        data.admin.senddata.allowed_users = data.admin.allowed_users
-        data.admin.senddata.data_folder = data.admin.data_folder
-        data.admin.senddata.default_wallet_name = data.admin.default_wallet_name
-        data.admin.senddata.user = data.admin.user
-        data.admin.senddata.disabled_ext = data.admin.disabled_ext.toString()
-        data.admin.senddata.service_fee = parseInt(data.admin.service_fee)
-        data.admin.senddata.edited = data.admin.edited.toString()
-        data.admin.senddata.CLightningWallet = data.admin.CLightningWallet.toString()
-        data.admin.senddata.LndRestWallet = data.admin.LndRestWallet.toString()
-        data.admin.senddata.LndWallet = data.admin.LndWallet.toString()
-        data.admin.senddata.LntxbotWallet = data.admin.LntxbotWallet.toString()
-        data.admin.senddata.LNPayWallet = data.admin.LNPayWallet.toString()
-        data.admin.senddata.LnbitsWallet = data.admin.LnbitsWallet.toString()
-        data.admin.senddata.OpenNodeWallet = data.admin.OpenNodeWallet.toString()
-        LNbits.api
-          .request('POST', '/api/v1/admin', 'wallet.inkey', data.admin.senddata)
-          .then(function (response) {
-            self.$q.notify({
-              type: 'positive',
-              message: 'Updated',
-              icon: 'thumb_up'
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        var updatedData = {}
+        for (const property in data) {
+          if (data[property]) {
+            updatedData[property] = data[property]
+          }
+          if (property == 'animation1threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation2threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+          if (property == 'animation3threshold' && data[property]) {
+            updatedData[property] = parseInt(data[property])
+          }
+        }
       },
 
       processing: function () {

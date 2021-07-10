@@ -6,7 +6,8 @@ from lnbits.helpers import urlsafe_short_hash
 async def m001_create_admin_table(db):
     user = None
     site_title = None
-    site_tagline = ""
+    site_tagline = None
+    site_description = None
     allowed_users = None
     admin_user = None
     default_wallet_name = None
