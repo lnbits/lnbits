@@ -188,11 +188,22 @@
     <script src="{{ url }}"></script>
     {% endfor %}
     <!---->
-    <script src="/static/js/base.js"></script>
-    <script src="/static/js/components.js"></script>
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
       const saving = {{ LNBITS_ENABLED_SAVING_FORMATS  | tojson }}
+      const spec = "{{ spec }}"
+
+      if (spec && spec == 'local') {
+        let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
+        let activeUser = window.localStorage.getItem('lnbits.activeUser')
+        let user = users.find(cur => cur.id == activeUser)
+        window.user = Object.values(user)
+        let wallet = user.wallets[0]
+        window.wallet = [wallet.id, wallet.name, wallet.user, wallet.adminkey, wallet.inkey, wallet.balance]
+      }
+
+      window.localStorage.removeItem('lnbits.activeUser')
+
       if(themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
@@ -208,6 +219,8 @@
         }
       }
     </script>
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/components.js"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

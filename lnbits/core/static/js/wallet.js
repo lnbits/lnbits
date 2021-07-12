@@ -623,7 +623,7 @@ new Vue({
       let users = _users.filter(obj => obj.id != this.user.id)
 
       let saveUser = {
-        id: this.user.id,
+        ...this.user,
         activeFormat: this.savedUser.activeFormat
         // maybe in the future store wallets ?
         // wallets: this.user.wallets.map(cur => ({
@@ -641,10 +641,42 @@ new Vue({
       if (this.savedUser.activeFormat == format) {
         this.saveUserToLocal(true)
         this.savedUser.activeFormat = null
+        this.restoreURLQuery(window.location.href)
       } else {
         this.savedUser.activeFormat = format
         this.saveUserToLocal()
+        this.removeURLQuery(window.location.href)
       }
+    },
+    removeURLQuery(url) {
+      // console.log(spec)
+      // if (!spec) return
+      let cleanUrl = url.split('?')[0]
+      // const removeURLQuery = url => {
+      //   let cleanUrl = url.split('?')[0]
+      //   return cleanUrl
+      // }
+
+      window.history.pushState(
+        {usr: this.user.id},
+        '',
+        `${cleanUrl}?spec=${this.savedUser.activeFormat}`
+      )
+
+      window.localStorage.setItem('lnbits.activeUser', this.user.id)
+    },
+    restoreURLQuery(url) {
+      let params = new URL(url).searchParams
+      let spec = params.get('spec')
+      if (!spec) return
+      let cleanUrl = url.split('?')[0]
+      window.history.pushState(
+        {},
+        '',
+        `${cleanUrl}?usr=${this.user.id}&wal=${this.g.wallet.id}`
+      )
+
+      window.localStorage.removeItem('lnbits.activeUser')
     }
   },
   watch: {
@@ -675,27 +707,15 @@ new Vue({
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
 
-    const removeURLQuery = url => {
-      //let currentUrl = url
-      let cleanUrl = url.split('?')[0]
-      return cleanUrl
-    }
-
     let allowSaving = JSON.parse(window.localStorage.getItem('lnbits.saving'))
     let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
+
     if (allowSaving) {
       this.savingFormats = allowSaving.formats
       if (users && users.map(c => c.id).includes(this.user.id)) {
         let user = users.find(cur => cur.id == this.user.id)
         this.savedUser = user
-
-        window.history.pushState(
-          {usr: this.user.id},
-          '',
-          removeURLQuery(window.location.href)
-        )
-
-        console.log(window.history)
+        this.removeURLQuery(window.location.href)
       }
     }
 

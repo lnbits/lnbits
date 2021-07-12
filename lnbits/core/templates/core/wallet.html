@@ -2,9 +2,9 @@
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet) }}
+{% block scripts %} {{ window_vars(user, wallet, spec) }}
 <script src="/core/static/js/wallet.js"></script>
-<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" />
+<!-- THIS IS NOT DOING ANYTHING <link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" /> -->
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}

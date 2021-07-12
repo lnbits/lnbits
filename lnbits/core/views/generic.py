@@ -79,12 +79,22 @@ async def wallet():
     wallet_id = request.args.get("wal", type=str)
     wallet_name = request.args.get("nme", type=str)
     service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
+    spec = request.args.get("spec", type=str)
 
     # just wallet_name: create a new user, then create a new wallet for user with wallet_name
     # just user_id: return the first user wallet or create one if none found (with default wallet_name)
     # user_id and wallet_name: create a new wallet for user with wallet_name
     # user_id and wallet_id: return that wallet if user is the owner
     # nothing: create everything
+
+    if spec:
+        return await render_template(
+            "core/wallet.html",
+            user={},
+            wallet={},
+            service_fee=service_fee,
+            spec=spec,
+        )
 
     if not user_id:
         user = await get_user((await create_account()).id)
