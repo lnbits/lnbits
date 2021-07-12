@@ -695,7 +695,7 @@ new Vue({
           removeURLQuery(window.location.href)
         )
 
-        console.log(window.history.state)
+        console.log(window.history)
       }
     }
 
