@@ -92,6 +92,7 @@
           :columns="paymentsTable.columns"
           :pagination.sync="paymentsTable.pagination"
           no-data-label="No transactions made yet"
+          :filter="paymentsTable.filter"
         >
           {% raw %}
           <template v-slot:header="props">
