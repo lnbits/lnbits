@@ -504,7 +504,7 @@
         const address = this.AddressesLinks.map(x => x.address)
         const fetchUtxo = async () => {
           let txs = []
-          // const address = ['3Er3w82WqPLL4ew23taUZcFQwbZq6PE9TK','3871fHRriZdzGU68eJr7RKKYcQhM9Ba2ok']; //test addresses
+          // const address = ['3Er3w82WqPLL4ew23taUZcFQwbZq6PE9TK','16CwtWRwQYLojaVZZFCgnaM6SQuNefqwrc','1KZB6FqnnMWySk75uvFKuPzHct1tMXHSSR']; //test addresses
           for (add of address) {
             let addressTxsUtxo = await addresses.getAddressTxsUtxo({
               address: add
@@ -521,7 +521,7 @@
                 txid: x.txid,
                 confirmed: x.status.confirmed,
                 value: x.value,
-                date: new Date(x.status?.block_time * 1000).toLocaleString()
+                date: moment(x.status?.block_time * 1000).format('LLL')
               }
             ]
           if (!ac.some(y => y.txid == x.txid))
@@ -531,7 +531,7 @@
                 txid: x.txid,
                 confirmed: x.status.confirmed,
                 value: x.value,
-                date: new Date(x.status?.block_time * 1000).toLocaleString()
+                date: moment(x.status?.block_time * 1000).format('LLL')
               }
             ]
           return
