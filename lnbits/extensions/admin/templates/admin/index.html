@@ -10,11 +10,7 @@
 <div class="row">
   <div class="col-8">
     <q-card class="q-mr-md">
-      <q-form
-        @submit="UpdateLNbits"
-        @reset="cancelAdmin"
-        class="q-px-md q-py-md"
-      >
+      <q-form @submit="UpdateLNbits" class="q-px-md q-py-md">
         <h6 class="q-my-md">Settings</h6>
         <div class="row">
           <div class="col">
@@ -103,14 +99,14 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.CLightningWallet.backend_wallet"
-            @click="data.admin.CLightningWallet[7] = 1"
+            :label="data.admin.funding.CLightningWallet.backend_wallet"
+            @click="data.admin.funding.CLightningWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
                 <q-input
                   filled
-                  v-model="data.admin.CLightningWallet.endpoint"
+                  v-model="data.admin.funding.CLightningWallet.endpoint"
                   label="GRPC Endpoint"
                   class="q-pr-md"
                   hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
@@ -122,8 +118,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.SparkWallet.backend_wallet"
-            @click="data.admin.SparkWallet[7] = 1"
+            :label="data.admin.funding.SparkWallet.backend_wallet"
+            @click="data.admin.funding.SparkWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -131,7 +127,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.SparkWallet.endpoint"
+                      v-model="data.admin.funding.SparkWallet.endpoint"
                       label="LND REST Endpoint"
                       class="q-pr-md"
                       hint="ie http://localhost:9737/rpc"
@@ -143,7 +139,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.SparkWallet.admin_key"
+                      v-model="data.admin.funding.SparkWallet.admin_key"
                       label="Access token"
                       class="q-pr-md"
                       hint="Your access token"
@@ -158,8 +154,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LndRestWallet.backend_wallet"
-            @click="data.admin.LndRestWallet[7] = 1"
+            :label="data.admin.funding.LndRestWallet.backend_wallet"
+            @click="data.admin.funding.LndRestWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -167,7 +163,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndRestWallet.endpoint"
+                      v-model="data.admin.funding.LndRestWallet.endpoint"
                       label="LND REST Endpoint"
                       class="q-pr-md"
                       hint="default 127.0.0.1"
@@ -179,7 +175,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndRestWallet.cert"
+                      v-model="data.admin.funding.LndRestWallet.cert"
                       label="LND self-signed cert"
                       class="q-pr-md"
                       hint="Location of your ssl cert"
@@ -188,7 +184,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndRestWallet.admin_key"
+                      v-model="data.admin.funding.LndRestWallet.admin_key"
                       label="LND admin macaroon"
                       class="q-pr-md"
                       hint="Your admin macaroon as hex or location"
@@ -202,8 +198,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LndWallet.backend_wallet"
-            @click="data.admin.LndWallet[7] = 1"
+            :label="data.admin.funding.LndWallet.backend_wallet"
+            @click="data.admin.funding.LndWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -211,7 +207,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet.endpoint"
+                      v-model="data.admin.funding.LndWallet.endpoint"
                       label="LND GRPC Endpoint"
                       class="q-pr-md"
                       hint="default 127.0.0.1"
@@ -220,7 +216,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet.port"
+                      v-model="data.admin.funding.LndWallet.port"
                       label="LND GRPC port"
                       class="q-pr-md"
                       hint="Deafault 11009"
@@ -232,7 +228,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet.cert"
+                      v-model="data.admin.funding.LndWallet.cert"
                       label="LND self-signed cert"
                       class="q-pr-md"
                       hint="Location of your ssl cert"
@@ -241,7 +237,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LndWallet.admin_key"
+                      v-model="data.admin.funding.LndWallet.admin_key"
                       label="LND admin macaroon"
                       class="q-pr-md"
                       hint="Your admin macaroon as hex or location"
@@ -255,8 +251,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LntxbotWallet.backend_wallet"
-            @click="data.admin.LntxbotWallet[7] = 1"
+            :label="data.admin.funding.LntxbotWallet.backend_wallet"
+            @click="data.admin.funding.LntxbotWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -264,7 +260,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LntxbotWallet.admin_key"
+                      v-model="data.admin.funding.LntxbotWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md"
                       hint="use /api in LNTXBOT"
@@ -279,8 +275,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LNPayWallet.backend_wallet"
-            @click="data.admin.LNPayWallet[7] = 1"
+            :label="data.admin.funding.LNPayWallet.backend_wallet"
+            @click="data.admin.funding.LNPayWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -288,7 +284,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LNPayWallet.cert"
+                      v-model="data.admin.funding.LNPayWallet.cert"
                       label="API key"
                       class="q-pr-md"
                     ></q-input>
@@ -296,7 +292,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LNPayWallet.admin_key"
+                      v-model="data.admin.funding.LNPayWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md q-pb-md"
                     ></q-input>
@@ -309,8 +305,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.LnbitsWallet.backend_wallet"
-            @click="data.admin.LnbitsWallet[7] = 1"
+            :label="data.admin.funding.LnbitsWallet.backend_wallet"
+            @click="data.admin.funding.LnbitsWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -318,7 +314,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LnbitsWallet.endpoint"
+                      v-model="data.admin.funding.LnbitsWallet.endpoint"
                       label="LNbits endpoint"
                       class="q-pr-md"
                       hint="ie https://lnbits.com, default 127.0.0.1"
@@ -330,7 +326,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.LnbitsWallet.admin_key"
+                      v-model="data.admin.funding.LnbitsWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md q-pb-md"
                     ></q-input>
@@ -344,8 +340,8 @@
           <q-expansion-item
             expand-separator
             icon="payments"
-            :label="data.admin.OpenNodeWallet.backend_wallet"
-            @click="data.admin.OpenNodeWallet[7] = 1"
+            :label="data.admin.funding.OpenNodeWallet.backend_wallet"
+            @click="data.admin.funding.OpenNodeWallet[7] = 1"
           >
             <q-card>
               <q-card-section>
@@ -353,7 +349,7 @@
                   <div class="col">
                     <q-input
                       filled
-                      v-model="data.admin.OpenNodeWallet.admin_key"
+                      v-model="data.admin.funding.OpenNodeWallet.admin_key"
                       label="Admin key"
                       class="q-pr-md"
                     ></q-input>
@@ -490,7 +486,7 @@
       funding = JSON.parse(String('{{ funding  | tojson|safe }}'))
       var i
       for (i = 0; i < funding.length; i++) {
-        self.data.admin[funding[i].backend_wallet] = funding[i]
+        self.data.admin.funding[funding[i].backend_wallet] = funding[i]
       }
       console.log(self.data.admin)
     },
@@ -499,10 +495,12 @@
         var self = this
         LNbits.api
           .request(
-            'POST',
-            '/admin/api/v1/admin/' + self.wallet.id,
-            self.g.user.wallets[0].adminkey,
-            self.wallet.data
+            'GET',
+            '/admin/api/v1/admin/' +
+              self.wallet.id +
+              '/' +
+              self.wallet.data.amount,
+            self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             self.$q.notify({
@@ -515,7 +513,6 @@
               icon: null
             })
           })
-
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
@@ -529,23 +526,30 @@
         self.data.admin.edited.push(source)
         console.log(self.data.admin.edited)
       },
-      UpdateLNbits: function (data) {
+      UpdateLNbits: function () {
         var self = this
-        var updatedData = {}
-        for (const property in data) {
-          if (data[property]) {
-            updatedData[property] = data[property]
-          }
-          if (property == 'animation1threshold' && data[property]) {
-            updatedData[property] = parseInt(data[property])
-          }
-          if (property == 'animation2threshold' && data[property]) {
-            updatedData[property] = parseInt(data[property])
-          }
-          if (property == 'animation3threshold' && data[property]) {
-            updatedData[property] = parseInt(data[property])
-          }
-        }
+        console.log(self.data.admin)
+        LNbits.api
+          .request(
+            'POST',
+            '/admin/api/v1/admin/',
+            self.g.user.wallets[0].adminkey,
+            self.data.admin
+          )
+          .then(function (response) {
+            self.$q.notify({
+              type: 'positive',
+              message:
+                'Success! Added ' +
+                self.wallet.amount +
+                ' to ' +
+                self.wallet.id,
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
 
       processing: function () {
