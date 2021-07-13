@@ -189,32 +189,39 @@
     {% endfor %}
     <!---->
     <script type="text/javascript">
-      const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
-      const saving = {{ LNBITS_ENABLED_SAVING_FORMATS  | tojson }}
-      const spec = "{{ spec }}"
+      console.log('poo')
+      const themes = '{{ LNBITS_THEME_OPTIONS  | tojson }}'
+      const saving = '{{ LNBITS_ENABLED_SAVING_FORMATS  | tojson }}'
 
-      if (spec && spec == 'local') {
+      if ('{{user}}' == 'local') {
         let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
         let activeUser = window.localStorage.getItem('lnbits.activeUser')
         let user = users.find(cur => cur.id == activeUser)
         window.user = Object.values(user)
         let wallet = user.wallets[0]
-        window.wallet = [wallet.id, wallet.name, wallet.user, wallet.adminkey, wallet.inkey, wallet.balance]
+        window.wallet = [
+          wallet.id,
+          wallet.name,
+          wallet.user,
+          wallet.adminkey,
+          wallet.inkey,
+          wallet.balance
+        ]
       }
 
       window.localStorage.removeItem('lnbits.activeUser')
 
-      if(themes && themes.length) {
+      if (themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }
-      if(saving) {
+      if (saving) {
         let obj = {
           formats: saving.map(str => str.trim())
         }
         window.localStorage.setItem('lnbits.saving', JSON.stringify(obj))
 
         // NOT SURE IF IT'S A DESIRABLE EFFECT...
-        if(!saving.length || !obj.formats.includes('local')) {
+        if (!saving.length || !obj.formats.includes('local')) {
           window.localStorage.removeItem('lnbits.users')
         }
       }

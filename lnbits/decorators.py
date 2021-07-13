@@ -63,12 +63,15 @@ def check_user_exists(param: str = "usr"):
     def wrap(view):
         @wraps(view)
         async def wrapped_view(**kwargs):
-            g.user = await get_user(request.args.get(param, type=str)) or abort(
-                HTTPStatus.NOT_FOUND, "User  does not exist."
-            )
+            if request.args.get(param, type=str) == "local":
+                g.user = request.args.get(param, type=str)
+            else:
+                g.user = await get_user(request.args.get(param, type=str)) or abort(
+                    HTTPStatus.NOT_FOUND, "User  does not exist."
+                )
 
-            if LNBITS_ALLOWED_USERS and g.user.id not in LNBITS_ALLOWED_USERS:
-                abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
+                if LNBITS_ALLOWED_USERS and g.user.id not in LNBITS_ALLOWED_USERS:
+                    abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
 
             return await view(**kwargs)
 
@@ -91,7 +94,7 @@ def validate_uuids(
                 if not value and (required is True or (required and param in required)):
                     abort(HTTPStatus.BAD_REQUEST, f"`{param}` is required.")
 
-                if value:
+                if value and value != "local":
                     try:
                         UUID(value, version=version)
                     except ValueError:

@@ -79,7 +79,6 @@ async def wallet():
     wallet_id = request.args.get("wal", type=str)
     wallet_name = request.args.get("nme", type=str)
     service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
-    spec = request.args.get("spec", type=str)
 
     # just wallet_name: create a new user, then create a new wallet for user with wallet_name
     # just user_id: return the first user wallet or create one if none found (with default wallet_name)
@@ -87,38 +86,32 @@ async def wallet():
     # user_id and wallet_id: return that wallet if user is the owner
     # nothing: create everything
 
-    if spec:
-        return await render_template(
-            "core/wallet.html",
-            user={},
-            wallet={},
-            service_fee=service_fee,
-            spec=spec,
-        )
-
     if not user_id:
         user = await get_user((await create_account()).id)
+
+    if user_id == "local":
+        user = user_id
     else:
-        user = await get_user(user_id)
+        user = await get_user(user_id)     
         if not user:
             abort(HTTPStatus.NOT_FOUND, "User does not exist.")
-            return
 
         if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
             abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
+    if user == "local":
+        wallet = {}
+    else:
+        if not wallet_id:
+            if user.wallets and not wallet_name:
+                wallet = user.wallets[0]
+            else:
+                wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
 
-    if not wallet_id:
-        if user.wallets and not wallet_name:
-            wallet = user.wallets[0]
-        else:
-            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+            return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
-        return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
-
-    wallet = user.get_wallet(wallet_id)
-    if not wallet:
-        abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
-
+        wallet = user.get_wallet(wallet_id)
+        if not wallet:
+            abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
     return await render_template(
         "core/wallet.html", user=user, wallet=wallet, service_fee=service_fee
     )

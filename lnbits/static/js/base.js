@@ -333,6 +333,7 @@ window.windowMixin = {
     }
   },
   created: function () {
+    
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
     this.g.allowedThemes = window.allowedThemes ?? ['classic']
 
