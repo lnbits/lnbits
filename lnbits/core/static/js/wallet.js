@@ -112,6 +112,7 @@ new Vue({
   data: function () {
     return {
       user: LNbits.map.user(window.user),
+      savingFormats: '{{ LNBITS_ENABLED_SAVING_FORMATS  | tojson }}',
       receive: {
         show: false,
         status: 'pending',
@@ -685,9 +686,10 @@ new Vue({
     }
   },
   created: function () {
+    console.log("poo")
     this.fetchBalance()
     this.fetchPayments()
-
+    console.log(this.savingFormats)
     LNbits.api
       .request('GET', '/api/v1/currencies')
       .then(response => {
@@ -706,19 +708,7 @@ new Vue({
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
-
-    let allowSaving = JSON.parse(window.localStorage.getItem('lnbits.saving'))
     let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
-
-    if (allowSaving) {
-      this.savingFormats = allowSaving.formats
-      if (users && users.map(c => c.id).includes(this.user.id)) {
-        let user = users.find(cur => cur.id == this.user.id)
-        this.savedUser = user
-        this.removeURLQuery(window.location.href)
-      }
-    }
-
     LNbits.events.onInvoicePaid(this.g.wallet, payment =>
       this.onPaymentReceived(payment.payment_hash)
     )

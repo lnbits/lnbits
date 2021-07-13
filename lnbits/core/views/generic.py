@@ -86,16 +86,14 @@ async def wallet():
     # user_id and wallet_id: return that wallet if user is the owner
     # nothing: create everything
 
-    if not user_id:
-        user = await get_user((await create_account()).id)
-
     if user_id == "local":
         user = user_id
+    elif not user_id:
+        user = await get_user((await create_account()).id)
     else:
         user = await get_user(user_id)     
         if not user:
             abort(HTTPStatus.NOT_FOUND, "User does not exist.")
-
         if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
             abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
     if user == "local":
@@ -106,7 +104,6 @@ async def wallet():
                 wallet = user.wallets[0]
             else:
                 wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
-
             return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
         wallet = user.get_wallet(wallet_id)
