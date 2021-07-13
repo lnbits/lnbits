@@ -504,7 +504,11 @@
         const address = this.AddressesLinks.map(x => x.address)
         const fetchUtxo = async () => {
           let txs = []
-          // const address = ['3Er3w82WqPLL4ew23taUZcFQwbZq6PE9TK','16CwtWRwQYLojaVZZFCgnaM6SQuNefqwrc','1KZB6FqnnMWySk75uvFKuPzHct1tMXHSSR']; //test addresses
+          // const address = [
+          //   '3Er3w82WqPLL4ew23taUZcFQwbZq6PE9TK',
+          //   '16CwtWRwQYLojaVZZFCgnaM6SQuNefqwrc',
+          //   '1KZB6FqnnMWySk75uvFKuPzHct1tMXHSSR'
+          // ] //test addresses
           for (add of address) {
             let addressTxsUtxo = await addresses.getAddressTxsUtxo({
               address: add
@@ -514,28 +518,32 @@
           return txs
         }
         let utxos = await fetchUtxo()
-        utxos = utxos.reduce((ac, x) => {
-          if (!ac)
-            return [
-              {
-                txid: x.txid,
-                confirmed: x.status.confirmed,
-                value: x.value,
-                date: moment(x.status?.block_time * 1000).format('LLL')
-              }
-            ]
-          if (!ac.some(y => y.txid == x.txid))
-            return [
-              ...ac,
-              {
-                txid: x.txid,
-                confirmed: x.status.confirmed,
-                value: x.value,
-                date: moment(x.status?.block_time * 1000).format('LLL')
-              }
-            ]
-          return
-        }, [])
+        utxos = utxos
+          .reduce((ac, x) => {
+            if (!ac)
+              return [
+                {
+                  txid: x.txid,
+                  confirmed: x.status.confirmed,
+                  value: x.value,
+                  date: moment(x.status?.block_time * 1000).format('LLL'),
+                  sort: x.status?.block_time
+                }
+              ]
+            if (!ac.some(y => y.txid == x.txid))
+              return [
+                ...ac,
+                {
+                  txid: x.txid,
+                  confirmed: x.status.confirmed,
+                  value: x.value,
+                  date: moment(x.status?.block_time * 1000).format('LLL'),
+                  sort: x.status?.block_time
+                }
+              ]
+            return
+          }, [])
+          .sort((a, b) => b.sort - a.sort)
         let total = utxos.reduce((total, y) => {
           total += y?.value || 0
           return total
