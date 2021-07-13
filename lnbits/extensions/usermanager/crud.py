@@ -31,7 +31,7 @@ async def create_usermanager_user(
 
     await db.execute(
         """
-        INSERT INTO users (id, name, admin, email, password)
+        INSERT INTO usermanager.users (id, name, admin, email, password)
         VALUES (?, ?, ?, ?, ?)
         """,
         (user.id, user_name, admin_id, email, password),
@@ -39,7 +39,7 @@ async def create_usermanager_user(
 
     await db.execute(
         """
-        INSERT INTO wallets (id, admin, name, user, adminkey, inkey)
+        INSERT INTO usermanager.wallets (id, admin, name, "user", adminkey, inkey)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (wallet.id, admin_id, wallet_name, user.id, wallet.adminkey, wallet.inkey),
@@ -51,12 +51,14 @@ async def create_usermanager_user(
 
 
 async def get_usermanager_user(user_id: str) -> Optional[Users]:
-    row = await db.fetchone("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = await db.fetchone("SELECT * FROM usermanager.users WHERE id = ?", (user_id,))
     return Users(**row) if row else None
 
 
 async def get_usermanager_users(user_id: str) -> List[Users]:
-    rows = await db.fetchall("SELECT * FROM users WHERE admin = ?", (user_id,))
+    rows = await db.fetchall(
+        "SELECT * FROM usermanager.users WHERE admin = ?", (user_id,)
+    )
     return [Users(**row) for row in rows]
 
 
@@ -65,8 +67,8 @@ async def delete_usermanager_user(user_id: str) -> None:
     for wallet in wallets:
         await delete_wallet(user_id=user_id, wallet_id=wallet.id)
 
-    await db.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    await db.execute("DELETE FROM wallets WHERE user = ?", (user_id,))
+    await db.execute("DELETE FROM usermanager.users WHERE id = ?", (user_id,))
+    await db.execute("""DELETE FROM usermanager.wallets WHERE "user" = ?""", (user_id,))
 
 
 ### Wallets
@@ -78,7 +80,7 @@ async def create_usermanager_wallet(
     wallet = await create_wallet(user_id=user_id, wallet_name=wallet_name)
     await db.execute(
         """
-        INSERT INTO wallets (id, admin, name, user, adminkey, inkey)
+        INSERT INTO usermanager.wallets (id, admin, name, "user", adminkey, inkey)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (wallet.id, admin_id, wallet_name, user_id, wallet.adminkey, wallet.inkey),
@@ -89,17 +91,23 @@ async def create_usermanager_wallet(
 
 
 async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
-    row = await db.fetchone("SELECT * FROM wallets WHERE id = ?", (wallet_id,))
+    row = await db.fetchone(
+        "SELECT * FROM usermanager.wallets WHERE id = ?", (wallet_id,)
+    )
     return Wallets(**row) if row else None
 
 
 async def get_usermanager_wallets(admin_id: str) -> Optional[Wallets]:
-    rows = await db.fetchall("SELECT * FROM wallets WHERE admin = ?", (admin_id,))
+    rows = await db.fetchall(
+        "SELECT * FROM usermanager.wallets WHERE admin = ?", (admin_id,)
+    )
     return [Wallets(**row) for row in rows]
 
 
 async def get_usermanager_users_wallets(user_id: str) -> Optional[Wallets]:
-    rows = await db.fetchall("SELECT * FROM wallets WHERE user = ?", (user_id,))
+    rows = await db.fetchall(
+        """SELECT * FROM usermanager.wallets WHERE "user" = ?""", (user_id,)
+    )
     return [Wallets(**row) for row in rows]
 
 
@@ -111,4 +119,4 @@ async def get_usermanager_wallet_transactions(wallet_id: str) -> Optional[Paymen
 
 async def delete_usermanager_wallet(wallet_id: str, user_id: str) -> None:
     await delete_wallet(user_id=user_id, wallet_id=wallet_id)
-    await db.execute("DELETE FROM wallets WHERE id = ?", (wallet_id,))
+    await db.execute("DELETE FROM usermanager.wallets WHERE id = ?", (wallet_id,))

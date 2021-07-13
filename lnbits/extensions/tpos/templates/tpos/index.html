@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >New TPoS</q-btn
         >
       </q-card-section>
@@ -119,7 +119,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="formDialog.data.currency == null || formDialog.data.name == null"
             type="submit"
             >Create TPoS</q-btn

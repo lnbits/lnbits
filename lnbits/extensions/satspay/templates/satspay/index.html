@@ -5,10 +5,7 @@
     <q-card>
       <q-card-section>
         {% raw %}
-        <q-btn
-          unelevated
-          color="deep-purple"
-          @click="formDialogCharge.show = true"
+        <q-btn unelevated color="primary" @click="formDialogCharge.show = true"
           >New charge
         </q-btn>
       </q-card-section>
@@ -265,7 +262,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 formDialogCharge.data.time == null ||
                 formDialogCharge.data.amount == null"

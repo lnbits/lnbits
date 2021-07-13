@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS products (
+        CREATE TABLE diagonalley.products (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             product TEXT NOT NULL,
@@ -22,7 +22,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS indexers (
+        CREATE TABLE diagonalley.indexers (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             shopname TEXT NOT NULL,
@@ -43,7 +43,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS orders (
+        CREATE TABLE diagonalley.orders (
             id TEXT PRIMARY KEY,
             productid TEXT NOT NULL,
             wallet TEXT NOT NULL,

@@ -18,7 +18,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS accounts (
+        CREATE TABLE accounts (
             id TEXT PRIMARY KEY,
             email TEXT,
             pass TEXT
@@ -27,37 +27,36 @@ async def m001_initial(db):
     )
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS extensions (
-            user TEXT NOT NULL,
+        CREATE TABLE extensions (
+            "user" TEXT NOT NULL,
             extension TEXT NOT NULL,
-            active BOOLEAN DEFAULT 0,
+            active BOOLEAN DEFAULT false,
 
-            UNIQUE (user, extension)
+            UNIQUE ("user", extension)
         );
     """
     )
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS wallets (
+        CREATE TABLE wallets (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
-            user TEXT NOT NULL,
+            "user" TEXT NOT NULL,
             adminkey TEXT NOT NULL,
             inkey TEXT
         );
     """
     )
     await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS apipayments (
+        f"""
+        CREATE TABLE apipayments (
             payhash TEXT NOT NULL,
             amount INTEGER NOT NULL,
             fee INTEGER NOT NULL DEFAULT 0,
             wallet TEXT NOT NULL,
             pending BOOLEAN NOT NULL,
             memo TEXT,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now')),
-
+            time TIMESTAMP NOT NULL DEFAULT {db.timestamp_now},
             UNIQUE (wallet, payhash)
         );
     """
@@ -65,18 +64,18 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE VIEW IF NOT EXISTS balances AS
+        CREATE VIEW balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
             FROM apipayments
-            WHERE amount > 0 AND pending = 0  -- don't sum pending
+            WHERE amount > 0 AND pending = false  -- don't sum pending
             GROUP BY wallet
             UNION ALL
             SELECT wallet, SUM(amount + fee) AS s  -- outgoing, sum fees
             FROM apipayments
             WHERE amount < 0  -- do sum pending
             GROUP BY wallet
-        )
+        )x
         GROUP BY wallet;
     """
     )
@@ -143,21 +142,20 @@ async def m004_ensure_fees_are_always_negative(db):
     """
 
     await db.execute("DROP VIEW balances")
-
     await db.execute(
         """
-        CREATE VIEW IF NOT EXISTS balances AS
+        CREATE VIEW balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
             FROM apipayments
-            WHERE amount > 0 AND pending = 0  -- don't sum pending
+            WHERE amount > 0 AND pending = false  -- don't sum pending
             GROUP BY wallet
             UNION ALL
             SELECT wallet, SUM(amount - abs(fee)) AS s  -- outgoing, sum fees
             FROM apipayments
             WHERE amount < 0  -- do sum pending
             GROUP BY wallet
-        )
+        )x
         GROUP BY wallet;
     """
     )
@@ -171,7 +169,7 @@ async def m005_balance_check_balance_notify(db):
     await db.execute(
         """
         CREATE TABLE balance_check (
-          wallet INTEGER NOT NULL REFERENCES wallets (id),
+          wallet TEXT NOT NULL REFERENCES wallets (id),
           service TEXT NOT NULL,
           url TEXT NOT NULL,
 
@@ -183,7 +181,7 @@ async def m005_balance_check_balance_notify(db):
     await db.execute(
         """
         CREATE TABLE balance_notify (
-          wallet INTEGER NOT NULL REFERENCES wallets (id),
+          wallet TEXT NOT NULL REFERENCES wallets (id),
           url TEXT NOT NULL,
 
           UNIQUE(wallet, url)

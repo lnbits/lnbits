@@ -56,11 +56,11 @@ async def extensions():
 
     if extension_to_enable:
         await update_user_extension(
-            user_id=g.user.id, extension=extension_to_enable, active=1
+            user_id=g.user.id, extension=extension_to_enable, active=True
         )
     elif extension_to_disable:
         await update_user_extension(
-            user_id=g.user.id, extension=extension_to_disable, active=0
+            user_id=g.user.id, extension=extension_to_disable, active=False
         )
 
     return await render_template("core/extensions.html", user=await get_user(g.user.id))
