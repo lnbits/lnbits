@@ -441,6 +441,7 @@
             self.AddressesLinks = response.data.map(function (obj) {
               return mapAddresses(obj)
             })
+            self.fetchUtxos()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -632,7 +633,6 @@
         var getWalletLinks = this.getWalletLinks
         getWalletLinks()
       }
-      setTimeout(_ => this.fetchUtxos(), 1500)
     }
   })
 </script>
