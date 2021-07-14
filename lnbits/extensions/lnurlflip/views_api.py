@@ -7,19 +7,24 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import lnurlflip_ext
 from .crud import (
-    create_lnurlflip_link,
-    get_lnurlflip_link,
-    get_lnurlflip_links,
-    update_lnurlflip_link,
-    delete_lnurlflip_link,
-    create_hash_check,
-    get_hash_check,
+    create_lnurlflip_pay,
+    get_lnurlflip_pay,
+    get_lnurlflip_pays,
+    update_lnurlflip_pay,
+    delete_lnurlflip_pay,
+    create_lnurlflip_withdraw,
+    get_lnurlflip_withdraw,
+    get_lnurlflip_withdraws,
+    update_lnurlflip_withdraw,
+    delete_lnurlflip_withdraw,
+    create_withdraw_hash_check,
+    get_withdraw_hash_check,
 )
 
 
-@lnurlflip_ext.route("/api/v1/links", methods=["GET"])
+@lnurlflip_ext.route("/api/v1/withdraws", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_links():
+async def api_withdraws():
     wallet_ids = [g.wallet.id]
 
     if "all_wallets" in request.args:
@@ -29,10 +34,10 @@ async def api_links():
             jsonify(
                 [
                     {
-                        **link._asdict(),
-                        **{"lnurl": link.lnurl},
+                        **withdraw._asdict(),
+                        **{"lnurl": withdraw.lnurl},
                     }
-                    for link in await get_lnurlflip_links(wallet_ids)
+                    for withdraw in await get_lnurlflip_withdraws(wallet_ids)
                 ]
             ),
             HTTPStatus.OK,
@@ -48,25 +53,28 @@ async def api_links():
         )
 
 
-@lnurlflip_ext.route("/api/v1/links/<link_id>", methods=["GET"])
+@lnurlflip_ext.route("/api/v1/withdraws/<withdraw_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_link_retrieve(link_id):
-    link = await get_lnurlflip_link(link_id, 0)
+async def api_withdraw_retrieve(withdraw_id):
+    withdraw = await get_lnurlflip_withdraw(withdraw_id, 0)
 
-    if not link:
+    if not withdraw:
         return (
-            jsonify({"message": "lnurlflip link does not exist."}),
+            jsonify({"message": "lnurlflip withdraw does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
 
-    if link.wallet != g.wallet.id:
-        return jsonify({"message": "Not your lnurlflip link."}), HTTPStatus.FORBIDDEN
+    if withdraw.wallet != g.wallet.id:
+        return (
+            jsonify({"message": "Not your lnurlflip withdraw."}),
+            HTTPStatus.FORBIDDEN,
+        )
 
-    return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK
+    return jsonify({**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}), HTTPStatus.OK
 
 
-@lnurlflip_ext.route("/api/v1/links", methods=["POST"])
-@lnurlflip_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
+@lnurlflip_ext.route("/api/v1/withdraws", methods=["POST"])
+@lnurlflip_ext.route("/api/v1/withdraws/<withdraw_id>", methods=["PUT"])
 @api_check_wallet_key("admin")
 @api_validate_post_request(
     schema={
@@ -78,7 +86,7 @@ async def api_link_retrieve(link_id):
         "is_unique": {"type": "boolean", "required": True},
     }
 )
-async def api_link_create_or_update(link_id=None):
+async def api_withdraw_create_or_update(withdraw_id=None):
     if g.data["max_lnurlflipable"] < g.data["min_lnurlflipable"]:
         return (
             jsonify(
@@ -97,51 +105,56 @@ async def api_link_create_or_update(link_id=None):
             usescsv += "," + str(1)
     usescsv = usescsv[1:]
 
-    if link_id:
-        link = await get_lnurlflip_link(link_id, 0)
-        if not link:
+    if withdraw_id:
+        withdraw = await get_lnurlflip_withdraw(withdraw_id, 0)
+        if not withdraw:
             return (
-                jsonify({"message": "lnurlflip link does not exist."}),
+                jsonify({"message": "lnurlflip withdraw does not exist."}),
                 HTTPStatus.NOT_FOUND,
             )
-        if link.wallet != g.wallet.id:
+        if withdraw.wallet != g.wallet.id:
             return (
-                jsonify({"message": "Not your lnurlflip link."}),
+                jsonify({"message": "Not your lnurlflip withdraw."}),
                 HTTPStatus.FORBIDDEN,
             )
-        link = await update_lnurlflip_link(link_id, **g.data, usescsv=usescsv, used=0)
+        withdraw = await update_lnurlflip_withdraw(
+            withdraw_id, **g.data, usescsv=usescsv, used=0
+        )
     else:
-        link = await create_lnurlflip_link(
+        withdraw = await create_lnurlflip_withdraw(
             wallet_id=g.wallet.id, **g.data, usescsv=usescsv
         )
 
     return (
-        jsonify({**link._asdict(), **{"lnurl": link.lnurl}}),
-        HTTPStatus.OK if link_id else HTTPStatus.CREATED,
+        jsonify({**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}),
+        HTTPStatus.OK if withdraw_id else HTTPStatus.CREATED,
     )
 
 
-@lnurlflip_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
+@lnurlflip_ext.route("/api/v1/withdraws/<withdraw_id>", methods=["DELETE"])
 @api_check_wallet_key("admin")
-async def api_link_delete(link_id):
-    link = await get_lnurlflip_link(link_id)
+async def api_withdraw_delete(withdraw_id):
+    withdraw = await get_lnurlflip_withdraw(withdraw_id)
 
-    if not link:
+    if not withdraw:
         return (
-            jsonify({"message": "lnurlflip link does not exist."}),
+            jsonify({"message": "lnurlflip withdraw does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
 
-    if link.wallet != g.wallet.id:
-        return jsonify({"message": "Not your lnurlflip link."}), HTTPStatus.FORBIDDEN
+    if withdraw.wallet != g.wallet.id:
+        return (
+            jsonify({"message": "Not your lnurlflip withdraw."}),
+            HTTPStatus.FORBIDDEN,
+        )
 
-    await delete_lnurlflip_link(link_id)
+    await delete_lnurlflip_withdraw(withdraw_id)
 
     return "", HTTPStatus.NO_CONTENT
 
 
-@lnurlflip_ext.route("/api/v1/links/<the_hash>/<lnurl_id>", methods=["GET"])
+@lnurlflip_ext.route("/api/v1/withdraws/<the_hash>/<lnurl_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_hash_retrieve(the_hash, lnurl_id):
-    hashCheck = await get_hash_check(the_hash, lnurl_id)
+async def api_withdraw_hash_retrieve(the_hash, lnurl_id):
+    hashCheck = await get_withdraw_hash_check(the_hash, lnurl_id)
     return jsonify(hashCheck), HTTPStatus.OK

@@ -8,9 +8,9 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
-            value INTEGER DEFAULT 1,
-            unique_hash TEXT UNIQUE,
-            k1 TEXT,
+            amount INTEGER DEFAULT 1,
+            served_meta INTEGER NOT NULL,
+            served_pr INTEGER NOT NULL
             odds FLOAT,
             current_odds FLOAT,
             open_time INTEGER
