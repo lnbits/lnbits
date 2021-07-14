@@ -10,7 +10,9 @@ new Vue({
       walletName: '',
       savingFormats: null,
       savedUsers: null,
-      showSavingOpts: null
+      showSavingOpts: null,
+      locally: [],
+      localSelection: ""
     }
   },
   methods: {
@@ -23,14 +25,20 @@ new Vue({
         message: 'Processing...',
         icon: null
       })
+    },
+    locallySelected: function () {
+      console.log(this.localSelection)
+      window.localStorage.setItem('lnbits.current.user', this.localSelection)
+      window.location.href = "/wallet?usr=local";
     }
   },
-  mounted: function () {
+  created: function () {
     let allowSaving = JSON.parse(window.localStorage.getItem('lnbits.saving'))
-    let users = JSON.parse(window.localStorage.getItem('lnbits.users'))
-    if (allowSaving) {
-      this.savingFormats = allowSaving.formats
-      this.savedUsers = users
+    userList = JSON.parse(window.localStorage.getItem('lnbits.users'))
+    this.savingFormats = allowSaving.formats
+    for (let i = 0; i < userList.length; i++) {
+      this.locally[i] = userList[i].id
     }
+    console.log(this.locally)
   }
 })

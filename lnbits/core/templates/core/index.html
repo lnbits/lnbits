@@ -31,6 +31,13 @@
             >Add a new wallet</q-btn
           >
         </q-form>
+        <q-select
+          filled
+          v-model="localSelection"
+          :options="locally"
+          @input="locallySelected"
+          label="locally saved"
+        ></q-select>
         {% endif %}
       </q-card-section>
     </q-card>
@@ -50,7 +57,7 @@
           <q-btn
             unelevated
             color="primary"
-            label="saved in local storage"
+            label="saved locally"
             v-if="savingFormats.includes('local')"
           >
             {% raw %}
