@@ -1,3 +1,5 @@
+from sqlalchemy.exc import OperationalError  # type: ignore
+
 async def m001_initial(db):
     """
     Initial users table.
@@ -29,3 +31,14 @@ async def m001_initial(db):
         );
     """
     )
+
+async def m002_add_fields_to_users(db):
+    try:
+        await db.execute("ALTER TABLE usermanager.users ADD COLUMN metadata TEXT DEFAULT '{}'")
+
+    except OperationalError:
+        # this is necessary now because it may be the case that this migration will
+        # run twice in some environments.
+        # catching errors like this won't be necessary in anymore now that we
+        # keep track of db versions so no migration ever runs twice.
+        pass

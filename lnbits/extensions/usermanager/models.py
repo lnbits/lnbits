@@ -1,4 +1,5 @@
-from typing import NamedTuple
+import json
+from typing import NamedTuple, Dict
 from sqlite3 import Row
 
 
@@ -8,6 +9,18 @@ class Users(NamedTuple):
     admin: str
     email: str
     password: str
+    metadata: Dict
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Users":
+        return cls(
+            id=row["id"],
+            name=row["name"],
+            admin=row["admin"],
+            email=row["email"],
+            password=row["password"],
+            metadata=json.loads(row["metadata"] or "{}"),
+        )
 
 
 class Wallets(NamedTuple):

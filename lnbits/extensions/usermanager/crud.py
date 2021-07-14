@@ -1,4 +1,5 @@
-from typing import Optional, List
+import json
+from typing import Optional, List, Dict
 
 from lnbits.core.models import Payment
 from lnbits.core.crud import (
@@ -22,19 +23,28 @@ async def create_usermanager_user(
     admin_id: str,
     email: Optional[str] = None,
     password: Optional[str] = None,
+    metadata: Optional[Dict] = None,
 ) -> Users:
     account = await create_account()
     user = await get_user(account.id)
     assert user, "Newly created user couldn't be retrieved"
 
     wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
-
+    meta = json.dumps(metadata) if metadata and metadata != {} and type(metadata) is dict else None
+    print(metadata, meta)
     await db.execute(
         """
-        INSERT INTO usermanager.users (id, name, admin, email, password)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO usermanager.users (id, name, admin, email, password, metadata)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (user.id, user_name, admin_id, email, password),
+        (
+            user.id,
+            user_name,
+            admin_id,
+            email,
+            password,
+            meta,
+        ),
     )
 
     await db.execute(
@@ -47,12 +57,13 @@ async def create_usermanager_user(
 
     user_created = await get_usermanager_user(user.id)
     assert user_created, "Newly created user couldn't be retrieved"
+    print('USER', user_created)
     return user_created
 
 
 async def get_usermanager_user(user_id: str) -> Optional[Users]:
     row = await db.fetchone("SELECT * FROM usermanager.users WHERE id = ?", (user_id,))
-    return Users(**row) if row else None
+    return Users.from_row(row) if row else None
 
 
 async def get_usermanager_users(user_id: str) -> List[Users]:
@@ -94,21 +105,21 @@ async def get_usermanager_wallet(wallet_id: str) -> Optional[Wallets]:
     row = await db.fetchone(
         "SELECT * FROM usermanager.wallets WHERE id = ?", (wallet_id,)
     )
-    return Wallets(**row) if row else None
+    return Wallets.from_row(row) if row else None
 
 
 async def get_usermanager_wallets(admin_id: str) -> Optional[Wallets]:
     rows = await db.fetchall(
         "SELECT * FROM usermanager.wallets WHERE admin = ?", (admin_id,)
     )
-    return [Wallets(**row) for row in rows]
+    return [Wallets.from_row(row) for row in rows]
 
 
 async def get_usermanager_users_wallets(user_id: str) -> Optional[Wallets]:
     rows = await db.fetchall(
         """SELECT * FROM usermanager.wallets WHERE "user" = ?""", (user_id,)
     )
-    return [Wallets(**row) for row in rows]
+    return [Wallets.from_row(row) for row in rows]
 
 
 async def get_usermanager_wallet_transactions(wallet_id: str) -> Optional[Payment]:
@@ -120,3 +131,6 @@ async def get_usermanager_wallet_transactions(wallet_id: str) -> Optional[Paymen
 async def delete_usermanager_wallet(wallet_id: str, user_id: str) -> None:
     await delete_wallet(user_id=user_id, wallet_id=wallet_id)
     await db.execute("DELETE FROM usermanager.wallets WHERE id = ?", (wallet_id,))
+
+
+#curl -X POST https://7170c4504b0a.ngrok.io/usermanager/api/v1/users -d '{"admin_id": "487263d6a1884237897cac88e7f90758", "wallet_name": "wallet_1", "user_name": "user5","metadata": "{"internal_id": "testing metadata"}"}' -H "X-Api-Key: 1c3113a9bb8a454aa08e1edb47d23a4d" -H "Content-type: application/json"
