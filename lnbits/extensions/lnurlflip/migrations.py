@@ -4,15 +4,16 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE lnurlflip.lnurlflip_link (
+        CREATE TABLE lnurlflip.lnurlflip_pay (
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
             value INTEGER DEFAULT 1,
             unique_hash TEXT UNIQUE,
             k1 TEXT,
-            open_time INTEGER,
-            used INTEGER DEFAULT 0
+            odds FLOAT,
+            current_odds FLOAT,
+            open_time INTEGER
         );
     """
     )
@@ -24,10 +25,10 @@ async def m002_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE lnurlflip.lnurlflip_link (
+        CREATE TABLE lnurlflip.lnurlflip_withdraw (
             id TEXT PRIMARY KEY,
             wallet TEXT,
-            title TEXT,
+            pay TEXT,
             value INTEGER DEFAULT 1,
             unique_hash TEXT UNIQUE,
             k1 TEXT,
