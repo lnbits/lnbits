@@ -1,0 +1,6 @@
+{
+  "name": "LNURLFlip",
+  "short_description": "LNURL powered coinflip",
+  "icon": "coin",
+  "contributors": ["arcbtc"]
+}
