@@ -27,8 +27,7 @@ async def m002_initial(db):
         """
         CREATE TABLE lnurlflip.lnurlflip_withdraw (
             id TEXT PRIMARY KEY,
-            wallet TEXT,
-            pay TEXT,
+            lnurlflip_pay TEXT,
             value INTEGER DEFAULT 1,
             unique_hash TEXT UNIQUE,
             k1 TEXT,
