@@ -169,11 +169,20 @@
           v-model.trim="userDialog.data.password"
           label="Password"
         ></q-input>
+        <q-input
+          filled
+          type="textarea"
+          v-model="userDialog.data.metadata"
+          maxlength=500
+          hint="Use this area to add a JSON object as metadata"
+          counter
+          @keyup.enter.stop
+        ></q-input>
 
         <q-btn
           unelevated
           color="primary"
-          :disable="userDialog.data.walname == null"
+          :disable="userDialog.data.walname == null && (!isValidJSON(userDialog.data.metadata))"
           type="submit"
           >Create User</q-btn
         >
@@ -320,7 +329,8 @@
             user_name: this.userDialog.data.usrname,
             wallet_name: this.userDialog.data.walname,
             email: this.userDialog.data.email,
-            password: this.userDialog.data.password
+            password: this.userDialog.data.password,
+            metadata: JSON.parse(this.userDialog.data.metadata)
           }
         }
 
@@ -331,6 +341,7 @@
 
       createUser: function (data) {
         var self = this
+        console.log({data})
         LNbits.api
           .request(
             'POST',
@@ -458,6 +469,15 @@
       },
       exportWalletsCSV: function () {
         LNbits.utils.exportCSV(this.walletsTable.columns, this.wallets)
+      },
+      isValidJSON: function (str) {
+        console.log('ping');
+        try{
+          JSON.parse(str)
+        } catch(e) {
+          return false
+        }
+        return true
       }
     },
     created: function () {
