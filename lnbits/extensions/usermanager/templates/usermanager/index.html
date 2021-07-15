@@ -288,7 +288,6 @@
     computed: {
       userOptions: function () {
         return this.users.map(function (obj) {
-          console.log(obj.id)
           return {
             value: String(obj.id),
             label: String(obj.id)
@@ -341,7 +340,7 @@
 
       createUser: function (data) {
         var self = this
-        console.log({data})
+
         LNbits.api
           .request(
             'POST',
