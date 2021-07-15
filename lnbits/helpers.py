@@ -29,6 +29,9 @@ class ExtensionManager:
     def extensions(self) -> List[Extension]:
         output = []
 
+        if "all" in self._disabled:
+            return output
+
         for extension in [
             ext for ext in self._extension_folders if ext not in self._disabled
         ]:
