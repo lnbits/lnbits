@@ -1,0 +1,2805 @@
+{
+	"info": {
+		"_postman_id": "80bb7e31-3942-4c1c-aed7-0394baaf158a",
+		"name": "Regression",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "setup",
+			"item": [
+				{
+					"name": "Check for existing users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected_users = 0",
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(expected_users + \" user returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected_users);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/usermanager/api/v1/users",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"usermanager",
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "usermanager",
+			"item": [
+				{
+					"name": "wallet details",
+					"item": [
+						{
+							"name": "Get wallet details",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Store data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Correct wallet returned\", function () {",
+											"    pm.expect(jsonDataResponse.id).to.eql(pm.environment.get(\"E_wallet_id\"));",
+											"});",
+											"",
+											"pm.test(\"Sufficient balance on main account to continue test\", function () {",
+											"    pm.expect(jsonDataResponse.balance).to.greaterThan(99999);",
+											"});",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/api/v1/wallet",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"wallet"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "create user without email-password",
+					"item": [
+						{
+							"name": "Create user and initial wallet",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.collectionVariables.set(\"user_1_user_id\", jsonDataResponse.id);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"User created with correct name\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.name).to.eql(pm.collectionVariables.get(\"user_1_user_name\"));",
+											"});",
+											"",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"//Get request data",
+											"pm.collectionVariables.set(\"user_1_user_name\", pm.variables.replaceIn('{{$randomUserName}}'));",
+											"pm.collectionVariables.set(\"user_1_wallet_name\", pm.variables.replaceIn('{{$randomNoun}}'));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_name\": \"{{user_1_user_name}}\",\n    \"wallet_name\": \"{{user_1_wallet_name}}\",\n    \"admin_id\": \"{{E_user_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get user wallets - 1st check",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Store data",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.collectionVariables.set(\"user_1_admin_key\", jsonDataResponse[0].adminkey);",
+											"pm.collectionVariables.set(\"user_1_invoice_key\", jsonDataResponse[0].inkey);",
+											"pm.collectionVariables.set(\"user_1_wallet_id\", jsonDataResponse[0].id);",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var expected_wallets = 1",
+											"pm.test(expected_wallets + \" wallet(s) returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_wallets);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Admin key data present.\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('adminkey');",
+											"});",
+											"pm.test(\"Invoice key data present.\", function () {",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('inkey');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/wallets/{{user_1_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"wallets",
+										"{{user_1_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Check users created",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"    pm.test(\"Status code is 200\", function () {",
+											"        pm.response.to.have.status(200);",
+											"    });",
+											"",
+											"var expected_users = 1",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(expected_users + \" user returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_users);",
+											"",
+											"});",
+											"",
+											"pm.test(\"Email/Password not present.\", function () {",
+											"    pm.expect(jsonDataResponse).to.not.have.property('email');",
+											"    pm.expect(jsonDataResponse).to.not.have.property('password');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create wallet",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.collectionVariables.set(\"user_1_wallet_id_2\", jsonDataResponse.id);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"User created with correct name\", function () {",
+											"    pm.expect(jsonDataResponse.name).to.eql(pm.collectionVariables.get(\"user_1_wallet_name_2\"));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"//Get request data",
+											"pm.collectionVariables.set(\"user_1_wallet_name_2\", pm.variables.replaceIn('{{$randomNoun}}'));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": \"{{user_1_user_id}}\",\n    \"wallet_name\": \"{{user_1_wallet_name_2}}\",\n    \"admin_id\": \"{{E_user_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/wallets",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"wallets"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get user wallets - 2nd check",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var expected_wallets = 2",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(expected_wallets + \" wallets returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_wallets);",
+											"});",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Admin key data present.\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('adminkey');",
+											"});",
+											"pm.test(\"Invoice key data present.\", function () {",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('inkey');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/wallets/{{user_1_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"wallets",
+										"{{user_1_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get single user",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Admin linked correct.\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.admin).to.eql(pm.environment.get(\"E_user_id\"));",
+											"});",
+											"",
+											"pm.test(\"User data linked correct.\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"user_1_user_id\"));",
+											"    pm.expect(jsonData.name).to.eql(pm.collectionVariables.get(\"user_1_user_name\"));",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users/{{user_1_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users",
+										"{{user_1_user_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "create user with email-password",
+					"item": [
+						{
+							"name": "Create user and initial wallet",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.collectionVariables.set(\"user_2_user_id\", jsonDataResponse.id);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"User created with correct name\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.name).to.eql(pm.collectionVariables.get(\"user_2_user_name\"));",
+											"});",
+											"",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"//Get request data",
+											"pm.collectionVariables.set(\"user_2_user_name\", pm.variables.replaceIn('{{$randomUserName}}'));",
+											"pm.collectionVariables.set(\"user_2_wallet_name\", pm.variables.replaceIn('{{$randomNoun}}'));",
+											"pm.collectionVariables.set(\"user_2_user_email\", pm.variables.replaceIn('{{$randomEmail}}'));",
+											"pm.collectionVariables.set(\"user_2_user_password\", pm.variables.replaceIn('{{$randomPassword}}'));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_name\": \"{{user_2_user_name}}\",\n    \"wallet_name\": \"{{user_2_wallet_name}}\",\n    \"admin_id\": \"{{E_user_id}}\",\n    \"email\": \"{{user_2_user_email}}\",\n    \"password\": \"{{user_2_user_password}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get user wallets - 1st check",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Store data",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.collectionVariables.set(\"user_2_admin_key\", jsonDataResponse[0].adminkey);",
+											"pm.collectionVariables.set(\"user_2_invoice_key\", jsonDataResponse[0].inkey);",
+											"pm.collectionVariables.set(\"user_2_wallet_id\", jsonDataResponse[0].id);",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var expected_wallets = 1",
+											"pm.test(expected_wallets + \" wallet(s) returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_wallets);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Admin key data present.\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('adminkey');",
+											"});",
+											"pm.test(\"Invoice key data present.\", function () {",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('inkey');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/wallets/{{user_2_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"wallets",
+										"{{user_2_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Check users created",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"    pm.test(\"Status code is 200\", function () {",
+											"        pm.response.to.have.status(200);",
+											"    });",
+											"",
+											"var expected_users = 2",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(expected_users + \" user returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_users);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_name\": \"piet\",\n    \"wallet_name\": \"piets wallet\",\n    \"admin_id\": \"{{user_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create wallet",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.collectionVariables.set(\"user_2_wallet_id_2\", jsonDataResponse.id);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"User created with correct name\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.name).to.eql(pm.collectionVariables.get(\"user_2_wallet_name_2\"));",
+											"});",
+											"",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"//Get request data",
+											"pm.collectionVariables.set(\"user_2_wallet_name_2\", pm.variables.replaceIn('{{$randomNoun}}'));"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": \"{{user_2_user_id}}\",\n    \"wallet_name\": \"{{user_2_wallet_name_2}}\",\n    \"admin_id\": \"{{E_user_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/wallets",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"wallets"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get user wallets - 2nd check",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var expected_wallets = 2",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(expected_wallets + \" wallets returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_wallets);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Admin key data present.\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('adminkey');",
+											"});",
+											"pm.test(\"Invoice key data present.\", function () {",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('inkey');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/wallets/{{user_2_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"wallets",
+										"{{user_2_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get single user",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Admin linked correct.\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.admin).to.eql(pm.environment.get(\"E_user_id\"));",
+											"});",
+											"",
+											"pm.test(\"User data linked correct.\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"user_2_user_id\"));",
+											"    pm.expect(jsonData.name).to.eql(pm.collectionVariables.get(\"user_2_user_name\"));",
+											"    pm.expect(jsonData.email).to.eql(pm.collectionVariables.get(\"user_2_user_email\"));",
+											"    pm.expect(jsonData.password).to.eql(pm.collectionVariables.get(\"user_2_user_password\"));",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users/{{user_2_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users",
+										"{{user_2_user_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "create and pay invoice",
+					"item": [
+						{
+							"name": "C create invoice",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//{\"payment_hash\": <string>, \"payment_request\": <string>}",
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"main_user_payment_req\", jsonDataResponse.payment_request);",
+											"pm.collectionVariables.set(\"main_user_payment_hash\", jsonDataResponse.payment_hash);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"out\": false,\n    \"amount\": 5,\n    \"memo\": \"{{$randomFullName}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve invoice",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Invoice retrieved\", function () {",
+											"    pm.expect(jsonDataResponse.paid).to.eql(false);",
+											"});",
+											"",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"out\": false,\n    \"amount\": 10,\n    \"memo\": \"{{$randomBankAccountName}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments/{{main_user_payment_hash}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments",
+										"{{main_user_payment_hash}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C pay invoice from main",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//{\"payment_hash\": <string>, \"payment_request\": <string>}",
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"out\": true,\n    \"bolt11\": \"{{main_user_payment_req}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve invoice after pay",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Invoice marked as paid\", function () {",
+											"    pm.expect(jsonDataResponse.paid).to.eql(true);",
+											"});",
+											"",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments/{{main_user_payment_hash}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments",
+										"{{main_user_payment_hash}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve wallet balance",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Store data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.collectionVariables.set(\"user_1_balance\", jsonDataResponse.payment_request);",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Correct wallet returned\", function () {",
+											"    pm.expect(jsonDataResponse.id).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/api/v1/wallet",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"wallet"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "LNURLp",
+			"item": [
+				{
+					"name": "CRUD paylinks (user 1)",
+					"item": [
+						{
+							"name": "C empty body",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"",
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Error message returned.\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('message');",
+											"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'comment_chars': ['required field'], 'description': ['required field'], 'max': ['required field'], 'min': ['required field']}\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C missing required fields",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Error message returned.\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('message');",
+											"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'comment_chars': ['required field'], 'max': ['required field'], 'min': ['required field']}\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"{{$randomLoremWords}}\",\n    \"amount\": 3\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C min set of request data",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_1_lnurlp_id_1\", jsonDataResponse.id);",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+											"    pm.expect(jsonDataResponse.max).to.eql(jsonDataRequest.max);",
+											"    pm.expect(jsonDataResponse.min).to.eql(jsonDataRequest.min);",
+											"    pm.expect(jsonDataResponse.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"});",
+											"",
+											"pm.test(\"Check optional fields\", function () {",
+											"    pm.expect(jsonDataResponse.success_text).to.eql(null);",
+											"    pm.expect(jsonDataResponse.success_url).to.eql(null);",
+											"    pm.expect(jsonDataResponse.webhook_url).to.eql(null);",
+											"    pm.expect(jsonDataResponse.currency).to.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Check linked wallet.\", function () {",
+											"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"{{$randomLoremWords}}\",\n    \"amount\": 3,\n    \"max\": 4,\n    \"min\": 2,\n    \"comment_chars\": 50\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve specific paylink",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Main data paylink present\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('id');",
+											"    pm.expect(jsonDataResponse).to.have.property('lnurl');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_1_lnurlp_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_1_lnurlp_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "U update paylink min set data",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_1_lnurlp_id_1\", jsonDataResponse.id);",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+											"    pm.expect(jsonDataResponse.max).to.eql(jsonDataRequest.max);",
+											"    pm.expect(jsonDataResponse.min).to.eql(jsonDataRequest.min);",
+											"    pm.expect(jsonDataResponse.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"});",
+											"",
+											"pm.test(\"Check optional fields\", function () {",
+											"    pm.expect(jsonDataResponse.success_text).to.eql(null);",
+											"    pm.expect(jsonDataResponse.success_url).to.eql(null);",
+											"    pm.expect(jsonDataResponse.webhook_url).to.eql(null);",
+											"    pm.expect(jsonDataResponse.currency).to.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Check linked wallet.\", function () {",
+											"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"{{$randomCountry}}\",\n    \"amount\": 10,\n    \"max\": 10,\n    \"min\": 5,\n    \"comment_chars\": 100\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_1_lnurlp_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_1_lnurlp_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C max set of request data",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_1_lnurlp_id_2\", jsonDataResponse.id);",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+											"    pm.expect(jsonDataResponse.max).to.eql(jsonDataRequest.max);",
+											"    pm.expect(jsonDataResponse.min).to.eql(jsonDataRequest.min);",
+											"    pm.expect(jsonDataResponse.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"});",
+											"",
+											"pm.test(\"Check optional fields\", function () {",
+											"    pm.expect(jsonDataResponse.success_text).to.eql(jsonDataRequest.success_text);",
+											"    pm.expect(jsonDataResponse.success_url).to.eql(jsonDataRequest.success_url);",
+											"    pm.expect(jsonDataResponse.webhook_url).to.eql(jsonDataRequest.webhook_url);",
+											"});",
+											"",
+											"pm.test(\"Check currency code (random input)\", function () {",
+											"    pm.expect(jsonDataResponse.currency).to.eql(jsonDataRequest.currency);",
+											"});",
+											"",
+											"pm.test(\"Check linked wallet\", function () {",
+											"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+											"});",
+											"",
+											"var host = pm.environment.get(\"E_host\")",
+											"var header = \"X-Api-Key:\"+ pm.collectionVariables.get(\"user_1_invoice_key\")",
+											"pm.sendRequest({",
+											"    url: host + '/lnurlp/api/v1/links/' + jsonDataResponse.id,",
+											"    method: 'GET',",
+											"    header: header",
+											"",
+											"}, function (err, res) {",
+											"    retrievedData = res.json();",
+											"    console.log(retrievedData)",
+											"    pm.test(\"Check fields in database\", function () {",
+											"        pm.expect(retrievedData.description).to.eql(jsonDataRequest.description);",
+											"        pm.expect(retrievedData.max).to.eql(jsonDataRequest.max);",
+											"        pm.expect(retrievedData.min).to.eql(jsonDataRequest.min);",
+											"        pm.expect(retrievedData.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"        pm.expect(retrievedData.success_text).to.eql(jsonDataRequest.success_text);",
+											"        pm.expect(retrievedData.success_url).to.eql(jsonDataRequest.success_url);",
+											"        pm.expect(retrievedData.webhook_url).to.eql(jsonDataRequest.webhook_url);",
+											"        pm.expect(retrievedData.currency).to.eql(jsonDataRequest.currency);",
+											"    })});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"{{$randomLoremWords}}\",\n    \"amount\": 3,\n    \"max\": 4,\n    \"min\": 2,\n    \"comment_chars\": 50,\n    \"currency\": \"{{$randomCurrencyCode}}\",\n    \"success_text\": \"{{$randomLoremSentence}}\",\n    \"success_url\": \"https://{{$randomLoremWord}}.example.org\",\n    \"webhook_url\": \"https://{{$randomLoremWord}}.example.org\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve specific paylink",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Main data paylink present\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('id');",
+											"    pm.expect(jsonDataResponse).to.have.property('lnurl');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_1_lnurlp_id_2}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_1_lnurlp_id_2}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "U update paylink max set data",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+											"    pm.expect(jsonDataResponse.max).to.eql(jsonDataRequest.max);",
+											"    pm.expect(jsonDataResponse.min).to.eql(jsonDataRequest.min);",
+											"    pm.expect(jsonDataResponse.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"});",
+											"",
+											"pm.test(\"Check optional fields\", function () {",
+											"    pm.expect(jsonDataResponse.success_text).to.eql(jsonDataRequest.success_text);",
+											"    pm.expect(jsonDataResponse.success_url).to.eql(jsonDataRequest.success_url);",
+											"    pm.expect(jsonDataResponse.webhook_url).to.eql(jsonDataRequest.webhook_url);",
+											"});",
+											"",
+											"pm.test(\"Check currency code (random input)\", function () {",
+											"    pm.expect(jsonDataResponse.currency).to.eql(jsonDataRequest.currency);",
+											"});",
+											"",
+											"pm.test(\"Check linked wallet\", function () {",
+											"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+											"});",
+											"",
+											"var host = pm.environment.get(\"E_host\")",
+											"var header = \"X-Api-Key:\"+ pm.collectionVariables.get(\"user_1_invoice_key\")",
+											"pm.sendRequest({",
+											"    url: host + '/lnurlp/api/v1/links/' + jsonDataResponse.id,",
+											"    method: 'GET',",
+											"    header: header",
+											"",
+											"}, function (err, res) {",
+											"    retrievedData = res.json();",
+											"    console.log(retrievedData)",
+											"    pm.test(\"Check fields in database\", function () {",
+											"        pm.expect(retrievedData.description).to.eql(jsonDataRequest.description);",
+											"        pm.expect(retrievedData.max).to.eql(jsonDataRequest.max);",
+											"        pm.expect(retrievedData.min).to.eql(jsonDataRequest.min);",
+											"        pm.expect(retrievedData.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"        pm.expect(retrievedData.success_text).to.eql(jsonDataRequest.success_text);",
+											"        pm.expect(retrievedData.success_url).to.eql(jsonDataRequest.success_url);",
+											"        pm.expect(retrievedData.webhook_url).to.eql(jsonDataRequest.webhook_url);",
+											"        pm.expect(retrievedData.currency).to.eql(jsonDataRequest.currency);",
+											"    })});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"{{$randomCountry}}\",\n    \"amount\": 5,\n    \"max\": 6,\n    \"min\": 4,\n    \"comment_chars\": 100,\n    \"currency\": \"{{$randomCurrencyCode}}\",\n    \"success_text\": \"{{$randomLoremSentence}}\",\n    \"success_url\": \"https://{{$randomLoremWord}}.example.org\",\n    \"webhook_url\": \"https://{{$randomLoremWord}}.example.org\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_1_lnurlp_id_2}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_1_lnurlp_id_2}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "retrieve created paylinks",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var expected_result_count = 2",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Expected number of paylinks returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_result_count);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Main data paylink \"+ (i + 1) +\" present\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('lnurl');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete created paylink 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_1_lnurlp_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_1_lnurlp_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete created paylink 2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_1_lnurlp_id_2}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_1_lnurlp_id_2}}"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"auth": {
+						"type": "apikey",
+						"apikey": [
+							{
+								"key": "key",
+								"value": "X-Api-Key",
+								"type": "string"
+							},
+							{
+								"key": "value",
+								"value": "{{user_1_invoice_key}}",
+								"type": "string"
+							}
+						]
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create and Pay LNURLp",
+					"item": [
+						{
+							"name": "C create LNURLp by user_2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_2_lnurlp_id_1\", jsonDataResponse.id);",
+											"pm.collectionVariables.set(\"user_2_lnurlp_lnurl_1\", jsonDataResponse.lnurl);",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+											"    pm.expect(jsonDataResponse.max).to.eql(jsonDataRequest.max);",
+											"    pm.expect(jsonDataResponse.min).to.eql(jsonDataRequest.min);",
+											"    pm.expect(jsonDataResponse.comment_chars).to.eql(jsonDataRequest.comment_chars);",
+											"});",
+											"",
+											"pm.test(\"Check optional fields\", function () {",
+											"    pm.expect(jsonDataResponse.success_text).to.eql(null);",
+											"    pm.expect(jsonDataResponse.success_url).to.eql(null);",
+											"    pm.expect(jsonDataResponse.webhook_url).to.eql(null);",
+											"    pm.expect(jsonDataResponse.currency).to.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Check linked wallet.\", function () {",
+											"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_2_wallet_id\"));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"{{$randomLoremWords}}\",\n    \"amount\": 5,\n    \"max\": 5,\n    \"min\": 5,\n    \"comment_chars\": 50\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve specific paylink",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Main data paylink present\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('id');",
+											"    pm.expect(jsonDataResponse).to.have.property('lnurl');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{user_2_lnurlp_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlp_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R scan lnurl",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Check and assign callback\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('callback');",
+											"    pm.collectionVariables.set(\"lnurl_scan_callback\", jsonDataResponse.callback);",
+											"});",
+											"",
+											"pm.test(\"Check and assign description hash\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('description_hash');",
+											"    pm.collectionVariables.set(\"lnurl_scan_description_hash\", jsonDataResponse.description_hash);",
+											"});",
+											"",
+											"pm.test(\"Check and assign min and max amount\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('maxSendable');",
+											"    pm.collectionVariables.set(\"lnurl_scan_max_amount\", jsonDataResponse.maxSendable);",
+											"    ",
+											"    pm.expect(jsonDataResponse).to.have.property('minSendable');",
+											"    pm.collectionVariables.set(\"lnurl_scan_min_amount\", jsonDataResponse.minSendable);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Check lnpay fields\", function () {",
+											"    pm.expect(jsonDataResponse.kind).to.eql(\"pay\");",
+											"    pm.expect(jsonDataResponse.tag).to.eql(\"payRequest\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/api/v1/lnurlscan/{{user_2_lnurlp_lnurl_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"lnurlscan",
+										"{{user_2_lnurlp_lnurl_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C pay LNURLp by user_1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Check response fields\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('checking_id');",
+											"    pm.expect(jsonDataResponse).to.have.property('payment_hash');",
+											"    pm.expect(jsonDataResponse).to.have.property('success_action');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_1_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"amount\": {{lnurl_scan_max_amount}},\n    \"callback\": \"{{lnurl_scan_callback}}\",\n    \"description_hash\": \"{{lnurl_scan_description_hash}}\",\n    \"comment\": \"Postman test lnurlp\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments/lnurl",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments",
+										"lnurl"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"auth": {
+						"type": "apikey",
+						"apikey": [
+							{
+								"key": "key",
+								"value": "X-Api-Key",
+								"type": "string"
+							},
+							{
+								"key": "value",
+								"value": "{{user_2_invoice_key}}",
+								"type": "string"
+							}
+						]
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "teardown",
+			"item": [
+				{
+					"name": "Restore balance user 2",
+					"item": [
+						{
+							"name": "C create LNURLp by user_2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"restore_lnurlp_id_1\", jsonDataResponse.id);",
+											"pm.collectionVariables.set(\"restore_lnurlp_lnurl_1\", jsonDataResponse.lnurl);",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"Restore balance user 2\",\n    \"amount\": 5,\n    \"max\": 5,\n    \"min\": 5,\n    \"comment_chars\": 50\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve specific paylink",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/lnurlp/api/v1/links/{{restore_lnurlp_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"lnurlp",
+										"api",
+										"v1",
+										"links",
+										"{{restore_lnurlp_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R scan lnurl",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Check and assign callback\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('callback');",
+											"    pm.collectionVariables.set(\"lnurl_scan_callback\", jsonDataResponse.callback);",
+											"});",
+											"",
+											"pm.test(\"Check and assign description hash\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('description_hash');",
+											"    pm.collectionVariables.set(\"lnurl_scan_description_hash\", jsonDataResponse.description_hash);",
+											"});",
+											"",
+											"pm.test(\"Check and assign min and max amount\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('maxSendable');",
+											"    pm.collectionVariables.set(\"lnurl_scan_max_amount\", jsonDataResponse.maxSendable);",
+											"    ",
+											"    pm.expect(jsonDataResponse).to.have.property('minSendable');",
+											"    pm.collectionVariables.set(\"lnurl_scan_min_amount\", jsonDataResponse.minSendable);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Check lnpay fields\", function () {",
+											"    pm.expect(jsonDataResponse.kind).to.eql(\"pay\");",
+											"    pm.expect(jsonDataResponse.tag).to.eql(\"payRequest\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/api/v1/lnurlscan/{{restore_lnurlp_lnurl_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"lnurlscan",
+										"{{restore_lnurlp_lnurl_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C pay LNURLp by user_1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Check response fields\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('checking_id');",
+											"    pm.expect(jsonDataResponse).to.have.property('payment_hash');",
+											"    pm.expect(jsonDataResponse).to.have.property('success_action');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"amount\": {{lnurl_scan_max_amount}},\n    \"callback\": \"{{lnurl_scan_callback}}\",\n    \"description_hash\": \"{{lnurl_scan_description_hash}}\",\n    \"comment\": \"Restore balance\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments/lnurl",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments",
+										"lnurl"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"auth": {
+						"type": "apikey",
+						"apikey": [
+							{
+								"key": "key",
+								"value": "X-Api-Key",
+								"type": "string"
+							},
+							{
+								"key": "value",
+								"value": "{{user_2_invoice_key}}",
+								"type": "string"
+							}
+						]
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete user",
+					"item": [
+						{
+							"name": "D user 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users/{{user_1_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users",
+										"{{user_1_user_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "D user 2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/usermanager/api/v1/users/{{user_2_user_id}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"usermanager",
+										"api",
+										"v1",
+										"users",
+										"{{user_2_user_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "value",
+				"value": "{{E_invoice_key}}",
+				"type": "string"
+			},
+			{
+				"key": "key",
+				"value": "X-Api-Key",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"utils = {",
+					"    createInvoice: function(apikey,inp_amount,inp_memo) {",
+					"        pm.sendRequest({",
+					"            url: pm.environment.get(\"host\") + '/api/v1/payments',",
+					"            method: 'POST',",
+					"            header: \"X-Api-Key:\"+ apikey,",
+					"            body: {",
+					"                mode: 'application/json',",
+					"                raw: JSON.stringify(",
+					"                {",
+					"                    out: false,",
+					"                    amount: inp_amount,",
+					"                    memo: inp_memo",
+					"                })",
+					"            }",
+					"        }, function (err, res) {",
+					"            var invoiceData = res.json();",
+					"            return invoiceData.payment_request;",
+					"        });",
+					"        ",
+					"    },",
+					"    payInvoice: function(apikey,payment_request) {",
+					"        pm.sendRequest({",
+					"            url: pm.environment.get(\"host\") + '/api/v1/payments',",
+					"            method: 'POST',",
+					"            header: \"X-Api-Key:\"+ apikey,",
+					"            body: {",
+					"                mode: 'application/json',",
+					"                raw: JSON.stringify(",
+					"                {",
+					"                    out: true,",
+					"                    bolt11: payment_request",
+					"                })",
+					"            }",
+					"        }, function (err, res) {",
+					"            pm.test(\"Status code is 201\", function () {",
+					"                pm.response.to.have.status(201);",
+					"            });",
+					"        });",
+					"    }",
+					"};"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

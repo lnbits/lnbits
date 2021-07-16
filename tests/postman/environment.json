@@ -1,0 +1,44 @@
+{
+	"id": "f06d4943-de78-4edc-a838-3fa2e7845930",
+	"name": "MAIN - lnbits.com",
+	"values": [
+		{
+			"key": "E_host",
+			"value": "https://lnbits.com",
+			"enabled": true
+		},
+		{
+			"key": "E_wallet_id",
+			"value": "151b434aeb0244d68714595372a321c3",
+			"enabled": true
+		},
+		{
+			"key": "E_admin_key",
+			"value": "8e0cd20e783d4cb5be7937f103efb0e2",
+			"enabled": true
+		},
+		{
+			"key": "E_invoice_key",
+			"value": "afbc3be5eb184575ba4c4c111e748acc",
+			"enabled": true
+		},
+		{
+			"key": "E_wallet_name",
+			"value": "postman-qa",
+			"enabled": true
+		},
+		{
+			"key": "E_user_id",
+			"value": "627284f173534dc09c5ae91bc3790ac5",
+			"enabled": true
+		},
+		{
+			"key": "E_teardown",
+			"value": "true",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2021-07-15T21:19:20.008Z",
+	"_postman_exported_using": "Postman/8.7.0"
+}
