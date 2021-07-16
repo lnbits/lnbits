@@ -323,3 +323,52 @@ async def check_invoice_status(
 
 def fee_reserve(amount_msat: int) -> int:
     return max(1000, int(amount_msat * 0.01))
+
+async def internal_transaction(
+    from_wallet_id: str,
+    to_wallet_id: str,
+    amount: int,
+    memo: Optional[str] = "internal",
+    extra: Optional[Dict] = None,
+    conn: Optional[Connection] = None,
+) -> str:
+    amount_msat = amount * 1000
+    internal_id = f"internal_{urlsafe_short_hash()}"
+    
+    async with (db.reuse_conn(conn) if conn else db.connect()) as txn:
+        # do the balance check
+        from_wallet = await get_wallet(from_wallet_id, conn=txn)
+        assert from_wallet
+        if from_wallet_id == to_wallet_id or from_wallet.balance_msat < amount_msat:
+            raise PermissionError("Insufficient balance.")
+
+        payment_from = await create_payment(
+            wallet_id=from_wallet_id,
+            payment_request="",
+            payment_hash="",
+            amount=-amount_msat,
+            memo=memo or "",
+            extra=extra,
+            checking_id=internal_id,
+            fee=0,
+            pending=False,
+            conn=txn
+        )
+
+        payment_to = await create_payment(
+            wallet_id=to_wallet_id,
+            payment_request="",
+            payment_hash="",
+            amount=amount_msat,
+            memo=memo,
+            extra=extra,
+            checking_id=internal_id,
+            pending=False,
+            conn=txn
+        )
+
+    # notify receiver asynchronously
+    from lnbits.tasks import internal_invoice_paid
+
+    await internal_invoice_paid.send(payment_to.checking_id)
+    return internal_id

@@ -20,6 +20,7 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    internal_transaction
 )
 from ..tasks import api_invoice_listeners
 
@@ -429,6 +430,35 @@ async def api_lnurlscan(code: str):
             params.update(commentAllowed=jdata.get("commentAllowed", 0))
 
     return jsonify(params)
+
+@core_app.route("/api/v1/payments/internal", methods=["POST"])
+@api_check_wallet_key("admin")
+@api_validate_post_request(
+    schema={
+        "from": {"type": "string", "empty": False, "required": True},
+        "to": {"type": "string", "empty": False, "required": True},
+        "amount": {"type": "number", "empty": False, "required": True},
+        "memo": {"type": "string", "required": False},
+        "extra": {"required": False},
+    })
+async def api_internal_payments_create():
+    if not g.data["memo"]:
+        g.data["memo"] = ""
+    
+    try:
+        payment = await internal_transaction(
+            from_wallet_id=g.data["from"],
+            to_wallet_id=g.data["to"],
+            amount=g.data["amount"],
+            memo=g.data["memo"],
+            extra=g.data["extra"],
+        )
+    except PermissionError as e:
+        return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
+    return (
+        jsonify({"checking_id": payment}),
+        HTTPStatus.OK,
+    )
 
 
 @core_app.route("/api/v1/lnurlauth", methods=["POST"])
