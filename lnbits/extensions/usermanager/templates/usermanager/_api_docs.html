@@ -150,7 +150,7 @@
           >curl -X POST {{ request.url_root }}api/v1/users -d '{"admin_id": "{{
           g.user.id }}", "wallet_name": &lt;string&gt;, "user_name":
           &lt;string&gt;, "email": &lt;Optional string&gt;, "password": &lt;
-          Optional string&gt;}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
+          Optional string&gt;, "metadata": &lt;Optional JSON object&gt;}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
           "Content-type: application/json"
         </code>
       </q-card-section>
@@ -237,6 +237,7 @@
     dense
     expand-separator
     label="POST activate extension"
+    class="q-pb-md"
   >
     <q-card>
       <q-card-section>
