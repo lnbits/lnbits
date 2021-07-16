@@ -328,13 +328,13 @@ async def internal_transaction(
     from_wallet_id: str,
     to_wallet_id: str,
     amount: int,
-    memo: Optional[str] = "internal",
+    memo: Optional[str] = None,
     extra: Optional[Dict] = None,
     conn: Optional[Connection] = None,
 ) -> str:
     amount_msat = amount * 1000
     internal_id = f"internal_{urlsafe_short_hash()}"
-    
+
     async with (db.reuse_conn(conn) if conn else db.connect()) as txn:
         # do the balance check
         from_wallet = await get_wallet(from_wallet_id, conn=txn)

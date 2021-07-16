@@ -439,19 +439,16 @@ async def api_lnurlscan(code: str):
         "to": {"type": "string", "empty": False, "required": True},
         "amount": {"type": "number", "empty": False, "required": True},
         "memo": {"type": "string", "required": False},
-        "extra": {"required": False},
+        "extra": {"type": "dict", "required": False},
     })
 async def api_internal_payments_create():
-    if not g.data["memo"]:
-        g.data["memo"] = ""
-    
     try:
         payment = await internal_transaction(
             from_wallet_id=g.data["from"],
             to_wallet_id=g.data["to"],
             amount=g.data["amount"],
-            memo=g.data["memo"],
-            extra=g.data["extra"],
+            memo=g.data["memo"] if "memo" in g.data else "internal",
+            extra=g.data["extra"] if "data" in g.data else "{}",
         )
     except PermissionError as e:
         return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
