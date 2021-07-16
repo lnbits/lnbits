@@ -1,0 +1,44 @@
+name: PostmanRegressionTest
+on:
+  schedule:
+    - cron:  '30 6 * * *'
+jobs:
+  regresstion-test:
+    runs-on: ubuntu-latest
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    # INstall Node on the runner
+    - name: Install Node
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
+    # Install the newman command line utility and also install the html extra reporter
+    - name: Install newman
+      run: |
+       npm install -g newman
+       npm install -g newman-reporter-htmlextra
+       npm install -g newman-reporter-junitfull
+
+    # Make directory to upload the test results
+    - name: Make Directory for results
+      run: mkdir -p testResults
+
+    # Run the POSTMAN collection
+    - name: Run POSTMAN collection
+      run: newman run ./tests/postman/Regression.postman_collection.json  -e ./tests/postman/environment.json -r junit,htmlextra --reporter-junit-export testResults/junit-result.xml --reporter-htmlextra-export testResults/htmlreport.html --reporter-htmlextra-darkTheme  > testResults/runreport1.html
+
+    # Upload the contents of Test Results directory to workspace
+    - name: Output the run Details
+      uses: actions/upload-artifact@v2
+      with:
+       name: RunReports
+       path: testResults
+
+    - name: Publish Unit Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v1
+      if: always()
+      with:
+        files: testResults/junit-result.xml
