@@ -143,8 +143,8 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -gX POST {{ request.url_root }}api/v1/payments -d '{"from": &lt;string&gt;, "to": &lt;string&gt;,
-          "amount": &lt;int&gt;, "memo": &lt;string&gt;, "extra":
-          &lt;JSON object&gt;}' -H "X-Api-Key: <i>{{ wallet.adminkey }}</i>" -H
+          "amount": &lt;int&gt;, "memo": &lt;Optional string&gt;, "extra":
+          &lt;Optional JSON object&gt;}' -H "X-Api-Key: <i>{{ wallet.adminkey }}</i>" -H
           "Content-type: application/json"</code
         >
       </q-card-section>
