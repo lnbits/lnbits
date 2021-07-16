@@ -99,7 +99,6 @@
     dense
     expand-separator
     label="Check an invoice (incoming or outgoing)"
-    class="q-pb-md"
   >
     <q-card>
       <q-card-section>
@@ -118,6 +117,35 @@
           >curl -X GET {{ request.url_root
           }}api/v1/payments/&lt;payment_hash&gt; -H "X-Api-Key:
           <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
+        >
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create an internal transaction"
+    class="q-pb-md"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-green">POST</span>
+          /api/v1/payments/internal</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": "{{ wallet.adminkey }}"}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{"checking_id": &lt;string&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -gX POST {{ request.url_root }}api/v1/payments -d '{"from": &lt;string&gt;, "to": &lt;string&gt;,
+          "amount": &lt;int&gt;, "memo": &lt;string&gt;, "extra":
+          &lt;JSON object&gt;}' -H "X-Api-Key: <i>{{ wallet.adminkey }}</i>" -H
+          "Content-type: application/json"</code
         >
       </q-card-section>
     </q-card>
