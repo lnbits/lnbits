@@ -2,6 +2,7 @@
 	"info": {
 		"_postman_id": "80bb7e31-3942-4c1c-aed7-0394baaf158a",
 		"name": "Regression",
+		"description": "# Introduction\nWhat does your API do?\n\n# Overview\nThings that the developers should know about\n\n# Authentication\nWhat is the preferred way of using the API?\n\n# Error Codes\nWhat errors and status codes can a user expect?\n\n# Rate limit\nIs there a limit to the number of requests an user can send?",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -2288,6 +2289,1026 @@
 			]
 		},
 		{
+			"name": "LNURLw",
+			"item": [
+				{
+					"name": "CRUD withdraw links (user 1)",
+					"item": [
+						{
+							"name": "C empty body",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"",
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Error message returned.\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('message');",
+											"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'is_unique': ['required field'], 'max_withdrawable': ['required field'], 'min_withdrawable': ['required field'], 'title': ['required field'], 'uses': ['required field'], 'wait_time': ['required field']}\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C missing required fields",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"",
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});",
+											"",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Error message returned.\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('message');",
+											"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'is_unique': ['required field'], 'uses': ['required field'], 'wait_time': ['required field']}\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"LNRULw missing required fields\",\n    \"min_withdrawable\": 3,\n    \"max_withdrawable\": 5\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C required data",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_2_lnurlw_id_1\", jsonDataResponse.id);",
+											"pm.collectionVariables.set(\"user_2_lnurlw_lnurl_1\", jsonDataResponse.lnurl);",
+											"pm.collectionVariables.set(\"user_2_lnurlw_hash_1\", jsonDataResponse.unique_hash);",
+											"",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.max_withdrawable).to.eql(jsonDataRequest.max_withdrawable);",
+											"    pm.expect(jsonDataResponse.min_withdrawable).to.eql(jsonDataRequest.min_withdrawable);",
+											"    pm.expect(jsonDataResponse.title).to.eql(jsonDataRequest.title);",
+											"    pm.expect(jsonDataResponse.uses).to.eql(jsonDataRequest.uses);",
+											"    pm.expect(jsonDataResponse.wait_time).to.eql(jsonDataRequest.wait_time);",
+											"    // Below happens in lnbit code as well, stored as int.",
+											"    pm.expect(jsonDataResponse.is_unique).to.eql(Number(jsonDataRequest.is_unique));",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"LNRULw required data\",\n    \"min_withdrawable\": 3,\n    \"max_withdrawable\": 5,\n    \"uses\": 1,\n    \"wait_time\": 60,\n    \"is_unique\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "U required data",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.max_withdrawable).to.eql(jsonDataRequest.max_withdrawable);",
+											"    pm.expect(jsonDataResponse.min_withdrawable).to.eql(jsonDataRequest.min_withdrawable);",
+											"    pm.expect(jsonDataResponse.title).to.eql(jsonDataRequest.title);",
+											"    pm.expect(jsonDataResponse.uses).to.eql(jsonDataRequest.uses);",
+											"    pm.expect(jsonDataResponse.wait_time).to.eql(jsonDataRequest.wait_time);",
+											"    // Below happens in lnbit code as well, stored as int.",
+											"    pm.expect(Number(jsonDataResponse.is_unique)).to.eql(Number(jsonDataRequest.is_unique));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"LNRULw updated\",\n    \"min_withdrawable\": 5,\n    \"max_withdrawable\": 5,\n    \"uses\": 1,\n    \"wait_time\": 60,\n    \"is_unique\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links/{{user_2_lnurlw_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlw_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve specific withdraw link",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Main data paylink present\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('id');",
+											"    pm.expect(jsonDataResponse).to.have.property('lnurl');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links/{{user_2_lnurlw_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlw_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R hash check OK",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Hash checked and ok\", function () {",
+											"    pm.expect(jsonDataResponse.hash).to.eql(false);",
+											"    pm.expect(jsonDataResponse.lnurl).to.eql(true);",
+											"});",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links/{{user_2_lnurlw_hash_1}}/{{user_2_lnurlw_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlw_hash_1}}",
+										"{{user_2_lnurlw_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R hash check - exist now",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Hash ok\", function () {",
+											"    pm.expect(jsonDataResponse.hash).to.eql(true);",
+											"    pm.expect(jsonDataResponse.lnurl).to.eql(true);",
+											"});",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links/{{user_2_lnurlw_hash_1}}/{{user_2_lnurlw_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlw_hash_1}}",
+										"{{user_2_lnurlw_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve specific withdraw img",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Content-Type header is image/svg+xml\", function () {",
+											"    pm.expect(pm.response.headers.get('Content-Type')).to.include('image/svg+xml');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/img/{{user_2_lnurlw_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"img",
+										"{{user_2_lnurlw_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve created withdraw links",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var expected_result_count = 1",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Expected number of withdraw links returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_result_count);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Main data withdraw link \"+ (i + 1) +\" present\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('lnurl');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C second LNURLw",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_2_lnurlw_id_2\", jsonDataResponse.id);",
+											"pm.collectionVariables.set(\"user_2_lnurlw_lnurl_2\", jsonDataResponse.lnurl);",
+											"pm.collectionVariables.set(\"user_2_lnurlw_hash_2\", jsonDataResponse.unique_hash);",
+											"",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.max_withdrawable).to.eql(jsonDataRequest.max_withdrawable);",
+											"    pm.expect(jsonDataResponse.min_withdrawable).to.eql(jsonDataRequest.min_withdrawable);",
+											"    pm.expect(jsonDataResponse.title).to.eql(jsonDataRequest.title);",
+											"    pm.expect(jsonDataResponse.uses).to.eql(jsonDataRequest.uses);",
+											"    pm.expect(jsonDataResponse.wait_time).to.eql(jsonDataRequest.wait_time);",
+											"    // Below happens in lnbit code as well, stored as int.",
+											"    pm.expect(jsonDataResponse.is_unique).to.eql(Number(jsonDataRequest.is_unique));",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"LNRULw seconde withdraw link\",\n    \"min_withdrawable\": 4,\n    \"max_withdrawable\": 5,\n    \"uses\": 1,\n    \"wait_time\": 60,\n    \"is_unique\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R retrieve created withdraw links Copy",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var expected_result_count = 2",
+											"var jsonDataResponse = pm.response.json();",
+											"pm.test(\"Expected number of withdraw links returned\", function () {",
+											"    pm.expect(jsonDataResponse.length).to.eql(expected_result_count);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var count = 0;",
+											"for (var i = 0;i<jsonDataResponse.length;i++) {",
+											"    pm.test(\"Main data withdraw link \"+ (i + 1) +\" present\", function () {",
+											"    // wait for answer, expect to be     pm.expect(jsonDataResponse[i]).to.have.property('admin');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('id');",
+											"    pm.expect(jsonDataResponse[i]).to.have.property('lnurl');",
+											"});",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{user_2_invoice_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete created withdraw 1",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links/{{user_2_lnurlw_id_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlw_id_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete created withdraw 2",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 204\", function () {",
+											"    pm.response.to.have.status(204);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links/{{user_2_lnurlw_id_2}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links",
+										"{{user_2_lnurlw_id_2}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Create and withdraw LNURLw",
+					"item": [
+						{
+							"name": "C required data Copy",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"user_2_lnurlw_id_1\", jsonDataResponse.id);",
+											"pm.collectionVariables.set(\"user_2_lnurlw_lnurl_1\", jsonDataResponse.lnurl);",
+											"pm.collectionVariables.set(\"user_2_lnurlw_hash_1\", jsonDataResponse.unique_hash);",
+											"",
+											"",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test(\"Check required fields\", function () {",
+											"    pm.expect(jsonDataResponse.max_withdrawable).to.eql(jsonDataRequest.max_withdrawable);",
+											"    pm.expect(jsonDataResponse.min_withdrawable).to.eql(jsonDataRequest.min_withdrawable);",
+											"    pm.expect(jsonDataResponse.title).to.eql(jsonDataRequest.title);",
+											"    pm.expect(jsonDataResponse.uses).to.eql(jsonDataRequest.uses);",
+											"    pm.expect(jsonDataResponse.wait_time).to.eql(jsonDataRequest.wait_time);",
+											"    // Below happens in lnbit code as well, stored as int.",
+											"    pm.expect(jsonDataResponse.is_unique).to.eql(Number(jsonDataRequest.is_unique));",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"LNRULw required data\",\n    \"min_withdrawable\": 3,\n    \"max_withdrawable\": 5,\n    \"uses\": 1,\n    \"wait_time\": 60,\n    \"is_unique\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/withdraw/api/v1/links",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"withdraw",
+										"api",
+										"v1",
+										"links"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R scan lnurl Copy",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Check and assign callback\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('callback');",
+											"    pm.collectionVariables.set(\"lnurl_scan_callback\", jsonDataResponse.callback);",
+											"});",
+											"",
+											"pm.test(\"Check and assign min and max amount\", function () {",
+											"    pm.expect(jsonDataResponse).to.have.property('maxWithdrawable');",
+											"    pm.collectionVariables.set(\"lnurl_scan_max_amount\", jsonDataResponse.maxWithdrawable);",
+											"    ",
+											"    pm.expect(jsonDataResponse).to.have.property('minWithdrawable');",
+											"    pm.collectionVariables.set(\"lnurl_scan_min_amount\", jsonDataResponse.minWithdrawable);",
+											"});",
+											"",
+											"",
+											"pm.test(\"Check lnpay fields\", function () {",
+											"    pm.expect(jsonDataResponse.kind).to.eql(\"withdraw\");",
+											"    pm.expect(jsonDataResponse.tag).to.eql(\"withdrawRequest\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{E_host}}/api/v1/lnurlscan/{{user_2_lnurlw_lnurl_1}}",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"lnurlscan",
+										"{{user_2_lnurlw_lnurl_1}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "C create invoice Copy",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//{\"payment_hash\": <string>, \"payment_request\": <string>}",
+											"// Get request/response data",
+											"var jsonDataResponse = pm.response.json();",
+											"var jsonDataRequest = JSON.parse(request.data);",
+											"",
+											"// Set lnurlp id",
+											"pm.collectionVariables.set(\"main_user_payment_req\", jsonDataResponse.payment_request);",
+											"pm.collectionVariables.set(\"main_user_payment_hash\", jsonDataResponse.payment_hash);",
+											"",
+											"//Perform Checks",
+											"pm.test(\"Status code is 201\", function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"out\": false,\n    \"amount\": 5,\n    \"memo\": \"{{$randomFullName}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{E_host}}/api/v1/payments",
+									"host": [
+										"{{E_host}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payments"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"auth": {
+				"type": "apikey",
+				"apikey": [
+					{
+						"key": "value",
+						"value": "{{user_2_admin_key}}",
+						"type": "string"
+					},
+					{
+						"key": "key",
+						"value": "X-Api-Key",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
 			"name": "teardown",
 			"item": [
 				{
@@ -2800,6 +3821,156 @@
 					""
 				]
 			}
+		}
+	],
+	"variable": [
+		{
+			"key": "user_1_user_name",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_name",
+			"value": ""
+		},
+		{
+			"key": "user_1_user_id",
+			"value": ""
+		},
+		{
+			"key": "user_1_admin_key",
+			"value": ""
+		},
+		{
+			"key": "user_1_invoice_key",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_id",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_name_2",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_id_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_name",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_name",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_email",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_password",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_id",
+			"value": ""
+		},
+		{
+			"key": "user_2_admin_key",
+			"value": ""
+		},
+		{
+			"key": "user_2_invoice_key",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_id",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_name_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_id_2",
+			"value": ""
+		},
+		{
+			"key": "main_user_payment_req",
+			"value": ""
+		},
+		{
+			"key": "main_user_payment_hash",
+			"value": ""
+		},
+		{
+			"key": "user_1_balance",
+			"value": ""
+		},
+		{
+			"key": "user_1_lnurlp_id_1",
+			"value": ""
+		},
+		{
+			"key": "user_1_lnurlp_id_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlp_id_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlp_lnurl_1",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_callback",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_description_hash",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_max_amount",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_min_amount",
+			"value": ""
+		},
+		{
+			"key": "restore_lnurlp_id_1",
+			"value": ""
+		},
+		{
+			"key": "restore_lnurlp_lnurl_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_id_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_lnurl_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_hash_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_id_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_lnurl_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_hash_2",
+			"value": ""
 		}
 	]
 }
