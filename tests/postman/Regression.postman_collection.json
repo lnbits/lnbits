@@ -3067,7 +3067,7 @@
 					"name": "Create and withdraw LNURLw",
 					"item": [
 						{
-							"name": "C required data Copy",
+							"name": "C lnurw end2end",
 							"event": [
 								{
 									"listen": "test",
@@ -3096,6 +3096,10 @@
 											"    // Below happens in lnbit code as well, stored as int.",
 											"    pm.expect(jsonDataResponse.is_unique).to.eql(Number(jsonDataRequest.is_unique));",
 											"});",
+											"",
+											"// Wait one second before withdraw start",
+											"setTimeout(() => {}, 1000); ",
+											"",
 											""
 										],
 										"type": "text/javascript"
@@ -3107,7 +3111,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"title\": \"LNRULw required data\",\n    \"min_withdrawable\": 3,\n    \"max_withdrawable\": 5,\n    \"uses\": 1,\n    \"wait_time\": 60,\n    \"is_unique\": true\n}",
+									"raw": "{\n    \"title\": \"LNRULw end2end test\",\n    \"min_withdrawable\": 3,\n    \"max_withdrawable\": 5,\n    \"uses\": 1,\n    \"wait_time\": 1,\n    \"is_unique\": true\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -3130,7 +3134,7 @@
 							"response": []
 						},
 						{
-							"name": "R scan lnurl Copy",
+							"name": "R scan lnurlw",
 							"event": [
 								{
 									"listen": "test",
@@ -3200,7 +3204,7 @@
 							"response": []
 						},
 						{
-							"name": "C create invoice Copy",
+							"name": "C create invoice",
 							"event": [
 								{
 									"listen": "test",
@@ -3212,8 +3216,7 @@
 											"var jsonDataRequest = JSON.parse(request.data);",
 											"",
 											"// Set lnurlp id",
-											"pm.collectionVariables.set(\"main_user_payment_req\", jsonDataResponse.payment_request);",
-											"pm.collectionVariables.set(\"main_user_payment_hash\", jsonDataResponse.payment_hash);",
+											"pm.collectionVariables.set(\"lnurl_withdraw_invoice\", jsonDataResponse.payment_request);",
 											"",
 											"//Perform Checks",
 											"pm.test(\"Status code is 201\", function () {",
@@ -3248,7 +3251,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"out\": false,\n    \"amount\": 5,\n    \"memo\": \"{{$randomFullName}}\"\n}",
+									"raw": "{\n    \"out\": false,\n    \"amount\": 5,\n    \"memo\": \"LNRULw end2end test\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -3264,6 +3267,105 @@
 										"api",
 										"v1",
 										"payments"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R Send invoice",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Status OK\", function () {",
+											"    pm.expect(jsonDataResponse.status).to.eql(\"OK\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{lnurl_scan_callback}}&pr={{lnurl_withdraw_invoice}}",
+									"host": [
+										"{{lnurl_scan_callback}}&pr={{lnurl_withdraw_invoice}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "R Send invoice second time",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"//Get response data",
+											"var jsonDataResponse = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Status OK\", function () {",
+											"    pm.expect(jsonDataResponse.status).to.eql(\"ERROR\");",
+											"    pm.expect(jsonDataResponse.reason).to.eql(\"Withdraw is spent.\");",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "apikey",
+									"apikey": [
+										{
+											"key": "value",
+											"value": "{{E_admin_key}}",
+											"type": "string"
+										},
+										{
+											"key": "key",
+											"value": "X-Api-Key",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{lnurl_scan_callback}}&pr={{lnurl_withdraw_invoice}}",
+									"host": [
+										"{{lnurl_scan_callback}}&pr={{lnurl_withdraw_invoice}}"
 									]
 								}
 							},
@@ -3311,317 +3413,6 @@
 		{
 			"name": "teardown",
 			"item": [
-				{
-					"name": "Restore balance user 2",
-					"item": [
-						{
-							"name": "C create LNURLp by user_2",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"//Get response data",
-											"var jsonDataResponse = pm.response.json();",
-											"var jsonDataRequest = JSON.parse(request.data);",
-											"",
-											"// Set lnurlp id",
-											"pm.collectionVariables.set(\"restore_lnurlp_id_1\", jsonDataResponse.id);",
-											"pm.collectionVariables.set(\"restore_lnurlp_lnurl_1\", jsonDataResponse.lnurl);",
-											"",
-											"pm.test(\"Status code is 201\", function () {",
-											"    pm.response.to.have.status(201);",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"auth": {
-									"type": "apikey",
-									"apikey": [
-										{
-											"key": "value",
-											"value": "{{E_admin_key}}",
-											"type": "string"
-										},
-										{
-											"key": "key",
-											"value": "X-Api-Key",
-											"type": "string"
-										}
-									]
-								},
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"description\": \"Restore balance user 2\",\n    \"amount\": 5,\n    \"max\": 5,\n    \"min\": 5,\n    \"comment_chars\": 50\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{E_host}}/lnurlp/api/v1/links",
-									"host": [
-										"{{E_host}}"
-									],
-									"path": [
-										"lnurlp",
-										"api",
-										"v1",
-										"links"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "R retrieve specific paylink",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"var jsonDataResponse = pm.response.json();",
-											"",
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"protocolProfileBehavior": {
-								"disableBodyPruning": true
-							},
-							"request": {
-								"auth": {
-									"type": "apikey",
-									"apikey": [
-										{
-											"key": "value",
-											"value": "{{E_admin_key}}",
-											"type": "string"
-										},
-										{
-											"key": "key",
-											"value": "X-Api-Key",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{E_host}}/lnurlp/api/v1/links/{{restore_lnurlp_id_1}}",
-									"host": [
-										"{{E_host}}"
-									],
-									"path": [
-										"lnurlp",
-										"api",
-										"v1",
-										"links",
-										"{{restore_lnurlp_id_1}}"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "R scan lnurl",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"//Get response data",
-											"var jsonDataResponse = pm.response.json();",
-											"",
-											"pm.test(\"Status code is 200\", function () {",
-											"    pm.response.to.have.status(200);",
-											"});",
-											"",
-											"pm.test(\"Check and assign callback\", function () {",
-											"    pm.expect(jsonDataResponse).to.have.property('callback');",
-											"    pm.collectionVariables.set(\"lnurl_scan_callback\", jsonDataResponse.callback);",
-											"});",
-											"",
-											"pm.test(\"Check and assign description hash\", function () {",
-											"    pm.expect(jsonDataResponse).to.have.property('description_hash');",
-											"    pm.collectionVariables.set(\"lnurl_scan_description_hash\", jsonDataResponse.description_hash);",
-											"});",
-											"",
-											"pm.test(\"Check and assign min and max amount\", function () {",
-											"    pm.expect(jsonDataResponse).to.have.property('maxSendable');",
-											"    pm.collectionVariables.set(\"lnurl_scan_max_amount\", jsonDataResponse.maxSendable);",
-											"    ",
-											"    pm.expect(jsonDataResponse).to.have.property('minSendable');",
-											"    pm.collectionVariables.set(\"lnurl_scan_min_amount\", jsonDataResponse.minSendable);",
-											"});",
-											"",
-											"",
-											"pm.test(\"Check lnpay fields\", function () {",
-											"    pm.expect(jsonDataResponse.kind).to.eql(\"pay\");",
-											"    pm.expect(jsonDataResponse.tag).to.eql(\"payRequest\");",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"auth": {
-									"type": "apikey",
-									"apikey": [
-										{
-											"key": "value",
-											"value": "{{user_2_admin_key}}",
-											"type": "string"
-										},
-										{
-											"key": "key",
-											"value": "X-Api-Key",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{E_host}}/api/v1/lnurlscan/{{restore_lnurlp_lnurl_1}}",
-									"host": [
-										"{{E_host}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"lnurlscan",
-										"{{restore_lnurlp_lnurl_1}}"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "C pay LNURLp by user_1",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"// Get request/response data",
-											"var jsonDataResponse = pm.response.json();",
-											"var jsonDataRequest = JSON.parse(request.data);",
-											"",
-											"//Perform Checks",
-											"pm.test(\"Status code is 201\", function () {",
-											"    pm.response.to.have.status(201);",
-											"});",
-											"",
-											"pm.test(\"Check response fields\", function () {",
-											"    pm.expect(jsonDataResponse).to.have.property('checking_id');",
-											"    pm.expect(jsonDataResponse).to.have.property('payment_hash');",
-											"    pm.expect(jsonDataResponse).to.have.property('success_action');",
-											"});"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"auth": {
-									"type": "apikey",
-									"apikey": [
-										{
-											"key": "value",
-											"value": "{{user_2_admin_key}}",
-											"type": "string"
-										},
-										{
-											"key": "key",
-											"value": "X-Api-Key",
-											"type": "string"
-										}
-									]
-								},
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n    \"amount\": {{lnurl_scan_max_amount}},\n    \"callback\": \"{{lnurl_scan_callback}}\",\n    \"description_hash\": \"{{lnurl_scan_description_hash}}\",\n    \"comment\": \"Restore balance\"\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{E_host}}/api/v1/payments/lnurl",
-									"host": [
-										"{{E_host}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"payments",
-										"lnurl"
-									]
-								}
-							},
-							"response": []
-						}
-					],
-					"auth": {
-						"type": "apikey",
-						"apikey": [
-							{
-								"key": "key",
-								"value": "X-Api-Key",
-								"type": "string"
-							},
-							{
-								"key": "value",
-								"value": "{{user_2_invoice_key}}",
-								"type": "string"
-							}
-						]
-					},
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									""
-								]
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									""
-								]
-							}
-						}
-					]
-				},
 				{
 					"name": "Delete user",
 					"item": [
@@ -3970,6 +3761,10 @@
 		},
 		{
 			"key": "user_2_lnurlw_hash_2",
+			"value": ""
+		},
+		{
+			"key": "lnurl_withdraw_invoice",
 			"value": ""
 		}
 	]
