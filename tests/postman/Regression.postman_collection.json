@@ -3411,6 +3411,1220 @@
 			]
 		},
 		{
+			"name": "Paywall",
+			"item": [
+				{
+					"name": "Create empty paywall",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(\"Error message returned.\", function () {",
+									"    pm.expect(jsonDataResponse).to.have.property('message');",
+									"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'amount': ['required field'], 'memo': ['required field'], 'remembers': ['required field'], 'url': ['required field']}\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create paywall missing field",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(\"Error message returned.\", function () {",
+									"    pm.expect(jsonDataResponse).to.have.property('message');",
+									"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'url': ['required field']}\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1,\n    \"memo\": \"Create paywall - regression test\",\n    \"remembers\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create paywall minimum set data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Get response data",
+									"var jsonDataResponse = pm.response.json();",
+									"var jsonDataRequest = JSON.parse(request.data);",
+									"",
+									"// Set lnurlp id",
+									"pm.collectionVariables.set(\"paywall_id_1\", jsonDataResponse.id);",
+									"pm.collectionVariables.set(\"paywall_amount_1\", jsonDataResponse.amount);",
+									"",
+									"",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Check required fields\", function () {",
+									"    pm.expect(jsonDataResponse.amount).to.eql(jsonDataRequest.amount);",
+									"    pm.expect(jsonDataResponse.memo).to.eql(jsonDataRequest.memo);",
+									"    pm.expect(jsonDataResponse.remembers).to.eql(jsonDataRequest.remembers);",
+									"    pm.expect(jsonDataResponse.url).to.eql(jsonDataRequest.url);",
+									"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1,\n    \"memo\": \"Create paywall - regression test\",\n    \"remembers\": true,\n    \"url\": \"https://lnbits.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List paywalls check 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Store data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected_paywalls = 1",
+									"pm.test(expected_paywalls + \" paywall(s) returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected_paywalls);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_1_invoice_key}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Api-Key",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create paywall max data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Get response data",
+									"var jsonDataResponse = pm.response.json();",
+									"var jsonDataRequest = JSON.parse(request.data);",
+									"",
+									"// Set lnurlp id",
+									"pm.collectionVariables.set(\"paywall_id_2\", jsonDataResponse.id);",
+									"",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Check required fields\", function () {",
+									"    pm.expect(jsonDataResponse.amount).to.eql(jsonDataRequest.amount);",
+									"    pm.expect(jsonDataResponse.memo).to.eql(jsonDataRequest.memo);",
+									"    pm.expect(jsonDataResponse.remembers).to.eql(jsonDataRequest.remembers);",
+									"    pm.expect(jsonDataResponse.url).to.eql(jsonDataRequest.url);",
+									"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+									"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1,\n    \"memo\": \"Create paywall - regression test second paywall\",\n    \"remembers\": true,\n    \"url\": \"https://lnbits.com\",\n    \"description\": \"{{$randomLoremSentence}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List paywalls check 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Store data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected_paywalls = 2",
+									"pm.test(expected_paywalls + \" paywall(s) returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected_paywalls);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_1_invoice_key}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Api-Key",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create paywall invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.collectionVariables.set(\"paywall_payment_hash_1\", jsonDataResponse.payment_hash);",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Main data paywall paylink present\", function () {",
+									"    pm.expect(jsonDataResponse).to.have.property('payment_hash');",
+									"    pm.expect(jsonDataResponse).to.have.property('payment_request');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": {{paywall_amount_1}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls/{{paywall_id_1}}/invoice",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls",
+								"{{paywall_id_1}}",
+								"invoice"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check paywall invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Correct invoice status\", function () {",
+									"    pm.expect(jsonDataResponse.paid).to.eql(false);",
+									"",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_hash\": \"{{paywall_payment_hash_1}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls/{{paywall_id_1}}/check_invoice",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls",
+								"{{paywall_id_1}}",
+								"check_invoice"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete paywall 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls/{{paywall_id_1}}",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls",
+								"{{paywall_id_1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete paywall 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls/{{paywall_id_2}}",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls",
+								"{{paywall_id_2}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List paywalls check 3",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Store data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected_paywalls = 0",
+									"pm.test(expected_paywalls + \" paywall(s) returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected_paywalls);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_1_invoice_key}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Api-Key",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/paywall/api/v1/paywalls",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"paywall",
+								"api",
+								"v1",
+								"paywalls"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "apikey",
+				"apikey": [
+					{
+						"key": "value",
+						"value": "{{user_1_admin_key}}",
+						"type": "string"
+					},
+					{
+						"key": "key",
+						"value": "X-Api-Key",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Captcha",
+			"item": [
+				{
+					"name": "Create empty captcha",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(\"Error message returned.\", function () {",
+									"    pm.expect(jsonDataResponse).to.have.property('message');",
+									"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'amount': ['required field'], 'memo': ['required field'], 'remembers': ['required field'], 'url': ['required field']}\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create captcha missing field",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(\"Error message returned.\", function () {",
+									"    pm.expect(jsonDataResponse).to.have.property('message');",
+									"    pm.expect(jsonDataResponse.message).to.contain(\"Errors in request data: {'url': ['required field']}\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1,\n    \"memo\": \"Create captcha - regression test\",\n    \"remembers\": true\n} ",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create captcha minimum set data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Get response data",
+									"var jsonDataResponse = pm.response.json();",
+									"var jsonDataRequest = JSON.parse(request.data);",
+									"",
+									"// Set lnurlp id",
+									"pm.collectionVariables.set(\"captcha_id_1\", jsonDataResponse.id);",
+									"pm.collectionVariables.set(\"captcha_amount_1\", jsonDataResponse.amount);",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Check required fields\", function () {",
+									"    pm.expect(jsonDataResponse.amount).to.eql(jsonDataRequest.amount);",
+									"    pm.expect(jsonDataResponse.memo).to.eql(jsonDataRequest.memo);",
+									"    pm.expect(jsonDataResponse.remembers).to.eql(jsonDataRequest.remembers);",
+									"    pm.expect(jsonDataResponse.url).to.eql(jsonDataRequest.url);",
+									"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1,\n    \"memo\": \"Create captcha - regression test\",\n    \"remembers\": true,\n    \"url\": \"https://lnbits.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List captcha check 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Store data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected = 1",
+									"pm.test(expected + \" captcha(s) returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_1_invoice_key}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Api-Key",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create paywall max data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Get response data",
+									"var jsonDataResponse = pm.response.json();",
+									"var jsonDataRequest = JSON.parse(request.data);",
+									"",
+									"// Set lnurlp id",
+									"pm.collectionVariables.set(\"captcha_id_2\", jsonDataResponse.id);",
+									"",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Check required fields\", function () {",
+									"    pm.expect(jsonDataResponse.amount).to.eql(jsonDataRequest.amount);",
+									"    pm.expect(jsonDataResponse.memo).to.eql(jsonDataRequest.memo);",
+									"    pm.expect(jsonDataResponse.remembers).to.eql(jsonDataRequest.remembers);",
+									"    pm.expect(jsonDataResponse.url).to.eql(jsonDataRequest.url);",
+									"    pm.expect(jsonDataResponse.description).to.eql(jsonDataRequest.description);",
+									"    pm.expect(jsonDataResponse.wallet).to.eql(pm.collectionVariables.get(\"user_1_wallet_id\"));",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1,\n    \"memo\": \"Create captcha - regression test second captcha\",\n    \"remembers\": true,\n    \"url\": \"https://lnbits.com\",\n    \"description\": \"{{$randomLoremSentence}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List captchas check 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Store data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected = 2",
+									"pm.test(expected + \" captcha(s) returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_1_invoice_key}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Api-Key",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create captcha invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.collectionVariables.set(\"captcha_payment_hash_1\", jsonDataResponse.payment_hash);",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Main data captcha paylink present\", function () {",
+									"    pm.expect(jsonDataResponse).to.have.property('payment_hash');",
+									"    pm.expect(jsonDataResponse).to.have.property('payment_request');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": {{paywall_amount_1}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas/{{captcha_id_1}}/invoice",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas",
+								"{{captcha_id_1}}",
+								"invoice"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check captcha invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonDataResponse = pm.response.json();",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Correct invoice status\", function () {",
+									"    pm.expect(jsonDataResponse.paid).to.eql(false);",
+									"",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_hash\": \"{{paywall_payment_hash_1}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas/{{captcha_id_1}}/check_invoice",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas",
+								"{{captcha_id_1}}",
+								"check_invoice"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete captcha 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas/{{captcha_id_1}}",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas",
+								"{{captcha_id_1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete paywall 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas/{{captcha_id_2}}",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas",
+								"{{captcha_id_2}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List captcha check 3",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Store data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var expected_paywalls = 0",
+									"pm.test(expected_paywalls + \" paywall(s) returned\", function () {",
+									"    pm.expect(jsonDataResponse.length).to.eql(expected_paywalls);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_1_invoice_key}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "X-Api-Key",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{E_host}}/captcha/api/v1/captchas",
+							"host": [
+								"{{E_host}}"
+							],
+							"path": [
+								"captcha",
+								"api",
+								"v1",
+								"captchas"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "apikey",
+				"apikey": [
+					{
+						"key": "value",
+						"value": "{{user_1_admin_key}}",
+						"type": "string"
+					},
+					{
+						"key": "key",
+						"value": "X-Api-Key",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
 			"name": "teardown",
 			"item": [
 				{
@@ -3612,160 +4826,6 @@
 					""
 				]
 			}
-		}
-	],
-	"variable": [
-		{
-			"key": "user_1_user_name",
-			"value": ""
-		},
-		{
-			"key": "user_1_wallet_name",
-			"value": ""
-		},
-		{
-			"key": "user_1_user_id",
-			"value": ""
-		},
-		{
-			"key": "user_1_admin_key",
-			"value": ""
-		},
-		{
-			"key": "user_1_invoice_key",
-			"value": ""
-		},
-		{
-			"key": "user_1_wallet_id",
-			"value": ""
-		},
-		{
-			"key": "user_1_wallet_name_2",
-			"value": ""
-		},
-		{
-			"key": "user_1_wallet_id_2",
-			"value": ""
-		},
-		{
-			"key": "user_2_user_name",
-			"value": ""
-		},
-		{
-			"key": "user_2_wallet_name",
-			"value": ""
-		},
-		{
-			"key": "user_2_user_email",
-			"value": ""
-		},
-		{
-			"key": "user_2_user_password",
-			"value": ""
-		},
-		{
-			"key": "user_2_user_id",
-			"value": ""
-		},
-		{
-			"key": "user_2_admin_key",
-			"value": ""
-		},
-		{
-			"key": "user_2_invoice_key",
-			"value": ""
-		},
-		{
-			"key": "user_2_wallet_id",
-			"value": ""
-		},
-		{
-			"key": "user_2_wallet_name_2",
-			"value": ""
-		},
-		{
-			"key": "user_2_wallet_id_2",
-			"value": ""
-		},
-		{
-			"key": "main_user_payment_req",
-			"value": ""
-		},
-		{
-			"key": "main_user_payment_hash",
-			"value": ""
-		},
-		{
-			"key": "user_1_balance",
-			"value": ""
-		},
-		{
-			"key": "user_1_lnurlp_id_1",
-			"value": ""
-		},
-		{
-			"key": "user_1_lnurlp_id_2",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlp_id_1",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlp_lnurl_1",
-			"value": ""
-		},
-		{
-			"key": "lnurl_scan_callback",
-			"value": ""
-		},
-		{
-			"key": "lnurl_scan_description_hash",
-			"value": ""
-		},
-		{
-			"key": "lnurl_scan_max_amount",
-			"value": ""
-		},
-		{
-			"key": "lnurl_scan_min_amount",
-			"value": ""
-		},
-		{
-			"key": "restore_lnurlp_id_1",
-			"value": ""
-		},
-		{
-			"key": "restore_lnurlp_lnurl_1",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlw_id_1",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlw_lnurl_1",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlw_hash_1",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlw_id_2",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlw_lnurl_2",
-			"value": ""
-		},
-		{
-			"key": "user_2_lnurlw_hash_2",
-			"value": ""
-		},
-		{
-			"key": "lnurl_withdraw_invoice",
-			"value": ""
 		}
 	]
 }
