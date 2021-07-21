@@ -23,7 +23,7 @@ async def create_usermanager_user(
     admin_id: str,
     email: Optional[str] = None,
     password: Optional[str] = None,
-    custom_id: Optional[str] = "",
+    custom_id: Optional[str] = None,
     metadata: Optional[Dict] = None,
 ) -> Users:
     account = await create_account()
@@ -31,7 +31,6 @@ async def create_usermanager_user(
     assert user, "Newly created user couldn't be retrieved"
 
     wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
-    custom_ID = custom_id if custom_id and type(custom_id) is str else ""
     meta = json.dumps(metadata) if metadata and metadata != {} and type(metadata) is dict else None
 
     await db.execute(
@@ -46,7 +45,7 @@ async def create_usermanager_user(
             email,
             password,
             meta,
-            custom_ID,
+            custom_id,
         ),
     )
 
