@@ -23,6 +23,7 @@ async def create_usermanager_user(
     admin_id: str,
     email: Optional[str] = None,
     password: Optional[str] = None,
+    custom_id: Optional[str] = "",
     metadata: Optional[Dict] = None,
 ) -> Users:
     account = await create_account()
@@ -30,12 +31,13 @@ async def create_usermanager_user(
     assert user, "Newly created user couldn't be retrieved"
 
     wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+    custom_ID = custom_id if custom_id and type(custom_id) is str else ""
     meta = json.dumps(metadata) if metadata and metadata != {} and type(metadata) is dict else None
-    
+
     await db.execute(
         """
-        INSERT INTO usermanager.users (id, name, admin, email, password, metadata)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO usermanager.users (id, name, admin, email, password, metadata, custom_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user.id,
@@ -44,6 +46,7 @@ async def create_usermanager_user(
             email,
             password,
             meta,
+            custom_ID,
         ),
     )
 
@@ -70,7 +73,8 @@ async def get_usermanager_users(user_id: str) -> List[Users]:
     rows = await db.fetchall(
         "SELECT * FROM usermanager.users WHERE admin = ?", (user_id,)
     )
-    return [Users(**row) for row in rows]
+    for row in rows: print(row)
+    return [Users.from_row(row) for row in rows]#[Users(**row) for row in rows]
 
 
 async def delete_usermanager_user(user_id: str) -> None:

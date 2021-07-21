@@ -52,7 +52,8 @@ async def api_usermanager_user(user_id):
         "admin_id": {"type": "string", "empty": False, "required": True},
         "email": {"type": "string", "required": False},
         "password": {"type": "string", "required": False},
-        "metadata": {"required": False},
+        "custom_id": {"type": "string", "required": False},
+        "metadata": {"type": "dict", "required": False},
     }
 )
 async def api_usermanager_users_create():

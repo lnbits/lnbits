@@ -10,6 +10,7 @@ class Users(NamedTuple):
     email: str
     password: str
     metadata: Dict
+    custom_id: str
 
     @classmethod
     def from_row(cls, row: Row) -> "Users":
@@ -20,6 +21,7 @@ class Users(NamedTuple):
             email=row["email"],
             password=row["password"],
             metadata=json.loads(row["metadata"] or "{}"),
+            custom_id=row["custom_id"] or "",
         )
 
 

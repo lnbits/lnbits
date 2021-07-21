@@ -35,6 +35,8 @@ async def m001_initial(db):
 async def m002_add_fields_to_users(db):
     try:
         await db.execute("ALTER TABLE usermanager.users ADD COLUMN metadata TEXT DEFAULT '{}'")
+        await db.execute("ALTER TABLE usermanager.users ADD COLUMN custom_id TEXT DEFAULT ''")
+        await db.execute("CREATE UNIQUE INDEX idx_customID ON usermanager.users(admin, custom_id)")
 
     except OperationalError:
         # this is necessary now because it may be the case that this migration will

@@ -329,7 +329,7 @@
             wallet_name: this.userDialog.data.walname,
             email: this.userDialog.data.email,
             password: this.userDialog.data.password,
-            metadata: JSON.parse(this.userDialog.data.metadata)
+            metadata: this.userDialog.data.metadata ? JSON.parse(this.userDialog.data.metadata) : {}
           }
         }
 
