@@ -83,7 +83,7 @@ async def check_pending_payments():
 
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
-        incoming = False
+        incoming = True
 
         await trio.sleep(60 * 30)  # every 30 minutes
 
