@@ -107,7 +107,7 @@
 											"});",
 											"",
 											"pm.test(\"Sufficient balance on main account to continue test\", function () {",
-											"    pm.expect(jsonDataResponse.balance).to.greaterThan(99999);",
+											"    pm.expect(jsonDataResponse.balance).to.greaterThan(50000);",
 											"});",
 											"",
 											""
@@ -1999,6 +1999,8 @@
 											"pm.collectionVariables.set(\"user_2_lnurlp_id_1\", jsonDataResponse.id);",
 											"pm.collectionVariables.set(\"user_2_lnurlp_lnurl_1\", jsonDataResponse.lnurl);",
 											"",
+											"pm.collectionVariables.set(\"webhook_lnurlp\", jsonDataRequest.webhook_url);",
+											"",
 											"pm.test(\"Status code is 201\", function () {",
 											"    pm.response.to.have.status(201);",
 											"});",
@@ -2030,7 +2032,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"description\": \"{{$randomLoremWords}}\",\n    \"amount\": 5,\n    \"max\": 5,\n    \"min\": 5,\n    \"comment_chars\": 50\n}",
+									"raw": "{\n    \"description\": \"{{$randomLoremWords}}\",\n    \"amount\": 5,\n    \"max\": 5,\n    \"min\": 5,\n    \"comment_chars\": 50,\n    \"webhook_url\": \"https://webhooktester.lnshort.it/webhook/{{$guid}}\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -4625,6 +4627,61 @@
 			]
 		},
 		{
+			"name": "WebhookValidation",
+			"item": [
+				{
+					"name": "ValidateWebhook LNURLp",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"//Get response data",
+									"var jsonDataResponse = pm.response.json();",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check webhook lnurl id\", function () {",
+									"    pm.expect(jsonDataResponse.lnurlp).to.eql(pm.collectionVariables.get(\"user_2_lnurlp_id_1\"));",
+									"});",
+									"",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{webhook_lnurlp}}",
+							"host": [
+								"{{webhook_lnurlp}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "teardown",
 			"item": [
 				{
@@ -4826,6 +4883,188 @@
 					""
 				]
 			}
+		}
+	],
+	"variable": [
+		{
+			"key": "user_1_user_name",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_name",
+			"value": ""
+		},
+		{
+			"key": "user_1_user_id",
+			"value": ""
+		},
+		{
+			"key": "user_1_admin_key",
+			"value": ""
+		},
+		{
+			"key": "user_1_invoice_key",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_id",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_name_2",
+			"value": ""
+		},
+		{
+			"key": "user_1_wallet_id_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_name",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_name",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_email",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_password",
+			"value": ""
+		},
+		{
+			"key": "user_2_user_id",
+			"value": ""
+		},
+		{
+			"key": "user_2_admin_key",
+			"value": ""
+		},
+		{
+			"key": "user_2_invoice_key",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_id",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_name_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_wallet_id_2",
+			"value": ""
+		},
+		{
+			"key": "main_user_payment_req",
+			"value": ""
+		},
+		{
+			"key": "main_user_payment_hash",
+			"value": ""
+		},
+		{
+			"key": "user_1_balance",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_id_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_lnurl_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_hash_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_id_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_lnurl_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlw_hash_2",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_callback",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_max_amount",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_min_amount",
+			"value": ""
+		},
+		{
+			"key": "lnurl_withdraw_invoice",
+			"value": ""
+		},
+		{
+			"key": "user_1_lnurlp_id_1",
+			"value": ""
+		},
+		{
+			"key": "user_1_lnurlp_id_2",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlp_id_1",
+			"value": ""
+		},
+		{
+			"key": "user_2_lnurlp_lnurl_1",
+			"value": ""
+		},
+		{
+			"key": "webhook_lnurlp",
+			"value": ""
+		},
+		{
+			"key": "lnurl_scan_description_hash",
+			"value": ""
+		},
+		{
+			"key": "paywall_id_1",
+			"value": ""
+		},
+		{
+			"key": "paywall_amount_1",
+			"value": ""
+		},
+		{
+			"key": "paywall_id_2",
+			"value": ""
+		},
+		{
+			"key": "paywall_payment_hash_1",
+			"value": ""
+		},
+		{
+			"key": "captcha_id_1",
+			"value": ""
+		},
+		{
+			"key": "captcha_amount_1",
+			"value": ""
+		},
+		{
+			"key": "captcha_id_2",
+			"value": ""
+		},
+		{
+			"key": "captcha_payment_hash_1",
+			"value": ""
 		}
 	]
 }
