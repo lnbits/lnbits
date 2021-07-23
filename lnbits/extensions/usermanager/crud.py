@@ -67,6 +67,10 @@ async def get_usermanager_user(user_id: str) -> Optional[Users]:
     row = await db.fetchone("SELECT * FROM usermanager.users WHERE id = ?", (user_id,))
     return Users.from_row(row) if row else None
 
+async def get_usermanager_user_by_custom_id(custom_id: str) -> Optional[Users]:
+    row = await db.fetchone("SELECT * FROM usermanager.users WHERE custom_id = ?", (custom_id,))
+    return Users.from_row(row) if row else None
+
 
 async def get_usermanager_users(user_id: str) -> List[Users]:
     rows = await db.fetchall(

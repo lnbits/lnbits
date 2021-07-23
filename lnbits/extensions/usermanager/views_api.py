@@ -8,6 +8,7 @@ from . import usermanager_ext
 from .crud import (
     create_usermanager_user,
     get_usermanager_user,
+    get_usermanager_user_by_custom_id,
     get_usermanager_users,
     get_usermanager_wallet_transactions,
     delete_usermanager_user,
@@ -37,6 +38,15 @@ async def api_usermanager_users():
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_user(user_id):
     user = await get_usermanager_user(user_id)
+    return (
+        jsonify(user._asdict()),
+        HTTPStatus.OK,
+    )
+
+@usermanager_ext.route("/api/v1/users/custom/<custom_id>", methods=["GET"])
+@api_check_wallet_key(key_type="invoice")
+async def api_usermanager_user_by_custom_id(custom_id):
+    user = await get_usermanager_user_by_custom_id(custom_id)
     return (
         jsonify(user._asdict()),
         HTTPStatus.OK,
