@@ -1,7 +1,10 @@
+import json
 from quart import url_for
-from lnurl import Lnurl, LnurllnurlflipResponse, encode as lnurl_encode  # type: ignore
+from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
+from lnurl.types import LnurlPayMetadata  # type: ignore
 from sqlite3 import Row
-from typing import NamedTuple
+from typing import NamedTuple, Optional, Dict
 import shortuuid  # type: ignore
 
 
@@ -61,6 +64,7 @@ class lnurlflipWithdraw(NamedTuple):
     unique_hash: str
     k1: str
     odds: float
+    actual_odds: float
     open_time: int
     current_odds: float
     open_time: int
@@ -85,16 +89,24 @@ class lnurlflipWithdraw(NamedTuple):
         return lnurl_encode(url)
 
     @property
-    def lnurl_response(self) -> LnurllnurlflipResponse:
+    def lnurl_response(self) -> LnurlWithdrawResponse:
         url = url_for(
             "lnurlflip.api_lnurlw_callback",
             unique_hash=self.unique_hash,
             _external=True,
         )
-        return LnurllnurlflipResponse(
+        return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,
             min_lnurlflipable=self.value * 1000,
             max_lnurlflipable=self.value * 1000,
             default_description=self.title,
         )
+
+class HashCheck(NamedTuple):
+    id: str
+    lnurl_id: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Hash":
+        return cls(**dict(row))

@@ -10,8 +10,9 @@ async def m001_initial(db):
             title TEXT,
             amount INTEGER DEFAULT 1,
             served_meta INTEGER NOT NULL,
-            served_pr INTEGER NOT NULL
+            served_pr INTEGER NOT NULL,
             odds FLOAT,
+            actual_odds FLOAT,
             current_odds FLOAT,
             open_time INTEGER
         );

@@ -17,10 +17,121 @@ from .crud import (
     get_lnurlflip_withdraws,
     update_lnurlflip_withdraw,
     delete_lnurlflip_withdraw,
-    create_withdraw_hash_check,
-    get_withdraw_hash_check,
+    create_withdraw_hash_check
 )
+################LNURL pay
 
+@lnurlflip_ext.route("/api/v1/links", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_links():
+    wallet_ids = [g.wallet.id]
+
+    if "all_wallets" in request.args:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
+    try:
+        return (
+            jsonify(
+                [
+                    {**link._asdict(), **{"lnurl": link.lnurl}}
+                    for link in await get_lnurlflip_pays(wallet_ids)
+                ]
+            ),
+            HTTPStatus.OK,
+        )
+    except LnurlInvalidUrl:
+        return (
+            jsonify(
+                {
+                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
+                }
+            ),
+            HTTPStatus.UPGRADE_REQUIRED,
+        )
+
+
+@lnurlflip_ext.route("/api/v1/links/<link_id>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_link_retrieve(link_id):
+    link = await get_pay_link(link_id)
+
+    if not link:
+        return jsonify({"message": "Pay link does not exist."}), HTTPStatus.NOT_FOUND
+
+    if link.wallet != g.wallet.id:
+        return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
+
+    return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK
+
+
+@lnurlflip_ext.route("/api/v1/links", methods=["POST"])
+@lnurlflip_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+@api_validate_post_request(
+    schema={
+        "description": {"type": "string", "empty": False, "required": True},
+        "min": {"type": "number", "min": 0.01, "required": True},
+        "max": {"type": "number", "min": 0.01, "required": True},
+        "currency": {"type": "string", "nullable": True, "required": False},
+        "comment_chars": {"type": "integer", "required": True, "min": 0, "max": 800},
+        "webhook_url": {"type": "string", "required": False},
+        "success_text": {"type": "string", "required": False},
+        "success_url": {"type": "string", "required": False},
+    }
+)
+async def api_link_create_or_update(link_id=None):
+    if g.data["min"] > g.data["max"]:
+        return jsonify({"message": "Min is greater than max."}), HTTPStatus.BAD_REQUEST
+
+    if g.data.get("currency") == None and (
+        round(g.data["min"]) != g.data["min"] or round(g.data["max"]) != g.data["max"]
+    ):
+        return jsonify({"message": "Must use full satoshis."}), HTTPStatus.BAD_REQUEST
+
+    if "success_url" in g.data and g.data["success_url"][:8] != "https://":
+        return (
+            jsonify({"message": "Success URL must be secure https://..."}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if link_id:
+        link = await get_lnurlflip_pay(link_id)
+
+        if not link:
+            return (
+                jsonify({"message": "Pay link does not exist."}),
+                HTTPStatus.NOT_FOUND,
+            )
+
+        if link.wallet != g.wallet.id:
+            return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
+
+        link = await update_lnurlflip_pay(link_id, **g.data)
+    else:
+        link = await create_lnurlflip_pay(wallet_id=g.wallet.id, **g.data)
+
+    return (
+        jsonify({**link._asdict(), **{"lnurl": link.lnurl}}),
+        HTTPStatus.OK if link_id else HTTPStatus.CREATED,
+    )
+
+
+@lnurlflip_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_link_delete(link_id):
+    link = await get_lnurlflip_pay(link_id)
+
+    if not link:
+        return jsonify({"message": "Pay link does not exist."}), HTTPStatus.NOT_FOUND
+
+    if link.wallet != g.wallet.id:
+        return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
+
+    await delete_lnurlflip_pay(link_id)
+
+    return "", HTTPStatus.NO_CONTENT
+
+##########LNURL withdraw
 
 @lnurlflip_ext.route("/api/v1/withdraws", methods=["GET"])
 @api_check_wallet_key("invoice")

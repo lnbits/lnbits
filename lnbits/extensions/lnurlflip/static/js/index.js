@@ -1,4 +1,4 @@
-/* global Vue, VueQrcode, _, Quasar, LOCALE, windowMixin, LNbits */
+/* globals Quasar, Vue, _, VueQrcode, windowMixin, LNbits, LOCALE */
 
 Vue.component(VueQrcode.name, VueQrcode)
 
@@ -9,66 +9,36 @@ var locationPath = [
   window.location.pathname
 ].join('')
 
-var maplnurlflipLink = function (obj) {
+var mapPayLink = obj => {
   obj._data = _.clone(obj)
   obj.date = Quasar.utils.date.formatDate(
     new Date(obj.time * 1000),
     'YYYY-MM-DD HH:mm'
   )
-  obj.min_fsat = new Intl.NumberFormat(LOCALE).format(obj.min_lnurlflipable)
-  obj.max_fsat = new Intl.NumberFormat(LOCALE).format(obj.max_lnurlflipable)
-  obj.uses_left = obj.uses - obj.used
+  obj.amount = new Intl.NumberFormat(LOCALE).format(obj.amount)
   obj.print_url = [locationPath, 'print/', obj.id].join('')
-  obj.lnurlflip_url = [locationPath, obj.id].join('')
+  obj.pay_url = [locationPath, obj.id].join('')
   return obj
 }
 
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
-  data: function () {
+  data() {
     return {
+      currencies: [],
+      fiatRates: {},
       checker: null,
-      lnurlflipLinks: [],
-      lnurlflipLinksTable: {
-        columns: [
-          {name: 'id', align: 'left', label: 'ID', field: 'id'},
-          {name: 'title', align: 'left', label: 'Title', field: 'title'},
-          {
-            name: 'wait_time',
-            align: 'right',
-            label: 'Wait',
-            field: 'wait_time'
-          },
-          {
-            name: 'uses_left',
-            align: 'right',
-            label: 'Uses left',
-            field: 'uses_left'
-          },
-          {name: 'min', align: 'right', label: 'Min (sat)', field: 'min_fsat'},
-          {name: 'max', align: 'right', label: 'Max (sat)', field: 'max_fsat'}
-        ],
+      payLinks: [],
+      payLinksTable: {
         pagination: {
           rowsPerPage: 10
         }
       },
       formDialog: {
         show: false,
-        secondMultiplier: 'seconds',
-        secondMultiplierOptions: ['seconds', 'minutes', 'hours'],
-        data: {
-          is_unique: false
-        }
-      },
-      simpleformDialog: {
-        show: false,
-        data: {
-          is_unique: true,
-          title: 'Vouchers',
-          min_lnurlflipable: 0,
-          wait_time: 1
-        }
+        fixedAmount: true,
+        data: {}
       },
       qrCodeDialog: {
         show: false,
@@ -76,173 +46,182 @@ new Vue({
       }
     }
   },
-  computed: {
-    sortedlnurlflipLinks: function () {
-      return this.lnurlflipLinks.sort(function (a, b) {
-        return b.uses_left - a.uses_left
-      })
-    }
-  },
   methods: {
-    getlnurlflipLinks: function () {
-      var self = this
-
+    getPayLinks() {
       LNbits.api
         .request(
           'GET',
           '/lnurlflip/api/v1/links?all_wallets',
           this.g.user.wallets[0].inkey
         )
-        .then(function (response) {
-          self.lnurlflipLinks = response.data.map(function (obj) {
-            return maplnurlflipLink(obj)
-          })
+        .then(response => {
+          this.payLinks = response.data.map(mapPayLink)
         })
-        .catch(function (error) {
-          clearInterval(self.checker)
-          LNbits.utils.notifyApiError(error)
+        .catch(err => {
+          clearInterval(this.checker)
+          LNbits.utils.notifyApiError(err)
         })
     },
-    closeFormDialog: function () {
-      this.formDialog.data = {
-        is_unique: false
-      }
+    closeFormDialog() {
+      this.resetFormData()
     },
-    simplecloseFormDialog: function () {
-      this.simpleformDialog.data = {
-        is_unique: false
-      }
-    },
-    openQrCodeDialog: function (linkId) {
-      var link = _.findWhere(this.lnurlflipLinks, {id: linkId})
+    openQrCodeDialog(linkId) {
+      var link = _.findWhere(this.payLinks, {id: linkId})
+      if (link.currency) this.updateFiatRate(link.currency)
 
-      this.qrCodeDialog.data = _.clone(link)
-      console.log(this.qrCodeDialog.data)
-      this.qrCodeDialog.data.url =
-        window.location.protocol + '//' + window.location.host
+      this.qrCodeDialog.data = {
+        id: link.id,
+        amount:
+          (link.min === link.max ? link.min : `${link.min} - ${link.max}`) +
+          ' ' +
+          (link.currency || 'sat'),
+        currency: link.currency,
+        comments: link.comment_chars
+          ? `${link.comment_chars} characters`
+          : 'no',
+        webhook: link.webhook_url || 'nowhere',
+        success:
+          link.success_text || link.success_url
+            ? 'Display message "' +
+              link.success_text +
+              '"' +
+              (link.success_url ? ' and URL "' + link.success_url + '"' : '')
+            : 'do nothing',
+        lnurl: link.lnurl,
+        pay_url: link.pay_url,
+        print_url: link.print_url
+      }
       this.qrCodeDialog.show = true
     },
-    openUpdateDialog: function (linkId) {
-      var link = _.findWhere(this.lnurlflipLinks, {id: linkId})
+    openUpdateDialog(linkId) {
+      const link = _.findWhere(this.payLinks, {id: linkId})
+      if (link.currency) this.updateFiatRate(link.currency)
+
       this.formDialog.data = _.clone(link._data)
       this.formDialog.show = true
+      this.formDialog.fixedAmount =
+        this.formDialog.data.min === this.formDialog.data.max
     },
-    sendFormData: function () {
-      var wallet = _.findWhere(this.g.user.wallets, {
+    sendFormData() {
+      const wallet = _.findWhere(this.g.user.wallets, {
         id: this.formDialog.data.wallet
       })
       var data = _.omit(this.formDialog.data, 'wallet')
 
-      data.wait_time =
-        data.wait_time *
-        {
-          seconds: 1,
-          minutes: 60,
-          hours: 3600
-        }[this.formDialog.secondMultiplier]
+      if (this.formDialog.fixedAmount) data.max = data.min
+      if (data.currency === 'satoshis') data.currency = null
+      if (isNaN(parseInt(data.comment_chars))) data.comment_chars = 0
 
       if (data.id) {
-        this.updatelnurlflipLink(wallet, data)
+        this.updatePayLink(wallet, data)
       } else {
-        this.createlnurlflipLink(wallet, data)
+        this.createPayLink(wallet, data)
       }
     },
-    simplesendFormData: function () {
-      var wallet = _.findWhere(this.g.user.wallets, {
-        id: this.simpleformDialog.data.wallet
-      })
-      var data = _.omit(this.simpleformDialog.data, 'wallet')
-
-      data.wait_time = 1
-      data.min_lnurlflipable = data.max_lnurlflipable
-      data.title = 'vouchers'
-      data.is_unique = true
-
-      if (data.id) {
-        this.updatelnurlflipLink(wallet, data)
-      } else {
-        this.createlnurlflipLink(wallet, data)
+    resetFormData() {
+      this.formDialog = {
+        show: false,
+        fixedAmount: true,
+        data: {}
       }
     },
-    updatelnurlflipLink: function (wallet, data) {
-      var self = this
+    updatePayLink(wallet, data) {
+      let values = _.omit(
+        _.pick(
+          data,
+          'description',
+          'min',
+          'max',
+          'webhook_url',
+          'success_text',
+          'success_url',
+          'comment_chars',
+          'currency'
+        ),
+        (value, key) =>
+          (key === 'webhook_url' ||
+            key === 'success_text' ||
+            key === 'success_url') &&
+          (value === null || value === '')
+      )
 
       LNbits.api
         .request(
           'PUT',
           '/lnurlflip/api/v1/links/' + data.id,
           wallet.adminkey,
-          _.pick(
-            data,
-            'title',
-            'min_lnurlflipable',
-            'max_lnurlflipable',
-            'uses',
-            'wait_time',
-            'is_unique'
-          )
+          values
         )
-        .then(function (response) {
-          self.lnurlflipLinks = _.reject(self.lnurlflipLinks, function (obj) {
-            return obj.id === data.id
-          })
-          self.lnurlflipLinks.push(maplnurlflipLink(response.data))
-          self.formDialog.show = false
+        .then(response => {
+          this.payLinks = _.reject(this.payLinks, obj => obj.id === data.id)
+          this.payLinks.push(mapPayLink(response.data))
+          this.formDialog.show = false
+          this.resetFormData()
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
         })
     },
-    createlnurlflipLink: function (wallet, data) {
-      var self = this
-
+    createPayLink(wallet, data) {
       LNbits.api
-        .request('POST', '/lnurlflip/api/v1/links', wallet.adminkey, data)
-        .then(function (response) {
-          self.lnurlflipLinks.push(maplnurlflipLink(response.data))
-          self.formDialog.show = false
-          self.simpleformDialog.show = false
+        .request('POST', '/lnurlp/api/v1/links', wallet.adminkey, data)
+        .then(response => {
+          this.payLinks.push(mapPayLink(response.data))
+          this.formDialog.show = false
+          this.resetFormData()
         })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
         })
     },
-    deletelnurlflipLink: function (linkId) {
-      var self = this
-      var link = _.findWhere(this.lnurlflipLinks, {id: linkId})
+    deletePayLink(linkId) {
+      var link = _.findWhere(this.payLinks, {id: linkId})
 
       LNbits.utils
-        .confirmDialog('Are you sure you want to delete this lnurlflip link?')
-        .onOk(function () {
+        .confirmDialog('Are you sure you want to delete this pay link?')
+        .onOk(() => {
           LNbits.api
             .request(
               'DELETE',
-              '/lnurlflip/api/v1/links/' + linkId,
-              _.findWhere(self.g.user.wallets, {id: link.wallet}).adminkey
+              '/lnurlp/api/v1/links/' + linkId,
+              _.findWhere(this.g.user.wallets, {id: link.wallet}).adminkey
             )
-            .then(function (response) {
-              self.lnurlflipLinks = _.reject(self.lnurlflipLinks, function (
-                obj
-              ) {
-                return obj.id === linkId
-              })
+            .then(response => {
+              this.payLinks = _.reject(this.payLinks, obj => obj.id === linkId)
             })
-            .catch(function (error) {
-              LNbits.utils.notifyApiError(error)
+            .catch(err => {
+              LNbits.utils.notifyApiError(err)
             })
         })
     },
-    exportCSV: function () {
-      LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
+    updateFiatRate(currency) {
+      LNbits.api
+        .request('GET', '/lnurlp/api/v1/rate/' + currency, null)
+        .then(response => {
+          let rates = _.clone(this.fiatRates)
+          rates[currency] = response.data.rate
+          this.fiatRates = rates
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
     }
   },
-  created: function () {
+  created() {
     if (this.g.user.wallets.length) {
-      var getlnurlflipLinks = this.getlnurlflipLinks
-      getlnurlflipLinks()
-      this.checker = setInterval(function () {
-        getlnurlflipLinks()
+      var getPayLinks = this.getPayLinks
+      getPayLinks()
+      this.checker = setInterval(() => {
+        getPayLinks()
       }, 20000)
     }
+    LNbits.api
+      .request('GET', '/lnurlflip/api/v1/currencies')
+      .then(response => {
+        this.currencies = ['satoshis', ...response.data]
+      })
+      .catch(err => {
+        LNbits.utils.notifyApiError(err)
+      })
   }
 })

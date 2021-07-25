@@ -6,6 +6,8 @@ from datetime import datetime
 from quart import jsonify, url_for, request
 from lnbits.core.services import pay_invoice, create_invoice
 
+from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
+
 from . import lnurlflip_ext
 from .crud import (
     get_lnurlflip_withdraw_by_hash,
@@ -14,87 +16,6 @@ from .crud import (
 )
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
-
-##############LNURLW STUFF
-
-
-@lnurlflip_ext.route("/api/v1/lnurlw/<unique_hash>", methods=["GET"])
-async def api_lnurlw_response(unique_hash):
-    link = await get_lnurlflip_withdraw_by_hash(unique_hash)
-
-    if not link:
-        return (
-            jsonify({"status": "ERROR", "reason": "LNURL-lnurlflip not found."}),
-            HTTPStatus.OK,
-        )
-
-    if link.is_spent:
-        return (
-            jsonify({"status": "ERROR", "reason": "lnurlflip is spent."}),
-            HTTPStatus.OK,
-        )
-
-    return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
-
-
-# CALLBACK
-
-
-@lnurlflip_ext.route("/api/v1/lnurlw/cb/<unique_hash>", methods=["GET"])
-async def api_lnurlw_callback(unique_hash):
-    link = await get_lnurlflip_withdraw_by_hash(unique_hash)
-    k1 = request.args.get("k1", type=str)
-    payment_request = request.args.get("pr", type=str)
-    now = int(datetime.now().timestamp())
-
-    if not link:
-        return (
-            jsonify({"status": "ERROR", "reason": "LNURL-lnurlflip not found."}),
-            HTTPStatus.OK,
-        )
-
-    if link.is_spent:
-        return (
-            jsonify({"status": "ERROR", "reason": "lnurlflip is spent."}),
-            HTTPStatus.OK,
-        )
-
-    if link.k1 != k1:
-        return jsonify({"status": "ERROR", "reason": "Bad request."}), HTTPStatus.OK
-
-    if now < link.open_time:
-        return (
-            jsonify(
-                {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
-            ),
-            HTTPStatus.OK,
-        )
-
-    try:
-
-        changesback = {"open_time": link.wait_time, "used": link.used}
-
-        changes = {"open_time": link.wait_time + now, "used": link.used + 1}
-
-        await update_lnurlflip_withdraw(link.id, **changes)
-
-        await pay_invoice(
-            wallet_id=link.wallet,
-            payment_request=payment_request,
-            max_sat=link.max_lnurlflipable,
-            extra={"tag": "lnurlflip"},
-        )
-    except ValueError as e:
-        await update_lnurlflip_withdraw(link.id, **changesback)
-        return jsonify({"status": "ERROR", "reason": str(e)})
-    except PermissionError:
-        await update_lnurlflip_withdraw(link.id, **changesback)
-        return jsonify({"status": "ERROR", "reason": "lnurlflip link is empty."})
-    except Exception as e:
-        await update_lnurlflip_withdraw(link.id, **changesback)
-        return jsonify({"status": "ERROR", "reason": str(e)})
-
-    return jsonify({"status": "OK"}), HTTPStatus.OK
 
 
 ##############LNURLP STUFF
@@ -198,3 +119,87 @@ async def api_lnurlp_callback(link_id):
         )
 
     return jsonify(resp.dict()), HTTPStatus.OK
+
+    
+##############LNURLW STUFF
+
+
+@lnurlflip_ext.route("/api/v1/lnurlw/<unique_hash>", methods=["GET"])
+async def api_lnurlw_response(unique_hash):
+    link = await get_lnurlflip_withdraw_by_hash(unique_hash)
+
+    if not link:
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-lnurlflip not found."}),
+            HTTPStatus.OK,
+        )
+
+    if link.is_spent:
+        return (
+            jsonify({"status": "ERROR", "reason": "lnurlflip is spent."}),
+            HTTPStatus.OK,
+        )
+
+    return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
+
+
+# CALLBACK
+
+
+@lnurlflip_ext.route("/api/v1/lnurlw/cb/<unique_hash>", methods=["GET"])
+async def api_lnurlw_callback(unique_hash):
+    link = await get_lnurlflip_withdraw_by_hash(unique_hash)
+    k1 = request.args.get("k1", type=str)
+    payment_request = request.args.get("pr", type=str)
+    now = int(datetime.now().timestamp())
+
+    if not link:
+        return (
+            jsonify({"status": "ERROR", "reason": "LNURL-lnurlflip not found."}),
+            HTTPStatus.OK,
+        )
+
+    if link.is_spent:
+        return (
+            jsonify({"status": "ERROR", "reason": "lnurlflip is spent."}),
+            HTTPStatus.OK,
+        )
+
+    if link.k1 != k1:
+        return jsonify({"status": "ERROR", "reason": "Bad request."}), HTTPStatus.OK
+
+    if now < link.open_time:
+        return (
+            jsonify(
+                {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
+            ),
+            HTTPStatus.OK,
+        )
+
+    try:
+
+        changesback = {"open_time": link.wait_time, "used": link.used}
+
+        changes = {"open_time": link.wait_time + now, "used": link.used + 1}
+
+        await update_lnurlflip_withdraw(link.id, **changes)
+
+        await pay_invoice(
+            wallet_id=link.wallet,
+            payment_request=payment_request,
+            max_sat=link.max_lnurlflipable,
+            extra={"tag": "lnurlflip"},
+        )
+    except ValueError as e:
+        await update_lnurlflip_withdraw(link.id, **changesback)
+        return jsonify({"status": "ERROR", "reason": str(e)})
+    except PermissionError:
+        await update_lnurlflip_withdraw(link.id, **changesback)
+        return jsonify({"status": "ERROR", "reason": "lnurlflip link is empty."})
+    except Exception as e:
+        await update_lnurlflip_withdraw(link.id, **changesback)
+        return jsonify({"status": "ERROR", "reason": str(e)})
+
+    return jsonify({"status": "OK"}), HTTPStatus.OK
+
+

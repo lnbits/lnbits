@@ -5,6 +5,7 @@ from lnbits.helpers import urlsafe_short_hash
 from . import db
 from .models import lnurlflipWithdraw, HashCheck, lnurlflipLink
 
+##################FLIP LINKS
 
 async def create_lnurlflip_pay(
     *,
@@ -103,7 +104,7 @@ async def delete_lnurlflip_pay(link_id: int) -> None:
     await db.execute("DELETE FROM lnurlflip.lnurlflip_pay WHERE id = ?", (link_id,))
 
 
-##################LNURL WITHDRAWS
+##################FLIP WITHDRAWS
 
 
 async def create_lnurlflip_withdraw(
