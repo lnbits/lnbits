@@ -5,7 +5,7 @@
       <q-card-section class="q-pa-none">
         <div class="text-center">
           {% if link.is_spent %}
-          <q-badge color="red" class="q-mb-md">lnurlflip is spent.</q-badge>
+          <q-badge color="red" class="q-mb-md">satsdice is spent.</q-badge>
           {% endif %}
           <a href="lightning://{{ link.lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
@@ -29,7 +29,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-mb-sm q-mt-none">
-          LNbits LNURL-lnurlflip link
+          LNbits LNURL-satsdice link
         </h6>
         <p class="q-my-none">
           Use a LNURL compatible bitcoin wallet to claim the sats.
@@ -37,7 +37,7 @@
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "lnurlflip/_lnurl.html" %} </q-list>
+        <q-list> {% include "satsdice/_lnurl.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>

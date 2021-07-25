@@ -5,7 +5,7 @@
     <q-card>
       <q-card-section>
         <q-btn unelevated color="primary" @click="formDialog.show = true"
-          >New pay link</q-btn
+          >New satsdice</q-btn
         >
       </q-card-section>
     </q-card>
@@ -14,7 +14,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Pay links</h5>
+            <h5 class="text-subtitle1 q-my-none">satsdices</h5>
           </div>
         </div>
         <q-table
@@ -28,9 +28,10 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th auto-width>Description</q-th>
-              <q-th auto-width>Amount</q-th>
-              <q-th auto-width>Currency</q-th>
+              <q-th auto-width>Title</q-th>
+              <q-th auto-width>Used</q-th>
+              <q-th auto-width>Odds</q-th>
+              <q-th auto-width>Actual Odds</q-th>
               <q-th auto-width></q-th>
               <q-th auto-width></q-th>
             </q-tr>
@@ -120,7 +121,9 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits LNURL-pay extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} satsdice extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -150,7 +153,7 @@
           dense
           v-model.trim="formDialog.data.title"
           type="text"
-          label="Flip title *"
+          label="satsdice title *"
         ></q-input>
         <q-item-section>
           <q-item-label caption>
@@ -232,16 +235,16 @@
             :disable="
                 formDialog.data.wallet == null ||
                 formDialog.data.title == null ||
-                (formDialog.data.min_lnurlflipable == null || formDialog.data.min_lnurlflipable < 1) ||
+                (formDialog.data.min_satsdiceable == null || formDialog.data.min_satsdiceable < 1) ||
                 (
-                  formDialog.data.max_lnurlflipable == null ||
-                  formDialog.data.max_lnurlflipable < 1 ||
-                  formDialog.data.max_lnurlflipable < formDialog.data.min_lnurlflipable
+                  formDialog.data.max_satsdiceable == null ||
+                  formDialog.data.max_satsdiceable < 1 ||
+                  formDialog.data.max_satsdiceable < formDialog.data.min_satsdiceable
                 ) ||
                 formDialog.data.uses == null ||
                 formDialog.data.wait_time == null"
             type="submit"
-            >Create lnurlflip link</q-btn
+            >Create satsdice</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn

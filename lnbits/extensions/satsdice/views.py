@@ -4,29 +4,29 @@ import pyqrcode
 from io import BytesIO
 from lnbits.decorators import check_user_exists, validate_uuids
 
-from . import lnurlflip_ext
-from .crud import get_lnurlflip_pay
+from . import satsdice_ext
+from .crud import get_satsdice_pay
 
 
-@lnurlflip_ext.route("/")
+@satsdice_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
-    return await render_template("lnurlflip/index.html", user=g.user)
+    return await render_template("satsdice/index.html", user=g.user)
 
 
-@lnurlflip_ext.route("/<link_id>")
+@satsdice_ext.route("/<link_id>")
 async def display(link_id):
-    link = await get_lnurlflip_pay(link_id, 0) or abort(
-        HTTPStatus.NOT_FOUND, "lnurlflip link does not exist."
+    link = await get_satsdice_pay(link_id, 0) or abort(
+        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
-    return await render_template("lnurlflip/display.html", link=link, unique=True)
+    return await render_template("satsdice/display.html", link=link, unique=True)
 
 
-@lnurlflip_ext.route("/img/<link_id>")
+@satsdice_ext.route("/img/<link_id>")
 async def img(link_id):
-    link = await get_lnurlflip_pay(link_id, 0) or abort(
-        HTTPStatus.NOT_FOUND, "lnurlflip link does not exist."
+    link = await get_satsdice_pay(link_id, 0) or abort(
+        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
     qr = pyqrcode.create(link.lnurl)
     stream = BytesIO()

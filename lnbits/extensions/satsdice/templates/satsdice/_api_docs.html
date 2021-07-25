@@ -4,22 +4,17 @@
   label="API info"
   :content-inset-level="0.5"
 >
-  <q-expansion-item
-    group="api"
-    dense
-    expand-separator
-    label="List lnurlflip links"
-  >
+  <q-expansion-item group="api" dense expand-separator label="List satsdices">
     <q-card>
       <q-card-section>
-        <code><span class="text-blue">GET</span> /lnurlflip/api/v1/links</code>
+        <code><span class="text-blue">GET</span> /satsdice/api/v1/links</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>[&lt;lnurlflip_link_object&gt;, ...]</code>
+        <code>[&lt;satsdice_link_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.url_root }}api/v1/links -H "X-Api-Key: {{
@@ -32,13 +27,13 @@
     group="api"
     dense
     expand-separator
-    label="Get a lnurlflip link"
+    label="Get a satsdice link"
   >
     <q-card>
       <q-card-section>
         <code
           ><span class="text-blue">GET</span>
-          /lnurlflip/api/v1/links/&lt;lnurlflip_id&gt;</code
+          /satsdice/api/v1/links/&lt;satsdice_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -49,8 +44,8 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/links/&lt;lnurlflip_id&gt;
-          -H "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+          >curl -X GET {{ request.url_root }}api/v1/links/&lt;satsdice_id&gt; -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -59,19 +54,17 @@
     group="api"
     dense
     expand-separator
-    label="Create a lnurlflip link"
+    label="Create a satsdice link"
   >
     <q-card>
       <q-card-section>
-        <code
-          ><span class="text-green">POST</span> /lnurlflip/api/v1/links</code
-        >
+        <code><span class="text-green">POST</span> /satsdice/api/v1/links</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code
-          >{"title": &lt;string&gt;, "min_lnurlflipable": &lt;integer&gt;,
-          "max_lnurlflipable": &lt;integer&gt;, "uses": &lt;integer&gt;,
+          >{"title": &lt;string&gt;, "min_satsdiceable": &lt;integer&gt;,
+          "max_satsdiceable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -81,8 +74,8 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.url_root }}api/v1/links -d '{"title":
-          &lt;string&gt;, "min_lnurlflipable": &lt;integer&gt;,
-          "max_lnurlflipable": &lt;integer&gt;, "uses": &lt;integer&gt;,
+          &lt;string&gt;, "min_satsdiceable": &lt;integer&gt;,
+          "max_satsdiceable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
           g.user.wallets[0].adminkey }}"
@@ -94,20 +87,20 @@
     group="api"
     dense
     expand-separator
-    label="Update a lnurlflip link"
+    label="Update a satsdice link"
   >
     <q-card>
       <q-card-section>
         <code
           ><span class="text-green">PUT</span>
-          /lnurlflip/api/v1/links/&lt;lnurlflip_id&gt;</code
+          /satsdice/api/v1/links/&lt;satsdice_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <code
-          >{"title": &lt;string&gt;, "min_lnurlflipable": &lt;integer&gt;,
-          "max_lnurlflipable": &lt;integer&gt;, "uses": &lt;integer&gt;,
+          >{"title": &lt;string&gt;, "min_satsdiceable": &lt;integer&gt;,
+          "max_satsdiceable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -116,9 +109,9 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X PUT {{ request.url_root }}api/v1/links/&lt;lnurlflip_id&gt;
-          -d '{"title": &lt;string&gt;, "min_lnurlflipable": &lt;integer&gt;,
-          "max_lnurlflipable": &lt;integer&gt;, "uses": &lt;integer&gt;,
+          >curl -X PUT {{ request.url_root }}api/v1/links/&lt;satsdice_id&gt; -d
+          '{"title": &lt;string&gt;, "min_satsdiceable": &lt;integer&gt;,
+          "max_satsdiceable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
           g.user.wallets[0].adminkey }}"
@@ -130,13 +123,13 @@
     group="api"
     dense
     expand-separator
-    label="Delete a lnurlflip link"
+    label="Delete a satsdice link"
   >
     <q-card>
       <q-card-section>
         <code
           ><span class="text-pink">DELETE</span>
-          /lnurlflip/api/v1/links/&lt;lnurlflip_id&gt;</code
+          /satsdice/api/v1/links/&lt;satsdice_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -144,9 +137,8 @@
         <code></code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.url_root
-          }}api/v1/links/&lt;lnurlflip_id&gt; -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+          >curl -X DELETE {{ request.url_root }}api/v1/links/&lt;satsdice_id&gt;
+          -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -161,7 +153,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">GET</span>
-          /lnurlflip/api/v1/links/&lt;the_hash&gt;/&lt;lnurl_id&gt;</code
+          /satsdice/api/v1/links/&lt;the_hash&gt;/&lt;lnurl_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -190,11 +182,11 @@
       <q-card-section>
         <code
           ><span class="text-blue">GET</span>
-          /lnurlflip/img/&lt;lnurl_id&gt;</code
+          /satsdice/img/&lt;lnurl_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}/lnurlflip/img/&lt;lnurl_id&gt;"
+          >curl -X GET {{ request.url_root }}/satsdice/img/&lt;lnurl_id&gt;"
         </code>
       </q-card-section>
     </q-card>

@@ -8,7 +8,7 @@ from typing import NamedTuple, Optional, Dict
 import shortuuid  # type: ignore
 
 
-class lnurlflipLink(NamedTuple):
+class satsdiceLink(NamedTuple):
     id: int
     wallet: str
     description: str
@@ -23,7 +23,7 @@ class lnurlflipLink(NamedTuple):
     max: int
 
     @classmethod
-    def from_row(cls, row: Row) -> "lnurlflipLink":
+    def from_row(cls, row: Row) -> "satsdiceLink":
         data = dict(row)
         return cls(**data)
 
@@ -56,7 +56,7 @@ class lnurlflipLink(NamedTuple):
             return None
 
 
-class lnurlflipWithdraw(NamedTuple):
+class satsdiceWithdraw(NamedTuple):
     id: str
     wallet: str
     title: str
@@ -70,7 +70,7 @@ class lnurlflipWithdraw(NamedTuple):
     open_time: int
 
     @classmethod
-    def from_row(cls, row: Row) -> "lnurlflipWithdraw":
+    def from_row(cls, row: Row) -> "satsdiceWithdraw":
         data = dict(row)
         return cls(**data)
 
@@ -81,7 +81,7 @@ class lnurlflipWithdraw(NamedTuple):
     @property
     def lnurl(self) -> Lnurl:
         url = url_for(
-            "lnurlflip.api_lnurlw_response",
+            "satsdice.api_lnurlw_response",
             unique_hash=self.unique_hash,
             _external=True,
         )
@@ -91,15 +91,15 @@ class lnurlflipWithdraw(NamedTuple):
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
         url = url_for(
-            "lnurlflip.api_lnurlw_callback",
+            "satsdice.api_lnurlw_callback",
             unique_hash=self.unique_hash,
             _external=True,
         )
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,
-            min_lnurlflipable=self.value * 1000,
-            max_lnurlflipable=self.value * 1000,
+            min_satsdiceable=self.value * 1000,
+            max_satsdiceable=self.value * 1000,
             default_description=self.title,
         )
 

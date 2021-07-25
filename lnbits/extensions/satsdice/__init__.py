@@ -1,11 +1,11 @@
 from quart import Blueprint
 from lnbits.db import Database
 
-db = Database("ext_lnurlflip")
+db = Database("ext_satsdice")
 
 
-lnurlflip_ext: Blueprint = Blueprint(
-    "lnurlflip", __name__, static_folder="static", template_folder="templates"
+satsdice_ext: Blueprint = Blueprint(
+    "satsdice", __name__, static_folder="static", template_folder="templates"
 )
 
 

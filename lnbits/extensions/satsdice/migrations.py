@@ -1,10 +1,10 @@
 async def m001_initial(db):
     """
-    Creates an improved lnurlflip table and migrates the existing data.
+    Creates an improved satsdice table and migrates the existing data.
     """
     await db.execute(
         """
-        CREATE TABLE lnurlflip.lnurlflip_pay (
+        CREATE TABLE satsdice.satsdice_pay (
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
@@ -22,13 +22,13 @@ async def m001_initial(db):
 
 async def m002_initial(db):
     """
-    Creates an improved lnurlflip table and migrates the existing data.
+    Creates an improved satsdice table and migrates the existing data.
     """
     await db.execute(
         """
-        CREATE TABLE lnurlflip.lnurlflip_withdraw (
+        CREATE TABLE satsdice.satsdice_withdraw (
             id TEXT PRIMARY KEY,
-            lnurlflip_pay TEXT,
+            satsdice_pay TEXT,
             value INTEGER DEFAULT 1,
             unique_hash TEXT UNIQUE,
             k1 TEXT,
@@ -45,7 +45,7 @@ async def m003_make_hash_check(db):
     """
     await db.execute(
         """
-        CREATE TABLE lnurlflip.hash_check (
+        CREATE TABLE satsdice.hash_check (
             id TEXT PRIMARY KEY,
             lnurl_id TEXT
         );

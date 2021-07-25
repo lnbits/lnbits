@@ -51,7 +51,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/lnurlflip/api/v1/links?all_wallets',
+          '/satsdice/api/v1/links?all_wallets',
           this.g.user.wallets[0].inkey
         )
         .then(response => {
@@ -148,7 +148,7 @@ new Vue({
       LNbits.api
         .request(
           'PUT',
-          '/lnurlflip/api/v1/links/' + data.id,
+          '/satsdice/api/v1/links/' + data.id,
           wallet.adminkey,
           values
         )
@@ -216,7 +216,7 @@ new Vue({
       }, 20000)
     }
     LNbits.api
-      .request('GET', '/lnurlflip/api/v1/currencies')
+      .request('GET', '/satsdice/api/v1/currencies')
       .then(response => {
         this.currencies = ['satoshis', ...response.data]
       })

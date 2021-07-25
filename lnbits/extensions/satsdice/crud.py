@@ -3,11 +3,11 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import lnurlflipWithdraw, HashCheck, lnurlflipLink
+from .models import satsdiceWithdraw, HashCheck, satsdiceLink
 
 ##################FLIP LINKS
 
-async def create_lnurlflip_pay(
+async def create_satsdice_pay(
     *,
     wallet_id: str,
     title: str,
@@ -16,10 +16,10 @@ async def create_lnurlflip_pay(
     success_url: Optional[str] = None,
     odds: int = 0,
     current_odds: int = 0,
-) -> lnurlflipLink:
+) -> satsdiceLink:
     result = await db.execute(
         """
-        INSERT INTO lnurlflip.lnurlflip_pay (
+        INSERT INTO satsdice.satsdice_pay (
             id,
             wallet,
             title,
@@ -48,73 +48,73 @@ async def create_lnurlflip_pay(
         ),
     )
     link_id = result._result_proxy.lastrowid
-    link = await get_lnurlflip_pay(link_id)
+    link = await get_satsdice_pay(link_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
 
-async def get_lnurlflip_pay(link_id: int) -> Optional[lnurlflipLink]:
+async def get_satsdice_pay(link_id: int) -> Optional[satsdiceLink]:
     row = await db.fetchone(
-        "SELECT * FROM lnurlflip.lnurlflip_pay WHERE id = ?", (link_id,)
+        "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return lnurlflipLink.from_row(row) if row else None
+    return satsdiceLink.from_row(row) if row else None
 
 
-async def get_lnurlflip_pays(wallet_ids: Union[str, List[str]]) -> List[lnurlflipLink]:
+async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceLink]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
-        SELECT * FROM lnurlflip.lnurlflip_pay WHERE wallet IN ({q})
+        SELECT * FROM satsdice.satsdice_pay WHERE wallet IN ({q})
         ORDER BY Id
         """,
         (*wallet_ids,),
     )
 
-    return [lnurlflipLink.from_row(row) for row in rows]
+    return [satsdiceLink.from_row(row) for row in rows]
 
 
-async def update_lnurlflip_pay(link_id: int, **kwargs) -> Optional[lnurlflipLink]:
+async def update_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE lnurlflip.lnurlflip_pay SET {q} WHERE id = ?",
+        f"UPDATE satsdice.satsdice_pay SET {q} WHERE id = ?",
         (*kwargs.values(), link_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM lnurlflip.lnurlflip_pay WHERE id = ?", (link_id,)
+        "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return lnurlflipLink.from_row(row) if row else None
+    return satsdiceLink.from_row(row) if row else None
 
 
-async def increment_lnurlflip_pay(link_id: int, **kwargs) -> Optional[lnurlflipLink]:
+async def increment_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
     q = ", ".join([f"{field[0]} = {field[0]} + ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE lnurlflip.lnurlflip_pay SET {q} WHERE id = ?",
+        f"UPDATE satsdice.satsdice_pay SET {q} WHERE id = ?",
         (*kwargs.values(), link_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM lnurlflip.lnurlflip_pay WHERE id = ?", (link_id,)
+        "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return lnurlflipLink.from_row(row) if row else None
+    return satsdiceLink.from_row(row) if row else None
 
 
-async def delete_lnurlflip_pay(link_id: int) -> None:
-    await db.execute("DELETE FROM lnurlflip.lnurlflip_pay WHERE id = ?", (link_id,))
+async def delete_satsdice_pay(link_id: int) -> None:
+    await db.execute("DELETE FROM satsdice.satsdice_pay WHERE id = ?", (link_id,))
 
 
 ##################FLIP WITHDRAWS
 
 
-async def create_lnurlflip_withdraw(
-    *, lnurlflip_pay: str, title: str, value: int, used: int
-) -> lnurlflipWithdraw:
+async def create_satsdice_withdraw(
+    *, satsdice_pay: str, title: str, value: int, used: int
+) -> satsdiceWithdraw:
     await db.execute(
         """
-        INSERT INTO lnurlflip.lnurlflip_withdraw (
+        INSERT INTO satsdice.satsdice_withdraw (
             id,
-            lnurlflip_pay,
+            satsdice_pay,
             value,
             unique_hash,
             k1,
@@ -125,7 +125,7 @@ async def create_lnurlflip_withdraw(
         """,
         (
             urlsafe_short_hash(),
-            lnurlflip_pay,
+            satsdice_pay,
             value,
             urlsafe_short_hash(),
             urlsafe_short_hash(),
@@ -133,16 +133,16 @@ async def create_lnurlflip_withdraw(
             used,
         ),
     )
-    withdraw = await get_lnurlflip_withdraw(withdraw_id, 0)
+    withdraw = await get_satsdice_withdraw(withdraw_id, 0)
     assert withdraw, "Newly created withdraw couldn't be retrieved"
     return withdraw
 
 
-async def get_lnurlflip_withdraw(
+async def get_satsdice_withdraw(
     withdraw_id: str, num=0
-) -> Optional[lnurlflipWithdraw]:
+) -> Optional[satsdiceWithdraw]:
     row = await db.fetchone(
-        "SELECT * FROM lnurlflip.lnurlflip_withdraw WHERE id = ?", (withdraw_id,)
+        "SELECT * FROM satsdice.satsdice_withdraw WHERE id = ?", (withdraw_id,)
     )
     if not row:
         return None
@@ -151,14 +151,14 @@ async def get_lnurlflip_withdraw(
     for item in row:
         withdraw.append(item)
     withdraw.append(num)
-    return lnurlflipWithdraw._make(withdraw)
+    return satsdiceWithdraw._make(withdraw)
 
 
-async def get_lnurlflip_withdraw_by_hash(
+async def get_satsdice_withdraw_by_hash(
     unique_hash: str, num=0
-) -> Optional[lnurlflipWithdraw]:
+) -> Optional[satsdiceWithdraw]:
     row = await db.fetchone(
-        "SELECT * FROM lnurlflip.lnurlflip_withdraw WHERE unique_hash = ?",
+        "SELECT * FROM satsdice.satsdice_withdraw WHERE unique_hash = ?",
         (unique_hash,),
     )
     if not row:
@@ -168,41 +168,41 @@ async def get_lnurlflip_withdraw_by_hash(
     for item in row:
         withdraw.append(item)
     withdraw.append(num)
-    return lnurlflipWithdraw._make(withdraw)
+    return satsdiceWithdraw._make(withdraw)
 
 
-async def get_lnurlflip_withdraws(
+async def get_satsdice_withdraws(
     wallet_ids: Union[str, List[str]]
-) -> List[lnurlflipWithdraw]:
+) -> List[satsdiceWithdraw]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM lnurlflip.lnurlflip_withdraw WHERE wallet IN ({q})",
+        f"SELECT * FROM satsdice.satsdice_withdraw WHERE wallet IN ({q})",
         (*wallet_ids,),
     )
 
-    return [lnurlflipWithdraw.from_row(row) for row in rows]
+    return [satsdiceWithdraw.from_row(row) for row in rows]
 
 
-async def update_lnurlflip_withdraw(
+async def update_satsdice_withdraw(
     withdraw_id: str, **kwargs
-) -> Optional[lnurlflipWithdraw]:
+) -> Optional[satsdiceWithdraw]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE lnurlflip.lnurlflip_withdraw SET {q} WHERE id = ?",
+        f"UPDATE satsdice.satsdice_withdraw SET {q} WHERE id = ?",
         (*kwargs.values(), withdraw_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM lnurlflip.lnurlflip_withdraw WHERE id = ?", (withdraw_id,)
+        "SELECT * FROM satsdice.satsdice_withdraw WHERE id = ?", (withdraw_id,)
     )
-    return lnurlflipWithdraw.from_row(row) if row else None
+    return satsdiceWithdraw.from_row(row) if row else None
 
 
-async def delete_lnurlflip_withdraw(withdraw_id: str) -> None:
+async def delete_satsdice_withdraw(withdraw_id: str) -> None:
     await db.execute(
-        "DELETE FROM lnurlflip.lnurlflip_withdraw WHERE id = ?", (withdraw_id,)
+        "DELETE FROM satsdice.satsdice_withdraw WHERE id = ?", (withdraw_id,)
     )
 
 
@@ -212,7 +212,7 @@ async def create_withdraw_hash_check(
 ) -> HashCheck:
     await db.execute(
         """
-        INSERT INTO lnurlflip.hash_checkw (
+        INSERT INTO satsdice.hash_checkw (
             id,
             lnurl_id
         )
@@ -229,10 +229,10 @@ async def create_withdraw_hash_check(
 
 async def get_withdraw_hash_checkw(the_hash: str, lnurl_id: str) -> Optional[HashCheck]:
     rowid = await db.fetchone(
-        "SELECT * FROM lnurlflip.hash_checkw WHERE id = ?", (the_hash,)
+        "SELECT * FROM satsdice.hash_checkw WHERE id = ?", (the_hash,)
     )
     rowlnurl = await db.fetchone(
-        "SELECT * FROM lnurlflip.hash_checkw WHERE lnurl_id = ?", (lnurl_id,)
+        "SELECT * FROM satsdice.hash_checkw WHERE lnurl_id = ?", (lnurl_id,)
     )
     if not rowlnurl:
         await create_withdraw_hash_check(the_hash, lnurl_id)
