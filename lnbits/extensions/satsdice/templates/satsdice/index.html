@@ -155,70 +155,25 @@
           type="text"
           label="satsdice title *"
         ></q-input>
-        <q-item-section>
-          <q-item-label caption>
-            4/1 <i>Odds</i>, 5/1 <i>Actual Odds</i>:<br />
-            10sat play has 1 in 5 chance of winning 40sats
-          </q-item-label>
-        </q-item-section>
-        <div class="row">
-          <div class="col">
-            <div class="row">
-              <div class="col-5 q-pl-md">Odds</div>
-              <div class="col-7">
-                <div class="row">
-                  <div class="col">
-                    <q-input
-                      dense
-                      filled
-                      v-model="formDialog.data.acFirst"
-                      type="number"
-                    >
-                    </q-input>
-                  </div>
-                  <div class="text-h6">/</div>
-                  <div class="col">
-                    <q-input
-                      dense
-                      filled
-                      v-model="formDialog.data.acSecond"
-                      type="number"
-                    >
-                    </q-input>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col">
-            <div class="row">
-              <div class="col-5 q-pl-md">Actual odds</div>
-              <div class="col-7">
-                <div class="row">
-                  <div class="col">
-                    <q-input
-                      dense
-                      filled
-                      v-model="formDialog.data.adFirst"
-                      type="number"
-                    >
-                    </q-input>
-                  </div>
-                  <div class="text-h6">/</div>
-                  <div class="col">
-                    <q-input
-                      dense
-                      filled
-                      v-model="formDialog.data.adSecond"
-                      type="number"
-                    >
-                    </q-input>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <center>
+          <q-item-section>
+            <q-item-label caption>
+              Select Your Odds & Win Multiplier
+            </q-item-label>
+          </q-item-section>
+          <q-badge color="secondary">
+            Model: {{ greenModel }} (0 to 10)
+          </q-badge>
+          <q-slider
+            style="width: 80%"
+            v-model="greenModel"
+            color="green"
+            markers
+            snap
+            :min="0"
+            :max="5"
+          ></q-slider>
+        </center>
 
         <div class="row q-mt-lg">
           <q-btn

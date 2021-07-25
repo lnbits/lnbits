@@ -26,6 +26,7 @@ new Vue({
   mixins: [windowMixin],
   data() {
     return {
+      greenModel: 0,
       currencies: [],
       fiatRates: {},
       checker: null,
