@@ -8,12 +8,14 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
-            amount INTEGER DEFAULT 1,
+            mini INTEGER,
+            maxi INTEGER,
+            amount INTEGER DEFAULT 0,
             served_meta INTEGER NOT NULL,
             served_pr INTEGER NOT NULL,
-            odds FLOAT,
-            actual_odds FLOAT,
-            current_odds FLOAT,
+            multiplier FLOAT,
+            chance FLOAT,
+            base_url TEXT,
             open_time INTEGER
         );
     """

@@ -7,20 +7,19 @@ from sqlite3 import Row
 from typing import NamedTuple, Optional, Dict
 import shortuuid  # type: ignore
 
-
 class satsdiceLink(NamedTuple):
     id: int
     wallet: str
-    description: str
-    min: int
+    title: str
+    min_bet: int
+    max_bet: int
+    amount: int
     served_meta: int
     served_pr: int
-    webhook_url: str
-    success_text: str
-    success_url: str
-    currency: str
-    comment_chars: int
-    max: int
+    multiplier: float
+    chance: float
+    base_url: str
+    open_time: int
 
     @classmethod
     def from_row(cls, row: Row) -> "satsdiceLink":
@@ -34,7 +33,7 @@ class satsdiceLink(NamedTuple):
 
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
-        return LnurlPayMetadata(json.dumps([["text/plain", self.description]]))
+        return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
     def success_action(self, payment_hash: str) -> Optional[Dict]:
         if self.success_url:
@@ -44,7 +43,7 @@ class satsdiceLink(NamedTuple):
             url = url._replace(query=urlencode(qs, doseq=True))
             return {
                 "tag": "url",
-                "description": self.success_text or "~",
+                "description": "Check the attached link",
                 "url": urlunparse(url),
             }
         elif self.success_text:
@@ -67,7 +66,6 @@ class satsdiceWithdraw(NamedTuple):
     actual_odds: float
     open_time: int
     current_odds: float
-    open_time: int
 
     @classmethod
     def from_row(cls, row: Row) -> "satsdiceWithdraw":

@@ -69,42 +69,29 @@ async def api_link_retrieve(link_id):
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
-        "description": {"type": "string", "empty": False, "required": True},
-        "min": {"type": "number", "min": 0.01, "required": True},
-        "max": {"type": "number", "min": 0.01, "required": True},
-        "currency": {"type": "string", "nullable": True, "required": False},
-        "comment_chars": {"type": "integer", "required": True, "min": 0, "max": 800},
-        "webhook_url": {"type": "string", "required": False},
-        "success_text": {"type": "string", "required": False},
-        "success_url": {"type": "string", "required": False},
+        "title": {"type": "string", "empty": False, "required": True},
+        "base_url": {"type": "string", "empty": False, "required": True},
+        "min_bet": {"type": "number", "required": True},
+        "max_bet": {"type": "number", "required": True},
+        "multiplier": {"type": "number", "required": True},
+        "chance": {"type": "number", "required": True}
     }
 )
 async def api_link_create_or_update(link_id=None):
-    if g.data["min"] > g.data["max"]:
+    if g.data["min_bet"] > g.data["max_bet"]:
         return jsonify({"message": "Min is greater than max."}), HTTPStatus.BAD_REQUEST
-
-    if g.data.get("currency") == None and (
-        round(g.data["min"]) != g.data["min"] or round(g.data["max"]) != g.data["max"]
-    ):
-        return jsonify({"message": "Must use full satoshis."}), HTTPStatus.BAD_REQUEST
-
-    if "success_url" in g.data and g.data["success_url"][:8] != "https://":
-        return (
-            jsonify({"message": "Success URL must be secure https://..."}),
-            HTTPStatus.BAD_REQUEST,
-        )
-
+    print(g.data)
     if link_id:
         link = await get_satsdice_pay(link_id)
 
         if not link:
             return (
-                jsonify({"message": "Pay link does not exist."}),
+                jsonify({"message": "Satsdice does not exist."}),
                 HTTPStatus.NOT_FOUND,
             )
 
         if link.wallet != g.wallet.id:
-            return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
+            return jsonify({"message": "Come on, seriously, this isn't your satsdice!"}), HTTPStatus.FORBIDDEN
 
         link = await update_satsdice_pay(link_id, **g.data)
     else:

@@ -11,11 +11,11 @@ async def create_satsdice_pay(
     *,
     wallet_id: str,
     title: str,
-    amount: int,
-    success_text: Optional[str] = None,
-    success_url: Optional[str] = None,
-    odds: int = 0,
-    current_odds: int = 0,
+    base_url: str,
+    min_bet: str,
+    max_bet: str,
+    multiplier: int = 0,
+    chance: int = 0,
 ) -> satsdiceLink:
     result = await db.execute(
         """
@@ -23,32 +23,33 @@ async def create_satsdice_pay(
             id,
             wallet,
             title,
+            base_url,
+            min_bet,
+            max_bet,
             amount,
             served_meta,
             served_pr,
-            success_text,
-            success_url,
-            odds,
-            current_odds,
+            multiplier,
+            chance,
             open_time
         )
-        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?)
         """,
         (
             urlsafe_short_hash(),
             wallet_id,
             title,
-            title,
-            amount,
-            success_text,
-            success_url,
-            odds,
-            current_odds,
+            base_url,
+            min_bet,
+            max_bet,
+            multiplier,
+            chance,
             int(datetime.now().timestamp()),
         ),
     )
     link_id = result._result_proxy.lastrowid
     link = await get_satsdice_pay(link_id)
+    print(link)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
@@ -57,6 +58,7 @@ async def get_satsdice_pay(link_id: int) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
+    print(row)
     return satsdiceLink.from_row(row) if row else None
 
 
