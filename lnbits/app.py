@@ -18,11 +18,12 @@ from .helpers import (
 )
 from .proxy_fix import ASGIProxyFix
 from .tasks import (
+    webhook_handler,
+    invoice_listener,
     run_deferred_async,
     check_pending_payments,
-    invoice_listener,
     internal_invoice_listener,
-    webhook_handler,
+    catch_everything_and_restart,
 )
 from .settings import WALLET
 
@@ -118,10 +119,10 @@ def register_async_tasks(app):
 
     @app.before_serving
     async def listeners():
-        run_deferred_async(app.nursery)
-        app.nursery.start_soon(check_pending_payments)
-        app.nursery.start_soon(invoice_listener, app.nursery)
-        app.nursery.start_soon(internal_invoice_listener, app.nursery)
+        run_deferred_async()
+        app.nursery.start_soon(catch_everything_and_restart, check_pending_payments)
+        app.nursery.start_soon(catch_everything_and_restart, invoice_listener)
+        app.nursery.start_soon(catch_everything_and_restart, internal_invoice_listener)
 
     @app.after_serving
     async def stop_listeners():
