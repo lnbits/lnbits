@@ -132,6 +132,7 @@ def register_async_tasks(app):
 def register_exception_handlers(app):
     @app.errorhandler(Exception)
     async def basic_error(err):
+        print("handled error", traceback.format_exc())
         etype, value, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
