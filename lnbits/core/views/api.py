@@ -1,14 +1,14 @@
 import trio
 import json
-import lnurl  # type: ignore
 import httpx
+import hashlib
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, current_app, jsonify, make_response, url_for
 from http import HTTPStatus
 from binascii import unhexlify
 from typing import Dict, Union
 
-from lnbits import bolt11
+from lnbits import bolt11, lnurl
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 
@@ -231,9 +231,12 @@ async def api_payments_pay_lnurl():
                 timeout=40,
             )
             if r.is_error:
-                return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
+                raise httpx.ConnectError
         except (httpx.ConnectError, httpx.RequestError):
-            return jsonify({"message": "failed to connect"}), HTTPStatus.BAD_REQUEST
+            return (
+                jsonify({"message": f"Failed to connect to {domain}."}),
+                HTTPStatus.BAD_REQUEST,
+            )
 
     params = json.loads(r.text)
     if params.get("status") == "ERROR":
@@ -367,24 +370,35 @@ async def api_payments_sse():
 @api_check_wallet_key("invoice")
 async def api_lnurlscan(code: str):
     try:
-        url = lnurl.Lnurl(code)
-    except ValueError:
-        return jsonify({"message": "invalid lnurl"}), HTTPStatus.BAD_REQUEST
-
-    domain = urlparse(url.url).netloc
+        url = lnurl.decode(code)
+        domain = urlparse(url).netloc
+    except:
+        # parse internet identifier (user@domain.com)
+        name_domain = code.split("@")
+        if len(name_domain) == 2 and len(name_domain[1].split(".")) == 2:
+            name, domain = name_domain
+            url = (
+                ("http://" if domain.endswith(".onion") else "https://")
+                + domain
+                + "/.well-known/lnurlp/"
+                + name
+            )
+            # will proceed with these values
+        else:
+            return jsonify({"message": "invalid lnurl"}), HTTPStatus.BAD_REQUEST
 
     # params is what will be returned to the client
     params: Dict = {"domain": domain}
 
-    if url.is_login:
+    if "tag=login" in url:
         params.update(kind="auth")
-        params.update(callback=url.url)  # with k1 already in it
+        params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = g.wallet.lnurlauth_key(domain)
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
-            r = await client.get(url.url, timeout=40)
+            r = await client.get(url, timeout=5)
             if r.is_error:
                 return (
                     jsonify({"domain": domain, "message": "failed to get parameters"}),
@@ -392,9 +406,8 @@ async def api_lnurlscan(code: str):
                 )
 
         try:
-            jdata = json.loads(r.text)
-            data: lnurl.LnurlResponseModel = lnurl.LnurlResponse.from_dict(jdata)
-        except (json.decoder.JSONDecodeError, lnurl.exceptions.LnurlResponseException):
+            data = json.loads(r.text)
+        except json.decoder.JSONDecodeError:
             return (
                 jsonify(
                     {
@@ -405,43 +418,67 @@ async def api_lnurlscan(code: str):
                 HTTPStatus.SERVICE_UNAVAILABLE,
             )
 
-        if type(data) is lnurl.LnurlChannelResponse:
+        try:
+            tag = data["tag"]
+            if tag == "channelRequest":
+                return (
+                    jsonify(
+                        {"domain": domain, "kind": "channel", "message": "unsupported"}
+                    ),
+                    HTTPStatus.BAD_REQUEST,
+                )
+
+            params.update(**data)
+
+            if tag == "withdrawRequest":
+                params.update(kind="withdraw")
+                params.update(fixed=data["minWithdrawable"] == data["maxWithdrawable"])
+
+                # callback with k1 already in it
+                parsed_callback: ParseResult = urlparse(data["callback"])
+                qs: Dict = parse_qs(parsed_callback.query)
+                qs["k1"] = data["k1"]
+
+                # balanceCheck/balanceNotify
+                if "balanceCheck" in data:
+                    params.update(balanceCheck=data["balanceCheck"])
+
+                # format callback url and send to client
+                parsed_callback = parsed_callback._replace(
+                    query=urlencode(qs, doseq=True)
+                )
+                params.update(callback=urlunparse(parsed_callback))
+
+            if tag == "payRequest":
+                params.update(kind="pay")
+                params.update(fixed=data["minSendable"] == data["maxSendable"])
+
+                params.update(
+                    description_hash=hashlib.sha256(
+                        data["metadata"].encode("utf-8")
+                    ).hexdigest()
+                )
+                metadata = json.loads(data["metadata"])
+                for [k, v] in metadata:
+                    if k == "text/plain":
+                        params.update(description=v)
+                    if k == "image/jpeg;base64" or k == "image/png;base64":
+                        data_uri = "data:" + k + "," + v
+                        params.update(image=data_uri)
+                    if k == "text/email" or k == "text/identifier":
+                        params.update(targetUser=v)
+
+                params.update(commentAllowed=data.get("commentAllowed", 0))
+        except KeyError as exc:
             return (
                 jsonify(
-                    {"domain": domain, "kind": "channel", "message": "unsupported"}
+                    {
+                        "domain": domain,
+                        "message": f"lnurl JSON response invalid: {exc}",
+                    }
                 ),
-                HTTPStatus.BAD_REQUEST,
+                HTTPStatus.SERVICE_UNAVAILABLE,
             )
-
-        params.update(**data.dict())
-
-        if type(data) is lnurl.LnurlWithdrawResponse:
-            params.update(kind="withdraw")
-            params.update(fixed=data.min_withdrawable == data.max_withdrawable)
-
-            # callback with k1 already in it
-            parsed_callback: ParseResult = urlparse(data.callback)
-            qs: Dict = parse_qs(parsed_callback.query)
-            qs["k1"] = data.k1
-
-            # balanceCheck/balanceNotify
-            if "balanceCheck" in jdata:
-                params.update(balanceCheck=jdata["balanceCheck"])
-
-            # format callback url and send to client
-            parsed_callback = parsed_callback._replace(query=urlencode(qs, doseq=True))
-            params.update(callback=urlunparse(parsed_callback))
-
-        if type(data) is lnurl.LnurlPayResponse:
-            params.update(kind="pay")
-            params.update(fixed=data.min_sendable == data.max_sendable)
-            params.update(description_hash=data.metadata.h)
-            params.update(description=data.metadata.text)
-            if data.metadata.images:
-                image = min(data.metadata.images, key=lambda image: len(image[1]))
-                data_uri = "data:" + image[0] + "," + image[1]
-                params.update(image=data_uri)
-            params.update(commentAllowed=jdata.get("commentAllowed", 0))
 
     return jsonify(params)
 

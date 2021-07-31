@@ -346,7 +346,10 @@ new Vue({
           .split('&')[0]
       }
 
-      if (this.parse.data.request.toLowerCase().startsWith('lnurl1')) {
+      if (
+        this.parse.data.request.toLowerCase().startsWith('lnurl1') ||
+        this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
+      ) {
         LNbits.api
           .request(
             'GET',
