@@ -97,6 +97,9 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
 
 
 async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
+    if "is_unique" in kwargs:
+        kwargs["is_unique"] = int(kwargs["is_unique"])
+
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE withdraw.withdraw_link SET {q} WHERE id = ?",
