@@ -172,6 +172,33 @@
           label="Wallet *"
         >
         </q-select>
+        <div class="row">
+          <div class="col">
+            <div v-if="walletLinks.length > 0">
+              <q-checkbox
+                v-model="serviceDialog.data.chain"
+                label="Chain"
+              />
+            </div>
+            <div v-else>
+              <q-checkbox :value="false" label="Chain" disabled>
+                <q-tooltip>
+                  Watch-Only extension MUST be activated and have a wallet
+                </q-tooltip>
+              </q-checkbox>
+            </div>
+          </div>
+        </div>
+        <div v-if="formDialogCharge.data.onchain">
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="walletDialog.data.onchain"
+            :options="walletLinks"
+            label="Chain Wallet"
+          />
+        </div>
         <q-input
           filled
           dense
@@ -248,16 +275,33 @@
         servicenames: ['Streamlabs'],
         services: [],
         donations: [],
+        walletLinks: [],
         servicesTable: {
           columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
             {
               name: 'twitchuser',
               align: 'left',
               label: 'Twitch Username',
               field: 'twitchuser'
             },
-            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'Wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'onchain address',
+              align: 'left',
+              label: 'Onchain Address',
+              field: 'onchain'
+            },
             {
               name: 'servicename',
               align: 'left',
@@ -305,11 +349,31 @@
         },
         serviceDialog: {
           show: false,
+          chain: false,
           data: {}
         }
       }
     },
     methods: {
+      getWalletLinks: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/wallet',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            for (i = 0; i < response.data.length; i++) {
+              self.walletLinks.push(response.data[i].id)
+            }
+            return
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       getDonations: function () {
         var self = this
 

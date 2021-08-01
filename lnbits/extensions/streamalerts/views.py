@@ -22,5 +22,7 @@ async def donation(state):
     if not service:
         abort(HTTPStatus.NOT_FOUND, "Service does not exist.")
     return await render_template(
-        "streamalerts/display.html", twitchuser=service.twitchuser, service=service.id
+        "streamalerts/display.html",
+        twitchuser=service.twitchuser,
+        service=service.id
     )
