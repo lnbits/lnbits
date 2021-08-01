@@ -75,6 +75,7 @@ async def internal_invoice_listener():
 
 async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
+        print("> got a payment notification", checking_id)
         current_app.nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
