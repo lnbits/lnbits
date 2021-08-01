@@ -189,12 +189,12 @@
             </div>
           </div>
         </div>
-        <div v-if="formDialogCharge.data.onchain">
+        <div v-if="serviceDialog.data.chain">
           <q-select
             filled
             dense
             emit-value
-            v-model="walletDialog.data.onchain"
+            v-model="serviceDialog.data.onchain"
             :options="walletLinks"
             label="Chain Wallet"
           />
@@ -494,6 +494,7 @@
 
     created: function () {
       if (this.g.user.wallets.length) {
+        this.getWalletLinks()
         this.getDonations()
         this.getServices()
       }
