@@ -5,7 +5,7 @@ from lnbits.decorators import api_validate_post_request, api_check_wallet_key
 from lnbits.core.crud import get_wallet, get_user
 from lnbits.utils.exchange_rates import btc_price
 
-from . import twitchalerts_ext
+from . import streamalerts_ext
 from .crud import (
     get_charge_details,
     get_service_redirect_uri,
@@ -25,7 +25,7 @@ from .crud import (
 from ..satspay.crud import create_charge, get_charge
 
 
-@twitchalerts_ext.route("/api/v1/services", methods=["POST"])
+@streamalerts_ext.route("/api/v1/services", methods=["POST"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -43,11 +43,11 @@ async def api_create_service():
     wallet = await get_wallet(service.wallet)
     user = wallet.user
     redirect_url = request.scheme + "://" + request.headers["Host"]
-    redirect_url += f"/twitchalerts/?usr={user}&created={str(service.id)}"
+    redirect_url += f"/streamalerts/?usr={user}&created={str(service.id)}"
     return redirect(redirect_url)
 
 
-@twitchalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
+@streamalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
 async def api_get_access(service_id):
     """Redirect to Streamlabs' Approve/Decline page for API access for Service
     with service_id
@@ -70,7 +70,7 @@ async def api_get_access(service_id):
         return (jsonify({"message": "Service does not exist!"}), HTTPStatus.BAD_REQUEST)
 
 
-@twitchalerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
+@streamalerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
 async def api_authenticate_service(service_id):
     """Endpoint visited via redirect during third party API authentication
 
@@ -83,7 +83,7 @@ async def api_authenticate_service(service_id):
     if service.state != state:
         return (jsonify({"message": "State doesn't match!"}), HTTPStatus.BAD_Request)
     redirect_uri = request.scheme + "://" + request.headers["Host"]
-    redirect_uri += f"/twitchalerts/api/v1/authenticate/{service_id}"
+    redirect_uri += f"/streamalerts/api/v1/authenticate/{service_id}"
     url, success = await authenticate_service(service_id, code, redirect_uri)
     if success:
         return redirect(url)
@@ -94,7 +94,7 @@ async def api_authenticate_service(service_id):
         )
 
 
-@twitchalerts_ext.route("/api/v1/donations", methods=["POST"])
+@streamalerts_ext.route("/api/v1/donations", methods=["POST"])
 @api_validate_post_request(
     schema={
         "name": {"type": "string"},
@@ -122,7 +122,7 @@ async def api_create_donation():
         amount=sats,
         completelink=f"https://twitch.tv/{service.twitchuser}",
         completelinktext="Back to Stream!",
-        webhook=webhook_base + "/twitchalerts/api/v1/postdonation",
+        webhook=webhook_base + "/streamalerts/api/v1/postdonation",
         description=description,
         **charge_details,
     )
@@ -139,7 +139,7 @@ async def api_create_donation():
     return (jsonify({"redirect_url": f"/satspay/{charge.id}"}), HTTPStatus.OK)
 
 
-@twitchalerts_ext.route("/api/v1/postdonation", methods=["POST"])
+@streamalerts_ext.route("/api/v1/postdonation", methods=["POST"])
 @api_validate_post_request(
     schema={
         "id": {"type": "string", "required": True},
@@ -158,7 +158,7 @@ async def api_post_donation():
         return (jsonify({"message": "Not a paid charge!"}), HTTPStatus.BAD_REQUEST)
 
 
-@twitchalerts_ext.route("/api/v1/services", methods=["GET"])
+@streamalerts_ext.route("/api/v1/services", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_services():
     """Return list of all services assigned to wallet with given invoice key"""
@@ -173,7 +173,7 @@ async def api_get_services():
     )
 
 
-@twitchalerts_ext.route("/api/v1/donations", methods=["GET"])
+@streamalerts_ext.route("/api/v1/donations", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_get_donations():
     """Return list of all donations assigned to wallet with given invoice
@@ -190,7 +190,7 @@ async def api_get_donations():
     )
 
 
-@twitchalerts_ext.route("/api/v1/donations/<donation_id>", methods=["PUT"])
+@streamalerts_ext.route("/api/v1/donations/<donation_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 async def api_update_donation(donation_id=None):
     """Update a donation with the data given in the request"""
@@ -215,7 +215,7 @@ async def api_update_donation(donation_id=None):
     return jsonify(donation._asdict()), HTTPStatus.CREATED
 
 
-@twitchalerts_ext.route("/api/v1/services/<service_id>", methods=["PUT"])
+@streamalerts_ext.route("/api/v1/services/<service_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 async def api_update_service(service_id=None):
     """Update a service with the data given in the request"""
@@ -237,7 +237,7 @@ async def api_update_service(service_id=None):
     return jsonify(service._asdict()), HTTPStatus.CREATED
 
 
-@twitchalerts_ext.route("/api/v1/donations/<donation_id>", methods=["DELETE"])
+@streamalerts_ext.route("/api/v1/donations/<donation_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_delete_donation(donation_id):
     """Delete the donation with the given donation_id"""
@@ -254,7 +254,7 @@ async def api_delete_donation(donation_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@twitchalerts_ext.route("/api/v1/services/<service_id>", methods=["DELETE"])
+@streamalerts_ext.route("/api/v1/services/<service_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
 async def api_delete_service(service_id):
     """Delete the service with the given service_id"""

@@ -76,7 +76,7 @@
       Invoice: function () {
         var self = this
         axios
-          .post('/twitchalerts/api/v1/donations', {
+          .post('/streamalerts/api/v1/donations', {
             service: {{ service }},
             name: self.donationDialog.data.name,
             sats: self.donationDialog.data.sats,

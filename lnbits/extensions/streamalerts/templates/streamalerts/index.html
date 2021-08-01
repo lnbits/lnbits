@@ -151,11 +151,11 @@
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits Twitch Alerts extension</h6>
+        <h6 class="text-subtitle1 q-my-none">LNbits Stream Alerts extension</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "twitchalerts/_api_docs.html" %} </q-list>
+        <q-list> {% include "streamalerts/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
@@ -229,14 +229,14 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  var mapTwitchAlerts = function (obj) {
+  var mapStreamAlerts = function (obj) {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.authUrl = ['/twitchalerts/api/v1/getaccess/', obj.id].join('')
-    obj.displayUrl = ['/twitchalerts/', obj.state].join('')
+    obj.authUrl = ['/streamalerts/api/v1/getaccess/', obj.id].join('')
+    obj.displayUrl = ['/streamalerts/', obj.state].join('')
     return obj
   }
 
@@ -316,12 +316,12 @@
         LNbits.api
           .request(
             'GET',
-            '/twitchalerts/api/v1/donations',
+            '/streamalerts/api/v1/donations',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.donations = response.data.map(function (obj) {
-              return mapTwitchAlerts(obj)
+              return mapStreamAlerts(obj)
             })
           })
       },
@@ -335,7 +335,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/twitchalerts/api/v1/donations/' + donationId,
+                '/streamalerts/api/v1/donations/' + donationId,
                 _.findWhere(self.g.user.wallets, {id: donations.wallet}).inkey
               )
               .then(function (response) {
@@ -358,12 +358,12 @@
         LNbits.api
           .request(
             'GET',
-            '/twitchalerts/api/v1/services',
+            '/streamalerts/api/v1/services',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.services = response.data.map(function (obj) {
-              return mapTwitchAlerts(obj)
+              return mapStreamAlerts(obj)
             })
           })
       },
@@ -379,9 +379,9 @@
       createService: function (wallet, data) {
         var self = this
         LNbits.api
-          .request('POST', '/twitchalerts/api/v1/services', wallet.inkey, data)
+          .request('POST', '/streamalerts/api/v1/services', wallet.inkey, data)
           .then(function (response) {
-            self.services.push(mapTwitchAlerts(response.data))
+            self.services.push(mapStreamAlerts(response.data))
             self.serviceDialog.show = false
             self.serviceDialog.data = {}
           })
@@ -410,7 +410,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/twitchalerts/api/v1/services/' + servicesId,
+                '/streamalerts/api/v1/services/' + servicesId,
                 _.findWhere(self.g.user.wallets, {id: services.wallet}).inkey
               )
               .then(function (response) {

@@ -17,7 +17,7 @@ from lnbits.core.crud import get_wallet
 async def get_service_redirect_uri(request, service_id):
     """Return the service's redirect URI, to be given to the third party API"""
     uri_base = request.scheme + "://"
-    uri_base += request.headers["Host"] + "/twitchalerts/api/v1"
+    uri_base += request.headers["Host"] + "/streamalerts/api/v1"
     redirect_uri = uri_base + f"/authenticate/{service_id}"
     return redirect_uri
 
@@ -191,7 +191,7 @@ async def authenticate_service(service_id, code, redirect_uri):
     print(response)
     token = response["access_token"]
     success = await service_add_token(service_id, token)
-    return f"/twitchalerts/?usr={user}", success
+    return f"/streamalerts/?usr={user}", success
 
 
 async def service_add_token(service_id, token):
