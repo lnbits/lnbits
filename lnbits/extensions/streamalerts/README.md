@@ -15,7 +15,7 @@ At the moment, the only service that has an open API to work with is Streamlabs,
 ![image](https://user-images.githubusercontent.com/28876473/127759201-7c28e9f1-6286-42be-a38e-1c377a86976b.png)  
 1. Fill out the form with anything it will accept as valid. Most fields can be gibberish, as the application is not supposed to ever move past the "testing" stage and is for your personal use only.
 In the "Whitelist Users" field, input the username of a Twitch account you control. While this feature is *technically* limited to Twitch, you can use the alerts overlay for donations on YouTube and Facebook as well.
-For now, simply set the "Redirect URI" to `http://localhots`, you will change this soon.
+For now, simply set the "Redirect URI" to `http://localhost`, you will change this soon.
 Then, hit create:  
 ![image](https://user-images.githubusercontent.com/28876473/127759264-ae91539a-5694-4096-a478-80eb02b7b594.png)  
 1. In LNbits, enable the Stream Alerts extension and optionally the SatsPayServer (to observe donations directly) and Watch Only (to accept on-chain donations) extenions:  
