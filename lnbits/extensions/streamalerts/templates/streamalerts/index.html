@@ -63,7 +63,7 @@
                   :href="props.row.displayUrl"
                   target="_blank"
                 ></q-btn>
-                <a :href="props.row.redirectUri">Redirect URI for Streamlabs</a>
+                <a :href="props.row.redirectURI">Redirect URI for Streamlabs</a>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -263,7 +263,7 @@
       'YYYY-MM-DD HH:mm'
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.redirectUri = ['/streamalerts/api/v1/authenticate/', obj.id].join('')
+    obj.redirectURI = ['/streamalerts/api/v1/authenticate/', obj.id].join('')
     obj.authUrl = ['/streamalerts/api/v1/getaccess/', obj.id].join('')
     obj.displayUrl = ['/streamalerts/', obj.state].join('')
     return obj
