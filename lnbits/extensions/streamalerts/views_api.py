@@ -39,12 +39,17 @@ from ..satspay.crud import create_charge, get_charge
 )
 async def api_create_service():
     """Create a service, which holds data about how/where to post donations"""
-    service = await create_service(**g.data)
-    wallet = await get_wallet(service.wallet)
-    user = wallet.user
-    redirect_url = request.scheme + "://" + request.headers["Host"]
-    redirect_url += f"/streamalerts/?usr={user}&created={str(service.id)}"
-    return redirect(redirect_url)
+    try:
+        service = await create_service(**g.data)
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    # wallet = await get_wallet(service.wallet)
+    # user = wallet.user
+    # redirect_url = request.scheme + "://" + request.headers["Host"]
+    # redirect_url += f"/streamalerts/?usr={user}&created={str(service.id)}"
+    # return redirect(redirect_url)
+    return jsonify(service._asdict()), HTTPStatus.CREATED
+    
 
 
 @streamalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])

@@ -447,6 +447,7 @@
         LNbits.api
           .request('POST', '/streamalerts/api/v1/services', wallet.inkey, data)
           .then(function (response) {
+            console.log(response)
             self.services.push(mapStreamAlerts(response.data))
             self.serviceDialog.show = false
             self.serviceDialog.data = {}
