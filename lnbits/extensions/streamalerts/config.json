@@ -1,0 +1,6 @@
+{
+    "name": "Stream Alerts",
+    "short_description": "Integrate Bitcoin donations into your stream alerts!",
+    "icon": "notifications_active",
+    "contributors": ["Fittiboy"]
+}
