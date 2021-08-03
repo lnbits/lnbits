@@ -101,14 +101,12 @@
           dense
           flat
           :data="donations"
-          row-key="id"
           :columns="donationsTable.columns"
           :pagination.sync="donationsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -119,7 +117,6 @@
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
-
               <q-td auto-width>
                 <q-btn
                   flat
@@ -329,8 +326,8 @@
               label: 'Service',
               field: 'service'
             },
-            {name: 'donor', align: 'left', label: 'Donor', field: 'donor'},
-            {name: 'ltext', align: 'left', label: 'Message', field: 'ltext'},
+            {name: 'name', align: 'left', label: 'Donor', field: 'name'},
+            {name: 'message', align: 'left', label: 'Message', field: 'message'},
             {name: 'sats', align: 'left', label: 'Sats', field: 'sats'}
           ],
           pagination: {
