@@ -115,19 +115,7 @@
             </q-tr>
           </template>
           <template v-slot:body="props">
-            <q-tr :props="props" v-if="props.row.paid">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="email"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="'mailto:' + props.row.email"
-                ></q-btn>
-              </q-td>
-
+            <q-tr :props="props">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
