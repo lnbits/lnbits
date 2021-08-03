@@ -101,37 +101,22 @@
           dense
           flat
           :data="donations"
-          row-key="id"
           :columns="donationsTable.columns"
           :pagination.sync="donationsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
-            <q-tr :props="props" v-if="props.row.paid">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="email"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="'mailto:' + props.row.email"
-                ></q-btn>
-              </q-td>
-
+            <q-tr :props="props">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
-
               <q-td auto-width>
                 <q-btn
                   flat
@@ -341,9 +326,11 @@
               label: 'Service',
               field: 'service'
             },
-            {name: 'donor', align: 'left', label: 'Donor', field: 'donor'},
-            {name: 'ltext', align: 'left', label: 'Message', field: 'ltext'},
-            {name: 'sats', align: 'left', label: 'Sats', field: 'sats'}
+            {name: 'id', align: 'left', label: 'Charge ID', field: 'id'},
+            {name: 'name', align: 'left', label: 'Donor', field: 'name'},
+            {name: 'message', align: 'left', label: 'Message', field: 'message'},
+            {name: 'sats', align: 'left', label: 'Sats', field: 'sats'},
+            {name: 'posted', align: 'left', label: 'Posted to API', field: 'posted'}
           ],
           pagination: {
             rowsPerPage: 10
