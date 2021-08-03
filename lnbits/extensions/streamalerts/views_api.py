@@ -2,7 +2,7 @@ from quart import g, redirect, request, jsonify
 from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
-from lnbits.core.crud import get_wallet, get_user
+from lnbits.core.crud import get_user
 from lnbits.utils.exchange_rates import btc_price
 
 from . import streamalerts_ext
@@ -43,9 +43,8 @@ async def api_create_service():
         service = await create_service(**g.data)
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
-    
-    return jsonify(service._asdict()), HTTPStatus.CREATED
 
+    return jsonify(service._asdict()), HTTPStatus.CREATED
 
 
 @streamalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
@@ -117,7 +116,9 @@ async def api_create_donation():
     service_id = g.data["service"]
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
-    name = g.data.get("name", "Anonymous")
+    name = g.data.get("name", "")
+    if not name:
+        name = "Anonymous"
     description = f"{sats} sats donation from {name} to {service.twitchuser}"
     charge = await create_charge(
         amount=sats,
