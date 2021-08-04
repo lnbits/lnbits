@@ -108,7 +108,7 @@ async def api_create_donation():
     # Currency is hardcoded while frotnend is limited
     cur_code = "USD"
     sats = g.data["sats"]
-    message = g.data.get("message", "")[:255]
+    message = g.data.get("message", "")
     # Fiat amount is calculated here while frontend is limited
     price = await btc_price(cur_code)
     amount = sats * (10 ** (-8)) * price
@@ -116,7 +116,7 @@ async def api_create_donation():
     service_id = g.data["service"]
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
-    name = g.data.get("name", "")[:25]
+    name = g.data.get("name", "")
     if not name:
         name = "Anonymous"
     description = f"{sats} sats donation from {name} to {service.twitchuser}"
