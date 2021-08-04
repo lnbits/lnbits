@@ -89,8 +89,8 @@ async def post_donation(donation_id: str) -> tuple:
     if service.servicename == "Streamlabs":
         url = "https://streamlabs.com/api/v1.0/donations"
         data = {
-            "name": donation.name,
-            "message": donation.message,
+            "name": donation.name[:25],
+            "message": donation.message[:255],
             "identifier": "LNbits",
             "amount": donation.amount,
             "currency": donation.cur_code.upper(),
