@@ -10,6 +10,7 @@
             filled
             dense
             v-model.trim="donationDialog.data.name"
+            maxlength="25"
             type="name"
             label="Your Name (leave blank for Anonymous donation)"
           ></q-input>
@@ -19,6 +20,7 @@
             v-model.number="donationDialog.data.sats"
             type="number"
             min="1"
+            max="2100000000000000"
             suffix="sats"
             :rules="[val => val > 0 || 'Choose a positive number of sats!']"
             label="Amount of sats"
@@ -27,6 +29,7 @@
             filled
             dense
             v-model.trim="donationDialog.data.message"
+            maxlength="255"
             type="textarea"
             label="Donation Message (you can leave this blank too)"
           ></q-input>
