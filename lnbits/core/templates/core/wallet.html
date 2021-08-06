@@ -279,6 +279,28 @@
           <q-separator></q-separator>
           <q-expansion-item
             group="extras"
+            icon="edit"
+            label="Rename wallet"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="" style="max-width: 320px">
+                  <q-input filled v-model.trim="newName" label="Label" dense="dense" @update:model-value="(e) => console.log(e)"/>
+                </div>
+                <q-btn
+                  :disable="!newName.length"
+                  unelevated
+                  class="q-mt-sm"
+                  color="primary"
+                  @click="updateWalletName()"
+                  >Update name</q-btn
+                >
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+          <q-separator></q-separator>
+          <q-expansion-item
+            group="extras"
             icon="remove_circle"
             label="Delete wallet"
           >
