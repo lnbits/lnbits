@@ -184,7 +184,8 @@ new Vue({
         show: false,
         location: window.location
       },
-      balance: 0
+      balance: 0,
+      newName: ''
     }
   },
   computed: {
@@ -582,6 +583,28 @@ new Vue({
             LNbits.utils.notifyApiError(err)
           }
         })
+    },
+    updateWalletName: function(){
+      let newName = this.newName
+      if(!newName || !newName.length) return
+      // let data = {name: newName}
+      LNbits.api
+      .request(
+        'PUT',
+        '/api/v1/wallet/' + newName,
+        this.g.wallet.inkey,
+        {}
+      ).then(res => {
+        this.newName = ''
+        this.$q.notify({
+          message: `Wallet named updated.`,
+          type: 'positive',
+          timeout: 3500
+        })
+      }).catch(err => {
+        this.newName = ''
+        LNbits.utils.notifyApiError(err)
+      })
     },
     deleteWallet: function (walletId, user) {
       LNbits.utils
