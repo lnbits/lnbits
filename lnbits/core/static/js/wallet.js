@@ -601,6 +601,7 @@ new Vue({
           type: 'positive',
           timeout: 3500
         })
+        LNbits.href.updateWallet(res.data.name, this.user.id, this.g.wallet.id)
       }).catch(err => {
         this.newName = ''
         LNbits.utils.notifyApiError(err)

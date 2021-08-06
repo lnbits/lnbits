@@ -110,6 +110,9 @@ window.LNbits = {
       window.location.href =
         '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName
     },
+    updateWallet: function (walletName, userId, walletId) {
+     window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`  
+    },
     deleteWallet: function (walletId, userId) {
       window.location.href = '/deletewallet?usr=' + userId + '&wal=' + walletId
     }
