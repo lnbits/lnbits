@@ -16,8 +16,14 @@ async def create_pay_link(
     success_text: Optional[str] = None,
     success_url: Optional[str] = None,
 ) -> PayLink:
-    result = await db.execute(
-        """
+
+    if db.type == "POSTGRES" or db.type == "COCKROACH":
+        returning = "RETURNING id"
+    else:
+        returning = ""
+
+    result = await db.fetchone(
+        f"""
         INSERT INTO lnurlp.pay_links (
             wallet,
             description,
@@ -32,6 +38,7 @@ async def create_pay_link(
             currency
         )
         VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
+        {returning}
         """,
         (
             wallet_id,
@@ -45,7 +52,11 @@ async def create_pay_link(
             currency,
         ),
     )
-    link_id = result._result_proxy.lastrowid
+    if db.type == "POSTGRES" or db.type == "COCKROACH":
+        link_id = result[0]
+    else:
+        link_id = result._result_proxy.lastrowid
+        
     link = await get_pay_link(link_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
@@ -68,7 +79,6 @@ async def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[PayLink]:
         """,
         (*wallet_ids,),
     )
-
     return [PayLink.from_row(row) for row in rows]
 
 
