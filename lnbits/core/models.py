@@ -72,26 +72,6 @@ class Wallet(NamedTuple):
 
         return await get_wallet_payment(self.id, payment_hash)
 
-    async def get_payments(
-        self,
-        *,
-        complete: bool = True,
-        pending: bool = False,
-        outgoing: bool = True,
-        incoming: bool = True,
-        exclude_uncheckable: bool = False,
-    ) -> List["Payment"]:
-        from .crud import get_payments
-
-        return await get_payments(
-            wallet_id=self.id,
-            complete=complete,
-            pending=pending,
-            outgoing=outgoing,
-            incoming=incoming,
-            exclude_uncheckable=exclude_uncheckable,
-        )
-
 
 class Payment(NamedTuple):
     checking_id: str

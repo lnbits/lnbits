@@ -21,7 +21,9 @@ conf.get_default().log_event_callback = log_event_callback
 ngrok_authtoken = getenv("NGROK_AUTHTOKEN")
 if ngrok_authtoken is not None:
     ngrok.set_auth_token(ngrok_authtoken)
-ngrok_tunnel = ngrok.connect(5000)
+
+port = getenv("PORT")
+ngrok_tunnel = ngrok.connect(port)
 
 
 @ngrok_ext.route("/")

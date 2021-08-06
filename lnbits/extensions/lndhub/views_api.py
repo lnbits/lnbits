@@ -3,7 +3,7 @@ from base64 import urlsafe_b64encode
 from quart import jsonify, g, request
 
 from lnbits.core.services import pay_invoice, create_invoice
-from lnbits.core.crud import delete_expired_invoices
+from lnbits.core.crud import get_payments, delete_expired_invoices
 from lnbits.decorators import api_validate_post_request
 from lnbits.settings import WALLET
 from lnbits import bolt11
@@ -125,7 +125,8 @@ async def lndhub_balance():
 @lndhub_ext.route("/ext/gettxs", methods=["GET"])
 @check_wallet()
 async def lndhub_gettxs():
-    for payment in await g.wallet.get_payments(
+    for payment in await get_payments(
+        wallet_id=g.wallet.id,
         complete=False,
         pending=True,
         outgoing=True,
@@ -153,8 +154,12 @@ async def lndhub_gettxs():
             }
             for payment in reversed(
                 (
-                    await g.wallet.get_payments(
-                        pending=True, complete=True, outgoing=True, incoming=False
+                    await get_payments(
+                        wallet_id=g.wallet.id,
+                        pending=True,
+                        complete=True,
+                        outgoing=True,
+                        incoming=False,
                     )
                 )[:limit]
             )
@@ -166,7 +171,8 @@ async def lndhub_gettxs():
 @check_wallet()
 async def lndhub_getuserinvoices():
     await delete_expired_invoices()
-    for invoice in await g.wallet.get_payments(
+    for invoice in await get_payments(
+        wallet_id=g.wallet.id,
         complete=False,
         pending=True,
         outgoing=False,
@@ -194,8 +200,12 @@ async def lndhub_getuserinvoices():
             }
             for invoice in reversed(
                 (
-                    await g.wallet.get_payments(
-                        pending=True, complete=True, incoming=True, outgoing=False
+                    await get_payments(
+                        wallet_id=g.wallet.id,
+                        pending=True,
+                        complete=True,
+                        incoming=True,
+                        outgoing=False,
                     )
                 )[:limit]
             )
