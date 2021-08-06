@@ -41,7 +41,6 @@ async def api_wallet():
 @core_app.route("/api/v1/wallet/<new_name>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 async def api_update_wallet(new_name):
-    print("UPDATE", g.wallet.id, new_name)
     await update_wallet(g.wallet.id, new_name)
     return (
         jsonify(
