@@ -42,7 +42,7 @@ async def api_wallet():
 @core_app.route("/api/v1/payments", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments():
-    return jsonify(await get_payments(wallet_id=g.wallet.id, pending=True))
+    return jsonify(await get_payments(wallet_id=g.wallet.id, pending=True, complete=True))
 
 
 @api_check_wallet_key("invoice")

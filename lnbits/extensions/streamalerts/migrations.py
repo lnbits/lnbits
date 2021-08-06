@@ -1,9 +1,9 @@
 async def m001_initial(db):
 
     await db.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS Services (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {db.serial_primary_key},
             state TEXT NOT NULL,
             twitchuser TEXT NOT NULL,
             client_id TEXT NOT NULL,
