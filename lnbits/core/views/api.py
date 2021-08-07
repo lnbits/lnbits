@@ -13,7 +13,7 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 
 from .. import core_app, db
-from ..crud import get_payments, save_balance_check
+from ..crud import get_payments, save_balance_check, update_wallet
 from ..services import (
     PaymentFailure,
     InvoiceFailure,
@@ -27,6 +27,21 @@ from ..tasks import api_invoice_listeners
 @core_app.route("/api/v1/wallet", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_wallet():
+    return (
+        jsonify(
+            {
+                "id": g.wallet.id,
+                "name": g.wallet.name,
+                "balance": g.wallet.balance_msat,
+            }
+        ),
+        HTTPStatus.OK,
+    )
+
+@core_app.route("/api/v1/wallet/<new_name>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+async def api_update_wallet(new_name):
+    await update_wallet(g.wallet.id, new_name)
     return (
         jsonify(
             {

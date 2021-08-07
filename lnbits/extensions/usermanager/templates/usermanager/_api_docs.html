@@ -42,7 +42,7 @@
         <code>JSON list of users</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/users -H "X-Api-Key: {{
+          >curl -X GET {{ request.url_root }}usermanager/api/v1/users -H "X-Api-Key: {{
           g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -62,7 +62,7 @@
         <code>JSON list of users</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/users/&lt;user_id&gt; -H
+          >curl -X GET {{ request.url_root }}usermanager/api/v1/users/&lt;user_id&gt; -H
           "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -84,7 +84,7 @@
         <code>JSON wallet data</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/wallets/&lt;user_id&gt; -H
+          >curl -X GET {{ request.url_root }}usermanager/api/v1/wallets/&lt;user_id&gt; -H
           "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -106,7 +106,7 @@
         <code>JSON a wallets transactions</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/wallets&lt;wallet_id&gt; -H
+          >curl -X GET {{ request.url_root }}usermanager/api/v1/wallets&lt;wallet_id&gt; -H
           "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -147,7 +147,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/users -d '{"admin_id": "{{
+          >curl -X POST {{ request.url_root }}usermanager/api/v1/users -d '{"admin_id": "{{
           g.user.id }}", "wallet_name": &lt;string&gt;, "user_name":
           &lt;string&gt;, "email": &lt;Optional string&gt;, "password": &lt;
           Optional string&gt;}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
@@ -185,7 +185,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/wallets -d '{"user_id":
+          >curl -X POST {{ request.url_root }}usermanager/api/v1/wallets -d '{"user_id":
           &lt;string&gt;, "wallet_name": &lt;string&gt;, "admin_id": "{{
           g.user.id }}"}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
           "Content-type: application/json"
@@ -209,7 +209,7 @@
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.url_root }}api/v1/users/&lt;user_id&gt; -H
+          >curl -X DELETE {{ request.url_root }}usermanager/api/v1/users/&lt;user_id&gt; -H
           "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -226,7 +226,7 @@
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.url_root }}api/v1/wallets/&lt;wallet_id&gt;
+          >curl -X DELETE {{ request.url_root }}usermanager/api/v1/wallets/&lt;wallet_id&gt;
           -H "X-Api-Key: {{ g.user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -248,7 +248,7 @@
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/extensions -d '{"userid":
+          >curl -X POST {{ request.url_root }}usermanager/api/v1/extensions -d '{"userid":
           &lt;string&gt;, "extension": &lt;string&gt;, "active":
           &lt;integer&gt;}' -H "X-Api-Key: {{ g.user.wallets[0].inkey }}" -H
           "Content-type: application/json"
