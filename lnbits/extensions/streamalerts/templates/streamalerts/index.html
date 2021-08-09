@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="serviceDialog.show = true"
+        <q-btn unelevated color="primary" @click="serviceDialog.show = true"
           >New Service</q-btn
         >
       </q-card-section>
@@ -138,7 +138,8 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-            {{SITE_TITLE}} Stream Alerts extension</h6>
+          {{SITE_TITLE}} Stream Alerts extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -162,10 +163,7 @@
         <div class="row">
           <div class="col">
             <div v-if="walletLinks.length > 0">
-              <q-checkbox
-                v-model="serviceDialog.data.chain"
-                label="Chain"
-              />
+              <q-checkbox v-model="serviceDialog.data.chain" label="Chain" />
             </div>
             <div v-else>
               <q-checkbox :value="false" label="Chain" disabled>
@@ -220,7 +218,7 @@
           <q-btn
             v-if="serviceDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Service</q-btn
           >
@@ -228,7 +226,7 @@
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="serviceDialog.data.client_id == null || serviceDialog.data.client_secret == 0 || serviceDialog.data.twitchuser == null"
             type="submit"
             >Create Service</q-btn
@@ -329,9 +327,19 @@
             },
             {name: 'id', align: 'left', label: 'Charge ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Donor', field: 'name'},
-            {name: 'message', align: 'left', label: 'Message', field: 'message'},
+            {
+              name: 'message',
+              align: 'left',
+              label: 'Message',
+              field: 'message'
+            },
             {name: 'sats', align: 'left', label: 'Sats', field: 'sats'},
-            {name: 'posted', align: 'left', label: 'Posted to API', field: 'posted'}
+            {
+              name: 'posted',
+              align: 'left',
+              label: 'Posted to API',
+              field: 'posted'
+            }
           ],
           pagination: {
             rowsPerPage: 10
