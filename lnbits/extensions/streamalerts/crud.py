@@ -54,7 +54,7 @@ async def create_donation(
     """Create a new Donation"""
     await db.execute(
         """
-        INSERT INTO Donations (
+        INSERT INTO streamalerts."Donations" (
             id,
             wallet,
             name,
@@ -107,7 +107,9 @@ async def post_donation(donation_id: str) -> tuple:
         )
     else:
         return (jsonify({"message": "Unsopported servicename"}), HTTPStatus.BAD_REQUEST)
-    await db.execute("UPDATE Donations SET posted = 1 WHERE id = ?", (donation_id,))
+    await db.execute(
+        'UPDATE streamalerts."Donations" SET posted = 1 WHERE id = ?', (donation_id,)
+    )
     return (jsonify(response.json()), status)
 
 
@@ -123,7 +125,7 @@ async def create_service(
     """Create a new Service"""
     result = await db.execute(
         """
-        INSERT INTO Services (
+        INSERT INTO streamalerts."Services" (
             twitchuser,
             client_id,
             client_secret,
@@ -159,15 +161,21 @@ async def get_service(service_id: int, by_state: str = None) -> Optional[Service
     streamer via typos like 2 -> 3.
     """
     if by_state:
-        row = await db.fetchone("SELECT * FROM Services WHERE state = ?", (by_state,))
+        row = await db.fetchone(
+            'SELECT * FROM streamalerts."Services" WHERE state = ?', (by_state,)
+        )
     else:
-        row = await db.fetchone("SELECT * FROM Services WHERE id = ?", (service_id,))
+        row = await db.fetchone(
+            'SELECT * FROM streamalerts."Services" WHERE id = ?', (service_id,)
+        )
     return Service.from_row(row) if row else None
 
 
 async def get_services(wallet_id: str) -> Optional[list]:
     """Return all services belonging assigned to the wallet_id"""
-    rows = await db.fetchall("SELECT * FROM Services WHERE wallet = ?", (wallet_id,))
+    rows = await db.fetchall(
+        'SELECT * FROM streamalerts."Services" WHERE wallet = ?', (wallet_id,)
+    )
     return [Service.from_row(row) for row in rows] if rows else None
 
 
@@ -204,7 +212,7 @@ async def service_add_token(service_id, token):
     if (await get_service(service_id)).authenticated:
         return False
     await db.execute(
-        "UPDATE Services SET authenticated = 1, token = ? where id = ?",
+        'UPDATE streamalerts."Services" SET authenticated = 1, token = ? where id = ?',
         (
             token,
             service_id,
@@ -215,27 +223,35 @@ async def service_add_token(service_id, token):
 
 async def delete_service(service_id: int) -> None:
     """Delete a Service and all corresponding Donations"""
-    await db.execute("DELETE FROM Services WHERE id = ?", (service_id,))
-    rows = await db.fetchall("SELECT * FROM Donations WHERE service = ?", (service_id,))
+    await db.execute('DELETE FROM streamalerts."Services" WHERE id = ?', (service_id,))
+    rows = await db.fetchall(
+        'SELECT * FROM streamalerts."Donations" WHERE service = ?', (service_id,)
+    )
     for row in rows:
         await delete_donation(row["id"])
 
 
 async def get_donation(donation_id: str) -> Optional[Donation]:
     """Return a Donation"""
-    row = await db.fetchone("SELECT * FROM Donations WHERE id = ?", (donation_id,))
+    row = await db.fetchone(
+        'SELECT * FROM streamalerts."Donations" WHERE id = ?', (donation_id,)
+    )
     return Donation.from_row(row) if row else None
 
 
 async def get_donations(wallet_id: str) -> Optional[list]:
-    """Return all Donations assigned to wallet_id"""
-    rows = await db.fetchall("SELECT * FROM Donations WHERE wallet = ?", (wallet_id,))
+    """Return all streamalerts."Donations" assigned to wallet_id"""
+    rows = await db.fetchall(
+        'SELECT * FROM streamalerts."Donations" WHERE wallet = ?', (wallet_id,)
+    )
     return [Donation.from_row(row) for row in rows] if rows else None
 
 
 async def delete_donation(donation_id: str) -> None:
     """Delete a Donation and its corresponding statspay charge"""
-    await db.execute("DELETE FROM Donations WHERE id = ?", (donation_id,))
+    await db.execute(
+        'DELETE FROM streamalerts."Donations" WHERE id = ?', (donation_id,)
+    )
     await delete_charge(donation_id)
 
 
@@ -243,19 +259,25 @@ async def update_donation(donation_id: str, **kwargs) -> Donation:
     """Update a Donation"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE Donations SET {q} WHERE id = ?", (*kwargs.values(), donation_id)
+        f'UPDATE streamalerts."Donations" SET {q} WHERE id = ?',
+        (*kwargs.values(), donation_id),
     )
-    row = await db.fetchone("SELECT * FROM Donations WHERE id = ?", (donation_id,))
+    row = await db.fetchone(
+        'SELECT * FROM streamalerts."Donations" WHERE id = ?', (donation_id,)
+    )
     assert row, "Newly updated donation couldn't be retrieved"
     return Donation(**row)
 
 
-async def update_service(service_id: str, **kwargs) -> Donation:
+async def update_service(service_id: str, **kwargs) -> Service:
     """Update a service"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE Services SET {q} WHERE id = ?", (*kwargs.values(), service_id)
+        f'UPDATE streamalerts."Services" SET {q} WHERE id = ?',
+        (*kwargs.values(), service_id),
     )
-    row = await db.fetchone("SELECT * FROM Services WHERE id = ?", (service_id,))
+    row = await db.fetchone(
+        'SELECT * FROM streamalerts."Services" WHERE id = ?', (service_id,)
+    )
     assert row, "Newly updated service couldn't be retrieved"
     return Service(**row)
