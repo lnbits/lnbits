@@ -2,7 +2,7 @@ async def m001_initial(db):
 
     await db.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS streamalerts."Services" (
+        CREATE TABLE IF NOT EXISTS streamalerts.Services (
             id {db.serial_primary_key},
             state TEXT NOT NULL,
             twitchuser TEXT NOT NULL,
@@ -19,7 +19,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS streamalerts."Donations" (
+        CREATE TABLE IF NOT EXISTS streamalerts.Donations (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -29,7 +29,7 @@ async def m001_initial(db):
             amount FLOAT NOT NULL,
             service INTEGER NOT NULL,
             posted BOOLEAN NOT NULL,
-            FOREIGN KEY(service) REFERENCES streamalerts."Services" (id)
+            FOREIGN KEY(service) REFERENCES streamalerts.Services (id)
         );
         """
     )
