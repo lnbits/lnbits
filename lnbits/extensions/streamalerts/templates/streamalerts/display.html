@@ -1,0 +1,97 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h5 class="q-my-none">Donate Bitcoin to {{ twitchuser }}</h5>
+        <br />
+        <q-form @submit="Invoice()" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model.trim="donationDialog.data.name"
+            maxlength="25"
+            type="name"
+            label="Your Name (leave blank for Anonymous donation)"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="donationDialog.data.sats"
+            type="number"
+            min="1"
+            max="2100000000000000"
+            suffix="sats"
+            :rules="[val => val > 0 || 'Choose a positive number of sats!']"
+            label="Amount of sats"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="donationDialog.data.message"
+            maxlength="255"
+            type="textarea"
+            label="Donation Message (you can leave this blank too)"
+          ></q-input>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              :disable="donationDialog.data.sats < 1 || !donationDialog.data.sats"
+              type="submit"
+              >Submit</q-btn
+            >
+          </div>
+        </q-form>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        paymentReq: null,
+        redirectUrl: null,
+        donationDialog: {
+          show: false,
+          data: {
+            name: '',
+            sats: '',
+            message: ''
+          }
+        },
+        receive: {
+          show: false,
+          status: 'pending',
+          paymentReq: null
+        }
+      }
+    },
+
+    methods: {
+      Invoice: function () {
+        var self = this
+        axios
+          .post('/streamalerts/api/v1/donations', {
+            service: {{ service }},
+            name: self.donationDialog.data.name,
+            sats: self.donationDialog.data.sats,
+            message: self.donationDialog.data.message
+          })
+          .then(function (response) {
+            self.redirect_url = response.data.redirect_url
+            console.log(self.redirect_url)
+            window.location.href = self.redirect_url
+          })
+      }
+    }
+  })
+</script>
+{% endblock %}

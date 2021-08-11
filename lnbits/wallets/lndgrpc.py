@@ -190,7 +190,11 @@ class LndWallet(Wallet):
                     ln.Invoice,
                 ),
             )
-            macaroon = load_macaroon(self.macaroon_path)
+
+            if self.macaroon_path.split('.')[-1] == 'macaroon':
+                macaroon = load_macaroon(self.macaroon_path)
+            else:
+                macaroon = self.macaroon_path
 
             async for inv in subscribe_invoices(
                 ln.InvoiceSubscription(),
