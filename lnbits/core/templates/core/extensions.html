@@ -11,12 +11,12 @@
     <q-card>
       <q-card-section>
         <q-icon
-        v-if="!/http/.test(extension.icon)"
+        v-if="!extension.icon.includes('http')"
         :name="extension.icon"
         color="grey-5"
         style="font-size: 4rem"
       ></q-icon>
-      <q-img v-if="/http/.test(extension.icon)" :src="extension.icon" width="4rem" height="4rem" contain></q-img>
+      <q-img v-if="extension.icon.includes('http')" :src="extension.icon" width="4rem" height="4rem" contain></q-img>
         {% raw %}
         <h5 class="q-mt-lg q-mb-xs">{{ extension.name }}</h5>
         <small>{{ extension.shortDescription }} </small>{% endraw %}
