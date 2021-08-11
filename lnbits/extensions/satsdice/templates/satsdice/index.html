@@ -419,12 +419,13 @@
           id: this.formDialog.data.wallet
         })
         var data = _.omit(this.formDialog.data, 'wallet')
-        data.multiplier = parseInt(this.multiValue)
+        data.min_bet = parseInt(data.min_bet)
+        data.max_bet = parseInt(data.max_bet)
+        data.multiplier = parseFloat(this.multiValue)
         data.chance = parseInt(this.chanceValue)
         data.base_url = window.location.origin
-        console.log(data)
 
-        if (this.formDialog.fixedAmount) data.max = data.min
+        if (this.formDialog.fixedAmount) data.max_bet = data.min_bet
         if (data.currency === 'satoshis') data.currency = null
         if (isNaN(parseInt(data.comment_chars))) data.comment_chars = 0
 

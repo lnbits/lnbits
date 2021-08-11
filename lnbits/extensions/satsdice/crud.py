@@ -17,7 +17,8 @@ async def create_satsdice_pay(
     multiplier: int = 0,
     chance: int = 0,
 ) -> satsdiceLink:
-    result = await db.execute(
+    satsdice_id = urlsafe_short_hash()
+    await db.execute(
         """
         INSERT INTO satsdice.satsdice_pay (
             id,
@@ -36,7 +37,7 @@ async def create_satsdice_pay(
         VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?)
         """,
         (
-            urlsafe_short_hash(),
+            satsdice_id,
             wallet_id,
             title,
             base_url,
@@ -47,14 +48,12 @@ async def create_satsdice_pay(
             int(datetime.now().timestamp()),
         ),
     )
-    link_id = result._result_proxy.lastrowid
-    link = await get_satsdice_pay(link_id)
-    print(link)
+    link = await get_satsdice_pay(satsdice_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
 
-async def get_satsdice_pay(link_id: int) -> Optional[satsdiceLink]:
+async def get_satsdice_pay(link_id: str) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )

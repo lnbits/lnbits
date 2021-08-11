@@ -17,7 +17,7 @@ async def index():
 
 @satsdice_ext.route("/<link_id>")
 async def display(link_id):
-    link = await get_satsdice_pay(link_id, 0) or abort(
+    link = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
     return await render_template("satsdice/display.html", link=link, unique=True)
@@ -25,7 +25,7 @@ async def display(link_id):
 
 @satsdice_ext.route("/img/<link_id>")
 async def img(link_id):
-    link = await get_satsdice_pay(link_id, 0) or abort(
+    link = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
     qr = pyqrcode.create(link.lnurl)
