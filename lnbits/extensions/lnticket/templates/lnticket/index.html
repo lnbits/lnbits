@@ -314,15 +314,13 @@
             '/lnticket/api/v1/tickets?all_wallets',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            console.log("#1", response.data);
+          .then(function (response) {            
             self.tickets = response.data
               .map(function (obj) {
                 if (!obj?.paid) return
                 return mapLNTicket(obj)
               })
               .filter(v => v)
-            console.log("#2", self.tickets);
           })
       },
       deleteTicket: function (ticketId) {

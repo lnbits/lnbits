@@ -33,5 +33,3 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     await payment.set_pending(False)
     await set_ticket_paid(payment.payment_hash)
-    _ticket = await get_ticket(payment.payment_hash)
-    print("ticket", _ticket)

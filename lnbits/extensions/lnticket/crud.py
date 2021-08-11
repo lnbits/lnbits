@@ -75,16 +75,12 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
 
     ticket = await get_ticket(payment_hash)
     assert ticket, "Newly paid ticket could not be retrieved"
-    print("TICK_CRUD", ticket)
     return ticket
 
 
 async def get_ticket(ticket_id: str) -> Optional[Tickets]:
     row = await db.fetchone("SELECT * FROM lnticket.ticket WHERE id = ?", (ticket_id,))
-    # print(row[].strftime("%Y-%m-%d %H:%M:%S"))
-    ticket = Tickets(**row) if row else None
-    print(ticket["time"].strftime("%Y-%m-%d %H:%M:%S"))
-    return ticket#Tickets(**row) if row else None
+    return Tickets(**row) if row else None
 
 
 async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
