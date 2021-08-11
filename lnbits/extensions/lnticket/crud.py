@@ -81,7 +81,10 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
 
 async def get_ticket(ticket_id: str) -> Optional[Tickets]:
     row = await db.fetchone("SELECT * FROM lnticket.ticket WHERE id = ?", (ticket_id,))
-    return Tickets(**row) if row else None
+    # print(row[].strftime("%Y-%m-%d %H:%M:%S"))
+    ticket = Tickets(**row) if row else None
+    print(ticket["time"].strftime("%Y-%m-%d %H:%M:%S"))
+    return ticket#Tickets(**row) if row else None
 
 
 async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
