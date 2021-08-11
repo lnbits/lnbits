@@ -75,6 +75,7 @@ async def set_ticket_paid(payment_hash: str) -> Tickets:
 
     ticket = await get_ticket(payment_hash)
     assert ticket, "Newly paid ticket could not be retrieved"
+    print("TICK_CRUD", ticket)
     return ticket
 
 
