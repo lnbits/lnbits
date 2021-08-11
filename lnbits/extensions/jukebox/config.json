@@ -1,6 +1,6 @@
 {
   "name": "SpotifyJukebox",
   "short_description": "Spotify jukebox middleware",
-  "icon": "radio",
+  "icon": "https://lnbits.com/favicon.ico",
   "contributors": ["benarc"]
 }
