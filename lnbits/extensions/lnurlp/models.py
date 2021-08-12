@@ -3,7 +3,7 @@ from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
 from quart import url_for
 from typing import NamedTuple, Optional, Dict
 from sqlite3 import Row
-from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
+from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 
 
@@ -27,7 +27,7 @@ class PayLink(NamedTuple):
         return cls(**data)
 
     @property
-    def lnurl(self) -> Lnurl:
+    def lnurl(self) -> str:
         url = url_for("lnurlp.api_lnurl_response", link_id=self.id, _external=True)
         return lnurl_encode(url)
 
