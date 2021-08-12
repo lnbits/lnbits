@@ -92,6 +92,7 @@ async def api_tickets():
 
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
     return (
         jsonify([form._asdict() for form in await get_tickets(wallet_ids)]),
         HTTPStatus.OK,

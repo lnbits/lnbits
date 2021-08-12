@@ -26,10 +26,12 @@ async def on_invoice_paid(payment: Payment) -> None:
         # not a lnticket invoice
         return
 
-    ticket = await get_ticket(payment.payment_hash)
+    ticket = await get_ticket(payment.checking_id)
     if not ticket:
         print("this should never happen", payment)
         return
 
     await payment.set_pending(False)
     await set_ticket_paid(payment.payment_hash)
+    _ticket = await get_ticket(payment.checking_id)
+    print("ticket", _ticket)

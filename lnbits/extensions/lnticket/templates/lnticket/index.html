@@ -314,7 +314,7 @@
             '/lnticket/api/v1/tickets?all_wallets',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {            
+          .then(function (response) {
             self.tickets = response.data
               .map(function (obj) {
                 if (!obj?.paid) return
