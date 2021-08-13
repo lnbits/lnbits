@@ -58,14 +58,16 @@
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
               </q-td>
-              <q-td auto-width>{{ props.row.description }}</q-td>
+              <q-td auto-width>{{ props.row.title }}</q-td>
               <q-td auto-width>
                 <span v-if="props.row.min == props.row.max">
-                  {{ props.row.min }}
+                  {{ props.row.min_bet }}
                 </span>
-                <span v-else>{{ props.row.min }} - {{ props.row.max }}</span>
+                <span v-else
+                  >{{ props.row.min }} - {{ props.row.max_bet }}</span
+                >
               </q-td>
-              <q-td>{{ props.row.currency || 'sat' }}</q-td>
+              <q-td>{{ props.row.multiplier || 'sat' }}</q-td>
               <q-td>
                 <q-icon v-if="props.row.webhook_url" size="14px" name="http">
                   <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
