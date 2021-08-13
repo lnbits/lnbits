@@ -29,14 +29,14 @@ async def create_copilot(
     lnurl_title: Optional[str] = None,
     show_message: Optional[int] = 0,
     show_ack: Optional[int] = 0,
-    show_price: Optional[int] = 0,
+    show_price: Optional[str] = None,
     amount_made: Optional[int] = None,
 ) -> Copilots:
     copilot_id = urlsafe_short_hash()
 
     await db.execute(
         """
-        INSERT INTO copilots (
+        INSERT INTO copilot.copilots (
             id,
             "user",
             lnurl_toggle,
@@ -55,15 +55,14 @@ async def create_copilot(
             show_message,
             show_ack,
             show_price,
-            lnurl_title,
             amount_made
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             copilot_id,
             user,
-            lnurl_toggle,
+            int(lnurl_toggle),
             wallet,
             title,
             animation1,
@@ -76,10 +75,9 @@ async def create_copilot(
             animation2webhook,
             animation3webhook,
             lnurl_title,
-            show_message,
-            show_ack,
+            int(show_message),
+            int(show_ack),
             show_price,
-            lnurl_title,
             0,
         ),
     )
@@ -89,21 +87,21 @@ async def create_copilot(
 async def update_copilot(copilot_id: str, **kwargs) -> Optional[Copilots]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE copilots SET {q} WHERE id = ?", (*kwargs.values(), copilot_id)
+        f"UPDATE copilot.copilots SET {q} WHERE id = ?", (*kwargs.values(), copilot_id)
     )
-    row = await db.fetchone("SELECT * FROM copilots WHERE id = ?", (copilot_id,))
+    row = await db.fetchone("SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,))
     return Copilots.from_row(row) if row else None
 
 
 async def get_copilot(copilot_id: str) -> Copilots:
-    row = await db.fetchone("SELECT * FROM copilots WHERE id = ?", (copilot_id,))
+    row = await db.fetchone("SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,))
     return Copilots.from_row(row) if row else None
 
 
 async def get_copilots(user: str) -> List[Copilots]:
-    rows = await db.fetchall("""SELECT * FROM copilots WHERE "user" = ?""", (user,))
+    rows = await db.fetchall("""SELECT * FROM copilot.copilots WHERE "user" = ?""", (user,))
     return [Copilots.from_row(row) for row in rows]
 
 
 async def delete_copilot(copilot_id: str) -> None:
-    await db.execute("DELETE FROM copilots WHERE id = ?", (copilot_id,))
+    await db.execute("DELETE FROM copilot.copilots WHERE id = ?", (copilot_id,))
