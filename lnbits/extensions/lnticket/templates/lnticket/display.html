@@ -23,11 +23,20 @@
             label="Your email (optional, if you want a reply)"
           ></q-input>
           <q-input
+            v-if="flatrate"
             filled
             dense
             v-model.number="formDialog.data.text"
             type="textarea"
-            label="{{ form_costpword }} sats per word"
+            label="{{ form_amount }} sats"
+          ></q-input>
+          <q-input
+            v-else
+            filled
+            dense
+            v-model.number="formDialog.data.text"
+            type="textarea"
+            label="{{ form_amount }} sats per word"
           ></q-input>
           <p>{% raw %}{{amountWords}}{% endraw %}</p>
           <div class="row q-mt-lg">
@@ -87,6 +96,7 @@
       return {
         paymentReq: null,
         redirectUrl: null,
+        flatrate: parseInt('{{form_flatrate}}'),
         formDialog: {
           show: false,
           data: {
@@ -108,21 +118,24 @@
     },
     computed: {
       amountWords() {
-        var regex = /\s+/gi
-        var nwords = this.formDialog.data.text
-          .trim()
-          .replace(regex, ' ')
-          .split(' ').length
-        var sats = nwords * parseInt('{{ form_costpword }}')
-        if (sats === parseInt('{{ form_costpword }}')) {
+        if (this.formDialog.data.text.length == '') {
           return '0 Sats to pay'
         } else {
+          var regex = /\s+/gi
+          var nwords = this.formDialog.data.text
+            .trim()
+            .replace(regex, ' ')
+            .split(' ').length
+          if (this.flatrate) {
+            var sats = parseInt('{{ form_amount }}')
+          } else {
+            var sats = nwords * parseInt('{{ form_amount }}')
+          }
           this.formDialog.data.sats = sats
           return sats + ' Sats to pay'
         }
       }
     },
-
     methods: {
       resetForm: function (e) {
         e.preventDefault()

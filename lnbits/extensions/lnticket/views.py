@@ -28,6 +28,7 @@ async def display(form_id):
         form_id=form.id,
         form_name=form.name,
         form_desc=form.description,
-        form_costpword=form.costpword,
+        form_amount=form.amount,
+        form_flatrate=form.flatrate,
         form_wallet=wallet.inkey,
     )
