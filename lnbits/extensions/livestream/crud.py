@@ -1,20 +1,28 @@
 from typing import List, Optional
 
 from lnbits.core.crud import create_account, create_wallet
-
+from lnbits.db import SQLITE
 from . import db
 from .models import Livestream, Track, Producer
 
 
 async def create_livestream(*, wallet_id: str) -> int:
-    result = await db.execute(
-        """
+    returning = "" if db.type == SQLITE else "RETURNING ID"
+    method = db.execute if db.type == SQLITE else db.fetchone
+
+    result = await (method)(
+        f"""
         INSERT INTO livestream.livestreams (wallet)
         VALUES (?)
+        {returning}
         """,
         (wallet_id,),
     )
-    return result._result_proxy.lastrowid
+
+    if db.type == SQLITE:
+        return result._result_proxy.lastrowid
+    else:
+        return result[0]
 
 
 async def get_livestream(ls_id: int) -> Optional[Livestream]:

@@ -93,7 +93,6 @@ async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Walle
         # address_no is -1 so fresh address on empty wallet can get address with index 0
         (wallet_id, user, masterpub, title, -1, 0),
     )
-    # weallet_id = db.cursor.lastrowid
 
     return await get_watch_wallet(wallet_id)
 

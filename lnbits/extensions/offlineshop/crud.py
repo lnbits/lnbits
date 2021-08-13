@@ -1,19 +1,27 @@
 from typing import List, Optional
 
+from lnbits.db import SQLITE
 from . import db
 from .wordlists import animals
 from .models import Shop, Item
 
 
 async def create_shop(*, wallet_id: str) -> int:
-    result = await db.execute(
-        """
+    returning = "" if db.type == SQLITE else "RETURNING ID"
+    method = db.execute if db.type == SQLITE else db.fetchone
+
+    result = await (method)(
+        f"""
         INSERT INTO offlineshop.shops (wallet, wordlist, method)
         VALUES (?, ?, 'wordlist')
+        {returning}
         """,
         (wallet_id, "\n".join(animals)),
     )
-    return result._result_proxy.lastrowid
+    if db.type == SQLITE:
+        return result._result_proxy.lastrowid
+    else:
+        return result[0]
 
 
 async def get_shop(id: int) -> Optional[Shop]:
