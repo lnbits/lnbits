@@ -263,7 +263,7 @@
           color="grey"
           @click="copyText(qrCodeDialog.data.lnurl, 'LNURL copied to clipboard!')"
           class="q-ml-sm"
-          >Copy LNURL</q-btn
+          >Copy Satsdice</q-btn
         >
         <q-btn
           outline
@@ -308,6 +308,7 @@
     obj.amount = new Intl.NumberFormat(LOCALE).format(obj.amount)
     obj.print_url = [locationPath, 'print/', obj.id].join('')
     obj.pay_url = [locationPath, obj.id].join('')
+    console.log(obj)
     return obj
   }
 
@@ -323,6 +324,10 @@
         checker: null,
         payLinks: [],
         payLinksTable: {
+          columns: [
+            {name: 'title', align: 'left', label: 'Title', field: 'title'},
+            {name: 'used', align: 'left', label: 'Used', field: 'used'}
+          ],
           pagination: {
             rowsPerPage: 10
           }
