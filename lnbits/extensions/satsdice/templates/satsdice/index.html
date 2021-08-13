@@ -27,18 +27,19 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th auto-width>Title</q-th>
-              <q-th auto-width>Min_bet</q-th>
-              <q-th auto-width>Min_bet</q-th>
-              <q-th auto-width>Multiplier</q-th>
-              <q-th auto-width></q-th>
-              <q-th auto-width></q-th>
+              <q-th style="width:10%"></q-th>
+              <q-th auto-width style="text-align:left">Title</q-th>
+              <q-th auto-width style="text-align:left">Min bet</q-th>
+              <q-th auto-width style="text-align:left">Max bet</q-th>
+              <q-th auto-width style="text-align:left">Multiplier</q-th>
+              <q-th auto-width style="text-align:left">Haircut</q-th>
+              <q-th auto-width style="text-align:left">Chance</q-th>
+              <q-th auto-width style="text-align:left"></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>
+              <q-td style="width:10%">
                 <q-btn
                   unelevated
                   dense
@@ -58,42 +59,13 @@
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
               </q-td>
+             
               <q-td auto-width>{{ props.row.title }}</q-td>
-              <q-td auto-width>
-                <span v-if="props.row.min == props.row.max">
-                  {{ props.row.min_bet }}
-                </span>
-                <span v-else
-                  >{{ props.row.min }} - {{ props.row.max_bet }}</span
-                >
-              </q-td>
-              <q-td>{{ props.row.multiplier || 'sat' }}</q-td>
-              <q-td>
-                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
-                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="props.row.success_text || props.row.success_url"
-                  size="14px"
-                  name="call_to_action"
-                >
-                  <q-tooltip>
-                    On success, show message '{{ props.row.success_text }}'
-                    <span v-if="props.row.success_url"
-                      >and URL '{{ props.row.success_url }}'</span
-                    >
-                  </q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="props.row.comment_chars > 0"
-                  size="14px"
-                  name="insert_comment"
-                >
-                  <q-tooltip>
-                    {{ props.row.comment_chars }}-char comment allowed
-                  </q-tooltip>
-                </q-icon>
-              </q-td>
+              <q-td auto-width>{{ props.row.min_bet }}</q-td>
+              <q-td auto-width>{{ props.row.max_bet }}</q-td>
+              <q-td auto-width>*{{ props.row.multiplier }}</q-td>
+              <q-td auto-width>{{ props.row.haircut }}</q-td>
+              <q-td auto-width>{{ props.row.chance }}%</q-td>
               <q-td auto-width>
                 <q-btn
                   flat
@@ -326,10 +298,6 @@
         checker: null,
         payLinks: [],
         payLinksTable: {
-          columns: [
-            {name: 'title', align: 'left', label: 'Title', field: 'title'},
-            {name: 'used', align: 'left', label: 'Used', field: 'used'}
-          ],
           pagination: {
             rowsPerPage: 10
           }
@@ -366,6 +334,12 @@
       }
     },
     methods: {
+      chanceValueTableCalc(multiplier, haircut) {
+       return (
+          (1 / multiplier) * 100 -
+          haircut
+        ).toFixed(2)
+      },
       getPayLinks() {
         LNbits.api
           .request(
@@ -429,10 +403,10 @@
         data.min_bet = parseInt(data.min_bet)
         data.max_bet = parseInt(data.max_bet)
         data.multiplier = parseFloat(this.multiValue)
+        data.haircut = parseFloat(data.haircut)
         data.chance = parseInt(this.chanceValue)
         data.base_url = window.location.origin
 
-        if (this.formDialog.fixedAmount) data.max_bet = data.min_bet
         if (data.currency === 'satoshis') data.currency = null
         if (isNaN(parseInt(data.comment_chars))) data.comment_chars = 0
 

@@ -14,6 +14,7 @@ async def m001_initial(db):
             served_meta INTEGER NOT NULL,
             served_pr INTEGER NOT NULL,
             multiplier FLOAT,
+            haircut FLOAT,
             chance FLOAT,
             base_url TEXT,
             open_time INTEGER

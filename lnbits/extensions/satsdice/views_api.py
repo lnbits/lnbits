@@ -74,7 +74,8 @@ async def api_link_retrieve(link_id):
         "min_bet": {"type": "number", "required": True},
         "max_bet": {"type": "number", "required": True},
         "multiplier": {"type": "number", "required": True},
-        "chance": {"type": "number", "required": True}
+        "chance": {"type": "number", "required": True},
+        "haircut": {"type": "number", "required": True}
     }
 )
 async def api_link_create_or_update(link_id=None):

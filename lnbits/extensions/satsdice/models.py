@@ -17,6 +17,7 @@ class satsdiceLink(NamedTuple):
     served_meta: int
     served_pr: int
     multiplier: float
+    haircut: float
     chance: float
     base_url: str
     open_time: int

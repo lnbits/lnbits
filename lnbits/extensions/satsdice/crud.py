@@ -16,6 +16,7 @@ async def create_satsdice_pay(
     max_bet: str,
     multiplier: int = 0,
     chance: int = 0,
+    haircut: int = 0,
 ) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()
     await db.execute(
@@ -32,9 +33,10 @@ async def create_satsdice_pay(
             served_pr,
             multiplier,
             chance,
+            haircut,
             open_time
         )
-        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?)
         """,
         (
             satsdice_id,
@@ -45,6 +47,7 @@ async def create_satsdice_pay(
             max_bet,
             multiplier,
             chance,
+            haircut,
             int(datetime.now().timestamp()),
         ),
     )
