@@ -40,16 +40,7 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td style="width:10%">
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="launch"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.pay_url"
-                  target="_blank"
-                ></q-btn>
+                
                 <q-btn
                   unelevated
                   dense
@@ -235,16 +226,25 @@
         <q-btn
           outline
           color="grey"
-          @click="copyText(qrCodeDialog.data.lnurl, 'LNURL copied to clipboard!')"
+          @click="copyText(qrCodeDialog.data.lnurl, 'Satsdice copied to clipboard!')"
           class="q-ml-sm"
           >Copy Satsdice</q-btn
         >
         <q-btn
-          outline
-          color="grey"
-          @click="copyText(qrCodeDialog.data.pay_url, 'Link copied to clipboard!')"
-          >Shareable link</q-btn
-        >
+         outline
+         color="grey"
+         icon="share"
+         @click="copyText(qrCodeDialog.data.pay_url, 'Link copied to clipboard!')"
+        ><q-tooltip>Copy shareable link</q-tooltip></q-btn>
+
+        <q-btn
+         outline
+         color="grey"
+         icon="launch"
+         type="a"
+         :href="qrCodeDialog.data.pay_url"
+         target="_blank"
+        ><q-tooltip>Launch shareable link</q-tooltip></q-btn>
         <q-btn
           outline
           color="grey"
@@ -252,7 +252,7 @@
           type="a"
           :href="qrCodeDialog.data.print_url"
           target="_blank"
-        ></q-btn>
+        ><q-tooltip>Print Satsdice</q-tooltip></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>

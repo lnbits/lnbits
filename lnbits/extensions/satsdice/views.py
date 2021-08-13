@@ -22,6 +22,12 @@ async def display(link_id):
     )
     return await render_template("satsdice/display.html", link=link, unique=True)
 
+@satsdice_ext.route("/win/<link_id>")
+async def displaywin(link_id):
+    link = await get_satsdice_pay(link_id) or abort(
+        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
+    )
+    return await render_template("satsdice/displaywin.html", link=link, unique=True)
 
 @satsdice_ext.route("/img/<link_id>")
 async def img(link_id):

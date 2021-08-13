@@ -60,7 +60,6 @@ async def get_satsdice_pay(link_id: str) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    print(row)
     return satsdiceLink.from_row(row) if row else None
 
 

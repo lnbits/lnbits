@@ -29,7 +29,7 @@ class satsdiceLink(NamedTuple):
 
     @property
     def lnurl(self) -> Lnurl:
-        url = url_for("lnurlp.api_lnurl_response", link_id=self.id, _external=True)
+        url = url_for("satsdice.api_lnurlp_response", link_id=self.id, _external=True)
         return lnurl_encode(url)
 
     @property
@@ -37,24 +37,15 @@ class satsdiceLink(NamedTuple):
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
     def success_action(self, payment_hash: str) -> Optional[Dict]:
-        if self.success_url:
-            url: ParseResult = urlparse(self.success_url)
-            qs: Dict = parse_qs(url.query)
-            qs["payment_hash"] = payment_hash
-            url = url._replace(query=urlencode(qs, doseq=True))
-            return {
-                "tag": "url",
-                "description": "Check the attached link",
-                "url": urlunparse(url),
-            }
-        elif self.success_text:
-            return {
-                "tag": "message",
-                "message": self.success_text,
-            }
-        else:
-            return None
-
+        url: ParseResult = urlparse("https://lnbits.com/satsdice/win/" + self.id)
+        qs: Dict = parse_qs(url.query)
+        qs["payment_hash"] = payment_hash
+        url = url._replace(query=urlencode(qs, doseq=True))
+        return {
+            "tag": "url",
+            "description": "Check the attached link",
+            "url": urlunparse(url),
+        }
 
 class satsdiceWithdraw(NamedTuple):
     id: str
