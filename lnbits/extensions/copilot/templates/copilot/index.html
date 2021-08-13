@@ -526,7 +526,9 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.CopilotLinks = response.data.map(mapCopilot)
+            if(response.data){
+              self.CopilotLinks = response.data.map(mapCopilot)
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
