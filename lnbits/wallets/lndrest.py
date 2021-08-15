@@ -13,6 +13,13 @@ from .base import (
     Wallet,
 )
 
+# In an attempt to address https://github.com/lnbits/lnbits/issues/193 (Connecting of lnbits to a Tor Payment Source)
+# It was found that httpx support for SOCKS5 seems to be missing https://github.com/encode/httpx/issues/203
+# Decided to use https://github.com/romis2012/httpx-socks in an attempt to address this
+
+from httpx_socks import AsyncProxyTransport # pip install httpx_socks
+from httpx._config import SSLConfig
+from python_socks import ProxyType # pip install python_socks
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
@@ -26,6 +33,7 @@ class LndRestWallet(Wallet):
         self.endpoint = endpoint
 
         macaroon = (
+            # Looks like for some reason HEX string env is working but file based pick up is not
             getenv("LND_REST_MACAROON")
             or getenv("LND_ADMIN_MACAROON")
             or getenv("LND_REST_ADMIN_MACAROON")
@@ -35,9 +43,20 @@ class LndRestWallet(Wallet):
         self.auth = {"Grpc-Metadata-macaroon": macaroon}
         self.cert = getenv("LND_REST_CERT")
 
+        ssl_context = SSLConfig(
+            # Without this it appears CERTIFICATE_VERIFY_FAILED is emitted 
+            # resulting in a hypercorn.utils.LifespanFailure: Lifespan failure in startup. '' of lnbits
+            verify=False 
+        ).ssl_context
+        self.transport = AsyncProxyTransport(proxy_type=ProxyType.SOCKS5,
+                proxy_host= '127.0.0.1', proxy_port=9050,
+                username=None, password=None, rdns=None,
+                http2=True, ssl_context=ssl_context, verify=self.cert, cert=None,
+                trust_env=True)
+
     async def status(self) -> StatusResponse:
         try:
-            async with httpx.AsyncClient(verify=self.cert) as client:
+            async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
                 r = await client.get(
                     f"{self.endpoint}/v1/balance/channels",
                     headers=self.auth,
@@ -71,7 +90,7 @@ class LndRestWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        async with httpx.AsyncClient(verify=self.cert) as client:
+        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
             r = await client.post(
                 url=f"{self.endpoint}/v1/invoices",
                 headers=self.auth,
@@ -94,7 +113,7 @@ class LndRestWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        async with httpx.AsyncClient(verify=self.cert) as client:
+        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
@@ -115,7 +134,7 @@ class LndRestWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
 
-        async with httpx.AsyncClient(verify=self.cert) as client:
+        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/invoice/{checking_id}",
                 headers=self.auth,
@@ -129,7 +148,7 @@ class LndRestWallet(Wallet):
         return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient(verify=self.cert) as client:
+        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/payments",
                 headers=self.auth,
@@ -167,6 +186,7 @@ class LndRestWallet(Wallet):
                     timeout=None,
                     headers=self.auth,
                     verify=self.cert,
+                    transport=self.transport
                 ) as client:
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():
