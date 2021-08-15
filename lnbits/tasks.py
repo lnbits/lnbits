@@ -1,8 +1,9 @@
 import time
 import trio
+import traceback
 from http import HTTPStatus
-from typing import Optional, List, Callable
-from quart_trio import QuartTrio
+from quart import current_app
+from typing import List, Callable
 
 from lnbits.settings import WALLET
 from lnbits.core.crud import (
@@ -24,9 +25,22 @@ def record_async(func: Callable) -> Callable:
     return recorder
 
 
-def run_deferred_async(nursery):
+def run_deferred_async():
     for func in deferred_async:
-        nursery.start_soon(func)
+        current_app.nursery.start_soon(catch_everything_and_restart, func)
+
+
+async def catch_everything_and_restart(func):
+    try:
+        await func()
+    except trio.Cancelled:
+        raise  # because we must pass this up
+    except Exception as exc:
+        print("caught exception in background task:", exc)
+        print(traceback.format_exc())
+        print("will restart the task in 5 seconds.")
+        await trio.sleep(5)
+        await catch_everything_and_restart(func)
 
 
 async def send_push_promise(a, b) -> None:
@@ -54,14 +68,15 @@ async def webhook_handler():
 internal_invoice_paid, internal_invoice_received = trio.open_memory_channel(0)
 
 
-async def internal_invoice_listener(nursery):
+async def internal_invoice_listener():
     async for checking_id in internal_invoice_received:
-        nursery.start_soon(invoice_callback_dispatcher, checking_id)
+        current_app.nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
-async def invoice_listener(nursery):
+async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        nursery.start_soon(invoice_callback_dispatcher, checking_id)
+        print("> got a payment notification", checking_id)
+        current_app.nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
 async def check_pending_payments():

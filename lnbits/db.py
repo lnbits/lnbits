@@ -1,6 +1,7 @@
 import os
 import trio
 import time
+import datetime
 from typing import Optional
 from contextlib import asynccontextmanager
 from sqlalchemy import create_engine  # type: ignore
@@ -101,11 +102,23 @@ class Database(Compat):
             )
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
-                    psycopg2.extensions.TIME.values + psycopg2.extensions.DATE.values,
+                    (1082, 1083, 1266),
                     "DATE2INT",
                     lambda value, curs: time.mktime(value.timetuple())
                     if value is not None
                     else None,
+                )
+            )
+
+            psycopg2.extensions.register_type(
+                psycopg2.extensions.new_type(
+                    (1184, 1114),
+                    "TIMESTAMP2INT",
+                    lambda value, curs: time.mktime(
+                        datetime.datetime.strptime(
+                            value, "%Y-%m-%d %H:%M:%S.%f"
+                        ).timetuple()
+                    ),
                 )
             )
         else:

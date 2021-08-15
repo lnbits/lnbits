@@ -56,7 +56,9 @@ async def api_usermanager_user(user_id):
 )
 async def api_usermanager_users_create():
     user = await create_usermanager_user(**g.data)
-    return jsonify(user._asdict()), HTTPStatus.CREATED
+    full = user._asdict()
+    full["wallets"] = [wallet._asdict() for wallet in await get_usermanager_users_wallets(user.id)]
+    return jsonify(full), HTTPStatus.CREATED
 
 
 @usermanager_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])

@@ -49,6 +49,7 @@
               <q-th style="width: 5%"></q-th>
               <q-th style="width: 5%"></q-th>
               <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
 
               <q-th
                 v-for="col in props.cols"
@@ -59,13 +60,13 @@
                 <div v-if="col.name == 'id'"></div>
                 <div v-else>{{ col.label }}</div>
               </q-th>
-              <q-th auto-width></q-th>
+              <!-- <q-th auto-width></q-th> -->
             </q-tr>
           </template>
 
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>
+              <q-td>
                 <q-btn
                   unelevated
                   dense
@@ -77,7 +78,7 @@
                   <q-tooltip> Panel </q-tooltip>
                 </q-btn>
               </q-td>
-              <q-td auto-width>
+              <q-td>
                 <q-btn
                   unelevated
                   dense
@@ -89,7 +90,7 @@
                   <q-tooltip> Compose window </q-tooltip>
                 </q-btn>
               </q-td>
-              <q-td auto-width>
+              <q-td>
                 <q-btn
                   flat
                   dense
@@ -101,7 +102,7 @@
                   <q-tooltip> Delete copilot </q-tooltip>
                 </q-btn>
               </q-td>
-              <q-td auto-width>
+              <q-td>
                 <q-btn
                   flat
                   dense
@@ -133,7 +134,9 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits StreamCopilot Extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} StreamCopilot Extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -204,8 +207,9 @@
                       dense
                       v-model.trim="formDialogCopilot.data.animation1threshold"
                       type="number"
-                      label="From *sats"
-                      :min="10"
+                      step="1"
+                      label="From *sats (min. 10)"
+                      :rules="[ val => val >= 10 || 'Please use minimum 10' ]"
                     >
                     </q-input>
                   </div>
@@ -252,6 +256,7 @@
                       dense
                       v-model="formDialogCopilot.data.animation2threshold"
                       type="number"
+                      step="1"
                       label="From *sats"
                       :min="formDialogCopilot.data.animation1threshold"
                     >
@@ -300,6 +305,7 @@
                       dense
                       v-model="formDialogCopilot.data.animation3threshold"
                       type="number"
+                      step="1"
                       label="From *sats"
                       :min="formDialogCopilot.data.animation2threshold"
                     >
@@ -467,8 +473,10 @@
       cancelCopilot: function (data) {
         var self = this
         self.formDialogCopilot.show = false
+        self.clearFormDialogCopilot()
       },
       closeFormDialog: function () {
+        this.clearFormDialogCopilot()
         this.formDialog.data = {
           is_unique: false
         }
@@ -510,6 +518,7 @@
           .then(function (response) {
             self.CopilotLinks.push(mapCopilot(response.data))
             self.formDialogCopilot.show = false
+            self.clearFormDialogCopilot()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -524,7 +533,9 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.CopilotLinks = response.data.map(mapCopilot)
+            if(response.data){
+              self.CopilotLinks = response.data.map(mapCopilot)
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -617,10 +628,20 @@
             })
             self.CopilotLinks.push(mapCopilot(response.data))
             self.formDialogCopilot.show = false
+            self.clearFormDialogCopilot()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      clearFormDialogCopilot(){
+        this.formDialogCopilot.data = {
+            lnurl_toggle: false,
+            show_message: false,
+            show_ack: false,
+            show_price: 'None',
+            title: ''
+          }
       },
       exportcopilotCSV: function () {
         var self = this
