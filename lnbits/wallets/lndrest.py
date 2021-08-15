@@ -27,6 +27,13 @@ from httpx_socks import AsyncProxyTransport  # pip install httpx_socks
 from httpx._config import SSLConfig
 from python_socks import ProxyType  # pip install python_socks
 
+# In an attempt to address https://github.com/lnbits/lnbits/issues/193 (Connecting of lnbits to a Tor Payment Source)
+# It was found that httpx support for SOCKS5 seems to be missing https://github.com/encode/httpx/issues/203
+# Decided to use https://github.com/romis2012/httpx-socks in an attempt to address this
+
+from httpx_socks import AsyncProxyTransport # pip install httpx_socks
+from httpx._config import SSLConfig
+from python_socks import ProxyType # pip install python_socks
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
@@ -58,6 +65,17 @@ class LndRestWallet(Wallet):
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
         self.cert = getenv("LND_REST_CERT", True)
         self.transport = get_httpx_transport(self.cert)
+
+        ssl_context = SSLConfig(
+            # Without this it appears CERTIFICATE_VERIFY_FAILED is emitted 
+            # resulting in a hypercorn.utils.LifespanFailure: Lifespan failure in startup. '' of lnbits
+            verify=False 
+        ).ssl_context
+        self.transport = AsyncProxyTransport(proxy_type=ProxyType.SOCKS5,
+                proxy_host= '127.0.0.1', proxy_port=9050,
+                username=None, password=None, rdns=None,
+                http2=True, ssl_context=ssl_context, verify=self.cert, cert=None,
+                trust_env=True)
 
     async def status(self) -> StatusResponse:
         try:
