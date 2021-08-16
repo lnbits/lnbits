@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from lnbits.db import SQLITE
 from . import db
 from .models import PayLink
 
@@ -17,12 +18,10 @@ async def create_pay_link(
     success_url: Optional[str] = None,
 ) -> PayLink:
 
-    if db.type == "POSTGRES" or db.type == "COCKROACH":
-        returning = "RETURNING id"
-    else:
-        returning = ""
+    returning = "" if db.type == SQLITE else "RETURNING ID"
+    method = db.execute if db.type == SQLITE else db.fetchone
 
-    result = await db.fetchone(
+    result = await (method)(
         f"""
         INSERT INTO lnurlp.pay_links (
             wallet,
@@ -52,11 +51,11 @@ async def create_pay_link(
             currency,
         ),
     )
-    if db.type == "POSTGRES" or db.type == "COCKROACH":
-        link_id = result[0]
-    else:
+    if db.type == SQLITE:
         link_id = result._result_proxy.lastrowid
-        
+    else:
+        link_id = result[0]
+
     link = await get_pay_link(link_id)
     assert link, "Newly created link couldn't be retrieved"
     return link

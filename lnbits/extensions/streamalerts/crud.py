@@ -1,7 +1,7 @@
 from . import db
 from .models import Donation, Service
 
-from ..satspay.crud import delete_charge
+from ..satspay.crud import delete_charge  # type: ignore
 
 import httpx
 
@@ -10,6 +10,7 @@ from quart import jsonify
 
 from typing import Optional
 
+from lnbits.db import SQLITE
 from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.crud import get_wallet
 
@@ -69,7 +70,10 @@ async def create_donation(
         """,
         (id, wallet, name, message, cur_code, sats, amount, service, posted),
     )
-    return await get_donation(id)
+
+    donation = await get_donation(id)
+    assert donation, "Newly created donation couldn't be retrieved"
+    return donation
 
 
 async def post_donation(donation_id: str) -> tuple:
@@ -86,6 +90,8 @@ async def post_donation(donation_id: str) -> tuple:
             HTTPStatus.BAD_REQUEST,
         )
     service = await get_service(donation.service)
+    assert service, "Couldn't fetch service to donate to"
+
     if service.servicename == "Streamlabs":
         url = "https://streamlabs.com/api/v1.0/donations"
         data = {
@@ -123,8 +129,12 @@ async def create_service(
     onchain: str = None,
 ) -> Service:
     """Create a new Service"""
-    result = await db.execute(
-        """
+
+    returning = "" if db.type == SQLITE else "RETURNING ID"
+    method = db.execute if db.type == SQLITE else db.fetchone
+
+    result = await (method)(
+        f"""
         INSERT INTO streamalerts.Services (
             twitchuser,
             client_id,
@@ -136,6 +146,7 @@ async def create_service(
             onchain
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        {returning}
         """,
         (
             twitchuser,
@@ -148,8 +159,13 @@ async def create_service(
             onchain,
         ),
     )
-    service_id = result._result_proxy.lastrowid
+    if db.type == SQLITE:
+        service_id = result._result_proxy.lastrowid
+    else:
+        service_id = result[0]
+
     service = await get_service(service_id)
+    assert service
     return service
 
 

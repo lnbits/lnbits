@@ -206,13 +206,25 @@
           type="textarea"
           label="Description "
         ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.number="formDialog.data.costpword"
-          type="number"
-          label="Amount per word"
-        ></q-input>
+        <div class="row">
+          <div class="col-5">
+            <q-toggle
+              :label="`${flatRate}`"
+              color="primary"
+              v-model="formDialog.data.flatrate"
+            ></q-toggle>
+          </div>
+          <div class="col-7">
+            <q-input
+              filled
+              dense
+              v-model.number="formDialog.data.amount"
+              type="number"
+              label="Amount"
+            ></q-input>
+          </div>
+        </div>
+
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialog.data.id"
@@ -226,7 +238,7 @@
             v-else
             unelevated
             color="primary"
-            :disable="formDialog.data.costpword == null || formDialog.data.costpword < 0 || formDialog.data.name == null"
+            :disable="formDialog.data.amount == null || formDialog.data.amount < 0 || formDialog.data.name == null"
             type="submit"
             >Create Form</q-btn
           >
@@ -275,10 +287,16 @@
               field: 'description'
             },
             {
-              name: 'costpword',
+              name: 'flatrate',
               align: 'left',
-              label: 'Cost Per Word',
-              field: 'costpword'
+              label: 'Flat Rate',
+              field: 'flatrate'
+            },
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Amount',
+              field: 'amount'
             }
           ],
           pagination: {
@@ -299,9 +317,17 @@
         },
         formDialog: {
           show: false,
-          data: {}
-        },
-        cancelListener: () => {}
+          data: {flatrate: false}
+        }
+      }
+    },
+    computed: {
+      flatRate: function () {
+        if (this.formDialog.data.flatrate) {
+          return 'Charge flat rate'
+        } else {
+          return 'Charge per word'
+        }
       }
     },
     methods: {
@@ -400,7 +426,8 @@
         this.formDialog.data.wallet = link.wallet
         this.formDialog.data.name = link.name
         this.formDialog.data.description = link.description
-        this.formDialog.data.costpword = link.costpword
+        this.formDialog.data.flatrate = link.flatrate
+        this.formDialog.data.amount = link.amount
         this.formDialog.show = true
       },
       updateForm: function (wallet, data) {
@@ -450,30 +477,12 @@
       },
       exportformsCSV: function () {
         LNbits.utils.exportCSV(this.formsTable.columns, this.forms)
-      },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.g.user.wallets[0],
-          payment => {
-            this.getTickets()
-
-            this.$q.notify({
-              type: 'positive',
-              message: 'New ticket arrived!',
-              icon: 'textsms'
-            })
-          }
-        )
       }
     },
-
     created: function () {
       if (this.g.user.wallets.length) {
         this.getTickets()
         this.getForms()
-        this.startPaymentNotifier()
       }
     }
   })

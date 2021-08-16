@@ -45,9 +45,10 @@ async def api_forms():
     schema={
         "wallet": {"type": "string", "empty": False, "required": True},
         "name": {"type": "string", "empty": False, "required": True},
-        "webhook": {"type": "string", "empty": False, "required": False},
+        "webhook": {"type": "string", "required": False},
         "description": {"type": "string", "min": 0, "required": True},
-        "costpword": {"type": "integer", "min": 0, "required": True},
+        "amount": {"type": "integer", "min": 0, "required": True},
+        "flatrate": {"type": "integer", "required": True},
     }
 )
 async def api_form_create(form_id=None):

@@ -102,7 +102,7 @@ class Database(Compat):
             )
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
-                    psycopg2.extensions.DATE.values + psycopg2.extensions.TIME.values,
+                    (1082, 1083, 1266),
                     "DATE2INT",
                     lambda value, curs: time.mktime(value.timetuple())
                     if value is not None
