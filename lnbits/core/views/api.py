@@ -170,26 +170,25 @@ async def api_payments_create_invoice():
 
 
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={"bolt11": {"type": "string", "empty": False, "required": True}}
-)
-async def api_payments_pay_invoice():
+async def api_payments_pay_invoice(
+    bolt11: str = Query(...), wallet: Optional[List[str]] = Query(None)
+):
     try:
         payment_hash = await pay_invoice(
-            wallet_id=g.wallet.id,
-            payment_request=g.data["bolt11"],
+            wallet_id=wallet.id,
+            payment_request=bolt11,
         )
     except ValueError as e:
-        return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
+        return jsonable_encoder({"message": str(e)}), HTTPStatus.BAD_REQUEST
     except PermissionError as e:
-        return jsonify({"message": str(e)}), HTTPStatus.FORBIDDEN
+        return jsonable_encoder({"message": str(e)}), HTTPStatus.FORBIDDEN
     except PaymentFailure as e:
-        return jsonify({"message": str(e)}), 520
+        return jsonable_encoder({"message": str(e)}), 520
     except Exception as exc:
         raise exc
 
     return (
-        jsonify(
+        jsonable_encoder(
             {
                 "payment_hash": payment_hash,
                 # maintain backwards compatibility with API clients:
