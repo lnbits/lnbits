@@ -151,7 +151,7 @@ async def m004_changed(db):
 
     await db.execute(
         """
-        CREATE TABLE lnticket.forms (
+        CREATE TABLE lnticket.form2 (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -178,7 +178,7 @@ async def m004_changed(db):
         usescsv = usescsv[1:]
         await db.execute(
             """
-            INSERT INTO lnticket.forms (
+            INSERT INTO lnticket.form2 (
                 id,
                 wallet,
                 name,
