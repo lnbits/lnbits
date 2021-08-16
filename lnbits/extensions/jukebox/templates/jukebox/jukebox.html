@@ -169,43 +169,48 @@
               LNbits.api
                 .request(
                   'GET',
-                  '/jukebox/api/v1/jukebox/jb/invoicep/' +
-                    self.receive.id +
-                    '/{{ juke_id }}/' +
-                    self.receive.paymentHash
+                  '/jukebox/api/v1/jukebox/jb/checkinvoice/' +
+                    self.receive.paymentHash +
+                    '/{{ juke_id }}'
                 )
                 .then(function (res) {
-                  console.log(
-                    '/jukebox/api/v1/jukebox/jb/invoicep/' +
-                      self.receive.id +
-                      '/{{ juke_id }}/' +
-                      self.receive.paymentHash
-                  )
-                  console.log(res.data)
-                  console.log(self.receive.id)
-                  if (res.data[2] == self.receive.id) {
+                  console.log(res)
+                  if (res.data.paid == true) {
                     clearInterval(dialog.paymentChecker)
-                    dialog.dismissMsg()
-                    self.receive.dialogues.second = false
+                    LNbits.api
+                      .request(
+                        'GET',
+                        '/jukebox/api/v1/jukebox/jb/invoicep/' +
+                          self.receive.id +
+                          '/{{ juke_id }}/' +
+                          self.receive.paymentHash
+                      )
+                      .then(function (ress) {
+                        console.log(ress)
+                        if (ress.data[2] == self.receive.id) {
+                          clearInterval(dialog.paymentChecker)
+                          dialog.dismissMsg()
+                          self.receive.dialogues.second = false
 
-                    self.$q.notify({
-                      type: 'positive',
-                      message:
-                        'Success! "' +
-                        self.receive.name +
-                        '" will be played soon',
-                      timeout: 3000
-                    })
-                    self.receive.dialogues.first = false
+                          self.$q.notify({
+                            type: 'positive',
+                            message:
+                              'Success! "' +
+                              self.receive.name +
+                              '" will be played soon',
+                            timeout: 3000
+                          })
+                          self.receive.dialogues.first = false
+                        }
+                      })
                   }
                 })
             }, 3000)
-          })
-          .finally(
+
             setTimeout(() => {
               self.getCurrent()
             }, 500)
-          )
+          })
           .catch(err => {
             self.$q.notify({
               color: 'warning',
