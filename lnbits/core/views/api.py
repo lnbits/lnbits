@@ -3,7 +3,14 @@ import json
 import httpx
 import hashlib
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import g, current_app, jsonify, make_response, url_for
+from quart import g, current_app, make_response, url_for
+
+from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+
 from http import HTTPStatus
 from binascii import unhexlify
 from typing import Dict, Union
@@ -24,26 +31,23 @@ from ..services import (
 from ..tasks import api_invoice_listeners
 
 
-@core_app.route("/api/v1/wallet", methods=["GET"])
+@core_app.get("/api/v1/wallet")
 @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-        jsonify(
-            {
-                "id": g.wallet.id,
-                "name": g.wallet.name,
-                "balance": g.wallet.balance_msat,
-            }
+        jsonable_encoder(
+            {"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat}
         ),
         HTTPStatus.OK,
     )
 
-@core_app.route("/api/v1/wallet/<new_name>", methods=["PUT"])
+
+@core_app.put("/api/v1/wallet/<new_name>")
 @api_check_wallet_key("invoice")
-async def api_update_wallet(new_name):
+async def api_update_wallet(new_name: str):
     await update_wallet(g.wallet.id, new_name)
     return (
-        jsonify(
+        jsonable_encoder(
             {
                 "id": g.wallet.id,
                 "name": g.wallet.name,
@@ -54,10 +58,15 @@ async def api_update_wallet(new_name):
     )
 
 
-@core_app.route("/api/v1/payments", methods=["GET"])
+@core_app.get("/api/v1/payments")
 @api_check_wallet_key("invoice")
 async def api_payments():
-    return jsonify(await get_payments(wallet_id=g.wallet.id, pending=True, complete=True))
+    return (
+        jsonable_encoder(
+            await get_payments(wallet_id=g.wallet.id, pending=True, complete=True)
+        ),
+        HTTPStatus.OK,
+    )
 
 
 @api_check_wallet_key("invoice")
