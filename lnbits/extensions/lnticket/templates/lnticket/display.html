@@ -103,7 +103,9 @@
             name: '',
             email: '',
             text: ''
-          }
+          },
+          dismissMsg: null,
+          paymentChecker: null
         },
         receive: {
           show: false,
@@ -143,39 +145,9 @@
         this.formDialog.data.email = ''
         this.formDialog.data.text = ''
       },
-
-      closeReceiveDialog: function () {
-        var checker = this.startPaymentNotifier
-        dismissMsg()
-
-        setTimeout(function () {}, 10000)
-      },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.receive = {
-              show: false,
-              status: 'complete',
-              paymentReq: null
-            }
-            dismissMsg()
-
-            this.formDialog.data.name = ''
-            this.formDialog.data.email = ''
-            this.formDialog.data.text = ''
-            this.$q.notify({
-              type: 'positive',
-              message: 'Sent, thank you!',
-              icon: 'thumb_up'
-            })
-          }
-        )
-      },
       Invoice: function () {
         var self = this
+        var dialog = this.formDialog
         axios
           .post('/lnticket/api/v1/tickets/{{ form_id }}', {
             form: '{{ form_id }}',
@@ -188,16 +160,34 @@
             self.paymentReq = response.data.payment_request
             self.paymentCheck = response.data.payment_hash
 
-            dismissMsg = self.$q.notify({
+            dialog.dismissMsg = self.$q.notify({
               timeout: 0,
               message: 'Waiting for payment...'
             })
-
             self.receive = {
               show: true,
               status: 'pending',
               paymentReq: self.paymentReq
             }
+            dialog.paymentChecker = setInterval(function () {
+              axios
+                .get('/lnticket/api/v1/tickets/' + response.data.payment_hash)
+                .then(function (res) {
+                  if (res.data.paid) {
+                    clearInterval(dialog.paymentChecker)
+                    dialog.dismissMsg()
+                    self.receive.show = false
+                    self.formDialog.data.name = ''
+                    self.formDialog.data.email = ''
+                    self.formDialog.data.text = ''
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Sats received, thanks!',
+                      icon: 'thumb_up'
+                    })
+                  }
+                })
+            }, 2000)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -206,7 +196,6 @@
     },
     created() {
       this.wallet.inkey = '{{form_wallet}}'
-      this.startPaymentNotifier()
     }
   })
 </script>
