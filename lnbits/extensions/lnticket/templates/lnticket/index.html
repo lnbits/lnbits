@@ -318,8 +318,7 @@
         formDialog: {
           show: false,
           data: {flatrate: false}
-        },
-        cancelListener: () => {}
+        }
       }
     },
     computed: {
@@ -478,30 +477,12 @@
       },
       exportformsCSV: function () {
         LNbits.utils.exportCSV(this.formsTable.columns, this.forms)
-      },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.g.user.wallets[0],
-          payment => {
-            this.getTickets()
-
-            this.$q.notify({
-              type: 'positive',
-              message: 'New ticket arrived!',
-              icon: 'textsms'
-            })
-          }
-        )
       }
     },
-
     created: function () {
       if (this.g.user.wallets.length) {
         this.getTickets()
         this.getForms()
-        this.startPaymentNotifier()
       }
     }
   })
