@@ -148,7 +148,6 @@ async def m003_changed(db):
 
 
 async def m004_changed(db):
-    await db.execute("DROP TABLE lnticket.form2")
 
     await db.execute(
         """
