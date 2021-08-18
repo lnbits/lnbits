@@ -3,7 +3,7 @@ import json
 import httpx
 import hashlib
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import g, current_app, jsonify, make_response, url_for
+from quart import g, current_app, jsonify, make_response, url_for, request
 from http import HTTPStatus
 from binascii import unhexlify
 from typing import Dict, Union
@@ -38,6 +38,7 @@ async def api_wallet():
         HTTPStatus.OK,
     )
 
+
 @core_app.route("/api/v1/wallet/<new_name>", methods=["PUT"])
 @api_check_wallet_key("invoice")
 async def api_update_wallet(new_name):
@@ -57,7 +58,14 @@ async def api_update_wallet(new_name):
 @core_app.route("/api/v1/payments", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_payments():
-    return jsonify(await get_payments(wallet_id=g.wallet.id, pending=True, complete=True))
+    if "memo" in request.args:
+        return jsonify(
+            await get_payments(memo=request.args.get("memo"), wallet_id=g.wallet.id, pending=True, complete=True)
+        )
+
+    return jsonify(
+        await get_payments(wallet_id=g.wallet.id, pending=True, complete=True)
+    )
 
 
 @api_check_wallet_key("invoice")
