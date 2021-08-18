@@ -92,7 +92,18 @@ async def api_payments():
         "webhook": {"type": "string", "empty": False, "required": False},
     }
 )
-async def api_payments_create_invoice():
+# async def api_payments_create_invoice(amount: List[str] = Query([type: str = Query(None)])):
+
+
+class Memo(BaseModel):
+    type: str
+    empty: bool
+    required: bool
+    excludes: bool
+    excludes: bool = Query("description_hash")
+
+
+async def api_payments_create_invoice(amount: int =  Query(...), memo: Memo ):
     if "description_hash" in g.data:
         description_hash = unhexlify(g.data["description_hash"])
         memo = ""
@@ -118,7 +129,7 @@ async def api_payments_create_invoice():
                 conn=conn,
             )
         except InvoiceFailure as e:
-            return jsonify({"message": str(e)}), 520
+            return jsonable_encoder({"message": str(e)}), 520
         except Exception as exc:
             raise exc
 
@@ -156,7 +167,7 @@ async def api_payments_create_invoice():
                 lnurl_response = False
 
     return (
-        jsonify(
+        jsonable_encoder(
             {
                 "payment_hash": invoice.payment_hash,
                 "payment_request": payment_request,
