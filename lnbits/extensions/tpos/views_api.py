@@ -17,7 +17,7 @@ from .models import TPoS
 
 @tpos_ext.get("/api/v1/tposs")
 @api_check_wallet_key("invoice")
-async def api_tposs(all_wallets: boolean = Query(None)):
+async def api_tposs(all_wallets: bool = Query(None)):
     wallet_ids = [g.wallet.id]
     if all_wallets:
          wallet_ids = wallet_ids = (await get_user(g.wallet.user)).wallet_ids(await get_user(g.wallet.user)).wallet_ids
@@ -60,7 +60,7 @@ async def api_tpos_delete(tpos_id: str):
 # @api_validate_post_request(
 #     schema={"amount": {"type": "integer", "min": 1, "required": True}}
 # )
-async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str):
+async def api_tpos_create_invoice(tpos_id: str, amount: int = Query(..., ge=1)):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
@@ -76,7 +76,7 @@ async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str):
     except Exception as e:
         return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return {"payment_hash": payment_hash, "payment_request": payment_request}), HTTPStatus.CREATED
+    return {"payment_hash": payment_hash, "payment_request": payment_request}, HTTPStatus.CREATED
 
 
 @tpos_ext.get("/api/v1/tposs/{tpos_id}/invoices/{payment_hash}")
