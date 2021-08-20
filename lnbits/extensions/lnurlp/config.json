@@ -1,0 +1,10 @@
+{
+  "name": "LNURLp",
+  "short_description": "Make reusable LNURL pay links",
+  "icon": "receipt",
+  "contributors": [
+    "arcbtc",
+    "eillarra",
+    "fiatjaf"
+  ]
+}

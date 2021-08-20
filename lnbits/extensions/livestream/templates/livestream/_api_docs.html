@@ -1,0 +1,146 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="How to use"
+  :content-inset-level="0.5"
+>
+  <q-card>
+    <q-card-section>
+      <p>Add tracks, profit.</p>
+    </q-card-section>
+  </q-card>
+</q-expansion-item>
+
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="List livestream links"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /livestream/api/v1/livestream</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;livestream_object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/livestream -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Update track">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">PUT</span>
+          /livestream/api/v1/livestream/track/&lt;track_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X PUT {{ request.url_root
+          }}api/v1/livestream/track/&lt;track_id&gt; -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Update fee">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">PUT</span>
+          /livestream/api/v1/livestream/fee/&lt;fee_pct&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X PUT {{ request.url_root
+          }}api/v1/livestream/fee/&lt;fee_pct&gt; -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item group="api" dense expand-separator label="Add track">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-green">POST</span>
+          /livestream/api/v1/livestream/tracks</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code
+          >{"name": &lt;string&gt;, "download_url": &lt;string&gt;,
+          "price_msat": &lt;integer&gt;, "producer_id": &lt;integer&gt;,
+          "producer_name": &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.url_root }}api/v1/livestream/tracks -d
+          '{"name": &lt;string&gt;, "download_url": &lt;string&gt;,
+          "price_msat": &lt;integer&gt;, "producer_id": &lt;integer&gt;,
+          "producer_name": &lt;string&gt;}' -H "Content-type: application/json"
+          -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete a withdraw link"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-pink">DELETE</span>
+          /livestream/api/v1/livestream/tracks/&lt;track_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 204 NO CONTENT</h5>
+        <code></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.url_root
+          }}api/v1/livestream/tracks/&lt;track_id&gt; -H "X-Api-Key: {{
+          g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>

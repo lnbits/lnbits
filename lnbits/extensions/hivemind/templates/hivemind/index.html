@@ -1,0 +1,35 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<q-card>
+  <q-card-section>
+    <h5 class="text-subtitle1 q-mt-none q-mb-md">
+      This extension is just a placeholder for now.
+    </h5>
+    <p>
+      <a href="https://bitcoinhivemind.com/">Hivemind</a> is a Bitcoin sidechain
+      project for a peer-to-peer oracle protocol that absorbs accurate data into
+      a blockchain so that Bitcoin users can speculate in prediction markets.
+    </p>
+    <p>
+      These markets have the potential to revolutionize the emergence of
+      diffusion of knowledge in society and fix all sorts of problems in the
+      world.
+    </p>
+    <p>
+      This extension will become fully operative when the
+      <a href="https://drivechain.xyz/">BIP300</a> soft-fork gets activated and
+      Bitcoin Hivemind is launched.
+    </p>
+  </q-card-section>
+</q-card>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {}
+    }
+  })
+</script>
+{% endblock %}
