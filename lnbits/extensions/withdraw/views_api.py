@@ -39,7 +39,7 @@ async def api_links():
         )
     except LnurlInvalidUrl:
         return (
-            jsonify(
+            json_encoder(
                 {
                     "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
                 }
@@ -64,6 +64,13 @@ async def api_link_retrieve(link_id):
 
     return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK
 
+class CreateData(BaseModel):
+    title:  str,
+    min_withdrawable:  int = Query(..., ge=1,),
+    max_withdrawable:  int = Query(..., ge=1),
+    amount:  int = Query(None),
+    remembers:  bool = Query(None) 
+
 
 @withdraw_ext.route("/api/v1/links", methods=["POST"])
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
@@ -78,7 +85,7 @@ async def api_link_retrieve(link_id):
         "is_unique": {"type": "boolean", "required": True},
     }
 )
-async def api_link_create_or_update(link_id=None):
+async def api_link_create_or_update(link_id=None, data = CreateData):
     if g.data["max_withdrawable"] < g.data["min_withdrawable"]:
         return (
             jsonify(
