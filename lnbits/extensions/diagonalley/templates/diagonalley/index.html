@@ -1,0 +1,906 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="productDialog.show = true"
+          >New Product</q-btn
+        >
+        <q-btn unelevated color="primary" @click="indexerDialog.show = true"
+          >New Indexer
+          <q-tooltip>
+            Frontend shop your stall will list its products in
+          </q-tooltip></q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Products</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportProductsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="products"
+          row-key="id"
+          :columns="productsTable.columns"
+          :pagination.sync="productsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="add_shopping_cart"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.wallet"
+                  target="_blank"
+                ></q-btn>
+                <q-tooltip> Link to pass to stall indexer </q-tooltip>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openProductUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteProduct(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Indexers</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportIndexersCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="indexers"
+          row-key="id"
+          :columns="indexersTable.columns"
+          :pagination.sync="indexersTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openIndexerUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                ></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteIndexer(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Orders</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportOrdersCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="orders"
+          row-key="id"
+          :columns="ordersTable.columns"
+          :pagination.sync="ordersTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="shipOrder(props.row.id)"
+                  icon="add_shopping_cart"
+                  color="green"
+                >
+                  <q-tooltip> Product shipped? </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteOrder(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">LNbits Diagon Alley Extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "diagonalley/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="productDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="sendProductFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="productDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="productDialog.data.product"
+          label="Product"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="productDialog.data.categories"
+          placeholder="cakes, guns, wool, drugs"
+          label="Categories seperated by comma"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="productDialog.data.description"
+          label="Description"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="productDialog.data.image"
+          label="Image"
+          placeholder="Imagur link (max 500/500px)"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="productDialog.data.price"
+          type="number"
+          label="Price"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="productDialog.data.quantity"
+          type="number"
+          label="Quantity"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="productDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Product</q-btn
+          >
+
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="productDialog.data.image == null
+              || productDialog.data.product == null
+              || productDialog.data.description == null
+              || productDialog.data.quantity == null"
+            type="submit"
+            >Create Product</q-btn
+          >
+
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="indexerDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="sendIndexerFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="indexerDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="indexerDialog.data.shopname"
+          label="Shop Name"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="indexerDialog.data.indexeraddress"
+          label="Shop link (LNbits will point to)"
+        ></q-input>
+        <q-select
+          filled
+          dense
+          v-model.trim="indexerDialog.data.shippingzone1"
+          multiple
+          :options="shippingoptions"
+          label="Shipping Zone 1"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.number="indexerDialog.data.zone1cost"
+          type="number"
+          label="Zone 1 Cost"
+        ></q-input>
+
+        <q-select
+          filled
+          dense
+          v-model.trim="indexerDialog.data.shippingzone2"
+          multiple
+          :options="shippingoptions"
+          label="Shipping Zone 2"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.number="indexerDialog.data.zone2cost"
+          type="number"
+          label="Zone 2 Cost"
+        ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="indexerDialog.data.email"
+          label="Email to share with customers"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="indexerDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Indexer</q-btn
+          >
+
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="indexerDialog.data.shopname == null
+              || indexerDialog.data.shippingzone1 == null
+              || indexerDialog.data.indexeraddress == null
+              || indexerDialog.data.zone1cost == null
+              || indexerDialog.data.shippingzone2 == null
+              || indexerDialog.data.zone2cost == null
+              || indexerDialog.data.email == null"
+            type="submit"
+            >Create Indexer</q-btn
+          >
+
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapDiagonAlley = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.wall = ['/diagonalley/', obj.id].join('')
+    obj._data = _.clone(obj)
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        products: [],
+        orders: [],
+        indexers: [],
+        shippedModel: false,
+        shippingoptions: [
+          'Australia',
+          'Austria',
+          'Belgium',
+          'Brazil',
+          'Canada',
+          'Denmark',
+          'Finland',
+          'France*',
+          'Germany',
+          'Greece',
+          'Hong Kong',
+          'Hungary',
+          'Ireland',
+          'Indonesia',
+          'Israel',
+          'Italy',
+          'Japan',
+          'Kazakhstan',
+          'Korea',
+          'Luxembourg',
+          'Malaysia',
+          'Mexico',
+          'Netherlands',
+          'New Zealand',
+          'Norway',
+          'Poland',
+          'Portugal',
+          'Russia',
+          'Saudi Arabia',
+          'Singapore',
+          'Spain',
+          'Sweden',
+          'Switzerland',
+          'Thailand',
+          'Turkey',
+          'Ukraine',
+          'United Kingdom**',
+          'United States***',
+          'Vietnam',
+          'China'
+        ],
+        label: '',
+        indexersTable: {
+          columns: [
+            {name: 'shopname', align: 'left', label: 'Shop', field: 'shopname'},
+            {
+              name: 'indexeraddress',
+              align: 'left',
+              label: 'Address',
+              field: 'indexeraddress'
+            },
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {
+              name: 'rating',
+              align: 'left',
+              label: 'Your Rating',
+              field: 'rating'
+            },
+            {name: 'email', align: 'left', label: 'Your email', field: 'email'},
+            {name: 'online', align: 'left', label: 'Online', field: 'online'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        ordersTable: {
+          columns: [
+            {
+              name: 'product',
+              align: 'left',
+              label: 'Product',
+              field: 'product'
+            },
+            {
+              name: 'quantity',
+              align: 'left',
+              label: 'Quantity',
+              field: 'quantity'
+            },
+            {
+              name: 'address',
+              align: 'left',
+              label: 'Address',
+              field: 'address'
+            },
+            {
+              name: 'invoiceid',
+              align: 'left',
+              label: 'InvoiceID',
+              field: 'invoiceid'
+            },
+            {name: 'paid', align: 'left', label: 'Paid', field: 'paid'},
+            {name: 'shipped', align: 'left', label: 'Shipped', field: 'shipped'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        productsTable: {
+          columns: [
+            {
+              name: 'product',
+              align: 'left',
+              label: 'Product',
+              field: 'product'
+            },
+            {
+              name: 'description',
+              align: 'left',
+              label: 'Description',
+              field: 'description'
+            },
+            {
+              name: 'categories',
+              align: 'left',
+              label: 'Categories',
+              field: 'categories'
+            },
+            {name: 'image', align: 'left', label: 'Image', field: 'image'},
+            {name: 'price', align: 'left', label: 'Price', field: 'price'},
+            {
+              name: 'quantity',
+              align: 'left',
+              label: 'Quantity',
+              field: 'quantity'
+            },
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        productDialog: {
+          show: false,
+          data: {}
+        },
+        orderDialog: {
+          show: false,
+          data: {}
+        },
+        indexerDialog: {
+          show: false,
+          data: {}
+        }
+      }
+    },
+    methods: {
+      getIndexers: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/diagonalley/api/v1/diagonalley/indexers?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.indexers = response.data.map(function (obj) {
+              return mapDiagonAlley(obj)
+            })
+          })
+      },
+      openIndexerUpdateDialog: function (linkId) {
+        var link = _.findWhere(this.indexers, {id: linkId})
+
+        this.indexerDialog.data = _.clone(link._data)
+        this.indexerDialog.show = true
+      },
+      sendIndexerFormData: function () {
+        if (this.indexerDialog.data.id) {
+        } else {
+          var data = {
+            shopname: this.indexerDialog.data.shopname,
+            indexeraddress: this.indexerDialog.data.indexeraddress,
+            shippingzone1: this.indexerDialog.data.shippingzone1.join(', '),
+            zone1cost: this.indexerDialog.data.zone1cost,
+            shippingzone2: this.indexerDialog.data.shippingzone2.join(', '),
+            zone2cost: this.indexerDialog.data.zone2cost,
+            email: this.indexerDialog.data.email
+          }
+        }
+
+        if (this.indexerDialog.data.id) {
+          this.updateIndexer(this.indexerDialog.data)
+        } else {
+          this.createIndexer(data)
+        }
+      },
+      updateIndexer: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'PUT',
+            '/diagonalley/api/v1/diagonalley/indexers' + data.id,
+            _.findWhere(this.g.user.wallets, {
+              id: this.indexerDialog.data.wallet
+            }).inkey,
+            _.pick(
+              data,
+              'shopname',
+              'indexeraddress',
+              'shippingzone1',
+              'zone1cost',
+              'shippingzone2',
+              'zone2cost',
+              'email'
+            )
+          )
+          .then(function (response) {
+            self.indexers = _.reject(self.indexers, function (obj) {
+              return obj.id == data.id
+            })
+            self.indexers.push(mapDiagonAlley(response.data))
+            self.indexerDialog.show = false
+            self.indexerDialog.data = {}
+            data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createIndexer: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/diagonalley/api/v1/diagonalley/indexers',
+            _.findWhere(this.g.user.wallets, {
+              id: this.indexerDialog.data.wallet
+            }).inkey,
+            data
+          )
+          .then(function (response) {
+            self.indexers.push(mapDiagonAlley(response.data))
+            self.indexerDialog.show = false
+            self.indexerDialog.data = {}
+            data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteIndexer: function (indexerId) {
+        var self = this
+        var indexer = _.findWhere(this.indexers, {id: indexerId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this Indexer link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/diagonalley/api/v1/diagonalley/indexers/' + indexerId,
+                _.findWhere(self.g.user.wallets, {id: indexer.wallet}).inkey
+              )
+              .then(function (response) {
+                self.indexers = _.reject(self.indexers, function (obj) {
+                  return obj.id == indexerId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportIndexersCSV: function () {
+        LNbits.utils.exportCSV(this.indexersTable.columns, this.indexers)
+      },
+      getOrders: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/diagonalley/api/v1/diagonalley/orders?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.orders = response.data.map(function (obj) {
+              return mapDiagonAlley(obj)
+            })
+          })
+      },
+      createOrder: function () {
+        var data = {
+          address: this.orderDialog.data.address,
+          email: this.orderDialog.data.email,
+          quantity: this.orderDialog.data.quantity,
+          shippingzone: this.orderDialog.data.shippingzone
+        }
+        var self = this
+
+        LNbits.api
+          .request(
+            'POST',
+            '/diagonalley/api/v1/diagonalley/orders',
+            _.findWhere(this.g.user.wallets, {id: this.orderDialog.data.wallet})
+              .inkey,
+            data
+          )
+          .then(function (response) {
+            self.orders.push(mapDiagonAlley(response.data))
+            self.orderDialog.show = false
+            self.orderDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteOrder: function (orderId) {
+        var self = this
+        var order = _.findWhere(this.orders, {id: orderId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this order link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/diagonalley/api/v1/diagonalley/orders/' + orderId,
+                _.findWhere(self.g.user.wallets, {id: order.wallet}).inkey
+              )
+              .then(function (response) {
+                self.orders = _.reject(self.orders, function (obj) {
+                  return obj.id == orderId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      shipOrder: function (order_id) {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/diagonalley/api/v1/diagonalley/orders/shipped/' + order_id,
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.orders = response.data.map(function (obj) {
+              return mapDiagonAlley(obj)
+            })
+          })
+      },
+      exportOrdersCSV: function () {
+        LNbits.utils.exportCSV(this.ordersTable.columns, this.orders)
+      },
+      getProducts: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/diagonalley/api/v1/diagonalley/products?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.products = response.data.map(function (obj) {
+              return mapDiagonAlley(obj)
+            })
+          })
+      },
+      openProductUpdateDialog: function (linkId) {
+        var link = _.findWhere(this.products, {id: linkId})
+
+        this.productDialog.data = _.clone(link._data)
+        this.productDialog.show = true
+      },
+      sendProductFormData: function () {
+        if (this.productDialog.data.id) {
+        } else {
+          var data = {
+            product: this.productDialog.data.product,
+            categories: this.productDialog.data.categories,
+            description: this.productDialog.data.description,
+            image: this.productDialog.data.image,
+            price: this.productDialog.data.price,
+            quantity: this.productDialog.data.quantity
+          }
+        }
+        if (this.productDialog.data.id) {
+          this.updateProduct(this.productDialog.data)
+        } else {
+          this.createProduct(data)
+        }
+      },
+      updateProduct: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'PUT',
+            '/diagonalley/api/v1/diagonalley/products' + data.id,
+            _.findWhere(this.g.user.wallets, {
+              id: this.productDialog.data.wallet
+            }).inkey,
+            _.pick(
+              data,
+              'shopname',
+              'indexeraddress',
+              'shippingzone1',
+              'zone1cost',
+              'shippingzone2',
+              'zone2cost',
+              'email'
+            )
+          )
+          .then(function (response) {
+            self.products = _.reject(self.products, function (obj) {
+              return obj.id == data.id
+            })
+            self.products.push(mapDiagonAlley(response.data))
+            self.productDialog.show = false
+            self.productDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createProduct: function (data) {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/diagonalley/api/v1/diagonalley/products',
+            _.findWhere(this.g.user.wallets, {
+              id: this.productDialog.data.wallet
+            }).inkey,
+            data
+          )
+          .then(function (response) {
+            self.products.push(mapDiagonAlley(response.data))
+            self.productDialog.show = false
+            self.productDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteProduct: function (productId) {
+        var self = this
+        var product = _.findWhere(this.products, {id: productId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this products link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/diagonalley/api/v1/diagonalley/products/' + productId,
+                _.findWhere(self.g.user.wallets, {id: product.wallet}).inkey
+              )
+              .then(function (response) {
+                self.products = _.reject(self.products, function (obj) {
+                  return obj.id == productId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportProductsCSV: function () {
+        LNbits.utils.exportCSV(this.productsTable.columns, this.products)
+      }
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getProducts()
+        this.getOrders()
+        this.getIndexers()
+      }
+    }
+  })
+</script>
+{% endblock %}

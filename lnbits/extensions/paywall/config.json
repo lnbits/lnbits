@@ -1,0 +1,6 @@
+{
+    "name": "Paywall",
+    "short_description": "Create paywalls for content",
+    "icon": "policy",
+    "contributors": ["eillarra"]
+}

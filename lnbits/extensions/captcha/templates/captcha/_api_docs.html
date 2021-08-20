@@ -1,0 +1,147 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="List captchas">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-blue">GET</span> /captcha/api/v1/captchas</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;captcha_object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}captcha/api/v1/captchas -H
+          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="Create a captcha">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-green">POST</span> /captcha/api/v1/captchas</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code
+          >{"amount": &lt;integer&gt;, "description": &lt;string&gt;, "memo":
+          &lt;string&gt;, "remembers": &lt;boolean&gt;, "url":
+          &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code
+          >{"amount": &lt;integer&gt;, "description": &lt;string&gt;, "id":
+          &lt;string&gt;, "memo": &lt;string&gt;, "remembers": &lt;boolean&gt;,
+          "time": &lt;int&gt;, "url": &lt;string&gt;, "wallet":
+          &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.url_root }}captcha/api/v1/captchas -d
+          '{"url": &lt;string&gt;, "memo": &lt;string&gt;, "description":
+          &lt;string&gt;, "amount": &lt;integer&gt;, "remembers":
+          &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key:
+          {{ g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create an invoice (public)"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-green">POST</span>
+          /captcha/api/v1/captchas/&lt;captcha_id&gt;/invoice</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code>{"amount": &lt;integer&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 201 CREATED (application/json)
+        </h5>
+        <code
+          >{"payment_hash": &lt;string&gt;, "payment_request":
+          &lt;string&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.url_root
+          }}captcha/api/v1/captchas/&lt;captcha_id&gt;/invoice -d '{"amount":
+          &lt;integer&gt;}' -H "Content-type: application/json"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Check invoice status (public)"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-green">POST</span>
+          /captcha/api/v1/captchas/&lt;captcha_id&gt;/check_invoice</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code>{"payment_hash": &lt;string&gt;}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{"paid": false}</code><br />
+        <code
+          >{"paid": true, "url": &lt;string&gt;, "remembers":
+          &lt;boolean&gt;}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.url_root
+          }}captcha/api/v1/captchas/&lt;captcha_id&gt;/check_invoice -d
+          '{"payment_hash": &lt;string&gt;}' -H "Content-type: application/json"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete a captcha"
+    class="q-pb-md"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-pink">DELETE</span>
+          /captcha/api/v1/captchas/&lt;captcha_id&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Returns 204 NO CONTENT</h5>
+        <code></code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.url_root
+          }}captcha/api/v1/captchas/&lt;captcha_id&gt; -H "X-Api-Key: {{
+          g.user.wallets[0].adminkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>
