@@ -7,7 +7,7 @@ from . import streamalerts_ext
 from .crud import get_service
 
 
-@streamalerts_ext.route("/")
+@streamalerts_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
@@ -15,7 +15,7 @@ async def index():
     return await render_template("streamalerts/index.html", user=g.user)
 
 
-@streamalerts_ext.route("/<state>")
+@streamalerts_ext.get("/<state>")
 async def donation(state):
     """Return the donation form for the Service corresponding to state"""
     service = await get_service(0, by_state=state)

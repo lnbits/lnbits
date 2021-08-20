@@ -5,7 +5,7 @@ from lnbits.decorators import check_user_exists, validate_uuids
 from . import splitpayments_ext
 
 
-@splitpayments_ext.route("/")
+@splitpayments_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():

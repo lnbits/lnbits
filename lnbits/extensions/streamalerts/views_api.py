@@ -24,30 +24,27 @@ from .crud import (
 )
 from ..satspay.crud import create_charge, get_charge
 
+class CreateServicesData(BaseModel):
+    twitchuser:  str
+    client_id:  str
+    client_secret:  str
+    wallet:  str
+    servicename:  str
+    onchain:  Optional[str]
 
-@streamalerts_ext.route("/api/v1/services", methods=["POST"])
+@streamalerts_ext.post("/api/v1/services")
 @api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "twitchuser": {"type": "string", "required": True},
-        "client_id": {"type": "string", "required": True},
-        "client_secret": {"type": "string", "required": True},
-        "wallet": {"type": "string", "required": True},
-        "servicename": {"type": "string", "required": True},
-        "onchain": {"type": "string"},
-    }
-)
-async def api_create_service():
+async def api_create_service(data: CreateData):
     """Create a service, which holds data about how/where to post donations"""
     try:
-        service = await create_service(**g.data)
+        service = await create_service(**data)
     except Exception as e:
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify(service._asdict()), HTTPStatus.CREATED
+    return service._asdict(), HTTPStatus.CREATED
 
 
-@streamalerts_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
+@streamalerts_ext.get("/api/v1/getaccess/<service_id>")
 async def api_get_access(service_id):
     """Redirect to Streamlabs' Approve/Decline page for API access for Service
     with service_id
@@ -67,56 +64,52 @@ async def api_get_access(service_id):
         redirect_url = endpoint_url + querystring
         return redirect(redirect_url)
     else:
-        return (jsonify({"message": "Service does not exist!"}), HTTPStatus.BAD_REQUEST)
+        return ({"message": "Service does not exist!"}, HTTPStatus.BAD_REQUEST)
 
 
-@streamalerts_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
-async def api_authenticate_service(service_id):
+@streamalerts_ext.get("/api/v1/authenticate/<service_id>")
+async def api_authenticate_service(Code: str, State: str, service_id):
     """Endpoint visited via redirect during third party API authentication
 
     If successful, an API access token will be added to the service, and
     the user will be redirected to index.html.
     """
-    code = request.args.get("code")
-    state = request.args.get("state")
+    code = Code
+    state = State
     service = await get_service(service_id)
     if service.state != state:
-        return (jsonify({"message": "State doesn't match!"}), HTTPStatus.BAD_Request)
+        return ({"message": "State doesn't match!"}, HTTPStatus.BAD_Request)
     redirect_uri = request.scheme + "://" + request.headers["Host"]
     redirect_uri += f"/streamalerts/api/v1/authenticate/{service_id}"
     url, success = await authenticate_service(service_id, code, redirect_uri)
     if success:
         return redirect(url)
     else:
-        return (
-            jsonify({"message": "Service already authenticated!"}),
+        return ({"message": "Service already authenticated!"},
             HTTPStatus.BAD_REQUEST,
         )
 
+class CreateDonationsData(BaseModel):
+    name:  str
+    sats:  int
+    service:  int
+    message:  str
 
-@streamalerts_ext.route("/api/v1/donations", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "name": {"type": "string"},
-        "sats": {"type": "integer", "required": True},
-        "service": {"type": "integer", "required": True},
-        "message": {"type": "string"},
-    }
-)
-async def api_create_donation():
+@streamalerts_ext.post("/api/v1/donations")
+async def api_create_donation(data:CreateDonationsData):
     """Take data from donation form and return satspay charge"""
     # Currency is hardcoded while frotnend is limited
     cur_code = "USD"
-    sats = g.data["sats"]
-    message = g.data.get("message", "")
+    sats = data.sats
+    message = data.message
     # Fiat amount is calculated here while frontend is limited
     price = await btc_price(cur_code)
     amount = sats * (10 ** (-8)) * price
     webhook_base = request.scheme + "://" + request.headers["Host"]
-    service_id = g.data["service"]
+    service_id = data.service
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
-    name = g.data.get("name", "")
+    name = data.name
     if not name:
         name = "Anonymous"
     description = f"{sats} sats donation from {name} to {service.twitchuser}"
@@ -134,33 +127,29 @@ async def api_create_donation():
         message=message,
         name=name,
         cur_code=cur_code,
-        sats=g.data["sats"],
+        sats=data.sats,
         amount=amount,
-        service=g.data["service"],
+        service=data.service,
     )
-    return (jsonify({"redirect_url": f"/satspay/{charge.id}"}), HTTPStatus.OK)
+    return ({"redirect_url": f"/satspay/{charge.id}"}), HTTPStatus.OK
 
 
-@streamalerts_ext.route("/api/v1/postdonation", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "id": {"type": "string", "required": True},
-    }
-)
-async def api_post_donation():
+@streamalerts_ext.post("/api/v1/postdonation")
+
+async def api_post_donation(id: str):
     """Post a paid donation to Stremalabs/StreamElements.
 
     This endpoint acts as a webhook for the SatsPayServer extension."""
     data = await request.get_json(force=True)
-    donation_id = data.get("id", "No ID")
+    donation_id = id
     charge = await get_charge(donation_id)
     if charge and charge.paid:
         return await post_donation(donation_id)
     else:
-        return (jsonify({"message": "Not a paid charge!"}), HTTPStatus.BAD_REQUEST)
+        return ({"message": "Not a paid charge!"}, HTTPStatus.BAD_REQUEST)
 
 
-@streamalerts_ext.route("/api/v1/services", methods=["GET"])
+@streamalerts_ext.get("/api/v1/services")
 @api_check_wallet_key("invoice")
 async def api_get_services():
     """Return list of all services assigned to wallet with given invoice key"""
@@ -170,12 +159,12 @@ async def api_get_services():
         new_services = await get_services(wallet_id)
         services += new_services if new_services else []
     return (
-        jsonify([service._asdict() for service in services] if services else []),
+        [service._asdict() for service in services] if services else [],
         HTTPStatus.OK,
     )
 
 
-@streamalerts_ext.route("/api/v1/donations", methods=["GET"])
+@streamalerts_ext.get("/api/v1/donations")
 @api_check_wallet_key("invoice")
 async def api_get_donations():
     """Return list of all donations assigned to wallet with given invoice
@@ -187,12 +176,12 @@ async def api_get_donations():
         new_donations = await get_donations(wallet_id)
         donations += new_donations if new_donations else []
     return (
-        jsonify([donation._asdict() for donation in donations] if donations else []),
+        [donation._asdict() for donation in donations] if donations else [],
         HTTPStatus.OK,
     )
 
 
-@streamalerts_ext.route("/api/v1/donations/<donation_id>", methods=["PUT"])
+@streamalerts_ext.put("/api/v1/donations/<donation_id>")
 @api_check_wallet_key("invoice")
 async def api_update_donation(donation_id=None):
     """Update a donation with the data given in the request"""
@@ -201,23 +190,23 @@ async def api_update_donation(donation_id=None):
 
         if not donation:
             return (
-                jsonify({"message": "Donation does not exist."}),
+                {"message": "Donation does not exist."},
                 HTTPStatus.NOT_FOUND,
             )
 
         if donation.wallet != g.wallet.id:
-            return (jsonify({"message": "Not your donation."}), HTTPStatus.FORBIDDEN)
+            return ({"message": "Not your donation."}, HTTPStatus.FORBIDDEN)
 
         donation = await update_donation(donation_id, **g.data)
     else:
         return (
-            jsonify({"message": "No donation ID specified"}),
+            {"message": "No donation ID specified"},
             HTTPStatus.BAD_REQUEST,
         )
-    return jsonify(donation._asdict()), HTTPStatus.CREATED
+    return donation._asdict(), HTTPStatus.CREATED
 
 
-@streamalerts_ext.route("/api/v1/services/<service_id>", methods=["PUT"])
+@streamalerts_ext.put("/api/v1/services/<service_id>")
 @api_check_wallet_key("invoice")
 async def api_update_service(service_id=None):
     """Update a service with the data given in the request"""
@@ -225,30 +214,28 @@ async def api_update_service(service_id=None):
         service = await get_service(service_id)
 
         if not service:
-            return (
-                jsonify({"message": "Service does not exist."}),
+            return ({"message": "Service does not exist."},
                 HTTPStatus.NOT_FOUND,
             )
 
         if service.wallet != g.wallet.id:
-            return (jsonify({"message": "Not your service."}), HTTPStatus.FORBIDDEN)
+            return ({"message": "Not your service."}), HTTPStatus.FORBIDDEN
 
         service = await update_service(service_id, **g.data)
     else:
-        return (jsonify({"message": "No service ID specified"}), HTTPStatus.BAD_REQUEST)
-    return jsonify(service._asdict()), HTTPStatus.CREATED
+        return ({"message": "No service ID specified"}), HTTPStatus.BAD_REQUEST
+    return service._asdict(), HTTPStatus.CREATED
 
 
-@streamalerts_ext.route("/api/v1/donations/<donation_id>", methods=["DELETE"])
+@streamalerts_ext.delete("/api/v1/donations/<donation_id>")
 @api_check_wallet_key("invoice")
 async def api_delete_donation(donation_id):
     """Delete the donation with the given donation_id"""
     donation = await get_donation(donation_id)
     if not donation:
-        return (jsonify({"message": "No donation with this ID!"}), HTTPStatus.NOT_FOUND)
+        return ({"message": "No donation with this ID!"}, HTTPStatus.NOT_FOUND)
     if donation.wallet != g.wallet.id:
-        return (
-            jsonify({"message": "Not authorized to delete this donation!"}),
+        return ({"message": "Not authorized to delete this donation!"},
             HTTPStatus.FORBIDDEN,
         )
     await delete_donation(donation_id)
@@ -256,16 +243,16 @@ async def api_delete_donation(donation_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@streamalerts_ext.route("/api/v1/services/<service_id>", methods=["DELETE"])
+@streamalerts_ext.delete("/api/v1/services/<service_id>")
 @api_check_wallet_key("invoice")
 async def api_delete_service(service_id):
     """Delete the service with the given service_id"""
     service = await get_service(service_id)
     if not service:
-        return (jsonify({"message": "No service with this ID!"}), HTTPStatus.NOT_FOUND)
+        return ({"message": "No service with this ID!"}, HTTPStatus.NOT_FOUND)
     if service.wallet != g.wallet.id:
         return (
-            jsonify({"message": "Not authorized to delete this service!"}),
+            {"message": "Not authorized to delete this service!"},
             HTTPStatus.FORBIDDEN,
         )
     await delete_service(service_id)

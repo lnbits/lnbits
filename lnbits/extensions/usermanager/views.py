@@ -5,7 +5,7 @@ from lnbits.decorators import check_user_exists, validate_uuids
 from . import usermanager_ext
 
 
-@usermanager_ext.route("/")
+@usermanager_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():

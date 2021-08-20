@@ -8,7 +8,7 @@ from .exchange_rates import exchange_rate_providers_serializable, fiat_currencie
 from .helpers import get_callback_url
 
 
-@bleskomat_ext.route("/")
+@bleskomat_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():

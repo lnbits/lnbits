@@ -23,45 +23,40 @@ from lnbits.core import update_user_extension
 ### Users
 
 
-@usermanager_ext.route("/api/v1/users", methods=["GET"])
+@usermanager_ext.get("/api/v1/users")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users():
     user_id = g.wallet.user
-    return (
-        jsonify([user._asdict() for user in await get_usermanager_users(user_id)]),
+    return ([user._asdict() for user in await get_usermanager_users(user_id)],
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/users/<user_id>", methods=["GET"])
+@usermanager_ext.get("/api/v1/users/<user_id>")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_user(user_id):
     user = await get_usermanager_user(user_id)
-    return (
-        jsonify(user._asdict()),
+    return (user._asdict(),
         HTTPStatus.OK,
     )
 
+class CreateUsersData(BaseModel):
+    domain:  str
+    subdomain:  str
+    email:  str
+    ip:  Optional[str]
+    sats:  Optional[str]
 
-@usermanager_ext.route("/api/v1/users", methods=["POST"])
+@usermanager_ext.post("/api/v1/users")
 @api_check_wallet_key(key_type="invoice")
-@api_validate_post_request(
-    schema={
-        "user_name": {"type": "string", "empty": False, "required": True},
-        "wallet_name": {"type": "string", "empty": False, "required": True},
-        "admin_id": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "required": False},
-        "password": {"type": "string", "required": False},
-    }
-)
-async def api_usermanager_users_create():
-    user = await create_usermanager_user(**g.data)
+async def api_usermanager_users_create(data: CreateUsersData):
+    user = await create_usermanager_user(**data)
     full = user._asdict()
     full["wallets"] = [wallet._asdict() for wallet in await get_usermanager_users_wallets(user.id)]
     return jsonify(full), HTTPStatus.CREATED
 
 
-@usermanager_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])
+@usermanager_ext.delete("/api/v1/users/<user_id>")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users_delete(user_id):
     user = await get_usermanager_user(user_id)
@@ -73,84 +68,75 @@ async def api_usermanager_users_delete(user_id):
 
 ###Activate Extension
 
+class CreateUsersData(BaseModel):
+    extension:  str
+    userid:  str
+    active:  bool
 
-@usermanager_ext.route("/api/v1/extensions", methods=["POST"])
+@usermanager_ext.post("/api/v1/extensions")
 @api_check_wallet_key(key_type="invoice")
-@api_validate_post_request(
-    schema={
-        "extension": {"type": "string", "empty": False, "required": True},
-        "userid": {"type": "string", "empty": False, "required": True},
-        "active": {"type": "boolean", "required": True},
-    }
-)
-async def api_usermanager_activate_extension():
-    user = await get_user(g.data["userid"])
+async def api_usermanager_activate_extension(data: CreateUsersData):
+    user = await get_user(data.userid)
     if not user:
-        return jsonify({"message": "no such user"}), HTTPStatus.NOT_FOUND
+        return {"message": "no such user"}, HTTPStatus.NOT_FOUND
     update_user_extension(
-        user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"]
+        user_id=data.userid, extension=data.extension, active=data.active
     )
-    return jsonify({"extension": "updated"}), HTTPStatus.CREATED
+    return {"extension": "updated"}, HTTPStatus.CREATED
 
 
 ###Wallets
 
+class CreateWalletsData(BaseModel):
+    user_id:  str
+    wallet_name:  str
+    admin_id:  str
 
-@usermanager_ext.route("/api/v1/wallets", methods=["POST"])
+@usermanager_ext.post("/api/v1/wallets")
 @api_check_wallet_key(key_type="invoice")
-@api_validate_post_request(
-    schema={
-        "user_id": {"type": "string", "empty": False, "required": True},
-        "wallet_name": {"type": "string", "empty": False, "required": True},
-        "admin_id": {"type": "string", "empty": False, "required": True},
-    }
-)
-async def api_usermanager_wallets_create():
+
+async def api_usermanager_wallets_create(data: CreateWalletsData):
     user = await create_usermanager_wallet(
-        g.data["user_id"], g.data["wallet_name"], g.data["admin_id"]
+        data.user_id, data.wallet_name, data.admin_id
     )
-    return jsonify(user._asdict()), HTTPStatus.CREATED
+    return user._asdict(), HTTPStatus.CREATED
 
 
-@usermanager_ext.route("/api/v1/wallets", methods=["GET"])
+@usermanager_ext.get("/api/v1/wallets")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallets():
     admin_id = g.wallet.user
     return (
-        jsonify(
-            [wallet._asdict() for wallet in await get_usermanager_wallets(admin_id)]
-        ),
+            [wallet._asdict() for wallet in await get_usermanager_wallets(admin_id)],
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
+@usermanager_ext.get("/api/v1/wallets<wallet_id>")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallet_transactions(wallet_id):
-    return jsonify(await get_usermanager_wallet_transactions(wallet_id)), HTTPStatus.OK
+    return await get_usermanager_wallet_transactions(wallet_id), HTTPStatus.OK
 
 
-@usermanager_ext.route("/api/v1/wallets/<user_id>", methods=["GET"])
+@usermanager_ext.get("/api/v1/wallets/<user_id>")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users_wallets(user_id):
     wallet = await get_usermanager_users_wallets(user_id)
     return (
-        jsonify(
             [
                 wallet._asdict()
                 for wallet in await get_usermanager_users_wallets(user_id)
-            ]
-        ),
+            ],
         HTTPStatus.OK,
     )
 
 
-@usermanager_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])
+@usermanager_ext.delete("/api/v1/wallets/<wallet_id>")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallets_delete(wallet_id):
     wallet = await get_usermanager_wallet(wallet_id)
     if not wallet:
-        return jsonify({"message": "Wallet does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Wallet does not exist."}, HTTPStatus.NOT_FOUND
 
     await delete_usermanager_wallet(wallet_id, wallet.user)
     return "", HTTPStatus.NO_CONTENT
