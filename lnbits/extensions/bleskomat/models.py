@@ -5,9 +5,11 @@ from lnbits import bolt11
 from lnbits.core.services import pay_invoice
 from . import db
 from .helpers import get_callback_url, LnurlValidationError
+from sqlite3 import Row
+from pydantic import BaseModel
 
 
-class Bleskomat(NamedTuple):
+class Bleskomat(BaseModel):
     id: str
     wallet: str
     api_key_id: str
@@ -19,7 +21,7 @@ class Bleskomat(NamedTuple):
     fee: str
 
 
-class BleskomatLnurl(NamedTuple):
+class BleskomatLnurl(BaseModel):
     id: str
     bleskomat: str
     wallet: str

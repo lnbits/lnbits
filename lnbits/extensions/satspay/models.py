@@ -1,9 +1,9 @@
 from sqlite3 import Row
-from typing import NamedTuple
+from pydantic import BaseModel
 import time
 
 
-class Charges(NamedTuple):
+class Charges(BaseModel):
     id: str
     user: str
     description: str

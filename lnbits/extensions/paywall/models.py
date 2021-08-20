@@ -1,10 +1,11 @@
 import json
 
 from sqlite3 import Row
-from typing import NamedTuple, Optional
+from pydantic import BaseModel
+from typing import Optional
 
 
-class Paywall(NamedTuple):
+class Paywall(BaseModel):
     id: str
     wallet: str
     url: str

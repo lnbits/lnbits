@@ -1,7 +1,6 @@
-from typing import NamedTuple
+from pydantic import BaseModel
 
-
-class Forms(NamedTuple):
+class Forms(BaseModel):
     id: str
     wallet: str
     name: str
@@ -13,7 +12,7 @@ class Forms(NamedTuple):
     time: int
 
 
-class Tickets(NamedTuple):
+class Tickets(BaseModel):
     id: str
     form: str
     email: str

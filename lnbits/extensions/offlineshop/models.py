@@ -3,17 +3,17 @@ import base64
 import hashlib
 from collections import OrderedDict
 from quart import url_for
-from typing import NamedTuple, Optional, List, Dict
+from typing import Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
-
+from pydantic import BaseModel
 from .helpers import totp
 
 shop_counters: Dict = {}
 
 
-class ShopCounter(object):
+class ShopCounter(BaseModel):
     fulfilled_payments: OrderedDict
     counter: int
 
@@ -54,7 +54,7 @@ class ShopCounter(object):
         return word
 
 
-class Shop(NamedTuple):
+class Shop(BaseModel):
     id: int
     wallet: str
     method: str
@@ -77,7 +77,7 @@ class Shop(NamedTuple):
         return ""
 
 
-class Item(NamedTuple):
+class Item(BaseModel):
     shop: int
     id: int
     name: str

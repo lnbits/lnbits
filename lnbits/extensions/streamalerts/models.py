@@ -1,8 +1,9 @@
 from sqlite3 import Row
-from typing import NamedTuple, Optional
+from pydantic import BaseModel
+from typing import Optional
 
 
-class Donation(NamedTuple):
+class Donation(BaseModel):
     """A Donation simply contains all the necessary information about a
     user's donation to a streamer
     """
@@ -22,7 +23,7 @@ class Donation(NamedTuple):
         return cls(**dict(row))
 
 
-class Service(NamedTuple):
+class Service(BaseModel):
     """A Service represents an integration with a third-party API
 
     Currently, Streamlabs is the only supported Service.

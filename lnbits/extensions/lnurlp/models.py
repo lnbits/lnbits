@@ -1,13 +1,13 @@
 import json
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
 from quart import url_for
-from typing import NamedTuple, Optional, Dict
-from sqlite3 import Row
+from typing import Optional, Dict
 from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
+from sqlite3 import Row
+from pydantic import BaseModel
 
-
-class PayLink(NamedTuple):
+class PayLink(BaseModel):
     id: int
     wallet: str
     description: str

@@ -1,8 +1,8 @@
-from typing import NamedTuple
 from sqlite3 import Row
+from pydantic import BaseModel
 
 
-class Users(NamedTuple):
+class Users(BaseModel):
     id: str
     name: str
     admin: str
@@ -10,7 +10,7 @@ class Users(NamedTuple):
     password: str
 
 
-class Wallets(NamedTuple):
+class Wallets(BaseModel):
     id: str
     admin: str
     name: str

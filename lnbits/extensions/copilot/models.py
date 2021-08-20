@@ -5,9 +5,10 @@ from quart import url_for
 from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from sqlite3 import Row
+from pydantic import BaseModel
 
-
-class Copilots(NamedTuple):
+class Copilots(BaseModel):
     id: str
     user: str
     title: str

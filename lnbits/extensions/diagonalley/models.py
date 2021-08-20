@@ -1,7 +1,8 @@
 from typing import NamedTuple
+from sqlite3 import Row
+from pydantic import BaseModel
 
-
-class Indexers(NamedTuple):
+class Indexers(BaseModel):
     id: str
     wallet: str
     shopname: str
@@ -15,7 +16,7 @@ class Indexers(NamedTuple):
     email: str
 
 
-class Products(NamedTuple):
+class Products(BaseModel):
     id: str
     wallet: str
     product: str
@@ -26,7 +27,7 @@ class Products(NamedTuple):
     quantity: int
 
 
-class Orders(NamedTuple):
+class Orders(BaseModel):
     id: str
     productid: str
     wallet: str

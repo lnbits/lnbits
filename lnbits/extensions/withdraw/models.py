@@ -1,11 +1,11 @@
 from quart import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
 from sqlite3 import Row
-from typing import NamedTuple
+from pydantic import BaseModel
 import shortuuid  # type: ignore
 
 
-class WithdrawLink(NamedTuple):
+class WithdrawLink(BaseModel):
     id: str
     wallet: str
     title: str
@@ -67,7 +67,7 @@ class WithdrawLink(NamedTuple):
         )
 
 
-class HashCheck(NamedTuple):
+class HashCheck(BaseModel):
     id: str
     lnurl_id: str
 

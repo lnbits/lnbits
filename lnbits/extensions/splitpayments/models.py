@@ -1,7 +1,8 @@
-from typing import NamedTuple
+
+from pydantic import BaseModel
 
 
-class Target(NamedTuple):
+class Target(BaseModel):
     wallet: str
     source: str
     percent: int

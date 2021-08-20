@@ -1,12 +1,13 @@
 import json
 from quart import url_for
-from typing import NamedTuple, Optional
+from typing import Optional
 from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from sqlite3 import Row
+from pydantic import BaseModel
 
-
-class Livestream(NamedTuple):
+class Livestream(BaseModel):
     id: int
     wallet: str
     fee_pct: int
@@ -18,7 +19,7 @@ class Livestream(NamedTuple):
         return lnurl_encode(url)
 
 
-class Track(NamedTuple):
+class Track(BaseModel):
     id: int
     download_url: str
     price_msat: int
@@ -74,7 +75,7 @@ class Track(NamedTuple):
         )
 
 
-class Producer(NamedTuple):
+class Producer(BaseModel):
     id: int
     user: str
     wallet: str

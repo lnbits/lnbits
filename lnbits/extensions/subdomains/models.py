@@ -1,7 +1,7 @@
-from typing import NamedTuple
 
+from pydantic import BaseModel
 
-class Domains(NamedTuple):
+class Domains(BaseModel):
     id: str
     wallet: str
     domain: str
@@ -15,7 +15,7 @@ class Domains(NamedTuple):
     allowed_record_types: str
 
 
-class Subdomains(NamedTuple):
+class Subdomains(BaseModel):
     id: str
     wallet: str
     domain: str

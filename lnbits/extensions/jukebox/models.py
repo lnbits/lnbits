@@ -1,8 +1,8 @@
-from typing import NamedTuple
 from sqlite3 import Row
+from pydantic import BaseModel
 
 
-class Jukebox(NamedTuple):
+class Jukebox(BaseModel):
     id: str
     user: str
     title: str
@@ -22,7 +22,7 @@ class Jukebox(NamedTuple):
         return cls(**dict(row))
 
 
-class JukeboxPayment(NamedTuple):
+class JukeboxPayment(BaseModel):
     payment_hash: str
     juke_id: str
     song_id: str
