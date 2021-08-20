@@ -11,14 +11,14 @@ from . import offlineshop_ext
 from .crud import get_item, get_shop
 
 
-@offlineshop_ext.route("/")
+@offlineshop_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
     return await render_template("offlineshop/index.html", user=g.user)
 
 
-@offlineshop_ext.route("/print")
+@offlineshop_ext.get("/print")
 async def print_qr_codes():
     items = []
     for item_id in request.args.get("items").split(","):
@@ -35,7 +35,7 @@ async def print_qr_codes():
     return await render_template("offlineshop/print.html", items=items)
 
 
-@offlineshop_ext.route("/confirmation")
+@offlineshop_ext.get("/confirmation")
 async def confirmation_code():
     style = "<style>* { font-size: 100px}</style>"
 

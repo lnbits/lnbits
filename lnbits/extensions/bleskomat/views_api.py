@@ -20,7 +20,7 @@ from .exchange_rates import (
 )
 
 
-@bleskomat_ext.route("/api/v1/bleskomats", methods=["GET"])
+@bleskomat_ext.get("/api/v1/bleskomats")
 @api_check_wallet_key("admin")
 async def api_bleskomats():
     wallet_ids = [g.wallet.id]
@@ -29,14 +29,12 @@ async def api_bleskomats():
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
     return (
-        jsonify(
-            [bleskomat._asdict() for bleskomat in await get_bleskomats(wallet_ids)]
-        ),
+            [bleskomat._asdict() for bleskomat in await get_bleskomats(wallet_ids)],
         HTTPStatus.OK,
     )
 
 
-@bleskomat_ext.route("/api/v1/bleskomat/<bleskomat_id>", methods=["GET"])
+@bleskomat_ext.get("/api/v1/bleskomat/<bleskomat_id>")
 @api_check_wallet_key("admin")
 async def api_bleskomat_retrieve(bleskomat_id):
     bleskomat = await get_bleskomat(bleskomat_id)
@@ -50,40 +48,28 @@ async def api_bleskomat_retrieve(bleskomat_id):
     return jsonify(bleskomat._asdict()), HTTPStatus.OK
 
 
-@bleskomat_ext.route("/api/v1/bleskomat", methods=["POST"])
-@bleskomat_ext.route("/api/v1/bleskomat/<bleskomat_id>", methods=["PUT"])
+class CreateData(BaseModel):
+    name:  str
+    fiat_currency:  str = fiat_currencies.keys()
+    exchange_rate_provider:  str = exchange_rate_providers.keys()
+    fee: Optional[str, int, float] = Query(...)
+
+@bleskomat_ext.post("/api/v1/bleskomat")
+@bleskomat_ext.put("/api/v1/bleskomat/<bleskomat_id>")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "name": {"type": "string", "empty": False, "required": True},
-        "fiat_currency": {
-            "type": "string",
-            "allowed": fiat_currencies.keys(),
-            "required": True,
-        },
-        "exchange_rate_provider": {
-            "type": "string",
-            "allowed": exchange_rate_providers.keys(),
-            "required": True,
-        },
-        "fee": {"type": ["string", "float", "number", "integer"], "required": True},
-    }
-)
-async def api_bleskomat_create_or_update(bleskomat_id=None):
+async def api_bleskomat_create_or_update(data: CreateData, bleskomat_id=None):
     try:
-        fiat_currency = g.data["fiat_currency"]
-        exchange_rate_provider = g.data["exchange_rate_provider"]
+        fiat_currency = data.fiat_currency
+        exchange_rate_provider = data.exchange_rate_provider
         await fetch_fiat_exchange_rate(
             currency=fiat_currency, provider=exchange_rate_provider
         )
     except Exception as e:
         print(e)
         return (
-            jsonify(
                 {
                     "message": f'Failed to fetch BTC/{fiat_currency} currency pair from "{exchange_rate_provider}"'
-                }
-            ),
+                },
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
@@ -94,17 +80,17 @@ async def api_bleskomat_create_or_update(bleskomat_id=None):
                 jsonify({"message": "Bleskomat configuration not found."}),
                 HTTPStatus.NOT_FOUND,
             )
-        bleskomat = await update_bleskomat(bleskomat_id, **g.data)
+        bleskomat = await update_bleskomat(bleskomat_id, **data)
     else:
-        bleskomat = await create_bleskomat(wallet_id=g.wallet.id, **g.data)
+        bleskomat = await create_bleskomat(wallet_id=g.wallet.id, **data)
 
     return (
-        jsonify(bleskomat._asdict()),
+        bleskomat._asdict(),
         HTTPStatus.OK if bleskomat_id else HTTPStatus.CREATED,
     )
 
 
-@bleskomat_ext.route("/api/v1/bleskomat/<bleskomat_id>", methods=["DELETE"])
+@bleskomat_ext.delete("/api/v1/bleskomat/<bleskomat_id>")
 @api_check_wallet_key("admin")
 async def api_bleskomat_delete(bleskomat_id):
     bleskomat = await get_bleskomat(bleskomat_id)

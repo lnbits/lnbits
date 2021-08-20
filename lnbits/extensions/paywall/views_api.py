@@ -25,13 +25,12 @@ async def api_paywalls():
         HTTPStatus.OK,
     )
 
-
 class CreateData(BaseModel):
     url:  Optional[str] = Query(...)
     memo:  Optional[str] = Query(...)
-    description:  str = Query(None)
-    amount:  int = Query(None)
-    remembers:  bool = Query(None) 
+    description:  str
+    amount:  int 
+    remembers:  bool 
 
 @paywall_ext.post("/api/v1/paywalls")
 @api_check_wallet_key("invoice")

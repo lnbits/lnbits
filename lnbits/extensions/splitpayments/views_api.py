@@ -9,52 +9,41 @@ from .crud import get_targets, set_targets
 from .models import Target
 
 
-@splitpayments_ext.route("/api/v1/targets", methods=["GET"])
+@splitpayments_ext.get("/api/v1/targets")
 @api_check_wallet_key("admin")
 async def api_targets_get():
     targets = await get_targets(g.wallet.id)
-    return jsonify([target._asdict() for target in targets] or [])
+    return [target._asdict() for target in targets] or []
 
+class SchemaData(BaseModel):
+    wallet:  str
+    alias:  str
+    percent:  int
 
-@splitpayments_ext.route("/api/v1/targets", methods=["PUT"])
+@splitpayments_ext.put("/api/v1/targets")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "targets": {
-            "type": "list",
-            "schema": {
-                "type": "dict",
-                "schema": {
-                    "wallet": {"type": "string"},
-                    "alias": {"type": "string"},
-                    "percent": {"type": "integer"},
-                },
-            },
-        }
-    }
-)
-async def api_targets_set():
+async def api_targets_set(targets: Optional(list[SchemaData]) = None):
     targets = []
 
-    for entry in g.data["targets"]:
+    for entry in targets:
         wallet = await get_wallet(entry["wallet"])
         if not wallet:
             wallet = await get_wallet_for_key(entry["wallet"], "invoice")
             if not wallet:
                 return (
-                    jsonify({"message": f"Invalid wallet '{entry['wallet']}'."}),
+                    {"message": f"Invalid wallet '{entry['wallet']}'."},
                     HTTPStatus.BAD_REQUEST,
                 )
 
         if wallet.id == g.wallet.id:
             return (
-                jsonify({"message": "Can't split to itself."}),
+                {"message": "Can't split to itself."},
                 HTTPStatus.BAD_REQUEST,
             )
 
         if entry["percent"] < 0:
             return (
-                jsonify({"message": f"Invalid percent '{entry['percent']}'."}),
+                {"message": f"Invalid percent '{entry['percent']}'."},
                 HTTPStatus.BAD_REQUEST,
             )
 
@@ -64,7 +53,7 @@ async def api_targets_set():
 
     percent_sum = sum([target.percent for target in targets])
     if percent_sum > 100:
-        return jsonify({"message": "Splitting over 100%."}), HTTPStatus.BAD_REQUEST
+        return {"message": "Splitting over 100%."}, HTTPStatus.BAD_REQUEST
 
     await set_targets(g.wallet.id, targets)
     return "", HTTPStatus.OK

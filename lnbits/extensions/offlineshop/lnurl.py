@@ -9,14 +9,14 @@ from . import offlineshop_ext
 from .crud import get_shop, get_item
 
 
-@offlineshop_ext.route("/lnurl/<item_id>", methods=["GET"])
+@offlineshop_ext.get("/lnurl/<item_id>")
 async def lnurl_response(item_id):
     item = await get_item(item_id)
     if not item:
-        return jsonify({"status": "ERROR", "reason": "Item not found."})
+        return {"status": "ERROR", "reason": "Item not found."}
 
     if not item.enabled:
-        return jsonify({"status": "ERROR", "reason": "Item disabled."})
+        return {"status": "ERROR", "reason": "Item disabled."}
 
     price_msat = (
         await fiat_amount_as_satoshis(item.price, item.unit)
@@ -31,14 +31,14 @@ async def lnurl_response(item_id):
         metadata=await item.lnurlpay_metadata(),
     )
 
-    return jsonify(resp.dict())
+    return resp.dict()
 
 
-@offlineshop_ext.route("/lnurl/cb/<item_id>", methods=["GET"])
+@offlineshop_ext.get("/lnurl/cb/<item_id>")
 async def lnurl_callback(item_id):
     item = await get_item(item_id)
     if not item:
-        return jsonify({"status": "ERROR", "reason": "Couldn't find item."})
+        return {"status": "ERROR", "reason": "Couldn't find item."}
 
     if item.unit == "sat":
         min = item.price * 1000
@@ -51,17 +51,13 @@ async def lnurl_callback(item_id):
 
     amount_received = int(request.args.get("amount") or 0)
     if amount_received < min:
-        return jsonify(
-            LnurlErrorResponse(
+        return LnurlErrorResponse(
                 reason=f"Amount {amount_received} is smaller than minimum {min}."
             ).dict()
-        )
     elif amount_received > max:
-        return jsonify(
-            LnurlErrorResponse(
+        return LnurlErrorResponse(
                 reason=f"Amount {amount_received} is greater than maximum {max}."
             ).dict()
-        )
 
     shop = await get_shop(item.shop)
 
@@ -76,7 +72,7 @@ async def lnurl_callback(item_id):
             extra={"tag": "offlineshop", "item": item.id},
         )
     except Exception as exc:
-        return jsonify(LnurlErrorResponse(reason=exc.message).dict())
+        return LnurlErrorResponse(reason=exc.message).dict()
 
     resp = LnurlPayActionResponse(
         pr=payment_request,
@@ -84,4 +80,4 @@ async def lnurl_callback(item_id):
         routes=[],
     )
 
-    return jsonify(resp.dict())
+    return resp.dict()

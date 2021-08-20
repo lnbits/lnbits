@@ -7,14 +7,14 @@ from . import subdomains_ext
 from .crud import get_domain
 
 
-@subdomains_ext.route("/")
+@subdomains_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
     return await render_template("subdomains/index.html", user=g.user)
 
 
-@subdomains_ext.route("/<domain_id>")
+@subdomains_ext.get("/<domain_id>")
 async def display(domain_id):
     domain = await get_domain(domain_id)
     if not domain:

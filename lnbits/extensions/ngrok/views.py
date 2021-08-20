@@ -23,7 +23,7 @@ port = getenv("PORT")
 ngrok_tunnel = ngrok.connect(port)
 
 
-@ngrok_ext.route("/")
+@ngrok_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():

@@ -17,12 +17,12 @@ from .crud import (
 from .models import ShopCounter
 
 
-@offlineshop_ext.route("/api/v1/currencies", methods=["GET"])
+@offlineshop_ext.get("/api/v1/currencies")
 async def api_list_currencies_available():
     return jsonify(list(currencies.keys()))
 
 
-@offlineshop_ext.route("/api/v1/offlineshop", methods=["GET"])
+@offlineshop_ext.get("/api/v1/offlineshop")
 @api_check_wallet_key("invoice")
 async def api_shop_from_wallet():
     shop = await get_or_create_shop_by_wallet(g.wallet.id)
@@ -30,66 +30,59 @@ async def api_shop_from_wallet():
 
     try:
         return (
-            jsonify(
                 {
                     **shop._asdict(),
                     **{
                         "otp_key": shop.otp_key,
                         "items": [item.values() for item in items],
                     },
-                }
-            ),
+                },
             HTTPStatus.OK,
         )
     except LnurlInvalidUrl:
         return (
-            jsonify(
                 {
                     "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
-                }
-            ),
+                },
             HTTPStatus.UPGRADE_REQUIRED,
         )
 
+class CreateItemsData(BaseModel):
+    name:  str
+    description: str
+    image:  Optional[str]
+    price:  int 
+    unit:  str 
 
-@offlineshop_ext.route("/api/v1/offlineshop/items", methods=["POST"])
-@offlineshop_ext.route("/api/v1/offlineshop/items/<item_id>", methods=["PUT"])
+@offlineshop_ext.post("/api/v1/offlineshop/items")
+@offlineshop_ext.put("/api/v1/offlineshop/items/<item_id>")
 @api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "name": {"type": "string", "empty": False, "required": True},
-        "description": {"type": "string", "empty": False, "required": True},
-        "image": {"type": "string", "required": False, "nullable": True},
-        "price": {"type": "number", "required": True},
-        "unit": {"type": "string", "required": True},
-    }
-)
-async def api_add_or_update_item(item_id=None):
+async def api_add_or_update_item(data: CreateItemsData, item_id=None):
     shop = await get_or_create_shop_by_wallet(g.wallet.id)
     if item_id == None:
         await add_item(
             shop.id,
-            g.data["name"],
-            g.data["description"],
-            g.data.get("image"),
-            g.data["price"],
-            g.data["unit"],
+            data.name,
+            data.description,
+            data.image,
+            data.price,
+            data.unit,
         )
         return "", HTTPStatus.CREATED
     else:
         await update_item(
             shop.id,
             item_id,
-            g.data["name"],
-            g.data["description"],
-            g.data.get("image"),
-            g.data["price"],
-            g.data["unit"],
+            data.name,
+            data.description,
+            data.image,
+            data.price,
+            data.unit,
         )
         return "", HTTPStatus.OK
 
 
-@offlineshop_ext.route("/api/v1/offlineshop/items/<item_id>", methods=["DELETE"])
+@offlineshop_ext.delete("/api/v1/offlineshop/items/<item_id>")
 @api_check_wallet_key("invoice")
 async def api_delete_item(item_id):
     shop = await get_or_create_shop_by_wallet(g.wallet.id)
@@ -97,23 +90,16 @@ async def api_delete_item(item_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@offlineshop_ext.route("/api/v1/offlineshop/method", methods=["PUT"])
-@api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "method": {"type": "string", "required": True, "nullable": False},
-        "wordlist": {
-            "type": "string",
-            "empty": True,
-            "nullable": True,
-            "required": False,
-        },
-    }
-)
-async def api_set_method():
-    method = g.data["method"]
+class CreateMethodData(BaseModel):
+    method:  str
+    wordlist: Optional[str]
 
-    wordlist = g.data["wordlist"].split("\n") if g.data["wordlist"] else None
+@offlineshop_ext.put("/api/v1/offlineshop/method")
+@api_check_wallet_key("invoice")
+async def api_set_method(data: CreateMethodData):
+    method = data.method
+
+    wordlist = data.wordlist.split("\n") if data.wordlist else None
     wordlist = [word.strip() for word in wordlist if word.strip()]
 
     shop = await get_or_create_shop_by_wallet(g.wallet.id)

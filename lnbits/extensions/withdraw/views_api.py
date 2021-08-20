@@ -6,7 +6,6 @@ from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from pydantic import BaseModel
 from fastapi import FastAPI, Query
-from fastapi.encoders import jsonable_encoder
 
 from . import withdraw_ext
 from .crud import (
