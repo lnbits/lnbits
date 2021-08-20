@@ -19,16 +19,15 @@ from .crud import (
     update_jukebox_payment,
 )
 from lnbits.core.services import create_invoice, check_invoice_status
+from fastapi.encoders import jsonable_encoder
 
 
-@jukebox_ext.route("/api/v1/jukebox", methods=["GET"])
+@jukebox_ext.get("/api/v1/jukebox")
 @api_check_wallet_key("admin")
 async def api_get_jukeboxs():
     try:
         return (
-            jsonify(
-                [{**jukebox._asdict()} for jukebox in await get_jukeboxs(g.wallet.user)]
-            ),
+            [{**jukebox._asdict()} for jukebox in await get_jukeboxs(g.wallet.user)],
             HTTPStatus.OK,
         )
     except:
@@ -38,7 +37,7 @@ async def api_get_jukeboxs():
 ##################SPOTIFY AUTH#####################
 
 
-@jukebox_ext.route("/api/v1/jukebox/spotify/cb/<juke_id>", methods=["GET"])
+@jukebox_ext.get("/api/v1/jukebox/spotify/cb/<juke_id>")
 async def api_check_credentials_callbac(juke_id):
     sp_code = ""
     sp_access_token = ""
@@ -47,7 +46,7 @@ async def api_check_credentials_callbac(juke_id):
         jukebox = await get_jukebox(juke_id)
     except:
         return (
-            jsonify({"error": "No Jukebox"}),
+            jsonable_encoder({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
     if request.args.get("code"):
@@ -67,48 +66,45 @@ async def api_check_credentials_callbac(juke_id):
     return "<h1>Success!</h1><h2>You can close this window</h2>"
 
 
-@jukebox_ext.route("/api/v1/jukebox/<juke_id>", methods=["GET"])
+@jukebox_ext.get("/api/v1/jukebox/<juke_id>")
 @api_check_wallet_key("admin")
 async def api_check_credentials_check(juke_id):
     jukebox = await get_jukebox(juke_id)
     return jsonify(jukebox._asdict()), HTTPStatus.CREATED
 
 
-@jukebox_ext.route("/api/v1/jukebox/", methods=["POST"])
-@jukebox_ext.route("/api/v1/jukebox/<juke_id>", methods=["PUT"])
+class CreateData(BaseModel):
+    user:  str = None,
+    title:  str = None,
+    wallet:  str = None,
+    sp_user:  str = None,
+    sp_secret:  str = None,
+    sp_access_token:  Optional[str] = None,
+    sp_refresh_token:  Optional[str] = None,
+    sp_device:  Optional[str] = None,
+    sp_playlists:  Optional[str] = None,
+    price:  Optional[str] = None,
+
+@jukebox_ext.post("/api/v1/jukebox/")
+@jukebox_ext.put("/api/v1/jukebox/<juke_id>")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "user": {"type": "string", "empty": False, "required": True},
-        "title": {"type": "string", "empty": False, "required": True},
-        "wallet": {"type": "string", "empty": False, "required": True},
-        "sp_user": {"type": "string", "empty": False, "required": True},
-        "sp_secret": {"type": "string", "required": True},
-        "sp_access_token": {"type": "string", "required": False},
-        "sp_refresh_token": {"type": "string", "required": False},
-        "sp_device": {"type": "string", "required": False},
-        "sp_playlists": {"type": "string", "required": False},
-        "price": {"type": "string", "required": False},
-    }
-)
-async def api_create_update_jukebox(juke_id=None):
+async def api_create_update_jukebox(data: CreateData, juke_id=None):
     if juke_id:
-        jukebox = await update_jukebox(juke_id=juke_id, inkey=g.wallet.inkey, **g.data)
+        jukebox = await update_jukebox(juke_id=juke_id, inkey=g.wallet.inkey, **data)
     else:
-        jukebox = await create_jukebox(inkey=g.wallet.inkey, **g.data)
+        jukebox = await create_jukebox(inkey=g.wallet.inkey, **data)
 
-    return jsonify(jukebox._asdict()), HTTPStatus.CREATED
+    return jukebox._asdict(), HTTPStatus.CREATED
 
 
-@jukebox_ext.route("/api/v1/jukebox/<juke_id>", methods=["DELETE"])
+@jukebox_ext.delete("/api/v1/jukebox/<juke_id>")
 @api_check_wallet_key("admin")
 async def api_delete_item(juke_id):
     await delete_jukebox(juke_id)
     try:
         return (
-            jsonify(
                 [{**jukebox._asdict()} for jukebox in await get_jukeboxs(g.wallet.user)]
-            ),
+            ,
             HTTPStatus.OK,
         )
     except:
@@ -120,15 +116,15 @@ async def api_delete_item(juke_id):
 ######GET ACCESS TOKEN######
 
 
-@jukebox_ext.route(
-    "/api/v1/jukebox/jb/playlist/<juke_id>/<sp_playlist>", methods=["GET"]
+@jukebox_ext.get(
+    "/api/v1/jukebox/jb/playlist/<juke_id>/<sp_playlist>"
 )
 async def api_get_jukebox_song(juke_id, sp_playlist, retry=False):
     try:
         jukebox = await get_jukebox(juke_id)
     except:
         return (
-            jsonify({"error": "No Jukebox"}),
+            jsonable_encoder({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
     tracks = []
@@ -146,7 +142,7 @@ async def api_get_jukebox_song(juke_id, sp_playlist, retry=False):
                         return False
                     elif retry:
                         return (
-                            jsonify({"error": "Failed to get auth"}),
+                            jsonable_encoder({"error": "Failed to get auth"}),
                             HTTPStatus.FORBIDDEN,
                         )
                     else:
@@ -166,7 +162,7 @@ async def api_get_jukebox_song(juke_id, sp_playlist, retry=False):
                 )
         except AssertionError:
             something = None
-    return jsonify([track for track in tracks])
+    return [track for track in tracks]
 
 
 async def api_get_token(juke_id):
@@ -174,7 +170,7 @@ async def api_get_token(juke_id):
         jukebox = await get_jukebox(juke_id)
     except:
         return (
-            jsonify({"error": "No Jukebox"}),
+            jsonable_encoder({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
 
@@ -217,7 +213,7 @@ async def api_get_jukebox_device_check(juke_id, retry=False):
         jukebox = await get_jukebox(juke_id)
     except:
         return (
-            jsonify({"error": "No Jukebox"}),
+            jsonable_encoder({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
     async with httpx.AsyncClient() as client:
@@ -236,19 +232,19 @@ async def api_get_jukebox_device_check(juke_id, retry=False):
             token = await api_get_token(juke_id)
             if token == False:
                 return (
-                    jsonify({"error": "No device connected"}),
+                    jsonable_encoder({"error": "No device connected"}),
                     HTTPStatus.FORBIDDEN,
                 )
             elif retry:
                 return (
-                    jsonify({"error": "Failed to get auth"}),
+                    jsonable_encoder({"error": "Failed to get auth"}),
                     HTTPStatus.FORBIDDEN,
                 )
             else:
                 return api_get_jukebox_device_check(juke_id, retry=True)
         else:
             return (
-                jsonify({"error": "No device connected"}),
+                jsonable_encoder({"error": "No device connected"}),
                 HTTPStatus.FORBIDDEN,
             )
 
@@ -262,7 +258,7 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         jukebox = await get_jukebox(juke_id)
     except:
         return (
-            jsonify({"error": "No Jukebox"}),
+            jsonable_encoder({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
     try:
@@ -274,12 +270,12 @@ async def api_get_jukebox_invoice(juke_id, song_id):
                 deviceConnected = True
         if not deviceConnected:
             return (
-                jsonify({"error": "No device connected"}),
+                jsonable_encoder({"error": "No device connected"}),
                 HTTPStatus.NOT_FOUND,
             )
     except:
         return (
-            jsonify({"error": "No device connected"}),
+            jsonable_encoder({"error": "No device connected"}),
             HTTPStatus.NOT_FOUND,
         )
 
@@ -292,32 +288,32 @@ async def api_get_jukebox_invoice(juke_id, song_id):
 
     jukebox_payment = await create_jukebox_payment(song_id, invoice[0], juke_id)
 
-    return jsonify(invoice, jukebox_payment)
+    return invoice, jukebox_payment
 
 
-@jukebox_ext.route(
-    "/api/v1/jukebox/jb/checkinvoice/<pay_hash>/<juke_id>", methods=["GET"]
+@jukebox_ext.get(
+    "/api/v1/jukebox/jb/checkinvoice/<pay_hash>/<juke_id>"
 )
 async def api_get_jukebox_invoice_check(pay_hash, juke_id):
     try:
         jukebox = await get_jukebox(juke_id)
     except:
         return (
-            jsonify({"error": "No Jukebox"}),
+            jsonable_encoder({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
     try:
         status = await check_invoice_status(jukebox.wallet, pay_hash)
         is_paid = not status.pending
     except Exception as exc:
-        return jsonify({"paid": False}), HTTPStatus.OK
+        return jsonable_encoder({"paid": False}), HTTPStatus.OK
     if is_paid:
         wallet = await get_wallet(jukebox.wallet)
         payment = await wallet.get_payment(pay_hash)
         await payment.set_pending(False)
         await update_jukebox_payment(pay_hash, paid=True)
-        return jsonify({"paid": True}), HTTPStatus.OK
-    return jsonify({"paid": False}), HTTPStatus.OK
+        return jsonable_encoder({"paid": True}), HTTPStatus.OK
+    return jsonable_encoder({"paid": False}), HTTPStatus.OK
 
 
 @jukebox_ext.route(
