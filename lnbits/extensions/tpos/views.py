@@ -7,14 +7,14 @@ from . import tpos_ext
 from .crud import get_tpos
 
 
-@tpos_ext.route("/")
+@tpos_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
     return await render_template("tpos/index.html", user=g.user)
 
 
-@tpos_ext.route("/<tpos_id>")
+@tpos_ext.get("/{tpos_id}")
 async def tpos(tpos_id):
     tpos = await get_tpos(tpos_id)
     if not tpos:
