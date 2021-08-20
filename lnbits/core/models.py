@@ -6,11 +6,11 @@ from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
 from sqlite3 import Row
-
+from pydantic import BaseModel
 from lnbits.settings import WALLET
 
 
-class User(NamedTuple):
+class User(BaseModel):
     id: str
     email: str
     extensions: List[str] = []
@@ -26,7 +26,7 @@ class User(NamedTuple):
         return w[0] if w else None
 
 
-class Wallet(NamedTuple):
+class Wallet(BaseModel):
     id: str
     name: str
     user: str
@@ -73,7 +73,7 @@ class Wallet(NamedTuple):
         return await get_wallet_payment(self.id, payment_hash)
 
 
-class Payment(NamedTuple):
+class Payment(BaseModel):
     checking_id: str
     pending: bool
     amount: int
@@ -161,7 +161,7 @@ class Payment(NamedTuple):
         await delete_payment(self.checking_id)
 
 
-class BalanceCheck(NamedTuple):
+class BalanceCheck(BaseModel):
     wallet: str
     service: str
     url: str
