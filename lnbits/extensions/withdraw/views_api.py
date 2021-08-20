@@ -29,24 +29,20 @@ async def api_links():
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     try:
         return (
-            jsonable_encoder(
                 [
                     {
                         **link._asdict(),
                         **{"lnurl": link.lnurl},
                     }
                     for link in await get_withdraw_links(wallet_ids)
-                ]
-            ),
+                ],
             HTTPStatus.OK,
         )
     except LnurlInvalidUrl:
         return (
-            jsonable_encoder(
                 {
                     "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
-                }
-            ),
+                },
             HTTPStatus.UPGRADE_REQUIRED,
         )
 
@@ -57,15 +53,14 @@ async def api_link_retrieve(link_id):
     link = await get_withdraw_link(link_id, 0)
 
     if not link:
-        return (
-            jsonable_encoder({"message": "Withdraw link does not exist."}),
+        return ({"message": "Withdraw link does not exist."},
             HTTPStatus.NOT_FOUND,
         )
 
     if link.wallet != g.wallet.id:
-        return jsonable_encoder({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
+        return {"message": "Not your withdraw link."}, HTTPStatus.FORBIDDEN
 
-    return jsonable_encoder({**link, **{"lnurl": link.lnurl}}), HTTPStatus.OK
+    return {**link, **{"lnurl": link.lnurl}}, HTTPStatus.OK
 
 class CreateData(BaseModel):
     title:  str = Query(...)
@@ -81,11 +76,9 @@ class CreateData(BaseModel):
 async def api_link_create_or_update(data: CreateData, link_id: str = None):
     if data.max_withdrawable < data.min_withdrawable:
         return (
-            jsonable_encoder(
                 {
                     "message": "`max_withdrawable` needs to be at least `min_withdrawable`."
-                }
-            ),
+                },
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -112,8 +105,7 @@ async def api_link_create_or_update(data: CreateData, link_id: str = None):
             wallet_id=g.wallet.id, **data, usescsv=usescsv
         )
 
-    return (
-        jsonable_encoder({**link, **{"lnurl": link.lnurl}}),
+    return ({**link, **{"lnurl": link.lnurl}},
         HTTPStatus.OK if link_id else HTTPStatus.CREATED,
     )
 
@@ -124,13 +116,12 @@ async def api_link_delete(link_id):
     link = await get_withdraw_link(link_id)
 
     if not link:
-        return (
-            jsonable_encoder({"message": "Withdraw link does not exist."}),
+        return ({"message": "Withdraw link does not exist."},
             HTTPStatus.NOT_FOUND,
         )
 
     if link.wallet != g.wallet.id:
-        return jsonable_encoder({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
+        return {"message": "Not your withdraw link."}, HTTPStatus.FORBIDDEN
 
     await delete_withdraw_link(link_id)
 
@@ -141,4 +132,4 @@ async def api_link_delete(link_id):
 @api_check_wallet_key("invoice")
 async def api_hash_retrieve(the_hash, lnurl_id):
     hashCheck = await get_hash_check(the_hash, lnurl_id)
-    return jsonable_encoder(hashCheck), HTTPStatus.OK
+    return hashCheck, HTTPStatus.OK
