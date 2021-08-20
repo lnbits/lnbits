@@ -1,8 +1,9 @@
 from sqlite3 import Row
-from typing import NamedTuple
+from pydantic import BaseModel
+#from typing import NamedTuple
 
 
-class TPoS(NamedTuple):
+class TPoS(BaseModel):
     id: str
     wallet: str
     name: str
