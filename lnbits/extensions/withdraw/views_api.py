@@ -20,7 +20,7 @@ from .crud import (
 )
 
 
-@withdraw_ext.route("/api/v1/links", methods=["GET"])
+@withdraw_ext.get("/api/v1/links")
 @api_check_wallet_key("invoice")
 async def api_links():
     wallet_ids = [g.wallet.id]
@@ -51,7 +51,7 @@ async def api_links():
         )
 
 
-@withdraw_ext.route("/api/v1/links/<link_id>", methods=["GET"])
+@withdraw_ext.get("/api/v1/links/<link_id>")
 @api_check_wallet_key("invoice")
 async def api_link_retrieve(link_id):
     link = await get_withdraw_link(link_id, 0)
@@ -68,15 +68,15 @@ async def api_link_retrieve(link_id):
     return jsonable_encoder({**link, **{"lnurl": link.lnurl}}), HTTPStatus.OK
 
 class CreateData(BaseModel):
-    title:  str = Query(...),
-    min_withdrawable:  int = Query(..., ge=1),
-    max_withdrawable:  int = Query(..., ge=1),
-    uses:  int = Query(..., ge=1),
-    wait_time:  int = Query(..., ge=1),
+    title:  str = Query(...)
+    min_withdrawable:  int = Query(..., ge=1)
+    max_withdrawable:  int = Query(..., ge=1)
+    uses:  int = Query(..., ge=1)
+    wait_time:  int = Query(..., ge=1)
     is_unique:  bool
 
-@withdraw_ext.route("/api/v1/links", methods=["POST"])
-@withdraw_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
+@withdraw_ext.post("/api/v1/links")
+@withdraw_ext.put("/api/v1/links/<link_id>")
 @api_check_wallet_key("admin")
 async def api_link_create_or_update(data: CreateData, link_id: str = None):
     if data.max_withdrawable < data.min_withdrawable:
@@ -118,7 +118,7 @@ async def api_link_create_or_update(data: CreateData, link_id: str = None):
     )
 
 
-@withdraw_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
+@withdraw_ext.delete("/api/v1/links/<link_id>")
 @api_check_wallet_key("admin")
 async def api_link_delete(link_id):
     link = await get_withdraw_link(link_id)
@@ -137,8 +137,8 @@ async def api_link_delete(link_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@withdraw_ext.route("/api/v1/links/<the_hash>/<lnurl_id>", methods=["GET"])
+@withdraw_ext.get("/api/v1/links/<the_hash>/<lnurl_id>")
 @api_check_wallet_key("invoice")
 async def api_hash_retrieve(the_hash, lnurl_id):
     hashCheck = await get_hash_check(the_hash, lnurl_id)
-    return jsonify(hashCheck), HTTPStatus.OK
+    return jsonable_encoder(hashCheck), HTTPStatus.OK

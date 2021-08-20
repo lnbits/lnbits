@@ -8,14 +8,14 @@ from . import withdraw_ext
 from .crud import get_withdraw_link, chunks
 
 
-@withdraw_ext.route("/")
+@withdraw_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
     return await render_template("withdraw/index.html", user=g.user)
 
 
-@withdraw_ext.route("/<link_id>")
+@withdraw_ext.get("/<link_id>")
 async def display(link_id):
     link = await get_withdraw_link(link_id, 0) or abort(
         HTTPStatus.NOT_FOUND, "Withdraw link does not exist."
@@ -23,7 +23,7 @@ async def display(link_id):
     return await render_template("withdraw/display.html", link=link, unique=True)
 
 
-@withdraw_ext.route("/img/<link_id>")
+@withdraw_ext.get("/img/<link_id>")
 async def img(link_id):
     link = await get_withdraw_link(link_id, 0) or abort(
         HTTPStatus.NOT_FOUND, "Withdraw link does not exist."
@@ -43,7 +43,7 @@ async def img(link_id):
     )
 
 
-@withdraw_ext.route("/print/<link_id>")
+@withdraw_ext.get("/print/<link_id>")
 async def print_qr(link_id):
     link = await get_withdraw_link(link_id) or abort(
         HTTPStatus.NOT_FOUND, "Withdraw link does not exist."

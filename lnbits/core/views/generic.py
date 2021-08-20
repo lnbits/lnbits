@@ -4,7 +4,6 @@ from quart import (
     g,
     current_app,
     abort,
-    jsonify,
     request,
     redirect,
     render_template,
@@ -28,21 +27,21 @@ from ..crud import (
 from ..services import redeem_lnurl_withdraw, pay_invoice
 
 
-@core_app.route("/favicon.ico")
+@core_app.get("/favicon.ico")
 async def favicon():
     return await send_from_directory(
         path.join(core_app.root_path, "static"), "favicon.ico"
     )
 
 
-@core_app.route("/")
+@core_app.get("/")
 async def home():
     return await render_template(
         "core/index.html", lnurl=request.args.get("lightning", None)
     )
 
 
-@core_app.route("/extensions")
+@core_app.get("/extensions")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def extensions():
@@ -66,7 +65,7 @@ async def extensions():
     return await render_template("core/extensions.html", user=await get_user(g.user.id))
 
 
-@core_app.route("/wallet")
+@core_app.get("/wallet")
 @validate_uuids(["usr", "wal"])
 async def wallet():
     user_id = request.args.get("usr", type=str)
@@ -108,19 +107,18 @@ async def wallet():
     )
 
 
-@core_app.route("/withdraw")
+@core_app.get("/withdraw")
 @validate_uuids(["usr", "wal"], required=True)
 async def lnurl_full_withdraw():
     user = await get_user(request.args.get("usr"))
     if not user:
-        return jsonify({"status": "ERROR", "reason": "User does not exist."})
+        return {"status": "ERROR", "reason": "User does not exist."}
 
     wallet = user.get_wallet(request.args.get("wal"))
     if not wallet:
-        return jsonify({"status": "ERROR", "reason": "Wallet does not exist."})
+        return{"status": "ERROR", "reason": "Wallet does not exist."}
 
-    return jsonify(
-        {
+    return {
             "tag": "withdrawRequest",
             "callback": url_for(
                 "core.lnurl_full_withdraw_callback",
@@ -136,19 +134,18 @@ async def lnurl_full_withdraw():
                 "core.lnurl_full_withdraw", usr=user.id, wal=wallet.id, _external=True
             ),
         }
-    )
 
 
-@core_app.route("/withdraw/cb")
+@core_app.get("/withdraw/cb")
 @validate_uuids(["usr", "wal"], required=True)
 async def lnurl_full_withdraw_callback():
     user = await get_user(request.args.get("usr"))
     if not user:
-        return jsonify({"status": "ERROR", "reason": "User does not exist."})
+        return {"status": "ERROR", "reason": "User does not exist."}
 
     wallet = user.get_wallet(request.args.get("wal"))
     if not wallet:
-        return jsonify({"status": "ERROR", "reason": "Wallet does not exist."})
+        return {"status": "ERROR", "reason": "Wallet does not exist."}
 
     pr = request.args.get("pr")
 
@@ -164,10 +161,10 @@ async def lnurl_full_withdraw_callback():
     if balance_notify:
         await save_balance_notify(wallet.id, balance_notify)
 
-    return jsonify({"status": "OK"})
+    return {"status": "OK"}
 
 
-@core_app.route("/deletewallet")
+@core_app.get("/deletewallet")
 @validate_uuids(["usr", "wal"], required=True)
 @check_user_exists()
 async def deletewallet():
@@ -186,7 +183,7 @@ async def deletewallet():
     return redirect(url_for("core.home"))
 
 
-@core_app.route("/withdraw/notify/<service>")
+@core_app.get("/withdraw/notify/<service>")
 @validate_uuids(["wal"], required=True)
 async def lnurl_balance_notify(service: str):
     bc = await get_balance_check(request.args.get("wal"), service)
@@ -194,7 +191,7 @@ async def lnurl_balance_notify(service: str):
         redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_app.route("/lnurlwallet")
+@core_app.get("/lnurlwallet")
 async def lnurlwallet():
     async with db.connect() as conn:
         account = await create_account(conn=conn)
@@ -213,14 +210,13 @@ async def lnurlwallet():
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
 
-@core_app.route("/manifest/<usr>.webmanifest")
+@core_app.get("/manifest/<usr>.webmanifest")
 async def manifest(usr: str):
     user = await get_user(usr)
     if not user:
         return "", HTTPStatus.NOT_FOUND
 
-    return jsonify(
-        {
+    return {
             "short_name": "LNbits",
             "name": "LNbits Wallet",
             "icons": [
@@ -244,6 +240,4 @@ async def manifest(usr: str):
                     "url": "/wallet?usr=" + usr + "&wal=" + wallet.id,
                 }
                 for wallet in user.wallets
-            ],
-        }
-    )
+            ],}
