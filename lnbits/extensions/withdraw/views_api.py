@@ -4,6 +4,9 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from pydantic import BaseModel
+from fastapi import FastAPI, Query
+from fastapi.encoders import jsonable_encoder
 
 from . import withdraw_ext
 from .crud import (
@@ -26,7 +29,7 @@ async def api_links():
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     try:
         return (
-            jsonify(
+            jsonable_encoder(
                 [
                     {
                         **link._asdict(),
@@ -39,7 +42,7 @@ async def api_links():
         )
     except LnurlInvalidUrl:
         return (
-            json_encoder(
+            jsonable_encoder(
                 {
                     "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
                 }
@@ -55,40 +58,30 @@ async def api_link_retrieve(link_id):
 
     if not link:
         return (
-            jsonify({"message": "Withdraw link does not exist."}),
+            jsonable_encoder({"message": "Withdraw link does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
 
     if link.wallet != g.wallet.id:
-        return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
+        return jsonable_encoder({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
 
-    return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK
+    return jsonable_encoder({**link, **{"lnurl": link.lnurl}}), HTTPStatus.OK
 
 class CreateData(BaseModel):
-    title:  str,
-    min_withdrawable:  int = Query(..., ge=1,),
+    title:  str = Query(...),
+    min_withdrawable:  int = Query(..., ge=1),
     max_withdrawable:  int = Query(..., ge=1),
-    amount:  int = Query(None),
-    remembers:  bool = Query(None) 
-
+    uses:  int = Query(..., ge=1),
+    wait_time:  int = Query(..., ge=1),
+    is_unique:  bool
 
 @withdraw_ext.route("/api/v1/links", methods=["POST"])
 @withdraw_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "title": {"type": "string", "empty": False, "required": True},
-        "min_withdrawable": {"type": "integer", "min": 1, "required": True},
-        "max_withdrawable": {"type": "integer", "min": 1, "required": True},
-        "uses": {"type": "integer", "min": 1, "required": True},
-        "wait_time": {"type": "integer", "min": 1, "required": True},
-        "is_unique": {"type": "boolean", "required": True},
-    }
-)
-async def api_link_create_or_update(link_id=None, data = CreateData):
-    if g.data["max_withdrawable"] < g.data["min_withdrawable"]:
+async def api_link_create_or_update(data: CreateData, link_id: str = None):
+    if data.max_withdrawable < data.min_withdrawable:
         return (
-            jsonify(
+            jsonable_encoder(
                 {
                     "message": "`max_withdrawable` needs to be at least `min_withdrawable`."
                 }
@@ -97,8 +90,8 @@ async def api_link_create_or_update(link_id=None, data = CreateData):
         )
 
     usescsv = ""
-    for i in range(g.data["uses"]):
-        if g.data["is_unique"]:
+    for i in range(data.uses):
+        if data.is_unique:
             usescsv += "," + str(i + 1)
         else:
             usescsv += "," + str(1)
@@ -113,14 +106,14 @@ async def api_link_create_or_update(link_id=None, data = CreateData):
             )
         if link.wallet != g.wallet.id:
             return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
-        link = await update_withdraw_link(link_id, **g.data, usescsv=usescsv, used=0)
+        link = await update_withdraw_link(link_id, **data, usescsv=usescsv, used=0)
     else:
         link = await create_withdraw_link(
-            wallet_id=g.wallet.id, **g.data, usescsv=usescsv
+            wallet_id=g.wallet.id, **data, usescsv=usescsv
         )
 
     return (
-        jsonify({**link._asdict(), **{"lnurl": link.lnurl}}),
+        jsonable_encoder({**link, **{"lnurl": link.lnurl}}),
         HTTPStatus.OK if link_id else HTTPStatus.CREATED,
     )
 
@@ -132,12 +125,12 @@ async def api_link_delete(link_id):
 
     if not link:
         return (
-            jsonify({"message": "Withdraw link does not exist."}),
+            jsonable_encoder({"message": "Withdraw link does not exist."}),
             HTTPStatus.NOT_FOUND,
         )
 
     if link.wallet != g.wallet.id:
-        return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
+        return jsonable_encoder({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
 
     await delete_withdraw_link(link_id)
 
