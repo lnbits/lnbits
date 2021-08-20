@@ -1,3 +1,4 @@
+from pydantic.types import constr
 import trio
 import json
 import httpx
@@ -5,15 +6,13 @@ import hashlib
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, current_app, make_response, url_for
 
-from fastapi import FastAPI
+from fastapi import Query
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 
 from http import HTTPStatus
 from binascii import unhexlify
-from typing import Dict, Union
+from typing import Dict, List, Optional, Union
 
 from lnbits import bolt11, lnurl
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -95,15 +94,7 @@ async def api_payments():
 # async def api_payments_create_invoice(amount: List[str] = Query([type: str = Query(None)])):
 
 
-class Memo(BaseModel):
-    type: str
-    empty: bool
-    required: bool
-    excludes: bool
-    excludes: bool = Query("description_hash")
-
-
-async def api_payments_create_invoice(amount: int =  Query(...), memo: Memo ):
+async def api_payments_create_invoice(memo: Union[None, constr(min_length=1)], amount: int):
     if "description_hash" in g.data:
         description_hash = unhexlify(g.data["description_hash"])
         memo = ""

@@ -4,6 +4,9 @@ import base64
 from lnbits.core.crud import get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 import json
+from typing import Optional
+from pydantic import BaseModel
+
 
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 import httpx
@@ -74,16 +77,16 @@ async def api_check_credentials_check(juke_id):
 
 
 class CreateData(BaseModel):
-    user:  str = None,
-    title:  str = None,
-    wallet:  str = None,
-    sp_user:  str = None,
-    sp_secret:  str = None,
-    sp_access_token:  Optional[str] = None,
-    sp_refresh_token:  Optional[str] = None,
-    sp_device:  Optional[str] = None,
-    sp_playlists:  Optional[str] = None,
-    price:  Optional[str] = None,
+    user:  str = None
+    title:  str = None
+    wallet:  str = None
+    sp_user:  str = None
+    sp_secret:  str = None
+    sp_access_token:  Optional[str] = None
+    sp_refresh_token:  Optional[str] = None
+    sp_device:  Optional[str] = None
+    sp_playlists:  Optional[str] = None
+    price:  Optional[str] = None
 
 @jukebox_ext.post("/api/v1/jukebox/")
 @jukebox_ext.put("/api/v1/jukebox/<juke_id>")

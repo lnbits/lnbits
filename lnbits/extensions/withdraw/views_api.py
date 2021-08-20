@@ -68,11 +68,11 @@ async def api_link_retrieve(link_id):
     return jsonable_encoder({**link, **{"lnurl": link.lnurl}}), HTTPStatus.OK
 
 class CreateData(BaseModel):
-    title:  str = Query(...),
-    min_withdrawable:  int = Query(..., ge=1),
-    max_withdrawable:  int = Query(..., ge=1),
-    uses:  int = Query(..., ge=1),
-    wait_time:  int = Query(..., ge=1),
+    title:  str = Query(...)
+    min_withdrawable:  int = Query(..., ge=1)
+    max_withdrawable:  int = Query(..., ge=1)
+    uses:  int = Query(..., ge=1)
+    wait_time:  int = Query(..., ge=1)
     is_unique:  bool
 
 @withdraw_ext.post("/api/v1/links")

@@ -27,10 +27,10 @@ async def api_paywalls():
 
 
 class CreateData(BaseModel):
-    url:  Optional[str] = Query(...),
-    memo:  Optional[str] = Query(...),
-    description:  str = Query(None),
-    amount:  int = Query(None),
+    url:  Optional[str] = Query(...)
+    memo:  Optional[str] = Query(...)
+    description:  str = Query(None)
+    amount:  int = Query(None)
     remembers:  bool = Query(None) 
 
 @paywall_ext.post("/api/v1/paywalls")

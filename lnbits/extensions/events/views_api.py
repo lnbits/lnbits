@@ -5,6 +5,8 @@ from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from fastapi.encoders import jsonable_encoder
+from fastapi import Query
+from pydantic import BaseModel
 
 from . import events_ext
 from .crud import (
@@ -41,14 +43,14 @@ async def api_events():
     )
 
 class CreateData(BaseModel):
-    wallet:  str = Query(...),
-    name:  str = Query(...),
-    info:  str = Query(...),
-    closing_date:  str = Query(...),
-    event_start_date:  str = Query(...),
-    event_end_date:  str = Query(...),
-    amount_tickets:  int = Query(..., ge=0),
-    price_per_ticket:  int = Query(..., ge=0),
+    wallet:  str = Query(...)
+    name:  str = Query(...)
+    info:  str = Query(...)
+    closing_date:  str = Query(...)
+    event_start_date:  str = Query(...)
+    event_end_date:  str = Query(...)
+    amount_tickets:  int = Query(..., ge=0)
+    price_per_ticket:  int = Query(..., ge=0)
 
 @events_ext.post("/api/v1/events")
 @events_ext.put("/api/v1/events/<event_id>")
@@ -100,7 +102,7 @@ async def api_tickets():
     )
 
 class CreateTicketData(BaseModel):
-    name:  str = Query(...),
+    name:  str = Query(...)
     email:  str
 
 @events_ext.post("/api/v1/tickets/<event_id>/<sats>")
