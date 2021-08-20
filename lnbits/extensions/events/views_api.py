@@ -25,6 +25,7 @@ from .crud import (
 # Events
 
 
+
 @events_ext.route("/api/v1/events", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_events():
@@ -38,6 +39,15 @@ async def api_events():
         HTTPStatus.OK,
     )
 
+class CreateData(BaseModel):
+    wallet:  str = Query(...),
+    name:  str = Query(...),
+    info:  str = Query(...),
+    closing_date:  str = Query(...),
+    event_start_date:  str = Query(...),
+    event_end_date:  str = Query(...),
+    amount_tickets:  int = Query(..., ge=0),
+    price_per_ticket:  int = Query(..., ge=0),
 
 @events_ext.route("/api/v1/events", methods=["POST"])
 @events_ext.route("/api/v1/events/<event_id>", methods=["PUT"])
@@ -54,7 +64,7 @@ async def api_events():
         "price_per_ticket": {"type": "integer", "min": 0, "required": True},
     }
 )
-async def api_event_create(event_id=None):
+async def api_event_create(data: CreateData, event_id=None):
     if event_id:
         event = await get_event(event_id)
         if not event:
