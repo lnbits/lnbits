@@ -37,71 +37,65 @@ async def api_wallets_retrieve():
         return ""
 
 
-@watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["GET"])
+@watchonly_ext.get("/api/v1/wallet/<wallet_id>")
 @api_check_wallet_key("invoice")
 async def api_wallet_retrieve(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
-        return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
+        return {"message": "wallet does not exist"}, HTTPStatus.NOT_FOUND
 
-    return jsonify(wallet._asdict()), HTTPStatus.OK
+    return wallet._asdict(), HTTPStatus.OK
 
 
-@watchonly_ext.route("/api/v1/wallet", methods=["POST"])
+@watchonly_ext.post("/api/v1/wallet")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "masterpub": {"type": "string", "empty": False, "required": True},
-        "title": {"type": "string", "empty": False, "required": True},
-    }
-)
-async def api_wallet_create_or_update(wallet_id=None):
+async def api_wallet_create_or_update(masterPub: str, Title: str, wallet_id=None):
     try:
         wallet = await create_watch_wallet(
-            user=g.wallet.user, masterpub=g.data["masterpub"], title=g.data["title"]
+            user=g.wallet.user, masterpub=masterPub, title=Title
         )
     except Exception as e:
-        return jsonify({"message": str(e)}), HTTPStatus.BAD_REQUEST
+        return {"message": str(e)}, HTTPStatus.BAD_REQUEST
     mempool = await get_mempool(g.wallet.user)
     if not mempool:
         create_mempool(user=g.wallet.user)
-    return jsonify(wallet._asdict()), HTTPStatus.CREATED
+    return wallet._asdict(), HTTPStatus.CREATED
 
 
-@watchonly_ext.route("/api/v1/wallet/<wallet_id>", methods=["DELETE"])
+@watchonly_ext.delete("/api/v1/wallet/<wallet_id>")
 @api_check_wallet_key("admin")
 async def api_wallet_delete(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
-        return jsonify({"message": "Wallet link does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Wallet link does not exist."}, HTTPStatus.NOT_FOUND
 
     await delete_watch_wallet(wallet_id)
 
-    return jsonify({"deleted": "true"}), HTTPStatus.NO_CONTENT
+    return {"deleted": "true"}, HTTPStatus.NO_CONTENT
 
 
 #############################ADDRESSES##########################
 
 
-@watchonly_ext.route("/api/v1/address/<wallet_id>", methods=["GET"])
+@watchonly_ext.get("/api/v1/address/<wallet_id>")
 @api_check_wallet_key("invoice")
 async def api_fresh_address(wallet_id):
     await get_fresh_address(wallet_id)
 
     addresses = await get_addresses(wallet_id)
 
-    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
+    return [address._asdict() for address in addresses], HTTPStatus.OK
 
 
-@watchonly_ext.route("/api/v1/addresses/<wallet_id>", methods=["GET"])
+@watchonly_ext.get("/api/v1/addresses/<wallet_id>")
 @api_check_wallet_key("invoice")
 async def api_get_addresses(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
-        return jsonify({"message": "wallet does not exist"}), HTTPStatus.NOT_FOUND
+        return {"message": "wallet does not exist"}, HTTPStatus.NOT_FOUND
 
     addresses = await get_addresses(wallet_id)
 
@@ -109,28 +103,23 @@ async def api_get_addresses(wallet_id):
         await get_fresh_address(wallet_id)
         addresses = await get_addresses(wallet_id)
 
-    return jsonify([address._asdict() for address in addresses]), HTTPStatus.OK
+    return [address._asdict() for address in addresses], HTTPStatus.OK
 
 
 #############################MEMPOOL##########################
 
 
-@watchonly_ext.route("/api/v1/mempool", methods=["PUT"])
+@watchonly_ext.put("/api/v1/mempool")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "endpoint": {"type": "string", "empty": False, "required": True},
-    }
-)
-async def api_update_mempool():
-    mempool = await update_mempool(user=g.wallet.user, **g.data)
-    return jsonify(mempool._asdict()), HTTPStatus.OK
+async def api_update_mempool(endpoint: str):
+    mempool = await update_mempool(user=g.wallet.user, **endpoint)
+    return mempool._asdict(), HTTPStatus.OK
 
 
-@watchonly_ext.route("/api/v1/mempool", methods=["GET"])
+@watchonly_ext.get("/api/v1/mempool")
 @api_check_wallet_key("admin")
 async def api_get_mempool():
     mempool = await get_mempool(g.wallet.user)
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
-    return jsonify(mempool._asdict()), HTTPStatus.OK
+    return mempool._asdict(), HTTPStatus.OK

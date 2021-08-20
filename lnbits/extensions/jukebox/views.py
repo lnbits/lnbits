@@ -12,14 +12,14 @@ from .crud import get_jukebox
 from .views_api import api_get_jukebox_device_check
 
 
-@jukebox_ext.route("/")
+@jukebox_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
     return await render_template("jukebox/index.html", user=g.user)
 
 
-@jukebox_ext.route("/<juke_id>")
+@jukebox_ext.get("/<juke_id>")
 async def connect_to_jukebox(juke_id):
     jukebox = await get_jukebox(juke_id)
     if not jukebox:
