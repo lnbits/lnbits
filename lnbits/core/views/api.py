@@ -34,9 +34,7 @@ from ..tasks import api_invoice_listeners
 @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-        jsonable_encoder(
-            {"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat}
-        ),
+            {"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat},
         HTTPStatus.OK,
     )
 
@@ -46,13 +44,11 @@ async def api_wallet():
 async def api_update_wallet(new_name: str):
     await update_wallet(g.wallet.id, new_name)
     return (
-        jsonable_encoder(
             {
                 "id": g.wallet.id,
                 "name": g.wallet.name,
                 "balance": g.wallet.balance_msat,
-            }
-        ),
+            },
         HTTPStatus.OK,
     )
 
@@ -61,9 +57,7 @@ async def api_update_wallet(new_name: str):
 @api_check_wallet_key("invoice")
 async def api_payments():
     return (
-        jsonable_encoder(
-            await get_payments(wallet_id=g.wallet.id, pending=True, complete=True)
-        ),
+            await get_payments(wallet_id=g.wallet.id, pending=True, complete=True),
         HTTPStatus.OK,
     )
 
