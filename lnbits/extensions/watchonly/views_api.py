@@ -24,15 +24,13 @@ from .crud import (
 ###################WALLETS#############################
 
 
-@watchonly_ext.route("/api/v1/wallet", methods=["GET"])
+@watchonly_ext.get("/api/v1/wallet")
 @api_check_wallet_key("invoice")
 async def api_wallets_retrieve():
 
     try:
         return (
-            jsonify(
-                [wallet._asdict() for wallet in await get_watch_wallets(g.wallet.user)]
-            ),
+            [wallet._asdict() for wallet in await get_watch_wallets(g.wallet.user)],
             HTTPStatus.OK,
         )
     except:

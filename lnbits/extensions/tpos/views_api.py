@@ -27,6 +27,10 @@ async def api_tposs(all_wallets: bool = Query(None)):
     return [tpos._asdict() for tpos in await get_tposs(wallet_ids)], HTTPStatus.OK
 
 
+class CreateData(BaseModel):
+    name: str
+    currency: str
+
 @tpos_ext.post("/api/v1/tposs")
 @api_check_wallet_key("invoice")
 # @api_validate_post_request(
@@ -35,8 +39,8 @@ async def api_tposs(all_wallets: bool = Query(None)):
 #         "currency": {"type": "string", "empty": False, "required": True},
 #     }
 # )
-async def api_tpos_create(name: str = Query(...), currency: str = Query(...)):
-    tpos = await create_tpos(wallet_id=g.wallet.id, **g.data)
+async def api_tpos_create(data: CreateData):
+    tpos = await create_tpos(wallet_id=g.wallet.id, **data)
     return tpos._asdict(), HTTPStatus.CREATED
 
 
@@ -60,7 +64,7 @@ async def api_tpos_delete(tpos_id: str):
 # @api_validate_post_request(
 #     schema={"amount": {"type": "integer", "min": 1, "required": True}}
 # )
-async def api_tpos_create_invoice(tpos_id: str, amount: int = Query(..., ge=1)):
+async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str = None):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
