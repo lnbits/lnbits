@@ -1,6 +1,4 @@
-from sqlite3 import Row
 from pydantic import BaseModel
-#from typing import NamedTuple
 
 
 class AMilk(BaseModel):

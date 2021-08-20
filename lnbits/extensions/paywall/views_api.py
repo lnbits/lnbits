@@ -7,7 +7,9 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import paywall_ext
 from .crud import create_paywall, get_paywall, get_paywalls, delete_paywall
-
+from typing import Optional
+from pydantic import BaseModel
+from fastapi import FastAPI, Query
 
 @paywall_ext.route("/api/v1/paywalls", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -23,25 +25,18 @@ async def api_paywalls():
     )
 
 
+class CreateData(BaseModel):
+    url:  Optional[str] = Query(...),
+    memo:  Optional[str] = Query(...),
+    description:  str = Query(None),
+    amount:  int = Query(None),
+    remembers:  bool = Query(None) 
+
 @paywall_ext.route("/api/v1/paywalls", methods=["POST"])
 @api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "url": {"type": "string", "empty": False, "required": True},
-        "memo": {"type": "string", "empty": False, "required": True},
-        "description": {
-            "type": "string",
-            "empty": True,
-            "nullable": True,
-            "required": False,
-        },
-        "amount": {"type": "integer", "min": 0, "required": True},
-        "remembers": {"type": "boolean", "required": True},
-    }
-)
-async def api_paywall_create():
-    paywall = await create_paywall(wallet_id=g.wallet.id, **g.data)
-    return jsonify(paywall._asdict()), HTTPStatus.CREATED
+async def api_paywall_create(data: CreateData):
+    paywall = await create_paywall(wallet_id=g.wallet.id, **data)
+    return paywall, HTTPStatus.CREATED
 
 
 @paywall_ext.route("/api/v1/paywalls/<paywall_id>", methods=["DELETE"])
