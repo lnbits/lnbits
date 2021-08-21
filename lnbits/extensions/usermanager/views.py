@@ -12,4 +12,4 @@ templates = Jinja2Templates(directory="templates")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index(request: Request):
-    return await render_template("usermanager/index.html", {"request":request,"user":g.user})
+    return await templates.TemplateResponse("usermanager/index.html", {"request":request,"user":g.user})
