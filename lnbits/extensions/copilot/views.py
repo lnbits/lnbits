@@ -10,23 +10,24 @@ from functools import wraps
 import trio
 import shortuuid
 from . import copilot_ext
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
 
 @copilot_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def index():
-    return await render_template("copilot/index.html", user=g.user)
-
+async def index(request: Request):
+    return await templates.TemplateResponse("copilot/index.html", {"request": request, "user":g.user})
 
 @copilot_ext.route("/cp/")
-async def compose():
-    return await render_template("copilot/compose.html")
-
+async def compose(request: Request):
+    return await templates.TemplateResponse("copilot/compose.html", {"request": request})
 
 @copilot_ext.route("/pn/")
-async def panel():
-    return await render_template("copilot/panel.html")
+async def panel(request: Request):
+    return await templates.TemplateResponse("copilot/panel.html", {"request": request})
 
 
 ##################WEBSOCKET ROUTES########################

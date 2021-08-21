@@ -7,13 +7,16 @@ from lnbits.core.crud import get_wallet_payment
 
 from . import livestream_ext
 from .crud import get_track, get_livestream_by_track
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
 
 @livestream_ext.route("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def index():
-    return await render_template("livestream/index.html", user=g.user)
+async def index(request: Request):
+    return await templates.TemplateResponse("livestream/index.html", {"request": request,"user":g.user})
 
 
 @livestream_ext.route("/track/<track_id>")

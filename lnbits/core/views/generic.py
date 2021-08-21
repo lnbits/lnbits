@@ -25,7 +25,10 @@ from ..crud import (
     save_balance_notify,
 )
 from ..services import redeem_lnurl_withdraw, pay_invoice
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
 
 @core_app.get("/favicon.ico")
 async def favicon():
@@ -35,10 +38,8 @@ async def favicon():
 
 
 @core_app.get("/")
-async def home():
-    return await render_template(
-        "core/index.html", lnurl=request.args.get("lightning", None)
-    )
+async def home(request: Request, lightning: str = None):
+    return templates.TemplateResponse("core/index.html", {"request": request, "lnurl": lightning})
 
 
 @core_app.get("/extensions")
@@ -61,8 +62,7 @@ async def extensions():
         await update_user_extension(
             user_id=g.user.id, extension=extension_to_disable, active=False
         )
-
-    return await render_template("core/extensions.html", user=await get_user(g.user.id))
+    return await templates.TemplateResponse("core/extensions.html", {"request": request, "user": get_user(g.user.id)})
 
 
 @core_app.get("/wallet")

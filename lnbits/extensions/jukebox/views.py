@@ -10,17 +10,20 @@ import json
 from . import jukebox_ext
 from .crud import get_jukebox
 from .views_api import api_get_jukebox_device_check
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
 
 @jukebox_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def index():
-    return await render_template("jukebox/index.html", user=g.user)
+async def index(request: Request):
+    return await templates.TemplateResponse("jukebox/index.html", {"request": request,"user":g.user})
 
 
 @jukebox_ext.get("/<juke_id>")
-async def connect_to_jukebox(juke_id):
+async def connect_to_jukebox(request: Request, juke_id):
     jukebox = await get_jukebox(juke_id)
     if not jukebox:
         return "error"
@@ -31,7 +34,7 @@ async def connect_to_jukebox(juke_id):
         if device["id"] == jukebox.sp_device.split("-")[1]:
             deviceConnected = True
     if deviceConnected:
-        return await render_template(
+        return await templates.TemplateResponse(
             "jukebox/jukebox.html",
             playlists=jukebox.sp_playlists.split(","),
             juke_id=juke_id,
@@ -39,4 +42,4 @@ async def connect_to_jukebox(juke_id):
             inkey=jukebox.inkey,
         )
     else:
-        return await render_template("jukebox/error.html")
+        return await templates.TemplateResponse("jukebox/error.html",{"request": request})
