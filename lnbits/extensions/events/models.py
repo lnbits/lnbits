@@ -1,7 +1,9 @@
-from typing import NamedTuple
+from sqlite3 import Row
+from pydantic import BaseModel
+#from typing import NamedTuple
 
 
-class Events(NamedTuple):
+class Events(BaseModel):
     id: str
     wallet: str
     name: str
@@ -15,7 +17,7 @@ class Events(NamedTuple):
     time: int
 
 
-class Tickets(NamedTuple):
+class Tickets(BaseModel):
     id: str
     wallet: str
     event: str

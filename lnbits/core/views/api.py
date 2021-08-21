@@ -7,8 +7,6 @@ from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, current_app, make_response, url_for
 
 from fastapi import Query
-from fastapi.encoders import jsonable_encoder
-
 
 from http import HTTPStatus
 from binascii import unhexlify
