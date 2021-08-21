@@ -1,4 +1,4 @@
-from pydantic.types import constr
+from pydantic import BaseModel
 import trio
 import json
 import httpx
@@ -440,7 +440,7 @@ async def api_lnurlscan(code: str):
     return params
 
 
-@core_app.post("/api/v1/lnurlauth", methods=["POST"])
+@core_app.post("/api/v1/lnurlauth")
 @api_check_wallet_key("admin")
 async def api_perform_lnurlauth(callback: str):
     err = await perform_lnurlauth(callback)

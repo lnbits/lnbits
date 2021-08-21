@@ -1,3 +1,5 @@
+from typing import List, Optional
+from pydantic import BaseModel
 from quart import g, jsonify
 from http import HTTPStatus
 
@@ -22,7 +24,8 @@ class SchemaData(BaseModel):
 
 @splitpayments_ext.put("/api/v1/targets")
 @api_check_wallet_key("admin")
-async def api_targets_set(targets: Optional(list[SchemaData]) = None):
+async def api_targets_set(targets: Optional[List[SchemaData]]
+ = None):
     targets = []
 
     for entry in targets:

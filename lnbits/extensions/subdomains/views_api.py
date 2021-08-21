@@ -1,3 +1,6 @@
+from typing import Optional
+from fastapi.param_functions import Query
+from pydantic.main import BaseModel
 from quart import g, jsonify, request
 from http import HTTPStatus
 
@@ -42,7 +45,7 @@ class CreateDomainsData(BaseModel):
     domain:  str
     cf_token:  str
     cf_zone_id:  str
-    webhook:  optional[str]
+    webhook:  Optional[str]
     description:  str
     cost:  int
     allowed_record_types:  str
@@ -103,7 +106,7 @@ class CreateDomainsData(BaseModel):
     subdomain:  str
     email:  str
     ip:  str
-    sats:  int = Query(ge=0)
+    sats:  int = Query(0, ge=0)
     duration:  int
     record_type:  str
 

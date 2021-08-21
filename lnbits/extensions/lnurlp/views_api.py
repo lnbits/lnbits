@@ -1,3 +1,6 @@
+from typing import Optional
+from fastapi.param_functions import Query
+from pydantic.main import BaseModel
 from quart import g, jsonify, request
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
@@ -60,10 +63,10 @@ async def api_link_retrieve(link_id):
 
 class CreateData(BaseModel):
     description:  str
-    min:  int = Query(ge=0.01)
-    max:  int = Query(ge=0.01)
+    min:  int = Query(0.01, ge=0.01)
+    max:  int = Query(0.01, ge=0.01)
     currency:  Optional[str] 
-    comment_chars:  int = Query(ge=0, lt=800) 
+    comment_chars:  int = Query(0, ge=0, lt=800) 
     webhook_url:  Optional[str] 
     success_text:  Optional[str] 
     success_url:  Optional[str] 

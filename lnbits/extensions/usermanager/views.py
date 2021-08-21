@@ -3,7 +3,7 @@ from quart import g, render_template
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from . import usermanager_ext
-from fastapi import FastAPI, Request
+from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")

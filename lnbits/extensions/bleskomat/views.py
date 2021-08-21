@@ -7,6 +7,7 @@ from . import bleskomat_ext
 from .exchange_rates import exchange_rate_providers_serializable, fiat_currencies
 from .helpers import get_callback_url
 from fastapi.templating import Jinja2Templates
+from fastapi import Request
 
 templates = Jinja2Templates(directory="templates")
 
