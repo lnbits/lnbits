@@ -32,7 +32,10 @@ def run_deferred_async():
 
 async def catch_everything_and_restart(func):
     try:
-        await func()
+        limit = trio.CapacityLimiter(40)
+        async with limit:
+        # We are holding a token!
+            await func()
     except trio.Cancelled:
         raise  # because we must pass this up
     except Exception as exc:
