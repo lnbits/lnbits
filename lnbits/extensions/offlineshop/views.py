@@ -9,17 +9,20 @@ from lnbits.core.crud import get_standalone_payment
 
 from . import offlineshop_ext
 from .crud import get_item, get_shop
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
 
 @offlineshop_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def index():
-    return await render_template("offlineshop/index.html", user=g.user)
+async def index(request: Request):
+    return await templates.TemplateResponse("offlineshop/index.html", {"request": request,"user":g.user})
 
 
 @offlineshop_ext.get("/print")
-async def print_qr_codes():
+async def print_qr_codes(request: Request):
     items = []
     for item_id in request.args.get("items").split(","):
         item = await get_item(item_id)
@@ -32,7 +35,7 @@ async def print_qr_codes():
                 }
             )
 
-    return await render_template("offlineshop/print.html", items=items)
+    return await templates.TemplateResponse("offlineshop/print.html", {"request": request,"items":items})
 
 
 @offlineshop_ext.get("/confirmation")

@@ -5,7 +5,10 @@ from lnbits.decorators import check_user_exists, validate_uuids
 from pyngrok import conf, ngrok
 from . import ngrok_ext
 from os import getenv
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
 
+templates = Jinja2Templates(directory="templates")
 
 def log_event_callback(log):
     string = str(log)
@@ -26,5 +29,5 @@ ngrok_tunnel = ngrok.connect(port)
 @ngrok_ext.get("/")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def index():
-    return await render_template("ngrok/index.html", ngrok=string5, user=g.user)
+async def index(request: Request):
+    return await templates.TemplateResponse("ngrok/index.html", {"request": request, "ngrok":string5, "user":g.user})
