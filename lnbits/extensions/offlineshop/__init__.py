@@ -6,7 +6,7 @@ db = Database("ext_offlineshop")
 
 offlineshop_ext: APIRouter = APIRouter(
     prefix="/Extension",
-    tags=["Apps", "Offlineshop"]
+    tags=["Offlineshop"]
 )
 
 
