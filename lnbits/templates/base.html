@@ -2,7 +2,7 @@
 
 <html lang="en">
   <head>
-    {% for url in g.VENDORED_CSS %}
+    {% for url in VENDORED_CSS %}
     <link rel="stylesheet" type="text/css" href="{{ url }}" />
     {% endfor %}
     <!---->
@@ -184,7 +184,7 @@
 
     {% block vue_templates %}{% endblock %}
     <!---->
-    {% for url in g.VENDORED_JS %}
+    {% for url in VENDORED_JS %}
     <script src="{{ url }}"></script>
     {% endfor %}
     <!---->

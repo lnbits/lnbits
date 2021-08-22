@@ -1,15 +1,10 @@
+from lnbits.requestvars import g
 from os import path
 from http import HTTPStatus
-from quart import (
-    g,
-    current_app,
-    abort,
-    request,
-    redirect,
-    render_template,
-    send_from_directory,
-    url_for,
-)
+from typing import Optional
+import jinja2
+
+from starlette.responses import HTMLResponse
 
 from lnbits.core import core_app, db
 from lnbits.decorators import check_user_exists, validate_uuids
@@ -26,20 +21,18 @@ from ..crud import (
 )
 from ..services import redeem_lnurl_withdraw, pay_invoice
 from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse
+from lnbits.jinja2_templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="templates")
 
 @core_app.get("/favicon.ico")
 async def favicon():
-    return await send_from_directory(
-        path.join(core_app.root_path, "static"), "favicon.ico"
-    )
+    return FileResponse("lnbits/core/static/favicon.ico")
+    
 
-
-@core_app.get("/")
+@core_app.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = None):
-    return templates.TemplateResponse("core/index.html", {"request": request, "lnurl": lightning})
+    return g().templates.TemplateResponse("core/index.html", {"request": request, "lnurl": lightning})
 
 
 @core_app.get("/extensions")

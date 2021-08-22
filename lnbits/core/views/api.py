@@ -1,10 +1,12 @@
+from fastapi.param_functions import Depends
+from lnbits.auth_bearer import AuthBearer
 from pydantic import BaseModel
 import trio
 import json
 import httpx
 import hashlib
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import g, current_app, make_response, url_for
+from quart import current_app, make_response, url_for
 
 from fastapi import Query
 
@@ -15,6 +17,7 @@ from typing import Dict, List, Optional, Union
 from lnbits import bolt11, lnurl
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
+from lnbits.requestvars import g
 
 from .. import core_app, db
 from ..crud import get_payments, save_balance_check, update_wallet
@@ -28,11 +31,14 @@ from ..services import (
 from ..tasks import api_invoice_listeners
 
 
-@core_app.get("/api/v1/wallet")
-@api_check_wallet_key("invoice")
+@core_app.get(
+    "/api/v1/wallet",
+    # dependencies=[Depends(AuthBearer())]
+)
+# @api_check_wallet_key("invoice")
 async def api_wallet():
     return (
-            {"id": g.wallet.id, "name": g.wallet.name, "balance": g.wallet.balance_msat},
+            {"id": g().wallet.id, "name": g().wallet.name, "balance": g().wallet.balance_msat},
         HTTPStatus.OK,
     )
 
@@ -40,12 +46,12 @@ async def api_wallet():
 @core_app.put("/api/v1/wallet/<new_name>")
 @api_check_wallet_key("invoice")
 async def api_update_wallet(new_name: str):
-    await update_wallet(g.wallet.id, new_name)
+    await update_wallet(g().wallet.id, new_name)
     return (
             {
-                "id": g.wallet.id,
-                "name": g.wallet.name,
-                "balance": g.wallet.balance_msat,
+                "id": g().wallet.id,
+                "name": g().wallet.name,
+                "balance": g().wallet.balance_msat,
             },
         HTTPStatus.OK,
     )
@@ -55,7 +61,7 @@ async def api_update_wallet(new_name: str):
 @api_check_wallet_key("invoice")
 async def api_payments():
     return (
-            await get_payments(wallet_id=g.wallet.id, pending=True, complete=True),
+            await get_payments(wallet_id=g().wallet.id, pending=True, complete=True),
         HTTPStatus.OK,
     )
 
@@ -88,7 +94,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
     async with db.connect() as conn:
         try:
             payment_hash, payment_request = await create_invoice(
-                wallet_id=g.wallet.id,
+                wallet_id=g().wallet.id,
                 amount=amount,
                 memo=memo,
                 description_hash=description_hash,
@@ -105,8 +111,8 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
 
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
-        if "lnurl_balance_check" in g.data:
-            save_balance_check(g.wallet.id, data.lnurl_balance_check)
+        if "lnurl_balance_check" in g().data:
+            save_balance_check(g().wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
             try:
@@ -117,7 +123,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
                         "balanceNotify": url_for(
                             "core.lnurl_balance_notify",
                             service=urlparse(data.lnurl_callback).netloc,
-                            wal=g.wallet.id,
+                            wal=g().wallet.id,
                             _external=True,
                         ),
                     },
@@ -217,14 +223,14 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
     if invoice.amount_msat != data.amount:
         return (
                 {
-                    "message": f"{domain} returned an invalid invoice. Expected {g.data['amount']} msat, got {invoice.amount_msat}."
+                    "message": f"{domain} returned an invalid invoice. Expected {g().data['amount']} msat, got {invoice.amount_msat}."
                 },
             HTTPStatus.BAD_REQUEST,
         )
-    if invoice.description_hash != g.data["description_hash"]:
+    if invoice.description_hash != g().data["description_hash"]:
         return (
                 {
-                    "message": f"{domain} returned an invalid invoice. Expected description_hash == {g.data['description_hash']}, got {invoice.description_hash}."
+                    "message": f"{domain} returned an invalid invoice. Expected description_hash == {g().data['description_hash']}, got {invoice.description_hash}."
                 },
             HTTPStatus.BAD_REQUEST,
         )
@@ -237,7 +243,7 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
         extra["comment"] = data.comment
 
     payment_hash = await pay_invoice(
-        wallet_id=g.wallet.id,
+        wallet_id=g().wallet.id,
         payment_request=params["pr"],
         description=data.description,
         extra=extra,
@@ -257,7 +263,7 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
 @core_app.get("/api/v1/payments/<payment_hash>")
 @api_check_wallet_key("invoice")
 async def api_payment(payment_hash):
-    payment = await g.wallet.get_payment(payment_hash)
+    payment = await g().wallet.get_payment(payment_hash)
 
     if not payment:
         return {"message": "Payment does not exist."}, HTTPStatus.NOT_FOUND
@@ -278,7 +284,7 @@ async def api_payment(payment_hash):
 @core_app.get("/api/v1/payments/sse")
 @api_check_wallet_key("invoice", accept_querystring=True)
 async def api_payments_sse():
-    this_wallet_id = g.wallet.id
+    this_wallet_id = g().wallet.id
 
     send_payment, receive_payment = trio.open_memory_channel(0)
 
@@ -356,7 +362,7 @@ async def api_lnurlscan(code: str):
         params.update(kind="auth")
         params.update(callback=url)  # with k1 already in it
 
-        lnurlauth_key = g.wallet.lnurlauth_key(domain)
+        lnurlauth_key = g().wallet.lnurlauth_key(domain)
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:

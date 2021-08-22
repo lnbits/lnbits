@@ -1,4 +1,7 @@
+from hypercorn.trio import serve
 import trio
+import trio_asyncio
+from hypercorn.config import Config
 
 from .commands import migrate_databases, transpile_scss, bundle_vendored
 
@@ -8,7 +11,7 @@ bundle_vendored()
 
 from .app import create_app
 
-app = create_app()
+app = trio.run(create_app)
 
 from .settings import (
     LNBITS_SITE_TITLE,
@@ -17,6 +20,8 @@ from .settings import (
     LNBITS_DATA_FOLDER,
     WALLET,
     LNBITS_COMMIT,
+    HOST,
+    PORT
 )
 
 print(
@@ -30,4 +35,6 @@ print(
 """
 )
 
-app.run(host=app.config["HOST"], port=app.config["PORT"])
+config = Config()
+config.bind = [f"{HOST}:{PORT}"]
+trio_asyncio.run(serve, app, config)
