@@ -2,6 +2,11 @@ import re
 from quart import g, jsonify, request
 from http import HTTPStatus
 
+from fastapi import FastAPI, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -24,7 +29,7 @@ from .crud import (
 # FORMS
 
 
-@lnticket_ext.route("/api/v1/forms", methods=["GET"])
+@lnticket_ext.get("/api/v1/forms")
 @api_check_wallet_key("invoice")
 async def api_forms():
     wallet_ids = [g.wallet.id]
@@ -33,50 +38,57 @@ async def api_forms():
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
     return (
-        jsonify([form._asdict() for form in await get_forms(wallet_ids)]),
+        [form._asdict() for form in await get_forms(wallet_ids)],
         HTTPStatus.OK,
     )
 
+class CreateData(BaseModel):
+    wallet: str = Query(...)
+    name: str = Query(...)
+    webhook: str = Query(None)
+    description: str = Query(..., min_length=0)
+    amount: int = Query(..., ge=0)
+    flatrate: int = Query(...)
 
-@lnticket_ext.route("/api/v1/forms", methods=["POST"])
-@lnticket_ext.route("/api/v1/forms/<form_id>", methods=["PUT"])
+@lnticket_ext.post("/api/v1/forms")
+@lnticket_ext.put("/api/v1/forms/{form_id}")
 @api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "wallet": {"type": "string", "empty": False, "required": True},
-        "name": {"type": "string", "empty": False, "required": True},
-        "webhook": {"type": "string", "required": False},
-        "description": {"type": "string", "min": 0, "required": True},
-        "amount": {"type": "integer", "min": 0, "required": True},
-        "flatrate": {"type": "integer", "required": True},
-    }
-)
-async def api_form_create(form_id=None):
+# @api_validate_post_request(
+#     schema={
+#         "wallet": {"type": "string", "empty": False, "required": True},
+#         "name": {"type": "string", "empty": False, "required": True},
+#         "webhook": {"type": "string", "required": False},
+#         "description": {"type": "string", "min": 0, "required": True},
+#         "amount": {"type": "integer", "min": 0, "required": True},
+#         "flatrate": {"type": "integer", "required": True},
+#     }
+# )
+async def api_form_create(data: CreateData, form_id=None):
     if form_id:
         form = await get_form(form_id)
 
         if not form:
-            return jsonify({"message": "Form does not exist."}), HTTPStatus.NOT_FOUND
+            return {"message": "Form does not exist."}, HTTPStatus.NOT_FOUND
 
         if form.wallet != g.wallet.id:
-            return jsonify({"message": "Not your form."}), HTTPStatus.FORBIDDEN
+            return jsonify{"message": "Not your form."}, HTTPStatus.FORBIDDEN
 
-        form = await update_form(form_id, **g.data)
+        form = await update_form(form_id, **data)
     else:
-        form = await create_form(**g.data)
-    return jsonify(form._asdict()), HTTPStatus.CREATED
+        form = await create_form(**data)
+    return form._asdict(), HTTPStatus.CREATED
 
 
-@lnticket_ext.route("/api/v1/forms/<form_id>", methods=["DELETE"])
+@lnticket_ext.delete("/api/v1/forms/{form_id}")
 @api_check_wallet_key("invoice")
 async def api_form_delete(form_id):
     form = await get_form(form_id)
 
     if not form:
-        return jsonify({"message": "Form does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Form does not exist."}, HTTPStatus.NOT_FOUND
 
     if form.wallet != g.wallet.id:
-        return jsonify({"message": "Not your form."}), HTTPStatus.FORBIDDEN
+        return {"message": "Not your form."}, HTTPStatus.FORBIDDEN
 
     await delete_form(form_id)
 
@@ -86,37 +98,43 @@ async def api_form_delete(form_id):
 #########tickets##########
 
 
-@lnticket_ext.route("/api/v1/tickets", methods=["GET"])
+@lnticket_ext.get("/api/v1/tickets")
 @api_check_wallet_key("invoice")
-async def api_tickets():
+async def api_tickets(all_wallets: bool = Query(None)):
     wallet_ids = [g.wallet.id]
 
-    if "all_wallets" in request.args:
+    if all_wallets:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
     return (
-        jsonify([form._asdict() for form in await get_tickets(wallet_ids)]),
+        [form._asdict() for form in await get_tickets(wallet_ids)],
         HTTPStatus.OK,
     )
 
+class CreateTicketData(BaseModel):
+    form: str = Query(...)
+    name: str = Query(...)
+    email: str = Query("")
+    ltext: str = Query(...)
+    sats: int = Query(..., ge=0)
 
-@lnticket_ext.route("/api/v1/tickets/<form_id>", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "form": {"type": "string", "empty": False, "required": True},
-        "name": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "empty": True, "required": True},
-        "ltext": {"type": "string", "empty": False, "required": True},
-        "sats": {"type": "integer", "min": 0, "required": True},
-    }
-)
-async def api_ticket_make_ticket(form_id):
+@lnticket_ext.post("/api/v1/tickets/{form_id}")
+# @api_validate_post_request(
+#     schema={
+#         "form": {"type": "string", "empty": False, "required": True},
+#         "name": {"type": "string", "empty": False, "required": True},
+#         "email": {"type": "string", "empty": True, "required": True},
+#         "ltext": {"type": "string", "empty": False, "required": True},
+#         "sats": {"type": "integer", "min": 0, "required": True},
+#     }
+# )
+async def api_ticket_make_ticket(data: CreateTicketData, form_id):
     form = await get_form(form_id)
     if not form:
-        return jsonify({"message": "LNTicket does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "LNTicket does not exist."}, HTTPStatus.NOT_FOUND
 
-    nwords = len(re.split(r"\s+", g.data["ltext"]))
-    sats = g.data["sats"]
+    nwords = len(re.split(r"\s+", data["ltext"]))
+    sats = data["sats"]
 
     try:
         payment_hash, payment_request = await create_invoice(
@@ -126,53 +144,52 @@ async def api_ticket_make_ticket(form_id):
             extra={"tag": "lnticket"},
         )
     except Exception as e:
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
     ticket = await create_ticket(
-        payment_hash=payment_hash, wallet=form.wallet, **g.data
+        payment_hash=payment_hash, wallet=form.wallet, **data
     )
 
     if not ticket:
         return (
-            jsonify({"message": "LNTicket could not be fetched."}),
+            {"message": "LNTicket could not be fetched."},
             HTTPStatus.NOT_FOUND,
         )
 
-    return (
-        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
-        HTTPStatus.OK,
-    )
+    return
+        {"payment_hash": payment_hash, "payment_request": payment_request},
+        HTTPStatus.OK
 
 
-@lnticket_ext.route("/api/v1/tickets/<payment_hash>", methods=["GET"])
+@lnticket_ext.get("/api/v1/tickets/{payment_hash}")
 async def api_ticket_send_ticket(payment_hash):
     ticket = await get_ticket(payment_hash)
     try:
         status = await check_invoice_status(ticket.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
-        return jsonify({"paid": False}), HTTPStatus.OK
+        return {"paid": False}, HTTPStatus.OK
 
     if is_paid:
         wallet = await get_wallet(ticket.wallet)
         payment = await wallet.get_payment(payment_hash)
         await payment.set_pending(False)
         ticket = await set_ticket_paid(payment_hash=payment_hash)
-        return jsonify({"paid": True}), HTTPStatus.OK
+        return {"paid": True}, HTTPStatus.OK
 
-    return jsonify({"paid": False}), HTTPStatus.OK
+    return {"paid": False}, HTTPStatus.OK
 
 
-@lnticket_ext.route("/api/v1/tickets/<ticket_id>", methods=["DELETE"])
+@lnticket_ext.delete("/api/v1/tickets/{ticket_id}")
 @api_check_wallet_key("invoice")
 async def api_ticket_delete(ticket_id):
     ticket = await get_ticket(ticket_id)
 
     if not ticket:
-        return jsonify({"message": "Paywall does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Paywall does not exist."}, HTTPStatus.NOT_FOUND
 
     if ticket.wallet != g.wallet.id:
-        return jsonify({"message": "Not your ticket."}), HTTPStatus.FORBIDDEN
+        return {"message": "Not your ticket."}, HTTPStatus.FORBIDDEN
 
     await delete_ticket(ticket_id)
 
