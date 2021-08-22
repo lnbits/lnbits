@@ -1,3 +1,5 @@
+from typing import Optional
+from pydantic.main import BaseModel
 from quart import g, jsonify
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore

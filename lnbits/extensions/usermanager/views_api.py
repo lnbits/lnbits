@@ -1,8 +1,14 @@
+from typing import Optional
 from quart import g, jsonify
 from http import HTTPStatus
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+
+from fastapi import FastAPI, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from . import usermanager_ext
 from .crud import (
@@ -32,7 +38,7 @@ async def api_usermanager_users():
     )
 
 
-@usermanager_ext.get("/api/v1/users/<user_id>")
+@usermanager_ext.get("/api/v1/users/{user_id}")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_user(user_id):
     user = await get_usermanager_user(user_id)
@@ -56,12 +62,12 @@ async def api_usermanager_users_create(data: CreateUsersData):
     return jsonify(full), HTTPStatus.CREATED
 
 
-@usermanager_ext.delete("/api/v1/users/<user_id>")
+@usermanager_ext.delete("/api/v1/users/{user_id}")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users_delete(user_id):
     user = await get_usermanager_user(user_id)
     if not user:
-        return jsonify({"message": "User does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "User does not exist."}, HTTPStatus.NOT_FOUND
     await delete_usermanager_user(user_id)
     return "", HTTPStatus.NO_CONTENT
 
@@ -112,13 +118,13 @@ async def api_usermanager_wallets():
     )
 
 
-@usermanager_ext.get("/api/v1/wallets<wallet_id>")
+@usermanager_ext.get("/api/v1/wallets/{wallet_id}")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallet_transactions(wallet_id):
     return await get_usermanager_wallet_transactions(wallet_id), HTTPStatus.OK
 
 
-@usermanager_ext.get("/api/v1/wallets/<user_id>")
+@usermanager_ext.get("/api/v1/wallets/{user_id}")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_users_wallets(user_id):
     wallet = await get_usermanager_users_wallets(user_id)
@@ -131,7 +137,7 @@ async def api_usermanager_users_wallets(user_id):
     )
 
 
-@usermanager_ext.delete("/api/v1/wallets/<wallet_id>")
+@usermanager_ext.delete("/api/v1/wallets/{wallet_id}")
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallets_delete(wallet_id):
     wallet = await get_usermanager_wallet(wallet_id)

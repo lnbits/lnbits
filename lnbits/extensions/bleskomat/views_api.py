@@ -1,3 +1,6 @@
+from typing import Union
+from fastapi.param_functions import Query
+from pydantic import BaseModel
 from quart import g, jsonify, request
 from http import HTTPStatus
 
@@ -50,9 +53,9 @@ async def api_bleskomat_retrieve(bleskomat_id):
 
 class CreateData(BaseModel):
     name:  str
-    fiat_currency:  str = fiat_currencies.keys()
-    exchange_rate_provider:  str = exchange_rate_providers.keys()
-    fee: Optional[str, int, float] = Query(...)
+    fiat_currency:  str = "EUR" # TODO: fix this
+    exchange_rate_provider:  str = "bitfinex"
+    fee: Union[str, int, float] = Query(...)
 
 @bleskomat_ext.post("/api/v1/bleskomat")
 @bleskomat_ext.put("/api/v1/bleskomat/<bleskomat_id>")

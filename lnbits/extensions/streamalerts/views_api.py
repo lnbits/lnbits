@@ -1,3 +1,5 @@
+from typing import Optional
+from pydantic.main import BaseModel
 from quart import g, redirect, request, jsonify
 from http import HTTPStatus
 
@@ -34,7 +36,7 @@ class CreateServicesData(BaseModel):
 
 @streamalerts_ext.post("/api/v1/services")
 @api_check_wallet_key("invoice")
-async def api_create_service(data: CreateData):
+async def api_create_service(data: CreateServicesData):
     """Create a service, which holds data about how/where to post donations"""
     try:
         service = await create_service(**data)

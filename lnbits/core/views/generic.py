@@ -65,12 +65,13 @@ async def extensions():
     return await templates.TemplateResponse("core/extensions.html", {"request": request, "user": get_user(g.user.id)})
 
 
-@core_app.get("/wallet")
+@core_app.get("/wallet{usr}{wal}{nme}")
+#Not sure how to validate
 @validate_uuids(["usr", "wal"])
-async def wallet():
-    user_id = request.args.get("usr", type=str)
-    wallet_id = request.args.get("wal", type=str)
-    wallet_name = request.args.get("nme", type=str)
+async def wallet(request: Request, usr: Optional[str], wal: Optional[str], nme: Optional[str]):
+    user_id = usr
+    wallet_id = wal
+    wallet_name = nme
     service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
 
     # just wallet_name: create a new user, then create a new wallet for user with wallet_name
@@ -102,8 +103,8 @@ async def wallet():
     if not wallet:
         abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
 
-    return await render_template(
-        "core/wallet.html", user=user, wallet=wallet, service_fee=service_fee
+    return await templates.TemplateResponse(
+        "core/wallet.html", {"request":request,"user":user, "wallet":wallet, "service_fee":service_fee}
     )
 
 

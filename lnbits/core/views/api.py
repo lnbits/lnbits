@@ -1,4 +1,4 @@
-from pydantic.types import constr
+from pydantic import BaseModel
 import trio
 import json
 import httpx
@@ -7,8 +7,6 @@ from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, current_app, make_response, url_for
 
 from fastapi import Query
-from fastapi.encoders import jsonable_encoder
-
 
 from http import HTTPStatus
 from binascii import unhexlify
@@ -440,7 +438,7 @@ async def api_lnurlscan(code: str):
     return params
 
 
-@core_app.post("/api/v1/lnurlauth", methods=["POST"])
+@core_app.post("/api/v1/lnurlauth")
 @api_check_wallet_key("admin")
 async def api_perform_lnurlauth(callback: str):
     err = await perform_lnurlauth(callback)

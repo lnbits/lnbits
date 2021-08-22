@@ -3,6 +3,10 @@ from quart import g, jsonify, url_for
 from http import HTTPStatus
 import httpx
 
+from fastapi import FastAPI, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -19,37 +23,46 @@ from .crud import (
 
 #############################CHARGES##########################
 
+class CreateData(BaseModel):
+    onchainwallet: str
+    lnbitswallet: str
+    description: str = Query(...)
+    webhook: str
+    completelink: str
+    completelinktext: str
+    time: int = Query(..., ge=1)
+    amount: int = Query(..., ge=1)
 
-@satspay_ext.route("/api/v1/charge", methods=["POST"])
-@satspay_ext.route("/api/v1/charge/<charge_id>", methods=["PUT"])
+@satspay_ext.post("/api/v1/charge")
+@satspay_ext.put("/api/v1/charge/{charge_id}")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "onchainwallet": {"type": "string"},
-        "lnbitswallet": {"type": "string"},
-        "description": {"type": "string", "empty": False, "required": True},
-        "webhook": {"type": "string"},
-        "completelink": {"type": "string"},
-        "completelinktext": {"type": "string"},
-        "time": {"type": "integer", "min": 1, "required": True},
-        "amount": {"type": "integer", "min": 1, "required": True},
-    }
-)
-async def api_charge_create_or_update(charge_id=None):
+# @api_validate_post_request(
+#     schema={
+#         "onchainwallet": {"type": "string"},
+#         "lnbitswallet": {"type": "string"},
+#         "description": {"type": "string", "empty": False, "required": True},
+#         "webhook": {"type": "string"},
+#         "completelink": {"type": "string"},
+#         "completelinktext": {"type": "string"},
+#         "time": {"type": "integer", "min": 1, "required": True},
+#         "amount": {"type": "integer", "min": 1, "required": True},
+#     }
+# )
+async def api_charge_create_or_update(data: CreateData, charge_id=None):
     if not charge_id:
-        charge = await create_charge(user=g.wallet.user, **g.data)
-        return jsonify(charge._asdict()), HTTPStatus.CREATED
+        charge = await create_charge(user=g.wallet.user, **data)
+        return charge._asdict(), HTTPStatus.CREATED
     else:
-        charge = await update_charge(charge_id=charge_id, **g.data)
-        return jsonify(charge._asdict()), HTTPStatus.OK
+        charge = await update_charge(charge_id=charge_id, **data)
+        return charge._asdict(), HTTPStatus.OK
 
 
-@satspay_ext.route("/api/v1/charges", methods=["GET"])
+@satspay_ext.get("/api/v1/charges")
 @api_check_wallet_key("invoice")
 async def api_charges_retrieve():
     try:
         return (
-            jsonify(
+
                 [
                     {
                         **charge._asdict(),
@@ -58,40 +71,40 @@ async def api_charges_retrieve():
                     }
                     for charge in await get_charges(g.wallet.user)
                 ]
-            ),
+            ,
             HTTPStatus.OK,
         )
     except:
         return ""
 
 
-@satspay_ext.route("/api/v1/charge/<charge_id>", methods=["GET"])
+@satspay_ext.get("/api/v1/charge/{charge_id}")
 @api_check_wallet_key("invoice")
-async def api_charge_retrieve(charge_id):
+async def api_charge_retrieve(charge_id: str):
     charge = await get_charge(charge_id)
 
     if not charge:
-        return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
+        return {"message": "charge does not exist"}, HTTPStatus.NOT_FOUND
 
     return (
-        jsonify(
+
             {
                 **charge._asdict(),
                 **{"time_elapsed": charge.time_elapsed},
                 **{"paid": charge.paid},
             }
-        ),
+        ,
         HTTPStatus.OK,
     )
 
 
-@satspay_ext.route("/api/v1/charge/<charge_id>", methods=["DELETE"])
+@satspay_ext.delete("/api/v1/charge/{charge_id}")
 @api_check_wallet_key("invoice")
-async def api_charge_delete(charge_id):
+async def api_charge_delete(charge_id: str):
     charge = await get_charge(charge_id)
 
     if not charge:
-        return jsonify({"message": "Wallet link does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Wallet link does not exist."}, HTTPStatus.NOT_FOUND
 
     await delete_charge(charge_id)
 
@@ -101,13 +114,13 @@ async def api_charge_delete(charge_id):
 #############################BALANCE##########################
 
 
-@satspay_ext.route("/api/v1/charges/balance/<charge_id>", methods=["GET"])
-async def api_charges_balance(charge_id):
+@satspay_ext.get("/api/v1/charges/balance/{charge_id}")
+async def api_charges_balance(charge_id: str):
 
     charge = await check_address_balance(charge_id)
 
     if not charge:
-        return jsonify({"message": "charge does not exist"}), HTTPStatus.NOT_FOUND
+        return {"message": "charge does not exist"}, HTTPStatus.NOT_FOUND
     if charge.paid and charge.webhook:
         async with httpx.AsyncClient() as client:
             try:
@@ -130,28 +143,28 @@ async def api_charges_balance(charge_id):
                 )
             except AssertionError:
                 charge.webhook = None
-    return jsonify(charge._asdict()), HTTPStatus.OK
+    return charge._asdict(), HTTPStatus.OK
 
 
 #############################MEMPOOL##########################
 
 
-@satspay_ext.route("/api/v1/mempool", methods=["PUT"])
+@satspay_ext.put("/api/v1/mempool")
 @api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "endpoint": {"type": "string", "empty": False, "required": True},
-    }
-)
-async def api_update_mempool():
-    mempool = await update_mempool(user=g.wallet.user, **g.data)
-    return jsonify(mempool._asdict()), HTTPStatus.OK
+# @api_validate_post_request(
+#     schema={
+#         "endpoint": {"type": "string", "empty": False, "required": True},
+#     }
+# )
+async def api_update_mempool(endpoint: str = Query(...)):
+    mempool = await update_mempool(user=g.wallet.user, endpoint)
+    return mempool._asdict(), HTTPStatus.OK
 
 
-@satspay_ext.route("/api/v1/mempool", methods=["GET"])
+@satspay_ext.get("/api/v1/mempool")
 @api_check_wallet_key("invoice")
 async def api_get_mempool():
     mempool = await get_mempool(g.wallet.user)
     if not mempool:
         mempool = await create_mempool(user=g.wallet.user)
-    return jsonify(mempool._asdict()), HTTPStatus.OK
+    return mempool._asdict(), HTTPStatus.OK
