@@ -43,7 +43,7 @@ async def api_wallet():
     )
 
 
-@core_app.put("/api/v1/wallet/<new_name>")
+@core_app.put("/api/v1/wallet/{new_name}")
 @api_check_wallet_key("invoice")
 async def api_update_wallet(new_name: str):
     await update_wallet(g().wallet.id, new_name)
@@ -260,7 +260,7 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
     )
 
 
-@core_app.get("/api/v1/payments/<payment_hash>")
+@core_app.get("/api/v1/payments/{payment_hash}")
 @api_check_wallet_key("invoice")
 async def api_payment(payment_hash):
     payment = await g().wallet.get_payment(payment_hash)
@@ -334,7 +334,7 @@ async def api_payments_sse():
     return response
 
 
-@core_app.get("/api/v1/lnurlscan/<code>")
+@core_app.get("/api/v1/lnurlscan/{code}")
 @api_check_wallet_key("invoice")
 async def api_lnurlscan(code: str):
     try:

@@ -38,7 +38,7 @@ async def panel(request: Request):
 connected_websockets = defaultdict(set)
 
 
-@copilot_ext.websocket("/ws/<id>/")
+@copilot_ext.websocket("/ws/{id}/")
 async def wss(id):
     copilot = await get_copilot(id)
     if not copilot:
