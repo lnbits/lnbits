@@ -38,9 +38,9 @@ async def home(request: Request, lightning: str = None):
 @core_app.get("/extensions")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def extensions():
-    extension_to_enable = request.args.get("enable", type=str)
-    extension_to_disable = request.args.get("disable", type=str)
+async def extensions(enable: str, disable: str):
+    extension_to_enable = enable
+    extension_to_disable = disable
 
     if extension_to_enable and extension_to_disable:
         abort(
@@ -177,7 +177,7 @@ async def deletewallet():
     return redirect(url_for("core.home"))
 
 
-@core_app.get("/withdraw/notify/<service>")
+@core_app.get("/withdraw/notify/{service}")
 @validate_uuids(["wal"], required=True)
 async def lnurl_balance_notify(service: str):
     bc = await get_balance_check(request.args.get("wal"), service)
@@ -204,7 +204,7 @@ async def lnurlwallet():
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
 
-@core_app.get("/manifest/<usr>.webmanifest")
+@core_app.get("/manifest/{usr}.webmanifest")
 async def manifest(usr: str):
     user = await get_user(usr)
     if not user:

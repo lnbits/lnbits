@@ -20,88 +20,83 @@ from .crud import (
 
 #######################COPILOT##########################
 
+class CreateData(BaseModel):
+    title:  str
+    lnurl_toggle:  Optional[int]
+    wallet:  Optional[str]
+    animation1:  Optional[str]
+    animation2:  Optional[str] 
+    animation3:  Optional[str]
+    animation1threshold:  Optional[int]
+    animation2threshold:  Optional[int]
+    animation2threshold:  Optional[int]
+    animation1webhook:  Optional[str]
+    animation2webhook:  Optional[str] 
+    animation3webhook:  Optional[str]
+    lnurl_title:  Optional[str]
+    show_message:  Optional[int]
+    show_ack:  Optional[int]
+    show_price:  Optional[str]
 
-@copilot_ext.route("/api/v1/copilot", methods=["POST"])
-@copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["PUT"])
+@copilot_ext.post("/api/v1/copilot")
+@copilot_ext.put("/api/v1/copilot/{copilot_id}")
 @api_check_wallet_key("admin")
-@api_validate_post_request(
-    schema={
-        "title": {"type": "string", "empty": False, "required": True},
-        "lnurl_toggle": {"type": "integer", "empty": False},
-        "wallet": {"type": "string", "empty": False, "required": False},
-        "animation1": {"type": "string", "empty": True, "required": False},
-        "animation2": {"type": "string", "empty": True, "required": False},
-        "animation3": {"type": "string", "empty": True, "required": False},
-        "animation1threshold": {"type": "integer", "empty": True, "required": False},
-        "animation2threshold": {"type": "integer", "empty": True, "required": False},
-        "animation3threshold": {"type": "integer", "empty": True, "required": False},
-        "animation1webhook": {"type": "string", "empty": True, "required": False},
-        "animation2webhook": {"type": "string", "empty": True, "required": False},
-        "animation3webhook": {"type": "string", "empty": True, "required": False},
-        "lnurl_title": {"type": "string", "empty": True, "required": False},
-        "show_message": {"type": "integer", "empty": True, "required": False},
-        "show_ack": {"type": "integer", "empty": True},
-        "show_price": {"type": "string", "empty": True},
-    }
-)
-async def api_copilot_create_or_update(copilot_id=None):
+async def api_copilot_create_or_update(data: CreateData,copilot_id=None):
     if not copilot_id:
-        copilot = await create_copilot(user=g.wallet.user, **g.data)
+        copilot = await create_copilot(user=g.wallet.user, **data)
         return jsonify(copilot._asdict()), HTTPStatus.CREATED
     else:
-        copilot = await update_copilot(copilot_id=copilot_id, **g.data)
+        copilot = await update_copilot(copilot_id=copilot_id, **data)
         return jsonify(copilot._asdict()), HTTPStatus.OK
 
 
-@copilot_ext.route("/api/v1/copilot", methods=["GET"])
+@copilot_ext.get("/api/v1/copilot")
 @api_check_wallet_key("invoice")
 async def api_copilots_retrieve():
     try:
         return (
-            jsonify(
-                [{**copilot._asdict()} for copilot in await get_copilots(g.wallet.user)]
-            ),
+                [{**copilot._asdict()} for copilot in await get_copilots(g.wallet.user)],
             HTTPStatus.OK,
         )
     except:
         return ""
 
 
-@copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["GET"])
+@copilot_ext.get("/api/v1/copilot/{copilot_id}")
 @api_check_wallet_key("invoice")
 async def api_copilot_retrieve(copilot_id):
     copilot = await get_copilot(copilot_id)
     if not copilot:
-        return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
+        return {"message": "copilot does not exist"}, HTTPStatus.NOT_FOUND
     if not copilot.lnurl_toggle:
         return (
-            jsonify({**copilot._asdict()}),
+            {**copilot._asdict()},
             HTTPStatus.OK,
         )
     return (
-        jsonify({**copilot._asdict(), **{"lnurl": copilot.lnurl}}),
+        {**copilot._asdict(), **{"lnurl": copilot.lnurl}},
         HTTPStatus.OK,
     )
 
 
-@copilot_ext.route("/api/v1/copilot/<copilot_id>", methods=["DELETE"])
+@copilot_ext.delete("/api/v1/copilot/{copilot_id}")
 @api_check_wallet_key("admin")
 async def api_copilot_delete(copilot_id):
     copilot = await get_copilot(copilot_id)
 
     if not copilot:
-        return jsonify({"message": "Wallet link does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Wallet link does not exist."}, HTTPStatus.NOT_FOUND
 
     await delete_copilot(copilot_id)
 
     return "", HTTPStatus.NO_CONTENT
 
 
-@copilot_ext.route("/api/v1/copilot/ws/<copilot_id>/<comment>/<data>", methods=["GET"])
+@copilot_ext.get("/api/v1/copilot/ws/{copilot_id}/{comment}/{data}")
 async def api_copilot_ws_relay(copilot_id, comment, data):
     copilot = await get_copilot(copilot_id)
     if not copilot:
-        return jsonify({"message": "copilot does not exist"}), HTTPStatus.NOT_FOUND
+        return {"message": "copilot does not exist"}, HTTPStatus.NOT_FOUND
     try:
         await updater(copilot_id, data, comment)
     except:

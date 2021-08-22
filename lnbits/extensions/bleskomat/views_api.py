@@ -37,7 +37,7 @@ async def api_bleskomats():
     )
 
 
-@bleskomat_ext.get("/api/v1/bleskomat/<bleskomat_id>")
+@bleskomat_ext.get("/api/v1/bleskomat/{bleskomat_id}")
 @api_check_wallet_key("admin")
 async def api_bleskomat_retrieve(bleskomat_id):
     bleskomat = await get_bleskomat(bleskomat_id)
@@ -58,7 +58,7 @@ class CreateData(BaseModel):
     fee: Union[str, int, float] = Query(...)
 
 @bleskomat_ext.post("/api/v1/bleskomat")
-@bleskomat_ext.put("/api/v1/bleskomat/<bleskomat_id>")
+@bleskomat_ext.put("/api/v1/bleskomat/{bleskomat_id}")
 @api_check_wallet_key("admin")
 async def api_bleskomat_create_or_update(data: CreateData, bleskomat_id=None):
     try:
@@ -93,7 +93,7 @@ async def api_bleskomat_create_or_update(data: CreateData, bleskomat_id=None):
     )
 
 
-@bleskomat_ext.delete("/api/v1/bleskomat/<bleskomat_id>")
+@bleskomat_ext.delete("/api/v1/bleskomat/{bleskomat_id}")
 @api_check_wallet_key("admin")
 async def api_bleskomat_delete(bleskomat_id):
     bleskomat = await get_bleskomat(bleskomat_id)

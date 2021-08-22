@@ -9,7 +9,7 @@ from . import captcha_ext
 from .crud import create_captcha, get_captcha, get_captchas, delete_captcha
 
 
-@captcha_ext.route("/api/v1/captchas", methods=["GET"])
+@captcha_ext.get("/api/v1/captchas")
 @api_check_wallet_key("invoice")
 async def api_captchas():
     wallet_ids = [g.wallet.id]
@@ -23,7 +23,7 @@ async def api_captchas():
     )
 
 
-@captcha_ext.route("/api/v1/captchas", methods=["POST"])
+@captcha_ext.post("/api/v1/captchas")
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
@@ -44,7 +44,7 @@ async def api_captcha_create():
     return jsonify(captcha._asdict()), HTTPStatus.CREATED
 
 
-@captcha_ext.route("/api/v1/captchas/<captcha_id>", methods=["DELETE"])
+@captcha_ext.delete("/api/v1/captchas/{captcha_id}")
 @api_check_wallet_key("invoice")
 async def api_captcha_delete(captcha_id):
     captcha = await get_captcha(captcha_id)
@@ -60,7 +60,7 @@ async def api_captcha_delete(captcha_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@captcha_ext.route("/api/v1/captchas/<captcha_id>/invoice", methods=["POST"])
+@captcha_ext.post("/api/v1/captchas/{captcha_id}/invoice")
 @api_validate_post_request(
     schema={"amount": {"type": "integer", "min": 1, "required": True}}
 )
@@ -92,7 +92,7 @@ async def api_captcha_create_invoice(captcha_id):
     )
 
 
-@captcha_ext.route("/api/v1/captchas/<captcha_id>/check_invoice", methods=["POST"])
+@captcha_ext.post("/api/v1/captchas/{captcha_id}/check_invoice")
 @api_validate_post_request(
     schema={"payment_hash": {"type": "string", "empty": False, "required": True}}
 )
@@ -100,13 +100,13 @@ async def api_paywal_check_invoice(captcha_id):
     captcha = await get_captcha(captcha_id)
 
     if not captcha:
-        return jsonify({"message": "captcha does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "captcha does not exist."}, HTTPStatus.NOT_FOUND
 
     try:
         status = await check_invoice_status(captcha.wallet, g.data["payment_hash"])
         is_paid = not status.pending
     except Exception:
-        return jsonify({"paid": False}), HTTPStatus.OK
+        return {"paid": False}, HTTPStatus.OK
 
     if is_paid:
         wallet = await get_wallet(captcha.wallet)
@@ -114,8 +114,8 @@ async def api_paywal_check_invoice(captcha_id):
         await payment.set_pending(False)
 
         return (
-            jsonify({"paid": True, "url": captcha.url, "remembers": captcha.remembers}),
+            {"paid": True, "url": captcha.url, "remembers": captcha.remembers},
             HTTPStatus.OK,
         )
 
-    return jsonify({"paid": False}), HTTPStatus.OK
+    return {"paid": False}, HTTPStatus.OK
