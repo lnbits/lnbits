@@ -383,13 +383,13 @@ async def api_lnurlscan(code: str):
     except:
         # parse internet identifier (user@domain.com)
         name_domain = code.split("@")
-        if len(name_domain) == 2 and len(name_domain[1].split(".")) == 2:
+        if len(name_domain) == 2 and len(name_domain[1].split(".")) >= 2:
             name, domain = name_domain
             url = (
                 ("http://" if domain.endswith(".onion") else "https://")
                 + domain
                 + "/.well-known/lnurlp/"
-                + name
+                + name.lower()
             )
             # will proceed with these values
         else:
