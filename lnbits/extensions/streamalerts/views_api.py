@@ -46,7 +46,7 @@ async def api_create_service(data: CreateServicesData):
     return service._asdict(), HTTPStatus.CREATED
 
 
-@streamalerts_ext.get("/api/v1/getaccess/<service_id>")
+@streamalerts_ext.get("/api/v1/getaccess/{service_id}")
 async def api_get_access(service_id):
     """Redirect to Streamlabs' Approve/Decline page for API access for Service
     with service_id
@@ -69,7 +69,7 @@ async def api_get_access(service_id):
         return ({"message": "Service does not exist!"}, HTTPStatus.BAD_REQUEST)
 
 
-@streamalerts_ext.get("/api/v1/authenticate/<service_id>")
+@streamalerts_ext.get("/api/v1/authenticate/{service_id}")
 async def api_authenticate_service(Code: str, State: str, service_id):
     """Endpoint visited via redirect during third party API authentication
 
@@ -183,7 +183,7 @@ async def api_get_donations():
     )
 
 
-@streamalerts_ext.put("/api/v1/donations/<donation_id>")
+@streamalerts_ext.put("/api/v1/donations/{donation_id}")
 @api_check_wallet_key("invoice")
 async def api_update_donation(donation_id=None):
     """Update a donation with the data given in the request"""
@@ -208,7 +208,7 @@ async def api_update_donation(donation_id=None):
     return donation._asdict(), HTTPStatus.CREATED
 
 
-@streamalerts_ext.put("/api/v1/services/<service_id>")
+@streamalerts_ext.put("/api/v1/services/{service_id}")
 @api_check_wallet_key("invoice")
 async def api_update_service(service_id=None):
     """Update a service with the data given in the request"""
@@ -229,7 +229,7 @@ async def api_update_service(service_id=None):
     return service._asdict(), HTTPStatus.CREATED
 
 
-@streamalerts_ext.delete("/api/v1/donations/<donation_id>")
+@streamalerts_ext.delete("/api/v1/donations/{donation_id}")
 @api_check_wallet_key("invoice")
 async def api_delete_donation(donation_id):
     """Delete the donation with the given donation_id"""
@@ -245,7 +245,7 @@ async def api_delete_donation(donation_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@streamalerts_ext.delete("/api/v1/services/<service_id>")
+@streamalerts_ext.delete("/api/v1/services/{service_id}")
 @api_check_wallet_key("invoice")
 async def api_delete_service(service_id):
     """Delete the service with the given service_id"""

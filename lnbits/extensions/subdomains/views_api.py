@@ -51,7 +51,7 @@ class CreateDomainsData(BaseModel):
     allowed_record_types:  str
 
 @subdomains_ext.post("/api/v1/domains")
-@subdomains_ext.put("/api/v1/domains/<domain_id>")
+@subdomains_ext.put("/api/v1/domains/{domain_id}")
 @api_check_wallet_key("invoice")
 async def api_domain_create(data: CreateDomainsData, domain_id=None):
     if domain_id:
@@ -66,10 +66,10 @@ async def api_domain_create(data: CreateDomainsData, domain_id=None):
         domain = await update_domain(domain_id, **data)
     else:
         domain = await create_domain(**data)
-    return jsonify(domain._asdict()), HTTPStatus.CREATED
+    return domain._asdict(), HTTPStatus.CREATED
 
 
-@subdomains_ext.delete("/api/v1/domains/<domain_id>")
+@subdomains_ext.delete("/api/v1/domains/{domain_id}")
 @api_check_wallet_key("invoice")
 async def api_domain_delete(domain_id):
     domain = await get_domain(domain_id)
@@ -110,14 +110,14 @@ class CreateDomainsData(BaseModel):
     duration:  int
     record_type:  str
 
-@subdomains_ext.post("/api/v1/subdomains/<domain_id>")
+@subdomains_ext.post("/api/v1/subdomains/{domain_id}")
 
 async def api_subdomain_make_subdomain(data: CreateDomainsData, domain_id):
     domain = await get_domain(domain_id)
 
     # If the request is coming for the non-existant domain
     if not domain:
-        return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "LNsubdomain does not exist."}, HTTPStatus.NOT_FOUND
 
     ## If record_type is not one of the allowed ones reject the request
     if data.record_type not in domain.allowed_record_types:
@@ -184,7 +184,7 @@ async def api_subdomain_make_subdomain(data: CreateDomainsData, domain_id):
     )
 
 
-@subdomains_ext.get("/api/v1/subdomains/<payment_hash>")
+@subdomains_ext.get("/api/v1/subdomains/{payment_hash}")
 async def api_subdomain_send_subdomain(payment_hash):
     subdomain = await get_subdomain(payment_hash)
     try:
@@ -199,7 +199,7 @@ async def api_subdomain_send_subdomain(payment_hash):
     return {"paid": False}, HTTPStatus.OK
 
 
-@subdomains_ext.delete("/api/v1/subdomains/<subdomain_id>")
+@subdomains_ext.delete("/api/v1/subdomains/{subdomain_id}")
 @api_check_wallet_key("invoice")
 async def api_subdomain_delete(subdomain_id):
     subdomain = await get_subdomain(subdomain_id)
