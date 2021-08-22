@@ -46,7 +46,7 @@ async def api_links():
         )
 
 
-@withdraw_ext.get("/api/v1/links/<link_id>")
+@withdraw_ext.get("/api/v1/links/{link_id}")
 @api_check_wallet_key("invoice")
 async def api_link_retrieve(link_id):
     link = await get_withdraw_link(link_id, 0)
@@ -70,7 +70,7 @@ class CreateData(BaseModel):
     is_unique:  bool
 
 @withdraw_ext.post("/api/v1/links")
-@withdraw_ext.put("/api/v1/links/<link_id>")
+@withdraw_ext.put("/api/v1/links/{link_id}")
 @api_check_wallet_key("admin")
 async def api_link_create_or_update(data: CreateData, link_id: str = None):
     if data.max_withdrawable < data.min_withdrawable:
@@ -97,7 +97,7 @@ async def api_link_create_or_update(data: CreateData, link_id: str = None):
                 HTTPStatus.NOT_FOUND,
             )
         if link.wallet != g.wallet.id:
-            return jsonify({"message": "Not your withdraw link."}), HTTPStatus.FORBIDDEN
+            return {"message": "Not your withdraw link."}, HTTPStatus.FORBIDDEN
         link = await update_withdraw_link(link_id, **data, usescsv=usescsv, used=0)
     else:
         link = await create_withdraw_link(
@@ -109,7 +109,7 @@ async def api_link_create_or_update(data: CreateData, link_id: str = None):
     )
 
 
-@withdraw_ext.delete("/api/v1/links/<link_id>")
+@withdraw_ext.delete("/api/v1/links/{link_id}")
 @api_check_wallet_key("admin")
 async def api_link_delete(link_id):
     link = await get_withdraw_link(link_id)
@@ -127,7 +127,7 @@ async def api_link_delete(link_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@withdraw_ext.get("/api/v1/links/<the_hash>/<lnurl_id>")
+@withdraw_ext.get("/api/v1/links/{the_hash}/{lnurl_id}")
 @api_check_wallet_key("invoice")
 async def api_hash_retrieve(the_hash, lnurl_id):
     hashCheck = await get_hash_check(the_hash, lnurl_id)

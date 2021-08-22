@@ -53,11 +53,11 @@ class CreateItemsData(BaseModel):
     name:  str
     description: str
     image:  Optional[str]
-    price:  int 
-    unit:  str 
+    price:  int
+    unit:  str
 
 @offlineshop_ext.post("/api/v1/offlineshop/items")
-@offlineshop_ext.put("/api/v1/offlineshop/items/<item_id>")
+@offlineshop_ext.put("/api/v1/offlineshop/items/{item_id}")
 @api_check_wallet_key("invoice")
 async def api_add_or_update_item(data: CreateItemsData, item_id=None):
     shop = await get_or_create_shop_by_wallet(g.wallet.id)
@@ -84,7 +84,7 @@ async def api_add_or_update_item(data: CreateItemsData, item_id=None):
         return "", HTTPStatus.OK
 
 
-@offlineshop_ext.delete("/api/v1/offlineshop/items/<item_id>")
+@offlineshop_ext.delete("/api/v1/offlineshop/items/{item_id}")
 @api_check_wallet_key("invoice")
 async def api_delete_item(item_id):
     shop = await get_or_create_shop_by_wallet(g.wallet.id)

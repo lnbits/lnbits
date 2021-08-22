@@ -1,11 +1,12 @@
-from quart import Blueprint
+from fastapi import APIRouter
 
 from lnbits.db import Database
 
 db = Database("ext_offlineshop")
 
-offlineshop_ext: Blueprint = Blueprint(
-    "offlineshop", __name__, static_folder="static", template_folder="templates"
+offlineshop_ext: APIRouter = APIRouter(
+    prefix="/Extension",
+    tags=["Offlineshop"]
 )
 
 

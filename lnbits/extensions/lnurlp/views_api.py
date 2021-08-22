@@ -48,7 +48,7 @@ async def api_links():
         )
 
 
-@lnurlp_ext.get("/api/v1/links/<link_id>")
+@lnurlp_ext.get("/api/v1/links/{link_id}")
 @api_check_wallet_key("invoice")
 async def api_link_retrieve(link_id):
     link = await get_pay_link(link_id)
@@ -65,14 +65,14 @@ class CreateData(BaseModel):
     description:  str
     min:  int = Query(0.01, ge=0.01)
     max:  int = Query(0.01, ge=0.01)
-    currency:  Optional[str] 
-    comment_chars:  int = Query(0, ge=0, lt=800) 
-    webhook_url:  Optional[str] 
-    success_text:  Optional[str] 
-    success_url:  Optional[str] 
+    currency:  Optional[str]
+    comment_chars:  int = Query(0, ge=0, lt=800)
+    webhook_url:  Optional[str]
+    success_text:  Optional[str]
+    success_url:  Optional[str]
 
 @lnurlp_ext.post("/api/v1/links")
-@lnurlp_ext.put("/api/v1/links/<link_id>")
+@lnurlp_ext.put("/api/v1/links/{link_id}")
 @api_check_wallet_key("invoice")
 async def api_link_create_or_update(data: CreateData, link_id=None):
     if data.min > data.max:
@@ -111,7 +111,7 @@ async def api_link_create_or_update(data: CreateData, link_id=None):
     )
 
 
-@lnurlp_ext.delete("/api/v1/links/<link_id>")
+@lnurlp_ext.delete("/api/v1/links/{link_id}")
 @api_check_wallet_key("invoice")
 async def api_link_delete(link_id):
     link = await get_pay_link(link_id)
@@ -127,7 +127,7 @@ async def api_link_delete(link_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-@lnurlp_ext.get("/api/v1/rate/<currency>")
+@lnurlp_ext.get("/api/v1/rate/{currency}")
 async def api_check_fiat_rate(currency):
     try:
         rate = await get_fiat_rate_satoshis(currency)

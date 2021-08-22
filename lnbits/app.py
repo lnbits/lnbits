@@ -1,12 +1,15 @@
+import jinja2
+from lnbits.jinja2_templating import Jinja2Templates
 import sys
 import warnings
 import importlib
 import traceback
+import trio
 
-from quart import g
-from quart_trio import QuartTrio
-from quart_cors import cors  # type: ignore
-from quart_compress import Compress  # type: ignore
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
@@ -26,32 +29,66 @@ from .tasks import (
     catch_everything_and_restart,
 )
 from .settings import WALLET
+from .requestvars import g, request_global
+import lnbits.settings
 
-
-def create_app(config_object="lnbits.settings") -> QuartTrio:
+async def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
-    app = QuartTrio(__name__, static_folder="static")
-    app.config.from_object(config_object)
-    app.asgi_http_class = ASGIProxyFix
+    app = FastAPI()
+    app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
 
-    cors(app)
-    Compress(app)
+    origins = [
+        "http://localhost",
+        "http://localhost:5000",
+    ]
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    g().config = lnbits.settings
+    g().templates = build_standard_jinja_templates()
+
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    # app.add_middleware(ASGIProxyFix)
 
     check_funding_source(app)
     register_assets(app)
-    register_blueprints(app)
-    register_filters(app)
-    register_commands(app)
+    register_routes(app)
+    # register_commands(app)
     register_async_tasks(app)
-    register_exception_handlers(app)
+    # register_exception_handlers(app)
 
     return app
 
+def build_standard_jinja_templates():
+    t = Jinja2Templates(
+     loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates"]),
+    )
+    t.env.globals["SITE_TITLE"] = lnbits.settings.LNBITS_SITE_TITLE
+    t.env.globals["SITE_TAGLINE"] = lnbits.settings.LNBITS_SITE_TAGLINE
+    t.env.globals["SITE_DESCRIPTION"] = lnbits.settings.LNBITS_SITE_DESCRIPTION
+    t.env.globals["LNBITS_THEME_OPTIONS"] = lnbits.settings.LNBITS_THEME_OPTIONS
+    t.env.globals["LNBITS_VERSION"] = lnbits.settings.LNBITS_COMMIT
+    t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    
+    if g().config.DEBUG:
+        t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
+        t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
+    else:
+        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
+        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
 
-def check_funding_source(app: QuartTrio) -> None:
-    @app.before_serving
+    return t
+
+def check_funding_source(app: FastAPI) -> None:
+    @app.on_event("startup")
     async def check_wallet_status():
         error_message, balance = await WALLET.status()
         if error_message:
@@ -67,64 +104,60 @@ def check_funding_source(app: QuartTrio) -> None:
             )
 
 
-def register_blueprints(app: QuartTrio) -> None:
+def register_routes(app: FastAPI) -> None:
     """Register Flask blueprints / LNbits extensions."""
-    app.register_blueprint(core_app)
+    app.include_router(core_app)
 
     for ext in get_valid_extensions():
         try:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
-            bp = getattr(ext_module, f"{ext.code}_ext")
+            ext_route = getattr(ext_module, f"{ext.code}_ext")
 
-            app.register_blueprint(bp, url_prefix=f"/{ext.code}")
+            app.include_router(ext_route)
         except Exception:
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
 
 
-def register_commands(app: QuartTrio):
+def register_commands(app: FastAPI):
     """Register Click commands."""
     app.cli.add_command(db_migrate)
     app.cli.add_command(handle_assets)
 
 
-def register_assets(app: QuartTrio):
+def register_assets(app: FastAPI):
     """Serve each vendored asset separately or a bundle."""
 
-    @app.before_request
+    @app.on_event("startup")
     async def vendored_assets_variable():
-        if app.config["DEBUG"]:
-            g.VENDORED_JS = map(url_for_vendored, get_js_vendored())
-            g.VENDORED_CSS = map(url_for_vendored, get_css_vendored())
+        if g().config.DEBUG:
+            g().VENDORED_JS = map(url_for_vendored, get_js_vendored())
+            g().VENDORED_CSS = map(url_for_vendored, get_css_vendored())
         else:
-            g.VENDORED_JS = ["/static/bundle.js"]
-            g.VENDORED_CSS = ["/static/bundle.css"]
-
-
-def register_filters(app: QuartTrio):
-    """Jinja filters."""
-    app.jinja_env.globals["SITE_TITLE"] = app.config["LNBITS_SITE_TITLE"]
-    app.jinja_env.globals["SITE_TAGLINE"] = app.config["LNBITS_SITE_TAGLINE"]
-    app.jinja_env.globals["SITE_DESCRIPTION"] = app.config["LNBITS_SITE_DESCRIPTION"]
-    app.jinja_env.globals["LNBITS_THEME_OPTIONS"] = app.config["LNBITS_THEME_OPTIONS"]
-    app.jinja_env.globals["LNBITS_VERSION"] = app.config["LNBITS_COMMIT"]
-    app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
+            g().VENDORED_JS = ["/static/bundle.js"]
+            g().VENDORED_CSS = ["/static/bundle.css"]
 
 
 def register_async_tasks(app):
-    @app.route("/wallet/webhook", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+    @app.route("/wallet/webhook")
     async def webhook_listener():
         return await webhook_handler()
 
-    @app.before_serving
+    @app.on_event("startup")
     async def listeners():
         run_deferred_async()
-        app.nursery.start_soon(catch_everything_and_restart, check_pending_payments)
-        app.nursery.start_soon(catch_everything_and_restart, invoice_listener)
-        app.nursery.start_soon(catch_everything_and_restart, internal_invoice_listener)
+        trio.open_process(check_pending_payments)
+        trio.open_process(invoice_listener)
+        trio.open_process(internal_invoice_listener)
+        
+        async with trio.open_nursery() as n:
+            pass
+            # n.start_soon(catch_everything_and_restart, check_pending_payments)
+            # n.start_soon(catch_everything_and_restart, invoice_listener)
+            # n.start_soon(catch_everything_and_restart, internal_invoice_listener)
 
-    @app.after_serving
+    @app.on_event("shutdown")
     async def stop_listeners():
         pass
 

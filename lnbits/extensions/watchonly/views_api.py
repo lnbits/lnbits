@@ -37,7 +37,7 @@ async def api_wallets_retrieve():
         return ""
 
 
-@watchonly_ext.get("/api/v1/wallet/<wallet_id>")
+@watchonly_ext.get("/api/v1/wallet/{wallet_id}")
 @api_check_wallet_key("invoice")
 async def api_wallet_retrieve(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
@@ -63,7 +63,7 @@ async def api_wallet_create_or_update(masterPub: str, Title: str, wallet_id=None
     return wallet._asdict(), HTTPStatus.CREATED
 
 
-@watchonly_ext.delete("/api/v1/wallet/<wallet_id>")
+@watchonly_ext.delete("/api/v1/wallet/{wallet_id}")
 @api_check_wallet_key("admin")
 async def api_wallet_delete(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
@@ -79,7 +79,7 @@ async def api_wallet_delete(wallet_id):
 #############################ADDRESSES##########################
 
 
-@watchonly_ext.get("/api/v1/address/<wallet_id>")
+@watchonly_ext.get("/api/v1/address/{wallet_id}")
 @api_check_wallet_key("invoice")
 async def api_fresh_address(wallet_id):
     await get_fresh_address(wallet_id)
@@ -89,7 +89,7 @@ async def api_fresh_address(wallet_id):
     return [address._asdict() for address in addresses], HTTPStatus.OK
 
 
-@watchonly_ext.get("/api/v1/addresses/<wallet_id>")
+@watchonly_ext.get("/api/v1/addresses/{wallet_id}")
 @api_check_wallet_key("invoice")
 async def api_get_addresses(wallet_id):
     wallet = await get_watch_wallet(wallet_id)
