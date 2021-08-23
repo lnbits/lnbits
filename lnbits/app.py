@@ -6,7 +6,7 @@ import importlib
 import traceback
 import trio
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -164,21 +164,13 @@ def register_async_tasks(app):
     async def stop_listeners():
         pass
 
+templates = Jinja2Templates(directory="templates")
 
 def register_exception_handlers(app):
     @app.errorhandler(Exception)
-    async def basic_error(err):
+    async def basic_error(request: Request, err):
         print("handled error", traceback.format_exc())
         etype, value, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        return (
-            "\n\n".join(
-                [
-                    "LNbits internal error!",
-                    exc,
-                    "If you believe this shouldn't be an error please bring it up on https://t.me/lnbits",
-                ]
-            ),
-            500,
-        )
+        return await templates.TemplateResponse("templates/error.html", {"request": request, "err": err})
