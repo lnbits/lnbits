@@ -1,3 +1,5 @@
+from fastapi.params import Query
+from fastapi.routing import APIRouter
 from lnbits.requestvars import g
 from os import path
 from http import HTTPStatus
@@ -22,20 +24,20 @@ from ..crud import (
 from ..services import redeem_lnurl_withdraw, pay_invoice
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
-from lnbits.jinja2_templating import Jinja2Templates
 
+core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])
 
-@core_app.get("/favicon.ico")
+@core_html_routes.get("/favicon.ico")
 async def favicon():
     return FileResponse("lnbits/core/static/favicon.ico")
     
 
-@core_app.get("/", response_class=HTMLResponse)
+@core_html_routes.get("/", response_class=HTMLResponse)
 async def home(request: Request, lightning: str = None):
     return g().templates.TemplateResponse("core/index.html", {"request": request, "lnurl": lightning})
 
 
-@core_app.get("/extensions")
+@core_html_routes.get("/extensions")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def extensions(enable: str, disable: str):
@@ -58,10 +60,11 @@ async def extensions(enable: str, disable: str):
     return await templates.TemplateResponse("core/extensions.html", {"request": request, "user": get_user(g.user.id)})
 
 
-@core_app.get("/wallet{usr}{wal}{nme}")
+@core_html_routes.get("/wallet")
 #Not sure how to validate
 @validate_uuids(["usr", "wal"])
-async def wallet(request: Request, usr: Optional[str], wal: Optional[str], nme: Optional[str]):
+async def wallet(request: Request, usr: Optional[str] = Query(None), 
+                    wal: Optional[str]=Query(None, description=""), nme: Optional[str]=Query(None)):
     user_id = usr
     wallet_id = wal
     wallet_name = nme
@@ -101,7 +104,7 @@ async def wallet(request: Request, usr: Optional[str], wal: Optional[str], nme: 
     )
 
 
-@core_app.get("/withdraw")
+@core_html_routes.get("/withdraw")
 @validate_uuids(["usr", "wal"], required=True)
 async def lnurl_full_withdraw():
     user = await get_user(request.args.get("usr"))
@@ -130,7 +133,7 @@ async def lnurl_full_withdraw():
         }
 
 
-@core_app.get("/withdraw/cb")
+@core_html_routes.get("/withdraw/cb")
 @validate_uuids(["usr", "wal"], required=True)
 async def lnurl_full_withdraw_callback():
     user = await get_user(request.args.get("usr"))
@@ -158,7 +161,7 @@ async def lnurl_full_withdraw_callback():
     return {"status": "OK"}
 
 
-@core_app.get("/deletewallet")
+@core_html_routes.get("/deletewallet")
 @validate_uuids(["usr", "wal"], required=True)
 @check_user_exists()
 async def deletewallet():
@@ -177,7 +180,7 @@ async def deletewallet():
     return redirect(url_for("core.home"))
 
 
-@core_app.get("/withdraw/notify/{service}")
+@core_html_routes.get("/withdraw/notify/{service}")
 @validate_uuids(["wal"], required=True)
 async def lnurl_balance_notify(service: str):
     bc = await get_balance_check(request.args.get("wal"), service)
@@ -185,7 +188,7 @@ async def lnurl_balance_notify(service: str):
         redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_app.get("/lnurlwallet")
+@core_html_routes.get("/lnurlwallet")
 async def lnurlwallet():
     async with db.connect() as conn:
         account = await create_account(conn=conn)
@@ -204,7 +207,7 @@ async def lnurlwallet():
     return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
 
 
-@core_app.get("/manifest/{usr}.webmanifest")
+@core_html_routes.get("/manifest/{usr}.webmanifest")
 async def manifest(usr: str):
     user = await get_user(usr)
     if not user:

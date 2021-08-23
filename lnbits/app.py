@@ -30,6 +30,7 @@ from .tasks import (
 )
 from .settings import WALLET
 from .requestvars import g, request_global
+from .core.views.generic import core_html_routes
 import lnbits.settings
 
 async def create_app(config_object="lnbits.settings") -> FastAPI:
@@ -106,8 +107,9 @@ def check_funding_source(app: FastAPI) -> None:
 
 
 def register_routes(app: FastAPI) -> None:
-    """Register Flask blueprints / LNbits extensions."""
+    """Register FastAPI routes / LNbits extensions."""
     app.include_router(core_app)
+    app.include_router(core_html_routes)
 
     for ext in get_valid_extensions():
         try:
