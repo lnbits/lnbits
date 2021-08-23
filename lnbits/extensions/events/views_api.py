@@ -53,16 +53,16 @@ class CreateData(BaseModel):
     price_per_ticket:  int = Query(..., ge=0)
 
 @events_ext.post("/api/v1/events")
-@events_ext.put("/api/v1/events/<event_id>")
+@events_ext.put("/api/v1/events/{event_id}")
 @api_check_wallet_key("invoice")
 async def api_event_create(data: CreateData, event_id=None):
     if event_id:
         event = await get_event(event_id)
         if not event:
-            return jsonable_encoder({"message": "Form does not exist."}), HTTPStatus.NOT_FOUND
+            return {"message": "Form does not exist."}, HTTPStatus.NOT_FOUND
 
         if event.wallet != g.wallet.id:
-            return jsonable_encoder({"message": "Not your event."}), HTTPStatus.FORBIDDEN
+            return {"message": "Not your event."}, HTTPStatus.FORBIDDEN
 
         event = await update_event(event_id, **data)
     else:
@@ -71,15 +71,15 @@ async def api_event_create(data: CreateData, event_id=None):
     return event._asdict(), HTTPStatus.CREATED
 
 
-@events_ext.delete("/api/v1/events/<event_id>")
+@events_ext.delete("/api/v1/events/{event_id}")
 @api_check_wallet_key("invoice")
 async def api_form_delete(event_id):
     event = await get_event(event_id)
     if not event:
-        return jsonable_encoder({"message": "Event does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Event does not exist."}, HTTPStatus.NOT_FOUND
 
     if event.wallet != g.wallet.id:
-        return jsonable_encoder({"message": "Not your event."}), HTTPStatus.FORBIDDEN
+        return {"message": "Not your event."}, HTTPStatus.FORBIDDEN
 
     await delete_event(event_id)
     return "", HTTPStatus.NO_CONTENT
@@ -105,11 +105,11 @@ class CreateTicketData(BaseModel):
     name:  str = Query(...)
     email:  str
 
-@events_ext.post("/api/v1/tickets/<event_id>/<sats>")
+@events_ext.post("/api/v1/tickets/{event_id}/{sats}")
 async def api_ticket_make_ticket(data: CreateTicketData, event_id, sats):
     event = await get_event(event_id)
     if not event:
-        return jsonable_encoder({"message": "Event does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Event does not exist."}, HTTPStatus.NOT_FOUND
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=event.wallet,
@@ -118,22 +118,19 @@ async def api_ticket_make_ticket(data: CreateTicketData, event_id, sats):
             extra={"tag": "events"},
         )
     except Exception as e:
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
     ticket = await create_ticket(
         payment_hash=payment_hash, wallet=event.wallet, event=event_id, **data
     )
 
     if not ticket:
-        return jsonable_encoder({"message": "Event could not be fetched."}), HTTPStatus.NOT_FOUND
+        return {"message": "Event could not be fetched."}, HTTPStatus.NOT_FOUND
 
-    return (
-        jsonable_encoder({"payment_hash": payment_hash, "payment_request": payment_request}),
-        HTTPStatus.OK,
-    )
+    return {"payment_hash": payment_hash, "payment_request": payment_request}, HTTPStatus.OK
 
 
-@events_ext.get("/api/v1/tickets/<payment_hash>")
+@events_ext.get("/api/v1/tickets/{payment_hash}")
 async def api_ticket_send_ticket(payment_hash):
     ticket = await get_ticket(payment_hash)
 
@@ -141,7 +138,7 @@ async def api_ticket_send_ticket(payment_hash):
         status = await check_invoice_status(ticket.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
-        return jsonable_encoder({"message": "Not paid."}), HTTPStatus.NOT_FOUND
+        return {"message": "Not paid."}, HTTPStatus.NOT_FOUND
 
     if is_paid:
         wallet = await get_wallet(ticket.wallet)
@@ -149,21 +146,21 @@ async def api_ticket_send_ticket(payment_hash):
         await payment.set_pending(False)
         ticket = await set_ticket_paid(payment_hash=payment_hash)
 
-        return jsonable_encoder({"paid": True, "ticket_id": ticket.id}), HTTPStatus.OK
+        return {"paid": True, "ticket_id": ticket.id}, HTTPStatus.OK
 
-    return jsonable_encoder({"paid": False}), HTTPStatus.OK
+    return {"paid": False}, HTTPStatus.OK
 
 
-@events_ext.delete("/api/v1/tickets/<ticket_id>")
+@events_ext.delete("/api/v1/tickets/{ticket_id}")
 @api_check_wallet_key("invoice")
 async def api_ticket_delete(ticket_id):
     ticket = await get_ticket(ticket_id)
 
     if not ticket:
-        return jsonable_encoder({"message": "Ticket does not exist."}), HTTPStatus.NOT_FOUND
+        return {"message": "Ticket does not exist."}, HTTPStatus.NOT_FOUND
 
     if ticket.wallet != g.wallet.id:
-        return jsonable_encoder({"message": "Not your ticket."}), HTTPStatus.FORBIDDEN
+        return {"message": "Not your ticket."}, HTTPStatus.FORBIDDEN
 
     await delete_ticket(ticket_id)
     return "", HTTPStatus.NO_CONTENT
@@ -172,26 +169,23 @@ async def api_ticket_delete(ticket_id):
 # Event Tickets
 
 
-@events_ext.get("/api/v1/eventtickets/<wallet_id>/<event_id>")
+@events_ext.get("/api/v1/eventtickets/{wallet_id}/{event_id]")
 async def api_event_tickets(wallet_id, event_id):
     return ([ticket._asdict() for ticket in await get_event_tickets(wallet_id=wallet_id, event_id=event_id)],
         HTTPStatus.OK,
     )
 
 
-@events_ext.get("/api/v1/register/ticket/<ticket_id>")
+@events_ext.get("/api/v1/register/ticket/{ticket_id}")
 async def api_event_register_ticket(ticket_id):
     ticket = await get_ticket(ticket_id)
     if not ticket:
-        return jsonable_encoder({"message": "Ticket does not exist."}), HTTPStatus.FORBIDDEN
+        return {"message": "Ticket does not exist."}, HTTPStatus.FORBIDDEN
 
     if not ticket.paid:
-        return jsonable_encoder({"message": "Ticket not paid for."}), HTTPStatus.FORBIDDEN
+        return {"message": "Ticket not paid for."}, HTTPStatus.FORBIDDEN
 
     if ticket.registered == True:
-        return jsonable_encoder({"message": "Ticket already registered"}), HTTPStatus.FORBIDDEN
+        return {"message": "Ticket already registered"}, HTTPStatus.FORBIDDEN
 
-    return (
-        [ticket._asdict() for ticket in await reg_ticket(ticket_id)],
-        HTTPStatus.OK,
-    )
+    return [ticket._asdict() for ticket in await reg_ticket(ticket_id)], HTTPStatus.OK
