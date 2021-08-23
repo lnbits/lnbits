@@ -38,6 +38,7 @@ async def create_app(config_object="lnbits.settings") -> FastAPI:
     """
     app = FastAPI()
     app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
+    app.mount("/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static")
 
     origins = [
         "http://localhost",
