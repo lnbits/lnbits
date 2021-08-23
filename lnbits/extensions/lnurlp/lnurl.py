@@ -22,7 +22,7 @@ async def api_lnurl_response(link_id):
 
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
     resp = LnurlPayResponse(
-        callback=url_for("lnurlp.api_lnurl_callback", link_id=link.id, _external=True),
+        callback=url_for("lnurlp.api_lnurl_callback", link_id=link.id, extra=request.args.get('extra'), _external=True),
         min_sendable=math.ceil(link.min * rate) * 1000,
         max_sendable=round(link.max * rate) * 1000,
         metadata=link.lnurlpay_metadata,
@@ -92,7 +92,7 @@ async def api_lnurl_callback(link_id):
         description_hash=hashlib.sha256(
             link.lnurlpay_metadata.encode("utf-8")
         ).digest(),
-        extra={"tag": "lnurlp", "link": link.id, "comment": comment},
+        extra={"tag": "lnurlp", "link": link.id, "comment": comment, 'extra': request.args.get('extra')},
     )
 
     success_action = link.success_action(payment_hash)

@@ -107,7 +107,6 @@
       return {
         currentPlaylist: [],
         currentlyPlaying: {},
-        cancelListener: () => {},
         playlists: {},
         playlist: '',
         heavyList: [],
@@ -124,7 +123,10 @@
           artist: '',
           image: '',
           id: '',
-          showQR: false
+          showQR: false,
+          data: null,
+          dismissMsg: null,
+          paymentChecker: null
         }
       }
     },
@@ -142,51 +144,9 @@
         self.receive.id = song_id
         self.receive.dialogues.first = true
       },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.selectedWallet,
-          payment => {
-            this.paid = true
-            this.receive.dialogues.first = false
-            this.receive.dialogues.second = false
-            LNbits.api
-              .request(
-                'GET',
-                '/jukebox/api/v1/jukebox/jb/invoicep/' +
-                  this.receive.id +
-                  '/{{ juke_id }}/' +
-                  this.receive.paymentHash
-              )
-              .then(response1 => {
-                if (response1.data[2] == this.receive.id) {
-                  setTimeout(() => {
-                    this.getCurrent()
-                  }, 500)
-                  this.$q.notify({
-                    color: 'green',
-                    message:
-                      'Success! "' +
-                      this.receive.name +
-                      '" will be played soon',
-                    timeout: 3000
-                  })
-
-                  this.paid = false
-                  response1 = []
-                }
-              })
-              .catch(err => {
-                LNbits.utils.notifyApiError(err)
-                self.paid = false
-                response1 = []
-              })
-          }
-        )
-      },
       getInvoice(song_id) {
         self = this
+        var dialog = this.receive
         LNbits.api
           .request(
             'GET',
@@ -199,10 +159,57 @@
             self.receive.paymentReq = response.data[0][1]
             self.receive.paymentHash = response.data[0][0]
             self.receive.dialogues.second = true
+            dialog.data = response.data
 
-            self.$q.notify({
-              message: 'Processing'
+            dialog.dismissMsg = self.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
             })
+            dialog.paymentChecker = setInterval(function () {
+              LNbits.api
+                .request(
+                  'GET',
+                  '/jukebox/api/v1/jukebox/jb/checkinvoice/' +
+                    self.receive.paymentHash +
+                    '/{{ juke_id }}'
+                )
+                .then(function (res) {
+                  console.log(res)
+                  if (res.data.paid == true) {
+                    clearInterval(dialog.paymentChecker)
+                    LNbits.api
+                      .request(
+                        'GET',
+                        '/jukebox/api/v1/jukebox/jb/invoicep/' +
+                          self.receive.id +
+                          '/{{ juke_id }}/' +
+                          self.receive.paymentHash
+                      )
+                      .then(function (ress) {
+                        console.log(ress)
+                        if (ress.data[2] == self.receive.id) {
+                          clearInterval(dialog.paymentChecker)
+                          dialog.dismissMsg()
+                          self.receive.dialogues.second = false
+
+                          self.$q.notify({
+                            type: 'positive',
+                            message:
+                              'Success! "' +
+                              self.receive.name +
+                              '" will be played soon',
+                            timeout: 3000
+                          })
+                          self.receive.dialogues.first = false
+                        }
+                      })
+                  }
+                })
+            }, 3000)
+
+            setTimeout(() => {
+              self.getCurrent()
+            }, 500)
           })
           .catch(err => {
             self.$q.notify({
@@ -249,7 +256,6 @@
       this.getCurrent()
       this.playlists = JSON.parse('{{ playlists | tojson }}')
       this.selectedWallet.inkey = '{{ inkey }}'
-      this.startPaymentNotifier()
       self = this
       LNbits.api
         .request(

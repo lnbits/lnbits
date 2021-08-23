@@ -331,6 +331,7 @@ async def api_get_jukebox_invoice_paid(song_id, juke_id, pay_hash, retry=False):
             jsonify({"error": "No Jukebox"}),
             HTTPStatus.FORBIDDEN,
         )
+    await api_get_jukebox_invoice_check(pay_hash, juke_id)
     jukebox_payment = await get_jukebox_payment(pay_hash)
     if jukebox_payment.paid:
         async with httpx.AsyncClient() as client:

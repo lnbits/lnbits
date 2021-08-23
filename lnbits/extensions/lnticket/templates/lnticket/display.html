@@ -23,11 +23,20 @@
             label="Your email (optional, if you want a reply)"
           ></q-input>
           <q-input
+            v-if="flatrate"
             filled
             dense
             v-model.number="formDialog.data.text"
             type="textarea"
-            label="{{ form_costpword }} sats per word"
+            label="{{ form_amount }} sats"
+          ></q-input>
+          <q-input
+            v-else
+            filled
+            dense
+            v-model.number="formDialog.data.text"
+            type="textarea"
+            label="{{ form_amount }} sats per word"
           ></q-input>
           <p>{% raw %}{{amountWords}}{% endraw %}</p>
           <div class="row q-mt-lg">
@@ -87,13 +96,16 @@
       return {
         paymentReq: null,
         redirectUrl: null,
+        flatrate: parseInt('{{form_flatrate}}'),
         formDialog: {
           show: false,
           data: {
             name: '',
             email: '',
             text: ''
-          }
+          },
+          dismissMsg: null,
+          paymentChecker: null
         },
         receive: {
           show: false,
@@ -108,21 +120,24 @@
     },
     computed: {
       amountWords() {
-        var regex = /\s+/gi
-        var nwords = this.formDialog.data.text
-          .trim()
-          .replace(regex, ' ')
-          .split(' ').length
-        var sats = nwords * parseInt('{{ form_costpword }}')
-        if (sats === parseInt('{{ form_costpword }}')) {
+        if (this.formDialog.data.text.length == '') {
           return '0 Sats to pay'
         } else {
+          var regex = /\s+/gi
+          var nwords = this.formDialog.data.text
+            .trim()
+            .replace(regex, ' ')
+            .split(' ').length
+          if (this.flatrate) {
+            var sats = parseInt('{{ form_amount }}')
+          } else {
+            var sats = nwords * parseInt('{{ form_amount }}')
+          }
           this.formDialog.data.sats = sats
           return sats + ' Sats to pay'
         }
       }
     },
-
     methods: {
       resetForm: function (e) {
         e.preventDefault()
@@ -130,39 +145,9 @@
         this.formDialog.data.email = ''
         this.formDialog.data.text = ''
       },
-
-      closeReceiveDialog: function () {
-        var checker = this.startPaymentNotifier
-        dismissMsg()
-
-        setTimeout(function () {}, 10000)
-      },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.receive = {
-              show: false,
-              status: 'complete',
-              paymentReq: null
-            }
-            dismissMsg()
-
-            this.formDialog.data.name = ''
-            this.formDialog.data.email = ''
-            this.formDialog.data.text = ''
-            this.$q.notify({
-              type: 'positive',
-              message: 'Sent, thank you!',
-              icon: 'thumb_up'
-            })
-          }
-        )
-      },
       Invoice: function () {
         var self = this
+        var dialog = this.formDialog
         axios
           .post('/lnticket/api/v1/tickets/{{ form_id }}', {
             form: '{{ form_id }}',
@@ -175,16 +160,34 @@
             self.paymentReq = response.data.payment_request
             self.paymentCheck = response.data.payment_hash
 
-            dismissMsg = self.$q.notify({
+            dialog.dismissMsg = self.$q.notify({
               timeout: 0,
               message: 'Waiting for payment...'
             })
-
             self.receive = {
               show: true,
               status: 'pending',
               paymentReq: self.paymentReq
             }
+            dialog.paymentChecker = setInterval(function () {
+              axios
+                .get('/lnticket/api/v1/tickets/' + response.data.payment_hash)
+                .then(function (res) {
+                  if (res.data.paid) {
+                    clearInterval(dialog.paymentChecker)
+                    dialog.dismissMsg()
+                    self.receive.show = false
+                    self.formDialog.data.name = ''
+                    self.formDialog.data.email = ''
+                    self.formDialog.data.text = ''
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Sats received, thanks!',
+                      icon: 'thumb_up'
+                    })
+                  }
+                })
+            }, 3000)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -193,7 +196,6 @@
     },
     created() {
       this.wallet.inkey = '{{form_wallet}}'
-      this.startPaymentNotifier()
     }
   })
 </script>

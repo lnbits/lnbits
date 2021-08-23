@@ -7,7 +7,8 @@ class Forms(NamedTuple):
     name: str
     webhook: str
     description: str
-    costpword: int
+    amount: int
+    flatrate: int
     amountmade: int
     time: int
 

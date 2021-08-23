@@ -112,6 +112,7 @@ async def create_wallet(
 
     return new_wallet
 
+
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
@@ -121,7 +122,7 @@ async def update_wallet(
             name = ?
         WHERE id = ?
         """,
-        (new_name, wallet_id)
+        (new_name, wallet_id),
     )
 
 
@@ -220,6 +221,7 @@ async def get_payments(
     outgoing: bool = False,
     incoming: bool = False,
     since: Optional[int] = None,
+    memo: Optional[str] = None,
     exclude_uncheckable: bool = False,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
@@ -242,6 +244,10 @@ async def get_payments(
     if wallet_id:
         clause.append("wallet = ?")
         args.append(wallet_id)
+
+    if memo:
+        clause.append(f"memo == ?")
+        args.append(memo)
 
     if complete and pending:
         pass

@@ -26,7 +26,7 @@ LNbits is a very simple Python server that sits on top of any funding source, an
 
 LNbits can run on top of any lightning-network funding source, currently there is support for LND, c-lightning, Spark, LNpay, OpenNode, lntxbot, with more being added regularly.
 
-See [lnbits.org](https://lnbits.org) for more detailed documentation.
+Checkout [Awesome-LNbits](https://github.com/cryptoteun/awesome-lnbits), a currated list of projects made using LNbits. 
 
 Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
 
