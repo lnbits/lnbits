@@ -1,5 +1,8 @@
+from lnbits.core.models import Wallet
 from fastapi.params import Query
 from fastapi.routing import APIRouter
+from fastapi.responses import RedirectResponse
+from fastapi import status
 from lnbits.requestvars import g
 from os import path
 from http import HTTPStatus
@@ -60,11 +63,15 @@ async def extensions(enable: str, disable: str):
     return await templates.TemplateResponse("core/extensions.html", {"request": request, "user": get_user(g.user.id)})
 
 
-@core_html_routes.get("/wallet")
+@core_html_routes.get("/wallet", response_class=HTMLResponse)
 #Not sure how to validate
 @validate_uuids(["usr", "wal"])
-async def wallet(request: Request, usr: Optional[str] = Query(None), 
-                    wal: Optional[str]=Query(None, description=""), nme: Optional[str]=Query(None)):
+async def wallet(request: Request,
+    usr: Optional[str] = Query(None),
+    wal: Optional[str] = Query(None),
+    nme: Optional[str] = Query(None),
+    ):
+                    
     user_id = usr
     wallet_id = wal
     wallet_name = nme
@@ -77,30 +84,27 @@ async def wallet(request: Request, usr: Optional[str] = Query(None),
     # nothing: create everything
 
     if not user_id:
-        user = await get_user((await create_account()).id)
+        usr = await get_user((await create_account()).id)
     else:
-        user = await get_user(user_id)
-        if not user:
-            abort(HTTPStatus.NOT_FOUND, "User does not exist.")
-            return
-
+        usr = await get_user(user_id)
+        if not usr:
+            return g().templates.TemplateResponse("error.html", {"request": request, "err": "User does not exist."})
         if LNBITS_ALLOWED_USERS and user_id not in LNBITS_ALLOWED_USERS:
-            abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
-
+            return g().templates.TemplateResponse("error.html", {"request": request, "err": "User not authorized."})
     if not wallet_id:
-        if user.wallets and not wallet_name:
-            wallet = user.wallets[0]
+        if usr.wallets and not wallet_name:
+            wal = usr.wallets[0]
         else:
-            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+            wal = await create_wallet(user_id=usr.id, wallet_name=wallet_name)
 
-        return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
+        return RedirectResponse(f"/wallet?usr={usr.id}&wal={wal.id}", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
-    wallet = user.get_wallet(wallet_id)
-    if not wallet:
-        abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
+    wal = usr.get_wallet(wallet_id)
+    if not wal:
+        return g().templates.TemplateResponse("error.html", {"request": request, ...})
 
-    return await templates.TemplateResponse(
-        "core/wallet.html", {"request":request,"user":user, "wallet":wallet, "service_fee":service_fee}
+    return g().templates.TemplateResponse(
+        "core/wallet.html", {"request":request,"user":usr, "wallet":wal, "service_fee":service_fee}
     )
 
 

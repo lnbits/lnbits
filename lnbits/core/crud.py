@@ -54,20 +54,14 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
             """,
             (user_id,),
         )
+    else:
+        return None
 
-    return (
-        User(
-            **{
-                **user,
-                **{
-                    "extensions": [e[0] for e in extensions],
-                    "wallets": [Wallet(**w) for w in wallets],
-                },
-            }
-        )
-        if user
-        else None
-    )
+    return User(
+        id = user['id'],
+        email = user['email'],
+        extensions = [e[0] for e in extensions],
+        wallets = [Wallet(**w) for w in wallets])
 
 
 async def update_user_extension(

@@ -10,22 +10,6 @@ from pydantic import BaseModel
 from lnbits.settings import WALLET
 
 
-class User(BaseModel):
-    id: str
-    email: str
-    extensions: List[str] = []
-    wallets: List["Wallet"] = []
-    password: Optional[str] = None
-
-    @property
-    def wallet_ids(self) -> List[str]:
-        return [wallet.id for wallet in self.wallets]
-
-    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
-        w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
-        return w[0] if w else None
-
-
 class Wallet(BaseModel):
     id: str
     name: str
@@ -71,6 +55,22 @@ class Wallet(BaseModel):
         from .crud import get_wallet_payment
 
         return await get_wallet_payment(self.id, payment_hash)
+
+
+class User(BaseModel):
+    id: str
+    email: Optional[str] = None
+    extensions: List[str] = []
+    wallets: List[Wallet] = []
+    password: Optional[str] = None
+
+    @property
+    def wallet_ids(self) -> List[str]:
+        return [wallet.id for wallet in self.wallets]
+
+    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
+        w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
+        return w[0] if w else None
 
 
 class Payment(BaseModel):
