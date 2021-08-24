@@ -41,14 +41,29 @@ async def m002_initial(db):
     """
     )
 
+async def m003_initial(db):
+    """
+    Creates an improved satsdice table and migrates the existing data.
+    """
+    await db.execute(
+        """
+        CREATE TABLE satsdice.satsdice_payment (
+            payment_hash TEXT PRIMARY KEY,
+            satsdice_pay TEXT,
+            value INTEGER,
+            paid BOOL DEFAULT 0,
+            lost BOOL DEFAULT 0
+        );
+    """
+    )
 
-async def m003_make_hash_check(db):
+async def m004_make_hash_check(db):
     """
     Creates a hash check table.
     """
     await db.execute(
         """
-        CREATE TABLE satsdice.hash_check (
+        CREATE TABLE satsdice.hash_checkw (
             id TEXT PRIMARY KEY,
             lnurl_id TEXT
         );

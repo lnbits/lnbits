@@ -37,27 +37,38 @@ class satsdiceLink(NamedTuple):
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
     def success_action(self, payment_hash: str) -> Optional[Dict]:
-        url: ParseResult = urlparse("https://lnbits.com/satsdice/win/" + self.id)
-        qs: Dict = parse_qs(url.query)
-        qs["payment_hash"] = payment_hash
-        url = url._replace(query=urlencode(qs, doseq=True))
+        url = url_for("satsdice.displaywin", link_id=self.id, payment_hash=payment_hash, _external=True)
+#        url: ParseResult = urlparse(url)
+        print(url)
+#        qs: Dict = parse_qs(url.query)
+#        qs["payment_hash"] = payment_hash
+#        url = url._replace(query=urlencode(qs, doseq=True))
         return {
             "tag": "url",
             "description": "Check the attached link",
-            "url": urlunparse(url),
+            "url": url,
         }
+
+class satsdicePayment(NamedTuple):
+    payment_hash: str
+    satsdice_pay: str
+    value: int
+    paid: bool
+    lost: bool
+
+    @classmethod
+    def from_row(cls, row: Row) -> "satsdicePayment":
+        data = dict(row)
+        return cls(**data)
 
 class satsdiceWithdraw(NamedTuple):
     id: str
-    wallet: str
-    title: str
+    satsdice_pay: str
     value: int
     unique_hash: str
     k1: str
-    odds: float
-    actual_odds: float
     open_time: int
-    current_odds: float
+    used: int
 
     @classmethod
     def from_row(cls, row: Row) -> "satsdiceWithdraw":
@@ -66,7 +77,7 @@ class satsdiceWithdraw(NamedTuple):
 
     @property
     def is_spent(self) -> bool:
-        return self.used >= self.uses
+        return self.used >= 1
 
     @property
     def lnurl(self) -> Lnurl:
@@ -88,9 +99,9 @@ class satsdiceWithdraw(NamedTuple):
         return LnurlWithdrawResponse(
             callback=url,
             k1=self.k1,
-            min_satsdiceable=self.value * 1000,
-            max_satsdiceable=self.value * 1000,
-            default_description=self.title,
+            minWithdrawable=self.value * 1000,
+            maxWithdrawable=self.value * 1000,
+            default_description="Satsdice winnings!",
         )
 
 class HashCheck(NamedTuple):

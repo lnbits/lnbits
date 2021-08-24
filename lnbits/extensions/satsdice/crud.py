@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import satsdiceWithdraw, HashCheck, satsdiceLink
+from .models import satsdiceWithdraw, HashCheck, satsdiceLink, satsdicePayment
 
-##################FLIP LINKS
+##################SATSDICE PAY LINKS
 
 async def create_satsdice_pay(
     *,
@@ -107,11 +107,55 @@ async def delete_satsdice_pay(link_id: int) -> None:
     await db.execute("DELETE FROM satsdice.satsdice_pay WHERE id = ?", (link_id,))
 
 
-##################FLIP WITHDRAWS
+##################SATSDICE PAYMENT LINKS
 
+async def create_satsdice_payment(
+    *, satsdice_pay: str, value: int, payment_hash: str
+) -> satsdicePayment:
+    await db.execute(
+        """
+        INSERT INTO satsdice.satsdice_payment (
+            payment_hash,
+            satsdice_pay,
+            value,
+            paid,
+            lost
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            payment_hash,
+            satsdice_pay,
+            value,
+            0,
+            0,
+        ),
+    )
+    payment = await get_satsdice_payment(payment_hash)
+    assert payment, "Newly created withdraw couldn't be retrieved"
+    return payment
+
+async def get_satsdice_payment(payment_hash: str) -> Optional[satsdicePayment]:
+    row = await db.fetchone(
+        "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?", (payment_hash,)
+    )
+    return satsdicePayment.from_row(row) if row else None
+
+async def update_satsdice_payment(payment_hash: int, **kwargs) -> Optional[satsdicePayment]:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(
+        f"UPDATE satsdice.satsdice_payment SET {q} WHERE payment_hash = ?",
+        (*kwargs.values(), payment_hash),
+    )
+    row = await db.fetchone(
+        "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?", (payment_hash,)
+    )
+    return satsdicePayment.from_row(row) if row else None
+
+##################SATSDICE WITHDRAW LINKS
 
 async def create_satsdice_withdraw(
-    *, satsdice_pay: str, title: str, value: int, used: int
+    *, payment_hash: str, satsdice_pay: str, value: int, used: int
 ) -> satsdiceWithdraw:
     await db.execute(
         """
@@ -127,7 +171,7 @@ async def create_satsdice_withdraw(
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            urlsafe_short_hash(),
+            payment_hash,
             satsdice_pay,
             value,
             urlsafe_short_hash(),
@@ -136,7 +180,7 @@ async def create_satsdice_withdraw(
             used,
         ),
     )
-    withdraw = await get_satsdice_withdraw(withdraw_id, 0)
+    withdraw = await get_satsdice_withdraw(payment_hash, 0)
     assert withdraw, "Newly created withdraw couldn't be retrieved"
     return withdraw
 
@@ -154,7 +198,7 @@ async def get_satsdice_withdraw(
     for item in row:
         withdraw.append(item)
     withdraw.append(num)
-    return satsdiceWithdraw._make(withdraw)
+    return satsdiceWithdraw.from_row(row)
 
 
 async def get_satsdice_withdraw_by_hash(
@@ -171,7 +215,7 @@ async def get_satsdice_withdraw_by_hash(
     for item in row:
         withdraw.append(item)
     withdraw.append(num)
-    return satsdiceWithdraw._make(withdraw)
+    return satsdiceWithdraw.from_row(row)
 
 
 async def get_satsdice_withdraws(

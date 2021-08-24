@@ -12,8 +12,8 @@ from . import satsdice_ext
 from .crud import (
     get_satsdice_withdraw_by_hash,
     update_satsdice_withdraw,
-    increment_satsdice_pay,
     get_satsdice_pay,
+    create_satsdice_payment,
 )
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
@@ -86,6 +86,7 @@ async def api_lnurlp_callback(link_id):
     )
 
     success_action = link.success_action(payment_hash)
+    link = await create_satsdice_payment(satsdice_pay=link.id, value=amount_received/1000, payment_hash=payment_hash)
     if success_action:
         resp = LnurlPayActionResponse(
             pr=payment_request,
@@ -114,7 +115,7 @@ async def api_lnurlw_response(unique_hash):
             HTTPStatus.OK,
         )
 
-    if link.is_spent:
+    if link.used:
         return (
             jsonify({"status": "ERROR", "reason": "satsdice is spent."}),
             HTTPStatus.OK,
@@ -129,6 +130,7 @@ async def api_lnurlw_response(unique_hash):
 @satsdice_ext.route("/api/v1/lnurlw/cb/<unique_hash>", methods=["GET"])
 async def api_lnurlw_callback(unique_hash):
     link = await get_satsdice_withdraw_by_hash(unique_hash)
+    paylink = await get_satsdice_pay(link.satsdice_pay)
     k1 = request.args.get("k1", type=str)
     payment_request = request.args.get("pr", type=str)
     now = int(datetime.now().timestamp())
@@ -139,7 +141,7 @@ async def api_lnurlw_callback(unique_hash):
             HTTPStatus.OK,
         )
 
-    if link.is_spent:
+    if link.used:
         return (
             jsonify({"status": "ERROR", "reason": "satsdice is spent."}),
             HTTPStatus.OK,
@@ -157,27 +159,23 @@ async def api_lnurlw_callback(unique_hash):
         )
 
     try:
-
-        changesback = {"open_time": link.wait_time, "used": link.used}
-
-        changes = {"open_time": link.wait_time + now, "used": link.used + 1}
-
-        await update_satsdice_withdraw(link.id, **changes)
+        await update_satsdice_withdraw(link.id,used=1)
 
         await pay_invoice(
-            wallet_id=link.wallet,
+            wallet_id=paylink.wallet,
             payment_request=payment_request,
-            max_sat=link.max_satsdiceable,
-            extra={"tag": "satsdice"},
+            max_sat=link.value,
+            extra={"tag": "withdraw"},
         )
+       
     except ValueError as e:
-        await update_satsdice_withdraw(link.id, **changesback)
+        await update_satsdice_withdraw(link.id,used=1)
         return jsonify({"status": "ERROR", "reason": str(e)})
     except PermissionError:
-        await update_satsdice_withdraw(link.id, **changesback)
+        await update_satsdice_withdraw(link.id,used=1)
         return jsonify({"status": "ERROR", "reason": "satsdice link is empty."})
     except Exception as e:
-        await update_satsdice_withdraw(link.id, **changesback)
+        await update_satsdice_withdraw(link.id,used=1)
         return jsonify({"status": "ERROR", "reason": str(e)})
 
     return jsonify({"status": "OK"}), HTTPStatus.OK

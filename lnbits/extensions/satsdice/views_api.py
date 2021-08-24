@@ -53,7 +53,7 @@ async def api_links():
 @satsdice_ext.route("/api/v1/links/<link_id>", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_link_retrieve(link_id):
-    link = await get_pay_link(link_id)
+    link = await get_satsdice_pay(link_id)
 
     if not link:
         return jsonify({"message": "Pay link does not exist."}), HTTPStatus.NOT_FOUND
