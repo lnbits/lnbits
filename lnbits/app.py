@@ -164,8 +164,6 @@ def register_async_tasks(app):
     async def stop_listeners():
         pass
 
-templates = Jinja2Templates(directory="templates")
-
 def register_exception_handlers(app):
     @app.errorhandler(Exception)
     async def basic_error(request: Request, err):
@@ -173,4 +171,5 @@ def register_exception_handlers(app):
         etype, value, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        return await templates.TemplateResponse("templates/error.html", {"request": request, "err": err})
+        return g().templates.TemplateResponse("error.html", {"request": request, "err": err})
+
