@@ -71,7 +71,7 @@ async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceL
     rows = await db.fetchall(
         f"""
         SELECT * FROM satsdice.satsdice_pay WHERE wallet IN ({q})
-        ORDER BY Id
+        ORDER BY id
         """,
         (*wallet_ids,),
     )
@@ -127,8 +127,8 @@ async def create_satsdice_payment(
             payment_hash,
             satsdice_pay,
             value,
-            0,
-            0,
+            False,
+            False,
         ),
     )
     payment = await get_satsdice_payment(payment_hash)
@@ -143,9 +143,10 @@ async def get_satsdice_payment(payment_hash: str) -> Optional[satsdicePayment]:
 
 async def update_satsdice_payment(payment_hash: int, **kwargs) -> Optional[satsdicePayment]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+
     await db.execute(
         f"UPDATE satsdice.satsdice_payment SET {q} WHERE payment_hash = ?",
-        (*kwargs.values(), payment_hash),
+        (bool(*kwargs.values()), payment_hash),
     )
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?", (payment_hash,)

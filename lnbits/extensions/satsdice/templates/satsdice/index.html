@@ -40,7 +40,7 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td style="width:10%">
-                
+
                 <q-btn
                   unelevated
                   dense
@@ -50,7 +50,7 @@
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
               </q-td>
-             
+
               <q-td auto-width>{{ props.row.title }}</q-td>
               <q-td auto-width>{{ props.row.min_bet }}</q-td>
               <q-td auto-width>{{ props.row.max_bet }}</q-td>
@@ -424,9 +424,14 @@
         }
       },
       updatePayLink(wallet, data) {
+
         let values = _.omit(
           _.pick(
             data,
+            'chance',
+            'base_url',
+            'multiplier',
+            'haircut',
             'title',
             'min_bet',
             'max_bet',

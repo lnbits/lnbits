@@ -51,8 +51,8 @@ async def m003_initial(db):
             payment_hash TEXT PRIMARY KEY,
             satsdice_pay TEXT,
             value INTEGER,
-            paid BOOL DEFAULT 0,
-            lost BOOL DEFAULT 0
+            paid BOOL DEFAULT FALSE,
+            lost BOOL DEFAULT FALSE
         );
     """
     )
