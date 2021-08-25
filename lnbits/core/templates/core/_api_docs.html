@@ -99,7 +99,6 @@
     dense
     expand-separator
     label="Check an invoice (incoming or outgoing)"
-    class="q-pb-md"
   >
     <q-card>
       <q-card-section>
@@ -118,6 +117,57 @@
           >curl -X GET {{ request.url_root
           }}api/v1/payments/&lt;payment_hash&gt; -H "X-Api-Key:
           <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
+        >
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get invoices (incoming or outgoing)"
+  >
+    <q-card>
+      <q-card-section>
+        <code><span class="text-light-blue">GET</span> /api/v1/payments</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": "{{ wallet.inkey }}"}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[{&lt;invoices&gt;}]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/payments -H "X-Api-Key:
+          <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
+        >
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get invoice(s) by memo (incoming or outgoing)"
+    class="q-pb-md"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /api/v1/payments?memo=&lt;memo&gt;</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": "{{ wallet.inkey }}"}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[{&lt;invoices&gt;}]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.url_root }}api/v1/payments?memo=&lt;memo&gt;
+          -H "X-Api-Key: <i>{{ wallet.inkey }}"</i> -H "Content-type:
+          application/json"</code
         >
       </q-card-section>
     </q-card>

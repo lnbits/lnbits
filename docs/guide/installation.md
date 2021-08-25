@@ -31,7 +31,7 @@ You might also need to install additional packages or perform additional setup s
 
 # Additional guides
 
-### LNbits running on Umbrel behind Tor
+### LNbits running on Umbrel on clearnet
 
 If you want to run LNbits on your Umbrel but want it to be reached through clearnet, _Uxellodunum_ made an extensive [guide](https://community.getumbrel.com/t/guide-lnbits-without-tor/604) on how to do it.
 
@@ -67,9 +67,3 @@ docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/
 ```
 
 Finally you can access your lnbits on your machine at port 5000.
-
-# Additional guides
-
-## LNbits running on Umbrel behind Tor
-
-If you want to run LNbits on your Umbrel but want it to be reached through clearnet, _Uxellodunum_ made an extensive [guide](https://community.getumbrel.com/t/guide-lnbits-without-tor/604) on how to do it.
