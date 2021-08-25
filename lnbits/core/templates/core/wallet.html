@@ -4,6 +4,7 @@
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="/core/static/js/wallet.js"></script>
+<script src="/static/vendor/zxing-js@0.18.6/zxing.min.js"></script>
 <link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" />
 {% endblock %}
 <!---->
@@ -18,9 +19,10 @@
           <strong>{% raw %}{{ formattedBalance }}{% endraw %}</strong> sat
         </h3>
       </q-card-section>
-      <div class="row q-pb-md q-px-md q-col-gutter-md">
-        <div class="col">
+      <div :class="$q.screen.xs ? 'row q-pb-md q-px-md q-col-gutter-md' : 'row q-pb-md q-px-md'">
+        <div :class="$q.screen.xs ? 'col' : 'q-pa-xs'">
           <q-btn
+            ref="pasteBtn"
             unelevated
             color="primary"
             class="full-width"
@@ -28,7 +30,7 @@
             >Paste Request</q-btn
           >
         </div>
-        <div class="col">
+        <div :class="$q.screen.xs ? 'col' : 'q-pa-xs'">
           <q-btn
             unelevated
             color="primary"
@@ -37,7 +39,7 @@
             >Create Invoice</q-btn
           >
         </div>
-        <div class="col">
+        <div :class="$q.screen.xs ? 'col' : 'q-pa-xs'">
           <q-btn
             unelevated
             color="secondary"
@@ -45,6 +47,16 @@
             @click="showCamera"
             >scan
             <q-tooltip>Use camera to scan an invoice/QR</q-tooltip>
+          </q-btn>
+        </div>
+        <div :class="$q.screen.xs ? 'col' : 'q-pa-xs'">
+          <q-btn
+            unelevated
+            color="secondary"
+            icon="collections"
+            @click="readQrcode({btn: 'show'})"
+            >Read
+            <q-tooltip>Read QR code from file or url</q-tooltip>
           </q-btn>
         </div>
       </div>
@@ -532,6 +544,7 @@
         </q-input>
         <div class="row q-mt-lg">
           <q-btn
+            ref="pasteInputBtn"
             unelevated
             color="primary"
             :disable="parse.data.request == ''"
@@ -570,6 +583,24 @@
         >Cancel</q-btn
       >
     </div>
+  </q-card>
+</q-dialog>
+
+<q-dialog v-model="readImage.show">
+  <q-card  class="q-pa-lg">
+    <q-uploader
+        send-raw
+        url="/api/v1/readQR"
+        method="POST"
+        :headers="_=> [{name:'X-Api-Key', value: g.wallet.inkey}]"
+        label="Upload Image"
+        color="primary"
+        square
+        flat
+        bordered
+        style="max-width: 280px"
+        @uploaded="data=> readQrcode({btn:'res', data})"
+    ></q-uploader>
   </q-card>
 </q-dialog>
 

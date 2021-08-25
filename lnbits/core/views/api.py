@@ -2,6 +2,7 @@ import trio
 import json
 import httpx
 import hashlib
+import base64
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
 from quart import g, current_app, jsonify, make_response, url_for, request
 from http import HTTPStatus
@@ -504,6 +505,12 @@ async def api_perform_lnurlauth():
         return jsonify({"reason": err.reason}), HTTPStatus.SERVICE_UNAVAILABLE
     return "", HTTPStatus.OK
 
+@core_app.route("/api/v1/readQR", methods=["POST"])
+@api_check_wallet_key("invoice")
+async def api_read_image():
+    data = await request.data
+    data = base64.b64encode(data)
+    return data, HTTPStatus.OK
 
 @core_app.route("/api/v1/currencies", methods=["GET"])
 async def api_list_currencies_available():

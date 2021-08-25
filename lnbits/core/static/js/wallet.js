@@ -142,6 +142,9 @@ new Vue({
           camera: 'auto'
         }
       },
+      readImage:{
+        show:false
+      },
       payments: [],
       paymentsTable: {
         columns: [
@@ -220,6 +223,20 @@ new Vue({
     },
     showCamera: function () {
       this.parse.camera.show = true
+    },
+    readQrcode: async function(p){
+      if(p.btn == 'show'){
+        this.readImage.show = true
+      }else{
+        const b64Data = p.data.xhr.response
+        const img = document.createElement('img')
+        img.src="data:image/png;base64,"+b64Data
+        const codeReader = new ZXingBrowser.BrowserQRCodeReader()
+        const resultImage = await codeReader.decodeFromImageElement(img)
+        this.readImage.show = false
+        this.$refs.pasteBtn.click()
+        this.parse.data.request = resultImage.text.split('=')[1]
+      }
     },
     showChart: function () {
       this.paymentsChart.show = true
