@@ -26,7 +26,8 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-mb-sm q-mt-none">
-          Chance of winning: {% raw %}{{ chance }}{% endraw %}, Amount multiplier: {{ multiplier }}
+          Chance of winning: {% raw %}{{ chance }}{% endraw %}, Amount
+          multiplier: {{ multiplier }}
         </h6>
         <p class="q-my-none">
           Use a LNURL compatible bitcoin wallet to play the satsdice.
@@ -49,13 +50,14 @@
     data: function () {
       return {
         here: location.protocol + '//' + location.host,
-        chance: parseFloat('{{chance}}') + "%"
+        chance: parseFloat('{{chance}}') + '%'
       }
     },
     filters: {
-		percent(val) {
-			return (chance/100) * 100 + '%';
-		}}
+      percent(val) {
+        return (chance / 100) * 100 + '%'
+      }
+    }
   })
 </script>
 {% endblock %}

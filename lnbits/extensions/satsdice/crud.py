@@ -7,6 +7,7 @@ from .models import satsdiceWithdraw, HashCheck, satsdiceLink, satsdicePayment
 
 ##################SATSDICE PAY LINKS
 
+
 async def create_satsdice_pay(
     *,
     wallet_id: str,
@@ -109,6 +110,7 @@ async def delete_satsdice_pay(link_id: int) -> None:
 
 ##################SATSDICE PAYMENT LINKS
 
+
 async def create_satsdice_payment(
     *, satsdice_pay: str, value: int, payment_hash: str
 ) -> satsdicePayment:
@@ -135,13 +137,18 @@ async def create_satsdice_payment(
     assert payment, "Newly created withdraw couldn't be retrieved"
     return payment
 
+
 async def get_satsdice_payment(payment_hash: str) -> Optional[satsdicePayment]:
     row = await db.fetchone(
-        "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?", (payment_hash,)
+        "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?",
+        (payment_hash,),
     )
     return satsdicePayment.from_row(row) if row else None
 
-async def update_satsdice_payment(payment_hash: int, **kwargs) -> Optional[satsdicePayment]:
+
+async def update_satsdice_payment(
+    payment_hash: int, **kwargs
+) -> Optional[satsdicePayment]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(
@@ -149,11 +156,14 @@ async def update_satsdice_payment(payment_hash: int, **kwargs) -> Optional[satsd
         (bool(*kwargs.values()), payment_hash),
     )
     row = await db.fetchone(
-        "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?", (payment_hash,)
+        "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?",
+        (payment_hash,),
     )
     return satsdicePayment.from_row(row) if row else None
 
+
 ##################SATSDICE WITHDRAW LINKS
+
 
 async def create_satsdice_withdraw(
     *, payment_hash: str, satsdice_pay: str, value: int, used: int
@@ -186,9 +196,7 @@ async def create_satsdice_withdraw(
     return withdraw
 
 
-async def get_satsdice_withdraw(
-    withdraw_id: str, num=0
-) -> Optional[satsdiceWithdraw]:
+async def get_satsdice_withdraw(withdraw_id: str, num=0) -> Optional[satsdiceWithdraw]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_withdraw WHERE id = ?", (withdraw_id,)
     )

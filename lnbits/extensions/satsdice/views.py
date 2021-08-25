@@ -7,7 +7,13 @@ from lnbits.core.crud import get_user, get_standalone_payment
 import random
 
 from . import satsdice_ext
-from .crud import get_satsdice_pay, update_satsdice_payment, get_satsdice_payment, create_satsdice_withdraw, get_satsdice_withdraw
+from .crud import (
+    get_satsdice_pay,
+    update_satsdice_payment,
+    get_satsdice_payment,
+    create_satsdice_withdraw,
+    get_satsdice_withdraw,
+)
 
 
 @satsdice_ext.route("/")
@@ -22,7 +28,14 @@ async def display(link_id):
     link = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
-    return await render_template("satsdice/display.html", chance=link.chance,multiplier=link.multiplier,lnurl=link.lnurl, unique=True)
+    return await render_template(
+        "satsdice/display.html",
+        chance=link.chance,
+        multiplier=link.multiplier,
+        lnurl=link.lnurl,
+        unique=True,
+    )
+
 
 @satsdice_ext.route("/win/<link_id>/<payment_hash>")
 async def displaywin(link_id, payment_hash):
@@ -32,13 +45,17 @@ async def displaywin(link_id, payment_hash):
     withdrawLink = await get_satsdice_withdraw(payment_hash)
 
     if withdrawLink:
-        return await render_template("satsdice/error.html", link=satsdicelink.id, paid=True, lost=False)
+        return await render_template(
+            "satsdice/error.html", link=satsdicelink.id, paid=True, lost=False
+        )
 
     payment = await get_standalone_payment(payment_hash) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
     if payment.pending == 1:
-        return await render_template("satsdice/error.html", link=satsdicelink.id, paid=False, lost=False)
+        return await render_template(
+            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=False
+        )
 
     await update_satsdice_payment(payment_hash, paid=1)
 
@@ -47,16 +64,34 @@ async def displaywin(link_id, payment_hash):
     )
 
     if paylink.lost == 1:
-        return await render_template("satsdice/error.html", link=satsdicelink.id, paid=False, lost=True)
-    rand = random.randint(0,100)
+        return await render_template(
+            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
+        )
+    rand = random.randint(0, 100)
     chance = satsdicelink.chance
     if rand > chance:
         await update_satsdice_payment(payment_hash, lost=1)
-        return await render_template("satsdice/error.html", link=satsdicelink.id, paid=False, lost=True)
+        return await render_template(
+            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
+        )
 
-    withdrawLink = await create_satsdice_withdraw(payment_hash=payment_hash, satsdice_pay=satsdicelink.id, value=paylink.value * satsdicelink.multiplier, used=0)
+    withdrawLink = await create_satsdice_withdraw(
+        payment_hash=payment_hash,
+        satsdice_pay=satsdicelink.id,
+        value=paylink.value * satsdicelink.multiplier,
+        used=0,
+    )
 
-    return await render_template("satsdice/displaywin.html", value=withdrawLink.value, chance=satsdicelink.chance,multiplier=satsdicelink.multiplier,lnurl=withdrawLink.lnurl, paid=False, lost=False)
+    return await render_template(
+        "satsdice/displaywin.html",
+        value=withdrawLink.value,
+        chance=satsdicelink.chance,
+        multiplier=satsdicelink.multiplier,
+        lnurl=withdrawLink.lnurl,
+        paid=False,
+        lost=False,
+    )
+
 
 @satsdice_ext.route("/img/<link_id>")
 async def img(link_id):

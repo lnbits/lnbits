@@ -30,7 +30,9 @@ async def api_lnurlp_response(link_id):
             HTTPStatus.OK,
         )
     resp = LnurlPayResponse(
-        callback=url_for("satsdice.api_lnurlp_callback", link_id=link.id, _external=True),
+        callback=url_for(
+            "satsdice.api_lnurlp_callback", link_id=link.id, _external=True
+        ),
         min_sendable=math.ceil(link.min_bet * 1) * 1000,
         max_sendable=round(link.max_bet * 1) * 1000,
         metadata=link.lnurlpay_metadata,
@@ -84,7 +86,9 @@ async def api_lnurlp_callback(link_id):
     )
 
     success_action = link.success_action(payment_hash)
-    link = await create_satsdice_payment(satsdice_pay=link.id, value=amount_received/1000, payment_hash=payment_hash)
+    link = await create_satsdice_payment(
+        satsdice_pay=link.id, value=amount_received / 1000, payment_hash=payment_hash
+    )
     if success_action:
         resp = LnurlPayActionResponse(
             pr=payment_request,
@@ -157,7 +161,7 @@ async def api_lnurlw_callback(unique_hash):
         )
 
     try:
-        await update_satsdice_withdraw(link.id,used=1)
+        await update_satsdice_withdraw(link.id, used=1)
 
         await pay_invoice(
             wallet_id=paylink.wallet,
@@ -165,17 +169,15 @@ async def api_lnurlw_callback(unique_hash):
             max_sat=link.value,
             extra={"tag": "withdraw"},
         )
-       
+
     except ValueError as e:
-        await update_satsdice_withdraw(link.id,used=1)
+        await update_satsdice_withdraw(link.id, used=1)
         return jsonify({"status": "ERROR", "reason": str(e)})
     except PermissionError:
-        await update_satsdice_withdraw(link.id,used=1)
+        await update_satsdice_withdraw(link.id, used=1)
         return jsonify({"status": "ERROR", "reason": "satsdice link is empty."})
     except Exception as e:
-        await update_satsdice_withdraw(link.id,used=1)
+        await update_satsdice_withdraw(link.id, used=1)
         return jsonify({"status": "ERROR", "reason": str(e)})
 
     return jsonify({"status": "OK"}), HTTPStatus.OK
-
-

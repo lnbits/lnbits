@@ -27,20 +27,19 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th style="width:10%"></q-th>
-              <q-th auto-width style="text-align:left">Title</q-th>
-              <q-th auto-width style="text-align:left">Min bet</q-th>
-              <q-th auto-width style="text-align:left">Max bet</q-th>
-              <q-th auto-width style="text-align:left">Multiplier</q-th>
-              <q-th auto-width style="text-align:left">Haircut</q-th>
-              <q-th auto-width style="text-align:left">Chance</q-th>
-              <q-th auto-width style="text-align:left"></q-th>
+              <q-th style="width: 10%"></q-th>
+              <q-th auto-width style="text-align: left">Title</q-th>
+              <q-th auto-width style="text-align: left">Min bet</q-th>
+              <q-th auto-width style="text-align: left">Max bet</q-th>
+              <q-th auto-width style="text-align: left">Multiplier</q-th>
+              <q-th auto-width style="text-align: left">Haircut</q-th>
+              <q-th auto-width style="text-align: left">Chance</q-th>
+              <q-th auto-width style="text-align: left"></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td style="width:10%">
-
+              <q-td style="width: 10%">
                 <q-btn
                   unelevated
                   dense
@@ -231,20 +230,22 @@
           >Copy Satsdice LNURL</q-btn
         >
         <q-btn
-         outline
-         color="grey"
-         icon="share"
-         @click="copyText(qrCodeDialog.data.pay_url, 'Link copied to clipboard!')"
-        ><q-tooltip>Copy shareable link</q-tooltip></q-btn>
+          outline
+          color="grey"
+          icon="share"
+          @click="copyText(qrCodeDialog.data.pay_url, 'Link copied to clipboard!')"
+          ><q-tooltip>Copy shareable link</q-tooltip></q-btn
+        >
 
         <q-btn
-         outline
-         color="grey"
-         icon="launch"
-         type="a"
-         :href="qrCodeDialog.data.pay_url"
-         target="_blank"
-        ><q-tooltip>Launch shareable link</q-tooltip></q-btn>
+          outline
+          color="grey"
+          icon="launch"
+          type="a"
+          :href="qrCodeDialog.data.pay_url"
+          target="_blank"
+          ><q-tooltip>Launch shareable link</q-tooltip></q-btn
+        >
         <q-btn
           outline
           color="grey"
@@ -252,7 +253,8 @@
           type="a"
           :href="qrCodeDialog.data.print_url"
           target="_blank"
-        ><q-tooltip>Print Satsdice</q-tooltip></q-btn>
+          ><q-tooltip>Print Satsdice</q-tooltip></q-btn
+        >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -335,10 +337,7 @@
     },
     methods: {
       chanceValueTableCalc(multiplier, haircut) {
-       return (
-          (1 / multiplier) * 100 -
-          haircut
-        ).toFixed(2)
+        return ((1 / multiplier) * 100 - haircut).toFixed(2)
       },
       getPayLinks() {
         LNbits.api
@@ -424,7 +423,6 @@
         }
       },
       updatePayLink(wallet, data) {
-
         let values = _.omit(
           _.pick(
             data,

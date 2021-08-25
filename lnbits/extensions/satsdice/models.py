@@ -7,6 +7,7 @@ from sqlite3 import Row
 from typing import NamedTuple, Optional, Dict
 import shortuuid  # type: ignore
 
+
 class satsdiceLink(NamedTuple):
     id: int
     wallet: str
@@ -37,17 +38,23 @@ class satsdiceLink(NamedTuple):
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
     def success_action(self, payment_hash: str) -> Optional[Dict]:
-        url = url_for("satsdice.displaywin", link_id=self.id, payment_hash=payment_hash, _external=True)
-#        url: ParseResult = urlparse(url)
+        url = url_for(
+            "satsdice.displaywin",
+            link_id=self.id,
+            payment_hash=payment_hash,
+            _external=True,
+        )
+        #        url: ParseResult = urlparse(url)
         print(url)
-#        qs: Dict = parse_qs(url.query)
-#        qs["payment_hash"] = payment_hash
-#        url = url._replace(query=urlencode(qs, doseq=True))
+        #        qs: Dict = parse_qs(url.query)
+        #        qs["payment_hash"] = payment_hash
+        #        url = url._replace(query=urlencode(qs, doseq=True))
         return {
             "tag": "url",
             "description": "Check the attached link",
             "url": url,
         }
+
 
 class satsdicePayment(NamedTuple):
     payment_hash: str
@@ -60,6 +67,7 @@ class satsdicePayment(NamedTuple):
     def from_row(cls, row: Row) -> "satsdicePayment":
         data = dict(row)
         return cls(**data)
+
 
 class satsdiceWithdraw(NamedTuple):
     id: str
@@ -103,6 +111,7 @@ class satsdiceWithdraw(NamedTuple):
             maxWithdrawable=self.value * 1000,
             default_description="Satsdice winnings!",
         )
+
 
 class HashCheck(NamedTuple):
     id: str

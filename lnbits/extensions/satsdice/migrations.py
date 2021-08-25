@@ -41,6 +41,7 @@ async def m002_initial(db):
     """
     )
 
+
 async def m003_initial(db):
     """
     Creates an improved satsdice table and migrates the existing data.
@@ -56,6 +57,7 @@ async def m003_initial(db):
         );
     """
     )
+
 
 async def m004_make_hash_check(db):
     """

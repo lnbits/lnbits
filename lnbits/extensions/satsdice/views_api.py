@@ -17,9 +17,11 @@ from .crud import (
     get_satsdice_withdraws,
     update_satsdice_withdraw,
     delete_satsdice_withdraw,
-    create_withdraw_hash_check
+    create_withdraw_hash_check,
 )
+
 ################LNURL pay
+
 
 @satsdice_ext.route("/api/v1/links", methods=["GET"])
 @api_check_wallet_key("invoice")
@@ -75,7 +77,7 @@ async def api_link_retrieve(link_id):
         "max_bet": {"type": "number", "required": True},
         "multiplier": {"type": "number", "required": True},
         "chance": {"type": "float", "required": True},
-        "haircut": {"type": "number", "required": True}
+        "haircut": {"type": "number", "required": True},
     }
 )
 async def api_link_create_or_update(link_id=None):
@@ -91,7 +93,10 @@ async def api_link_create_or_update(link_id=None):
             )
 
         if link.wallet != g.wallet.id:
-            return jsonify({"message": "Come on, seriously, this isn't your satsdice!"}), HTTPStatus.FORBIDDEN
+            return (
+                jsonify({"message": "Come on, seriously, this isn't your satsdice!"}),
+                HTTPStatus.FORBIDDEN,
+            )
 
         link = await update_satsdice_pay(link_id, **g.data)
     else:
@@ -118,7 +123,9 @@ async def api_link_delete(link_id):
 
     return "", HTTPStatus.NO_CONTENT
 
+
 ##########LNURL withdraw
+
 
 @satsdice_ext.route("/api/v1/withdraws", methods=["GET"])
 @api_check_wallet_key("invoice")
