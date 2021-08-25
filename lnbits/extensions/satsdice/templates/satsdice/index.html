@@ -228,7 +228,7 @@
           color="grey"
           @click="copyText(qrCodeDialog.data.lnurl, 'Satsdice copied to clipboard!')"
           class="q-ml-sm"
-          >Copy Satsdice</q-btn
+          >Copy Satsdice LNURL</q-btn
         >
         <q-btn
          outline
@@ -404,7 +404,7 @@
         data.max_bet = parseInt(data.max_bet)
         data.multiplier = parseFloat(this.multiValue)
         data.haircut = parseFloat(data.haircut)
-        data.chance = parseInt(this.chanceValue)
+        data.chance = parseFloat(this.chanceValue)
         data.base_url = window.location.origin
 
         if (data.currency === 'satoshis') data.currency = null

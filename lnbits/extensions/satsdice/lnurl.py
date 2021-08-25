@@ -23,9 +23,7 @@ from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  
 
 @satsdice_ext.route("/api/v1/lnurlp/<link_id>", methods=["GET"])
 async def api_lnurlp_response(link_id):
-    print("popkopkpoko")
     link = await get_satsdice_pay(link_id)
-    print(link)
     if not link:
         return (
             jsonify({"status": "ERROR", "reason": "LNURL-payy not found."}),
@@ -78,7 +76,7 @@ async def api_lnurlp_callback(link_id):
     payment_hash, payment_request = await create_invoice(
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
-        memo="Check this poo LNURLJK....",
+        memo="Satsdice bet",
         description_hash=hashlib.sha256(
             link.lnurlpay_metadata.encode("utf-8")
         ).digest(),

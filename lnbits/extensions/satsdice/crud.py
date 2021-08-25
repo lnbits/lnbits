@@ -15,7 +15,7 @@ async def create_satsdice_pay(
     min_bet: str,
     max_bet: str,
     multiplier: int = 0,
-    chance: int = 0,
+    chance: float = 0,
     haircut: int = 0,
 ) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()

@@ -74,14 +74,13 @@ async def api_link_retrieve(link_id):
         "min_bet": {"type": "number", "required": True},
         "max_bet": {"type": "number", "required": True},
         "multiplier": {"type": "number", "required": True},
-        "chance": {"type": "number", "required": True},
+        "chance": {"type": "float", "required": True},
         "haircut": {"type": "number", "required": True}
     }
 )
 async def api_link_create_or_update(link_id=None):
     if g.data["min_bet"] > g.data["max_bet"]:
         return jsonify({"message": "Min is greater than max."}), HTTPStatus.BAD_REQUEST
-    print(g.data)
     if link_id:
         link = await get_satsdice_pay(link_id)
 

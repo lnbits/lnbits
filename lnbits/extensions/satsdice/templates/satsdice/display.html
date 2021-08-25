@@ -4,13 +4,10 @@
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
         <div class="text-center">
-          {% if link.is_spent %}
-          <q-badge color="red" class="q-mb-md">satsdice is spent.</q-badge>
-          {% endif %}
-          <a href="lightning://{{ link.lnurl }}">
+          <a href="lightning://{{ lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
-                :value="this.here + '/?lightning={{link.lnurl }}'"
+                :value="this.here + '/?lightning={{ lnurl }}'"
                 :options="{width: 800}"
                 class="rounded-borders"
               ></qrcode>
@@ -18,8 +15,8 @@
           </a>
         </div>
         <div class="row q-mt-lg">
-          <q-btn outline color="grey" @click="copyText('{{ link.lnurl }}')"
-            >Copy Satsdice</q-btn
+          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
+            >Copy Satsdice LNURL</q-btn
           >
         </div>
       </q-card-section>
@@ -29,7 +26,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-mb-sm q-mt-none">
-          Satsdice link
+          Chance of winning: {% raw %}{{ chance }}{% endraw %}, Amount multiplier: {{ multiplier }}
         </h6>
         <p class="q-my-none">
           Use a LNURL compatible bitcoin wallet to play the satsdice.
@@ -51,9 +48,14 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        here: location.protocol + '//' + location.host
+        here: location.protocol + '//' + location.host,
+        chance: parseFloat('{{chance}}') + "%"
       }
-    }
+    },
+    filters: {
+		percent(val) {
+			return (chance/100) * 100 + '%';
+		}}
   })
 </script>
 {% endblock %}
