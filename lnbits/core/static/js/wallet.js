@@ -262,14 +262,14 @@ new Vue({
           const resultImage = await codeReader.decodeFromImageElement(img)
           this.readImage.show = false
           this.$refs.pasteBtn.click()
-          this.parse.data.request = resultImage.text.split('=')[1]
+          this.parse.data.request = resultImage.text.match(/LNURL.*/)[0].split(/& | [%26]/)[0]
         } else {
           const b64Data = p.data.xhr.response
           img.src = 'data:image/png;base64,' + b64Data
           const resultImage = await codeReader.decodeFromImageElement(img)
           this.readImage.show = false
           this.$refs.pasteBtn.click()
-          this.parse.data.request = resultImage.text.split('=')[1]
+          this.parse.data.request = resultImage.text.match(/LNURL.*/)[0].split(/& | [%26]/)[0]
         }
       }
     },
