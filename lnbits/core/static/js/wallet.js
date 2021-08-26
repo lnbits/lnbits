@@ -143,7 +143,8 @@ new Vue({
         }
       },
       readImage:{
-        show:false
+        show:false,
+        url:''
       },
       payments: [],
       paymentsTable: {
@@ -226,16 +227,44 @@ new Vue({
     },
     readQrcode: async function(p){
       if(p.btn == 'show'){
-        this.readImage.show = true
+        document.addEventListener('paste', async (e) => {
+          //process pasted image
+        },false);
+        return this.readImage.show = true
       }else{
-        const b64Data = p.data.xhr.response
         const img = document.createElement('img')
-        img.src="data:image/png;base64,"+b64Data
         const codeReader = new ZXingBrowser.BrowserQRCodeReader()
-        const resultImage = await codeReader.decodeFromImageElement(img)
-        this.readImage.show = false
-        this.$refs.pasteBtn.click()
-        this.parse.data.request = resultImage.text.split('=')[1]
+        if(this.readImage.url){
+          let srcdata
+          if(this.readImage.url.includes('blob')){
+            // handle blob:https:// format
+            return this.$q.notify('Unrecognized file type!')
+          }else{
+            let {data} = await axios.get(this.readImage.url,{ responseType: 'arraybuffer' })
+            let {data:b64} = await axios({
+              method:'POST',
+              url: '/api/v1/readQR',
+              headers:{
+                'X-Api-Key':this.g.wallet.inkey,
+                'Content-Type':'text/plain'
+              },
+              data
+            })
+            srcdata = "data:image/png;base64,"+b64
+          }
+          img.src = srcdata
+          const resultImage = await codeReader.decodeFromImageElement(img)
+          this.readImage.show = false
+          this.$refs.pasteBtn.click()
+          this.parse.data.request = resultImage.text.split('=')[1]
+        }else{
+          const b64Data = p.data.xhr.response
+          img.src="data:image/png;base64,"+b64Data
+          const resultImage = await codeReader.decodeFromImageElement(img)
+          this.readImage.show = false
+          this.$refs.pasteBtn.click()
+          this.parse.data.request = resultImage.text.split('=')[1]
+        }
       }
     },
     showChart: function () {
@@ -275,6 +304,7 @@ new Vue({
       setTimeout(() => {
         clearInterval(this.parse.paymentChecker)
       }, 10000)
+      this.readImage.url = ''
     },
     onPaymentReceived: function (paymentHash) {
       this.fetchPayments()
@@ -352,7 +382,7 @@ new Vue({
     },
     decodeRequest: function () {
       this.parse.show = true
-
+      
       if (this.parse.data.request.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
       } else if (this.parse.data.request.startsWith('lnurl:')) {
@@ -661,6 +691,15 @@ new Vue({
   watch: {
     payments: function () {
       this.fetchBalance()
+    },
+    readImage:{
+     immediate:true,
+     handler(nv,ov){
+      this.$watch('readImage.url',(nv,ov)=>{
+        if(!nv) return
+        this.readQrcode({})
+      })
+     } 
     }
   },
   created: function () {
