@@ -142,9 +142,9 @@ new Vue({
           camera: 'auto'
         }
       },
-      readImage:{
-        show:false,
-        url:''
+      readImage: {
+        show: false,
+        url: ''
       },
       payments: [],
       paymentsTable: {
@@ -225,41 +225,47 @@ new Vue({
     showCamera: function () {
       this.parse.camera.show = true
     },
-    readQrcode: async function(p){
-      if(p.btn == 'show'){
-        document.addEventListener('paste', async (e) => {
-          //process pasted image
-        },false);
-        return this.readImage.show = true
-      }else{
+    readQrcode: async function (p) {
+      if (p.btn == 'show') {
+        document.addEventListener(
+          'paste',
+          async e => {
+            //process pasted image
+          },
+          false
+        )
+        return (this.readImage.show = true)
+      } else {
         const img = document.createElement('img')
         const codeReader = new ZXingBrowser.BrowserQRCodeReader()
-        if(this.readImage.url){
+        if (this.readImage.url) {
           let srcdata
-          if(this.readImage.url.includes('blob')){
+          if (this.readImage.url.includes('blob')) {
             // handle blob:https:// format
             return this.$q.notify('Unrecognized file type!')
-          }else{
-            let {data} = await axios.get(this.readImage.url,{ responseType: 'arraybuffer' })
-            let {data:b64} = await axios({
-              method:'POST',
+          } else {
+            let {data} = await axios.get(this.readImage.url, {
+              responseType: 'arraybuffer'
+            })
+            let {data: b64} = await axios({
+              method: 'POST',
               url: '/api/v1/readQR',
-              headers:{
-                'X-Api-Key':this.g.wallet.inkey,
-                'Content-Type':'text/plain'
+              headers: {
+                'X-Api-Key': this.g.wallet.inkey,
+                'Content-Type': 'text/plain'
               },
               data
             })
-            srcdata = "data:image/png;base64,"+b64
+            srcdata = 'data:image/png;base64,' + b64
           }
           img.src = srcdata
           const resultImage = await codeReader.decodeFromImageElement(img)
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           this.parse.data.request = resultImage.text.split('=')[1]
-        }else{
+        } else {
           const b64Data = p.data.xhr.response
-          img.src="data:image/png;base64,"+b64Data
+          img.src = 'data:image/png;base64,' + b64Data
           const resultImage = await codeReader.decodeFromImageElement(img)
           this.readImage.show = false
           this.$refs.pasteBtn.click()
@@ -382,7 +388,7 @@ new Vue({
     },
     decodeRequest: function () {
       this.parse.show = true
-      
+
       if (this.parse.data.request.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
       } else if (this.parse.data.request.startsWith('lnurl:')) {
@@ -634,28 +640,29 @@ new Vue({
           }
         })
     },
-    updateWalletName: function(){
+    updateWalletName: function () {
       let newName = this.newName
-      if(!newName || !newName.length) return
+      if (!newName || !newName.length) return
       // let data = {name: newName}
       LNbits.api
-      .request(
-        'PUT',
-        '/api/v1/wallet/' + newName,
-        this.g.wallet.inkey,
-        {}
-      ).then(res => {
-        this.newName = ''
-        this.$q.notify({
-          message: `Wallet named updated.`,
-          type: 'positive',
-          timeout: 3500
+        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.inkey, {})
+        .then(res => {
+          this.newName = ''
+          this.$q.notify({
+            message: `Wallet named updated.`,
+            type: 'positive',
+            timeout: 3500
+          })
+          LNbits.href.updateWallet(
+            res.data.name,
+            this.user.id,
+            this.g.wallet.id
+          )
         })
-        LNbits.href.updateWallet(res.data.name, this.user.id, this.g.wallet.id)
-      }).catch(err => {
-        this.newName = ''
-        LNbits.utils.notifyApiError(err)
-      })
+        .catch(err => {
+          this.newName = ''
+          LNbits.utils.notifyApiError(err)
+        })
     },
     deleteWallet: function (walletId, user) {
       LNbits.utils
@@ -692,14 +699,14 @@ new Vue({
     payments: function () {
       this.fetchBalance()
     },
-    readImage:{
-     immediate:true,
-     handler(nv,ov){
-      this.$watch('readImage.url',(nv,ov)=>{
-        if(!nv) return
-        this.readQrcode({})
-      })
-     } 
+    readImage: {
+      immediate: true,
+      handler(nv, ov) {
+        this.$watch('readImage.url', (nv, ov) => {
+          if (!nv) return
+          this.readQrcode({})
+        })
+      }
     }
   },
   created: function () {

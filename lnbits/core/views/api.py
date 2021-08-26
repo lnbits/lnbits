@@ -62,7 +62,12 @@ async def api_update_wallet(new_name):
 async def api_payments():
     if "memo" in request.args:
         return jsonify(
-            await get_payments(memo=request.args.get("memo"), wallet_id=g.wallet.id, pending=True, complete=True)
+            await get_payments(
+                memo=request.args.get("memo"),
+                wallet_id=g.wallet.id,
+                pending=True,
+                complete=True,
+            )
         )
 
     return jsonify(
@@ -506,12 +511,14 @@ async def api_perform_lnurlauth():
         return jsonify({"reason": err.reason}), HTTPStatus.SERVICE_UNAVAILABLE
     return "", HTTPStatus.OK
 
+
 @core_app.route("/api/v1/readQR", methods=["POST"])
 @api_check_wallet_key("invoice")
 async def api_read_image():
     data = await request.data
     data = base64.b64encode(data)
     return data, HTTPStatus.OK
+
 
 @core_app.route("/api/v1/currencies", methods=["GET"])
 async def api_list_currencies_available():

@@ -19,7 +19,9 @@
           <strong>{% raw %}{{ formattedBalance }}{% endraw %}</strong> sat
         </h3>
       </q-card-section>
-      <div :class="$q.screen.xs ? 'row q-pb-md q-px-md q-col-gutter-md' : 'row q-pb-md q-px-md'">
+      <div
+        :class="$q.screen.xs ? 'row q-pb-md q-px-md q-col-gutter-md' : 'row q-pb-md q-px-md'"
+      >
         <div :class="$q.screen.xs ? 'col' : 'q-pa-xs'">
           <q-btn
             ref="pasteBtn"
@@ -289,15 +291,17 @@
             </q-card>
           </q-expansion-item>
           <q-separator></q-separator>
-          <q-expansion-item
-            group="extras"
-            icon="edit"
-            label="Rename wallet"
-          >
+          <q-expansion-item group="extras" icon="edit" label="Rename wallet">
             <q-card>
               <q-card-section>
                 <div class="" style="max-width: 320px">
-                  <q-input filled v-model.trim="newName" label="Label" dense="dense" @update:model-value="(e) => console.log(e)"/>
+                  <q-input
+                    filled
+                    v-model.trim="newName"
+                    label="Label"
+                    dense="dense"
+                    @update:model-value="(e) => console.log(e)"
+                  />
                 </div>
                 <q-btn
                   :disable="!newName.length"
@@ -478,7 +482,8 @@
           </span>
         </p>
         <p v-else class="q-my-none text-h6 text-center">
-          <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is requesting <br />
+          <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is
+          requesting <br />
           between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
           <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b> sat
           <span v-if="parse.lnurlpay.commentAllowed > 0">
@@ -587,7 +592,7 @@
 </q-dialog>
 
 <q-dialog v-model="readImage.show">
-  <q-card  class="q-pa-lg">
+  <q-card class="q-pa-lg">
     <div class="q-mb-md text-center full-width">Upload Image or Paste URL</div>
     <q-input
       filled
@@ -599,17 +604,17 @@
     >
     </q-input>
     <q-uploader
-        send-raw
-        url="/api/v1/readQR"
-        method="POST"
-        :headers="_=> [{name:'X-Api-Key', value: g.wallet.inkey}]"
-        label="Upload Image"
-        color="primary"
-        square
-        flat
-        bordered
-        style="max-width: 280px"
-        @uploaded="data=> readQrcode({btn:'res', data})"
+      send-raw
+      url="/api/v1/readQR"
+      method="POST"
+      :headers="_=> [{name:'X-Api-Key', value: g.wallet.inkey}]"
+      label="Upload Image"
+      color="primary"
+      square
+      flat
+      bordered
+      style="max-width: 280px"
+      @uploaded="data=> readQrcode({btn:'res', data})"
     ></q-uploader>
   </q-card>
 </q-dialog>
