@@ -239,44 +239,60 @@ new Vue({
         const img = document.createElement('img')
         const codeReader = new ZXingBrowser.BrowserQRCodeReader()
         if (this.readImage.url) {
-          let srcdata
+          let srcdata, resultImage
           if (this.readImage.url.includes('blob')) {
             // handle blob:https:// format
             return this.$q.notify('Unrecognized file type!')
           } else {
-            let {data} = await axios.get(this.readImage.url, {
-              responseType: 'arraybuffer'
-            })
-            let {data: b64} = await axios({
-              method: 'POST',
-              url: '/api/v1/readQR',
-              headers: {
-                'X-Api-Key': this.g.wallet.inkey,
-                'Content-Type': 'text/plain'
-              },
-              data
-            })
-            srcdata = 'data:image/png;base64,' + b64
+            try {
+              let {data} = await axios.get(this.readImage.url, {
+                responseType: 'arraybuffer'
+              })
+              let {data: b64} = await axios({
+                method: 'POST',
+                url: '/api/v1/readQR',
+                headers: {
+                  'X-Api-Key': this.g.wallet.inkey,
+                  'Content-Type': 'text/plain'
+                },
+                data
+              })
+              srcdata = 'data:image/png;base64,' + b64
+            } catch (err) {
+              return this.$q.notify('Error fetching file!')
+            }
           }
           img.src = srcdata
-          const resultImage = await codeReader.decodeFromImageElement(img)
+          try {
+            resultImage = await codeReader.decodeFromImageElement(img)
+          } catch (err) {
+            return this.$q.notify('Image decoding error')
+          }
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           try {
-            this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
+            resultImage.text.includes('LNURL')
+              ? this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
+              : this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
           } catch (err) {
-            this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
+            return this.$q.notify('URL string not recognised')
           }
         } else {
           const b64Data = p.data.xhr.response
           img.src = 'data:image/png;base64,' + b64Data
-          const resultImage = await codeReader.decodeFromImageElement(img)
+          try {
+            resultImage = await codeReader.decodeFromImageElement(img)
+          } catch (err) {
+            return this.$q.notify('Image decoding error')
+          }
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           try {
-            this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
+            resultImage.text.includes('LNURL')
+              ? this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
+              : this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
           } catch (err) {
-            this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
+            return this.$q.notify('URL string not recognised')
           }
         }
       }

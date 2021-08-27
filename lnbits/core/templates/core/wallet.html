@@ -610,9 +610,11 @@
       :headers="_=> [{name:'X-Api-Key', value: g.wallet.inkey}]"
       label="Upload Image"
       color="primary"
+      :filter="files => files.filter(file => file.size < 3145728)"
       square
       flat
       bordered
+      accept=".jpg, .jpeg, .png, image/*"
       style="max-width: 280px"
       @uploaded="data=> readQrcode({btn:'res', data})"
     ></q-uploader>
