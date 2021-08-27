@@ -144,7 +144,8 @@ new Vue({
       },
       readImage: {
         show: false,
-        url: ''
+        url: '',
+        spinner:false
       },
       payments: [],
       paymentsTable: {
@@ -250,6 +251,7 @@ new Vue({
               // let {data} = await axios.get(this.readImage.url, {
               //   responseType: 'arraybuffer'
               // })
+              this.readImage.spinner = true
               let {data: b64} = await axios({
                 method: 'POST',
                 url: '/api/v1/readQR',
@@ -267,9 +269,10 @@ new Vue({
           img.src = srcdata
           try {
             resultImage = await codeReader.decodeFromImageElement(img)
+            this.readImage.spinner = false
             // resultImage = await codeReader.decodeFromImageUrl(this.readImage.url) can decode url but iffy
           } catch (err) {
-            return this.$q.notify('Image decoding error')
+            return (this.$q.notify('Image decoding error'),  this.readImage.spinner = false)
           }
           this.readImage.show = false
           this.$refs.pasteBtn.click()

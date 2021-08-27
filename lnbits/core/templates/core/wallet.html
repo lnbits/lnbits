@@ -594,6 +594,7 @@
 <q-dialog v-model="readImage.show">
   <q-card class="q-pa-lg">
     <div class="q-mb-md text-center full-width">Upload Image or Paste URL</div>
+    <q-spinner-bars color="secondary" size="2rem" v-if="readImage.spinner" class="q-mb-md text-center full-width"></q-spinner-bars>
     <q-input
       filled
       dense

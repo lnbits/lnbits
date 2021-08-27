@@ -515,14 +515,17 @@ async def api_perform_lnurlauth():
 @api_check_wallet_key("invoice")
 async def api_read_image():
     data = await request.data
-    if "http" in data.decode("utf-8"):
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.get(data.decode("utf-8"))
-                data = base64.b64encode(r.content)
-            except ValueError:
-                print(ValueError)
-    else:
+    try:
+        if "http" in data.decode("utf-8"):
+            async with httpx.AsyncClient() as client:
+                try:
+                    r = await client.get(data.decode("utf-8"))
+                    data = base64.b64encode(r.content)
+                except ValueError:
+                    print(ValueError)
+        else:
+            data = base64.b64encode(data)
+    except:
         data = base64.b64encode(data)
     return data, HTTPStatus.OK
 
