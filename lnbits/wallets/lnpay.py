@@ -4,7 +4,6 @@ import httpx
 from os import getenv
 from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
-from quart import request
 
 from .base import (
     StatusResponse,

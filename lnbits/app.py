@@ -1,37 +1,27 @@
-import jinja2
-from lnbits.jinja2_templating import Jinja2Templates
-import sys
-import warnings
 import importlib
+import sys
 import traceback
-import trio
+import warnings
 
+import trio
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
+import lnbits.settings
+
 from .commands import db_migrate, handle_assets
 from .core import core_app
-from .helpers import (
-    get_valid_extensions,
-    get_js_vendored,
-    get_css_vendored,
-    url_for_vendored,
-)
-from .proxy_fix import ASGIProxyFix
-from .tasks import (
-    webhook_handler,
-    invoice_listener,
-    run_deferred_async,
-    check_pending_payments,
-    internal_invoice_listener,
-    catch_everything_and_restart,
-)
-from .settings import WALLET
-from .requestvars import g, request_global
 from .core.views.generic import core_html_routes
-import lnbits.settings
+from .helpers import (get_css_vendored, get_js_vendored, get_valid_extensions,
+                      template_renderer, url_for_vendored)
+from .requestvars import g
+from .settings import WALLET
+from .tasks import (check_pending_payments, internal_invoice_listener,
+                    invoice_listener, run_deferred_async, webhook_handler)
+
 
 async def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
@@ -55,7 +45,16 @@ async def create_app(config_object="lnbits.settings") -> FastAPI:
     )
     
     g().config = lnbits.settings
-    g().templates = build_standard_jinja_templates()
+    g().base_url = f"http://{lnbits.settings.HOST}:{lnbits.settings.PORT}"
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        return template_renderer().TemplateResponse("error.html", {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."})
+        
+        # return HTMLResponse(
+        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        #     content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+        # )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     # app.add_middleware(ASGIProxyFix)
@@ -68,26 +67,6 @@ async def create_app(config_object="lnbits.settings") -> FastAPI:
     # register_exception_handlers(app)
 
     return app
-
-def build_standard_jinja_templates():
-    t = Jinja2Templates(
-     loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates"]),
-    )
-    t.env.globals["SITE_TITLE"] = lnbits.settings.LNBITS_SITE_TITLE
-    t.env.globals["SITE_TAGLINE"] = lnbits.settings.LNBITS_SITE_TAGLINE
-    t.env.globals["SITE_DESCRIPTION"] = lnbits.settings.LNBITS_SITE_DESCRIPTION
-    t.env.globals["LNBITS_THEME_OPTIONS"] = lnbits.settings.LNBITS_THEME_OPTIONS
-    t.env.globals["LNBITS_VERSION"] = lnbits.settings.LNBITS_COMMIT
-    t.env.globals["EXTENSIONS"] = get_valid_extensions()
-    
-    if g().config.DEBUG:
-        t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
-        t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
-    else:
-        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
-        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
-
-    return t
 
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
@@ -171,5 +150,5 @@ def register_exception_handlers(app):
         etype, value, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        return g().templates.TemplateResponse("error.html", {"request": request, "err": err})
+        return template_renderer().TemplateResponse("error.html", {"request": request, "err": err})
 

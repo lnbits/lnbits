@@ -1,11 +1,18 @@
+import glob
 import json
 import os
-import glob
+from typing import Any, List, NamedTuple, Optional
+
+import jinja2
 import shortuuid  # type: ignore
 
-from typing import List, NamedTuple, Optional
+from lnbits.jinja2_templating import Jinja2Templates
+from lnbits.requestvars import g
 
-from .settings import LNBITS_DISABLED_EXTENSIONS, LNBITS_PATH
+from .settings import (DEBUG, LNBITS_COMMIT, LNBITS_DISABLED_EXTENSIONS,
+                       LNBITS_PATH, LNBITS_SITE_DESCRIPTION,
+                       LNBITS_SITE_TAGLINE, LNBITS_SITE_TITLE,
+                       LNBITS_THEME_OPTIONS)
 
 
 class Extension(NamedTuple):
@@ -132,3 +139,35 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 
 def url_for_vendored(abspath: str) -> str:
     return "/" + os.path.relpath(abspath, LNBITS_PATH)
+
+def url_for(
+    endpoint: str,
+    external: Optional[bool] = False,
+    **params: Any,
+) -> str:
+    base = g().base_url if external else ""
+    url_params = "?"
+    for key in params:
+        url_params += f"{key}={params[key]}&"
+    url = f"{base}{endpoint}{url_params}"
+    return url
+
+def template_renderer() -> Jinja2Templates:
+    t = Jinja2Templates(
+     loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates"]),
+    )
+    t.env.globals["SITE_TITLE"] = LNBITS_SITE_TITLE
+    t.env.globals["SITE_TAGLINE"] = LNBITS_SITE_TAGLINE
+    t.env.globals["SITE_DESCRIPTION"] = LNBITS_SITE_DESCRIPTION
+    t.env.globals["LNBITS_THEME_OPTIONS"] = LNBITS_THEME_OPTIONS
+    t.env.globals["LNBITS_VERSION"] = LNBITS_COMMIT
+    t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    
+    if DEBUG:
+        t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
+        t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
+    else:
+        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
+        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
+
+    return t

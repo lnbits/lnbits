@@ -1,3 +1,4 @@
+from lnbits.helpers import url_for
 from fastapi.param_functions import Depends
 from lnbits.auth_bearer import AuthBearer
 from pydantic import BaseModel
@@ -6,7 +7,6 @@ import json
 import httpx
 import hashlib
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import current_app, make_response, url_for
 
 from fastapi import Query
 
@@ -121,10 +121,9 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
                     params={
                         "pr": payment_request,
                         "balanceNotify": url_for(
-                            "core.lnurl_balance_notify",
-                            service=urlparse(data.lnurl_callback).netloc,
+                            f"/withdraw/notify/{urlparse(data.lnurl_callback).netloc}",
+                            external=True,
                             wal=g().wallet.id,
-                            _external=True,
                         ),
                     },
                     timeout=10,

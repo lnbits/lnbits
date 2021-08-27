@@ -1,7 +1,7 @@
 import json
 import hmac
 import hashlib
-from quart import url_for
+from lnbits.helpers import url_for
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
@@ -30,11 +30,12 @@ class Wallet(BaseModel):
 
     @property
     def lnurlwithdraw_full(self) -> str:
+        
         url = url_for(
-            "core.lnurl_full_withdraw",
+            "/withdraw",
+            external=True,
             usr=self.user,
             wal=self.id,
-            _external=True,
         )
         try:
             return lnurl_encode(url)

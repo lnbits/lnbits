@@ -1,11 +1,12 @@
 from typing import Optional
 from pydantic.main import BaseModel
-from quart import g, jsonify
+
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.utils.exchange_rates import currencies
+from lnbits.requestvars import g
 
 from . import offlineshop_ext
 from .crud import (
@@ -27,7 +28,7 @@ async def api_list_currencies_available():
 @offlineshop_ext.get("/api/v1/offlineshop")
 @api_check_wallet_key("invoice")
 async def api_shop_from_wallet():
-    shop = await get_or_create_shop_by_wallet(g.wallet.id)
+    shop = await get_or_create_shop_by_wallet(g().wallet.id)
     items = await get_items(shop.id)
 
     try:
@@ -60,7 +61,7 @@ class CreateItemsData(BaseModel):
 @offlineshop_ext.put("/api/v1/offlineshop/items/{item_id}")
 @api_check_wallet_key("invoice")
 async def api_add_or_update_item(data: CreateItemsData, item_id=None):
-    shop = await get_or_create_shop_by_wallet(g.wallet.id)
+    shop = await get_or_create_shop_by_wallet(g().wallet.id)
     if item_id == None:
         await add_item(
             shop.id,
@@ -87,7 +88,7 @@ async def api_add_or_update_item(data: CreateItemsData, item_id=None):
 @offlineshop_ext.delete("/api/v1/offlineshop/items/{item_id}")
 @api_check_wallet_key("invoice")
 async def api_delete_item(item_id):
-    shop = await get_or_create_shop_by_wallet(g.wallet.id)
+    shop = await get_or_create_shop_by_wallet(g().wallet.id)
     await delete_item_from_shop(shop.id, item_id)
     return "", HTTPStatus.NO_CONTENT
 
@@ -104,7 +105,7 @@ async def api_set_method(data: CreateMethodData):
     wordlist = data.wordlist.split("\n") if data.wordlist else None
     wordlist = [word.strip() for word in wordlist if word.strip()]
 
-    shop = await get_or_create_shop_by_wallet(g.wallet.id)
+    shop = await get_or_create_shop_by_wallet(g().wallet.id)
     if not shop:
         return "", HTTPStatus.NOT_FOUND
 

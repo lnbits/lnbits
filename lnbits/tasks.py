@@ -2,7 +2,6 @@ import time
 import trio
 import traceback
 from http import HTTPStatus
-from quart import current_app
 from typing import List, Callable
 
 from lnbits.settings import WALLET

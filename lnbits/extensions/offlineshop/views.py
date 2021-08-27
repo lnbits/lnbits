@@ -1,9 +1,8 @@
 import time
 from datetime import datetime
-from quart import g, render_template, request
 from http import HTTPStatus
 
-from lnbits.decorators import check_user_exists, validate_uuids
+from lnbits.decorators import check_user_exists
 from lnbits.core.models import Payment
 from lnbits.core.crud import get_standalone_payment
 
@@ -15,8 +14,8 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 @offlineshop_ext.get("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
+# @validate_uuids(["usr"], required=True)
+# @check_user_exists()
 async def index(request: Request):
     return await templates.TemplateResponse("offlineshop/index.html", {"request": request,"user":g.user})
 

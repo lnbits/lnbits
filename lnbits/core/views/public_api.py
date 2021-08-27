@@ -1,7 +1,6 @@
 import trio
 import datetime
 from http import HTTPStatus
-from quart import jsonify
 
 from lnbits import bolt11
 

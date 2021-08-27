@@ -1,10 +1,10 @@
+from lnbits.helpers import url_for
 import trio
 import hmac
 import httpx
 from http import HTTPStatus
 from os import getenv
 from typing import Optional, AsyncGenerator
-from quart import request, url_for
 
 from .base import (
     StatusResponse,
@@ -63,7 +63,7 @@ class OpenNodeWallet(Wallet):
                 json={
                     "amount": amount,
                     "description": memo or "",
-                    "callback_url": url_for("webhook_listener", _external=True),
+                    "callback_url": url_for("/webhook_listener", _external=True),
                 },
                 timeout=40,
             )
