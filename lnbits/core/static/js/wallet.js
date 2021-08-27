@@ -237,17 +237,19 @@ new Vue({
         return (this.readImage.show = true)
       } else {
         const img = document.createElement('img')
-        const codeReader = new ZXingBrowser.BrowserQRCodeReader()
+        // const codeReader = new ZXingBrowser.BrowserQRCodeReader()
+        const codeReader = new ZXingBrowser.BrowserMultiFormatReader()
         if (this.readImage.url) {
           let srcdata, resultImage
           if (this.readImage.url.includes('blob')) {
             // handle blob:https:// format
             return this.$q.notify('Unrecognized file type!')
-          } else {
+          } 
+          else {
             try {
-              let {data} = await axios.get(this.readImage.url, {
-                responseType: 'arraybuffer'
-              })
+              // let {data} = await axios.get(this.readImage.url, {
+              //   responseType: 'arraybuffer'
+              // })
               let {data: b64} = await axios({
                 method: 'POST',
                 url: '/api/v1/readQR',
@@ -255,7 +257,7 @@ new Vue({
                   'X-Api-Key': this.g.wallet.inkey,
                   'Content-Type': 'text/plain'
                 },
-                data
+                data: this.readImage.url
               })
               srcdata = 'data:image/png;base64,' + b64
             } catch (err) {
@@ -265,6 +267,7 @@ new Vue({
           img.src = srcdata
           try {
             resultImage = await codeReader.decodeFromImageElement(img)
+            // resultImage = await codeReader.decodeFromImageUrl(this.readImage.url) can decode url but iffy
           } catch (err) {
             return this.$q.notify('Image decoding error')
           }
@@ -275,7 +278,8 @@ new Vue({
               ? this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
               : this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
           } catch (err) {
-            return this.$q.notify('URL string not recognised')
+            this.$q.notify(resultImage.text)
+            return (this.$q.notify('URL string not recognised'), this.parse.show = false, this.readImage.url = '')
           }
         } else {
           const b64Data = p.data.xhr.response
@@ -292,7 +296,8 @@ new Vue({
               ? this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
               : this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
           } catch (err) {
-            return (this.$q.notify('URL string not recognised'), this.parse.show = false)
+            this.$q.notify(resultImage.text)
+            return (this.$q.notify('URL string not recognised'), this.parse.show = false, this.readImage.url = '')
           }
         }
       }
