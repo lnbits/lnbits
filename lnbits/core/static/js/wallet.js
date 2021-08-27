@@ -271,7 +271,7 @@ new Vue({
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           try {
-            resultImage.text.includes('LNURL')
+            resultImage.text.toLowerCase().includes('lnurl')
               ? this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
               : this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
           } catch (err) {
@@ -288,11 +288,11 @@ new Vue({
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           try {
-            resultImage.text.includes('LNURL')
+            resultImage.text.toLowerCase().includes('lnurl')
               ? this.parse.data.request = resultImage.text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
               : this.parse.data.request = resultImage.text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
           } catch (err) {
-            return this.$q.notify('URL string not recognised')
+            return (this.$q.notify('URL string not recognised'), this.parse.show = false)
           }
         }
       }
