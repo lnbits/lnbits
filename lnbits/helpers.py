@@ -9,10 +9,7 @@ import shortuuid  # type: ignore
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
 
-from .settings import (DEBUG, LNBITS_COMMIT, LNBITS_DISABLED_EXTENSIONS,
-                       LNBITS_PATH, LNBITS_SITE_DESCRIPTION,
-                       LNBITS_SITE_TAGLINE, LNBITS_SITE_TITLE,
-                       LNBITS_THEME_OPTIONS)
+import lnbits.settings as settings
 
 
 class Extension(NamedTuple):
@@ -27,9 +24,9 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self):
-        self._disabled: List[str] = LNBITS_DISABLED_EXTENSIONS
+        self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
         self._extension_folders: List[str] = [
-            x[1] for x in os.walk(os.path.join(LNBITS_PATH, "extensions"))
+            x[1] for x in os.walk(os.path.join(settings.LNBITS_PATH, "extensions"))
         ][0]
 
     @property
@@ -44,7 +41,7 @@ class ExtensionManager:
         ]:
             try:
                 with open(
-                    os.path.join(LNBITS_PATH, "extensions", extension, "config.json")
+                    os.path.join(settings.LNBITS_PATH, "extensions", extension, "config.json")
                 ) as json_file:
                     config = json.load(json_file)
                 is_valid = True
@@ -112,7 +109,7 @@ def get_css_vendored(prefer_minified: bool = False) -> List[str]:
 def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
     paths: List[str] = []
     for path in glob.glob(
-        os.path.join(LNBITS_PATH, "static/vendor/**"), recursive=True
+        os.path.join(settings.LNBITS_PATH, "static/vendor/**"), recursive=True
     ):
         if path.endswith(".min" + ext):
             # path is minified
@@ -138,7 +135,7 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 
 
 def url_for_vendored(abspath: str) -> str:
-    return "/" + os.path.relpath(abspath, LNBITS_PATH)
+    return "/" + os.path.relpath(abspath, settings.LNBITS_PATH)
 
 def url_for(
     endpoint: str,
@@ -156,14 +153,14 @@ def template_renderer() -> Jinja2Templates:
     t = Jinja2Templates(
      loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates"]),
     )
-    t.env.globals["SITE_TITLE"] = LNBITS_SITE_TITLE
-    t.env.globals["SITE_TAGLINE"] = LNBITS_SITE_TAGLINE
-    t.env.globals["SITE_DESCRIPTION"] = LNBITS_SITE_DESCRIPTION
-    t.env.globals["LNBITS_THEME_OPTIONS"] = LNBITS_THEME_OPTIONS
-    t.env.globals["LNBITS_VERSION"] = LNBITS_COMMIT
+    t.env.globals["SITE_TITLE"] = settings.LNBITS_SITE_TITLE
+    t.env.globals["SITE_TAGLINE"] = settings.LNBITS_SITE_TAGLINE
+    t.env.globals["SITE_DESCRIPTION"] = settings.LNBITS_SITE_DESCRIPTION
+    t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
+    t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
     t.env.globals["EXTENSIONS"] = get_valid_extensions()
     
-    if DEBUG:
+    if settings.DEBUG:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
         t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
     else:
