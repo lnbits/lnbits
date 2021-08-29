@@ -227,53 +227,9 @@ new Vue({
       this.parse.camera.show = true
     },
     readQrcode: async function (p) {
-      const getLNstring = text => {
-        text.toLowerCase().includes('lnurl')
-          ? (this.parse.data.request = text
-              .match(/LNURL.*/i)[0]
-              .split(/& | [%26]/)[0])
-          : (this.parse.data.request = text
-              .match(/lnbc.*/i)[0]
-              .split(/& | [%26]/)[0])
-        return
-      }
-      const codeReader = (this.readImage.reader = new ZXingBrowser.BrowserMultiFormatReader())
+      const codeReader = new ZXingBrowser.BrowserMultiFormatReader()
       if (p.btn == 'show') {
-        document.addEventListener(
-          'paste',
-          async e => {
-            //process pasted image
-            if (!this.readImage.show || this.$refs.readInput.focused) return
-            const items = await navigator.clipboard.read()
-            let blobby, resultImage
-            for (const ci of items) {
-              for (const type of ci.types) {
-                const blob = await ci.getType(type)
-                blob.type.includes('image') && (blobby = blob)
-              }
-            }
-            let img = document.createElement('img')
-            try {
-              img.src = URL.createObjectURL(blobby)
-              resultImage = await codeReader.decodeFromImageElement(img)
-            } catch (err) {
-              return this.$q.notify('Image decoding error')
-            }
-            this.readImage.show = false
-            this.$refs.pasteBtn.click()
-            try {
-              getLNstring(resultImage.text)
-            } catch (err) {
-              this.$q.notify(resultImage.text)
-              return (
-                this.$q.notify('URL string not recognised'),
-                (this.parse.show = false),
-                (this.readImage.url = '')
-              )
-            }
-          },
-          false
-        )
+        document.addEventListener('paste', this.listenReadPaste)
         return (this.readImage.show = true)
       } else {
         const img = document.createElement('img')
@@ -316,7 +272,7 @@ new Vue({
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           try {
-            getLNstring(resultImage.text)
+            this.getLNstring(resultImage.text)
           } catch (err) {
             this.$q.notify(resultImage.text)
             return (
@@ -336,7 +292,7 @@ new Vue({
           this.readImage.show = false
           this.$refs.pasteBtn.click()
           try {
-            getLNstring(resultImage.text)
+            this.getLNstring(resultImage.text)
           } catch (err) {
             this.$q.notify(resultImage.text)
             return (
@@ -347,6 +303,51 @@ new Vue({
           }
         }
       }
+    },
+    listenReadPaste: async function (e) {
+      const codeReader = new ZXingBrowser.BrowserMultiFormatReader()
+      //process pasted image
+      if (!this.readImage.show || this.$refs.readInput.focused) return
+      const items = await navigator.clipboard.read()
+      let blobby, resultImage
+      for (const ci of items) {
+        for (const type of ci.types) {
+          const blob = await ci.getType(type)
+          blob.type.includes('image') && (blobby = blob)
+        }
+      }
+      let img = document.createElement('img')
+      try {
+        img.src = URL.createObjectURL(blobby)
+        resultImage = await codeReader.decodeFromImageElement(img)
+      } catch (err) {
+        return this.$q.notify('Image decoding error')
+      }
+      this.readImage.show = false
+      this.$refs.pasteBtn.click()
+      try {
+        this.getLNstring(resultImage.text)
+      } catch (err) {
+        this.$q.notify(resultImage.text)
+        return (
+          this.$q.notify('URL string not recognised'),
+          (this.parse.show = false),
+          (this.readImage.url = '')
+        )
+      }
+    },
+    clearReadPaste: function () {
+      document.removeEventListener('paste', this.listenReadPaste)
+    },
+    getLNstring: function (text) {
+      text.toLowerCase().includes('lnurl')
+        ? (this.parse.data.request = text
+            .match(/LNURL.*/i)[0]
+            .split(/& | [%26]/)[0])
+        : (this.parse.data.request = text
+            .match(/lnbc.*/i)[0]
+            .split(/& | [%26]/)[0])
+      return
     },
     showChart: function () {
       this.paymentsChart.show = true

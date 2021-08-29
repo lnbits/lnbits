@@ -591,7 +591,7 @@
   </q-card>
 </q-dialog>
 
-<q-dialog v-model="readImage.show">
+<q-dialog v-model="readImage.show" @hide="clearReadPaste">
   <q-card class="q-pa-lg">
     <div class="q-mb-md text-center full-width">Upload Image or Paste URL</div>
     <q-spinner-bars
