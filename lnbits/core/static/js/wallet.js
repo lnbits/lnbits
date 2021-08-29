@@ -145,7 +145,7 @@ new Vue({
       readImage: {
         show: false,
         url: '',
-        spinner:false
+        spinner: false
       },
       payments: [],
       paymentsTable: {
@@ -227,19 +227,23 @@ new Vue({
       this.parse.camera.show = true
     },
     readQrcode: async function (p) {
-      const getLNstring = (text)=>{
+      const getLNstring = text => {
         text.toLowerCase().includes('lnurl')
-              ? this.parse.data.request = text.match(/LNURL.*/i)[0].split(/& | [%26]/)[0]
-              : this.parse.data.request = text.match(/lnbc.*/i)[0].split(/& | [%26]/)[0]
+          ? (this.parse.data.request = text
+              .match(/LNURL.*/i)[0]
+              .split(/& | [%26]/)[0])
+          : (this.parse.data.request = text
+              .match(/lnbc.*/i)[0]
+              .split(/& | [%26]/)[0])
         return
       }
-      const codeReader = this.readImage.reader = new ZXingBrowser.BrowserMultiFormatReader()
+      const codeReader = (this.readImage.reader = new ZXingBrowser.BrowserMultiFormatReader())
       if (p.btn == 'show') {
         document.addEventListener(
           'paste',
           async e => {
             //process pasted image
-            if(!this.readImage.show || this.$refs.readInput.focused) return
+            if (!this.readImage.show || this.$refs.readInput.focused) return
             const items = await navigator.clipboard.read()
             let blobby, resultImage
             for (const ci of items) {
@@ -260,10 +264,13 @@ new Vue({
             try {
               getLNstring(resultImage.text)
             } catch (err) {
-              return (this.$q.notify('URL string not recognised'), this.parse.show = false, this.readImage.url = '')
+              return (
+                this.$q.notify('URL string not recognised'),
+                (this.parse.show = false),
+                (this.readImage.url = '')
+              )
             }
-        }
-        ,
+          },
           false
         )
         return (this.readImage.show = true)
@@ -274,8 +281,7 @@ new Vue({
           if (this.readImage.url.includes('blob')) {
             // handle blob:https:// format
             return this.$q.notify('Try copying image and paste!')
-          } 
-          else {
+          } else {
             try {
               // let {data} = await axios.get(this.readImage.url, {
               //   responseType: 'arraybuffer'
@@ -301,7 +307,10 @@ new Vue({
             this.readImage.spinner = false
             // resultImage = await codeReader.decodeFromImageUrl(this.readImage.url) can decode url but iffy
           } catch (err) {
-            return (this.$q.notify('Image decoding error'),  this.readImage.spinner = false)
+            return (
+              this.$q.notify('Image decoding error'),
+              (this.readImage.spinner = false)
+            )
           }
           this.readImage.show = false
           this.$refs.pasteBtn.click()
@@ -309,7 +318,11 @@ new Vue({
             getLNstring(resultImage.text)
           } catch (err) {
             this.$q.notify(resultImage.text)
-            return (this.$q.notify('URL string not recognised'), this.parse.show = false, this.readImage.url = '')
+            return (
+              this.$q.notify('URL string not recognised'),
+              (this.parse.show = false),
+              (this.readImage.url = '')
+            )
           }
         } else {
           const b64Data = p.data.xhr.response
@@ -325,7 +338,11 @@ new Vue({
             getLNstring(resultImage.text)
           } catch (err) {
             this.$q.notify(resultImage.text)
-            return (this.$q.notify('URL string not recognised'), this.parse.show = false, this.readImage.url = '')
+            return (
+              this.$q.notify('URL string not recognised'),
+              (this.parse.show = false),
+              (this.readImage.url = '')
+            )
           }
         }
       }
