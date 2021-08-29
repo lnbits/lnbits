@@ -264,6 +264,7 @@ new Vue({
             try {
               getLNstring(resultImage.text)
             } catch (err) {
+              this.$q.notify(resultImage.text)
               return (
                 this.$q.notify('URL string not recognised'),
                 (this.parse.show = false),
