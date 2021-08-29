@@ -2,12 +2,14 @@ from http import HTTPStatus
 from typing import Optional
 
 from fastapi import Request, status
+from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Body
 from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse
+import trio
 
 from lnbits.core import db
 from lnbits.helpers import template_renderer, url_for
@@ -40,9 +42,7 @@ async def extensions(request: Request, enable: str, disable: str):
     extension_to_disable = disable
 
     if extension_to_enable and extension_to_disable:
-        abort(
-            HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
-        )
+        raise HTTPException(HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension.")
 
     if extension_to_enable:
         await update_user_extension(
@@ -142,7 +142,8 @@ async def lnurl_full_withdraw_callback(request: Request):
         except:
             pass
 
-    current_app.nursery.start_soon(pay)
+    async with trio.open_nursery() as n:
+        n.start_soon(pay)
 
     balance_notify = request.args.get("balanceNotify")
     if balance_notify:
@@ -159,7 +160,7 @@ async def deletewallet(request: Request):
     user_wallet_ids = g().user.wallet_ids
 
     if wallet_id not in user_wallet_ids:
-        abort(HTTPStatus.FORBIDDEN, "Not your wallet.")
+        raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
         await delete_wallet(user_id=g().user.id, wallet_id=wallet_id)
         user_wallet_ids.remove(wallet_id)
@@ -186,16 +187,17 @@ async def lnurlwallet(request: Request):
         user = await get_user(account.id, conn=conn)
         wallet = await create_wallet(user_id=user.id, conn=conn)
 
-    current_app.nursery.start_soon(
-        redeem_lnurl_withdraw,
-        wallet.id,
-        request.args.get("lightning"),
-        "LNbits initial funding: voucher redeem.",
-        {"tag": "lnurlwallet"},
-        5,  # wait 5 seconds before sending the invoice to the service
+    async with trio.open_nursery() as n:
+        n.start_soon(
+            redeem_lnurl_withdraw,
+            wallet.id,
+            request.args.get("lightning"),
+            "LNbits initial funding: voucher redeem.",
+            {"tag": "lnurlwallet"},
+            5,  # wait 5 seconds before sending the invoice to the service
     )
 
-    return redirect(url_for("core.wallet", usr=user.id, wal=wallet.id))
+    return RedirectResponse(f"/wallet?usr={user.id}&wal={wallet.id}", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @core_html_routes.get("/manifest/{usr}.webmanifest")

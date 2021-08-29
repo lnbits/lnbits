@@ -84,10 +84,10 @@ class Payment(BaseModel):
     bolt11: str
     preimage: str
     payment_hash: str
-    extra: Dict
+    extra: Optional[Dict] = {}
     wallet_id: str
-    webhook: str
-    webhook_status: int
+    webhook: Optional[str]
+    webhook_status: Optional[int]
 
     @classmethod
     def from_row(cls, row: Row):

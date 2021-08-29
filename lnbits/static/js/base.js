@@ -161,24 +161,22 @@ window.LNbits = {
       return newWallet
     },
     payment: function (data) {
-      var obj = _.object(
-        [
-          'checking_id',
-          'pending',
-          'amount',
-          'fee',
-          'memo',
-          'time',
-          'bolt11',
-          'preimage',
-          'payment_hash',
-          'extra',
-          'wallet_id',
-          'webhook',
-          'webhook_status'
-        ],
-        data
-      )
+      obj = {
+        checking_id:data.id,
+        pending: data.pending,
+        amount: data.amount,
+        fee: data.fee,
+        memo: data.memo,
+        time: data.time,
+        bolt11: data.bolt11,
+        preimage: data.preimage,
+        payment_hash: data.payment_hash,
+        extra: data.extra,
+        wallet_id: data.wallet_id,
+        webhook: data.webhook,
+        webhook_status: data.webhook_status,
+      } 
+
       obj.date = Quasar.utils.date.formatDate(
         new Date(obj.time * 1000),
         'YYYY-MM-DD HH:mm'
