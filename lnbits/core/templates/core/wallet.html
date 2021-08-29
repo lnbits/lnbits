@@ -596,6 +596,7 @@
     <div class="q-mb-md text-center full-width">Upload Image or Paste URL</div>
     <q-spinner-bars color="secondary" size="2rem" v-if="readImage.spinner" class="q-mb-md text-center full-width"></q-spinner-bars>
     <q-input
+      ref="readInput"
       filled
       dense
       v-model.trim="readImage.url"
@@ -619,6 +620,7 @@
       style="max-width: 280px"
       @uploaded="data=> readQrcode({btn:'res', data})"
     ></q-uploader>
+    <div class="q-mt-md full-width text-center">Paste image or ctrl+v</div>
   </q-card>
 </q-dialog>
 
