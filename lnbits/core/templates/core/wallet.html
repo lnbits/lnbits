@@ -617,7 +617,7 @@
       :headers="_=> [{name:'X-Api-Key', value: g.wallet.inkey}]"
       label="Upload Image"
       color="primary"
-      :filter="files => files.filter(file => file.size < 3145728)"
+      :filter="files => files.filter(file => file.size < 10485760)"
       square
       flat
       bordered
