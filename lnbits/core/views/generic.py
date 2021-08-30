@@ -1,3 +1,5 @@
+import asyncio
+
 from http import HTTPStatus
 from typing import Optional
 
@@ -9,7 +11,6 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse
-import trio
 
 from lnbits.core import db
 from lnbits.helpers import template_renderer, url_for
@@ -142,8 +143,7 @@ async def lnurl_full_withdraw_callback(request: Request):
         except:
             pass
 
-    async with trio.open_nursery() as n:
-        n.start_soon(pay)
+    asyncio.create_task(pay())
 
     balance_notify = request.args.get("balanceNotify")
     if balance_notify:
@@ -187,14 +187,14 @@ async def lnurlwallet(request: Request):
         user = await get_user(account.id, conn=conn)
         wallet = await create_wallet(user_id=user.id, conn=conn)
 
-    async with trio.open_nursery() as n:
-        n.start_soon(
-            redeem_lnurl_withdraw,
+    asyncio.create_task(
+        redeem_lnurl_withdraw(
             wallet.id,
             request.args.get("lightning"),
             "LNbits initial funding: voucher redeem.",
             {"tag": "lnurlwallet"},
-            5,  # wait 5 seconds before sending the invoice to the service
+            5 # wait 5 seconds before sending the invoice to the service 
+        )
     )
 
     return RedirectResponse(f"/wallet?usr={user.id}&wal={wallet.id}", status_code=status.HTTP_307_TEMPORARY_REDIRECT)

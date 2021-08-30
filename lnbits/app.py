@@ -1,9 +1,10 @@
+import asyncio
 import importlib
+from lnbits.core.tasks import register_task_listeners
 import sys
 import traceback
 import warnings
 
-import trio
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,11 +20,11 @@ from .helpers import (get_css_vendored, get_js_vendored, get_valid_extensions,
                       template_renderer, url_for_vendored)
 from .requestvars import g
 from .settings import WALLET
-from .tasks import (check_pending_payments, internal_invoice_listener,
+from .tasks import (catch_everything_and_restart, check_pending_payments, internal_invoice_listener,
                     invoice_listener, run_deferred_async, webhook_handler)
 
 
-async def create_app(config_object="lnbits.settings") -> FastAPI:
+def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
@@ -128,16 +129,12 @@ def register_async_tasks(app):
 
     @app.on_event("startup")
     async def listeners():
-        run_deferred_async()
-        trio.open_process(check_pending_payments)
-        trio.open_process(invoice_listener)
-        trio.open_process(internal_invoice_listener)
-        
-        async with trio.open_nursery() as n:
-            pass
-            # n.start_soon(catch_everything_and_restart, check_pending_payments)
-            # n.start_soon(catch_everything_and_restart, invoice_listener)
-            # n.start_soon(catch_everything_and_restart, internal_invoice_listener)
+        loop = asyncio.get_event_loop()
+        loop.create_task(catch_everything_and_restart(check_pending_payments))
+        loop.create_task(catch_everything_and_restart(invoice_listener))
+        loop.create_task(catch_everything_and_restart(internal_invoice_listener))
+        await register_task_listeners()
+        await run_deferred_async()
 
     @app.on_event("shutdown")
     async def stop_listeners():

@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import json
 import httpx
 from os import getenv
@@ -150,4 +150,4 @@ class LntxbotWallet(Wallet):
                 pass
 
             print("lost connection to lntxbot /payments/stream, retrying in 5 seconds")
-            await trio.sleep(5)
+            await asyncio.sleep(5)

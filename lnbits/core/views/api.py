@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 from binascii import unhexlify
@@ -6,15 +7,15 @@ from typing import Dict, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-import trio
-from fastapi import Query, security
+from fastapi import Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
+from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 
 from lnbits import bolt11, lnurl
-from lnbits.core.models import Wallet
+from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (WalletAdminKeyChecker, WalletInvoiceKeyChecker,
                                WalletTypeInfo, get_key_type)
 from lnbits.helpers import url_for
@@ -251,57 +252,42 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
         HTTPStatus.CREATED,
     )
 
-@core_app.get("/api/v1/payments/sse")
-async def api_payments_sse(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def subscribe(request: Request, wallet: Wallet):
     this_wallet_id = wallet.wallet.id
 
-    send_payment, receive_payment = trio.open_memory_channel(0)
+    payment_queue = asyncio.Queue(0)
 
-    print("adding sse listener", send_payment)
-    api_invoice_listeners.append(send_payment)
+    print("adding sse listener", payment_queue)
+    api_invoice_listeners.append(payment_queue)
 
-    send_event, event_to_send = trio.open_memory_channel(0)
+    send_queue = asyncio.Queue(0)
 
     async def payment_received() -> None:
-        async for payment in receive_payment:
-            if payment.wallet_id == this_wallet_id:
-                await send_event.send(("payment-received", payment))
-
-    async def repeat_keepalive():
-        await trio.sleep(1)
         while True:
-            await send_event.send(("keepalive", ""))
-            await trio.sleep(25)
+            payment: Payment = await payment_queue.get()
+            if payment.wallet_id == this_wallet_id:
+                await send_queue.put(("payment-received", payment))
 
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(payment_received)
-        nursery.start_soon(repeat_keepalive)
-    
-    async def send_events():
-        try:
-            async for typ, data in event_to_send:
-                message = [f"event: {typ}".encode("utf-8")]
+    asyncio.create_task(payment_received())
 
-                if data:
-                    jdata = json.dumps(dict(data._asdict(), pending=False))
-                    message.append(f"data: {jdata}".encode("utf-8"))
+    try:
+        while True:
+            typ, data = await send_queue.get()
+            message = [f"event: {typ}".encode("utf-8")]
 
-                yield b"\n".join(message) + b"\r\n\r\n"
-        except trio.Cancelled:
-            return
+            if data:
+                jdata = json.dumps(dict(data.dict(), pending=False))
+                message.append(f"data: {jdata}".encode("utf-8"))
 
-    response = await make_response(
-        send_events(),
-        {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-            "Transfer-Encoding": "chunked",
-        },
-    )
-    response.timeout = None
-    return response
+            yield dict(data=jdata.encode("utf-8"), event=typ.encode("utf-8"))
+    except asyncio.CancelledError:
+        return
+
+
+@core_app.get("/api/v1/payments/sse")
+async def api_payments_sse(request: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+    return EventSourceResponse(subscribe(request, wallet))
+
 
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, wallet: WalletTypeInfo = Depends(get_key_type)):

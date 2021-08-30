@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import json
 import httpx
 import random
@@ -199,4 +199,4 @@ class SparkWallet(Wallet):
                 pass
 
             print("lost connection to spark /stream, retrying in 5 seconds")
-            await trio.sleep(5)
+            await asyncio.sleep(5)

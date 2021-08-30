@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import httpx
 import json
 import base64
@@ -183,4 +183,4 @@ class LndRestWallet(Wallet):
                 pass
 
             print("lost connection to lnd invoices stream, retrying in 5 seconds")
-            await trio.sleep(5)
+            await asyncio.sleep(5)

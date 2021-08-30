@@ -1,5 +1,5 @@
 import json
-import trio
+import asyncio
 import httpx
 from os import getenv
 from http import HTTPStatus
@@ -116,8 +116,9 @@ class LNPayWallet(Wallet):
         return PaymentStatus(statuses[r.json()["settled"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.send, receive = trio.open_memory_channel(0)
-        async for value in receive:
+        self.queue = asyncio.Queue(0)
+        while True:
+            value = await self.queue.get()
             yield value
 
     async def webhook_listener(self):
@@ -142,6 +143,6 @@ class LNPayWallet(Wallet):
             )
             data = r.json()
             if data["settled"]:
-                await self.send.send(lntx_id)
+                await self.queue.put(lntx_id)
 
         return "", HTTPStatus.NO_CONTENT

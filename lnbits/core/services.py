@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import json
 import httpx
 from io import BytesIO
@@ -211,7 +211,7 @@ async def redeem_lnurl_withdraw(
         return None
 
     if wait_seconds:
-        await trio.sleep(wait_seconds)
+        await asyncio.sleep(wait_seconds)
 
     params = {
         "k1": res["k1"],
