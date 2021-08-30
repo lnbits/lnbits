@@ -10,13 +10,13 @@
 from quart import jsonify
 from http import HTTPStatus
 
-from . import example_ext
+from . import lnaddress_ext
 
 
 # add your endpoints here
 
 
-@example_ext.route("/api/v1/tools", methods=["GET"])
+@lnaddress_ext.route("/api/v1/tools", methods=["GET"])
 async def api_example():
     """Try to add descriptions for others."""
     tools = [

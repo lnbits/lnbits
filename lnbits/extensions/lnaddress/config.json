@@ -1,6 +1,6 @@
 {
-    "name": "Build your own!",
-    "short_description": "Join us, make an extension",
-    "icon": "info",
-    "contributors": ["github_username"]
+  "name": "Lightning Address",
+  "short_description": "Sell LN addresses for your domain",
+  "icon": "info",
+  "contributors": ["talvasconcelos"]
 }
