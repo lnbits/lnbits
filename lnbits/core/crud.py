@@ -10,6 +10,7 @@ from lnbits.settings import DEFAULT_WALLET_NAME
 
 from . import db
 from .models import User, Wallet, Payment, BalanceCheck
+import time
 
 
 # accounts
@@ -160,6 +161,7 @@ async def get_wallet(
 async def get_wallet_for_key(
     key: str, key_type: str = "invoice", conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
+    start = time.time()
     row = await (conn or db).fetchone(
         """
         SELECT *, COALESCE((SELECT balance FROM balances WHERE wallet = wallets.id), 0) AS balance_msat
@@ -175,6 +177,8 @@ async def get_wallet_for_key(
     if key_type == "admin" and row["adminkey"] != key:
         return None
 
+    end = time.time()
+    print("CHECK_WALLET", end-start)
     return Wallet(**row)
 
 
@@ -228,7 +232,7 @@ async def get_payments(
     """
     Filters payments to be returned by complete | pending | outgoing | incoming.
     """
-
+    start = time.time()
     args: List[Any] = []
     clause: List[str] = []
 
@@ -284,7 +288,8 @@ async def get_payments(
         """,
         tuple(args),
     )
-
+    end = time.time()
+    print("GET PAYMENTS", end-start)
     return [Payment.from_row(row) for row in rows]
 
 
