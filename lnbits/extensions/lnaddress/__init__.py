@@ -1,7 +1,7 @@
 from quart import Blueprint
 from lnbits.db import Database
 
-db = Database("lnaddress")
+db = Database("ext_lnaddress")
 
 lnaddress_ext: Blueprint = Blueprint(
     "lnaddress", __name__, static_folder="static", template_folder="templates"
