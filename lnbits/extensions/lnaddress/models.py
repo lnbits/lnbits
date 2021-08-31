@@ -1,5 +1,18 @@
-# from sqlite3 import Row
-# from typing import NamedTuple
+from typing import NamedTuple
+
+class Domains(NamedTuple):
+    id: str
+    wallet: str
+    domain: str
+    cf_token: str
+    cf_zone_id: str
+    webhook: str
+    cost: int
+    time: int
+
+class Address(NamedTuple):
+    id: str
+    
 
 
 # class Example(NamedTuple):

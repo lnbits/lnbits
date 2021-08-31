@@ -9,4 +9,4 @@ from . import lnaddress_ext
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
 async def index():
-    return await render_template("example/index.html", user=g.user)
+    return await render_template("lnaddress/index.html", user=g.user)

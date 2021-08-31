@@ -1,9 +1,9 @@
-from lnbits.extensions.subdomains.models import Domains
+from lnbits.extensions.lnaddress.models import Domains
 import httpx, json
 
 
-async def cloudflare_create_subdomain(
-    domain: Domains, subdomain: str, record_type: str, ip: str
+async def cloudflare_create_record(
+    domain: Domains, ip: str
 ):
     # Call to cloudflare sort of a dry-run - if success delete the domain and wait for payment
     ### SEND REQUEST TO CLOUDFLARE
@@ -16,7 +16,7 @@ async def cloudflare_create_subdomain(
         "Authorization": "Bearer " + domain.cf_token,
         "Content-Type": "application/json",
     }
-    aRecord = subdomain + "." + domain.domain
+
     cf_response = ""
     async with httpx.AsyncClient() as client:
         try:
@@ -24,8 +24,8 @@ async def cloudflare_create_subdomain(
                 url,
                 headers=header,
                 json={
-                    "type": record_type,
-                    "name": aRecord,
+                    "type": "CNAME",
+                    "name": "@",
                     "content": ip,
                     "ttl": 0,
                     "proxied": False,
@@ -38,7 +38,7 @@ async def cloudflare_create_subdomain(
     return cf_response
 
 
-async def cloudflare_deletesubdomain(domain: Domains, domain_id: str):
+async def cloudflare_deleterecord(domain: Domains, domain_id: str):
     url = (
         "https://api.cloudflare.com/client/v4/zones/"
         + domain.cf_zone_id
