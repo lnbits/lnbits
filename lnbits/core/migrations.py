@@ -188,3 +188,6 @@ async def m005_balance_check_balance_notify(db):
         );
     """
     )
+
+async def m006_create_wallet_indexes(db):
+    await db.execute("CREATE UNIQUE INDEX idx_wallet_keys ON wallets (inkey, adminkey)")
