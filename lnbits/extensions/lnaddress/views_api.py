@@ -8,16 +8,16 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import lnaddress_ext
 from .crud import (
-    # create_subdomain,
+    # create_address,
     # get_subdomain,
-    # get_subdomains,
+    get_addresses,
     # delete_subdomain,
     create_domain,
     update_domain,
     get_domain,
     get_domains,
     delete_domain,
-    # get_subdomainBySubdomain,
+    check_address_available
 )
 
 from .cloudflare import cloudflare_create_record, cloudflare_deleterecord
@@ -31,7 +31,7 @@ async def api_domains():
 
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
-    print("URL", urlparse(request.url_root).netloc)
+
     return (
         jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]),
         HTTPStatus.OK,
@@ -64,16 +64,16 @@ async def api_domain_create(domain_id=None):
         domain = await update_domain(domain_id, **g.data)
     else:
 
-        ## Dry run cloudflare... (create and if create is sucessful delete it)
-        root_url = urlparse(request.url_root).netloc
-        cf_response = await cloudflare_create_subdomain(
+        domain = await create_domain(**g.data)
+        root_url = request.url_root
+
+        cf_response = await cloudflare_create_record(
             domain=domain,
             ip=root_url,
         )
-        if cf_response["success"] == True:
-            # cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
-            domain = await create_domain(**g.data)
-        else:
+
+        if not cf_response or cf_response["success"] != True:
+            await delete_domain(domain.id)
             return (
                 jsonify(
                     {
@@ -100,3 +100,81 @@ async def api_domain_delete(domain_id):
     await delete_domain(domain_id)
 
     return "", HTTPStatus.NO_CONTENT
+
+# ADDRESSES
+
+@lnaddress_ext.route("/api/v1/addresses", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_addresses():
+    wallet_ids = [g.wallet.id]
+
+    if "all_wallets" in request.args:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
+    return (
+        jsonify([domain._asdict() for domain in await get_addresses(wallet_ids)]),
+        HTTPStatus.OK,
+    )
+
+@lnaddress_ext.route("/api/v1/address/availabity", methods=["GET"])
+async def api_check_available_username():
+    print("ARGS", req.args)
+    username = request.args["username"]
+    domain = request.args["domain_id"]
+
+    used_username = await check_address_available(g.data["username"], g.data["domain"])
+    if used_username:
+        return False
+
+    print("OK", used_username)
+    return True
+
+@lnaddress_ext.route("/api/v1/address/<domain_id>", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "domain": {"type": "string", "empty": False, "required": True},
+        "username": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "empty": True, "required": False},
+        "wallet_endpoint": {"type": "string", "empty": False, "required": True},
+        "wallet_key": {"type": "string", "empty": False, "required": True},
+        "sats": {"type": "integer", "min": 0, "required": True},
+        "duration": {"type": "integer", "empty": False, "required": True}
+    }
+)
+async def api_lnaddress_make_address(domain_id):
+    domain = await get_domain(domain_id)
+
+    # If the request is coming for the non-existant domain
+    if not domain:
+        return jsonify({"message": "The domain does not exist."}), HTTPStatus.NOT_FOUND
+
+    used_username = await check_address_available(g.data["username"], g.data["domain"])
+    if not used_username:
+        print("OK", used_username)
+    ## ALL OK - create an invoice and return it to the user
+    # sats = g.data["sats"]
+    #
+    # try:
+    #     payment_hash, payment_request = await create_invoice(
+    #         wallet_id=domain.wallet,
+    #         amount=sats,
+    #         memo=f"subdomain {g.data['subdomain']}.{domain.domain} for {sats} sats for {g.data['duration']} days",
+    #         extra={"tag": "lnsubdomain"},
+    #     )
+    # except Exception as e:
+    #     return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    #
+    # subdomain = await create_subdomain(
+    #     payment_hash=payment_hash, wallet=domain.wallet, **g.data
+    # )
+    #
+    # if not subdomain:
+    #     return (
+    #         jsonify({"message": "LNsubdomain could not be fetched."}),
+    #         HTTPStatus.NOT_FOUND,
+    #     )
+    #
+    # return (
+    #     jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+    #     HTTPStatus.OK,
+    # )

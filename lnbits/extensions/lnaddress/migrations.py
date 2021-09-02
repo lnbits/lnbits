@@ -15,3 +15,26 @@ async def m001_initial(db):
         );
     """
     )
+
+async def m002_addresses(db):
+    await db.execute(
+        """
+        CREATE TABLE lnaddress.address (
+            id TEXT PRIMARY KEY,
+            domain TEXT NOT NULL,
+            email TEXT NOT NULL,
+            username TEXT NOT NULL,
+            wallet_key TEXT NOT NULL,
+            wallet_endpoint TEXT NOT NULL,
+            sats INTEGER NOT NULL,
+            duration INTEGER NOT NULL,
+            paid BOOLEAN NOT NULL,
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
+        );
+    """
+    )
+
+async def m003_create_unique_indexes(db):
+    await db.execute("CREATE UNIQUE INDEX address_at_domain ON lnaddress.address (domain, username)")

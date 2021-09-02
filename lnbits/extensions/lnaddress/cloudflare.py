@@ -5,12 +5,10 @@ import httpx, json
 async def cloudflare_create_record(
     domain: Domains, ip: str
 ):
-    # Call to cloudflare sort of a dry-run - if success delete the domain and wait for payment
-    ### SEND REQUEST TO CLOUDFLARE
     url = (
         "https://api.cloudflare.com/client/v4/zones/"
         + domain.cf_zone_id
-        + "/dns_records"
+        + "/pagerules"
     )
     header = {
         "Authorization": "Bearer " + domain.cf_token,
@@ -24,11 +22,21 @@ async def cloudflare_create_record(
                 url,
                 headers=header,
                 json={
-                    "type": "CNAME",
-                    "name": "@",
-                    "content": ip,
-                    "ttl": 0,
-                    "proxied": False,
+                    "targets": [{
+                        "target": "url",
+                        "constraint": {
+                            "operator": "matches",
+                            "value": f"*{domain.domain}/*"
+                        }
+                    }],
+                    "actions": [{
+                        "id": "forwarding_url",
+                        "value": {
+                            "url": f"{ip}$2",
+                            "status_code": 302
+                        }
+                    }],
+                    "status": "active"
                 },
                 timeout=40,
             )

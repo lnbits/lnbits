@@ -1,0 +1,215 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h3 class="q-my-none">{{ domain_domain }}</h3>
+        <br />
+        <h6 class="q-my-none">
+          Your Lightning Address: {% raw %}{{this.formDialog.data.username}}{%
+          endraw %}@{{domain_domain}}
+        </h6>
+        <br />
+        <q-form @submit="Invoice()" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.email"
+            type="email"
+            label="Your email (optional, if you want a reply)"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.username"
+            type="text"
+            label="Alias/username"
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.wallet_endpoint"
+            type="text"
+            label="Endpoint of LNbits instance, defaults to this instance"
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.wallet_key"
+            type="text"
+            label="Admin key for your wallet"
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.duration"
+            type="number"
+            label="Number of days"
+          >
+          </q-input>
+          <p>
+            Cost per day: {{ domain_cost }} sats<br />
+            {% raw %} Total cost: {{amountSats}} sats {% endraw %}
+          </p>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              :disable="!formDialog.data.username || !formDialog.data.wallet_key || !formDialog.data.duration"
+              type="submit"
+              >Submit</q-btn
+            >
+            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-form>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
+    <q-card
+      v-if="!receive.paymentReq"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+    </q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="'lightning:' + receive.paymentReq">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="paymentReq"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+          >Copy invoice</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  console.log('{{ domain_cost }}')
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        paymentReq: null,
+        redirectUrl: null,
+        formDialog: {
+          show: false,
+          data: {}
+        },
+        receive: {
+          show: false,
+          status: 'pending',
+          paymentReq: null
+        }
+      }
+    },
+    computed: {
+      amountSats() {
+        if (!this.formDialog.data.duration) return 0
+        let sats = this.formDialog.data.duration * parseInt('{{ domain_cost }}')
+        this.formDialog.data.sats = parseInt(sats)
+        return sats
+      }
+    },
+    methods: {
+      resetForm: function (e) {
+        e.preventDefault()
+        this.formDialog.data = {}
+      },
+
+      closeReceiveDialog: function () {
+        var checker = this.receive.paymentChecker
+        dismissMsg()
+
+        clearInterval(paymentChecker)
+        setTimeout(function () {}, 10000)
+      },
+      checkUsername: function () {
+        let username = this.formDialog.data.username
+        LNbits.
+      },
+      Invoice: function () {
+        let {data} = this.formDialog
+        data.domain = '{{ domain_id }}'
+        if (data.wallet_endpoint == '') {
+          data.wallet_endpoint = null
+        }
+        data.wallet_endpoint = data.wallet_endpoint ?? '{{ request.url_root }}'
+        data.duration = parseInt(data.duration)
+        console.log('data', data)
+        // return
+        axios
+          .post('/lnaddress/api/v1/address/{{ domain_id }}', data)
+          .then(response => {
+            this.paymentReq = response.data.payment_request
+            this.paymentCheck = response.data.payment_hash
+
+            dismissMsg = this.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+
+            this.receive = {
+              show: true,
+              status: 'pending',
+              paymentReq: this.paymentReq
+            }
+
+            paymentChecker = setInterval(() => {
+              axios
+                .get('/lnaddress/api/v1/addresses/' + this.paymentCheck)
+                .then(res => {
+                  console.log(res.data)
+                  if (res.data.paid) {
+                    clearInterval(paymentChecker)
+                    this.receive = {
+                      show: false,
+                      status: 'complete',
+                      paymentReq: null
+                    }
+                    dismissMsg()
+
+                    console.log(this.formDialog)
+                    this.formDialog.data = {}
+                    this.$q.notify({
+                      type: 'positive',
+                      message: 'Sent, thank you!',
+                      icon: 'thumb_up'
+                    })
+                    console.log('END')
+                  }
+                })
+                .catch(function (error) {
+                  console.log(error)
+                  LNbits.utils.notifyApiError(error)
+                })
+            }, 2000)
+          })
+          .catch(function (error) {
+            console.log(error)
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    }
+  })
+</script>
+{% endblock %}

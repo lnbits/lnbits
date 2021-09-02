@@ -10,15 +10,14 @@ class Domains(NamedTuple):
     cost: int
     time: int
 
-class Address(NamedTuple):
+class Addresses(NamedTuple):
     id: str
-    
-
-
-# class Example(NamedTuple):
-#    id: str
-#    wallet: str
-#
-#    @classmethod
-#    def from_row(cls, row: Row) -> "Example":
-#        return cls(**dict(row))
+    domain: str
+    email: str
+    username: str
+    wallet_key: str
+    wallet_endpoint: str
+    sats: int
+    duration: int
+    paid: bool
+    time: int

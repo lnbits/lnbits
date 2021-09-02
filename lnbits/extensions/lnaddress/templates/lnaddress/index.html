@@ -83,7 +83,83 @@
         </q-table>
       </q-card-section>
     </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Addresses</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportAddressesCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="addresses"
+          row-key="id"
+          :columns="addressesTable.columns"
+          :pagination.sync="addressesTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props" v-if="props.row.paid">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="email"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'mailto:' + props.row.email"
+                ></q-btn>
+              </q-td>
+
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteAddress(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
   </div>
+  <!-- <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Subdomain extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "subdomains/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div> -->
   <q-dialog v-model="domainDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormData" class="q-gutter-md">
@@ -166,7 +242,8 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
-    obj.displayUrl = ['/domains/', obj.id].join('')
+
+    obj.displayUrl = ['/lnaddress/', obj.id].join('')
     return obj
   }
 
@@ -176,7 +253,7 @@
     data: function () {
       return {
         domains: [],
-        adrresses: [],
+        addresses: [],
         domainDialog: {
           show: false,
           data: {}
@@ -207,10 +284,50 @@
           pagination: {
             rowsPerPage: 10
           }
+        },
+        addressesTable: {
+          columns: [
+            {
+              name: 'address',
+              align: 'left',
+              label: 'Address name',
+              field: 'address'
+            },
+            {
+              name: 'domain',
+              align: 'left',
+              label: 'Domain name',
+              field: 'domain_name'
+            },
+            {
+              name: 'email',
+              align: 'left',
+              label: 'Email',
+              field: 'email'
+            },
+            {
+              name: 'sats',
+              align: 'left',
+              label: 'Sats paid',
+              field: 'sats'
+            },
+            {
+              name: 'duration',
+              align: 'left',
+              label: 'Duration in days',
+              field: 'duration'
+            },
+            {name: 'id', align: 'left', label: 'ID', field: 'id'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
         }
       }
     },
     methods: {
+      //DOMAINS
+
       getDomains: function () {
         LNbits.api
           .request(
@@ -238,7 +355,7 @@
 
       createDomain: function (wallet, data) {
         var self = this
-
+        console.log(data)
         LNbits.api
           .request('POST', '/lnaddress/api/v1/domains', wallet.inkey, data)
           .then(response => {
@@ -258,7 +375,9 @@
       },
       updateDomain: function (wallet, data) {
         console.log(data)
-
+        if (!data.webhook) {
+          delete data.webhook
+        }
         LNbits.api
           .request(
             'PUT',
@@ -303,11 +422,56 @@
       },
       exportDomainsCSV: function () {
         LNbits.utils.exportCSV(this.domainsTable.columns, this.domains)
+      },
+
+      //ADDRESSES
+
+      getAddresses: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/lnaddress/api/v1/addresses?all_wallets',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.addresses = response.data.map(function (obj) {
+              return mapLNDomain(obj)
+            })
+          })
+      },
+      deleteAddress: function (addressId) {
+        var self = this
+        var addresses = _.findWhere(this.addresses, {id: addressId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this LN address')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/lnaddress/api/v1/addresses/' + addressId,
+                _.findWhere(self.g.user.wallets, {id: addresses.wallet}).inkey
+              )
+              .then(function (response) {
+                self.addresses = _.reject(self.addresses, function (obj) {
+                  return obj.id == addressId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportAddressesCSV: function () {
+        LNbits.utils.exportCSV(this.addressesTable.columns, this.addresses)
       }
     },
     created: function () {
       if (this.g.user.wallets.length) {
         this.getDomains()
+        this.getAddresses()
       }
       // var self = this
       //
