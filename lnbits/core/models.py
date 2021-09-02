@@ -1,29 +1,13 @@
 import json
 import hmac
 import hashlib
-from quart import url_for
+from lnbits.helpers import url_for
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
 from sqlite3 import Row
 from pydantic import BaseModel
 from lnbits.settings import WALLET
-
-
-class User(BaseModel):
-    id: str
-    email: str
-    extensions: List[str] = []
-    wallets: List["Wallet"] = []
-    password: Optional[str] = None
-
-    @property
-    def wallet_ids(self) -> List[str]:
-        return [wallet.id for wallet in self.wallets]
-
-    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
-        w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
-        return w[0] if w else None
 
 
 class Wallet(BaseModel):
@@ -46,11 +30,12 @@ class Wallet(BaseModel):
 
     @property
     def lnurlwithdraw_full(self) -> str:
+        
         url = url_for(
-            "core.lnurl_full_withdraw",
+            "/withdraw",
+            external=True,
             usr=self.user,
             wal=self.id,
-            _external=True,
         )
         try:
             return lnurl_encode(url)
@@ -73,6 +58,22 @@ class Wallet(BaseModel):
         return await get_wallet_payment(self.id, payment_hash)
 
 
+class User(BaseModel):
+    id: str
+    email: Optional[str] = None
+    extensions: List[str] = []
+    wallets: List[Wallet] = []
+    password: Optional[str] = None
+
+    @property
+    def wallet_ids(self) -> List[str]:
+        return [wallet.id for wallet in self.wallets]
+
+    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
+        w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
+        return w[0] if w else None
+
+
 class Payment(BaseModel):
     checking_id: str
     pending: bool
@@ -83,10 +84,10 @@ class Payment(BaseModel):
     bolt11: str
     preimage: str
     payment_hash: str
-    extra: Dict
+    extra: Optional[Dict] = {}
     wallet_id: str
-    webhook: str
-    webhook_status: int
+    webhook: Optional[str]
+    webhook_status: Optional[int]
 
     @classmethod
     def from_row(cls, row: Row):

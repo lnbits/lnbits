@@ -1,12 +1,12 @@
 import os
-import trio
+import asyncio
 import time
 import datetime
 from typing import Optional
 from contextlib import asynccontextmanager
-from sqlalchemy import create_engine  # type: ignore
-from sqlalchemy_aio import TRIO_STRATEGY  # type: ignore
-from sqlalchemy_aio.base import AsyncConnection  # type: ignore
+from sqlalchemy import create_engine
+from sqlalchemy_aio.base import AsyncConnection
+from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore
 
 from .settings import LNBITS_DATA_FOLDER, LNBITS_DATABASE_URL
 
@@ -132,8 +132,8 @@ class Database(Compat):
         else:
             self.schema = None
 
-        self.engine = create_engine(database_uri, strategy=TRIO_STRATEGY)
-        self.lock = trio.StrictFIFOLock()
+        self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
+        self.lock = asyncio.Lock()
 
     @asynccontextmanager
     async def connect(self):

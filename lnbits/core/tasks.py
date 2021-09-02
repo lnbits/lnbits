@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import httpx
 from typing import List
 
@@ -8,17 +8,19 @@ from . import db
 from .crud import get_balance_notify
 from .models import Payment
 
-api_invoice_listeners: List[trio.MemorySendChannel] = []
+api_invoice_listeners: List[asyncio.Queue] = []
 
 
-async def register_listeners():
-    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(5)
-    register_invoice_listener(invoice_paid_chan_send)
-    await wait_for_paid_invoices(invoice_paid_chan_recv)
+async def register_task_listeners():
+    invoice_paid_queue = asyncio.Queue(5)
+    register_invoice_listener(invoice_paid_queue)
+    asyncio.create_task(wait_for_paid_invoices(invoice_paid_queue))
 
 
-async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
-    async for payment in invoice_paid_chan:
+async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
+    while True:
+        payment = await invoice_paid_queue.get()
+
         # send information to sse channel
         await dispatch_invoice_listener(payment)
 
@@ -43,8 +45,8 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
 async def dispatch_invoice_listener(payment: Payment):
     for send_channel in api_invoice_listeners:
         try:
-            send_channel.send_nowait(payment)
-        except trio.WouldBlock:
+            send_channel.put_nowait(payment)
+        except asyncio.QueueFull:
             print("removing sse listener", send_channel)
             api_invoice_listeners.remove(send_channel)
 

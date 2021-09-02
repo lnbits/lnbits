@@ -135,7 +135,7 @@ window.LNbits = {
       return obj
     },
     user: function (data) {
-      var obj = _.object(['id', 'email', 'extensions', 'wallets'], data)
+      var obj = {id: data.id, email: data.email, extensions: data.extensions, wallets: data.wallets}
       var mapWallet = this.wallet
       obj.wallets = obj.wallets
         .map(function (obj) {
@@ -153,35 +153,30 @@ window.LNbits = {
       return obj
     },
     wallet: function (data) {
-      var obj = _.object(
-        ['id', 'name', 'user', 'adminkey', 'inkey', 'balance'],
-        data
-      )
-      obj.msat = obj.balance
-      obj.sat = Math.round(obj.balance / 1000)
-      obj.fsat = new Intl.NumberFormat(window.LOCALE).format(obj.sat)
-      obj.url = ['/wallet?usr=', obj.user, '&wal=', obj.id].join('')
-      return obj
+      newWallet = {id: data.id, name: data.name, adminkey: data.adminkey, inkey: data.inkey} 
+      newWallet.msat = data.balance_msat
+      newWallet.sat = Math.round(data.balance_msat / 1000)
+      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(newWallet.sat)
+      newWallet.url = ['/wallet?usr=', data.user, '&wal=', data.id].join('')
+      return newWallet
     },
     payment: function (data) {
-      var obj = _.object(
-        [
-          'checking_id',
-          'pending',
-          'amount',
-          'fee',
-          'memo',
-          'time',
-          'bolt11',
-          'preimage',
-          'payment_hash',
-          'extra',
-          'wallet_id',
-          'webhook',
-          'webhook_status'
-        ],
-        data
-      )
+      obj = {
+        checking_id:data.id,
+        pending: data.pending,
+        amount: data.amount,
+        fee: data.fee,
+        memo: data.memo,
+        time: data.time,
+        bolt11: data.bolt11,
+        preimage: data.preimage,
+        payment_hash: data.payment_hash,
+        extra: data.extra,
+        wallet_id: data.wallet_id,
+        webhook: data.webhook,
+        webhook_status: data.webhook_status,
+      } 
+
       obj.date = Quasar.utils.date.formatDate(
         new Date(obj.time * 1000),
         'YYYY-MM-DD HH:mm'

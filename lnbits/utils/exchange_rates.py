@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import httpx
 from typing import Callable, NamedTuple
 
@@ -219,12 +219,12 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
     rates = []
-    send_channel, receive_channel = trio.open_memory_channel(0)
+    send_channel = asyncio.Queue(0)
 
     async def controller(nursery):
         failures = 0
         while True:
-            rate = await receive_channel.receive()
+            rate = await send_channel.get()
             if rate:
                 rates.append(rate)
             else:
@@ -248,10 +248,9 @@ async def btc_price(currency: str) -> float:
         except Exception:
             await send_channel.send(None)
 
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(controller, nursery)
-        for key, provider in exchange_rate_providers.items():
-            nursery.start_soon(fetch_price, key, provider)
+    # asyncio.create_task(controller, nursery)
+    for key, provider in exchange_rate_providers.items():
+        asyncio.create_task(fetch_price(key, provider))
 
     if not rates:
         return 9999999999

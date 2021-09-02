@@ -1,10 +1,10 @@
-import trio
+import asyncio
+from lnbits.helpers import url_for
 import hmac
 import httpx
 from http import HTTPStatus
 from os import getenv
 from typing import Optional, AsyncGenerator
-from quart import request, url_for
 
 from .base import (
     StatusResponse,
@@ -63,7 +63,7 @@ class OpenNodeWallet(Wallet):
                 json={
                     "amount": amount,
                     "description": memo or "",
-                    "callback_url": url_for("webhook_listener", _external=True),
+                    "callback_url": url_for("/webhook_listener", _external=True),
                 },
                 timeout=40,
             )
@@ -125,8 +125,9 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.send, receive = trio.open_memory_channel(0)
-        async for value in receive:
+        self.queue = asyncio.Queue(0)
+        while True:
+            value = await self.queue.get()
             yield value
 
     async def webhook_listener(self):
@@ -141,5 +142,5 @@ class OpenNodeWallet(Wallet):
             print("invalid webhook, not from opennode")
             return "", HTTPStatus.NO_CONTENT
 
-        await self.send.send(charge_id)
+        await self.queue.put(charge_id)
         return "", HTTPStatus.NO_CONTENT

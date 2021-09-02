@@ -2,7 +2,7 @@ import json
 import base64
 import hashlib
 from collections import OrderedDict
-from quart import url_for
+
 from typing import Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore

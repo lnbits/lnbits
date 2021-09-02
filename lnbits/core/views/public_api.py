@@ -1,7 +1,6 @@
-import trio
+import asyncio
 import datetime
 from http import HTTPStatus
-from quart import jsonify
 
 from lnbits import bolt11
 
@@ -27,27 +26,27 @@ async def api_public_payment_longpolling(payment_hash):
     except:
         return {"message": "Invalid bolt11 invoice."}, HTTPStatus.BAD_REQUEST
 
-    send_payment, receive_payment = trio.open_memory_channel(0)
+    payment_queue = asyncio.Queue(0)
 
-    print("adding standalone invoice listener", payment_hash, send_payment)
-    api_invoice_listeners.append(send_payment)
+    print("adding standalone invoice listener", payment_hash, payment_queue)
+    api_invoice_listeners.append(payment_queue)
 
     response = None
 
     async def payment_info_receiver(cancel_scope):
-        async for payment in receive_payment:
+        async for payment in payment_queue.get():
             if payment.payment_hash == payment_hash:
                 nonlocal response
                 response = ({"status": "paid"}, HTTPStatus.OK)
                 cancel_scope.cancel()
 
     async def timeouter(cancel_scope):
-        await trio.sleep(45)
+        await asyncio.sleep(45)
         cancel_scope.cancel()
 
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(payment_info_receiver, nursery.cancel_scope)
-        nursery.start_soon(timeouter, nursery.cancel_scope)
+    
+    asyncio.create_task(payment_info_receiver())
+    asyncio.create_task(timeouter())
 
     if response:
         return response

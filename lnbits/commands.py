@@ -1,4 +1,4 @@
-import trio
+import asyncio
 import warnings
 import click
 import importlib
@@ -18,7 +18,7 @@ from .settings import LNBITS_PATH
 
 @click.command("migrate")
 def db_migrate():
-    trio.run(migrate_databases)
+    asyncio.create_task(migrate_databases())
 
 
 @click.command("assets")

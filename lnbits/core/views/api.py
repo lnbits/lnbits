@@ -1,69 +1,60 @@
-from fastapi.param_functions import Depends
-from lnbits.auth_bearer import AuthBearer
-from pydantic import BaseModel
-import trio
-import json
-import httpx
+import asyncio
 import hashlib
-from urllib.parse import urlparse, urlunparse, urlencode, parse_qs, ParseResult
-from quart import current_app, make_response, url_for
-
-from fastapi import Query
-
-from http import HTTPStatus
+import json
 from binascii import unhexlify
-from typing import Dict, List, Optional, Union
+from http import HTTPStatus
+from typing import Dict, Optional, Union
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+
+import httpx
+from fastapi import Query, Request
+from fastapi.exceptions import HTTPException
+from fastapi.param_functions import Depends
+from fastapi.params import Body
+from sse_starlette.sse import EventSourceResponse
+from pydantic import BaseModel
 
 from lnbits import bolt11, lnurl
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
+from lnbits.core.models import Payment, Wallet
+from lnbits.decorators import (WalletAdminKeyChecker, WalletInvoiceKeyChecker,
+                               WalletTypeInfo, get_key_type)
+from lnbits.helpers import url_for
 from lnbits.requestvars import g
+from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 
 from .. import core_app, db
 from ..crud import get_payments, save_balance_check, update_wallet
-from ..services import (
-    PaymentFailure,
-    InvoiceFailure,
-    create_invoice,
-    pay_invoice,
-    perform_lnurlauth,
-)
+from ..services import (InvoiceFailure, PaymentFailure, create_invoice,
+                        pay_invoice, perform_lnurlauth)
 from ..tasks import api_invoice_listeners
 
 
-@core_app.get(
-    "/api/v1/wallet",
-    # dependencies=[Depends(AuthBearer())]
-)
-# @api_check_wallet_key("invoice")
-async def api_wallet():
+@core_app.get("/api/v1/wallet")
+async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
     return (
-            {"id": g().wallet.id, "name": g().wallet.name, "balance": g().wallet.balance_msat},
+            {"id": wallet.wallet.id, "name": wallet.wallet.name, "balance": wallet.wallet.balance_msat},
         HTTPStatus.OK,
     )
 
 
 @core_app.put("/api/v1/wallet/{new_name}")
-@api_check_wallet_key("invoice")
-async def api_update_wallet(new_name: str):
-    await update_wallet(g().wallet.id, new_name)
+async def api_update_wallet(new_name: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+    await update_wallet(wallet.wallet.id, new_name)
     return (
             {
-                "id": g().wallet.id,
-                "name": g().wallet.name,
-                "balance": g().wallet.balance_msat,
+                "id": wallet.wallet.id,
+                "name": wallet.wallet.name,
+                "balance": wallet.wallet.balance_msat,
             },
         HTTPStatus.OK,
     )
 
 
 @core_app.get("/api/v1/payments")
-@api_check_wallet_key("invoice")
-async def api_payments():
-    return (
-            await get_payments(wallet_id=g().wallet.id, pending=True, complete=True),
-        HTTPStatus.OK,
-    )
+async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
+    return await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
+        
+    
 
 class CreateInvoiceData(BaseModel):
     amount:  int = Query(None, ge=1)
@@ -75,9 +66,7 @@ class CreateInvoiceData(BaseModel):
     extra:  Optional[dict] = None
     webhook:  Optional[str] = None
 
-@api_check_wallet_key("invoice")
-# async def api_payments_create_invoice(amount: List[str] = Query([type: str = Query(None)])):
-async def api_payments_create_invoice(data: CreateInvoiceData):
+async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if "description_hash" in data:
         description_hash = unhexlify(data.description_hash)
         memo = ""
@@ -94,7 +83,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
     async with db.connect() as conn:
         try:
             payment_hash, payment_request = await create_invoice(
-                wallet_id=g().wallet.id,
+                wallet_id=wallet.id,
                 amount=amount,
                 memo=memo,
                 description_hash=description_hash,
@@ -121,10 +110,9 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
                     params={
                         "pr": payment_request,
                         "balanceNotify": url_for(
-                            "core.lnurl_balance_notify",
-                            service=urlparse(data.lnurl_callback).netloc,
+                            f"/withdraw/notify/{urlparse(data.lnurl_callback).netloc}",
+                            external=True,
                             wal=g().wallet.id,
-                            _external=True,
                         ),
                     },
                     timeout=10,
@@ -152,10 +140,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData):
     )
 
 
-@api_check_wallet_key("admin")
-async def api_payments_pay_invoice(
-    bolt11: str = Query(...), wallet: Optional[List[str]] = Query(None)
-):
+async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     try:
         payment_hash = await pay_invoice(
             wallet_id=wallet.id,
@@ -180,11 +165,20 @@ async def api_payments_pay_invoice(
     )
 
 
-@core_app.post("/api/v1/payments")
-async def api_payments_create(out: bool = True):
-    if out is True:
-        return await api_payments_pay_invoice()
-    return await api_payments_create_invoice()
+@core_app.post("/api/v1/payments", deprecated=True,
+                description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead")
+async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), out: bool = True, 
+                              invoiceData: Optional[CreateInvoiceData] = Body(None),
+                              bolt11: Optional[str] = Query(None)):
+    
+    if wallet.wallet_type < 0 or wallet.wallet_type > 2:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
+
+    if out is True and wallet.wallet_type == 0:
+        if not bolt11:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="BOLT11 string is invalid or not given")
+        return await api_payments_pay_invoice(bolt11, wallet.wallet) # admin key
+    return await api_payments_create_invoice(invoiceData, wallet.wallet) # invoice key
 
 class CreateLNURLData(BaseModel):
     description_hash:  str
@@ -193,8 +187,7 @@ class CreateLNURLData(BaseModel):
     comment:  Optional[str] = None
     description:  Optional[str] = None
 
-@core_app.post("/api/v1/payments/lnurl")
-@api_check_wallet_key("admin")
+@core_app.post("/api/v1/payments/lnurl", dependencies=[Depends(WalletAdminKeyChecker())])
 async def api_payments_pay_lnurl(data: CreateLNURLData):
     domain = urlparse(data.callback).netloc
 
@@ -259,11 +252,46 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
         HTTPStatus.CREATED,
     )
 
+async def subscribe(request: Request, wallet: Wallet):
+    this_wallet_id = wallet.wallet.id
+
+    payment_queue = asyncio.Queue(0)
+
+    print("adding sse listener", payment_queue)
+    api_invoice_listeners.append(payment_queue)
+
+    send_queue = asyncio.Queue(0)
+
+    async def payment_received() -> None:
+        while True:
+            payment: Payment = await payment_queue.get()
+            if payment.wallet_id == this_wallet_id:
+                await send_queue.put(("payment-received", payment))
+
+    asyncio.create_task(payment_received())
+
+    try:
+        while True:
+            typ, data = await send_queue.get()
+            message = [f"event: {typ}".encode("utf-8")]
+
+            if data:
+                jdata = json.dumps(dict(data.dict(), pending=False))
+                message.append(f"data: {jdata}".encode("utf-8"))
+
+            yield dict(data=jdata.encode("utf-8"), event=typ.encode("utf-8"))
+    except asyncio.CancelledError:
+        return
+
+
+@core_app.get("/api/v1/payments/sse")
+async def api_payments_sse(request: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+    return EventSourceResponse(subscribe(request, wallet))
+
 
 @core_app.get("/api/v1/payments/{payment_hash}")
-@api_check_wallet_key("invoice")
-async def api_payment(payment_hash):
-    payment = await g().wallet.get_payment(payment_hash)
+async def api_payment(payment_hash, wallet: WalletTypeInfo = Depends(get_key_type)):
+    payment = await wallet.wallet.get_payment(payment_hash)
 
     if not payment:
         return {"message": "Payment does not exist."}, HTTPStatus.NOT_FOUND
@@ -280,62 +308,7 @@ async def api_payment(payment_hash):
         HTTPStatus.OK,
     )
 
-
-@core_app.get("/api/v1/payments/sse")
-@api_check_wallet_key("invoice", accept_querystring=True)
-async def api_payments_sse():
-    this_wallet_id = g().wallet.id
-
-    send_payment, receive_payment = trio.open_memory_channel(0)
-
-    print("adding sse listener", send_payment)
-    api_invoice_listeners.append(send_payment)
-
-    send_event, event_to_send = trio.open_memory_channel(0)
-
-    async def payment_received() -> None:
-        async for payment in receive_payment:
-            if payment.wallet_id == this_wallet_id:
-                await send_event.send(("payment-received", payment))
-
-    async def repeat_keepalive():
-        await trio.sleep(1)
-        while True:
-            await send_event.send(("keepalive", ""))
-            await trio.sleep(25)
-
-    current_app.nursery.start_soon(payment_received)
-    current_app.nursery.start_soon(repeat_keepalive)
-
-    async def send_events():
-        try:
-            async for typ, data in event_to_send:
-                message = [f"event: {typ}".encode("utf-8")]
-
-                if data:
-                    jdata = json.dumps(dict(data._asdict(), pending=False))
-                    message.append(f"data: {jdata}".encode("utf-8"))
-
-                yield b"\n".join(message) + b"\r\n\r\n"
-        except trio.Cancelled:
-            return
-
-    response = await make_response(
-        send_events(),
-        {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-            "Transfer-Encoding": "chunked",
-        },
-    )
-    response.timeout = None
-    return response
-
-
-@core_app.get("/api/v1/lnurlscan/{code}")
-@api_check_wallet_key("invoice")
+@core_app.get("/api/v1/lnurlscan/{code}", dependencies=[Depends(WalletInvoiceKeyChecker())])
 async def api_lnurlscan(code: str):
     try:
         url = lnurl.decode(code)
@@ -444,8 +417,7 @@ async def api_lnurlscan(code: str):
     return params
 
 
-@core_app.post("/api/v1/lnurlauth")
-@api_check_wallet_key("admin")
+@core_app.post("/api/v1/lnurlauth", dependencies=[Depends(WalletAdminKeyChecker())])
 async def api_perform_lnurlauth(callback: str):
     err = await perform_lnurlauth(callback)
     if err:
@@ -453,6 +425,6 @@ async def api_perform_lnurlauth(callback: str):
     return "", HTTPStatus.OK
 
 
-@core_app.route("/api/v1/currencies", methods=["GET"])
+@core_app.get("/api/v1/currencies")
 async def api_list_currencies_available():
     return list(currencies.keys())

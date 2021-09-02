@@ -1,11 +1,10 @@
-import trio
+import asyncio
 import json
 import httpx
 from io import BytesIO
 from binascii import unhexlify
 from typing import Optional, Tuple, Dict
 from urllib.parse import urlparse, parse_qs
-from quart import g, url_for
 from lnurl import LnurlErrorResponse, decode as decode_lnurl  # type: ignore
 
 try:
@@ -15,9 +14,10 @@ except ImportError:  # pragma: nocover
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentStatus, PaymentResponse
+from lnbits.requestvars import g
 
 from . import db
 from .crud import (
@@ -211,7 +211,7 @@ async def redeem_lnurl_withdraw(
         return None
 
     if wait_seconds:
-        await trio.sleep(wait_seconds)
+        await asyncio.sleep(wait_seconds)
 
     params = {
         "k1": res["k1"],
@@ -220,10 +220,9 @@ async def redeem_lnurl_withdraw(
 
     try:
         params["balanceNotify"] = url_for(
-            "core.lnurl_balance_notify",
-            service=urlparse(lnurl_request).netloc,
+            f"/withdraw/notify/{urlparse(lnurl_request).netloc}",
+            external=True,
             wal=wallet_id,
-            _external=True,
         )
     except Exception:
         pass
@@ -242,7 +241,7 @@ async def perform_lnurlauth(
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
-    key = g.wallet.lnurlauth_key(cb.netloc)
+    key = g().wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""
