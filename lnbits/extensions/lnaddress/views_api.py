@@ -116,18 +116,12 @@ async def api_addresses():
         HTTPStatus.OK,
     )
 
-@lnaddress_ext.route("/api/v1/address/availabity", methods=["GET"])
-async def api_check_available_username():
-    print("ARGS", req.args)
-    username = request.args["username"]
-    domain = request.args["domain_id"]
-
-    used_username = await check_address_available(g.data["username"], g.data["domain"])
-    if used_username:
-        return False
-
-    print("OK", used_username)
-    return True
+@lnaddress_ext.route("/api/v1/address/availabity/<domain_id>/<username>", methods=["GET"])
+async def api_check_available_username(domain_id, username):
+    used_username = await check_address_available(username, domain_id)
+    # if used_username < 1:
+    #     return jsonify(True)
+    return jsonify(used_username)
 
 @lnaddress_ext.route("/api/v1/address/<domain_id>", methods=["POST"])
 @api_validate_post_request(

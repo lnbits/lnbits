@@ -69,6 +69,40 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
 
 ## ADRESSES
 
+async def create_subdomain(
+    payment_hash: str,
+    wallet: str,
+    domain: str,
+    subdomain: str,
+    email: str,
+    ip: str,
+    sats: int,
+    duration: int,
+    record_type: str,
+) -> Subdomains:
+    await db.execute(
+        """
+        INSERT INTO subdomains.subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            payment_hash,
+            domain,
+            email,
+            subdomain,
+            ip,
+            wallet,
+            sats,
+            duration,
+            False,
+            record_type,
+        ),
+    )
+
+    new_subdomain = await get_subdomain(payment_hash)
+    assert new_subdomain, "Newly created subdomain couldn't be retrieved"
+    return new_subdomain
+
 async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
@@ -81,10 +115,9 @@ async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
     print("ADDRESSS", rows)
     return [Addresses(**row) for row in rows]
 
-async def check_address_available(username: str, domain: str) -> Optional[Addresses]:
-    row = await db.fetchone(
-        "SELECT username FROM lnaddress.address WHERE username = ? AND domain = ?",
+async def check_address_available(username: str, domain: str):
+    row, = await db.fetchone(
+        "SELECT COUNT(username) FROM lnaddress.address WHERE username = ? AND domain = ?",
         (username, domain,),
     )
-    print('GET_AD_BY_AD', row)
-    return Addresses(**row) if row else None
+    return row

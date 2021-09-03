@@ -24,6 +24,11 @@
             v-model.trim="formDialog.data.username"
             type="text"
             label="Alias/username"
+            :rules="[
+                val => checkUsername || 'Sorry, alias already taken',
+                val => isValidUsername || 'Alias is not valid'
+              ]"
+            lazy-rules
           >
           </q-input>
           <q-input
@@ -101,7 +106,6 @@
 
 {% endblock %} {% block scripts %}
 <script>
-  console.log('{{ domain_cost }}')
   Vue.component(VueQrcode.name, VueQrcode)
 
   new Vue({
@@ -128,6 +132,24 @@
         let sats = this.formDialog.data.duration * parseInt('{{ domain_cost }}')
         this.formDialog.data.sats = parseInt(sats)
         return sats
+      },
+      checkUsername: function () {
+        let username = this.formDialog.data.username
+        if (!this.isValidUsername) {
+          return true
+        }
+        axios
+          .get(
+            `/lnaddress/api/v1/address/availabity/${'{{domain_id}}'}/${username}`
+          )
+          .then(res => {
+            console.log(res.data > 0)
+            return res.data > 0
+          })
+      },
+      isValidUsername: function () {
+        let username = this.formDialog.data.username
+        return /^[a-z0-9_\.]+$/.test(username)
       }
     },
     methods: {
@@ -143,10 +165,17 @@
         clearInterval(paymentChecker)
         setTimeout(function () {}, 10000)
       },
-      checkUsername: function () {
-        let username = this.formDialog.data.username
-        LNbits.
-      },
+      // checkUsername: function () {
+      //   let domainId = '{{domain_id}}'
+      //   let username = this.formDialog.data.username
+      //
+      //   axios
+      //     .get(`/lnaddress/api/v1/address/availabity/${domainId}/${username}`)
+      //     .then(res => {
+      //       this.userAvailable = res < 1
+      //       console.log(this.userAvailable)
+      //     })
+      // },
       Invoice: function () {
         let {data} = this.formDialog
         data.domain = '{{ domain_id }}'
@@ -210,6 +239,9 @@
           })
       }
     }
+    // created: function () {
+    //   this.formDialog.data.domain = '{{domain_id}}'
+    // }
   })
 </script>
 {% endblock %}
