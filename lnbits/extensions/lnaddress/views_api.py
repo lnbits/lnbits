@@ -31,7 +31,7 @@ async def api_domains():
 
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
-
+    print(urlparse(request.url_root).netloc)
     return (
         jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]),
         HTTPStatus.OK,
@@ -65,7 +65,8 @@ async def api_domain_create(domain_id=None):
     else:
 
         domain = await create_domain(**g.data)
-        root_url = request.url_root
+        root_url = urlparse(request.url_root).netloc
+        #root_url = request.url_root
 
         cf_response = await cloudflare_create_record(
             domain=domain,

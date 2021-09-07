@@ -8,7 +8,7 @@ async def cloudflare_create_record(
     url = (
         "https://api.cloudflare.com/client/v4/zones/"
         + domain.cf_zone_id
-        + "/pagerules"
+        + "/dns_records"
     )
     header = {
         "Authorization": "Bearer " + domain.cf_token,
@@ -22,22 +22,29 @@ async def cloudflare_create_record(
                 url,
                 headers=header,
                 json={
-                    "targets": [{
-                        "target": "url",
-                        "constraint": {
-                            "operator": "matches",
-                            "value": f"*{domain.domain}/*"
-                        }
-                    }],
-                    "actions": [{
-                        "id": "forwarding_url",
-                        "value": {
-                            "url": f"{ip}$2/{domain.id}",
-                            "status_code": 302
-                        }
-                    }],
-                    "status": "active"
+                    "type": "CNAME",
+                    "name": domain.domain,
+                    "content": ip,
+                    "ttl": 0,
+                    "proxied": False,
                 },
+                # json={
+                #     "targets": [{
+                #         "target": "url",
+                #         "constraint": {
+                #             "operator": "matches",
+                #             "value": f"*{domain.domain}/*"
+                #         }
+                #     }],
+                #     "actions": [{
+                #         "id": "forwarding_url",
+                #         "value": {
+                #             "url": f"{ip}$2/{domain.id}",
+                #             "status_code": 302
+                #         }
+                #     }],
+                #     "status": "active"
+                # },
                 timeout=40,
             )
             cf_response = json.loads(r.text)
