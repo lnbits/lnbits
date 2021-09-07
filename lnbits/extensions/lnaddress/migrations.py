@@ -21,8 +21,9 @@ async def m002_addresses(db):
         """
         CREATE TABLE lnaddress.address (
             id TEXT PRIMARY KEY,
+            wallet TEXT NOT NULL,
             domain TEXT NOT NULL,
-            email TEXT NOT NULL,
+            email TEXT,
             username TEXT NOT NULL,
             wallet_key TEXT NOT NULL,
             wallet_endpoint TEXT NOT NULL,

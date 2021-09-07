@@ -12,6 +12,7 @@ class Domains(NamedTuple):
 
 class Addresses(NamedTuple):
     id: str
+    wallet: str
     domain: str
     email: str
     username: str

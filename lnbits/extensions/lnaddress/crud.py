@@ -69,39 +69,56 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
 
 ## ADRESSES
 
-async def create_subdomain(
+async def create_address(
     payment_hash: str,
     wallet: str,
     domain: str,
-    subdomain: str,
-    email: str,
-    ip: str,
+    username: str,
+    wallet_key: str,
+    wallet_endpoint: str,
     sats: int,
     duration: int,
-    record_type: str,
-) -> Subdomains:
+    email: Optional[str] = '',
+) -> Addresses:
     await db.execute(
         """
-        INSERT INTO subdomains.subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)
+        INSERT INTO lnaddress.address (id, wallet, domain, email, username, wallet_key, wallet_endpoint, sats, duration, paid)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payment_hash,
+            wallet,
             domain,
             email,
-            subdomain,
-            ip,
-            wallet,
+            username,
+            wallet_key,
+            wallet_endpoint,
             sats,
             duration,
             False,
-            record_type,
         ),
     )
 
-    new_subdomain = await get_subdomain(payment_hash)
-    assert new_subdomain, "Newly created subdomain couldn't be retrieved"
-    return new_subdomain
+    new_address = await get_address(payment_hash)
+    assert new_address, "Newly created address couldn't be retrieved"
+    return new_address
+
+async def get_address(address_id: str) -> Optional[Addresses]:
+    row = await db.fetchone(
+        "SELECT a.* FROM lnaddress.address AS a INNER JOIN lnaddress.domain AS d ON a.id = ? AND a.domain = d.id",
+        (address_id,),
+    )
+    return Addresses(**row) if row else None
+
+async def get_address_by_username(username: str, domain: str) -> Optional[Addresses]:
+    row = await db.fetchone(
+        "SELECT * FROM lnaddress.address WHERE username = ? AND domain = ?",
+        (username, domain,),
+    )
+    return Addresses(**row) if row else None
+
+async def delete_address(address_id: str) -> None:
+    await db.execute("DELETE FROM lnaddress.address WHERE id = ?", (address_id,))
 
 async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
     if isinstance(wallet_ids, str):
@@ -109,11 +126,31 @@ async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM lnaddress.address WHERE id IN (SELECT wallet FROM lnaddress.domain WHERE wallet = {q})",
+        f"SELECT * FROM lnaddress.address WHERE wallet = {q}",
         (*wallet_ids,),
     )
-    print("ADDRESSS", rows)
+
     return [Addresses(**row) for row in rows]
+
+async def set_address_paid(payment_hash: str) -> Addresses:
+    row = await db.fetchone(
+        "SELECT a.* FROM lnaddress.address AS a INNER JOIN lnaddress.domain AS d ON a.id = ? AND a.domain = d.id",
+        (payment_hash,),
+    )
+    if row[8] == False:
+        await db.execute(
+            """
+            UPDATE lnaddress.address
+            SET paid = true
+            WHERE id = ?
+            """,
+            (payment_hash,),
+        )
+
+
+    new_address = await get_address(payment_hash)
+    assert new_address, "Newly paid address couldn't be retrieved"
+    return new_address
 
 async def check_address_available(username: str, domain: str):
     row, = await db.fetchone(
@@ -121,3 +158,5 @@ async def check_address_available(username: str, domain: str):
         (username, domain,),
     )
     return row
+
+# async def purge_unpaid_addresses()

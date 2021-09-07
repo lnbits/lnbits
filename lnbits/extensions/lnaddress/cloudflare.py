@@ -32,7 +32,7 @@ async def cloudflare_create_record(
                     "actions": [{
                         "id": "forwarding_url",
                         "value": {
-                            "url": f"{ip}$2",
+                            "url": f"{ip}$2/{domain.id}",
                             "status_code": 302
                         }
                     }],

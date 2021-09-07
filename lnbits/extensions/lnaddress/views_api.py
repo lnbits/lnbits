@@ -8,10 +8,10 @@ from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import lnaddress_ext
 from .crud import (
-    # create_address,
-    # get_subdomain,
+    create_address,
+    get_address,
     get_addresses,
-    # delete_subdomain,
+    delete_address,
     create_domain,
     update_domain,
     get_domain,
@@ -143,32 +143,66 @@ async def api_lnaddress_make_address(domain_id):
         return jsonify({"message": "The domain does not exist."}), HTTPStatus.NOT_FOUND
 
     used_username = await check_address_available(g.data["username"], g.data["domain"])
-    if not used_username:
-        print("OK", used_username)
+    # If username is already taken
+    if used_username:
+        return (
+            jsonify({"message": "Alias/username already taken."}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
     ## ALL OK - create an invoice and return it to the user
-    # sats = g.data["sats"]
-    #
-    # try:
-    #     payment_hash, payment_request = await create_invoice(
-    #         wallet_id=domain.wallet,
-    #         amount=sats,
-    #         memo=f"subdomain {g.data['subdomain']}.{domain.domain} for {sats} sats for {g.data['duration']} days",
-    #         extra={"tag": "lnsubdomain"},
-    #     )
-    # except Exception as e:
-    #     return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
-    #
-    # subdomain = await create_subdomain(
-    #     payment_hash=payment_hash, wallet=domain.wallet, **g.data
-    # )
-    #
-    # if not subdomain:
-    #     return (
-    #         jsonify({"message": "LNsubdomain could not be fetched."}),
-    #         HTTPStatus.NOT_FOUND,
-    #     )
-    #
-    # return (
-    #     jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
-    #     HTTPStatus.OK,
-    # )
+    sats = g.data["sats"]
+
+    try:
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=domain.wallet,
+            amount=sats,
+            memo=f"LNAddress {g.data['username']}@{domain.domain} for {sats} sats for {g.data['duration']} days",
+            extra={"tag": "lnaddress"},
+        )
+    except Exception as e:
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+    address = await create_address(
+        payment_hash=payment_hash, wallet=domain.wallet, **g.data
+    )
+
+    if not address:
+        return (
+            jsonify({"message": "LNAddress could not be fetched."}),
+            HTTPStatus.NOT_FOUND,
+        )
+
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.OK,
+    )
+
+@lnaddress_ext.route("/api/v1/addresses/<payment_hash>", methods=["GET"])
+async def api_address_send_address(payment_hash):
+    address = await get_address(payment_hash)
+    domain = await get_domain(address.domain)
+    try:
+        status = await check_invoice_status(domain.wallet, payment_hash)
+        is_paid = not status.pending
+    except Exception as e:
+        return jsonify({"paid": False, 'error': str(e)}), HTTPStatus.OK
+
+    if is_paid:
+        return jsonify({"paid": True}), HTTPStatus.OK
+
+    return jsonify({"paid": False}), HTTPStatus.OK
+
+@lnaddress_ext.route("/api/v1/addresses/<address_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_address_delete(address_id):
+    address = await get_address(address_id)
+    if not address:
+        return jsonify({"message": "Address does not exist."}), HTTPStatus.NOT_FOUND
+
+    if address.wallet != g.wallet.id:
+        return jsonify({"message": "Not your address."}), HTTPStatus.FORBIDDEN
+
+    await delete_address(address_id)
+
+    return "", HTTPStatus.NO_CONTENT

@@ -288,16 +288,16 @@
         addressesTable: {
           columns: [
             {
-              name: 'address',
+              name: 'username',
               align: 'left',
-              label: 'Address name',
-              field: 'address'
+              label: 'Alias/username',
+              field: 'username'
             },
             {
               name: 'domain',
               align: 'left',
               label: 'Domain name',
-              field: 'domain_name'
+              field: 'domain'
             },
             {
               name: 'email',
@@ -436,14 +436,17 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.addresses = response.data.map(function (obj) {
-              return mapLNDomain(obj)
-            })
+            self.addresses = response.data
+              .filter(d => d.paid)
+              .map(function (obj) {
+                // obj.domain_name = this.domains.find(d => d.id == obj.domain)
+                return mapLNDomain(obj)
+              })
           })
       },
       deleteAddress: function (addressId) {
-        var self = this
-        var addresses = _.findWhere(this.addresses, {id: addressId})
+        let self = this
+        let addresses = _.findWhere(this.addresses, {id: addressId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this LN address')

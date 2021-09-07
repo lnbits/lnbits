@@ -1,13 +1,21 @@
 import trio
 import datetime
 from http import HTTPStatus
-from quart import jsonify
+from quart import jsonify, request
 
 from lnbits import bolt11
 
 from .. import core_app
 from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
+
+
+@core_app.route("/.well-known/lnurlp/<username>/<domain_id>")
+async def lnaddress(username: str, domain_id: str):
+    from lnbits.extensions.lnaddress.lnurl import lnurl_response
+    
+    return await lnurl_response(username, domain_id)
+
 
 
 @core_app.route("/public/v1/payment/<payment_hash>", methods=["GET"])

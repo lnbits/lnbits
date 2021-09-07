@@ -63,7 +63,7 @@
             <q-btn
               unelevated
               color="primary"
-              :disable="!formDialog.data.username || !formDialog.data.wallet_key || !formDialog.data.duration"
+              :disable="!formDialog.data.username || !formDialog.data.wallet_key || !formDialog.data.duration || !checkUsername"
               type="submit"
               >Submit</q-btn
             >
@@ -133,19 +133,20 @@
         this.formDialog.data.sats = parseInt(sats)
         return sats
       },
-      checkUsername: function () {
+      checkUsername: async function () {
         let username = this.formDialog.data.username
         if (!this.isValidUsername) {
           return true
         }
-        axios
+        let available = await axios
           .get(
             `/lnaddress/api/v1/address/availabity/${'{{domain_id}}'}/${username}`
           )
           .then(res => {
-            console.log(res.data > 0)
-            return res.data > 0
+            return res.data < 1
           })
+        console.log(available)
+        return available
       },
       isValidUsername: function () {
         let username = this.formDialog.data.username
@@ -165,17 +166,6 @@
         clearInterval(paymentChecker)
         setTimeout(function () {}, 10000)
       },
-      // checkUsername: function () {
-      //   let domainId = '{{domain_id}}'
-      //   let username = this.formDialog.data.username
-      //
-      //   axios
-      //     .get(`/lnaddress/api/v1/address/availabity/${domainId}/${username}`)
-      //     .then(res => {
-      //       this.userAvailable = res < 1
-      //       console.log(this.userAvailable)
-      //     })
-      // },
       Invoice: function () {
         let {data} = this.formDialog
         data.domain = '{{ domain_id }}'
@@ -185,7 +175,7 @@
         data.wallet_endpoint = data.wallet_endpoint ?? '{{ request.url_root }}'
         data.duration = parseInt(data.duration)
         console.log('data', data)
-        // return
+
         axios
           .post('/lnaddress/api/v1/address/{{ domain_id }}', data)
           .then(response => {
@@ -205,9 +195,11 @@
 
             paymentChecker = setInterval(() => {
               axios
-                .get('/lnaddress/api/v1/addresses/' + this.paymentCheck)
+                .get(
+                  `/lnaddress/api/v1/addresses/${data.domain}/${this.paymentCheck}`
+                )
                 .then(res => {
-                  console.log(res.data)
+                  console.log('pay_check', res.data)
                   if (res.data.paid) {
                     clearInterval(paymentChecker)
                     this.receive = {
@@ -231,7 +223,7 @@
                   console.log(error)
                   LNbits.utils.notifyApiError(error)
                 })
-            }, 2000)
+            }, 5000)
           })
           .catch(function (error) {
             console.log(error)
@@ -239,9 +231,6 @@
           })
       }
     }
-    // created: function () {
-    //   this.formDialog.data.domain = '{{domain_id}}'
-    // }
   })
 </script>
 {% endblock %}
