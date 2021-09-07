@@ -31,7 +31,7 @@ async def api_domains():
 
     if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
-    print(urlparse(request.url_root).netloc)
+    
     return (
         jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]),
         HTTPStatus.OK,
