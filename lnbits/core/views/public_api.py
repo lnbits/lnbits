@@ -10,11 +10,19 @@ from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
 
 
-@core_app.route("/.well-known/lnurlp/<username>/<domain_id>")
-async def lnaddress(username: str, domain_id: str):
-    from lnbits.extensions.lnaddress.lnurl import lnurl_response
-    
-    return await lnurl_response(username, domain_id)
+@core_app.route("/.well-known/lnurlp/<username>")
+async def lnaddress(username: str):
+    # from lnbits.extensions.lnaddress.lnurl import lnurl_response
+    #
+    # return await lnurl_response(username, domain_id)
+    res = {
+          "callback": "https://8a3e-2001-8a0-fa12-2900-749a-7c71-8919-68b4.ngrok.io/lnaddress/lnurl/cb/tiago9",
+          "maxSendable": 1000000000,
+          "metadata": "[[\"text/plain\", \"Tips powered by LNbits\"]]",
+          "minSendable": 1000,
+          "tag": "payRequest"
+        }
+    return jsonify(res)
 
 
 
