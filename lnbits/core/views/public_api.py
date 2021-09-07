@@ -15,6 +15,8 @@ async def lnaddress(username: str):
     # from lnbits.extensions.lnaddress.lnurl import lnurl_response
     #
     # return await lnurl_response(username, domain_id)
+    print(request.headers)
+    print(request.host)
     res = {
           "callback": "https://8a3e-2001-8a0-fa12-2900-749a-7c71-8919-68b4.ngrok.io/lnaddress/lnurl/cb/tiago9",
           "maxSendable": 1000000000,
