@@ -126,7 +126,7 @@ async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM lnaddress.address WHERE wallet = {q}",
+        f"SELECT * FROM lnaddress.address WHERE wallet IN ({q})",
         (*wallet_ids,),
     )
 
