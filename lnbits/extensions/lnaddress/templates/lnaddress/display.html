@@ -195,9 +195,7 @@
 
             paymentChecker = setInterval(() => {
               axios
-                .get(
-                  `/lnaddress/api/v1/addresses/${data.domain}/${this.paymentCheck}`
-                )
+                .get(`/lnaddress/api/v1/addresses/${this.paymentCheck}`)
                 .then(res => {
                   console.log('pay_check', res.data)
                   if (res.data.paid) {
