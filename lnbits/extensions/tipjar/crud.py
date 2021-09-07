@@ -1,5 +1,5 @@
 from . import db
-from .models import Donation, Service
+from .models import Tip, TipJar
 
 from ..satspay.crud import delete_charge  # type: ignore
 
@@ -15,283 +15,162 @@ from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.crud import get_wallet
 
 
-async def get_service_redirect_uri(request, service_id):
-    """Return the service's redirect URI, to be given to the third party API"""
-    uri_base = request.scheme + "://"
-    uri_base += request.headers["Host"] + "/tipjar/api/v1"
-    redirect_uri = uri_base + f"/authenticate/{service_id}"
-    return redirect_uri
-
-
-async def get_charge_details(service_id):
-    """Return the default details for a satspay charge
-
-    These might be different depending for services implemented in the future.
-    """
+async def get_charge_details(tipjar_id):
+    """Return the default details for a satspay charge"""
     details = {
         "time": 1440,
     }
-    service = await get_service(service_id)
-    wallet_id = service.wallet
+    tipjar = await get_tipjar(tipjar_id)
+    wallet_id = tipjar.wallet
     wallet = await get_wallet(wallet_id)
     user = wallet.user
     details["user"] = user
     details["lnbitswallet"] = wallet_id
-    details["onchainwallet"] = service.onchain
+    details["onchainwallet"] = tipjar.onchain
     return details
 
 
-async def create_donation(
+async def create_tip(
     id: str,
     wallet: str,
-    cur_code: str,
     sats: int,
-    amount: float,
-    service: int,
+    tipjar: int,
     name: str = "Anonymous",
-    message: str = "",
-    posted: bool = False,
-) -> Donation:
-    """Create a new Donation"""
+    message: str = ""
+) -> Tip:
+    """Create a new Tip"""
     await db.execute(
         """
-        INSERT INTO tipjar.Donations (
+        INSERT INTO tipjar.Tips (
             id,
             wallet,
             name,
             message,
-            cur_code,
             sats,
-            amount,
-            service,
-            posted
+            tipjar
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (id, wallet, name, message, cur_code, sats, amount, service, posted),
+        (id, wallet, name, message, sats, tipjar),
     )
 
-    donation = await get_donation(id)
-    assert donation, "Newly created donation couldn't be retrieved"
-    return donation
+    tip = await get_tip(id)
+    assert tip, "Newly created tip couldn't be retrieved"
+    return tip
 
 
-async def post_donation(donation_id: str) -> tuple:
-    """Post donations to their respective third party APIs
-
-    If the donation has already been posted, it will not be posted again.
-    """
-    donation = await get_donation(donation_id)
-    if not donation:
-        return (jsonify({"message": "Donation not found!"}), HTTPStatus.BAD_REQUEST)
-    if donation.posted:
-        return (
-            jsonify({"message": "Donation has already been posted!"}),
-            HTTPStatus.BAD_REQUEST,
-        )
-    service = await get_service(donation.service)
-    assert service, "Couldn't fetch service to donate to"
-
-    if service.servicename == "Streamlabs":
-        url = "https://streamlabs.com/api/v1.0/donations"
-        data = {
-            "name": donation.name[:25],
-            "message": donation.message[:255],
-            "identifier": "LNbits",
-            "amount": donation.amount,
-            "currency": donation.cur_code.upper(),
-            "access_token": service.token,
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, data=data)
-        print(response.json())
-        status = [s for s in list(HTTPStatus) if s == response.status_code][0]
-    elif service.servicename == "StreamElements":
-        return (
-            jsonify({"message": "StreamElements not yet supported!"}),
-            HTTPStatus.BAD_REQUEST,
-        )
-    else:
-        return (jsonify({"message": "Unsopported servicename"}), HTTPStatus.BAD_REQUEST)
-    await db.execute(
-        "UPDATE tipjar.Donations SET posted = 1 WHERE id = ?", (donation_id,)
-    )
-    return (jsonify(response.json()), status)
-
-
-async def create_service(
-    twitchuser: str,
-    client_id: str,
-    client_secret: str,
+async def create_tipjar(
     wallet: str,
-    servicename: str,
-    state: str = None,
+    webhook: str,
     onchain: str = None,
-) -> Service:
-    """Create a new Service"""
+) -> TipJar:
+    """Create a new TipJar"""
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
 
     result = await (method)(
         f"""
-        INSERT INTO tipjar.Services (
-            twitchuser,
-            client_id,
-            client_secret,
+        INSERT INTO tipjar.TipJars (
             wallet,
-            servicename,
-            authenticated,
-            state,
+            webhook,
             onchain
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?)
         {returning}
         """,
         (
-            twitchuser,
-            client_id,
-            client_secret,
             wallet,
-            servicename,
-            False,
-            urlsafe_short_hash(),
-            onchain,
+            webhook,
+            onchain
         ),
     )
     if db.type == SQLITE:
-        service_id = result._result_proxy.lastrowid
+        tipjar_id = result._result_proxy.lastrowid
     else:
-        service_id = result[0]
+        tipjar_id = result[0]
 
-    service = await get_service(service_id)
-    assert service
-    return service
+    tipjar = await get_tipjar(tipjar_id)
+    assert tipjar
+    return tipjar
 
 
-async def get_service(service_id: int, by_state: str = None) -> Optional[Service]:
-    """Return a service either by ID or, available, by state
-
-    Each Service's donation page is reached through its "state" hash
-    instead of the ID, preventing accidental payments to the wrong
-    streamer via typos like 2 -> 3.
-    """
+async def get_tipjar(tipjar_id: int, by_state: str = None) -> Optional[TipJar]:
+    """Return a tipjar by ID"""
     if by_state:
         row = await db.fetchone(
-            "SELECT * FROM tipjar.Services WHERE state = ?", (by_state,)
+            "SELECT * FROM tipjar.TipJars WHERE state = ?", (by_state,)
         )
     else:
         row = await db.fetchone(
-            "SELECT * FROM tipjar.Services WHERE id = ?", (service_id,)
+            "SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,)
         )
-    return Service.from_row(row) if row else None
+    return TipJar.from_row(row) if row else None
 
 
-async def get_services(wallet_id: str) -> Optional[list]:
-    """Return all services belonging assigned to the wallet_id"""
+async def get_tipjars(wallet_id: str) -> Optional[list]:
+    """Return all TipJars belonging assigned to the wallet_id"""
     rows = await db.fetchall(
-        "SELECT * FROM tipjar.Services WHERE wallet = ?", (wallet_id,)
+        "SELECT * FROM tipjar.TipJars WHERE wallet = ?", (wallet_id,)
     )
-    return [Service.from_row(row) for row in rows] if rows else None
+    return [TipJar.from_row(row) for row in rows] if rows else None
 
 
-async def authenticate_service(service_id, code, redirect_uri):
-    """Use authentication code from third party API to retreive access token"""
-    # The API token is passed in the querystring as 'code'
-    service = await get_service(service_id)
-    wallet = await get_wallet(service.wallet)
-    user = wallet.user
-    url = "https://streamlabs.com/api/v1.0/token"
-    data = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "client_id": service.client_id,
-        "client_secret": service.client_secret,
-        "redirect_uri": redirect_uri,
-    }
-    print(data)
-    async with httpx.AsyncClient() as client:
-        response = (await client.post(url, data=data)).json()
-    print(response)
-    token = response["access_token"]
-    success = await service_add_token(service_id, token)
-    return f"/tipjar/?usr={user}", success
-
-
-async def service_add_token(service_id, token):
-    """Add access token to its corresponding Service
-
-    This also sets authenticated = 1 to make sure the token
-    is not overwritten.
-    Tokens for Streamlabs never need to be refreshed.
-    """
-    if (await get_service(service_id)).authenticated:
-        return False
-    await db.execute(
-        "UPDATE tipjar.Services SET authenticated = 1, token = ? where id = ?",
-        (
-            token,
-            service_id,
-        ),
-    )
-    return True
-
-
-async def delete_service(service_id: int) -> None:
-    """Delete a Service and all corresponding Donations"""
-    await db.execute("DELETE FROM tipjar.Services WHERE id = ?", (service_id,))
+async def delete_tipjar(tipjar_id: int) -> None:
+    """Delete a TipJar and all corresponding Tips"""
+    await db.execute("DELETE FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
     rows = await db.fetchall(
-        "SELECT * FROM tipjar.Donations WHERE service = ?", (service_id,)
+        "SELECT * FROM tipjar.Tips WHERE tipjar = ?", (tipjar_id,)
     )
     for row in rows:
-        await delete_donation(row["id"])
+        await delete_tip(row["id"])
 
 
-async def get_donation(donation_id: str) -> Optional[Donation]:
-    """Return a Donation"""
+async def get_tip(tip_id: str) -> Optional[Tip]:
+    """Return a Tip"""
     row = await db.fetchone(
-        "SELECT * FROM tipjar.Donations WHERE id = ?", (donation_id,)
+        "SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,)
     )
-    return Donation.from_row(row) if row else None
+    return Tip.from_row(row) if row else None
 
 
-async def get_donations(wallet_id: str) -> Optional[list]:
-    """Return all tipjar.Donations assigned to wallet_id"""
+async def get_tips(wallet_id: str) -> Optional[list]:
+    """Return all Tips assigned to wallet_id"""
     rows = await db.fetchall(
-        "SELECT * FROM tipjar.Donations WHERE wallet = ?", (wallet_id,)
+        "SELECT * FROM tipjar.Tips WHERE wallet = ?", (wallet_id,)
     )
-    return [Donation.from_row(row) for row in rows] if rows else None
+    return [Tip.from_row(row) for row in rows] if rows else None
 
 
-async def delete_donation(donation_id: str) -> None:
-    """Delete a Donation and its corresponding statspay charge"""
-    await db.execute("DELETE FROM tipjar.Donations WHERE id = ?", (donation_id,))
-    await delete_charge(donation_id)
+async def delete_tip(tip_id: str) -> None:
+    """Delete a Tip and its corresponding statspay charge"""
+    await db.execute("DELETE FROM tipjar.Tips WHERE id = ?", (tip_id,))
+    await delete_charge(tip_id)
 
 
-async def update_donation(donation_id: str, **kwargs) -> Donation:
-    """Update a Donation"""
+async def update_tip(tip_id: str, **kwargs) -> Tip:
+    """Update a Tip"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE tipjar.Donations SET {q} WHERE id = ?",
-        (*kwargs.values(), donation_id),
+        f"UPDATE tipjar.Tips SET {q} WHERE id = ?",
+        (*kwargs.values(), tip_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM tipjar.Donations WHERE id = ?", (donation_id,)
+        "SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,)
     )
-    assert row, "Newly updated donation couldn't be retrieved"
-    return Donation(**row)
+    assert row, "Newly updated tip couldn't be retrieved"
+    return Tip(**row)
 
 
-async def update_service(service_id: str, **kwargs) -> Service:
-    """Update a service"""
+async def update_tipjar(tipjar_id: str, **kwargs) -> TipJar:
+    """Update a tipjar"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE tipjar.Services SET {q} WHERE id = ?",
-        (*kwargs.values(), service_id),
+        f"UPDATE tipjar.TipJars SET {q} WHERE id = ?",
+        (*kwargs.values(), tipjar_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM tipjar.Services WHERE id = ?", (service_id,)
+        "SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,)
     )
-    assert row, "Newly updated service couldn't be retrieved"
-    return Service(**row)
+    assert row, "Newly updated tipjar couldn't be retrieved"
+    return TipJar(**row)

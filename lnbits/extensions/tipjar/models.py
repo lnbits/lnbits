@@ -18,8 +18,8 @@ class Tip(NamedTuple):
         return cls(**dict(row))
 
 
-class Jar(NamedTuple):
-    """A Jar represents a user's tip jar"""
+class TipJar(NamedTuple):
+    """A TipJar represents a user's tip jar"""
 
     id: int
     name: str  # The name of the donatee
@@ -28,5 +28,5 @@ class Jar(NamedTuple):
     webhook: Optional[str]  # URL to POST tips to
 
     @classmethod
-    def from_row(cls, row: Row) -> "Jar":
+    def from_row(cls, row: Row) -> "TipJar":
         return cls(**dict(row))
