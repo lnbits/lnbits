@@ -55,7 +55,6 @@ async def lnurl_callback(address_id):
 
     domain = await get_domain(address.domain)
 
-    r = ""
     base_url = address.wallet_endpoint[:-1] if address.wallet_endpoint.endswith('/') else address.wallet_endpoint
 
     async with httpx.AsyncClient() as client:
@@ -72,17 +71,15 @@ async def lnurl_callback(address_id):
                 timeout=40,
             )
 
-            print("CALL JSON", call.json())
-            
-            r = json.loads(call.text)
+            r = call.json()
         except AssertionError as e:
-            print(e)
+            print("ERROR", e)
             return jsonify(LnurlErrorResponse(reason="ERROR"))
 
     print("R", r)
 
     resp = LnurlPayActionResponse(
-        pr=r.payment_request,
+        pr=r["payment_request"],
         routes=[],
     )
     print("RESP", resp)
