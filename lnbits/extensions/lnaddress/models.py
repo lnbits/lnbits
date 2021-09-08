@@ -1,4 +1,5 @@
 from typing import NamedTuple
+import json
 from lnurl.types import LnurlPayMetadata  # type: ignore
 
 class Domains(NamedTuple):
