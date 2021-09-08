@@ -1,11 +1,13 @@
 import hashlib
 from quart import jsonify, url_for, request
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+from urllib.parse import urlparse
+import httpx, json
 
 from lnbits.core.services import create_invoice
 
 from . import lnaddress_ext
-from .crud import get_address_by_username
+from .crud import get_address_by_username, get_address, get_domain
 
 async def lnurl_response(username: str, domain: str):
     address = await get_address_by_username(username, domain)
@@ -19,7 +21,7 @@ async def lnurl_response(username: str, domain: str):
 
 
     resp = LnurlPayResponse(
-        callback=url_for("lnaddress.lnurl_callback", username=address.username, _external=True),
+        callback=url_for("lnaddress.lnurl_callback", address_id=address.id, _external=True),
         min_sendable=1000,
         max_sendable=1000000000,
         metadata="[[\"text/plain\", \"Tips powered by LNbits\"]]",
@@ -27,7 +29,54 @@ async def lnurl_response(username: str, domain: str):
 
     return jsonify(resp.dict())
 
-@lnaddress_ext.route("/lnurl/cb/<username>", methods=["GET"])
-async def lnurl_callback(item_id):
-    print("ping")
-    return
+@lnaddress_ext.route("/lnurl/cb/<address_id>", methods=["GET"])
+async def lnurl_callback(address_id):
+    address = get_address(address_id)
+
+    if not address:
+        return jsonify({"status": "ERROR", "reason": "Couldn't find username."})
+
+    amount_received = int(request.args.get("amount") or 0)
+    min = 1000
+    max = 1000000000
+
+    if amount_received < min:
+        return jsonify(
+            LnurlErrorResponse(
+                reason=f"Amount {amount_received} is smaller than minimum."
+            ).dict()
+        )
+    elif amount_received > max:
+        return jsonify(
+            LnurlErrorResponse(
+                reason=f"Amount {amount_received} is greater than maximum."
+            ).dict()
+        )
+
+    domain = get_domain(address.domain)
+
+    async with httpx.AsyncClient() as client:
+        try:
+            call = await client.post(
+                address.wallet_endpoint,
+                headers={"X-Api-Key": address.wallet_key, "Content-Type": "application/json"},
+                json={
+                    "out": false,
+                    "amount": int(amount_received / 1000),
+                    "memo": f"Paymento to @{address.username}",
+
+                },
+                timeout=40,
+            )
+            print("CALL", call)
+            r = json.loads(call)
+            print("R", r)
+        except AssertionError as e:
+            return jsonify(LnurlErrorResponse(reason=e.message).dict())
+
+        resp = LnurlPayActionResponse(
+            pr=r.payment_request,
+            routes=[],
+        )
+
+    return jsonify(resp.dict())

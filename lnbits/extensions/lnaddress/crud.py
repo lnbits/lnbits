@@ -112,7 +112,8 @@ async def get_address(address_id: str) -> Optional[Addresses]:
 
 async def get_address_by_username(username: str, domain: str) -> Optional[Addresses]:
     row = await db.fetchone(
-        "SELECT * FROM lnaddress.address WHERE username = ? AND domain = ?",
+        "SELECT a.* FROM lnaddress.address AS a INNER JOIN lnaddress.domain AS d ON a.username = ? AND d.domain = ?",
+        # "SELECT * FROM lnaddress.address WHERE username = ? AND domain = ?",
         (username, domain,),
     )
     return Addresses(**row) if row else None
