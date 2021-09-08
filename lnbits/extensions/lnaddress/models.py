@@ -1,4 +1,5 @@
 from typing import NamedTuple
+from lnurl.types import LnurlPayMetadata  # type: ignore
 
 class Domains(NamedTuple):
     id: str
@@ -22,3 +23,8 @@ class Addresses(NamedTuple):
     duration: int
     paid: bool
     time: int
+
+    async def lnurlpay_metadata(self) -> LnurlPayMetadata:
+        metadata = [["text/plain", "payment to " + self.username]]
+
+        return LnurlPayMetadata(json.dumps(metadata))

@@ -56,7 +56,7 @@ async def lnurl_callback(address_id):
     domain = await get_domain(address.domain)
 
     base_url = address.wallet_endpoint[:-1] if address.wallet_endpoint.endswith('/') else address.wallet_endpoint
-
+    
     async with httpx.AsyncClient() as client:
         try:
             call = await client.post(
@@ -66,7 +66,8 @@ async def lnurl_callback(address_id):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "memo": f"Paymento to @{address.username}",
-
+                    "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).digest(),
+                    "extra": {"tag": "lnaddress", "address": "@" + address.username},
                 },
                 timeout=40,
             )
