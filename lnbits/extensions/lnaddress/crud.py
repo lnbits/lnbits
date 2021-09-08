@@ -148,7 +148,7 @@ async def set_address_paid(payment_hash: str) -> Addresses:
             (payment_hash,),
         )
 
-
+    print("SET PAID ROW", row)
     new_address = await get_address(payment_hash)
     assert new_address, "Newly paid address couldn't be retrieved"
     return new_address
