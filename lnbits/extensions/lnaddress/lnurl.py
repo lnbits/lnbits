@@ -65,13 +65,13 @@ async def lnurl_callback(address_id):
                 json={
                     "out": False,
                     "amount": int(amount_received / 1000),
-                    "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).digest(),
+                    "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).hexdigest(),
                     "extra": {"tag": "lnaddress", "address": "@" + address.username},
                 },
                 timeout=40,
             )
 
-            r = json.loads(call.text)
+            r = call.json()
         except AssertionError as e:
             print("ERROR", e)
             return jsonify(LnurlErrorResponse(reason="ERROR"))
