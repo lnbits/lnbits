@@ -66,7 +66,7 @@ async def lnurl_callback(address_id):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).hexdigest(),
-                    "extra": {"tag": "@" + address.username},
+                    "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },
                 timeout=40,
             )
@@ -79,5 +79,5 @@ async def lnurl_callback(address_id):
         pr=r["payment_request"],
         routes=[],
     )
-    
+
     return jsonify(resp.dict())
