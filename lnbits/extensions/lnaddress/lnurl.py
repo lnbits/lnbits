@@ -65,7 +65,7 @@ async def lnurl_callback(address_id):
                 json={
                     "out": False,
                     "amount": int(amount_received / 1000),
-                    "memo": f"Paymento to @{address.username}",
+                    # "memo": f"Paymento to @{address.username}",
                     "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).hexdigest(),
                     "extra": {"tag": "lnaddress", "address": "@" + address.username},
                 },
