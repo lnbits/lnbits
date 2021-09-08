@@ -1,4 +1,5 @@
 from typing import List, Optional, Union
+from datetime import datetime, timedelta
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -159,4 +160,23 @@ async def check_address_available(username: str, domain: str):
     )
     return row
 
-# async def purge_unpaid_addresses()
+async def purge_addresses(domain_id: str):
+    
+    rows = await db.fetchall(
+        "SELECT * FROM lnaddress.address WHERE domain = ?",
+        (domain_id, ),
+    )
+
+    now = datetime.now().timestamp()
+
+    for row in rows:
+        start = datetime.fromtimestamp(row[10])
+        paid = row[9]
+        pay_expire = now > start.timestamp() + 86400 #if payment wasn't made in 1 day
+        expired = now > (start  + timedelta(days = row[8])).timestamp()
+
+        if not paid and pay_expire:
+            await delete_address(row[0])
+
+        if paid and expired:
+            await delete_address(row[0])

@@ -3,6 +3,7 @@ from quart import jsonify, url_for, request
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 from urllib.parse import urlparse
 import httpx, json
+from datetime import datetime, timedelta
 
 from lnbits.core.services import create_invoice
 
@@ -16,9 +17,12 @@ async def lnurl_response(username: str, domain: str):
         return jsonify({"status": "ERROR", "reason": "Address not found."})
 
     ## CHECK IF USER IS STILL VALID/PAYING
-    # now =
-    # if
-
+    now = datetime.now().timestamp()
+    start = datetime.fromtimestamp(address.time)
+    expiration = (start  + timedelta(days = address.duration)).timestamp()
+    
+    if now > expiration:
+        return jsonify(LnurlErrorResponse(reason="Address has expired.").dict())
 
     resp = LnurlPayResponse(
         callback=url_for("lnaddress.lnurl_callback", address_id=address.id, _external=True),
@@ -34,7 +38,11 @@ async def lnurl_callback(address_id):
     address = await get_address(address_id)
 
     if not address:
-        return jsonify({"status": "ERROR", "reason": "Couldn't find username."})
+        return jsonify(
+            LnurlErrorResponse(
+                reason=f"Amount {amount_received} is greater than maximum."
+            ).dict()
+        )
 
     amount_received = int(request.args.get("amount") or 0)
     min = 1000

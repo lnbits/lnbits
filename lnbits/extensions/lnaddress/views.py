@@ -3,7 +3,7 @@ from quart import g, render_template
 from lnbits.decorators import check_user_exists, validate_uuids
 
 from . import lnaddress_ext
-from .crud import get_domain
+from .crud import get_domain, purge_addresses
 
 
 @lnaddress_ext.route("/")
@@ -17,6 +17,8 @@ async def display(domain_id):
     domain = await get_domain(domain_id)
     if not domain:
         abort(HTTPStatus.NOT_FOUND, "Domain does not exist.")
+        
+    await purge_addresses(domain_id)
 
     return await render_template(
         "lnaddress/display.html",
