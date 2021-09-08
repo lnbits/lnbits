@@ -31,7 +31,7 @@ async def lnurl_response(username: str, domain: str):
 
 @lnaddress_ext.route("/lnurl/cb/<address_id>", methods=["GET"])
 async def lnurl_callback(address_id):
-    address = get_address(address_id)
+    address = await get_address(address_id)
 
     if not address:
         return jsonify({"status": "ERROR", "reason": "Couldn't find username."})
@@ -53,7 +53,7 @@ async def lnurl_callback(address_id):
             ).dict()
         )
 
-    domain = get_domain(address.domain)
+    domain = await get_domain(address.domain)
 
     async with httpx.AsyncClient() as client:
         try:
@@ -61,7 +61,7 @@ async def lnurl_callback(address_id):
                 address.wallet_endpoint,
                 headers={"X-Api-Key": address.wallet_key, "Content-Type": "application/json"},
                 json={
-                    "out": false,
+                    "out": False,
                     "amount": int(amount_received / 1000),
                     "memo": f"Paymento to @{address.username}",
 
