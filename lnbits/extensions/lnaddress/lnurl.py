@@ -66,7 +66,11 @@ async def lnurl_callback(address_id):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).hexdigest(),
+<<<<<<< HEAD
                     "extra": {"tag": "@" + address.username},
+=======
+                    "extra": {"tag": "@" + username},
+>>>>>>> 661cf29cbf28a9a68bd5c266064579b9c7ec6d08
                 },
                 timeout=40,
             )
