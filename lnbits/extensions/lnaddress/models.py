@@ -26,6 +26,6 @@ class Addresses(NamedTuple):
     time: int
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
-        metadata = [["text/plain", "payment to " + self.username]]
+        metadata = [["text/plain", f"Payment to {self.username}"]]
 
         return LnurlPayMetadata(json.dumps(metadata))

@@ -24,7 +24,7 @@ async def lnurl_response(username: str, domain: str):
         callback=url_for("lnaddress.lnurl_callback", address_id=address.id, _external=True),
         min_sendable=1000,
         max_sendable=1000000000,
-        metadata="[[\"text/plain\", \"Tips powered by LNbits\"]]",
+        metadata=await address.lnurlpay_metadata(),
     )
 
     return jsonify(resp.dict())
@@ -65,7 +65,6 @@ async def lnurl_callback(address_id):
                 json={
                     "out": False,
                     "amount": int(amount_received / 1000),
-                    # "memo": f"Paymento to @{address.username}",
                     "description_hash": hashlib.sha256((await address.lnurlpay_metadata()).encode("utf-8")).digest(),
                     "extra": {"tag": "lnaddress", "address": "@" + address.username},
                 },
