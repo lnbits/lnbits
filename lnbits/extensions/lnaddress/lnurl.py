@@ -71,7 +71,7 @@ async def lnurl_callback(address_id):
                 timeout=40,
             )
 
-            r = call.json()
+            r = json.loads(call.text)
         except AssertionError as e:
             print("ERROR", e)
             return jsonify(LnurlErrorResponse(reason="ERROR"))
