@@ -10,8 +10,7 @@ class Tip(NamedTuple):
     name: str  # Name of the donor
     message: str  # Donation message
     sats: int
-    jar: int  # The ID of the corresponding tip jar
-    posted: bool  # Whether the tip has already been posted to a webhook
+    tipjar: int  # The ID of the corresponding tip jar
 
     @classmethod
     def from_row(cls, row: Row) -> "Tip":

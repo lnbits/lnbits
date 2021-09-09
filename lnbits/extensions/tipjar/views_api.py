@@ -1,273 +1,189 @@
-from quart import g, redirect, request, jsonify
+from quart import g, jsonify
 from http import HTTPStatus
 
 from lnbits.decorators import api_validate_post_request, api_check_wallet_key
 from lnbits.core.crud import get_user
-from lnbits.utils.exchange_rates import btc_price
 
 from . import tipjar_ext
 from .crud import (
     get_charge_details,
-    get_service_redirect_uri,
-    create_donation,
-    post_donation,
-    get_donation,
-    get_donations,
-    delete_donation,
-    create_service,
-    get_service,
-    get_services,
-    authenticate_service,
-    update_donation,
-    update_service,
-    delete_service,
+    create_tipjar,
+    get_tipjar,
+    create_tip,
+    get_tipjars,
+    get_tip,
+    get_tips,
+    update_tip,
+    update_tipjar,
+    delete_tip,
+    delete_tipjar,
 )
-from ..satspay.crud import create_charge, get_charge
+from ..satspay.crud import create_charge
 
 
-@tipjar_ext.route("/api/v1/services", methods=["POST"])
+@tipjar_ext.route("/api/v1/tipjars", methods=["POST"])
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
-        "twitchuser": {"type": "string", "required": True},
-        "client_id": {"type": "string", "required": True},
-        "client_secret": {"type": "string", "required": True},
         "wallet": {"type": "string", "required": True},
-        "servicename": {"type": "string", "required": True},
+        "webhook": {"type": "string"},
         "onchain": {"type": "string"},
     }
 )
-async def api_create_service():
-    """Create a service, which holds data about how/where to post donations"""
+async def api_create_tipjar():
+    """Create a tipjar, which holds data about how/where to post tips"""
     try:
-        service = await create_service(**g.data)
+        tipjar = await create_tipjar(**g.data)
     except Exception as e:
         return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify(service._asdict()), HTTPStatus.CREATED
+    return jsonify(tipjar._asdict()), HTTPStatus.CREATED
 
 
-@tipjar_ext.route("/api/v1/getaccess/<service_id>", methods=["GET"])
-async def api_get_access(service_id):
-    """Redirect to Streamlabs' Approve/Decline page for API access for Service
-    with service_id
-    """
-    service = await get_service(service_id)
-    if service:
-        redirect_uri = await get_service_redirect_uri(request, service_id)
-        params = {
-            "response_type": "code",
-            "client_id": service.client_id,
-            "redirect_uri": redirect_uri,
-            "scope": "donations.create",
-            "state": service.state,
-        }
-        endpoint_url = "https://streamlabs.com/api/v1.0/authorize/?"
-        querystring = "&".join([f"{key}={value}" for key, value in params.items()])
-        redirect_url = endpoint_url + querystring
-        return redirect(redirect_url)
-    else:
-        return (jsonify({"message": "Service does not exist!"}), HTTPStatus.BAD_REQUEST)
-
-
-@tipjar_ext.route("/api/v1/authenticate/<service_id>", methods=["GET"])
-async def api_authenticate_service(service_id):
-    """Endpoint visited via redirect during third party API authentication
-
-    If successful, an API access token will be added to the service, and
-    the user will be redirected to index.html.
-    """
-    code = request.args.get("code")
-    state = request.args.get("state")
-    service = await get_service(service_id)
-    if service.state != state:
-        return (jsonify({"message": "State doesn't match!"}), HTTPStatus.BAD_Request)
-    redirect_uri = request.scheme + "://" + request.headers["Host"]
-    redirect_uri += f"/tipjar/api/v1/authenticate/{service_id}"
-    url, success = await authenticate_service(service_id, code, redirect_uri)
-    if success:
-        return redirect(url)
-    else:
-        return (
-            jsonify({"message": "Service already authenticated!"}),
-            HTTPStatus.BAD_REQUEST,
-        )
-
-
-@tipjar_ext.route("/api/v1/donations", methods=["POST"])
+@tipjar_ext.route("/api/v1/tips", methods=["POST"])
 @api_validate_post_request(
     schema={
         "name": {"type": "string"},
         "sats": {"type": "integer", "required": True},
-        "service": {"type": "integer", "required": True},
+        "tipjar": {"type": "integer", "required": True},
         "message": {"type": "string"},
     }
 )
-async def api_create_donation():
-    """Take data from donation form and return satspay charge"""
-    # Currency is hardcoded while frotnend is limited
-    cur_code = "USD"
+async def api_create_tip():
+    """Take data from tip form and return satspay charge"""
     sats = g.data["sats"]
     message = g.data.get("message", "")
-    # Fiat amount is calculated here while frontend is limited
-    price = await btc_price(cur_code)
-    amount = sats * (10 ** (-8)) * price
-    webhook_base = request.scheme + "://" + request.headers["Host"]
-    service_id = g.data["service"]
-    service = await get_service(service_id)
-    charge_details = await get_charge_details(service.id)
+    tipjar_id = g.data["tipjar"]
+    tipjar = await get_tipjar(tipjar_id)
+    webhook = tipjar.webhook
+    charge_details = await get_charge_details(tipjar.id)
     name = g.data.get("name", "")
     if not name:
         name = "Anonymous"
-    description = f"{sats} sats donation from {name} to {service.twitchuser}"
+    description = f"{sats} sats tip from {name}"
     charge = await create_charge(
         amount=sats,
-        completelink=f"https://twitch.tv/{service.twitchuser}",
-        completelinktext="Back to Stream!",
-        webhook=webhook_base + "/tipjar/api/v1/postdonation",
+        webhook=webhook,
         description=description,
         **charge_details,
     )
-    await create_donation(
+    await create_tip(
         id=charge.id,
-        wallet=service.wallet,
+        wallet=tipjar.wallet,
         message=message,
         name=name,
-        cur_code=cur_code,
         sats=g.data["sats"],
-        amount=amount,
-        service=g.data["service"],
+        tipjar=g.data["tipjar"],
     )
     return (jsonify({"redirect_url": f"/satspay/{charge.id}"}), HTTPStatus.OK)
 
 
-@tipjar_ext.route("/api/v1/postdonation", methods=["POST"])
-@api_validate_post_request(
-    schema={
-        "id": {"type": "string", "required": True},
-    }
-)
-async def api_post_donation():
-    """Post a paid donation to Stremalabs/StreamElements.
-
-    This endpoint acts as a webhook for the SatsPayServer extension."""
-    data = await request.get_json(force=True)
-    donation_id = data.get("id", "No ID")
-    charge = await get_charge(donation_id)
-    if charge and charge.paid:
-        return await post_donation(donation_id)
-    else:
-        return (jsonify({"message": "Not a paid charge!"}), HTTPStatus.BAD_REQUEST)
-
-
-@tipjar_ext.route("/api/v1/services", methods=["GET"])
+@tipjar_ext.route("/api/v1/tipjars", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_get_services():
-    """Return list of all services assigned to wallet with given invoice key"""
+async def api_get_tipjars():
+    """Return list of all tipjars assigned to wallet with given invoice key"""
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
-    services = []
+    tipjars = []
     for wallet_id in wallet_ids:
-        new_services = await get_services(wallet_id)
-        services += new_services if new_services else []
+        new_tipjars = await get_tipjars(wallet_id)
+        tipjars += new_tipjars if new_tipjars else []
     return (
-        jsonify([service._asdict() for service in services] if services else []),
+        jsonify([tipjar._asdict() for tipjar in tipjars] if tipjars else []),
         HTTPStatus.OK,
     )
 
 
-@tipjar_ext.route("/api/v1/donations", methods=["GET"])
+@tipjar_ext.route("/api/v1/tips", methods=["GET"])
 @api_check_wallet_key("invoice")
-async def api_get_donations():
-    """Return list of all donations assigned to wallet with given invoice
-    key
-    """
+async def api_get_tips():
+    """Return list of all tips assigned to wallet with given invoice key"""
     wallet_ids = (await get_user(g.wallet.user)).wallet_ids
-    donations = []
+    tips = []
     for wallet_id in wallet_ids:
-        new_donations = await get_donations(wallet_id)
-        donations += new_donations if new_donations else []
+        new_tips = await get_tips(wallet_id)
+        tips += new_tips if new_tips else []
     return (
-        jsonify([donation._asdict() for donation in donations] if donations else []),
+        jsonify([tip._asdict() for tip in tips] if tips else []),
         HTTPStatus.OK,
     )
 
 
-@tipjar_ext.route("/api/v1/donations/<donation_id>", methods=["PUT"])
+@tipjar_ext.route("/api/v1/tips/<tip_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
-async def api_update_donation(donation_id=None):
-    """Update a donation with the data given in the request"""
-    if donation_id:
-        donation = await get_donation(donation_id)
+async def api_update_tip(tip_id=None):
+    """Update a tip with the data given in the request"""
+    if tip_id:
+        tip = await get_tip(tip_id)
 
-        if not donation:
+        if not tip:
             return (
                 jsonify({"message": "Donation does not exist."}),
                 HTTPStatus.NOT_FOUND,
             )
 
-        if donation.wallet != g.wallet.id:
-            return (jsonify({"message": "Not your donation."}), HTTPStatus.FORBIDDEN)
+        if tip.wallet != g.wallet.id:
+            return (jsonify({"message": "Not your tip."}), HTTPStatus.FORBIDDEN)
 
-        donation = await update_donation(donation_id, **g.data)
+        tip = await update_tip(tip_id, **g.data)
     else:
         return (
-            jsonify({"message": "No donation ID specified"}),
+            jsonify({"message": "No tip ID specified"}),
             HTTPStatus.BAD_REQUEST,
         )
-    return jsonify(donation._asdict()), HTTPStatus.CREATED
+    return jsonify(tip._asdict()), HTTPStatus.CREATED
 
 
-@tipjar_ext.route("/api/v1/services/<service_id>", methods=["PUT"])
+@tipjar_ext.route("/api/v1/tipjars/<tipjar_id>", methods=["PUT"])
 @api_check_wallet_key("invoice")
-async def api_update_service(service_id=None):
-    """Update a service with the data given in the request"""
-    if service_id:
-        service = await get_service(service_id)
+async def api_update_tipjar(tipjar_id=None):
+    """Update a tipjar with the data given in the request"""
+    if tipjar_id:
+        tipjar = await get_tipjar(tipjar_id)
 
-        if not service:
+        if not tipjar:
             return (
-                jsonify({"message": "Service does not exist."}),
+                jsonify({"message": "TipJar does not exist."}),
                 HTTPStatus.NOT_FOUND,
             )
 
-        if service.wallet != g.wallet.id:
-            return (jsonify({"message": "Not your service."}), HTTPStatus.FORBIDDEN)
+        if tipjar.wallet != g.wallet.id:
+            return (jsonify({"message": "Not your tipjar."}), HTTPStatus.FORBIDDEN)
 
-        service = await update_service(service_id, **g.data)
+        tipjar = await update_tipjar(tipjar_id, **g.data)
     else:
-        return (jsonify({"message": "No service ID specified"}), HTTPStatus.BAD_REQUEST)
-    return jsonify(service._asdict()), HTTPStatus.CREATED
+        return (jsonify({"message": "No tipjar ID specified"}), HTTPStatus.BAD_REQUEST)
+    return jsonify(tipjar._asdict()), HTTPStatus.CREATED
 
 
-@tipjar_ext.route("/api/v1/donations/<donation_id>", methods=["DELETE"])
+@tipjar_ext.route("/api/v1/tips/<tip_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-async def api_delete_donation(donation_id):
-    """Delete the donation with the given donation_id"""
-    donation = await get_donation(donation_id)
-    if not donation:
-        return (jsonify({"message": "No donation with this ID!"}), HTTPStatus.NOT_FOUND)
-    if donation.wallet != g.wallet.id:
+async def api_delete_tip(tip_id):
+    """Delete the tip with the given tip_id"""
+    tip = await get_tip(tip_id)
+    if not tip:
+        return (jsonify({"message": "No tip with this ID!"}), HTTPStatus.NOT_FOUND)
+    if tip.wallet != g.wallet.id:
         return (
-            jsonify({"message": "Not authorized to delete this donation!"}),
+            jsonify({"message": "Not authorized to delete this tip!"}),
             HTTPStatus.FORBIDDEN,
         )
-    await delete_donation(donation_id)
+    await delete_tip(tip_id)
 
     return "", HTTPStatus.NO_CONTENT
 
 
-@tipjar_ext.route("/api/v1/services/<service_id>", methods=["DELETE"])
+@tipjar_ext.route("/api/v1/tipjars/<tipjar_id>", methods=["DELETE"])
 @api_check_wallet_key("invoice")
-async def api_delete_service(service_id):
-    """Delete the service with the given service_id"""
-    service = await get_service(service_id)
-    if not service:
-        return (jsonify({"message": "No service with this ID!"}), HTTPStatus.NOT_FOUND)
-    if service.wallet != g.wallet.id:
+async def api_delete_tipjar(tipjar_id):
+    """Delete the tipjar with the given tipjar_id"""
+    tipjar = await get_tipjar(tipjar_id)
+    if not tipjar:
+        return (jsonify({"message": "No tipjar with this ID!"}), HTTPStatus.NOT_FOUND)
+    if tipjar.wallet != g.wallet.id:
         return (
-            jsonify({"message": "Not authorized to delete this service!"}),
+            jsonify({"message": "Not authorized to delete this tipjar!"}),
             HTTPStatus.FORBIDDEN,
         )
-    await delete_service(service_id)
+    await delete_tipjar(tipjar_id)
 
     return "", HTTPStatus.NO_CONTENT

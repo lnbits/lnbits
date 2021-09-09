@@ -3,15 +3,9 @@ from .models import Tip, TipJar
 
 from ..satspay.crud import delete_charge  # type: ignore
 
-import httpx
-
-from http import HTTPStatus
-from quart import jsonify
-
 from typing import Optional
 
 from lnbits.db import SQLITE
-from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.crud import get_wallet
 
 
