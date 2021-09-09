@@ -4,7 +4,7 @@ from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
 
 from . import tipjar_ext
-from .crud import get_service
+from .crud import get_tipjar
 
 
 @tipjar_ext.route("/")
@@ -15,14 +15,13 @@ async def index():
     return await render_template("tipjar/index.html", user=g.user)
 
 
-@tipjar_ext.route("/<state>")
-async def donation(state):
-    """Return the donation form for the Service corresponding to state"""
-    service = await get_service(0, by_state=state)
-    if not service:
-        abort(HTTPStatus.NOT_FOUND, "Service does not exist.")
+@tipjar_ext.route("/<id>")
+async def tip(id):
+    """Return the donation form for the Tipjar corresponding to id"""
+    tipjar = await get_tipjar(id)
+    if not tipjar:
+        abort(HTTPStatus.NOT_FOUND, "TipJar does not exist.")
     return await render_template(
         "tipjar/display.html",
-        twitchuser=service.twitchuser,
-        service=service.id
+        tipjar=tipjar.id
     )

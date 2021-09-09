@@ -89,16 +89,11 @@ async def create_tipjar(
     return tipjar
 
 
-async def get_tipjar(tipjar_id: int, by_state: str = None) -> Optional[TipJar]:
+async def get_tipjar(tipjar_id: int) -> Optional[TipJar]:
     """Return a tipjar by ID"""
-    if by_state:
-        row = await db.fetchone(
-            "SELECT * FROM tipjar.TipJars WHERE state = ?", (by_state,)
-        )
-    else:
-        row = await db.fetchone(
-            "SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,)
-        )
+    row = await db.fetchone(
+        "SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,)
+    )
     return TipJar.from_row(row) if row else None
 
 
