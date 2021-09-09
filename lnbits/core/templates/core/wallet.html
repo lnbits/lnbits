@@ -269,23 +269,32 @@
                   This QR code contains your wallet URL with full access. You
                   can scan it from your phone to open your wallet from there.
                 </p>
-                <qrcode
-                  :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                  :options="{width:240}"
-                ></qrcode>
+                <q-btn
+                  dense
+                  unelevated
+                  @click="copyText('{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}&admin={{wallet.adminkey}}')"
+                >
+                  <qrcode
+                    :value="'{{request.url_root}}'+'wallet?usr={{user.id}}&wal={{wallet.id}}&admin={{wallet.adminkey}}'"
+                    :options="{width:240}"
+                    ><q-tooltip>Click to copy</q-tooltip></qrcode
+                  ></q-btn
+                >
               </q-card-section>
             </q-card>
           </q-expansion-item>
           <q-separator></q-separator>
-          <q-expansion-item
-            group="extras"
-            icon="edit"
-            label="Rename wallet"
-          >
+          <q-expansion-item group="extras" icon="edit" label="Rename wallet">
             <q-card>
               <q-card-section>
                 <div class="" style="max-width: 320px">
-                  <q-input filled v-model.trim="newName" label="Label" dense="dense" @update:model-value="(e) => console.log(e)"/>
+                  <q-input
+                    filled
+                    v-model.trim="newName"
+                    label="Label"
+                    dense="dense"
+                    @update:model-value="(e) => console.log(e)"
+                  />
                 </div>
                 <q-btn
                   :disable="!newName.length"
@@ -466,7 +475,8 @@
           </span>
         </p>
         <p v-else class="q-my-none text-h6 text-center">
-          <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is requesting <br />
+          <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is
+          requesting <br />
           between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
           <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b> sat
           <span v-if="parse.lnurlpay.commentAllowed > 0">
