@@ -170,13 +170,17 @@ async def purge_addresses(domain_id: str):
     now = datetime.now().timestamp()
 
     for row in rows:
-        start = datetime.fromtimestamp(row[10])
-        paid = row[9]
+        r = Addresses(**row)._asdict()
+
+        start = datetime.fromtimestamp(r["time"])
+        paid = r["paid"]
         pay_expire = now > start.timestamp() + 86400 #if payment wasn't made in 1 day
-        expired = now > (start  + timedelta(days = row[8] + 1)).timestamp() #give user 1 day to topup is address
+        expired = now > (start  + timedelta(days = r["duration"] + 1)).timestamp() #give user 1 day to topup is address
 
         if not paid and pay_expire:
-            await delete_address(row[0])
+            print("DELETE UNP_PAY_EXP", r["username"])
+            await delete_address(r["id"])
 
         if paid and expired:
-            await delete_address(row[0])
+            print("DELETE PAID_EXP", r["username"])
+            await delete_address(r["id"])
