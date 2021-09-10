@@ -115,9 +115,9 @@ def api_validate_post_request(*, schema: dict):
         @wraps(view)
         async def wrapped_view(**kwargs):
             if "application/json" not in request.headers["Content-Type"]:
-                return (
-                    jsonify({"message": "Content-Type must be `application/json`."}),
-                    HTTPStatus.BAD_REQUEST,
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST, 
+                    detail=jsonify({"message": "Content-Type must be `application/json`."})
                 )
 
             v = Validator(schema)
@@ -125,10 +125,11 @@ def api_validate_post_request(*, schema: dict):
             g().data = {key: data[key] for key in schema.keys() if key in data}
 
             if not v.validate(g().data):
-                return (
-                    jsonify({"message": f"Errors in request data: {v.errors}"}),
-                    HTTPStatus.BAD_REQUEST,
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST, 
+                    detail=jsonify({"message": f"Errors in request data: {v.errors}"})
                 )
+                
 
             return await view(**kwargs)
 
@@ -141,12 +142,19 @@ def check_user_exists(param: str = "usr"):
     def wrap(view):
         @wraps(view)
         async def wrapped_view(**kwargs):
-            g().user = await get_user(request.args.get(param, type=str)) or abort(
-                HTTPStatus.NOT_FOUND, "User  does not exist."
-            )
+            g().user = await get_user(request.args.get(param, type=str)) 
+            if not g().user:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail="User  does not exist."
+                )
 
             if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
-                abort(HTTPStatus.UNAUTHORIZED, "User not authorized.")
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED,
+                    detail="User not authorized."
+                )
+                
 
             return await view(**kwargs)
 
