@@ -2,7 +2,8 @@ from functools import wraps
 from http import HTTPStatus
 
 from fastapi.security import api_key
-from lnbits.core.models import Wallet
+from pydantic.types import UUID4
+from lnbits.core.models import User, Wallet
 from typing import List, Union
 from uuid import UUID
 
@@ -138,29 +139,18 @@ def api_validate_post_request(*, schema: dict):
     return wrap
 
 
-def check_user_exists(param: str = "usr"):
-    def wrap(view):
-        @wraps(view)
-        async def wrapped_view(**kwargs):
-            g().user = await get_user(request.args.get(param, type=str)) 
-            if not g().user:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail="User  does not exist."
-                )
+async def check_user_exists(usr: UUID4) -> User:
+    g().user = await get_user(usr.hex) 
+    if not g().user:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="User  does not exist."
+        )
 
-            if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    detail="User not authorized."
-                )
-                
+    if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="User not authorized."
+        )
 
-            return await view(**kwargs)
-
-        return wrapped_view
-
-    return wrap
-
-
-
+    return g().user

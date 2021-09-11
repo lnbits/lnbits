@@ -1,3 +1,21 @@
+## Check if a user exists and access user object
+**old:**
+```python
+# decorators
+@check_user_exists()
+async def do_routing_stuff():
+    pass
+```
+
+**new:**
+If user doesn't exist, `Depends(check_user_exists)` will raise an exception.
+If user exists, `user` will be the user object
+```python
+# depends calls
+@core_html_routes.get("/my_route")
+async def extensions(user: User = Depends(check_user_exists)):
+    pass
+```
 ## Returning data from API calls
 **old:**
 ```python
@@ -48,6 +66,39 @@ raise HTTPException(
     detail=f"Failed to connect to {domain}."
 )
 ```
+
+## Extensions
+**old:**
+```python
+from quart import Blueprint
+
+amilk_ext: Blueprint = Blueprint(
+    "amilk", __name__, static_folder="static", template_folder="templates"
+)
+```
+
+**new:**
+```python
+from fastapi import APIRouter
+from lnbits.jinja2_templating import Jinja2Templates
+from lnbits.helpers import template_renderer
+from fastapi.staticfiles import StaticFiles
+
+offlineshop_ext: APIRouter = APIRouter(
+    prefix="/Extension",
+    tags=["Offlineshop"]
+)
+
+offlineshop_ext.mount(
+    "lnbits/extensions/offlineshop/static",
+    StaticFiles("lnbits/extensions/offlineshop/static")
+)
+
+offlineshop_rndr = template_renderer([
+    "lnbits/extensions/offlineshop/templates",
+])
+```
+
 ## Possible optimizations
 ### Use Redis as a cache server
 Instead of hitting the database over and over again, we can store a short lived object in [Redis](https://redis.io) for an arbitrary key.
