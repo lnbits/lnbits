@@ -31,7 +31,7 @@ from ..tasks import api_invoice_listeners
 
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    return {"id": wallet.wallet.id, "name": wallet.wallet.name, "balance": wallet.wallet.balance_msat},
+    return {"id": wallet.wallet.id, "name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
         
 
 @core_app.put("/api/v1/wallet/{new_name}")
@@ -171,7 +171,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
                 status_code=HTTPStatus.CREATED)
 async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), out: bool = True, 
                               invoiceData: Optional[CreateInvoiceData] = Body(None),
-                              bolt11: Optional[str] = Query(None)):
+                              bolt11: Optional[str] = Body(None)):
     
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
