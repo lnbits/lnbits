@@ -17,12 +17,13 @@ async def display(domain_id):
     domain = await get_domain(domain_id)
     if not domain:
         abort(HTTPStatus.NOT_FOUND, "Domain does not exist.")
-        
+
     await purge_addresses(domain_id)
 
     return await render_template(
         "lnaddress/display.html",
         domain_id=domain.id,
         domain_domain=domain.domain,
-        domain_cost=domain.cost
+        domain_cost=domain.cost,
+        domain_wallet=domain.wallet
     )

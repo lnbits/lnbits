@@ -117,6 +117,7 @@ async def get_address_by_username(username: str, domain: str) -> Optional[Addres
         # "SELECT * FROM lnaddress.address WHERE username = ? AND domain = ?",
         (username, domain,),
     )
+    print("ADD", row)
     return Addresses(**row) if row else None
 
 async def delete_address(address_id: str) -> None:
@@ -131,15 +132,14 @@ async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
         f"SELECT * FROM lnaddress.address WHERE wallet IN ({q})",
         (*wallet_ids,),
     )
-
+    print([Addresses(**row) for row in rows])
     return [Addresses(**row) for row in rows]
 
 async def set_address_paid(payment_hash: str) -> Addresses:
-    row = await db.fetchone(
-        "SELECT a.* FROM lnaddress.address AS a INNER JOIN lnaddress.domain AS d ON a.id = ? AND a.domain = d.id",
-        (payment_hash,),
-    )
-    if row[9] == False:
+    _address = await get_address(payment_hash)
+    address = _address._asdict()
+
+    if address["paid"] == False:
         await db.execute(
             """
             UPDATE lnaddress.address
@@ -152,6 +152,24 @@ async def set_address_paid(payment_hash: str) -> Addresses:
     new_address = await get_address(payment_hash)
     assert new_address, "Newly paid address couldn't be retrieved"
     return new_address
+
+async def set_address_renewed(address_id: str, duration: int):
+    _address = await get_address(address_id)
+    address = _address._asdict()
+
+    extend_duration = int(address["duration"]) + duration
+    await db.execute(
+        """
+        UPDATE lnaddress.address
+        SET duration = ?
+        WHERE id = ?
+        """,
+        (extend_duration, address_id,),
+    )
+    updated_address = await get_address(address_id)
+    assert updated_address, "Renewed address couldn't be retrieved"
+    return updated_address
+
 
 async def check_address_available(username: str, domain: str):
     row, = await db.fetchone(

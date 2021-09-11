@@ -3,7 +3,7 @@ from quart.json import jsonify
 import trio
 import httpx
 
-from .crud import get_domain, set_address_paid
+from .crud import get_domain, set_address_paid, set_address_renewed
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
@@ -22,12 +22,18 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if "lnaddress" != payment.extra.get("tag"):
-        # not an lnurlp invoice
-        return
+    if "lnaddress" == payment.extra.get("tag"):
+        print("LNADDRESS", payment)
+        await payment.set_pending(False)
+        await set_address_paid(payment_hash=payment.payment_hash)
 
-    await payment.set_pending(False)
-    await set_address_paid(payment_hash=payment.payment_hash)
+    elif "renew lnaddress" == payment.extra.get("tag"):
+        print("RENEW LNADDRESS", payment)
+        await payment.set_pending(False)
+        await set_address_renewed(address_id=payment.extra["id"], duration=payment.extra["duration"])
+
+    else:
+        return
 
 
     ### Use webhook to notify about cloudflare registration

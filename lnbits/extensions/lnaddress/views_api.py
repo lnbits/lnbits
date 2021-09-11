@@ -11,6 +11,7 @@ from .crud import (
     create_address,
     get_address,
     get_addresses,
+    get_address_by_username,
     delete_address,
     create_domain,
     update_domain,
@@ -117,14 +118,26 @@ async def api_addresses():
         HTTPStatus.OK,
     )
 
+@lnaddress_ext.route("/api/v1/address/<domain>/<username>/<wallet_key>", methods=["GET"])
+async def api_get_user_info(username, wallet_key, domain):
+    address = await get_address_by_username(username, domain)
+
+    if not address:
+        return jsonify({"message": "The address does not exist."}), HTTPStatus.NOT_FOUND
+
+    if address.wallet_key != wallet_key:
+        return jsonify({"message": "Incorrect user/wallet information."}), HTTPStatus.FORBIDDEN
+
+    return jsonify(address._asdict())
+
 @lnaddress_ext.route("/api/v1/address/availabity/<domain_id>/<username>", methods=["GET"])
 async def api_check_available_username(domain_id, username):
     used_username = await check_address_available(username, domain_id)
-    # if used_username < 1:
-    #     return jsonify(True)
+
     return jsonify(used_username)
 
 @lnaddress_ext.route("/api/v1/address/<domain_id>", methods=["POST"])
+@lnaddress_ext.route("/api/v1/address/<domain_id>/<user>/<wallet_key>", methods=["PUT"])
 @api_validate_post_request(
     schema={
         "domain": {"type": "string", "empty": False, "required": True},
@@ -136,43 +149,69 @@ async def api_check_available_username(domain_id, username):
         "duration": {"type": "integer", "empty": False, "required": True}
     }
 )
-async def api_lnaddress_make_address(domain_id):
+async def api_lnaddress_make_address(domain_id, user=None, wallet_key=None):
     domain = await get_domain(domain_id)
+    sats = g.data["sats"]
 
     # If the request is coming for the non-existant domain
     if not domain:
         return jsonify({"message": "The domain does not exist."}), HTTPStatus.NOT_FOUND
 
-    used_username = await check_address_available(g.data["username"], g.data["domain"])
-    # If username is already taken
-    if used_username:
-        return (
-            jsonify({"message": "Alias/username already taken."}),
-            HTTPStatus.BAD_REQUEST,
+    if user:
+        print("USER", user, domain.domain)
+        address = await get_address_by_username(user, domain.domain)
+
+        if not address:
+            return jsonify({"message": "The address does not exist."}), HTTPStatus.NOT_FOUND
+
+        if address.wallet_key != wallet_key:
+            return jsonify({"message": "Not your address."}), HTTPStatus.FORBIDDEN
+
+        try:
+            payment_hash, payment_request = await create_invoice(
+                wallet_id=domain.wallet,
+                amount=g.data["sats"],
+                memo=f"Renew {g.data['username']}@{domain.domain} for {sats} sats for {g.data['duration']} more days",
+                extra={
+                    "tag": "renew lnaddress",
+                    "id": address.id,
+                    "duration": g.data['duration']                    
+                },
+            )
+
+        except Exception as e:
+            return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+    else:
+        used_username = await check_address_available(g.data["username"], g.data["domain"])
+        # If username is already taken
+        if used_username:
+            return (
+                jsonify({"message": "Alias/username already taken."}),
+                HTTPStatus.BAD_REQUEST,
+            )
+
+        ## ALL OK - create an invoice and return it to the user
+
+        try:
+            payment_hash, payment_request = await create_invoice(
+                wallet_id=domain.wallet,
+                amount=sats,
+                memo=f"LNAddress {g.data['username']}@{domain.domain} for {sats} sats for {g.data['duration']} days",
+                extra={"tag": "lnaddress"},
+            )
+        except Exception as e:
+            return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+        address = await create_address(
+            payment_hash=payment_hash, wallet=domain.wallet, **g.data
         )
 
-    ## ALL OK - create an invoice and return it to the user
-    sats = g.data["sats"]
-
-    try:
-        payment_hash, payment_request = await create_invoice(
-            wallet_id=domain.wallet,
-            amount=sats,
-            memo=f"LNAddress {g.data['username']}@{domain.domain} for {sats} sats for {g.data['duration']} days",
-            extra={"tag": "lnaddress"},
-        )
-    except Exception as e:
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
-
-    address = await create_address(
-        payment_hash=payment_hash, wallet=domain.wallet, **g.data
-    )
-
-    if not address:
-        return (
-            jsonify({"message": "LNAddress could not be fetched."}),
-            HTTPStatus.NOT_FOUND,
-        )
+        if not address:
+            return (
+                jsonify({"message": "LNAddress could not be fetched."}),
+                HTTPStatus.NOT_FOUND,
+            )
 
     return (
         jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
