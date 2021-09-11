@@ -35,6 +35,8 @@ return (
     {"message": f"Failed to connect to {domain}."},
     HTTPStatus.BAD_REQUEST,
 )
+# or the Quart way via abort function
+abort(HTTPStatus.INTERNAL_SERVER_ERROR, "Could not process withdraw LNURL.")
 ```
 
 **new:**
