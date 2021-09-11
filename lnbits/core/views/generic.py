@@ -15,6 +15,8 @@ from starlette.responses import HTMLResponse
 from lnbits.core import db
 from lnbits.helpers import template_renderer, url_for
 from lnbits.requestvars import g
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
 from lnbits.settings import (LNBITS_ALLOWED_USERS, LNBITS_SITE_TITLE,
                              SERVICE_FEE)
 
@@ -35,10 +37,13 @@ async def home(request: Request, lightning: str = None):
     return template_renderer().TemplateResponse("core/index.html", {"request": request, "lnurl": lightning})
 
 
-@core_html_routes.get("/extensions")
-# @validate_uuids(["usr"], required=True)
-# @check_user_exists()
-async def extensions(request: Request, enable: str, disable: str):
+@core_html_routes.get("/extensions", name="core.extensions")
+async def extensions(
+    request: Request, 
+    user: User = Depends(check_user_exists),
+    enable: str= Query(None), 
+    disable: str = Query(None)
+    ):
     extension_to_enable = enable
     extension_to_disable = disable
 
@@ -47,13 +52,18 @@ async def extensions(request: Request, enable: str, disable: str):
 
     if extension_to_enable:
         await update_user_extension(
-            user_id=g.user.id, extension=extension_to_enable, active=True
+            user_id=user.id, extension=extension_to_enable, active=True
         )
     elif extension_to_disable:
         await update_user_extension(
-            user_id=g.user.id, extension=extension_to_disable, active=False
+            user_id=user.id, extension=extension_to_disable, active=False
         )
-    return template_renderer().TemplateResponse("core/extensions.html", {"request": request, "user": get_user(g.user.id)})
+
+    # Update user as his extensions have been updated
+    if extension_to_enable or extension_to_disable:
+        user = await get_user(user.id)
+
+    return template_renderer().TemplateResponse("core/extensions.html", {"request": request, "user": user.dict()})
 
 
 @core_html_routes.get("/wallet", response_class=HTMLResponse)
