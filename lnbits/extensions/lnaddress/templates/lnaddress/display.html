@@ -353,7 +353,8 @@
             }
             dismissMsg()
 
-            this.resetForm()
+            this.renewDialog.data = {}
+            this.renewDialog.info = false
 
             this.$q.notify({
               type: 'positive',
@@ -427,7 +428,7 @@
       }
     },
     created() {
-      this.wallet.inkey = '{{domain_wallet}}'
+      this.wallet.inkey = '{{domain_wallet_inkey}}'
       this.startPaymentNotifier()
     }
   })

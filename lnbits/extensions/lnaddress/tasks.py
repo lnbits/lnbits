@@ -23,12 +23,12 @@ async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
 
 async def on_invoice_paid(payment: Payment) -> None:
     if "lnaddress" == payment.extra.get("tag"):
-        print("LNADDRESS", payment)
+
         await payment.set_pending(False)
         await set_address_paid(payment_hash=payment.payment_hash)
 
     elif "renew lnaddress" == payment.extra.get("tag"):
-        print("RENEW LNADDRESS", payment)
+        
         await payment.set_pending(False)
         await set_address_renewed(address_id=payment.extra["id"], duration=payment.extra["duration"])
 
