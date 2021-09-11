@@ -1,4 +1,6 @@
 import asyncio
+
+from fastapi.exceptions import HTTPException
 from lnbits.helpers import url_for
 import hmac
 import httpx
@@ -133,14 +135,16 @@ class OpenNodeWallet(Wallet):
     async def webhook_listener(self):
         data = await request.form
         if "status" not in data or data["status"] != "paid":
-            return "", HTTPStatus.NO_CONTENT
+            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
 
         charge_id = data["id"]
         x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
         x.update(charge_id.encode("ascii"))
         if x.hexdigest() != data["hashed_order"]:
             print("invalid webhook, not from opennode")
-            return "", HTTPStatus.NO_CONTENT
+            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         await self.queue.put(charge_id)
-        return "", HTTPStatus.NO_CONTENT
+        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+

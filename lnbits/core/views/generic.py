@@ -204,7 +204,7 @@ async def lnurlwallet(request: Request):
 async def manifest(usr: str):
     user = await get_user(usr)
     if not user:
-        return "", HTTPStatus.NOT_FOUND
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
     return {
             "short_name": "LNbits",

@@ -295,14 +295,14 @@ async def api_payment(payment_hash, wallet: WalletTypeInfo = Depends(get_key_typ
     payment = await wallet.wallet.get_payment(payment_hash)
 
     if not payment:
-        return {"message": "Payment does not exist."}, HTTPStatus.NOT_FOUND
+        return {"message": "Payment does not exist."}
     elif not payment.pending:
-        return {"paid": True, "preimage": payment.preimage}, HTTPStatus.OK
+        return {"paid": True, "preimage": payment.preimage}
 
     try:
         await payment.check_pending()
     except Exception:
-        return {"paid": False}, HTTPStatus.OK
+        return {"paid": False}
 
     return {"paid": not payment.pending, "preimage": payment.preimage}
         
