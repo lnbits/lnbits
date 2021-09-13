@@ -54,15 +54,15 @@ Certbot is also a possibity.
 5. Addresses get automatically purged if expired or unpaid, after 24 hours. After expiration date, users will be granted a 24 hours period to renew their address!
 
 6. On the user/buyer side, the webpage will present the _Create_ or _Renew_ address tabs. On the Create tab:\
-   ![create address](https://i.imgur.com/lSYWGeT.png)\
-   - optional email\
-   - the alias or username they want on your domain\
+   ![create address](https://i.imgur.com/lSYWGeT.png)
+   - optional email
+   - the alias or username they want on your domain
    - the LNbits URL, if not the same instance (for example the user has an LNbits wallet on https://s.lnbits.com and is renting an address from https://lnbits.com)
-   - the _Admin key_ for the wallet\
-   - how many days to rent a username for - bellow shows the per day cost and total cost the user will have to pay\
+   - the _Admin key_ for the wallet
+   - how many days to rent a username for - bellow shows the per day cost and total cost the user will have to pay
 7. On the Renew tab:\
-   ![renew address](https://i.imgur.com/rzU46ps.png)\
-   - enter the Alias/username\
-   - enter the wallet key\
-   - press the _GET INFO_ button to retrieve your address data\
+   ![renew address](https://i.imgur.com/rzU46ps.png)
+   - enter the Alias/username
+   - enter the wallet key
+   - press the _GET INFO_ button to retrieve your address data
    - an expiration date will appear and the option to extend the duration of your address
