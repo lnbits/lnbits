@@ -151,12 +151,13 @@ async def api_check_available_username(domain_id, username):
 )
 async def api_lnaddress_make_address(domain_id, user=None, wallet_key=None):
     domain = await get_domain(domain_id)
-    sats = g.data["sats"]
 
     # If the request is coming for the non-existant domain
     if not domain:
         return jsonify({"message": "The domain does not exist."}), HTTPStatus.NOT_FOUND
 
+    sats = g.data["sats"]
+    
     if user:
         print("USER", user, domain.domain)
         address = await get_address_by_username(user, domain.domain)
@@ -175,7 +176,7 @@ async def api_lnaddress_make_address(domain_id, user=None, wallet_key=None):
                 extra={
                     "tag": "renew lnaddress",
                     "id": address.id,
-                    "duration": g.data['duration']                    
+                    "duration": g.data['duration']
                 },
             )
 
