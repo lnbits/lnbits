@@ -1,5 +1,6 @@
 import json
 import asyncio
+from fastapi.exceptions import HTTPException
 import httpx
 from os import getenv
 from http import HTTPStatus
@@ -133,7 +134,7 @@ class LNPayWallet(Wallet):
             or "event" not in data
             or data["event"].get("name") != "wallet_receive"
         ):
-            return "", HTTPStatus.NO_CONTENT
+            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
         async with httpx.AsyncClient() as client:
@@ -145,4 +146,5 @@ class LNPayWallet(Wallet):
             if data["settled"]:
                 await self.queue.put(lntx_id)
 
-        return "", HTTPStatus.NO_CONTENT
+        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+

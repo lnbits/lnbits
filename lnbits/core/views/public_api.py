@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 from http import HTTPStatus
-
+from fastapi import HTTPException
 from lnbits import bolt11
 
 from .. import core_app
@@ -14,17 +14,23 @@ async def api_public_payment_longpolling(payment_hash):
     payment = await get_standalone_payment(payment_hash)
 
     if not payment:
-        return {"message": "Payment does not exist."}, HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Payment does not exist."
+        )
     elif not payment.pending:
-        return {"status": "paid"}, HTTPStatus.OK
+        return {"status": "paid"}
 
     try:
         invoice = bolt11.decode(payment.bolt11)
         expiration = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration < datetime.datetime.now():
-            return {"status": "expired"}, HTTPStatus.OK
+            return {"status": "expired"}
     except:
-        return {"message": "Invalid bolt11 invoice."}, HTTPStatus.BAD_REQUEST
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invalid bolt11 invoice."
+        )
 
     payment_queue = asyncio.Queue(0)
 
@@ -37,7 +43,7 @@ async def api_public_payment_longpolling(payment_hash):
         async for payment in payment_queue.get():
             if payment.payment_hash == payment_hash:
                 nonlocal response
-                response = ({"status": "paid"}, HTTPStatus.OK)
+                response = {"status": "paid"}
                 cancel_scope.cancel()
 
     async def timeouter(cancel_scope):
@@ -51,4 +57,7 @@ async def api_public_payment_longpolling(payment_hash):
     if response:
         return response
     else:
-        return {"message": "timeout"}, HTTPStatus.REQUEST_TIMEOUT
+        raise HTTPException(
+            status_code=HTTPStatus.REQUEST_TIMEOUT,
+            detail="timeout"
+        )

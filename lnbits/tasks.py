@@ -4,6 +4,8 @@ import traceback
 from http import HTTPStatus
 from typing import List, Callable
 
+from fastapi.exceptions import HTTPException
+
 from lnbits.settings import WALLET
 from lnbits.core.crud import (
     get_payments,
@@ -61,7 +63,7 @@ async def webhook_handler():
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
         return await handler()
-    return "", HTTPStatus.NO_CONTENT
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
 internal_invoice_queue = asyncio.Queue(0)

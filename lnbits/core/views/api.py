@@ -31,23 +31,18 @@ from ..tasks import api_invoice_listeners
 
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    return (
-            {"id": wallet.wallet.id, "name": wallet.wallet.name, "balance": wallet.wallet.balance_msat},
-        HTTPStatus.OK,
-    )
-
+    return {"id": wallet.wallet.id, "name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
+        
 
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(new_name: str, wallet: WalletTypeInfo = Depends(get_key_type)):
     await update_wallet(wallet.wallet.id, new_name)
-    return (
-            {
-                "id": wallet.wallet.id,
-                "name": wallet.wallet.name,
-                "balance": wallet.wallet.balance_msat,
-            },
-        HTTPStatus.OK,
-    )
+    return {
+        "id": wallet.wallet.id,
+        "name": wallet.wallet.name,
+        "balance": wallet.wallet.balance_msat,
+    }
+        
 
 
 @core_app.get("/api/v1/payments")
@@ -92,7 +87,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 conn=conn,
             )
         except InvoiceFailure as e:
-            return {"message": str(e)}, 520
+            raise HTTPException(status_code=520, detail=str(e)) 
         except Exception as exc:
             raise exc
 
@@ -128,16 +123,15 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             except (httpx.ConnectError, httpx.RequestError):
                 lnurl_response = False
 
-    return (
-            {
-                "payment_hash": invoice.payment_hash,
-                "payment_request": payment_request,
-                # maintain backwards compatibility with API clients:
-                "checking_id": invoice.payment_hash,
-                "lnurl_response": lnurl_response,
-            },
-        HTTPStatus.CREATED,
-    )
+    return {
+        "payment_hash": invoice.payment_hash,
+        "payment_request": payment_request,
+        # maintain backwards compatibility with API clients:
+        "checking_id": invoice.payment_hash,
+        "lnurl_response": lnurl_response,
+    }
+        
+    
 
 
 async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
@@ -147,29 +141,37 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
             payment_request=bolt11,
         )
     except ValueError as e:
-        return {"message": str(e)}, HTTPStatus.BAD_REQUEST
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=str(e)
+        )
     except PermissionError as e:
-        return {"message": str(e)}, HTTPStatus.FORBIDDEN
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=str(e)
+        )
     except PaymentFailure as e:
-        return {"message": str(e)}, 520
+        raise HTTPException(
+            status_code=520,
+            detail=str(e)
+        )
     except Exception as exc:
         raise exc
 
-    return (
-            {
-                "payment_hash": payment_hash,
-                # maintain backwards compatibility with API clients:
-                "checking_id": payment_hash,
-            },
-        HTTPStatus.CREATED,
-    )
+    return {
+        "payment_hash": payment_hash,
+        # maintain backwards compatibility with API clients:
+        "checking_id": payment_hash,
+    }
+       
 
 
 @core_app.post("/api/v1/payments", deprecated=True,
-                description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead")
+                description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
+                status_code=HTTPStatus.CREATED)
 async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), out: bool = True, 
                               invoiceData: Optional[CreateInvoiceData] = Body(None),
-                              bolt11: Optional[str] = Query(None)):
+                              bolt11: Optional[str] = Body(None)):
     
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
@@ -201,32 +203,32 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
             if r.is_error:
                 raise httpx.ConnectError
         except (httpx.ConnectError, httpx.RequestError):
-            return (
-                {"message": f"Failed to connect to {domain}."},
-                HTTPStatus.BAD_REQUEST,
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Failed to connect to {domain}."
             )
 
     params = json.loads(r.text)
     if params.get("status") == "ERROR":
-        return ({"message": f"{domain} said: '{params.get('reason', '')}'"},
-            HTTPStatus.BAD_REQUEST,
+        raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"{domain} said: '{params.get('reason', '')}'"
         )
+        
 
     invoice = bolt11.decode(params["pr"])
     if invoice.amount_msat != data.amount:
-        return (
-                {
-                    "message": f"{domain} returned an invalid invoice. Expected {g().data['amount']} msat, got {invoice.amount_msat}."
-                },
-            HTTPStatus.BAD_REQUEST,
+        raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"{domain} returned an invalid invoice. Expected {g().data['amount']} msat, got {invoice.amount_msat}."
         )
+        
     if invoice.description_hash != g().data["description_hash"]:
-        return (
-                {
-                    "message": f"{domain} returned an invalid invoice. Expected description_hash == {g().data['description_hash']}, got {invoice.description_hash}."
-                },
-            HTTPStatus.BAD_REQUEST,
+        raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"{domain} returned an invalid invoice. Expected description_hash == {g().data['description_hash']}, got {invoice.description_hash}."
         )
+        
 
     extra = {}
 
@@ -242,15 +244,13 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
         extra=extra,
     )
 
-    return (
-            {
-                "success_action": params.get("successAction"),
-                "payment_hash": payment_hash,
-                # maintain backwards compatibility with API clients:
-                "checking_id": payment_hash,
-            },
-        HTTPStatus.CREATED,
-    )
+    return {
+        "success_action": params.get("successAction"),
+        "payment_hash": payment_hash,
+        # maintain backwards compatibility with API clients:
+        "checking_id": payment_hash,
+    }
+        
 
 async def subscribe(request: Request, wallet: Wallet):
     this_wallet_id = wallet.wallet.id
@@ -273,20 +273,21 @@ async def subscribe(request: Request, wallet: Wallet):
     try:
         while True:
             typ, data = await send_queue.get()
-            message = [f"event: {typ}".encode("utf-8")]
 
             if data:
                 jdata = json.dumps(dict(data.dict(), pending=False))
-                message.append(f"data: {jdata}".encode("utf-8"))
-
-            yield dict(data=jdata.encode("utf-8"), event=typ.encode("utf-8"))
+            
+            # yield dict(id=1, event="this", data="1234")
+            # await asyncio.sleep(2)
+            yield dict(data=jdata, event=typ)
+            # yield dict(data=jdata.encode("utf-8"), event=typ.encode("utf-8"))
     except asyncio.CancelledError:
         return
 
 
 @core_app.get("/api/v1/payments/sse")
 async def api_payments_sse(request: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
-    return EventSourceResponse(subscribe(request, wallet))
+    return EventSourceResponse(subscribe(request, wallet), ping=20, media_type="text/event-stream")
 
 
 @core_app.get("/api/v1/payments/{payment_hash}")
@@ -294,19 +295,17 @@ async def api_payment(payment_hash, wallet: WalletTypeInfo = Depends(get_key_typ
     payment = await wallet.wallet.get_payment(payment_hash)
 
     if not payment:
-        return {"message": "Payment does not exist."}, HTTPStatus.NOT_FOUND
+        return {"message": "Payment does not exist."}
     elif not payment.pending:
-        return {"paid": True, "preimage": payment.preimage}, HTTPStatus.OK
+        return {"paid": True, "preimage": payment.preimage}
 
     try:
         await payment.check_pending()
     except Exception:
-        return {"paid": False}, HTTPStatus.OK
+        return {"paid": False}
 
-    return (
-        {"paid": not payment.pending, "preimage": payment.preimage},
-        HTTPStatus.OK,
-    )
+    return {"paid": not payment.pending, "preimage": payment.preimage}
+        
 
 @core_app.get("/api/v1/lnurlscan/{code}", dependencies=[Depends(WalletInvoiceKeyChecker())])
 async def api_lnurlscan(code: str):
@@ -326,7 +325,7 @@ async def api_lnurlscan(code: str):
             )
             # will proceed with these values
         else:
-            return {"message": "invalid lnurl"}, HTTPStatus.BAD_REQUEST
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="invalid lnurl")
 
     # params is what will be returned to the client
     params: Dict = {"domain": domain}
@@ -341,28 +340,25 @@ async def api_lnurlscan(code: str):
         async with httpx.AsyncClient() as client:
             r = await client.get(url, timeout=5)
             if r.is_error:
-                return (
-                    {"domain": domain, "message": "failed to get parameters"},
-                    HTTPStatus.SERVICE_UNAVAILABLE,
+                raise HTTPException(
+                    status_code=HTTPStatus.SERVICE_UNAVAILABLE, 
+                    detail={"domain": domain, "message": "failed to get parameters"}
                 )
 
         try:
             data = json.loads(r.text)
         except json.decoder.JSONDecodeError:
-            return (
-                    {
-                        "domain": domain,
-                        "message": f"got invalid response '{r.text[:200]}'",
-                    },
-                HTTPStatus.SERVICE_UNAVAILABLE,
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE, 
+                detail={"domain": domain, "message": f"got invalid response '{r.text[:200]}'"}
             )
 
         try:
             tag = data["tag"]
             if tag == "channelRequest":
-                return (
-                        {"domain": domain, "kind": "channel", "message": "unsupported"},
-                    HTTPStatus.BAD_REQUEST,
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST, 
+                    detail={"domain": domain, "kind": "channel", "message": "unsupported"}
                 )
 
             params.update(**data)
@@ -407,13 +403,13 @@ async def api_lnurlscan(code: str):
 
                 params.update(commentAllowed=data.get("commentAllowed", 0))
         except KeyError as exc:
-            return (
-                    {
-                        "domain": domain,
-                        "message": f"lnurl JSON response invalid: {exc}",
-                    },
-                HTTPStatus.SERVICE_UNAVAILABLE,
-            )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                detail={
+                    "domain": domain,
+                    "message": f"lnurl JSON response invalid: {exc}",
+                })
+            
     return params
 
 
@@ -421,8 +417,9 @@ async def api_lnurlscan(code: str):
 async def api_perform_lnurlauth(callback: str):
     err = await perform_lnurlauth(callback)
     if err:
-        return {"reason": err.reason}, HTTPStatus.SERVICE_UNAVAILABLE
-    return "", HTTPStatus.OK
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail=err.reason)
+    
+    return ""
 
 
 @core_app.get("/api/v1/currencies")
