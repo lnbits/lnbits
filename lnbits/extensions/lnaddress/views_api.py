@@ -156,8 +156,13 @@ async def api_lnaddress_make_address(domain_id, user=None, wallet_key=None):
     if not domain:
         return jsonify({"message": "The domain does not exist."}), HTTPStatus.NOT_FOUND
 
+    domain_cost = domain[6]
     sats = g.data["sats"]
-    
+
+    ## FAILSAFE FOR CREATING ADDRESSES BY API
+    if(domain_cost * g.data["duration"] != g.data["sats"]):
+        return jsonify({"message": "The amount is not correct. Either 'duration', or 'sats' are wrong."}), HTTPStatus.FORBIDDEN
+
     if user:
         print("USER", user, domain.domain)
         address = await get_address_by_username(user, domain.domain)
