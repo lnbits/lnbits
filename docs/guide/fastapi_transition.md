@@ -1,3 +1,17 @@
+
+## Defining a route with path parameters
+**old:**
+```python
+# with <> 
+@offlineshop_ext.route("/lnurl/<item_id>", methods=["GET"])
+```
+
+**new:**
+```python
+# with curly braces: {}
+@offlineshop_ext.get("/lnurl/{item_id}")
+```
+
 ## Check if a user exists and access user object
 **old:**
 ```python
