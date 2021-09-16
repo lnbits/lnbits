@@ -149,9 +149,9 @@ def url_for(
     url = f"{base}{endpoint}{url_params}"
     return url
 
-def template_renderer() -> Jinja2Templates:
+def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t = Jinja2Templates(
-     loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates"]),
+     loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates", *additional_folders]),
     )
     t.env.globals["SITE_TITLE"] = settings.LNBITS_SITE_TITLE
     t.env.globals["SITE_TAGLINE"] = settings.LNBITS_SITE_TAGLINE
