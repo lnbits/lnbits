@@ -331,5 +331,5 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
-<script src="/offlineshop/static/js/index.js"></script>
+<script src="{{ url_for('offlineshop_static', path='js/index.js') }}"></script>
 {% endblock %}

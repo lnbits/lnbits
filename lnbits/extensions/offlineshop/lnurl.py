@@ -1,4 +1,8 @@
 import hashlib
+from fastapi.params import Query
+
+from starlette.requests import Request
+from lnbits.helpers import url_for
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
 from lnbits.core.services import create_invoice
@@ -8,8 +12,8 @@ from . import offlineshop_ext
 from .crud import get_shop, get_item
 
 
-@offlineshop_ext.get("/lnurl/<item_id>")
-async def lnurl_response(item_id):
+@offlineshop_ext.get("/lnurl/{item_id}", name="offlineshop.lnurl_response")
+async def lnurl_response(item_id: int = Query(...)):
     item = await get_item(item_id)
     if not item:
         return {"status": "ERROR", "reason": "Item not found."}
@@ -34,7 +38,7 @@ async def lnurl_response(item_id):
 
 
 @offlineshop_ext.get("/lnurl/cb/<item_id>")
-async def lnurl_callback(item_id):
+async def lnurl_callback(request: Request, item_id: int):
     item = await get_item(item_id)
     if not item:
         return {"status": "ERROR", "reason": "Couldn't find item."}
@@ -51,12 +55,12 @@ async def lnurl_callback(item_id):
     amount_received = int(request.args.get("amount") or 0)
     if amount_received < min:
         return LnurlErrorResponse(
-                reason=f"Amount {amount_received} is smaller than minimum {min}."
-            ).dict()
+            reason=f"Amount {amount_received} is smaller than minimum {min}."
+        ).dict()
     elif amount_received > max:
         return LnurlErrorResponse(
-                reason=f"Amount {amount_received} is greater than maximum {max}."
-            ).dict()
+            reason=f"Amount {amount_received} is greater than maximum {max}."
+        ).dict()
 
     shop = await get_shop(item.shop)
 
@@ -75,7 +79,7 @@ async def lnurl_callback(item_id):
 
     resp = LnurlPayActionResponse(
         pr=payment_request,
-        success_action=item.success_action(shop, payment_hash) if shop.method else None,
+        success_action=item.success_action(shop, payment_hash, request) if shop.method else None,
         routes=[],
     )
 
