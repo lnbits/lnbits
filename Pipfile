@@ -27,6 +27,7 @@ asyncio = "*"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 sse-starlette = "*"
+jinja2 = "3.0.1"
 
 [dev-packages]
 black = "==20.8b1"
