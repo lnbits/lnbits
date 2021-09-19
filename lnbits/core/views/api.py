@@ -52,6 +52,7 @@ async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
     
 
 class CreateInvoiceData(BaseModel):
+    out: Optional[bool] = True
     amount:  int = Query(None, ge=1)
     memo:  str = None
     unit:  Optional[str] = None
@@ -60,6 +61,7 @@ class CreateInvoiceData(BaseModel):
     lnurl_balance_check:  Optional[str] = None
     extra:  Optional[dict] = None
     webhook:  Optional[str] = None
+    bolt11: Optional[str] = None
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if "description_hash" in data:
@@ -169,17 +171,16 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 @core_app.post("/api/v1/payments", deprecated=True,
                 description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
                 status_code=HTTPStatus.CREATED)
-async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), out: bool = True, 
-                              invoiceData: Optional[CreateInvoiceData] = Body(None),
-                              bolt11: Optional[str] = Body(None)):
+async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), 
+                              invoiceData: CreateInvoiceData = Body(...)):
     
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
 
-    if out is True and wallet.wallet_type == 0:
-        if not bolt11:
+    if invoiceData.out is True and wallet.wallet_type == 0:
+        if not invoiceData.bolt11:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="BOLT11 string is invalid or not given")
-        return await api_payments_pay_invoice(bolt11, wallet.wallet) # admin key
+        return await api_payments_pay_invoice(invoiceData.bolt11, wallet.wallet) # admin key
     return await api_payments_create_invoice(invoiceData, wallet.wallet) # invoice key
 
 class CreateLNURLData(BaseModel):
