@@ -1,8 +1,9 @@
 import time
 from datetime import datetime
 from http import HTTPStatus
+from typing import List
 
-from fastapi.params import Depends
+from fastapi.params import Depends, Query
 from starlette.responses import HTMLResponse
 
 from lnbits.decorators import check_user_exists
@@ -10,6 +11,7 @@ from lnbits.core.models import Payment, User
 from lnbits.core.crud import get_standalone_payment
 
 from . import offlineshop_ext, offlineshop_renderer
+from .models import Item
 from .crud import get_item, get_shop
 from fastapi import Request, HTTPException
 
@@ -20,14 +22,14 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @offlineshop_ext.get("/print", response_class=HTMLResponse)
-async def print_qr_codes(request: Request):
+async def print_qr_codes(request: Request, items: List[int] = None):
     items = []
-    for item_id in request.args.get("items").split(","):
-        item = await get_item(item_id)
+    for item_id in request.query_params.get("items").split(","):
+        item = await get_item(item_id) # type: Item
         if item:
             items.append(
                 {
-                    "lnurl": item.lnurl,
+                    "lnurl": item.lnurl(request),
                     "name": item.name,
                     "price": f"{item.price} {item.unit}",
                 }
@@ -36,8 +38,9 @@ async def print_qr_codes(request: Request):
     return offlineshop_renderer().TemplateResponse("offlineshop/print.html", {"request": request,"items":items})
 
 
-@offlineshop_ext.get("/confirmation")
-async def confirmation_code(p: str):
+@offlineshop_ext.get("/confirmation/{p}", name="offlineshop.confirmation_code",
+                    response_class=HTMLResponse)
+async def confirmation_code(p: str = Query(...)):
     style = "<style>* { font-size: 100px}</style>"
 
     payment_hash = p

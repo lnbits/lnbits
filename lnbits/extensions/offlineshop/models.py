@@ -14,7 +14,8 @@ from .helpers import totp
 shop_counters: Dict = {}
 
 
-class ShopCounter(BaseModel):
+class ShopCounter():
+    wordlist: List[str]
     fulfilled_payments: OrderedDict
     counter: int
 
@@ -87,6 +88,11 @@ class Item(BaseModel):
     enabled: bool
     price: int
     unit: str
+
+    def lnurl(self, req: Request) -> str:
+        return lnurl_encode(
+            req.url_for("offlineshop.lnurl_response", item_id=self.id)
+        )
 
     def values(self, req: Request):
         values = self.dict()

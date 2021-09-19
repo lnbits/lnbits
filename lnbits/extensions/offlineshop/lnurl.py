@@ -1,4 +1,5 @@
 import hashlib
+from lnbits.extensions.offlineshop.models import Item
 from fastapi.params import Query
 
 from starlette.requests import Request
@@ -13,8 +14,8 @@ from .crud import get_shop, get_item
 
 
 @offlineshop_ext.get("/lnurl/{item_id}", name="offlineshop.lnurl_response")
-async def lnurl_response(item_id: int = Query(...)):
-    item = await get_item(item_id)
+async def lnurl_response(req: Request, item_id: int = Query(...)):
+    item = await get_item(item_id) # type: Item
     if not item:
         return {"status": "ERROR", "reason": "Item not found."}
 
@@ -28,7 +29,7 @@ async def lnurl_response(item_id: int = Query(...)):
     ) * 1000
 
     resp = LnurlPayResponse(
-        callback=url_for("offlineshop.lnurl_callback", item_id=item.id, _external=True),
+        callback=req.url_for("offlineshop.lnurl_callback", item_id=item.id),
         min_sendable=price_msat,
         max_sendable=price_msat,
         metadata=await item.lnurlpay_metadata(),
@@ -37,9 +38,9 @@ async def lnurl_response(item_id: int = Query(...)):
     return resp.dict()
 
 
-@offlineshop_ext.get("/lnurl/cb/<item_id>")
+@offlineshop_ext.get("/lnurl/cb/{item_id}", name="offlineshop.lnurl_callback")
 async def lnurl_callback(request: Request, item_id: int):
-    item = await get_item(item_id)
+    item = await get_item(item_id) # type: Item
     if not item:
         return {"status": "ERROR", "reason": "Couldn't find item."}
 
@@ -52,7 +53,7 @@ async def lnurl_callback(request: Request, item_id: int):
         min = price * 995
         max = price * 1010
 
-    amount_received = int(request.args.get("amount") or 0)
+    amount_received = int(request.query_params.get("amount") or 0)
     if amount_received < min:
         return LnurlErrorResponse(
             reason=f"Amount {amount_received} is smaller than minimum {min}."
