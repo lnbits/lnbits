@@ -18,9 +18,17 @@ from . import lnurlpos_ext
 async def index():
     return await render_template("lnurlpos/index.html", user=g.user)
 
+
 @lnurlpos_ext.route("/pos_id/<amount_pin>")
 @validate_uuids(["usr"], required=True)
 @check_user_exists()
-async def index():
-    #search for invoice via pin, if its paid decrypt and show pin
+async def displaypin():
+    # search for invoice via pin, if its paid decrypt and show pin
+    payment = await get_standalone_payment(payment_hash) or abort(
+        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
+    )
+    if payment.pending == 1:
+        return await render_template(
+            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=False
+        )
     return await render_template("lnurlpos/paid.html", pin=pin)

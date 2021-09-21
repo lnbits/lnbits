@@ -15,13 +15,18 @@ async def lnurl_response(pos_id, amount_pin):
     pos = await get_lnurlpos(pos_id)
     if not pos:
         return jsonify({"status": "ERROR", "reason": "lnurlpos not found."})
-    #pos.secret decypt pin and amount bit
+    # pos.secret decypt pin and amount bit
     decryptedPin = ""
     decryptedAmount = ""
     if type(decryptedAmount) != int or float:
         return jsonify({"status": "ERROR", "reason": "Incorrect amount."})
     resp = LnurlPayResponse(
-        callback=url_for("lnurlpos.lnurl_callback", pos_id=pos_id, amount_pin=amount_pin, _external=True),
+        callback=url_for(
+            "lnurlpos.lnurl_callback",
+            pos_id=pos_id,
+            amount_pin=amount_pin,
+            _external=True,
+        ),
         min_sendable=int(decryptedAmount),
         max_sendable=int(decryptedAmount),
         metadata=LnurlPayMetadata(json.dumps([["text/plain", str(pos.lnurl_title)]])),
@@ -32,28 +37,6 @@ async def lnurl_response(pos_id, amount_pin):
     return jsonify(params)
 
 
-@lnurlpos_ext.websocket("/ws/<id>/")
-async def wss(id):
-    lnurlpos = await get_lnurlpos(id)
-    if not lnurlpos:
-        return "", HTTPStatus.FORBIDDEN
-    global connected_websockets
-    send_channel, receive_channel = trio.open_memory_channel(0)
-    connected_websockets[id].add(send_channel)
-    try:
-        while True:
-            data = await receive_channel.receive()
-            await websocket.send(data)
-    finally:
-        connected_websockets[id].remove(send_channel)
-
-
-async def updater(lnurlpos_id, data, comment):
-    lnurlpos = await get_lnurlpos(lnurlpos_id)
-    if not lnurlpos:
-        return
-    for queue in connected_websockets[lnurlpos_id]:
-        await queue.send(f"{data + '-' + comment}")
 @lnurlpos_ext.route("/lnurl/cb/<pos_id>/<amount_pin>", methods=["GET"])
 async def lnurl_callback(cp_id, amount_pin):
     pos = await get_lnurlpos(pos_id)
@@ -61,7 +44,7 @@ async def lnurl_callback(cp_id, amount_pin):
         return jsonify({"status": "ERROR", "reason": "lnurlpos not found."})
 
     amount_received = int(request.args.get("amount"))
-    #pos.secret decypt pin and amount bit
+    # pos.secret decypt pin and amount bit
     decryptedPin = ""
     decryptedAmount = ""
     if amount_received != decryptedAmount:
@@ -81,11 +64,11 @@ async def lnurl_callback(cp_id, amount_pin):
         amount=int(amount_received / 1000),
         memo=pos.title,
         description_hash=hashlib.sha256(
-            (
-                LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]]))
-            ).encode("utf-8")
+            (LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]]))).encode(
+                "utf-8"
+            )
         ).digest(),
-        extra={"tag": "lnurlpos", "lnurlpos": pos.id, "lnurlpos_pay": amount_pin},
+        extra={"tag": "lnurlpos", "lnurlpos": pos.id, "lnurlpos_paid": amount_pin},
     )
     resp = LnurlPayActionResponse(
         pr=payment_request,

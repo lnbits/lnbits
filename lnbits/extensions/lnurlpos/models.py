@@ -1,19 +1,19 @@
 from sqlite3 import Row
-from typing import NamedTuple
 import time
 from quart import url_for
 from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from typing import NamedTuple, Optional, Dict
 
 
 class lnurlposs(NamedTuple):
-    id: str,
-    secret: str,
-    title: str,
-    wallet: str,
-    message: str,
-    currency: str,
+    id: str
+    secret: str
+    title: str
+    wallet: str
+    message: str
+    currency: str
 
     @classmethod
     def from_row(cls, row: Row) -> "lnurlposs":
