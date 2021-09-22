@@ -51,8 +51,6 @@
             <q-tr :props="props">
               <q-th style="width: 5%"></q-th>
               <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
 
               <q-th
                 v-for="col in props.cols"
@@ -78,7 +76,7 @@
                   icon="cancel"
                   color="pink"
                 >
-                  <q-tooltip> Delete lnurlpos </q-tooltip>
+                  <q-tooltip> Delete LNURLPoS </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td>
@@ -86,11 +84,11 @@
                   flat
                   dense
                   size="xs"
-                  @click="openUpdatelnurlposLink(props.row.id)"
-                  icon="edit"
-                  color="light-blue"
+                  @click="openlnurlposSettings(props.row.id)"
+                  icon="perm_data_setting"
+                  color="primary"
                 >
-                  <q-tooltip> Edit lnurlpos </q-tooltip>
+                  <q-tooltip> LNURLPoS Settings </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td
@@ -123,6 +121,23 @@
       </q-card-section>
     </q-card>
   </div>
+
+  <q-dialog
+    v-model="settingsDialog.show"
+    position="top"
+    @hide="closeFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-h6">Copy to LNURLPoS device</div>
+      <div class="text-subtitle2">
+        {% raw %} String server = "{{location}}"<br />
+        String posId = "{{settingsDialog.data.id}}";<br />
+        String key = "{{settingsDialog.data.key}}";<br />
+        String currency = "{{settingsDialog.data.currency}}";{% endraw %}
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog
     v-model="formDialoglnurlpos.show"
     position="top"
@@ -138,34 +153,34 @@
           label="Title"
         ></q-input>
 
-          <q-select
-            filled
-            dense
-            emit-value
-            v-model="formDialoglnurlpos.data.wallet"
-            :options="g.user.walletOptions"
-            label="Wallet *"
-          ></q-select>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialoglnurlpos.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
 
-          <q-input
-            filled
-            dense
-            v-model.trim="formDialoglnurlpos.data.message"
-            type="text"
-            max="1440"
-            label="Prefix message before pin (ie, Thanks, heres your pin:)"
-          >
-          </q-input>
-          <q-input
-            filled
-            dense
-            v-model.trim="formDialoglnurlpos.data.currency"
-            type="text"
-            max="1440"
-            label="Fiat currency for PoS (ie, GBP)"
-          >
-          </q-input>
-        </div>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialoglnurlpos.data.message"
+          type="text"
+          max="1440"
+          label="Prefix message before pin (ie, Thanks, heres your pin:)"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialoglnurlpos.data.currency"
+          type="text"
+          max="1440"
+          label="Fiat currency for PoS (ie, GBP)"
+        >
+        </q-input>
+
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialoglnurlpos.data.id"
@@ -220,6 +235,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        location: window.location.hostname,
         filter: '',
         lnurlposLinks: [],
         lnurlposLinksObj: [],
@@ -244,29 +260,27 @@
               field: 'wallet'
             },
             {
-              name: 'message',
+              name: 'key',
               align: 'left',
-              label: 'message',
-              field: 'message'
+              label: 'key',
+              field: 'key'
             },
             {
               name: 'currency',
               align: 'left',
               label: 'currency',
               field: 'currency'
-            },
-            {
-              name: 'secret',
-              align: 'left',
-              label: 'secret',
-              field: 'secret'
-            },
+            }
           ],
           pagination: {
             rowsPerPage: 10
           }
         },
         passedlnurlpos: {},
+        settingsDialog: {
+          show: false,
+          data: {}
+        },
         formDialog: {
           show: false,
           data: {}
@@ -343,6 +357,7 @@
           )
           .then(function (response) {
             if (response.data) {
+              console.log(response.data)
               self.lnurlposLinks = response.data.map(maplnurlpos)
             }
           })
@@ -396,6 +411,12 @@
         self.formDialoglnurlpos.data = _.clone(lnurlpos._data)
         self.formDialoglnurlpos.show = true
       },
+      openlnurlposSettings: function (lnurlposId) {
+        var self = this
+        var lnurlpos = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
+        self.settingsDialog.data = _.clone(lnurlpos._data)
+        self.settingsDialog.show = true
+      },
       updatelnurlpos: function (wallet, data) {
         var self = this
         var updatedData = {}
@@ -442,6 +463,11 @@
       var self = this
       var getlnurlposs = this.getlnurlposs
       getlnurlposs()
+      self.location = [
+        window.location.protocol,
+        '//',
+        window.location.host
+      ].join('')
     }
   })
 </script>

@@ -16,6 +16,13 @@ from .crud import (
     get_lnurlposs,
     delete_lnurlpos,
 )
+from lnbits.utils.exchange_rates import currencies
+
+
+@lnurlpos_ext.route("/api/v1/currencies", methods=["GET"])
+async def api_list_currencies_available():
+    return jsonify(list(currencies.keys()))
+
 
 #######################lnurlpos##########################
 
@@ -28,12 +35,12 @@ from .crud import (
         "title": {"type": "string", "empty": False, "required": True},
         "wallet": {"type": "string", "empty": False, "required": True},
         "message": {"type": "string", "empty": False, "required": True},
-        "currency": {"type": "string", "empty": False, "required": False}
+        "currency": {"type": "string", "empty": False, "required": False},
     }
 )
 async def api_lnurlpos_create_or_update(lnurlpos_id=None):
     if not lnurlpos_id:
-        lnurlpos = await create_lnurlpos(user=g.wallet.user, **g.data)
+        lnurlpos = await create_lnurlpos(**g.data)
         return jsonify(lnurlpos._asdict()), HTTPStatus.CREATED
     else:
         lnurlpos = await update_lnurlpos(lnurlpos_id=lnurlpos_id, **g.data)
@@ -43,10 +50,11 @@ async def api_lnurlpos_create_or_update(lnurlpos_id=None):
 @lnurlpos_ext.route("/api/v1/lnurlpos", methods=["GET"])
 @api_check_wallet_key("invoice")
 async def api_lnurlposs_retrieve():
+    wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     try:
         return (
             jsonify(
-                [{**lnurlpos._asdict()} for lnurlpos in await get_lnurlposs(g.wallet.user)]
+                [{**lnurlpos._asdict()} for lnurlpos in await get_lnurlposs(wallet_ids)]
             ),
             HTTPStatus.OK,
         )

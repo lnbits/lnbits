@@ -9,11 +9,12 @@ from typing import NamedTuple, Optional, Dict
 
 class lnurlposs(NamedTuple):
     id: str
-    secret: str
+    key: str
     title: str
     wallet: str
     message: str
     currency: str
+    timestamp: str
 
     @classmethod
     def from_row(cls, row: Row) -> "lnurlposs":
@@ -28,11 +29,11 @@ class lnurlposs(NamedTuple):
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
-    def success_action(self, payment_hash: str) -> Optional[Dict]:
+    def success_action(self, payment_hash: str, nonce: str) -> Optional[Dict]:
         url = url_for(
             "lnurlpos.displaypin",
-            link_id=self.id,
             payment_hash=payment_hash,
+            nonce=nonce,
             _external=True,
         )
         #        url: ParseResult = urlparse(url)

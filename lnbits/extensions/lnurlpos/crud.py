@@ -18,12 +18,12 @@ async def create_lnurlpos(
     currency: Optional[str] = None,
 ) -> lnurlposs:
     lnurlpos_id = urlsafe_short_hash()
-    lnurlpos_secret = urlsafe_short_hash()
+    lnurlpos_key = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO lnurlpos.lnurlposs (
             id,
-            secret,
+            key,
             title,
             wallet,
             message,
@@ -31,7 +31,7 @@ async def create_lnurlpos(
         )
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (lnurlpos_id, lnurlpos_secret, title, wallet, message, currency),
+        (lnurlpos_id, lnurlpos_key, title, wallet, message, currency),
     )
     return await get_lnurlpos(lnurlpos_id)
 
@@ -55,10 +55,17 @@ async def get_lnurlpos(lnurlpos_id: str) -> lnurlposs:
     return lnurlposs.from_row(row) if row else None
 
 
-async def get_lnurlposs(user: str) -> List[lnurlposs]:
+async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
+    wallet_ids = [wallet_ids]
+    q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        """SELECT * FROM lnurlpos.lnurlposs WHERE "user" = ?""", (user,)
+        f"""
+        SELECT * FROM lnurlpos.lnurlposs WHERE wallet IN ({q})
+        ORDER BY id
+        """,
+        (*wallet_ids,),
     )
+
     return [lnurlposs.from_row(row) for row in rows]
 
 
