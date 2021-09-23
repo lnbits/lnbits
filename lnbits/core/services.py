@@ -115,6 +115,11 @@ async def pay_invoice(
             extra=extra,
         )
 
+        # get original balance
+        wallet = await get_wallet(wallet_id, conn=conn)
+        assert wallet
+        old_balance = wallet.balance_msat
+
         # check_internal() returns the checking_id of the invoice we're waiting for
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
@@ -139,13 +144,13 @@ async def pay_invoice(
         # do the balance check
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet
-        if wallet.balance_msat < 0:
-            raise PermissionError("Insufficient balance.")
 
         if internal_checking_id:
             # mark the invoice from the other side as not pending anymore
             # so the other side only has access to his new money when we are sure
             # the payer has enough to deduct from
+            if wallet.balance_msat < 0:
+                raise PermissionError("Insufficient balance.")
             await update_payment_status(
                 checking_id=internal_checking_id,
                 pending=False,
@@ -159,7 +164,9 @@ async def pay_invoice(
         else:
             # fees will never exceed 1%, unless that is less than 10 sats
             max_fee = max(10000, int(invoice.amount_msat * 0.01))
-            fee_limit_msat = min(max_fee, wallet.balance_msat - invoice.amount_msat)
+            fee_limit_msat = min(max_fee, old_balance - invoice.amount_msat)
+            if fee_limit_msat < 0:
+                raise PermissionError("Insufficient balance.")
             # actually pay the external invoice
             try:
                 payment: PaymentResponse = await WALLET.pay_invoice(
@@ -168,6 +175,8 @@ async def pay_invoice(
                 )
             except TypeError:
                 # fee limit not supported by backend
+                if wallet.balance_msat < 0:
+                    raise PermissionError("Insufficient balance.")
                 payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
             if payment.checking_id:
                 await create_payment(
