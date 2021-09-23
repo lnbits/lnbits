@@ -158,7 +158,15 @@ async def pay_invoice(
             await internal_invoice_paid.send(internal_checking_id)
         else:
             # actually pay the external invoice
-            payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
+            fee_limit_msat = fee_reserve(invoice.amount_msat)
+            try:
+                payment: PaymentResponse = await WALLET.pay_invoice(
+                    payment_request,
+                    fee_limit_msat=fee_limit_msat
+                )
+            except TypeError:
+                # fee limit not supported by backend
+                payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
             if payment.checking_id:
                 await create_payment(
                     checking_id=payment.checking_id,

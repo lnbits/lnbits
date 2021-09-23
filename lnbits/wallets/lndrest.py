@@ -93,12 +93,15 @@ class LndRestWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
-                json={"payment_request": bolt11},
+                json={
+                    "payment_request": bolt11,
+                    "fee_limit": {"fixed_msat": str(fee_limit_msat)},
+                },
                 timeout=180,
             )
 
