@@ -157,8 +157,10 @@ async def pay_invoice(
 
             await internal_invoice_paid.send(internal_checking_id)
         else:
+            # fees will never exceed 1%, unless that is less than 10 sats
+            max_fee = max(10000, int(invoice.amount_msat * 0.01))
+            fee_limit_msat = min(max_fee, wallet.balance_msat - invoice.amount_msat)
             # actually pay the external invoice
-            fee_limit_msat = fee_reserve(invoice.amount_msat)
             try:
                 payment: PaymentResponse = await WALLET.pay_invoice(
                     payment_request,
