@@ -47,7 +47,5 @@ async def displaypin(payment_hash, nonce):
     for i in range(len(res)):
         res[i] = res[i] ^ s[i]
     decryptedKey = int.from_bytes(res[:2], "little")
-    if decryptedKey != pos.key:
-        return jsonify({"status": "ERROR", "reason": "Incorrect key."})
 
     return await render_template("lnurlpos/paid.html", pin=decryptedKey, not_paid=True)

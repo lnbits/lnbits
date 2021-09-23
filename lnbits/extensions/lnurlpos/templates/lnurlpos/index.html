@@ -130,7 +130,7 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div class="text-h6">Copy to LNURLPoS device</div>
       <div class="text-subtitle2">
-        {% raw %} String server = "{{location}}"<br />
+        {% raw %} String server = "{{location}}";<br />
         String posId = "{{settingsDialog.data.id}}";<br />
         String key = "{{settingsDialog.data.key}}";<br />
         String currency = "{{settingsDialog.data.currency}}";{% endraw %}
@@ -171,15 +171,14 @@
           label="Prefix message before pin (ie, Thanks, heres your pin:)"
         >
         </q-input>
-        <q-input
+        <q-select
           filled
           dense
           v-model.trim="formDialoglnurlpos.data.currency"
           type="text"
-          max="1440"
-          label="Fiat currency for PoS (ie, GBP)"
-        >
-        </q-input>
+          label="Fiat currency for PoS"
+          :options="currency"
+        ></q-select>
 
         <div class="row q-mt-lg">
           <q-btn
@@ -237,16 +236,11 @@
       return {
         location: window.location.hostname,
         filter: '',
+        currency: 'USD',
         lnurlposLinks: [],
         lnurlposLinksObj: [],
         lnurlpossTable: {
           columns: [
-            {
-              name: 'theId',
-              align: 'left',
-              label: 'id',
-              field: 'id'
-            },
             {
               name: 'title',
               align: 'left',
@@ -254,16 +248,22 @@
               field: 'title'
             },
             {
-              name: 'wallet',
+              name: 'theId',
               align: 'left',
-              label: 'wallet',
-              field: 'wallet'
+              label: 'id',
+              field: 'id'
             },
             {
               name: 'key',
               align: 'left',
               label: 'key',
               field: 'key'
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'wallet',
+              field: 'wallet'
             },
             {
               name: 'currency',
@@ -468,6 +468,14 @@
         '//',
         window.location.host
       ].join('')
+      LNbits.api
+        .request('GET', '/api/v1/currencies')
+        .then(response => {
+          this.currency = ['USD', ...response.data]
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
     }
   })
 </script>

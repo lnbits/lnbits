@@ -20,20 +20,15 @@ async def lnurl_response(nonce, pos_id, payload):
         return jsonify({"status": "ERROR", "reason": "lnurlpos not found."})
     nonce1 = bytes.fromhex(nonce)
     payload1 = bytes.fromhex(payload)
-
     h = hashlib.sha256(nonce1)
     h.update(pos.key.encode())
     s = h.digest()
     res = bytearray(payload1)
     for i in range(len(res)):
         res[i] = res[i] ^ s[i]
-    print(res)
-    decryptedKey = int.from_bytes(res[:2], "little")
-    decryptedAmount = int.from_bytes(res[2:6], "little")
-    if type(decryptedAmount) != int or float:
-        return jsonify({"status": "ERROR", "reason": "Incorrect amount."})
-    if decryptedKey != pos.key:
-        return jsonify({"status": "ERROR", "reason": "Incorrect key."})
+        decryptedAmount = int.from_bytes(res[2:6], "little")
+    if type(decryptedAmount) != int:
+        return jsonify({"status": "ERROR", "reason": "Not an amount."})
     resp = LnurlPayResponse(
         callback=url_for(
             "lnurlpos.lnurl_callback",
@@ -42,9 +37,13 @@ async def lnurl_response(nonce, pos_id, payload):
             pos_id=pos_id,
             _external=True,
         ),
-        min_sendable=int(fiat_amount_as_satoshis(decryptedAmount, pos.currency)),
-        max_sendable=int(fiat_amount_as_satoshis(decryptedAmount, pos.currency)),
-        metadata=LnurlPayMetadata(json.dumps([["text/plain", str(pos.lnurl_title)]])),
+        min_sendable=int(
+            float(await fiat_amount_as_satoshis(decryptedAmount, pos.currency)) * 1000
+        ),
+        max_sendable=int(
+            float(await fiat_amount_as_satoshis(decryptedAmount, pos.currency)) * 1000
+        ),
+        metadata=LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]])),
     )
     params = resp.dict()
     return jsonify(params)
@@ -57,20 +56,15 @@ async def lnurl_callback(nonce, payload, pos_id):
         return jsonify({"status": "ERROR", "reason": "lnurlpos not found."})
     nonce1 = bytes.fromhex(nonce)
     payload1 = bytes.fromhex(payload)
-
     h = hashlib.sha256(nonce1)
     h.update(pos.key.encode())
     s = h.digest()
     res = bytearray(payload1)
     for i in range(len(res)):
         res[i] = res[i] ^ s[i]
-    print(res)
-    decryptedKey = int.from_bytes(res[:2], "little")
-    decryptedAmount = int.from_bytes(res[2:6], "little")
-    if type(decryptedAmount) != int or float:
-        return jsonify({"status": "ERROR", "reason": "Incorrect amount."})
-    if decryptedKey != pos.key:
-        return jsonify({"status": "ERROR", "reason": "Incorrect key."})
+        decryptedAmount = int.from_bytes(res[2:6], "little")
+    if type(decryptedAmount) != int:
+        return jsonify({"status": "ERROR", "reason": "Not an amount."})
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=pos.wallet,
