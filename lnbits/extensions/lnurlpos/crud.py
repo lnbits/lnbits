@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 
 # from lnbits.db import open_ext_db
 from . import db
-from .models import lnurlposs
+from .models import lnurlposs, lnurlpospayment
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -14,7 +14,6 @@ from quart import jsonify
 async def create_lnurlpos(
     title: str,
     wallet: Optional[str] = None,
-    message: Optional[str] = 0,
     currency: Optional[str] = None,
 ) -> lnurlposs:
     lnurlpos_id = urlsafe_short_hash()
@@ -26,12 +25,11 @@ async def create_lnurlpos(
             key,
             title,
             wallet,
-            message,
             currency
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (lnurlpos_id, lnurlpos_key, title, wallet, message, currency),
+        (lnurlpos_id, lnurlpos_key, title, wallet, currency),
     )
     return await get_lnurlpos(lnurlpos_id)
 
@@ -71,3 +69,49 @@ async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
 
 async def delete_lnurlpos(lnurlpos_id: str) -> None:
     await db.execute("DELETE FROM lnurlpos.lnurlposs WHERE id = ?", (lnurlpos_id,))
+
+    ########################lnulpos payments###########################
+
+
+async def create_lnurlpospayment(
+    posid: str,
+    payload: Optional[str] = None,
+    pin: Optional[str] = None,
+    sats: Optional[int] = 0,
+) -> lnurlpospayment:
+    lnurlpospayment_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO lnurlpos.lnurlpospayment (
+            id,
+            posid,
+            payload,
+            pin,
+            sats
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (lnurlpospayment_id, posid, payload, pin, sats),
+    )
+    return await get_lnurlpospayment(lnurlpospayment_id)
+
+
+async def update_lnurlpospayment(
+    lnurlpospayment_id: str, **kwargs
+) -> Optional[lnurlpospayment]:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(
+        f"UPDATE lnurlpos.lnurlpospayment SET {q} WHERE id = ?",
+        (*kwargs.values(), lnurlpospayment_id),
+    )
+    row = await db.fetchone(
+        "SELECT * FROM lnurlpos.lnurlpospayment WHERE id = ?", (lnurlpospayment_id,)
+    )
+    return lnurlpospayment.from_row(row) if row else None
+
+
+async def get_lnurlpospayment(lnurlpospayment_id: str) -> lnurlposs:
+    row = await db.fetchone(
+        "SELECT * FROM lnurlpos.lnurlpospayment WHERE id = ?", (lnurlpospayment_id,)
+    )
+    return lnurlpospayment.from_row(row) if row else None

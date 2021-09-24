@@ -34,7 +34,6 @@ async def api_list_currencies_available():
     schema={
         "title": {"type": "string", "empty": False, "required": True},
         "wallet": {"type": "string", "empty": False, "required": True},
-        "message": {"type": "string", "empty": False, "required": True},
         "currency": {"type": "string", "empty": False, "required": False},
     }
 )

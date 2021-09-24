@@ -12,7 +12,6 @@ class lnurlposs(NamedTuple):
     key: str
     title: str
     wallet: str
-    message: str
     currency: str
     timestamp: str
 
@@ -29,20 +28,29 @@ class lnurlposs(NamedTuple):
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
-    def success_action(self, payment_hash: str, nonce: str) -> Optional[Dict]:
+    def success_action(self, paymentid: str) -> Optional[Dict]:
         url = url_for(
             "lnurlpos.displaypin",
-            payment_hash=payment_hash,
-            nonce=nonce,
+            paymentid=paymentid,
             _external=True,
         )
-        #        url: ParseResult = urlparse(url)
         print(url)
-        #        qs: Dict = parse_qs(url.query)
-        #        qs["payment_hash"] = payment_hash
-        #        url = url._replace(query=urlencode(qs, doseq=True))
         return {
             "tag": "url",
             "description": "Check the attached link",
             "url": url,
         }
+
+
+class lnurlpospayment(NamedTuple):
+    id: str
+    posid: str
+    payhash: str
+    payload: str
+    pin: int
+    sats: int
+    timestamp: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "lnurlpospayment":
+        return cls(**dict(row))
