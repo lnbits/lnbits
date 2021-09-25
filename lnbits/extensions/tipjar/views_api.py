@@ -117,7 +117,7 @@ async def api_update_tip(tip_id=None):
 
         if not tip:
             return (
-                jsonify({"message": "Donation does not exist."}),
+                jsonify({"message": "Tip does not exist."}),
                 HTTPStatus.NOT_FOUND,
             )
 
