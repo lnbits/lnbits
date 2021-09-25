@@ -4,6 +4,7 @@ import pyqrcode
 from io import BytesIO
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.core.crud import get_user, get_standalone_payment
+from lnbits.core.services import check_invoice_status
 import random
 
 from . import satsdice_ext
@@ -46,16 +47,29 @@ async def displaywin(link_id, payment_hash):
 
     if withdrawLink:
         return await render_template(
-            "satsdice/error.html", link=satsdicelink.id, paid=True, lost=False
+            "satsdice/displaywin.html",
+            value=withdrawLink.value,
+            chance=satsdicelink.chance,
+            multiplier=satsdicelink.multiplier,
+            lnurl=withdrawLink.lnurl,
+            paid=False,
+            lost=False,
         )
 
     payment = await get_standalone_payment(payment_hash) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
+
     if payment.pending == 1:
-        return await render_template(
-            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=False
+        await check_invoice_status(payment.wallet_id, payment_hash)
+        payment = await get_standalone_payment(payment_hash) or abort(
+            HTTPStatus.NOT_FOUND, "satsdice link does not exist."
         )
+        if payment.pending == 1:
+            print("pending")
+            return await render_template(
+                "satsdice/error.html", link=satsdicelink.id, paid=False, lost=False
+            )
 
     await update_satsdice_payment(payment_hash, paid=1)
 
@@ -64,6 +78,7 @@ async def displaywin(link_id, payment_hash):
     )
 
     if paylink.lost == 1:
+        print("lost")
         return await render_template(
             "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
         )
