@@ -3,21 +3,21 @@
   <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
     <q-card class="q-pa-lg">
       <q-card-section class="q-pa-none">
-        <h5 class="q-my-none">Donate Bitcoin to {{ twitchuser }}</h5>
+        <h5 class="q-my-none">Donate Bitcoin to {{ donatee }}</h5>
         <br />
         <q-form @submit="Invoice()" class="q-gutter-md">
           <q-input
             filled
             dense
-            v-model.trim="donationDialog.data.name"
+            v-model.trim="tipDialog.data.name"
             maxlength="25"
             type="name"
-            label="Your Name (leave blank for Anonymous donation)"
+            label="Your Name (or contact info, leave blank for anonymous tip)"
           ></q-input>
           <q-input
             filled
             dense
-            v-model.number="donationDialog.data.sats"
+            v-model.number="tipDialog.data.sats"
             type="number"
             min="1"
             max="2100000000000000"
@@ -28,16 +28,16 @@
           <q-input
             filled
             dense
-            v-model.trim="donationDialog.data.message"
+            v-model.trim="tipDialog.data.message"
             maxlength="255"
             type="textarea"
-            label="Donation Message (you can leave this blank too)"
+            label="Tip Message (you can leave this blank too)"
           ></q-input>
           <div class="row q-mt-lg">
             <q-btn
               unelevated
               color="primary"
-              :disable="donationDialog.data.sats < 1 || !donationDialog.data.sats"
+              :disable="tipDialog.data.sats < 1 || !tipDialog.data.sats"
               type="submit"
               >Submit</q-btn
             >
@@ -59,7 +59,7 @@
       return {
         paymentReq: null,
         redirectUrl: null,
-        donationDialog: {
+        tipDialog: {
           show: false,
           data: {
             name: '',
@@ -67,11 +67,6 @@
             message: ''
           }
         },
-        receive: {
-          show: false,
-          status: 'pending',
-          paymentReq: null
-        }
       }
     },
 
@@ -79,11 +74,11 @@
       Invoice: function () {
         var self = this
         axios
-          .post('/tipjar/api/v1/donations', {
-            service: {{ service }},
-            name: self.donationDialog.data.name,
-            sats: self.donationDialog.data.sats,
-            message: self.donationDialog.data.message
+          .post('/tipjar/api/v1/tips', {
+            tipjar: {{ tipjar }},
+            name: self.tipDialog.data.name,
+            sats: self.tipDialog.data.sats,
+            message: self.tipDialog.data.message
           })
           .then(function (response) {
             self.redirect_url = response.data.redirect_url

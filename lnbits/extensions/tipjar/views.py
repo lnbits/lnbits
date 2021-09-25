@@ -23,5 +23,6 @@ async def tip(id):
         abort(HTTPStatus.NOT_FOUND, "TipJar does not exist.")
     return await render_template(
         "tipjar/display.html",
+        donatee=tipjar.name,
         tipjar=tipjar.id
     )
