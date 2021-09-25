@@ -12,6 +12,8 @@ import shortuuid
 from . import lnurlpos_ext
 from lnbits.core.crud import get_standalone_payment
 import hashlib
+from lnbits.core.services import check_invoice_status
+from lnbits.core.crud import update_payment_status
 
 
 @lnurlpos_ext.route("/")
@@ -22,22 +24,19 @@ async def index():
 
 
 @lnurlpos_ext.route("/<paymentid>")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
 async def displaypin(paymentid):
     lnurlpospayment = await get_lnurlpospayment(paymentid)
+    if not lnurlpospayment:
+        return jsonify({"status": "ERROR", "reason": "lmurlpos payment"})
     pos = await get_lnurlpos(lnurlpospayment.posid)
     if not pos:
         return jsonify({"status": "ERROR", "reason": "lnurlpos not found."})
+    status = await check_invoice_status(pos.wallet, lnurlpospayment.payhash)
 
-    payment = await get_standalone_payment(payment_hash) or abort(
-        HTTPStatus.NOT_FOUND, "Payment does not exist."
-    )
-    if payment.pending == 1:
+    is_paid = not status.pending
+    if not is_paid:
         return await render_template("lnurlpos/error.html", pin="filler", not_paid=True)
-    if "lnurlpos" != payment.extra.get("tag"):
-        HTTPStatus.NOT_FOUND, "Not LNURLPoS."
-
+    await update_payment_status(checking_id=lnurlpospayment.payhash, pending=True)
     return await render_template(
         "lnurlpos/paid.html", pin=lnurlpospayment.pin, not_paid=True
     )

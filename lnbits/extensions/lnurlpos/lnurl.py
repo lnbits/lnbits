@@ -31,13 +31,18 @@ async def lnurl_response(nonce, pos_id, payload):
     res = bytearray(payload1)
     for i in range(len(res)):
         res[i] = res[i] ^ s[i]
-        decryptedAmount = int.from_bytes(res[2:6], "little")
+        decryptedAmount = float(int.from_bytes(res[2:6], "little") / 100)
         decryptedPin = int.from_bytes(res[:2], "little")
-    if type(decryptedAmount) != int:
+    if type(decryptedAmount) != float:
         return jsonify({"status": "ERROR", "reason": "Not an amount."})
-    sats = int(await fiat_amount_as_satoshis(decryptedAmount, pos.currency)) * 10
+    price_msat = (
+        await fiat_amount_as_satoshis(decryptedAmount, pos.currency)
+        if pos.currency != "sat"
+        else pos.currency
+    ) * 1000
+
     lnurlpospayment = await create_lnurlpospayment(
-        posid=pos.id, payload=payload, sats=sats, pin=decryptedPin
+        posid=pos.id, payload=payload, sats=price_msat, pin=decryptedPin
     )
     if not lnurlpospayment:
         return jsonify({"status": "ERROR", "reason": "Could not create payment"})
@@ -47,8 +52,8 @@ async def lnurl_response(nonce, pos_id, payload):
             paymentid=lnurlpospayment.id,
             _external=True,
         ),
-        min_sendable=sats,
-        max_sendable=sats,
+        min_sendable=price_msat,
+        max_sendable=price_msat,
         metadata=LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]])),
     )
     params = resp.dict()
@@ -63,7 +68,7 @@ async def lnurl_callback(paymentid):
         return jsonify({"status": "ERROR", "reason": "lnurlpos not found."})
     payment_hash, payment_request = await create_invoice(
         wallet_id=pos.wallet,
-        amount=lnurlpospayment.sats,
+        amount=int(lnurlpospayment.sats / 1000),
         memo=pos.title,
         description_hash=hashlib.sha256(
             (LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]]))).encode(
@@ -82,5 +87,4 @@ async def lnurl_callback(paymentid):
         disposable=False,
         routes=[],
     )
-    print(jsonify(resp.dict()))
     return jsonify(resp.dict())

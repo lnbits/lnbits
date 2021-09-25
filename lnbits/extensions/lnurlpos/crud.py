@@ -110,7 +110,7 @@ async def update_lnurlpospayment(
     return lnurlpospayment.from_row(row) if row else None
 
 
-async def get_lnurlpospayment(lnurlpospayment_id: str) -> lnurlposs:
+async def get_lnurlpospayment(lnurlpospayment_id: str) -> lnurlpospayment:
     row = await db.fetchone(
         "SELECT * FROM lnurlpos.lnurlpospayment WHERE id = ?", (lnurlpospayment_id,)
     )
