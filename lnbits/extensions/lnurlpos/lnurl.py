@@ -5,7 +5,6 @@ from quart import jsonify, url_for, request
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 from lnurl.types import LnurlPayMetadata
 from lnbits.core.services import create_invoice
-from Crypto.Cipher import AES
 from hashlib import md5
 
 from . import lnurlpos_ext
