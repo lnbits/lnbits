@@ -20,6 +20,7 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    check_invoice_status,
 )
 from ..tasks import api_invoice_listeners
 
@@ -60,9 +61,19 @@ async def api_update_wallet(new_name):
 async def api_payments():
     if "memo" in request.args:
         return jsonify(
-            await get_payments(memo=request.args.get("memo"), wallet_id=g.wallet.id, pending=True, complete=True)
+            await get_payments(
+                memo=request.args.get("memo"),
+                wallet_id=g.wallet.id,
+                pending=True,
+                complete=True,
+            )
         )
 
+    pendingPayments = await get_payments(wallet_id=g.wallet.id, pending=True)
+    for payment in pendingPayments:
+        await check_invoice_status(
+            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
+        )
     return jsonify(
         await get_payments(wallet_id=g.wallet.id, pending=True, complete=True)
     )

@@ -284,7 +284,6 @@ async def get_payments(
         """,
         tuple(args),
     )
-
     return [Payment.from_row(row) for row in rows]
 
 
