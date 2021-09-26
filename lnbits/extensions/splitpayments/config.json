@@ -1,5 +1,5 @@
 {
-  "name": "SplitPayments",
+  "name": "Split Payments",
   "short_description": "Split incoming payments across wallets",
   "icon": "call_split",
   "contributors": [
