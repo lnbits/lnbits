@@ -38,6 +38,7 @@ async def create_tip(
 
 
 async def create_tipjar(
+    name: str,
     wallet: str,
     webhook: str,
     onchain: str = None,
@@ -50,14 +51,16 @@ async def create_tipjar(
     result = await (method)(
         f"""
         INSERT INTO tipjar.TipJars (
+            name,
             wallet,
             webhook,
             onchain
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
         {returning}
         """,
         (
+            name,
             wallet,
             webhook,
             onchain

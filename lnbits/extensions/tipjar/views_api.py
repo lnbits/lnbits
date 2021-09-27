@@ -25,6 +25,7 @@ from ..satspay.crud import create_charge
 @api_check_wallet_key("invoice")
 @api_validate_post_request(
     schema={
+        "name": {"type": "string", "required": True},
         "wallet": {"type": "string", "required": True},
         "webhook": {"type": "string"},
         "onchain": {"type": "string"},
@@ -52,15 +53,17 @@ async def api_create_tipjar():
 async def api_create_tip():
     """Take data from tip form and return satspay charge"""
     sats = g.data["sats"]
-    message = g.data.get("message", "")
+    message = g.data.get("message", "")[:144]
+    if not message:
+        message = "No message"
     tipjar_id = g.data["tipjar"]
     tipjar = await get_tipjar(tipjar_id)
     webhook = tipjar.webhook
     charge_details = await get_charge_details(tipjar.id)
-    name = g.data.get("name", "")
+    name = g.data.get("name", "")[:25]
     if not name:
         name = "Anonymous"
-    description = f"{sats} sats tip from {name}"
+    description = f"{sats} sats tip from {name}: {message}"
     charge = await create_charge(
         amount=sats,
         webhook=webhook,
