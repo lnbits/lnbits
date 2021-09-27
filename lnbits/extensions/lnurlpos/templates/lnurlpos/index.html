@@ -344,7 +344,7 @@
           .request(
             'GET',
             '/lnurlpos/api/v1/lnurlpos',
-            this.g.user.wallets[0].inkey
+            self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             if (response.data) {
@@ -362,7 +362,7 @@
           .request(
             'GET',
             '/lnurlpos/api/v1/lnurlpos/' + lnurlpos_id,
-            this.g.user.wallets[0].inkey
+            self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             localStorage.setItem('lnurlpos', JSON.stringify(response.data))

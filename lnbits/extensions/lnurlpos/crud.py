@@ -55,7 +55,7 @@ async def get_lnurlpos(lnurlpos_id: str) -> lnurlposs:
 
 async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
     wallet_ids = [wallet_ids]
-    q = ",".join(["?"] * len(wallet_ids))
+    q = ",".join(["?"] * len(wallet_ids[0]))
     rows = await db.fetchall(
         f"""
         SELECT * FROM lnurlpos.lnurlposs WHERE wallet IN ({q})
