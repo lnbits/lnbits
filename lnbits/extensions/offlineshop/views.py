@@ -6,6 +6,7 @@ from http import HTTPStatus
 from lnbits.decorators import check_user_exists, validate_uuids
 from lnbits.core.models import Payment
 from lnbits.core.crud import get_standalone_payment
+from lnbits.core.services import check_invoice_status
 
 from . import offlineshop_ext
 from .crud import get_item, get_shop
@@ -40,6 +41,7 @@ async def confirmation_code():
     style = "<style>* { font-size: 100px}</style>"
 
     payment_hash = request.args.get("p")
+
     payment: Payment = await get_standalone_payment(payment_hash)
     if not payment:
         return (
@@ -47,11 +49,14 @@ async def confirmation_code():
             HTTPStatus.NOT_FOUND,
         )
     if payment.pending:
-        return (
-            f"Payment {payment_hash} wasn't received yet. Please try again in a minute."
-            + style,
-            HTTPStatus.PAYMENT_REQUIRED,
-        )
+        await check_invoice_status(payment.wallet_id, payment_hash)
+        payment: Payment = await get_standalone_payment(payment_hash)
+        if payment.pending:
+            return (
+                f"Payment {payment_hash} wasn't received yet. Please try again in a minute."
+                + style,
+                HTTPStatus.PAYMENT_REQUIRED,
+            )
 
     if payment.time + 60 * 15 < time.time():
         return "too much time has passed." + style

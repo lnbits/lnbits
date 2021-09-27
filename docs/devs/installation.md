@@ -55,7 +55,7 @@ $ pipenv run python -m lnbits
 **Note**: You'll need to use _https_ for some endpoints and/or extensions. You can use [ngrok](https://ngrok.com/) for that. Follow the installation instructions on the website and when it's all set you can run:
 
 ```sh
-$ ./nrok http 5000
+$ ./ngrok http 5000
 ```
 
 this will give you an _https_ tunnel for the _localhost_, use that URL for navigating to LNBits.

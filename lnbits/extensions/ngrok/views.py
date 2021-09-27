@@ -6,7 +6,6 @@ from pyngrok import conf, ngrok
 from . import ngrok_ext
 from os import getenv
 
-
 def log_event_callback(log):
     string = str(log)
     string2 = string[string.find('url="https') : string.find('url="https') + 40]
@@ -18,6 +17,10 @@ def log_event_callback(log):
 
 
 conf.get_default().log_event_callback = log_event_callback
+
+ngrok_authtoken = getenv("NGROK_AUTHTOKEN")
+if ngrok_authtoken is not None:
+    ngrok.set_auth_token(ngrok_authtoken)
 
 port = getenv("PORT")
 ngrok_tunnel = ngrok.connect(port)

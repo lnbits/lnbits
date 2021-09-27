@@ -1,0 +1,6 @@
+{
+  "name": "LNURLPoS",
+  "short_description": "For offline LNURL PoS systems",
+  "icon": "point_of_sale",
+  "contributors": ["arcbtc"]
+}
