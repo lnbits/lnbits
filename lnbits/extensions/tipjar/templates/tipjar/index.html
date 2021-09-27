@@ -4,8 +4,8 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" @click="serviceDialog.show = true"
-          >New Service</q-btn
+        <q-btn unelevated color="primary" @click="tipjarDialog.show = true"
+          >New TipJar</q-btn
         >
       </q-card-section>
     </q-card>
@@ -14,10 +14,10 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Services</h5>
+            <h5 class="text-subtitle1 q-my-none">TipJars</h5>
           </div>
           <div class="col-auto">
-            <q-btn flat color="grey" @click="exportservicesCSV"
+            <q-btn flat color="grey" @click="exporttipjarsCSV"
               >Export to CSV</q-btn
             >
           </div>
@@ -25,10 +25,10 @@
         <q-table
           dense
           flat
-          :data="services"
+          :data="tipjars"
           row-key="id"
-          :columns="servicesTable.columns"
-          :pagination.sync="servicesTable.pagination"
+          :columns="tipjarsTable.columns"
+          :pagination.sync="tipjarsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
@@ -47,23 +47,12 @@
                   unelevated
                   dense
                   size="xs"
-                  icon="link"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.authUrl"
-                  target="_blank"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
                   icon="send"
                   :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
                   type="a"
                   :href="props.row.displayUrl"
                   target="_blank"
                 ></q-btn>
-                <a :href="props.row.redirectURI">Redirect URI for Streamlabs</a>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -73,7 +62,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="deleteService(props.row.id)"
+                  @click="deleteTipJar(props.row.id)"
                   icon="cancel"
                   color="pink"
                 ></q-btn>
@@ -89,10 +78,10 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Donations</h5>
+            <h5 class="text-subtitle1 q-my-none">Tips</h5>
           </div>
           <div class="col-auto">
-            <q-btn flat color="grey" @click="exportdonationsCSV"
+            <q-btn flat color="grey" @click="exporttipsCSV"
               >Export to CSV</q-btn
             >
           </div>
@@ -100,9 +89,9 @@
         <q-table
           dense
           flat
-          :data="donations"
-          :columns="donationsTable.columns"
-          :pagination.sync="donationsTable.pagination"
+          :data="tips"
+          :columns="tipsTable.columns"
+          :pagination.sync="tipsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
@@ -122,7 +111,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="deleteDonation(props.row.id)"
+                  @click="deleteTip(props.row.id)"
                   icon="cancel"
                   color="pink"
                 ></q-btn>
@@ -138,7 +127,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} Stream Alerts extension
+          {{SITE_TITLE}} TipJar extension
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -148,14 +137,14 @@
     </q-card>
   </div>
 
-  <q-dialog v-model="serviceDialog.show" position="top">
+  <q-dialog v-model="tipjarDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendServiceData" class="q-gutter-md">
+      <q-form @submit="sendTipJarData" class="q-gutter-md">
         <q-select
           filled
           dense
           emit-value
-          v-model="serviceDialog.data.wallet"
+          v-model="tipjarDialog.data.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
         >
@@ -163,7 +152,7 @@
         <div class="row">
           <div class="col">
             <div v-if="walletLinks.length > 0">
-              <q-checkbox v-model="serviceDialog.data.chain" label="Chain" />
+              <q-checkbox v-model="tipjarDialog.data.chain" label="Chain" />
             </div>
             <div v-else>
               <q-checkbox :value="false" label="Chain" disabled>
@@ -174,12 +163,12 @@
             </div>
           </div>
         </div>
-        <div v-if="serviceDialog.data.chain">
+        <div v-if="tipjarDialog.data.chain">
           <q-select
             filled
             dense
             emit-value
-            v-model="serviceDialog.data.onchain"
+            v-model="tipjarDialog.data.onchain"
             :options="walletLinks"
             label="Chain Wallet"
           />
@@ -187,49 +176,33 @@
         <q-input
           filled
           dense
-          v-model.trim="serviceDialog.data.twitchuser"
-          type="name"
-          label="Twitch Username *"
-        ></q-input>
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="serviceDialog.data.servicename"
-          :options="servicenames"
-          label="Streamlabs"
-          hint="The service you use for alerts. (Currently only Streamlabs)"
-        ></q-select>
-        <q-input
-          filled
-          dense
-          v-model.trim="serviceDialog.data.client_id"
-          type="name"
-          label="Client ID *"
+          v-model.trim="tipjarDialog.data.name"
+          type="text"
+          label="Donatee name *"
         ></q-input>
         <q-input
           filled
           dense
-          v-model.trim="serviceDialog.data.client_secret"
-          type="name"
-          label="Client Secret *"
+          v-model.trim="tipjarDialog.data.webhook"
+          type="url"
+          label="Webhook (URL to send tip details to once paid)"
         ></q-input>
         <div class="row q-mt-lg">
           <q-btn
-            v-if="serviceDialog.data.id"
+            v-if="tipjarDialog.data.id"
             unelevated
             color="primary"
             type="submit"
-            >Update Service</q-btn
+            >Update TipJar</q-btn
           >
 
           <q-btn
             v-else
             unelevated
             color="primary"
-            :disable="serviceDialog.data.client_id == null || serviceDialog.data.client_secret == 0 || serviceDialog.data.twitchuser == null"
+            :disable="tipjarDialog.data.name == null"
             type="submit"
-            >Create Service</q-btn
+            >Create TipJar</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -247,9 +220,7 @@
       'YYYY-MM-DD HH:mm'
     )
     obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
-    obj.redirectURI = ['/tipjar/api/v1/authenticate/', obj.id].join('')
-    obj.authUrl = ['/tipjar/api/v1/getaccess/', obj.id].join('')
-    obj.displayUrl = ['/tipjar/', obj.state].join('')
+    obj.displayUrl = ['/tipjar/', obj.id].join('')
     return obj
   }
 
@@ -258,11 +229,10 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        servicenames: ['Streamlabs'],
-        services: [],
-        donations: [],
+        tipjars: [],
+        tips: [],
         walletLinks: [],
-        servicesTable: {
+        tipjarsTable: {
           columns: [
             {
               name: 'id',
@@ -271,10 +241,10 @@
               field: 'id'
             },
             {
-              name: 'twitchuser',
+              name: 'name',
               align: 'left',
-              label: 'Twitch Username',
-              field: 'twitchuser'
+              label: 'Donatee',
+              field: 'name'
             },
             {
               name: 'wallet',
@@ -289,41 +259,23 @@
               field: 'onchain'
             },
             {
-              name: 'servicename',
+              name: 'webhook',
               align: 'left',
-              label: 'Service',
-              field: 'servicename'
-            },
-            {
-              name: 'client_id',
-              align: 'left',
-              label: 'Client ID',
-              field: 'client_id'
-            },
-            {
-              name: 'client_secret',
-              align: 'left',
-              label: 'Client Secret',
-              field: 'client_secret'
-            },
-            {
-              name: 'authenticated',
-              align: 'left',
-              label: 'Authenticated',
-              field: 'authenticated'
+              label: 'Webhook',
+              field: 'webhook'
             }
           ],
           pagination: {
             rowsPerPage: 10
           }
         },
-        donationsTable: {
+        tipsTable: {
           columns: [
             {
-              name: 'service',
+              name: 'tipjar',
               align: 'left',
-              label: 'Service',
-              field: 'service'
+              label: 'TipJar',
+              field: 'tipjar'
             },
             {name: 'id', align: 'left', label: 'Charge ID', field: 'id'},
             {name: 'name', align: 'left', label: 'Donor', field: 'name'},
@@ -333,19 +285,13 @@
               label: 'Message',
               field: 'message'
             },
-            {name: 'sats', align: 'left', label: 'Sats', field: 'sats'},
-            {
-              name: 'posted',
-              align: 'left',
-              label: 'Posted to API',
-              field: 'posted'
-            }
+            {name: 'sats', align: 'left', label: 'Sats', field: 'sats'}
           ],
           pagination: {
             rowsPerPage: 10
           }
         },
-        serviceDialog: {
+        tipjarDialog: {
           show: false,
           chain: false,
           data: {}
@@ -372,36 +318,36 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      getDonations: function () {
+      getTips: function () {
         var self = this
 
         LNbits.api
           .request(
             'GET',
-            '/tipjar/api/v1/donations',
+            '/tipjar/api/v1/tips',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.donations = response.data.map(function (obj) {
+            self.tips = response.data.map(function (obj) {
               return mapTipJar(obj)
             })
           })
       },
-      deleteDonation: function (donationId) {
+      deleteTip: function (tipId) {
         var self = this
-        var donations = _.findWhere(this.donations, {id: donationId})
+        var tips = _.findWhere(this.tips, {id: tipId})
 
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this donation?')
+          .confirmDialog('Are you sure you want to delete this tip?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/tipjar/api/v1/donations/' + donationId,
-                _.findWhere(self.g.user.wallets, {id: donations.wallet}).inkey
+                '/tipjar/api/v1/tips/' + tipId,
+                _.findWhere(self.g.user.wallets, {id: tips.wallet}).inkey
               )
               .then(function (response) {
-                self.donations = _.reject(self.donations, function (obj) {
+                self.tips = _.reject(self.tips, function (obj) {
                   return obj.id == ticketId
                 })
               })
@@ -410,74 +356,72 @@
               })
           })
       },
-      exportdonationsCSV: function () {
-        LNbits.utils.exportCSV(this.donationsTable.columns, this.donations)
+      exporttipsCSV: function () {
+        LNbits.utils.exportCSV(this.tipsTable.columns, this.tips)
       },
 
-      getServices: function () {
+      getTipJars: function () {
         var self = this
 
         LNbits.api
           .request(
             'GET',
-            '/tipjar/api/v1/services',
+            '/tipjar/api/v1/tipjars',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.services = response.data.map(function (obj) {
+            self.tipjars = response.data.map(function (obj) {
               return mapTipJar(obj)
             })
           })
       },
-      sendServiceData: function () {
+      sendTipJarData: function () {
         var wallet = _.findWhere(this.g.user.wallets, {
-          id: this.serviceDialog.data.wallet
+          id: this.tipjarDialog.data.wallet
         })
-        var data = this.serviceDialog.data
+        var data = this.tipjarDialog.data
 
-        this.createService(wallet, data)
+        this.createTipJar(wallet, data)
       },
 
-      createService: function (wallet, data) {
+      createTipJar: function (wallet, data) {
         var self = this
         LNbits.api
-          .request('POST', '/tipjar/api/v1/services', wallet.inkey, data)
+          .request('POST', '/tipjar/api/v1/tipjars', wallet.inkey, data)
           .then(function (response) {
-            self.services.push(mapTipJar(response.data))
-            self.serviceDialog.show = false
-            self.serviceDialog.data = {}
+            self.tipjars.push(mapTipJar(response.data))
+            self.tipjarDialog.show = false
+            self.tipjarDialog.data = {}
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      updateserviceDialog: function (serviceId) {
-        var link = _.findWhere(this.services, {id: serviceId})
+      updatetipjarDialog: function (tipjarId) {
+        var link = _.findWhere(this.tipjars, {id: tipjarId})
         console.log(link.id)
-        this.serviceDialog.data.id = link.id
-        this.serviceDialog.data.wallet = link.wallet
-        this.serviceDialog.data.twitchuser = link.twitchuser
-        this.serviceDialog.data.servicename = link.servicename
-        this.serviceDialog.data.client_id = link.client_id
-        this.serviceDialog.data.client_secret = link.client_secret
-        this.serviceDialog.show = true
+        this.tipjarDialog.data.id = link.id
+        this.tipjarDialog.data.wallet = link.wallet
+        this.tipjarDialog.data.name = link.name
+        this.tipjarDialog.data.webhook = link.webhook
+        this.tipjarDialog.show = true
       },
-      deleteService: function (servicesId) {
+      deleteTipJar: function (tipjarsId) {
         var self = this
-        var services = _.findWhere(this.services, {id: servicesId})
+        var tipjars = _.findWhere(this.tipjars, {id: tipjarsId})
 
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this service link?')
+          .confirmDialog('Are you sure you want to delete this tipjar link?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/tipjar/api/v1/services/' + servicesId,
-                _.findWhere(self.g.user.wallets, {id: services.wallet}).inkey
+                '/tipjar/api/v1/tipjars/' + tipjarsId,
+                _.findWhere(self.g.user.wallets, {id: tipjars.wallet}).inkey
               )
               .then(function (response) {
-                self.services = _.reject(self.services, function (obj) {
-                  return obj.id == servicesId
+                self.tipjars = _.reject(self.tipjars, function (obj) {
+                  return obj.id == tipjarsId
                 })
               })
               .catch(function (error) {
@@ -485,15 +429,15 @@
               })
           })
       },
-      exportservicesCSV: function () {
-        LNbits.utils.exportCSV(this.servicesTable.columns, this.services)
+      exporttipjarsCSV: function () {
+        LNbits.utils.exportCSV(this.tipjarsTable.columns, this.tipjars)
       }
     },
 
     created: function () {
       if (this.g.user.wallets.length) {
         this.getWalletLinks()
-        this.getDonations()
+        this.getTips()
         this.getServices()
       }
     }
