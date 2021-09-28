@@ -96,6 +96,8 @@ async def get_key_type(r: Request,
         await checker.__call__(r)
         return WalletTypeInfo(0, checker.wallet)
     except HTTPException as e:
+        if e.status_code == HTTPStatus.BAD_REQUEST:
+            raise
         if e.status_code == HTTPStatus.UNAUTHORIZED:
             pass
     except:
@@ -106,6 +108,8 @@ async def get_key_type(r: Request,
         await checker.__call__(r)
         return WalletTypeInfo(1, checker.wallet)
     except HTTPException as e:
+        if e.status_code == HTTPStatus.BAD_REQUEST:
+            raise
         if e.status_code == HTTPStatus.UNAUTHORIZED:
             return WalletTypeInfo(2, None)
     except:
