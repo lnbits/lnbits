@@ -96,9 +96,10 @@ def register_routes(app: FastAPI) -> None:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
             ext_route = getattr(ext_module, f"{ext.code}_ext")
             
-            ext_statics = getattr(ext_module, f"{ext.code}_static_files")
-            for s in ext_statics:
-                app.mount(s["path"], s["app"], s["name"])
+            if hasattr(ext_module, f"{ext.code}_static_files"):
+                ext_statics = getattr(ext_module, f"{ext.code}_static_files")
+                for s in ext_statics:
+                    app.mount(s["path"], s["app"], s["name"])
 
             app.include_router(ext_route)
         except Exception as e:
