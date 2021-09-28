@@ -1,9 +1,10 @@
+from lnbits.core.models import Wallet
 from typing import List, Optional, Union
 
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Tickets, Forms
+from .models import CreateFormData, Tickets, Forms
 import httpx
 
 
@@ -103,13 +104,8 @@ async def delete_ticket(ticket_id: str) -> None:
 
 
 async def create_form(
-    *,
-    wallet: str,
-    name: str,
-    webhook: Optional[str] = None,
-    description: str,
-    amount: int,
-    flatrate: int,
+    data: CreateFormData,
+    wallet: Wallet,
 ) -> Forms:
     form_id = urlsafe_short_hash()
     await db.execute(
@@ -117,7 +113,7 @@ async def create_form(
         INSERT INTO lnticket.form2 (id, wallet, name, webhook, description, flatrate, amount, amountmade)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (form_id, wallet, name, webhook, description, flatrate, amount, 0),
+        (form_id, wallet.id, wallet.name, data.webhook, data.description, data.flatrate, data.amount, 0),
     )
 
     form = await get_form(form_id)
