@@ -40,9 +40,7 @@ async def api_forms_get(r: Request, all_wallets: bool = Query(False), wallet: Wa
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return (
-        [form.dict() for form in await get_forms(wallet_ids)],
-    )
+    return [form.dict() for form in await get_forms(wallet_ids)]
 
 @lnticket_ext.post("/api/v1/forms", status_code=HTTPStatus.CREATED)
 @lnticket_ext.put("/api/v1/forms/{form_id}")
@@ -117,9 +115,7 @@ async def api_tickets(all_wallets: bool = Query(False), wallet: WalletTypeInfo =
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return (
-        [form.dict() for form in await get_tickets(wallet_ids)]
-    )
+    return [form.dict() for form in await get_tickets(wallet_ids)]
 
 @lnticket_ext.post("/api/v1/tickets/{form_id}", status_code=HTTPStatus.CREATED)
 # @api_validate_post_request(

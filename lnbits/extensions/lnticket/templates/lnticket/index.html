@@ -337,7 +337,7 @@
         LNbits.api
           .request(
             'GET',
-            '/lnticket/api/v1/tickets?all_wallets',
+            '/lnticket/api/v1/tickets?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -382,7 +382,7 @@
         LNbits.api
           .request(
             'GET',
-            '/lnticket/api/v1/forms?all_wallets',
+            '/lnticket/api/v1/forms?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
