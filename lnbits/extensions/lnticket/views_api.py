@@ -1,5 +1,4 @@
 import re
-from quart import g, jsonify, request
 from http import HTTPStatus
 
 from fastapi import FastAPI, Query
@@ -38,7 +37,7 @@ from .crud import (
 async def api_forms(r: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in r.args:
+    if "all_wallets" in r.path_parameters:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     return (

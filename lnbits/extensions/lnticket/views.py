@@ -1,5 +1,3 @@
-from quart import g, abort, render_template
-
 from lnbits.core.crud import get_wallet
 from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
@@ -7,6 +5,7 @@ from http import HTTPStatus
 from . import lnticket_ext, lnticket_renderer
 from .crud import get_form
 from fastapi import FastAPI, Request
+from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
