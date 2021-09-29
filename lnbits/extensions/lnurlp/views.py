@@ -1,4 +1,3 @@
-from quart import g, abort, render_template
 from http import HTTPStatus
 
 from lnbits.decorators import check_user_exists, validate_uuids

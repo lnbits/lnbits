@@ -29,19 +29,18 @@ async def api_list_currencies_available():
 
 @lnurlp_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_links(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_links(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in Request.path_parameters:
+    if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     try:
-        return (
-                [
+        return [
                     {**link._asdict(), **{"lnurl": link.lnurl}}
                     for link in await get_pay_links(wallet_ids)
-                ],
-        )
+                ]
+
     except LnurlInvalidUrl:
         raise HTTPException(
             status_code=HTTPStatus.UPGRADE_REQUIRED,
@@ -145,7 +144,7 @@ async def api_link_create_or_update(data: CreateData, link_id=None, wallet: Wall
 
 @lnurlp_ext.delete("/api/v1/links/{link_id}")
 # @api_check_wallet_key("invoice")
-async def api_link_delete(link_id, , wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_pay_link(link_id)
 
     if not link:
