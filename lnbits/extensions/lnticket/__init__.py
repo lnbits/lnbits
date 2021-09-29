@@ -1,6 +1,4 @@
-from fastapi import APIRouter, FastAPI
-from fastapi.staticfiles import StaticFiles
-from starlette.routing import Mount
+from fastapi import APIRouter
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -23,7 +21,9 @@ def lnticket_renderer():
 
 from .views_api import *  # noqa
 from .views import *  # noqa
+from .tasks import register_listeners
 
-@lntickets_ext.on_event("startup")
+@lnticket_ext.on_event("startup")
 def _do_it():
+    # FIXME: isn't called yet
     register_listeners()

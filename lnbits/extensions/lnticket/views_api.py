@@ -1,9 +1,10 @@
+from lnbits.extensions.lnticket.models import CreateFormData, CreateTicketData
 import re
 from http import HTTPStatus
+from typing import List
 
-from fastapi import FastAPI, Query
+from fastapi import Query
 from fastapi.params import Depends
-from fastapi.encoders import jsonable_encoder
 
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
@@ -12,7 +13,7 @@ from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import create_invoice, check_invoice_status
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import lnticket_ext
 from .crud import (
@@ -32,25 +33,18 @@ from .crud import (
 # FORMS
 
 
-@lnticket_ext.get("/api/v1/forms", status_code=HTTPStatus.OK)
-# @api_check_wallet_key("invoice")
-async def api_forms(r: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+@lnticket_ext.get("/api/v1/forms")
+async def api_forms_get(r: Request, all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_ids = [wallet.wallet.id]
 
+<<<<<<< HEAD
     if "all_wallets" in r.path_parameters:
+=======
+    if all_wallets:
+>>>>>>> f827d2ce181d97368161d46ab8de2e9f061b9872
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return (
-        [form._asdict() for form in await get_forms(wallet_ids)],
-    )
-
-class CreateData(BaseModel):
-    wallet: str = Query(...)
-    name: str = Query(...)
-    webhook: str = Query(None)
-    description: str = Query(..., min_length=0)
-    amount: int = Query(..., ge=0)
-    flatrate: int = Query(...)
+    return [form.dict() for form in await get_forms(wallet_ids)]
 
 @lnticket_ext.post("/api/v1/forms", status_code=HTTPStatus.CREATED)
 @lnticket_ext.put("/api/v1/forms/{form_id}")
@@ -65,7 +59,7 @@ class CreateData(BaseModel):
 #         "flatrate": {"type": "integer", "required": True},
 #     }
 # )
-async def api_form_create(data: CreateData, form_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_form_create(data: CreateFormData, form_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
     if form_id:
         form = await get_form(form_id)
 
@@ -85,8 +79,8 @@ async def api_form_create(data: CreateData, form_id=None, wallet: WalletTypeInfo
 
         form = await update_form(form_id, **data)
     else:
-        form = await create_form(**data)
-    return form._asdict()
+        form = await create_form(data, wallet.wallet)
+    return form.dict()
 
 
 @lnticket_ext.delete("/api/v1/forms/{form_id}")
@@ -117,24 +111,15 @@ async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type
 #########tickets##########
 
 
-@lnticket_ext.get("/api/v1/tickets", status_code=HTTPStatus.OK)
+@lnticket_ext.get("/api/v1/tickets")
 # @api_check_wallet_key("invoice")
-async def api_tickets(all_wallets: bool = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_tickets(all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return (
-        [form._asdict() for form in await get_tickets(wallet_ids)]
-    )
-
-class CreateTicketData(BaseModel):
-    form: str = Query(...)
-    name: str = Query(...)
-    email: str = Query("")
-    ltext: str = Query(...)
-    sats: int = Query(..., ge=0)
+    return [form.dict() for form in await get_tickets(wallet_ids)]
 
 @lnticket_ext.post("/api/v1/tickets/{form_id}", status_code=HTTPStatus.CREATED)
 # @api_validate_post_request(
