@@ -136,13 +136,12 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
         )
         # return {"message": "LNTicket does not exist."}, HTTPStatus.NOT_FOUND
 
-    nwords = len(re.split(r"\s+", data["ltext"]))
-    sats = data["sats"]
+    nwords = len(re.split(r"\s+", data.ltext))
 
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=form.wallet,
-            amount=sats,
+            amount=data.sats,
             memo=f"ticket with {nwords} words on {form_id}",
             extra={"tag": "lnticket"},
         )
@@ -154,7 +153,7 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
         # return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
     ticket = await create_ticket(
-        payment_hash=payment_hash, wallet=form.wallet, **data
+        payment_hash=payment_hash, wallet=form.wallet, data=data
     )
 
     if not ticket:
