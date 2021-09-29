@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-=======
 from fastapi.param_functions import Depends
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 from lnbits.core.models import User
->>>>>>> f827d2ce181d97368161d46ab8de2e9f061b9872
 from lnbits.core.crud import get_wallet
 from lnbits.decorators import check_user_exists
 from http import HTTPStatus
@@ -20,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 @lnticket_ext.get("/", response_class=HTMLResponse)
 # not needed as we automatically get the user with the given ID
 # If no user with this ID is found, an error is raised
-# @validate_uuids(["usr"], required=True) 
+# @validate_uuids(["usr"], required=True)
 # @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return lnticket_renderer().TemplateResponse("lnticket/index.html", {"request": request,"user": user.dict()})

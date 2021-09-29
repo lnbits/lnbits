@@ -37,11 +37,7 @@ from .crud import (
 async def api_forms_get(r: Request, all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_ids = [wallet.wallet.id]
 
-<<<<<<< HEAD
-    if "all_wallets" in r.path_parameters:
-=======
     if all_wallets:
->>>>>>> f827d2ce181d97368161d46ab8de2e9f061b9872
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     return [form.dict() for form in await get_forms(wallet_ids)]
