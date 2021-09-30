@@ -6,16 +6,12 @@ from lnbits.tasks import register_invoice_listener
 from .crud import get_ticket, set_ticket_paid
 
 
-async def register_listeners():
-    send_queue = asyncio.Queue()
-    recv_queue = asyncio.Queue()
-    register_invoice_listener(send_queue)
-    await wait_for_paid_invoices(recv_queue)
+async def wait_for_paid_invoices():
+    invoice_queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue)
 
-
-async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     while True:
-        payment = await invoice_paid_queue.get()
+        payment = await invoice_queue.get()
         await on_invoice_paid(payment)
 
 

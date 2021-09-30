@@ -4,25 +4,21 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateFormData, Tickets, Forms
+from .models import CreateFormData, CreateTicketData, Tickets, Forms
 import httpx
 
 
 async def create_ticket(
     payment_hash: str,
     wallet: str,
-    form: str,
-    name: str,
-    email: str,
-    ltext: str,
-    sats: int,
+    data: CreateTicketData
 ) -> Tickets:
     await db.execute(
         """
         INSERT INTO lnticket.ticket (id, form, email, ltext, name, wallet, sats, paid)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_hash, form, email, ltext, name, wallet, sats, False),
+        (payment_hash, data.form, data.email, data.ltext, data.name, wallet, data.sats, False),
     )
 
     ticket = await get_ticket(payment_hash)

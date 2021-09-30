@@ -1,7 +1,10 @@
+import asyncio
+
 from fastapi import APIRouter
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
+from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_lnticket")
 
@@ -21,9 +24,10 @@ def lnticket_renderer():
 
 from .views_api import *  # noqa
 from .views import *  # noqa
-from .tasks import register_listeners
+from .tasks import wait_for_paid_invoices
 
-@lnticket_ext.on_event("startup")
-def _do_it():
-    # FIXME: isn't called yet
-    register_listeners()
+
+def lnticket_start():
+    loop = asyncio.get_event_loop()
+    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
+
