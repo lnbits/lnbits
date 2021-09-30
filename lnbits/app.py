@@ -65,7 +65,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     register_routes(app)
     # register_commands(app)
     register_async_tasks(app)
-    # register_exception_handlers(app)
+    register_exception_handlers(app)
 
     return app
 
@@ -150,11 +150,11 @@ def register_async_tasks(app):
     async def stop_listeners():
         pass
 
-def register_exception_handlers(app):
-    @app.errorhandler(Exception)
+def register_exception_handlers(app: FastAPI):
+    @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
         print("handled error", traceback.format_exc())
-        etype, value, tb = sys.exc_info()
+        etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
         return template_renderer().TemplateResponse("error.html", {"request": request, "err": err})
