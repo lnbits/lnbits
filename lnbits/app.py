@@ -65,7 +65,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     register_routes(app)
     # register_commands(app)
     register_async_tasks(app)
-    # register_exception_handlers(app)
+    register_exception_handlers(app)
 
     return app
 
@@ -96,9 +96,14 @@ def register_routes(app: FastAPI) -> None:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
             ext_route = getattr(ext_module, f"{ext.code}_ext")
             
-            ext_statics = getattr(ext_module, f"{ext.code}_static_files")
-            for s in ext_statics:
-                app.mount(s["path"], s["app"], s["name"])
+            if hasattr(ext_module, f"{ext.code}_start"):
+                ext_start_func = getattr(ext_module, f"{ext.code}_start")
+                ext_start_func()
+
+            if hasattr(ext_module, f"{ext.code}_static_files"):
+                ext_statics = getattr(ext_module, f"{ext.code}_static_files")
+                for s in ext_statics:
+                    app.mount(s["path"], s["app"], s["name"])
 
             app.include_router(ext_route)
         except Exception as e:
@@ -145,11 +150,11 @@ def register_async_tasks(app):
     async def stop_listeners():
         pass
 
-def register_exception_handlers(app):
-    @app.errorhandler(Exception)
+def register_exception_handlers(app: FastAPI):
+    @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
         print("handled error", traceback.format_exc())
-        etype, value, tb = sys.exc_info()
+        etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
         return template_renderer().TemplateResponse("error.html", {"request": request, "err": err})

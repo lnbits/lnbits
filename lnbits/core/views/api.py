@@ -52,6 +52,7 @@ async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
     
 
 class CreateInvoiceData(BaseModel):
+    out: Optional[bool] = True
     amount:  int = Query(None, ge=1)
     memo:  str = None
     unit:  Optional[str] = None
@@ -60,6 +61,7 @@ class CreateInvoiceData(BaseModel):
     lnurl_balance_check:  Optional[str] = None
     extra:  Optional[dict] = None
     webhook:  Optional[str] = None
+    bolt11: Optional[str] = None
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if "description_hash" in data:
@@ -169,17 +171,16 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 @core_app.post("/api/v1/payments", deprecated=True,
                 description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
                 status_code=HTTPStatus.CREATED)
-async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), out: bool = True, 
-                              invoiceData: Optional[CreateInvoiceData] = Body(None),
-                              bolt11: Optional[str] = Body(None)):
+async def api_payments_create(wallet: WalletTypeInfo = Depends(get_key_type), 
+                              invoiceData: CreateInvoiceData = Body(...)):
     
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
 
-    if out is True and wallet.wallet_type == 0:
-        if not bolt11:
+    if invoiceData.out is True and wallet.wallet_type == 0:
+        if not invoiceData.bolt11:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="BOLT11 string is invalid or not given")
-        return await api_payments_pay_invoice(bolt11, wallet.wallet) # admin key
+        return await api_payments_pay_invoice(invoiceData.bolt11, wallet.wallet) # admin key
     return await api_payments_create_invoice(invoiceData, wallet.wallet) # invoice key
 
 class CreateLNURLData(BaseModel):
@@ -189,8 +190,9 @@ class CreateLNURLData(BaseModel):
     comment:  Optional[str] = None
     description:  Optional[str] = None
 
-@core_app.post("/api/v1/payments/lnurl", dependencies=[Depends(WalletAdminKeyChecker())])
-async def api_payments_pay_lnurl(data: CreateLNURLData):
+@core_app.post("/api/v1/payments/lnurl")
+async def api_payments_pay_lnurl(data: CreateLNURLData, 
+                                 wallet: WalletTypeInfo = Depends(get_key_type)):
     domain = urlparse(data.callback).netloc
 
     async with httpx.AsyncClient() as client:
@@ -220,13 +222,13 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
     if invoice.amount_msat != data.amount:
         raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"{domain} returned an invalid invoice. Expected {g().data['amount']} msat, got {invoice.amount_msat}."
+                detail=f"{domain} returned an invalid invoice. Expected {data['amount']} msat, got {invoice.amount_msat}."
         )
         
-    if invoice.description_hash != g().data["description_hash"]:
+    if invoice.description_hash != data.description_hash:
         raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"{domain} returned an invalid invoice. Expected description_hash == {g().data['description_hash']}, got {invoice.description_hash}."
+                detail=f"{domain} returned an invalid invoice. Expected description_hash == {data['description_hash']}, got {invoice.description_hash}."
         )
         
 
@@ -238,7 +240,7 @@ async def api_payments_pay_lnurl(data: CreateLNURLData):
         extra["comment"] = data.comment
 
     payment_hash = await pay_invoice(
-        wallet_id=g().wallet.id,
+        wallet_id=wallet.wallet.id,
         payment_request=params["pr"],
         description=data.description,
         extra=extra,
