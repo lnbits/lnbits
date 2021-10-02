@@ -61,9 +61,11 @@ async def api_create_tip():
     webhook = tipjar.webhook
     charge_details = await get_charge_details(tipjar.id)
     name = g.data.get("name", "")[:25]
+    # Ensure that description string can be split reliably
+    name = name.replace('"', "''")
     if not name:
         name = "Anonymous"
-    description = f"{sats} sats tip from {name}: {message}"
+    description = f'"{name}": {message}'
     charge = await create_charge(
         amount=sats,
         webhook=webhook,
