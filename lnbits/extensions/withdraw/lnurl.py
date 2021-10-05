@@ -1,7 +1,6 @@
 import shortuuid  # type: ignore
 from http import HTTPStatus
 from datetime import datetime
-from quart import jsonify, request
 
 from lnbits.core.services import pay_invoice
 

@@ -2,25 +2,17 @@ from typing import List, Optional, Union
 
 from lnbits.db import SQLITE
 from . import db
-from .models import PayLink
+from .models import PayLink, CreatePayLinkData
 
 
 async def create_pay_link(
-    *,
-    wallet_id: str,
-    description: str,
-    min: int,
-    max: int,
-    comment_chars: int = 0,
-    currency: Optional[str] = None,
-    webhook_url: Optional[str] = None,
-    success_text: Optional[str] = None,
-    success_url: Optional[str] = None,
+    data: CreatePayLinkData,
+    wallet_id: str
 ) -> PayLink:
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
-
+    print("CPL", wallet_id, data)
     result = await (method)(
         f"""
         INSERT INTO lnurlp.pay_links (
@@ -41,14 +33,14 @@ async def create_pay_link(
         """,
         (
             wallet_id,
-            description,
-            min,
-            max,
-            webhook_url,
-            success_text,
-            success_url,
-            comment_chars,
-            currency,
+            data.description,
+            data.min,
+            data.max,
+            data.webhook_url,
+            data.success_text,
+            data.success_url,
+            data.comment_chars,
+            data.currency,
         ),
     )
     if db.type == SQLITE:

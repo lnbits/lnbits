@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from lnbits.decorators import check_user_exists, validate_uuids
+from lnbits.decorators import check_user_exists
 
 from . import lnurlp_ext, lnurlp_renderer
 from .crud import get_pay_link
@@ -15,7 +15,7 @@ from lnbits.core.models import User
 templates = Jinja2Templates(directory="templates")
 
 @lnurlp_ext.get("/", response_class=HTMLResponse)
-@validate_uuids(["usr"], required=True)
+# @validate_uuids(["usr"], required=True)
 # @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return lnurlp_renderer().TemplateResponse("lnurlp/index.html", {"request": request, "user": user.dict()})

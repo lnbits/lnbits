@@ -10,8 +10,9 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
+from .models import CreatePayLinkData
 
 from . import lnurlp_ext
 from .crud import (
@@ -75,20 +76,11 @@ async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_ty
 
     return {**link._asdict(), **{"lnurl": link.lnurl}}
 
-class CreateData(BaseModel):
-    description:  str
-    min:  int = Query(0.01, ge=0.01)
-    max:  int = Query(0.01, ge=0.01)
-    currency:  Optional[str]
-    comment_chars:  int = Query(0, ge=0, lt=800)
-    webhook_url:  Optional[str]
-    success_text:  Optional[str]
-    success_url:  Optional[str]
 
 @lnurlp_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
 @lnurlp_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_link_create_or_update(data: CreateData, link_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_create_or_update(data: CreatePayLinkData, link_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
     if data.min > data.max:
         raise HTTPException(
             detail="Min is greater than max.",
@@ -128,18 +120,18 @@ async def api_link_create_or_update(data: CreateData, link_id=None, wallet: Wall
             #     HTTPStatus.NOT_FOUND,
             # )
 
-        if link.wallet != g.wallet.id:
+        if link.wallet != wallet.wallet.id:
             raise HTTPException(
                 detail="Not your pay link.",
                 status_code=HTTPStatus.FORBIDDEN
             )
             # return {"message": "Not your pay link."}, HTTPStatus.FORBIDDEN
 
-        link = await update_pay_link(link_id, **data)
+        link = await update_pay_link(link_id, data)
     else:
-        link = await create_pay_link(wallet_id=wallet.wallet.id, **data)
-
-    return {**link._asdict(), **{"lnurl": link.lnurl}}
+        link = await create_pay_link(data, wallet_id=wallet.wallet.id)
+        print("LINK", link)
+    return {**link.dict(), "lnurl": link.lnurl}
 
 
 @lnurlp_ext.delete("/api/v1/links/{link_id}")

@@ -11,7 +11,7 @@ from . import lnurlp_ext
 from .crud import increment_pay_link
 
 
-@lnurlp_ext.get("/api/v1/lnurl/{link_id}", status_code=HTTPStatus.OK)
+@lnurlp_ext.get("/api/v1/lnurl/{link_id}", status_code=HTTPStatus.OK, name="lnurlp.api_lnurl_response")
 async def api_lnurl_response(request: Request, link_id):
     link = await increment_pay_link(link_id, served_meta=1)
     if not link:

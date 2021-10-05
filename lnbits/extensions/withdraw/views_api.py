@@ -9,7 +9,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.decorators import WalletTypeInfo, get_key_type
 
 # from fastapi import FastAPI, Query, Response
 
@@ -83,8 +83,8 @@ class CreateData(BaseModel):
 
 @withdraw_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
 @withdraw_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-@api_check_wallet_key("admin")
-async def api_link_create_or_update(data: CreateData, link_id: str = None, response: Response):
+# @api_check_wallet_key("admin")
+async def api_link_create_or_update(data: CreateData, link_id: str = None):
     if data.max_withdrawable < data.min_withdrawable:
         raise HTTPException(
             detail="`max_withdrawable` needs to be at least `min_withdrawable`.",

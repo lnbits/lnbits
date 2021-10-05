@@ -1,4 +1,4 @@
-from quart import url_for
+from fastapi import Request
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
 from sqlite3 import Row
 from pydantic import BaseModel
@@ -33,19 +33,19 @@ class WithdrawLink(BaseModel):
         return self.used >= self.uses
 
     @property
-    def lnurl(self) -> Lnurl:
+    def lnurl(self, req: Request) -> Lnurl:
         if self.is_unique:
             usescssv = self.usescsv.split(",")
             tohash = self.id + self.unique_hash + usescssv[self.number]
             multihash = shortuuid.uuid(name=tohash)
-            url = url_for(
+            url = req.url_for(
                 "withdraw.api_lnurl_multi_response",
                 unique_hash=self.unique_hash,
                 id_unique_hash=multihash,
                 _external=True,
             )
         else:
-            url = url_for(
+            url = req.url_for(
                 "withdraw.api_lnurl_response",
                 unique_hash=self.unique_hash,
                 _external=True,
@@ -55,7 +55,7 @@ class WithdrawLink(BaseModel):
 
     @property
     def lnurl_response(self) -> LnurlWithdrawResponse:
-        url = url_for(
+        url = req.url_for(
             "withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True
         )
         return LnurlWithdrawResponse(

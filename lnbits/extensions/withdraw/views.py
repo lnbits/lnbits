@@ -1,7 +1,7 @@
 from http import HTTPStatus
 import pyqrcode
 from io import BytesIO
-from lnbits.decorators import check_user_exists, validate_uuids
+from lnbits.decorators import check_user_exists
 
 from . import withdraw_ext, withdraw_renderer
 from .crud import get_withdraw_link, chunks
@@ -16,7 +16,7 @@ from lnbits.core.models import User
 templates = Jinja2Templates(directory="templates")
 
 @withdraw_ext.get("/", response_class=HTMLResponse)
-@validate_uuids(["usr"], required=True)
+# @validate_uuids(["usr"], required=True)
 # @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return withdraw_renderer().TemplateResponse("withdraw/index.html", {"request":request,"user": user.dict()})
@@ -36,7 +36,7 @@ async def display(request: Request, link_id):
 
 
 @withdraw_ext.get("/img/{link_id}", response_class=HTMLResponse)
-async def img(request: Request, link_id, response: Response):
+async def img(request: Request, link_id):
     link = await get_withdraw_link(link_id, 0)
     if not link:
         raise HTTPException(
