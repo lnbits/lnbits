@@ -311,7 +311,9 @@ window.windowMixin = {
         user: null,
         wallet: null,
         payments: [],
-        allowedThemes: null
+        allowedThemes: null,
+        localCurrency: 'sat',
+        localCurrencyRate: 1,
         localCurrencies: [],
       }
     }
@@ -334,7 +336,26 @@ window.windowMixin = {
           position: position || 'bottom'
         })
       })
-    }
+    },
+    setLocalCurrency: function(currency) {
+      if (currency == "sat") {
+          this.g.localCurrencyRate = 1000
+          this.g.localCurrency = "sat"
+          this.$q.localStorage.set('lnbits.localCurrency', "sat")
+          return
+      }
+
+      if (this.g.user) {
+        LNbits.api.request(
+          'GET',
+          '/api/v1/rates/sat/' + currency + "?usr=" + this.g.user.id
+        ).then(response => {
+          this.g.localCurrencyRate = response.data.rate
+          this.g.localCurrency = currency
+          this.$q.localStorage.set('lnbits.localCurrency', this.g.localCurrency)
+        })
+      }
+    },
   },
   created: function () {
     this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
@@ -373,6 +394,12 @@ window.windowMixin = {
       .catch(err => {
         LNbits.utils.notifyApiError(err)
       })
+
+    currency = this.$q.localStorage.getItem('lnbits.localCurrency')
+    if (currency) {
+      this.setLocalCurrency(currency)
+    }
+
     if (window.extensions) {
       var user = this.g.user
       this.g.extensions = Object.freeze(
