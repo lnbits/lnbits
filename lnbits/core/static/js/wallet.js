@@ -235,6 +235,7 @@ new Vue({
       this.receive.data.amount = null
       this.receive.data.memo = null
       this.receive.unit = 'sat'
+      this.receive.units = this.g.localCurrencies
       this.receive.paymentChecker = null
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
@@ -649,15 +650,6 @@ new Vue({
   created: function () {
     this.fetchBalance()
     this.fetchPayments()
-
-    LNbits.api
-      .request('GET', '/api/v1/currencies')
-      .then(response => {
-        this.receive.units = ['sat', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
   },
   mounted: function () {
     // show disclaimer
