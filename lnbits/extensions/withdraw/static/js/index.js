@@ -90,7 +90,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/withdraw/api/v1/links?all_wallets',
+          '/withdraw/api/v1/links?all_wallets=true',
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
