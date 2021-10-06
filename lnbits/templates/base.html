@@ -49,6 +49,17 @@
             >
           </q-badge>
           {% endblock %}
+          <q-select
+            filled
+            dense
+            dark
+            v-model="g.localCurrency"
+            v-if="g.user"
+            type="text"
+            :options="g.localCurrencies"
+            @input="setLocalCurrency"
+          ></q-select>
+
           <q-btn-dropdown
             v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense
