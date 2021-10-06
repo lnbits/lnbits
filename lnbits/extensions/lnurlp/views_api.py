@@ -6,7 +6,7 @@ from pydantic.main import BaseModel
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
+from fastapi import Request
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user
@@ -30,17 +30,19 @@ async def api_list_currencies_available():
 
 @lnurlp_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_links(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+async def api_links(req: Request, wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
-
+    # print("LINKS", [link.dict() for link in await get_pay_links(wallet_ids)])
+    print("LINKS", [{"lnurl": link.lnurl(req)} for link in await get_pay_links(wallet_ids)])
     try:
-        return [
-                    {**link._asdict(), **{"lnurl": link.lnurl}}
-                    for link in await get_pay_links(wallet_ids)
-                ]
+        return [link.dict() for link in await get_pay_links(wallet_ids)]
+        # return [
+        #             {**link.dict(), "lnurl": link.lnurl}
+        #             for link in await get_pay_links(wallet_ids)
+        #         ]
 
     except LnurlInvalidUrl:
         raise HTTPException(
@@ -57,7 +59,7 @@ async def api_links(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets:
 
 @lnurlp_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_retrieve(r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_pay_link(link_id)
 
     if not link:
@@ -74,7 +76,7 @@ async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_ty
         )
         # return {"message": "Not your pay link."}, HTTPStatus.FORBIDDEN
 
-    return {**link._asdict(), **{"lnurl": link.lnurl}}
+    return {**link._asdict(), **{"lnurl": link.lnurl(r)}}
 
 
 @lnurlp_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
