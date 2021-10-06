@@ -17,6 +17,9 @@
         <h3 class="q-my-none">
           <strong>{% raw %}{{ formattedBalance }}{% endraw %}</strong> sat
         </h3>
+        <h4 class="q-my-none" v-if="g.localCurrency != 'sat'">
+                {% raw %}{{ formattedValueLocal(balance) }}{% endraw %}
+        </h4>
       </q-card-section>
       <div class="row q-pb-md q-px-md q-col-gutter-md">
         <div class="col">
@@ -98,9 +101,11 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props"
-                >{{ col.label }}</q-th
-              >
+              <template v-for="col in props.cols">
+                <q-th v-if="g.localCurrency != 'sat' || col.field != 'local'" :key="col.name" :props="props">
+                    {{ col.field == 'local' ? 'Amount (' + g.localCurrency + ')' : col.label }}
+                </q-th>
+              </template>
             </q-tr>
           </template>
           <template v-slot:body="props">
@@ -143,6 +148,9 @@
               </q-td>
               <q-td auto-width key="sat" :props="props">
                 {{ props.row.fsat }}
+              </q-td>
+              <q-td v-if="g.localCurrency != 'sat'" auto-width key="local" :props="props">
+                {{ formattedValueLocal(props.row.sat) }}
               </q-td>
               <q-td auto-width key="fee" :props="props">
                 {{ props.row.fee }}
@@ -418,7 +426,10 @@
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <div v-if="parse.invoice">
       {% raw %}
-      <h6 class="q-my-none">{{ parse.invoice.fsat }} sat</h6>
+      <h5 class="q-my-none">{{ parse.invoice.fsat }} sat</h6>
+      <h6 class="q-my-none" v-if="g.localCurrency != 'sat'">
+        {{ formattedValueLocal(parse.invoice.sat) }}
+      </h6>
       <q-separator class="q-my-sm"></q-separator>
       <p class="text-wrap">
         <strong>Description:</strong> {{ parse.invoice.description }}<br />
