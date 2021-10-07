@@ -9,6 +9,7 @@ from binascii import unhexlify
 from typing import Dict, Union
 
 from lnbits import bolt11, lnurl
+from lnbits.bolt11 import Invoice
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 
@@ -383,6 +384,43 @@ async def api_payments_sse():
     )
     response.timeout = None
     return response
+
+
+@core_app.route("/api/v1/payments/decode", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "data": {"type": "string", "empty": False, "required": True},
+    }
+)
+async def api_payments_decode():
+    try:
+        if g.data["data"][:5] == "LNURL":
+            url = lnurl.decode(g.data["data"])
+            return (
+                jsonify({"domain": url}),
+                HTTPStatus.OK,
+            )
+        else:
+            invoice = bolt11.decode(g.data["data"])
+            return (
+                jsonify(
+                    {
+                        "payment_hash": invoice.payment_hash,
+                        "amount_msat": invoice.amount_msat,
+                        "description": invoice.description,
+                        "description_hash": invoice.description_hash,
+                        "payee": invoice.payee,
+                        "date": invoice.date,
+                        "expiry": invoice.expiry,
+                        "secret": invoice.secret,
+                        "route_hints": invoice.route_hints,
+                        "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
+                    }
+                ),
+                HTTPStatus.OK,
+            )
+    except:
+        return jsonify({"message": "Failed to decode"}), HTTPStatus.BAD_REQUEST
 
 
 @core_app.route("/api/v1/lnurlscan/<code>", methods=["GET"])
