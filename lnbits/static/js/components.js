@@ -120,8 +120,9 @@ Vue.component('lnbits-extension-list', {
             :color="(extension.isActive)
               ? (($q.dark.isActive) ? 'primary' : 'primary')
               : 'grey-5'">
-            <q-icon :name="extension.icon" :size="($q.dark.isActive) ? '21px' : '20px'"
+              <q-icon v-if="!extension.icon.includes('http')" :name="extension.icon" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
+              <q-img v-if="extension.icon.includes('http')" :src="extension.icon" :width="($q.dark.isActive) ? '21px' : '20px'" :height="($q.dark.isActive) ? '21px' : '20px'" contain></q-img>
           </q-avatar>
         </q-item-section>
         <q-item-section>
