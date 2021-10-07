@@ -1,0 +1,473 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        {% raw %}
+        <q-btn
+          unelevated
+          color="primary"
+          @click="formDialoglnurlpos.show = true"
+          >New LNURLPoS instance
+        </q-btn>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">lNURLPoS</h5>
+          </div>
+
+          <div class="col-auto">
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+            <q-btn flat color="grey" @click="exportlnurlposCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          flat
+          dense
+          :data="lnurlposLinks"
+          row-key="id"
+          :columns="lnurlpossTable.columns"
+          :pagination.sync="lnurlpossTable.pagination"
+          :filter="filter"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
+
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.label }}</div>
+              </q-th>
+              <!-- <q-th auto-width></q-th> -->
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deletelnurlposLink(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                >
+                  <q-tooltip> Delete LNURLPoS </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openlnurlposSettings(props.row.id)"
+                  icon="perm_data_setting"
+                  color="primary"
+                >
+                  <q-tooltip> LNURLPoS Settings </q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.value }}</div>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} LNURLPoS Extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "lnurlpos/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog
+    v-model="settingsDialog.show"
+    position="top"
+    @hide="closeFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-h6">Copy to LNURLPoS device</div>
+      <div class="text-subtitle2">
+        {% raw %} String server = "{{location}}";<br />
+        String posId = "{{settingsDialog.data.id}}";<br />
+        String key = "{{settingsDialog.data.key}}";<br />
+        String currency = "{{settingsDialog.data.currency}}";{% endraw %}
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog
+    v-model="formDialoglnurlpos.show"
+    position="top"
+    @hide="closeFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormDatalnurlpos" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialoglnurlpos.data.title"
+          type="text"
+          label="Title"
+        ></q-input>
+
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialoglnurlpos.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
+
+        <q-select
+          filled
+          dense
+          v-model.trim="formDialoglnurlpos.data.currency"
+          type="text"
+          label="Fiat currency for PoS"
+          :options="currency"
+        ></q-select>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialoglnurlpos.data.id"
+            unelevated
+            color="primary"
+            :disable="
+                formDialoglnurlpos.data.title == ''"
+            type="submit"
+            >Update lnurlpos</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="
+                formDialoglnurlpos.data.title == ''"
+            type="submit"
+            >Create lnurlpos</q-btn
+          >
+          <q-btn @click="cancellnurlpos" flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<style></style>
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  var maplnurlpos = obj => {
+    obj._data = _.clone(obj)
+    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
+    obj.time = obj.time + 'mins'
+
+    if (obj.time_elapsed) {
+      obj.date = 'Time elapsed'
+    } else {
+      obj.date = Quasar.utils.date.formatDate(
+        new Date((obj.theTime - 3600) * 1000),
+        'HH:mm:ss'
+      )
+    }
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        location: window.location.hostname,
+        filter: '',
+        currency: 'USD',
+        lnurlposLinks: [],
+        lnurlposLinksObj: [],
+        lnurlpossTable: {
+          columns: [
+            {
+              name: 'title',
+              align: 'left',
+              label: 'title',
+              field: 'title'
+            },
+            {
+              name: 'theId',
+              align: 'left',
+              label: 'id',
+              field: 'id'
+            },
+            {
+              name: 'key',
+              align: 'left',
+              label: 'key',
+              field: 'key'
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'currency',
+              align: 'left',
+              label: 'currency',
+              field: 'currency'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        passedlnurlpos: {},
+        settingsDialog: {
+          show: false,
+          data: {}
+        },
+        formDialog: {
+          show: false,
+          data: {}
+        },
+        formDialoglnurlpos: {
+          show: false,
+          data: {
+            lnurl_toggle: false,
+            show_message: false,
+            show_ack: false,
+            show_price: 'None',
+            title: ''
+          }
+        },
+        qrCodeDialog: {
+          show: false,
+          data: null
+        }
+      }
+    },
+    methods: {
+      cancellnurlpos: function (data) {
+        var self = this
+        self.formDialoglnurlpos.show = false
+        self.clearFormDialoglnurlpos()
+      },
+      closeFormDialog: function () {
+        this.clearFormDialoglnurlpos()
+        this.formDialog.data = {
+          is_unique: false
+        }
+      },
+      sendFormDatalnurlpos: function () {
+        var self = this
+        if (self.formDialoglnurlpos.data.id) {
+          this.updatelnurlpos(
+            self.g.user.wallets[0].adminkey,
+            self.formDialoglnurlpos.data
+          )
+        } else {
+          this.createlnurlpos(
+            self.g.user.wallets[0].adminkey,
+            self.formDialoglnurlpos.data
+          )
+        }
+      },
+
+      createlnurlpos: function (wallet, data) {
+        var self = this
+        var updatedData = {}
+        for (const property in data) {
+          if (data[property]) {
+            updatedData[property] = data[property]
+          }
+        }
+        LNbits.api
+          .request('POST', '/lnurlpos/api/v1/lnurlpos', wallet, updatedData)
+          .then(function (response) {
+            self.lnurlposLinks.push(maplnurlpos(response.data))
+            self.formDialoglnurlpos.show = false
+            self.clearFormDialoglnurlpos()
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getlnurlposs: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/lnurlpos/api/v1/lnurlpos',
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              console.log(response.data)
+              self.lnurlposLinks = response.data.map(maplnurlpos)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getlnurlpos: function (lnurlpos_id) {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/lnurlpos/api/v1/lnurlpos/' + lnurlpos_id,
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            localStorage.setItem('lnurlpos', JSON.stringify(response.data))
+            localStorage.setItem('inkey', self.g.user.wallets[0].inkey)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deletelnurlposLink: function (lnurlposId) {
+        var self = this
+        var link = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this pay link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/lnurlpos/api/v1/lnurlpos/' + lnurlposId,
+                self.g.user.wallets[0].adminkey
+              )
+              .then(function (response) {
+                self.lnurlposLinks = _.reject(self.lnurlposLinks, function (
+                  obj
+                ) {
+                  return obj.id === lnurlposId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      openUpdatelnurlposLink: function (lnurlposId) {
+        var self = this
+        var lnurlpos = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
+        self.formDialoglnurlpos.data = _.clone(lnurlpos._data)
+        self.formDialoglnurlpos.show = true
+      },
+      openlnurlposSettings: function (lnurlposId) {
+        var self = this
+        var lnurlpos = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
+        self.settingsDialog.data = _.clone(lnurlpos._data)
+        self.settingsDialog.show = true
+      },
+      updatelnurlpos: function (wallet, data) {
+        var self = this
+        var updatedData = {}
+        for (const property in data) {
+          if (data[property]) {
+            updatedData[property] = data[property]
+          }
+        }
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/lnurlpos/api/v1/lnurlpos/' + updatedData.id,
+            wallet,
+            updatedData
+          )
+          .then(function (response) {
+            self.lnurlposLinks = _.reject(self.lnurlposLinks, function (obj) {
+              return obj.id === updatedData.id
+            })
+            self.lnurlposLinks.push(maplnurlpos(response.data))
+            self.formDialoglnurlpos.show = false
+            self.clearFormDialoglnurlpos()
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      clearFormDialoglnurlpos() {
+        this.formDialoglnurlpos.data = {
+          lnurl_toggle: false,
+          show_message: false,
+          show_ack: false,
+          show_price: 'None',
+          title: ''
+        }
+      },
+      exportlnurlposCSV: function () {
+        var self = this
+        LNbits.utils.exportCSV(self.lnurlpossTable.columns, this.lnurlposLinks)
+      }
+    },
+    created: function () {
+      var self = this
+      var getlnurlposs = this.getlnurlposs
+      getlnurlposs()
+      self.location = [
+        window.location.protocol,
+        '//',
+        window.location.host
+      ].join('')
+      LNbits.api
+        .request('GET', '/api/v1/currencies')
+        .then(response => {
+          this.currency = ['USD', ...response.data]
+        })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+    }
+  })
+</script>
+{% endblock %}

@@ -104,6 +104,74 @@
         </q-table>
       </q-card-section>
     </q-card>
+
+    <q-card>
+      <div class="row justify-center q-gutter-x-md items-center">
+        <div class="text-h3 q-pa-sm">{{satBtc(utxos.total)}}</div>
+        <q-btn flat @click="utxos.sats = !utxos.sats">
+          {{utxos.sats ? ' sats' : ' BTC'}}</q-btn
+        >
+      </div>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Transactions</h5>
+          </div>
+          <div class="col-auto">
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="TxosTable.filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+          </div>
+        </div>
+        <q-table
+          flat
+          dense
+          :data="utxos.data"
+          row-key="txid"
+          :columns="TxosTable.columns"
+          :pagination.sync="TxosTable.pagination"
+          :filter="TxosTable.filter"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+                :class="col.value == true ? 'text-green-13 text-weight-bold' : ''"
+              >
+                {{ col.name == 'value' ? satBtc(col.value) : col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
   </div>
 
   {% endraw %}
@@ -220,6 +288,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<script type="text/javascript" src="https://mempool.space/mempool.js"></script>
 <style></style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -267,6 +336,11 @@
           show: false,
           data: null
         },
+        utxos: {
+          data: [],
+          total: 0,
+          sats: true
+        },
         mempool: {
           endpoint: ''
         },
@@ -290,6 +364,43 @@
             rowsPerPage: 10
           }
         },
+        TxosTable: {
+          columns: [
+            {
+              name: 'value',
+              align: 'left',
+              label: 'Value',
+              field: 'value',
+              sortable: true
+            },
+            {
+              name: 'confirmed',
+              align: 'center',
+              label: 'Confirmed',
+              field: 'confirmed',
+              sortable: true
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Date',
+              field: 'date',
+              sortable: true
+            },
+            {
+              name: 'txid',
+              align: 'left',
+              label: 'ID',
+              field: 'txid',
+              sortable: true
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          },
+          uxtosFilter: ''
+        },
+
         formDialog: {
           show: false,
           data: {}
@@ -332,6 +443,7 @@
             self.AddressesLinks = response.data.map(function (obj) {
               return mapAddresses(obj)
             })
+            self.fetchUtxos()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -386,6 +498,60 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      fetchUtxos: async function () {
+        const {
+          bitcoin: {addresses}
+        } = mempoolJS()
+        const address = this.AddressesLinks.map(x => x.address)
+        const fetchUtxo = async () => {
+          let txs = []
+          // const address = [
+          //   '3Er3w82WqPLL4ew23taUZcFQwbZq6PE9TK',
+          //   '16CwtWRwQYLojaVZZFCgnaM6SQuNefqwrc',
+          //   '1KZB6FqnnMWySk75uvFKuPzHct1tMXHSSR'
+          // ] //test addresses
+          for (add of address) {
+            let addressTxsUtxo = await addresses.getAddressTxsUtxo({
+              address: add
+            })
+            txs = [...txs, ...addressTxsUtxo]
+          }
+          return txs
+        }
+        let utxos = await fetchUtxo()
+        utxos = utxos
+          .reduce((ac, x) => {
+            if (!ac)
+              return [
+                {
+                  txid: x.txid,
+                  confirmed: x.status.confirmed,
+                  value: x.value,
+                  date: moment(x.status?.block_time * 1000).format('LLL'),
+                  sort: x.status?.block_time
+                }
+              ]
+            if (!ac.some(y => y.txid == x.txid))
+              return [
+                ...ac,
+                {
+                  txid: x.txid,
+                  confirmed: x.status.confirmed,
+                  value: x.value,
+                  date: moment(x.status?.block_time * 1000).format('LLL'),
+                  sort: x.status?.block_time
+                }
+              ]
+            return
+          }, [])
+          .sort((a, b) => b.sort - a.sort)
+        let total = utxos.reduce((total, y) => {
+          total += y?.value || 0
+          return total
+        }, 0)
+        this.utxos.data = utxos
+        this.utxos.total = total
       },
       getWalletLinks: function () {
         var self = this
@@ -461,6 +627,13 @@
       },
       exportCSV: function () {
         LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
+      },
+      satBtc(val) {
+        return this.utxos.sats
+          ? LNbits.utils.formatSat(val)
+          : val == 0
+          ? 0.0
+          : (val / 100000000).toFixed(8)
       }
     },
     created: function () {

@@ -18,7 +18,6 @@ from .crud import (
     get_jukebox_payment,
     update_jukebox_payment,
 )
-from lnbits.core.services import create_invoice, check_invoice_status
 
 
 @jukebox_ext.route("/api/v1/jukebox", methods=["GET"])

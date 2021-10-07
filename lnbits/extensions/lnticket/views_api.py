@@ -1,8 +1,8 @@
 import re
-from quart import g, jsonify, request
+from quart import g, jsonify, request, abort
 from http import HTTPStatus
 
-from lnbits.core.crud import get_user, get_wallet
+from lnbits.core.crud import get_user, get_wallet, get_standalone_payment
 from lnbits.core.services import create_invoice, check_invoice_status
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
@@ -146,21 +146,21 @@ async def api_ticket_make_ticket(form_id):
 
 @lnticket_ext.route("/api/v1/tickets/<payment_hash>", methods=["GET"])
 async def api_ticket_send_ticket(payment_hash):
-    ticket = await get_ticket(payment_hash)
-    try:
-        status = await check_invoice_status(ticket.wallet, payment_hash)
-        is_paid = not status.pending
-    except Exception:
-        return jsonify({"paid": False}), HTTPStatus.OK
-
-    if is_paid:
-        wallet = await get_wallet(ticket.wallet)
-        payment = await wallet.get_payment(payment_hash)
-        await payment.set_pending(False)
-        ticket = await set_ticket_paid(payment_hash=payment_hash)
-        return jsonify({"paid": True}), HTTPStatus.OK
-
-    return jsonify({"paid": False}), HTTPStatus.OK
+    ticket = await get_ticket(payment_hash) or abort(
+        HTTPStatus.NOT_FOUND, "ticket does not exist."
+    )
+    payment = await get_standalone_payment(payment_hash) or abort(
+        HTTPStatus.NOT_FOUND, "ticket payment does not exist."
+    )
+    if payment.pending == 1:
+        await check_invoice_status(payment.wallet_id, payment_hash)
+        payment = await get_standalone_payment(payment_hash) or abort(
+            HTTPStatus.NOT_FOUND, "ticket payment does not exist."
+        )
+        if payment.pending == 1:
+            return jsonify({"paid": False}), HTTPStatus.OK
+    ticket = await set_ticket_paid(payment_hash=payment_hash)
+    return jsonify({"paid": True}), HTTPStatus.OK
 
 
 @lnticket_ext.route("/api/v1/tickets/<ticket_id>", methods=["DELETE"])
