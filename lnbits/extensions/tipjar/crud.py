@@ -40,7 +40,7 @@ async def create_tip(
 async def create_tipjar(
     name: str,
     wallet: str,
-    webhook: str,
+    webhook: str = None,
     onchain: str = None,
 ) -> TipJar:
     """Create a new TipJar"""
