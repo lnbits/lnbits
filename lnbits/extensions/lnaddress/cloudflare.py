@@ -28,23 +28,6 @@ async def cloudflare_create_record(
                     "ttl": 0,
                     "proxied": False,
                 },
-                # json={
-                #     "targets": [{
-                #         "target": "url",
-                #         "constraint": {
-                #             "operator": "matches",
-                #             "value": f"*{domain.domain}/*"
-                #         }
-                #     }],
-                #     "actions": [{
-                #         "id": "forwarding_url",
-                #         "value": {
-                #             "url": f"{ip}$2/{domain.id}",
-                #             "status_code": 302
-                #         }
-                #     }],
-                #     "status": "active"
-                # },
                 timeout=40,
             )
             cf_response = json.loads(r.text)
