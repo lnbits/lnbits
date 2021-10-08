@@ -109,6 +109,7 @@ def register_filters(app: QuartTrio):
     app.jinja_env.globals["SITE_DESCRIPTION"] = app.config["LNBITS_SITE_DESCRIPTION"]
     app.jinja_env.globals["LNBITS_THEME_OPTIONS"] = app.config["LNBITS_THEME_OPTIONS"]
     app.jinja_env.globals["LNBITS_VERSION"] = app.config["LNBITS_COMMIT"]
+    app.jinja_env.globals["LNBITS_SHOW_FIAT"] = app.config["LNBITS_SHOW_FIAT"]
     app.jinja_env.globals["EXTENSIONS"] = get_valid_extensions()
 
 

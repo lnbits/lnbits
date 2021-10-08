@@ -395,13 +395,15 @@ window.windowMixin = {
         LNbits.utils.notifyApiError(err)
       })
 
-    currency = this.$q.localStorage.getItem('lnbits.localCurrency')
-    if (currency) {
-      this.setLocalCurrency(currency)
+    if (window.showFiat) {
+      currency = this.$q.localStorage.getItem('lnbits.localCurrency')
+      if (currency) {
+        this.setLocalCurrency(currency)
+      }
+      setInterval(() => {
+        this.setLocalCurrency(this.g.localCurrency)
+      }, 600000)
     }
-    setInterval(() => {
-      this.setLocalCurrency(this.g.localCurrency)
-    }, 600000)
 
     if (window.extensions) {
       var user = this.g.user

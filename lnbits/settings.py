@@ -31,6 +31,7 @@ LNBITS_ALLOWED_USERS: List[str] = env.list(
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
     "LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str
 )
+LNBITS_SHOW_FIAT = env.bool("LNBITS_SHOW_FIAT", default="false")
 
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
 LNBITS_SITE_TAGLINE = env.str(
