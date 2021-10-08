@@ -12,7 +12,6 @@ async def create_pay_link(
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
-    print("CPL", wallet_id, data)
     result = await (method)(
         f"""
         INSERT INTO lnurlp.pay_links (

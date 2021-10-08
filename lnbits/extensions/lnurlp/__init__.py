@@ -35,6 +35,7 @@ def lnurlp_renderer():
 from .views_api import *  # noqa
 from .views import *  # noqa
 from .tasks import wait_for_paid_invoices
+from .lnurl import *  # noqa
 
 def lnurlp_start():
     loop = asyncio.get_event_loop()
@@ -42,7 +43,6 @@ def lnurlp_start():
 
 
 
-# from .lnurl import *  # noqa
 
 # from lnbits.tasks import record_async
 

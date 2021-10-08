@@ -35,10 +35,9 @@ async def api_links(req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
-    # print("LINKS", [link.dict() for link in await get_pay_links(wallet_ids)])
-    print("LINKS", [{"lnurl": link.lnurl(req)} for link in await get_pay_links(wallet_ids)])
+
     try:
-        return [link.dict() for link in await get_pay_links(wallet_ids)]
+        return [{**link.dict(), "lnurl": link.lnurl(req)} for link in await get_pay_links(wallet_ids)]
         # return [
         #             {**link.dict(), "lnurl": link.lnurl}
         #             for link in await get_pay_links(wallet_ids)

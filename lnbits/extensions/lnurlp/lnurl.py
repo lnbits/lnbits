@@ -21,8 +21,9 @@ async def api_lnurl_response(request: Request, link_id):
         )
 
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
+
     resp = LnurlPayResponse(
-        callback=request.url_for("lnurlp.api_lnurl_callback", link_id=link.id, extra=request.path_params['extra'], _external=True),
+        callback=request.url_for("lnurlp.api_lnurl_callback", link_id=link.id),
         min_sendable=math.ceil(link.min * rate) * 1000,
         max_sendable=round(link.max * rate) * 1000,
         metadata=link.lnurlpay_metadata,
@@ -43,7 +44,6 @@ async def api_lnurl_callback(request: Request, link_id):
             status_code=HTTPStatus.NOT_FOUND,
             detail="Pay link does not exist."
         )
-
     min, max = link.min, link.max
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
     if link.currency:
@@ -54,7 +54,7 @@ async def api_lnurl_callback(request: Request, link_id):
         min = link.min * 1000
         max = link.max * 1000
 
-    amount_received = int(request.path_params['amount'] or 0)
+    amount_received = int(request.query_params.get('amount') or 0)
     if amount_received < min:
         return LnurlErrorResponse(
                     reason=f"Amount {amount_received} is smaller than minimum {min}."
@@ -66,7 +66,7 @@ async def api_lnurl_callback(request: Request, link_id):
                 ).dict()
 
 
-    comment = request.path_params["comment"]
+    comment = request.query_params.get("comment")
     if len(comment or "") > link.comment_chars:
         return LnurlErrorResponse(
                     reason=f"Got a comment with {len(comment)} characters, but can only accept {link.comment_chars}"
@@ -79,7 +79,7 @@ async def api_lnurl_callback(request: Request, link_id):
         description_hash=hashlib.sha256(
             link.lnurlpay_metadata.encode("utf-8")
         ).digest(),
-        extra={"tag": "lnurlp", "link": link.id, "comment": comment, 'extra': request.path_params['amount']},
+        extra={"tag": "lnurlp", "link": link.id, "comment": comment, 'extra': request.query_params.get('amount')},
     )
 
     success_action = link.success_action(payment_hash)
@@ -95,4 +95,4 @@ async def api_lnurl_callback(request: Request, link_id):
             routes=[],
         )
 
-    return resp.dict())
+    return resp.dict()
