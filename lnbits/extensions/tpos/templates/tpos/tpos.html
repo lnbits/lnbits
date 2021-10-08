@@ -206,11 +206,12 @@
         var dialog = this.invoiceDialog
         console.log(this.sat, this.tposId)
         axios
-          .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', {
-            amount: this.sat
+          .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
+            params: {
+              amount: this.sat
+            }
           })
           .then(function (response) {
-            console.log(response.data)
             dialog.data = response.data
             dialog.show = true
 

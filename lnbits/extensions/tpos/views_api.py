@@ -57,10 +57,8 @@ async def api_tpos_delete(tpos_id: str, wallet: WalletTypeInfo = Depends(get_key
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
     # return "", HTTPStatus.NO_CONTENT
 
-
 @tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
 async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str = None):
-    print("TPOS", tpos_id, amount)
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
@@ -78,13 +76,12 @@ async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str =
             extra={"tag": "tpos"},
         )
     except Exception as e:
-        print("ERROR", e)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
         # return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
-    print("INV", payment_hash)
+
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
 
