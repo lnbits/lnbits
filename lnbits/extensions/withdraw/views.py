@@ -25,6 +25,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 @withdraw_ext.get("/{link_id}", response_class=HTMLResponse)
 async def display(request: Request, link_id):
     link = await get_withdraw_link(link_id, 0)
+
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -32,7 +33,7 @@ async def display(request: Request, link_id):
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist." #probably here is where we should return the 404??
-    return withdraw_renderer().TemplateResponse("withdraw/display.html", {"request":request,"link":link, "unique":True})
+    return withdraw_renderer().TemplateResponse("withdraw/display.html", {"request":request,"link":{**link.dict(), "lnurl": link.lnurl(request)}, "unique":True})
 
 
 @withdraw_ext.get("/img/{link_id}", response_class=HTMLResponse)
@@ -45,7 +46,8 @@ async def img(request: Request, link_id):
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist."
-    qr = pyqrcode.create(link.lnurl)
+    qr = pyqrcode.create(link.lnurl(request))
+    print(qr)
     stream = BytesIO()
     qr.svg(stream, scale=3)
     return (
@@ -70,10 +72,13 @@ async def print_qr(request: Request, link_id):
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist."
+
     if link.uses == 0:
-        return withdraw_renderer().TemplateResponse("withdraw/print_qr.html", {"request":request,link:link, unique:False})
+
+        return withdraw_renderer().TemplateResponse("withdraw/print_qr.html", {"request":request,"link":link.dict(), unique:False})
     links = []
     count = 0
+
     for x in link.usescsv.split(","):
         linkk = await get_withdraw_link(link_id, count)
         if not linkk:
@@ -83,8 +88,9 @@ async def print_qr(request: Request, link_id):
             )
             # response.status_code = HTTPStatus.NOT_FOUND
             # return "Withdraw link does not exist."
-        links.append(str(linkk.lnurl))
+        links.append(str(linkk.lnurl(request)))
         count = count + 1
     page_link = list(chunks(links, 2))
     linked = list(chunks(page_link, 5))
+    print("LINKED", linked)
     return withdraw_renderer().TemplateResponse("withdraw/print_qr.html", {"request":request,"link":linked, "unique":True})

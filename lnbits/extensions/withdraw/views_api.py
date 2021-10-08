@@ -33,6 +33,7 @@ async def api_links(req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+
     try:
         return [
                     {
@@ -71,8 +72,7 @@ async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_ty
         )
         # response.status_code = HTTPStatus.FORBIDDEN
         # return {"message": "Not your withdraw link."}
-
-    return {**link, **{"lnurl": link.lnurl}}
+    return {**link, **{"lnurl": link.lnurl(request)}}
 
 # class CreateData(BaseModel):
 #     title:  str = Query(...)
@@ -120,7 +120,7 @@ async def api_link_create_or_update(req: Request, data: CreateWithdrawData, link
             )
             # response.status_code = HTTPStatus.FORBIDDEN
             # return {"message": "Not your withdraw link."}
-        link = await update_withdraw_link(link_id, **data, usescsv=usescsv, used=0)
+        link = await update_withdraw_link(link_id, data=data, usescsv=usescsv, used=0)
     else:
         link = await create_withdraw_link(
             wallet_id=wallet.wallet.id, data=data, usescsv=usescsv

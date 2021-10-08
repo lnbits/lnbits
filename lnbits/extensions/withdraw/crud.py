@@ -57,11 +57,12 @@ async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     if not row:
         return None
 
-    link = []
-    for item in row:
-        link.append(item)
-    link.append(num)
-    return WithdrawLink._make(link)
+    # link = []
+    # for item in row:
+    #     link.append(item)
+    # link.append(num)
+    print("GET_LINK", WithdrawLink.from_row(row))
+    return WithdrawLink.from_row(row)
 
 
 async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[WithdrawLink]:
@@ -71,11 +72,11 @@ async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[Withdra
     if not row:
         return None
 
-    link = []
-    for item in row:
-        link.append(item)
-    link.append(num)
-    return WithdrawLink._make(link)
+    # link = []
+    # for item in row:
+    #     link.append(item)
+    # link.append(num)
+    return WithdrawLink.from_row(row)
 
 
 async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:

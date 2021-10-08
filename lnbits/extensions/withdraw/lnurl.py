@@ -3,6 +3,7 @@ from http import HTTPStatus
 from datetime import datetime
 
 from lnbits.core.services import pay_invoice
+from starlette.requests import Request
 
 from . import withdraw_ext
 from .crud import get_withdraw_link_by_hash, update_withdraw_link
@@ -11,8 +12,8 @@ from .crud import get_withdraw_link_by_hash, update_withdraw_link
 # FOR LNURLs WHICH ARE NOT UNIQUE
 
 
-@withdraw_ext.get("/api/v1/lnurl/{unique_hash}", status_code=HTTPStatus.OK)
-async def api_lnurl_response(unique_hash):
+@withdraw_ext.get("/api/v1/lnurl/{unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_response")
+async def api_lnurl_response(request: Request, unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
@@ -33,14 +34,14 @@ async def api_lnurl_response(unique_hash):
         #     HTTPStatus.OK,
         # )
 
-    return link.lnurl_response.dict()
+    return link.lnurl_response(request).dict()
 
 
 # FOR LNURLs WHICH ARE UNIQUE
 
 
-@withdraw_ext.get("/api/v1/lnurl/{unique_hash}/{id_unique_hash}", status_code=HTTPStatus.OK)
-async def api_lnurl_multi_response(unique_hash, id_unique_hash):
+@withdraw_ext.get("/api/v1/lnurl/{unique_hash}/{id_unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_multi_response")
+async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
@@ -79,17 +80,17 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
         #     HTTPStatus.OK,
         # )
 
-    return link.lnurl_response.dict()
+    return link.lnurl_response(request).dict()
 
 
 # CALLBACK
 
 
-@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", status_code=HTTPStatus.OK)
+@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_callback")
 async def api_lnurl_callback(unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
-    k1 = request.path_params['k1']
-    payment_request = request.path_params['pr']
+    k1 = request.query_params['k1']
+    payment_request = request.query_params['pr']
     now = int(datetime.now().timestamp())
 
     if not link:

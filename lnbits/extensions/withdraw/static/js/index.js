@@ -240,7 +240,7 @@ new Vue({
       getWithdrawLinks()
       this.checker = setInterval(function () {
         getWithdrawLinks()
-      }, 20000)
+      }, 300000)
     }
   }
 })
