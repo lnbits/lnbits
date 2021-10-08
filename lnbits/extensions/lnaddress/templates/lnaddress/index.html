@@ -179,7 +179,10 @@
           v-model.trim="domainDialog.data.domain"
           type="text"
           label="Domain name "
-        ></q-input>
+          ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            >The domain to use ex: "example.com"</q-tooltip
+          ></q-input
+        >
         <q-input
           filled
           dense
@@ -187,6 +190,9 @@
           type="text"
           label="Cloudflare API token"
         >
+          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            >Your API key in cloudflare</q-tooltip
+          >
         </q-input>
         <q-input
           filled
@@ -196,7 +202,7 @@
           label="Cloudflare Zone Id"
         >
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            >Create a "Edit zone DNS" API key in cloudflare</q-tooltip
+            >Create a "Edit zone DNS" API token in cloudflare</q-tooltip
           >
         </q-input>
         <q-input
@@ -213,7 +219,10 @@
           v-model.number="domainDialog.data.cost"
           type="number"
           label="Amount per day in satoshis"
-        ></q-input>
+          ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            >How much to charge per day</q-tooltip
+          ></q-input
+        >
         <div class="row q-mt-lg">
           <q-btn
             v-if="domainDialog.data.id"
