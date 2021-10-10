@@ -1,5 +1,19 @@
 from typing import NamedTuple
 from sqlite3 import Row
+from fastapi.param_functions import Query
+
+
+class CreateJukeLinkData(BaseModel):
+    user: str = Query(None)
+    title: str = Query(None)
+    wallet: str = Query(None)
+    sp_user: str = Query(None)
+    sp_secret: str = Query(None)
+    sp_access_token: str = Query(None)
+    sp_refresh_token: str = Query(None)
+    sp_device: str = Query(None)
+    sp_playlists: str = Query(None)
+    price: str = Query(None)
 
 
 class Jukebox(NamedTuple):

@@ -2,7 +2,7 @@ import json
 import time
 from datetime import datetime
 from http import HTTPStatus
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import check_user_exists, WalletTypeInfo, get_key_type
 from . import jukebox_ext, jukebox_renderer
 from .crud import get_jukebox
 from fastapi import FastAPI, Request
@@ -11,6 +11,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 from lnbits.core.models import User, Payment
+from .views_api import api_get_jukebox_device_check
+
+templates = Jinja2Templates(directory="templates")
 
 
 @jukebox_ext.get("/", response_class=HTMLResponse)
