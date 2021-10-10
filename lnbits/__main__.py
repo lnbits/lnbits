@@ -27,4 +27,3 @@ print(
   - service fee: {SERVICE_FEE}
 """
 )
-

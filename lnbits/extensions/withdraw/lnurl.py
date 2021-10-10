@@ -1,9 +1,9 @@
 import shortuuid  # type: ignore
 from http import HTTPStatus
 from datetime import datetime
-from quart import jsonify, request
 
 from lnbits.core.services import pay_invoice
+from starlette.requests import Request
 
 from . import withdraw_ext
 from .crud import get_withdraw_link_by_hash, update_withdraw_link
@@ -12,41 +12,57 @@ from .crud import get_withdraw_link_by_hash, update_withdraw_link
 # FOR LNURLs WHICH ARE NOT UNIQUE
 
 
-@withdraw_ext.get("/api/v1/lnurl/<unique_hash>")
-async def api_lnurl_response(unique_hash):
+@withdraw_ext.get("/api/v1/lnurl/{unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_response")
+async def api_lnurl_response(request: Request, unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        return ({"status": "ERROR", "reason": "LNURL-withdraw not found."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Withdraw link does not exist."
         )
+        # return ({"status": "ERROR", "reason": "LNURL-withdraw not found."},
+        #     HTTPStatus.OK,
+        # )
 
     if link.is_spent:
-        return ({"status": "ERROR", "reason": "Withdraw is spent."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            # WHAT STATUS_CODE TO USE??
+            detail="Withdraw is spent."
         )
+        # return ({"status": "ERROR", "reason": "Withdraw is spent."},
+        #     HTTPStatus.OK,
+        # )
 
-    return link.lnurl_response.dict(), HTTPStatus.OK
+    return link.lnurl_response(request).dict()
 
 
 # FOR LNURLs WHICH ARE UNIQUE
 
 
-@withdraw_ext.route("/api/v1/lnurl/<unique_hash>/<id_unique_hash>")
-async def api_lnurl_multi_response(unique_hash, id_unique_hash):
+@withdraw_ext.get("/api/v1/lnurl/{unique_hash}/{id_unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_multi_response")
+async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        return (
-            {"status": "ERROR", "reason": "LNURL-withdraw not found."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="LNURL-withdraw not found."
         )
+        # return (
+        #     {"status": "ERROR", "reason": "LNURL-withdraw not found."},
+        #     HTTPStatus.OK,
+        # )
 
     if link.is_spent:
-        return (
-            {"status": "ERROR", "reason": "Withdraw is spent."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            # WHAT STATUS_CODE TO USE??
+            detail="Withdraw is spent."
         )
+        # return (
+        #     {"status": "ERROR", "reason": "Withdraw is spent."},
+        #     HTTPStatus.OK,
+        # )
 
     useslist = link.usescsv.split(",")
     found = False
@@ -55,44 +71,57 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
         if id_unique_hash == shortuuid.uuid(name=tohash):
             found = True
     if not found:
-        return (
-            {"status": "ERROR", "reason": "LNURL-withdraw not found."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="LNURL-withdraw not found."
         )
+        # return (
+        #     {"status": "ERROR", "reason": "LNURL-withdraw not found."},
+        #     HTTPStatus.OK,
+        # )
 
-    return link.lnurl_response.dict(), HTTPStatus.OK
+    return link.lnurl_response(request).dict()
 
 
 # CALLBACK
 
 
-@withdraw_ext.get("/api/v1/lnurl/cb/<unique_hash>")
+@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_callback")
 async def api_lnurl_callback(unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
-    k1 = request.args.get("k1", type=str)
-    payment_request = request.args.get("pr", type=str)
+    k1 = request.query_params['k1']
+    payment_request = request.query_params['pr']
     now = int(datetime.now().timestamp())
 
     if not link:
-        return (
-            {"status": "ERROR", "reason": "LNURL-withdraw not found."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="LNURL-withdraw not found."
         )
+        # return (
+        #     {"status": "ERROR", "reason": "LNURL-withdraw not found."},
+        #     HTTPStatus.OK,
+        # )
 
     if link.is_spent:
-        return (
-            {"status": "ERROR", "reason": "Withdraw is spent."},
-            HTTPStatus.OK,
+        raise HTTPException(
+            # WHAT STATUS_CODE TO USE??
+            detail="Withdraw is spent."
         )
+        # return (
+        #     {"status": "ERROR", "reason": "Withdraw is spent."},
+        #     HTTPStatus.OK,
+        # )
 
     if link.k1 != k1:
-        return {"status": "ERROR", "reason": "Bad request."}, HTTPStatus.OK
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Bad request."
+        )
+        # return {"status": "ERROR", "reason": "Bad request."}, HTTPStatus.OK
 
     if now < link.open_time:
-        return (
-                {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."},
-            HTTPStatus.OK,
-        )
+        return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
 
     try:
         usescsv = ""
@@ -122,6 +151,7 @@ async def api_lnurl_callback(unique_hash):
             max_sat=link.max_withdrawable,
             extra={"tag": "withdraw"},
         )
+    # should these be "raise" instead of the "return" ??
     except ValueError as e:
         await update_withdraw_link(link.id, **changesback)
         return {"status": "ERROR", "reason": str(e)}
@@ -132,4 +162,4 @@ async def api_lnurl_callback(unique_hash):
         await update_withdraw_link(link.id, **changesback)
         return {"status": "ERROR", "reason": str(e)}
 
-    return {"status": "OK"}, HTTPStatus.OK
+    return {"status": "OK"}

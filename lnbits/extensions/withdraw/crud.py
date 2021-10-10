@@ -3,18 +3,12 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import WithdrawLink, HashCheck
+from .models import WithdrawLink, HashCheck, CreateWithdrawData
 
 
 async def create_withdraw_link(
-    *,
+    data: CreateWithdrawData,
     wallet_id: str,
-    title: str,
-    min_withdrawable: int,
-    max_withdrawable: int,
-    uses: int,
-    wait_time: int,
-    is_unique: bool,
     usescsv: str,
 ) -> WithdrawLink:
     link_id = urlsafe_short_hash()
@@ -39,15 +33,15 @@ async def create_withdraw_link(
         (
             link_id,
             wallet_id,
-            title,
-            min_withdrawable,
-            max_withdrawable,
-            uses,
-            wait_time,
-            int(is_unique),
+            data.title,
+            data.min_withdrawable,
+            data.max_withdrawable,
+            data.uses,
+            data.wait_time,
+            int(data.is_unique),
             urlsafe_short_hash(),
             urlsafe_short_hash(),
-            int(datetime.now().timestamp()) + wait_time,
+            int(datetime.now().timestamp()) + data.wait_time,
             usescsv,
         ),
     )
@@ -63,11 +57,12 @@ async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     if not row:
         return None
 
-    link = []
-    for item in row:
-        link.append(item)
-    link.append(num)
-    return WithdrawLink._make(link)
+    # link = []
+    # for item in row:
+    #     link.append(item)
+    # link.append(num)
+    print("GET_LINK", WithdrawLink.from_row(row))
+    return WithdrawLink.from_row(row)
 
 
 async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[WithdrawLink]:
@@ -77,11 +72,11 @@ async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[Withdra
     if not row:
         return None
 
-    link = []
-    for item in row:
-        link.append(item)
-    link.append(num)
-    return WithdrawLink._make(link)
+    # link = []
+    # for item in row:
+    #     link.append(item)
+    # link.append(num)
+    return WithdrawLink.from_row(row)
 
 
 async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:

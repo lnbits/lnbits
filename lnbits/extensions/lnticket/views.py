@@ -9,6 +9,7 @@ from http import HTTPStatus
 from . import lnticket_ext, lnticket_renderer
 from .crud import get_form
 from fastapi import FastAPI, Request
+from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
@@ -16,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 @lnticket_ext.get("/", response_class=HTMLResponse)
 # not needed as we automatically get the user with the given ID
 # If no user with this ID is found, an error is raised
-# @validate_uuids(["usr"], required=True) 
+# @validate_uuids(["usr"], required=True)
 # @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return lnticket_renderer().TemplateResponse("lnticket/index.html", {"request": request,"user": user.dict()})

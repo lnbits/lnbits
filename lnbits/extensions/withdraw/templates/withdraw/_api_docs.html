@@ -23,7 +23,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.url_root }}api/v1/links -H "X-Api-Key: {{
-          g.user.wallets[0].inkey }}"
+          user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -50,7 +50,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.url_root }}api/v1/links/&lt;withdraw_id&gt; -H
-          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -83,7 +83,7 @@
           "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -119,7 +119,7 @@
           "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;,
           "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -143,7 +143,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.url_root }}api/v1/links/&lt;withdraw_id&gt;
-          -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+          -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -171,7 +171,7 @@
         <code
           >curl -X GET {{ request.url_root
           }}api/v1/links/&lt;the_hash&gt;/&lt;lnurl_id&gt; -H "X-Api-Key: {{
-          g.user.wallets[0].inkey }}"
+          user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>

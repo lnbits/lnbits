@@ -18,7 +18,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.url_root }}api/v1/links -H "X-Api-Key: {{
-          g.user.wallets[0].inkey }}"
+          user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -27,7 +27,8 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /lnurlp/api/v1/links/&lt;pay_id&gt;</code
+          ><span class="text-blue">GET</span>
+          /lnurlp/api/v1/links/&lt;pay_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
@@ -39,7 +40,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.url_root }}api/v1/links/&lt;pay_id&gt; -H
-          "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -56,7 +57,11 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-        <code>{"description": &lt;string&gt; "amount": &lt;integer&gt; "max": &lt;integer&gt; "min": &lt;integer&gt; "comment_chars": &lt;integer&gt;}</code>
+        <code
+          >{"description": &lt;string&gt; "amount": &lt;integer&gt; "max":
+          &lt;integer&gt; "min": &lt;integer&gt; "comment_chars":
+          &lt;integer&gt;}</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
         </h5>
@@ -64,8 +69,10 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.url_root }}api/v1/links -d '{"description":
-          &lt;string&gt;, "amount": &lt;integer&gt;, "max": &lt;integer&gt;, "min": &lt;integer&gt;, "comment_chars": &lt;integer&gt;}' -H "Content-type:
-          application/json" -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+          &lt;string&gt;, "amount": &lt;integer&gt;, "max": &lt;integer&gt;,
+          "min": &lt;integer&gt;, "comment_chars": &lt;integer&gt;}' -H
+          "Content-type: application/json" -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -95,7 +102,7 @@
           >curl -X PUT {{ request.url_root }}api/v1/links/&lt;pay_id&gt; -d
           '{"description": &lt;string&gt;, "amount": &lt;integer&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
-          g.user.wallets[0].adminkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -120,7 +127,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.url_root }}api/v1/links/&lt;pay_id&gt; -H
-          "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>

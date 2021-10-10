@@ -1,11 +1,18 @@
-from quart import g, jsonify, request
+from fastapi.params import Depends
+from fastapi.param_functions import Query
+from pydantic.main import BaseModel
+
 from http import HTTPStatus
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from pydantic import BaseModel
-from fastapi import FastAPI, Query, Response
+from lnbits.decorators import WalletTypeInfo, get_key_type
+from .models import CreateWithdrawData
+
+# from fastapi import FastAPI, Query, Response
 
 from . import withdraw_ext
 from .crud import (
@@ -19,59 +26,75 @@ from .crud import (
 )
 
 
-@withdraw_ext.get("/api/v1/links", status_code=200)
-@api_check_wallet_key("invoice")
-async def api_links(response: Response):
-    wallet_ids = [g.wallet.id]
+@withdraw_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
+# @api_check_wallet_key("invoice")
+async def api_links(req: Request, wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+    wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in request.args:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    if all_wallets:
+        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+
     try:
         return [
                     {
-                        **link._asdict(),
-                        **{"lnurl": link.lnurl},
+                        **link.dict(),
+                        **{"lnurl": link.lnurl(req)},
                     }
                     for link in await get_withdraw_links(wallet_ids)
                 ]
-        
+
     except LnurlInvalidUrl:
-        response.status_code = HTTPStatus.UPGRADE_REQUIRED
-        return { "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor." }
+        raise HTTPException(
+            status_code=HTTPStatus.UPGRADE_REQUIRED,
+            detail="LNURLs need to be delivered over a publically accessible `https` domain or Tor.",
+        )
+        # response.status_code = HTTPStatus.UPGRADE_REQUIRED
+        # return { "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor." }
 
 
-@withdraw_ext.get("/api/v1/links/{link_id}", status_code=200)
-@api_check_wallet_key("invoice")
-async def api_link_retrieve(link_id, response: Response):
+@withdraw_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
+# @api_check_wallet_key("invoice")
+async def api_link_retrieve(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_withdraw_link(link_id, 0)
 
     if not link:
-        response.status_code = HTTPStatus.NOT_FOUND
-        return {"message": "Withdraw link does not exist."}
+        raise HTTPException(
+            detail="Withdraw link does not exist.",
+            status_code=HTTPStatus.NOT_FOUND
+        )
+        # response.status_code = HTTPStatus.NOT_FOUND
+        # return {"message": "Withdraw link does not exist."}
 
-    if link.wallet != g.wallet.id:
-        response.status_code = HTTPStatus.FORBIDDEN
-        return {"message": "Not your withdraw link."}
+    if link.wallet != wallet.wallet.id:
+        raise HTTPException(
+            detail="Not your withdraw link.",
+            status_code=HTTPStatus.FORBIDDEN
+        )
+        # response.status_code = HTTPStatus.FORBIDDEN
+        # return {"message": "Not your withdraw link."}
+    return {**link, **{"lnurl": link.lnurl(request)}}
 
-    return {**link, **{"lnurl": link.lnurl}}
-
-class CreateData(BaseModel):
-    title:  str = Query(...)
-    min_withdrawable:  int = Query(..., ge=1)
-    max_withdrawable:  int = Query(..., ge=1)
-    uses:  int = Query(..., ge=1)
-    wait_time:  int = Query(..., ge=1)
-    is_unique:  bool
+# class CreateData(BaseModel):
+#     title:  str = Query(...)
+#     min_withdrawable:  int = Query(..., ge=1)
+#     max_withdrawable:  int = Query(..., ge=1)
+#     uses:  int = Query(..., ge=1)
+#     wait_time:  int = Query(..., ge=1)
+#     is_unique:  bool
 
 @withdraw_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
-@withdraw_ext.put("/api/v1/links/{link_id}")
-@api_check_wallet_key("admin")
-async def api_link_create_or_update(data: CreateData, link_id: str = None, response: Response):
+@withdraw_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
+# @api_check_wallet_key("admin")
+async def api_link_create_or_update(req: Request, data: CreateWithdrawData, link_id: str = None, wallet: WalletTypeInfo = Depends(get_key_type)):
     if data.max_withdrawable < data.min_withdrawable:
-        response.status_code = HTTPStatus.BAD_REQUEST
-        return {
-                    "message": "`max_withdrawable` needs to be at least `min_withdrawable`."
-                }
+        raise HTTPException(
+            detail="`max_withdrawable` needs to be at least `min_withdrawable`.",
+            status_code=HTTPStatus.BAD_REQUEST
+        )
+        # response.status_code = HTTPStatus.BAD_REQUEST
+        # return {
+        #             "message": "`max_withdrawable` needs to be at least `min_withdrawable`."
+        #         }
 
     usescsv = ""
     for i in range(data.uses):
@@ -84,41 +107,57 @@ async def api_link_create_or_update(data: CreateData, link_id: str = None, respo
     if link_id:
         link = await get_withdraw_link(link_id, 0)
         if not link:
-            response.status_code = HTTPStatus.NOT_FOUND
-            return {"message": "Withdraw link does not exist."}
-        if link.wallet != g.wallet.id:
-            response.status_code = HTTPStatus.FORBIDDEN
-            return {"message": "Not your withdraw link."}
-        link = await update_withdraw_link(link_id, **data, usescsv=usescsv, used=0)
+            raise HTTPException(
+                detail="Withdraw link does not exist.",
+                status_code=HTTPStatus.NOT_FOUND
+            )
+            # response.status_code = HTTPStatus.NOT_FOUND
+            # return {"message": "Withdraw link does not exist."}
+        if link.wallet != wallet.wallet.id:
+            raise HTTPException(
+                detail="Not your withdraw link.",
+                status_code=HTTPStatus.FORBIDDEN
+            )
+            # response.status_code = HTTPStatus.FORBIDDEN
+            # return {"message": "Not your withdraw link."}
+        link = await update_withdraw_link(link_id, data=data, usescsv=usescsv, used=0)
     else:
         link = await create_withdraw_link(
-            wallet_id=g.wallet.id, **data, usescsv=usescsv
+            wallet_id=wallet.wallet.id, data=data, usescsv=usescsv
         )
-    if link_id:
-        response.status_code = HTTPStatus.OK
-    return {**link, **{"lnurl": link.lnurl}}
+    # if link_id:
+    #     response.status_code = HTTPStatus.OK
+    return {**link.dict(), **{"lnurl": link.lnurl(req)}}
 
 
-@withdraw_ext.delete("/api/v1/links/{link_id}", status_code=HTTPStatus.NO_CONTENT)
-@api_check_wallet_key("admin")
-async def api_link_delete(link_id, response: Response):
+@withdraw_ext.delete("/api/v1/links/{link_id}")
+# @api_check_wallet_key("admin")
+async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_withdraw_link(link_id)
 
     if not link:
-            response.status_code = HTTPStatus.NOT_FOUND
-            return {"message": "Withdraw link does not exist."}
+        raise HTTPException(
+            detail="Withdraw link does not exist.",
+            status_code=HTTPStatus.NOT_FOUND
+        )
+        # response.status_code = HTTPStatus.NOT_FOUND
+        # return {"message": "Withdraw link does not exist."}
 
-    if link.wallet != g.wallet.id:
-        response.status_code = HTTPStatus.FORBIDDEN
-        return {"message": "Not your withdraw link."}
+    if link.wallet != wallet.wallet.id:
+        raise HTTPException(
+            detail="Not your withdraw link.",
+            status_code=HTTPStatus.FORBIDDEN
+        )
+        # response.status_code = HTTPStatus.FORBIDDEN
+        # return {"message": "Not your withdraw link."}
 
     await delete_withdraw_link(link_id)
-
-    return ""
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    # return ""
 
 
 @withdraw_ext.get("/api/v1/links/{the_hash}/{lnurl_id}", status_code=HTTPStatus.OK)
-@api_check_wallet_key("invoice")
-async def api_hash_retrieve(the_hash, lnurl_id):
+# @api_check_wallet_key("invoice")
+async def api_hash_retrieve(the_hash, lnurl_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     hashCheck = await get_hash_check(the_hash, lnurl_id)
     return hashCheck

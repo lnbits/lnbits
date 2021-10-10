@@ -1,11 +1,22 @@
 import json
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
-from quart import url_for
+from starlette.requests import Request
+from fastapi.param_functions import Query
 from typing import Optional, Dict
 from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from sqlite3 import Row
 from pydantic import BaseModel
+
+class CreatePayLinkData(BaseModel):
+    description:  str
+    min:  int = Query(0.01, ge=0.01)
+    max:  int = Query(0.01, ge=0.01)
+    currency:  str = Query(None)
+    comment_chars:  int = Query(0, ge=0, lt=800)
+    webhook_url:  str = Query(None)
+    success_text:  str = Query(None)
+    success_url:  str = Query(None)
 
 class PayLink(BaseModel):
     id: int
@@ -14,10 +25,10 @@ class PayLink(BaseModel):
     min: int
     served_meta: int
     served_pr: int
-    webhook_url: str
-    success_text: str
-    success_url: str
-    currency: str
+    webhook_url: Optional[str]
+    success_text: Optional[str]
+    success_url: Optional[str]
+    currency: Optional[str]
     comment_chars: int
     max: int
 
@@ -26,9 +37,9 @@ class PayLink(BaseModel):
         data = dict(row)
         return cls(**data)
 
-    @property
-    def lnurl(self) -> str:
-        url = url_for("lnurlp.api_lnurl_response", link_id=self.id, _external=True)
+
+    def lnurl(self, req: Request) -> str:
+        url = req.url_for("lnurlp.api_lnurl_response", link_id=self.id)
         return lnurl_encode(url)
 
     @property
