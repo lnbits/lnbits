@@ -10,7 +10,7 @@ from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 from lnbits.core.models import User
 
 templates = Jinja2Templates(directory="templates")
@@ -36,7 +36,7 @@ async def display(request: Request, link_id):
     return withdraw_renderer().TemplateResponse("withdraw/display.html", {"request":request,"link":{**link.dict(), "lnurl": link.lnurl(request)}, "unique":True})
 
 
-@withdraw_ext.get("/img/{link_id}", response_class=HTMLResponse)
+@withdraw_ext.get("/img/{link_id}", response_class=StreamingResponse)
 async def img(request: Request, link_id):
     link = await get_withdraw_link(link_id, 0)
     if not link:
@@ -50,16 +50,19 @@ async def img(request: Request, link_id):
     print(qr)
     stream = BytesIO()
     qr.svg(stream, scale=3)
-    return (
-        stream.getvalue(),
-        200,
-        {
+    stream.seek(0)
+
+    async def _generator(stream: BytesIO):
+        yield stream.getvalue()
+
+    return StreamingResponse(
+        _generator(stream),
+        headers={
             "Content-Type": "image/svg+xml",
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0",
-        },
-    )
+        })
 
 
 @withdraw_ext.get("/print/{link_id}", response_class=HTMLResponse)
