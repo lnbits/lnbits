@@ -30,8 +30,8 @@ async def display(request: Request,link_id):
             detail="Pay link does not exist."
         )
         # abort(HTTPStatus.NOT_FOUND, "Pay link does not exist.")
-
-    return lnurlp_renderer().TemplateResponse("lnurlp/display.html", {"request": request, "link":link})
+    ctx = {"request": request, "lnurl":link.lnurl(req=request)}
+    return lnurlp_renderer().TemplateResponse("lnurlp/display.html", ctx)
 
 
 @lnurlp_ext.get("/print/{link_id}", response_class=HTMLResponse)
@@ -43,5 +43,5 @@ async def print_qr(request: Request,link_id):
             detail="Pay link does not exist."
         )
         # abort(HTTPStatus.NOT_FOUND, "Pay link does not exist.")
-
-    return lnurlp_renderer().TemplateResponse("lnurlp/print_qr.html", {"request": request, "link":link})
+    ctx = {"request": request, "lnurl":link.lnurl(req=request)}
+    return lnurlp_renderer().TemplateResponse("lnurlp/print_qr.html", ctx)
