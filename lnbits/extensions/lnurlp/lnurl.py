@@ -2,6 +2,7 @@ import hashlib
 import math
 from http import HTTPStatus
 from fastapi import FastAPI, Request
+from starlette.exceptions import HTTPException
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 
 from lnbits.core.services import create_invoice

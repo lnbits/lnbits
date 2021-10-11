@@ -33,7 +33,8 @@ async def display(request: Request, link_id):
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist." #probably here is where we should return the 404??
-    return withdraw_renderer().TemplateResponse("withdraw/display.html", {"request":request,"link":{**link.dict(), "lnurl": link.lnurl(request)}, "unique":True})
+    print("LINK", link)
+    return withdraw_renderer().TemplateResponse("withdraw/display.html", {"request":request,"link":link.dict(), "lnurl": link.lnurl(req=request), "unique":True})
 
 
 @withdraw_ext.get("/img/{link_id}", response_class=StreamingResponse)
