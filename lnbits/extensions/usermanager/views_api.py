@@ -50,7 +50,7 @@ async def api_usermanager_user(user_id, wallet: WalletTypeInfo = Depends(get_key
 #     }
 # )
 async def api_usermanager_users_create(data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)):
-    user = await create_usermanager_user(**data)
+    user = await create_usermanager_user(data)
     full = user.dict()
     full["wallets"] = [wallet.dict() for wallet in await get_usermanager_users_wallets(user.id)]
     return full

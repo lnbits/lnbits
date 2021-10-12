@@ -10,31 +10,27 @@ from lnbits.core.crud import (
 )
 
 from . import db
-from .models import Users, Wallets
+from .models import Users, Wallets, CreateUserData
 
 
 ### Users
 
 
 async def create_usermanager_user(
-    user_name: str,
-    wallet_name: str,
-    admin_id: str,
-    email: Optional[str] = None,
-    password: Optional[str] = None,
+    data: CreateUserData
 ) -> Users:
     account = await create_account()
     user = await get_user(account.id)
     assert user, "Newly created user couldn't be retrieved"
 
-    wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+    wallet = await create_wallet(user_id=user.id, wallet_name=data.wallet_name)
 
     await db.execute(
         """
         INSERT INTO usermanager.users (id, name, admin, email, password)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (user.id, user_name, admin_id, email, password),
+        (user.id, data.user_name, data.admin_id, data.email, data.password),
     )
 
     await db.execute(
@@ -42,7 +38,7 @@ async def create_usermanager_user(
         INSERT INTO usermanager.wallets (id, admin, name, "user", adminkey, inkey)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (wallet.id, admin_id, wallet_name, user.id, wallet.adminkey, wallet.inkey),
+        (wallet.id, data.admin_id, data.wallet_name, user.id, wallet.adminkey, wallet.inkey),
     )
 
     user_created = await get_usermanager_user(user.id)
@@ -59,6 +55,7 @@ async def get_usermanager_users(user_id: str) -> List[Users]:
     rows = await db.fetchall(
         "SELECT * FROM usermanager.users WHERE admin = ?", (user_id,)
     )
+    
     return [Users(**row) for row in rows]
 
 

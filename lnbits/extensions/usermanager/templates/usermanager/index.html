@@ -368,6 +368,7 @@
                 self.users = _.reject(self.users, function (obj) {
                   return obj.id == userId
                 })
+                self.getWallets()
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)

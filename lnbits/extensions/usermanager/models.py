@@ -6,8 +6,8 @@ class CreateUserData(BaseModel):
     user_name: str = Query(...)
     wallet_name: str = Query(...)
     admin_id: str = Query(...)
-    email: str = Query(None)
-    password: str = Query(None)
+    email: str = Query("")
+    password: str = Query("")
 
 
 class Users(BaseModel):
