@@ -9,13 +9,11 @@ import json
 from typing import Optional
 from fastapi.params import Depends
 from fastapi.param_functions import Query
-from pydantic.main import BaseModel
 from .models import CreateJukeLinkData
 from lnbits.decorators import (
     check_user_exists,
     WalletTypeInfo,
     get_key_type,
-    api_check_wallet_key,
     api_validate_post_request,
 )
 import httpx
@@ -89,17 +87,19 @@ async def api_check_credentials_callbac(
 
 @jukebox_ext.get("/api/v1/jukebox/{juke_id}", status_code=HTTPStatus.OK)
 async def api_check_credentials_check(
-    juke_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+    juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    print(juke_id)
     jukebox = await get_jukebox(juke_id)
-    return jukebox._asdict()
+
+    return jukebox
 
 
 @jukebox_ext.post("/api/v1/jukebox", status_code=HTTPStatus.CREATED)
 @jukebox_ext.put("/api/v1/jukebox/{juke_id}", status_code=HTTPStatus.OK)
 async def api_create_update_jukebox(
     data: CreateJukeLinkData,
-    juke_id=None,
+    juke_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     if juke_id:
@@ -107,7 +107,7 @@ async def api_create_update_jukebox(
     else:
         jukebox = await create_jukebox(inkey=g.wallet.inkey, **g.data)
 
-    return jukebox._asdict()
+    return jukebox.dict()
 
 
 @jukebox_ext.delete("/api/v1/jukebox/{juke_id}", status_code=HTTPStatus.OK)
@@ -117,7 +117,7 @@ async def api_delete_item(
 ):
     await delete_jukebox(juke_id)
     try:
-        return [{**jukebox._asdict()} for jukebox in await get_jukeboxs(g.wallet.user)]
+        return [{**jukebox.dict()} for jukebox in await get_jukeboxs(g.wallet.user)]
     except:
         raise HTTPException(
             status_code=HTTPStatus.NO_CONTENT,

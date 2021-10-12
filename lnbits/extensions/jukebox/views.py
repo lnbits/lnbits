@@ -13,6 +13,7 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import User, Payment
 from .views_api import api_get_jukebox_device_check
 
+
 templates = Jinja2Templates(directory="templates")
 
 
@@ -49,5 +50,6 @@ async def connect_to_jukebox(request: Request, juke_id):
         )
     else:
         return jukebox_renderer().TemplateResponse(
-            "jukebox/error.html", {"request": request}
+            "jukebox/error.html",
+            {"request": request, "jukebox": jukebox.jukebox(req=request)},
         )
