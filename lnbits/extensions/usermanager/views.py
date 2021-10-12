@@ -1,12 +1,13 @@
-from quart import g, render_template
+from fastapi import FastAPI, Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse
 
-from lnbits.decorators import check_user_exists, validate_uuids
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
 
-from . import usermanager_ext
+from . import usermanager_ext, usermanager_renderer
 
-
-@usermanager_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    return await render_template("usermanager/index.html", user=g.user)
+@usermanager_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
+    return await render_template("usermanager/index.html", user=user.dict())

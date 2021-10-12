@@ -1,8 +1,16 @@
-from typing import NamedTuple
+from pydantic import BaseModel
+from fastapi.param_functions import Query
 from sqlite3 import Row
 
+class CreateUserData(BaseModel):
+    user_name: str = Query(...)
+    wallet_name: str = Query(...)
+    admin_id: str = Query(...)
+    email: str = Query(None)
+    password: str = Query(None)
 
-class Users(NamedTuple):
+
+class Users(BaseModel):
     id: str
     name: str
     admin: str
@@ -10,7 +18,7 @@ class Users(NamedTuple):
     password: str
 
 
-class Wallets(NamedTuple):
+class Wallets(BaseModel):
     id: str
     admin: str
     name: str

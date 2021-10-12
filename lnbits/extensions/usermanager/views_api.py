@@ -1,10 +1,15 @@
-from quart import g, jsonify
 from http import HTTPStatus
+from starlette.exceptions import HTTPException
+
+from fastapi import Query
+from fastapi.params import Depends
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import usermanager_ext
+from .models import CreateUserData
 from .crud import (
     create_usermanager_user,
     get_usermanager_user,
@@ -23,74 +28,62 @@ from lnbits.core import update_user_extension
 ### Users
 
 
-@usermanager_ext.route("/api/v1/users", methods=["GET"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_users():
-    user_id = g.wallet.user
-    return (
-        jsonify([user._asdict() for user in await get_usermanager_users(user_id)]),
-        HTTPStatus.OK,
-    )
+@usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
+async def api_usermanager_users(wallet: WalletTypeInfo = Depends(get_key_type)):
+    user_id = wallet.wallet.user
+    return [user.dict() for user in await get_usermanager_users(user_id)]
 
 
-@usermanager_ext.route("/api/v1/users/<user_id>", methods=["GET"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_user(user_id):
+@usermanager_ext.get("/api/v1/users/{user_id}", status_code=HTTPStatus.OK)
+async def api_usermanager_user(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     user = await get_usermanager_user(user_id)
-    return (
-        jsonify(user._asdict()),
-        HTTPStatus.OK,
-    )
+    return user.dict()
 
 
-@usermanager_ext.route("/api/v1/users", methods=["POST"])
-@api_check_wallet_key(key_type="invoice")
-@api_validate_post_request(
-    schema={
-        "user_name": {"type": "string", "empty": False, "required": True},
-        "wallet_name": {"type": "string", "empty": False, "required": True},
-        "admin_id": {"type": "string", "empty": False, "required": True},
-        "email": {"type": "string", "required": False},
-        "password": {"type": "string", "required": False},
-    }
-)
-async def api_usermanager_users_create():
-    user = await create_usermanager_user(**g.data)
-    full = user._asdict()
-    full["wallets"] = [wallet._asdict() for wallet in await get_usermanager_users_wallets(user.id)]
-    return jsonify(full), HTTPStatus.CREATED
+@usermanager_ext.post("/api/v1/users", status_code=HTTPStatus.CREATED)
+# @api_validate_post_request(
+#     schema={
+#         "user_name": {"type": "string", "empty": False, "required": True},
+#         "wallet_name": {"type": "string", "empty": False, "required": True},
+#         "admin_id": {"type": "string", "empty": False, "required": True},
+#         "email": {"type": "string", "required": False},
+#         "password": {"type": "string", "required": False},
+#     }
+# )
+async def api_usermanager_users_create(data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)):
+    user = await create_usermanager_user(**data)
+    full = user.dict()
+    full["wallets"] = [wallet.dict() for wallet in await get_usermanager_users_wallets(user.id)]
+    return full
 
 
-@usermanager_ext.route("/api/v1/users/<user_id>", methods=["DELETE"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_users_delete(user_id):
+@usermanager_ext.delete("/api/v1/users/{user_id}")
+async def api_usermanager_users_delete(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     user = await get_usermanager_user(user_id)
     if not user:
-        return jsonify({"message": "User does not exist."}), HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="User does not exist."
+        )
     await delete_usermanager_user(user_id)
-    return "", HTTPStatus.NO_CONTENT
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
 ###Activate Extension
 
 
-@usermanager_ext.route("/api/v1/extensions", methods=["POST"])
-@api_check_wallet_key(key_type="invoice")
-@api_validate_post_request(
-    schema={
-        "extension": {"type": "string", "empty": False, "required": True},
-        "userid": {"type": "string", "empty": False, "required": True},
-        "active": {"type": "boolean", "required": True},
-    }
-)
-async def api_usermanager_activate_extension():
-    user = await get_user(g.data["userid"])
+@usermanager_ext.post("/api/v1/extensions")
+async def api_usermanager_activate_extension(extension: str = Query(...), userid: str = Query(...), active: bool = Query(...)):
+    user = await get_user(userid)
     if not user:
-        return jsonify({"message": "no such user"}), HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="User does not exist."
+        )
     update_user_extension(
-        user_id=g.data["userid"], extension=g.data["extension"], active=g.data["active"]
+        user_id=userid, extension=extension, active=active
     )
-    return jsonify({"extension": "updated"}), HTTPStatus.CREATED
+    return {"extension": "updated"}
 
 
 ###Wallets
