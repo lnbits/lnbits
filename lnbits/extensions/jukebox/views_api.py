@@ -30,7 +30,7 @@ from .crud import (
 )
 
 
-@jukebox_ext.get("/api/v1/jukebox", status_code=HTTPStatus.OK)
+@jukebox_ext.get("/api/v1/jukebox")
 async def api_get_jukeboxs(
     req: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -54,7 +54,7 @@ async def api_get_jukeboxs(
 ##################SPOTIFY AUTH#####################
 
 
-@jukebox_ext.get("/api/v1/jukebox/spotify/cb/<juke_id>", status_code=HTTPStatus.OK)
+@jukebox_ext.get("/api/v1/jukebox/spotify/cb/<juke_id>")
 async def api_check_credentials_callbac(
     juke_id: str = Query(None),
     code: str = Query(None),
@@ -85,7 +85,7 @@ async def api_check_credentials_callbac(
     return "<h1>Success!</h1><h2>You can close this window</h2>"
 
 
-@jukebox_ext.get("/api/v1/jukebox/{juke_id}", status_code=HTTPStatus.OK)
+@jukebox_ext.get("/api/v1/jukebox/{juke_id}")
 async def api_check_credentials_check(
     juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -110,7 +110,7 @@ async def api_create_update_jukebox(
     return jukebox.dict()
 
 
-@jukebox_ext.delete("/api/v1/jukebox/{juke_id}", status_code=HTTPStatus.OK)
+@jukebox_ext.delete("/api/v1/jukebox/{juke_id}")
 async def api_delete_item(
     juke_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -130,9 +130,7 @@ async def api_delete_item(
 ######GET ACCESS TOKEN######
 
 
-@jukebox_ext.get(
-    "/api/v1/jukebox/jb/playlist/{juke_id}/{sp_playlist}", status_code=HTTPStatus.OK
-)
+@jukebox_ext.get("/api/v1/jukebox/jb/playlist/{juke_id}/{sp_playlist}")
 async def api_get_jukebox_song(
     juke_id: str = Query(None),
     sp_playlist: str = Query(None),
@@ -225,7 +223,7 @@ async def api_get_token(juke_id=None):
 ######CHECK DEVICE
 
 
-@jukebox_ext.get("/api/v1/jukebox/jb/{juke_id}", status_code=HTTPStatus.OK)
+@jukebox_ext.get("/api/v1/jukebox/jb/{juke_id}")
 async def api_get_jukebox_device_check(
     juke_id: str = Query(None),
     retry: bool = Query(False),
@@ -270,9 +268,7 @@ async def api_get_jukebox_device_check(
 ######GET INVOICE STUFF
 
 
-@jukebox_ext.get(
-    "/api/v1/jukebox/jb/invoice/{juke_id}/{song_id}", status_code=HTTPStatus.OK
-)
+@jukebox_ext.get("/api/v1/jukebox/jb/invoice/{juke_id}/{song_id}")
 async def api_get_jukebox_invoice(
     juke_id: str = Query(None),
     song_id: str = Query(None),
@@ -314,9 +310,7 @@ async def api_get_jukebox_invoice(
     return {invoice, jukebox_payment}
 
 
-@jukebox_ext.get(
-    "/api/v1/jukebox/jb/checkinvoice/{pay_hash}/{juke_id}", status_code=HTTPStatus.OK
-)
+@jukebox_ext.get("/api/v1/jukebox/jb/checkinvoice/{pay_hash}/{juke_id}")
 async def api_get_jukebox_invoice_check(
     pay_hash: str = Query(None),
     juke_id: str = Query(None),
@@ -342,10 +336,7 @@ async def api_get_jukebox_invoice_check(
     return {"paid": False}
 
 
-@jukebox_ext.get(
-    "/api/v1/jukebox/jb/invoicep/{song_id}/{juke_id}/{pay_hash}",
-    status_code=HTTPStatus.OK,
-)
+@jukebox_ext.get("/api/v1/jukebox/jb/invoicep/{song_id}/{juke_id}/{pay_hash}")
 async def api_get_jukebox_invoice_paid(
     song_id: str = Query(None),
     juke_id: str = Query(None),
@@ -469,7 +460,7 @@ async def api_get_jukebox_invoice_paid(
 ############################GET TRACKS
 
 
-@jukebox_ext.get("/api/v1/jukebox/jb/currently/{juke_id}", status_code=HTTPStatus.OK)
+@jukebox_ext.get("/api/v1/jukebox/jb/currently/{juke_id}")
 async def api_get_jukebox_currently(
     retry: bool = Query(False),
     juke_id: str = Query(None),
