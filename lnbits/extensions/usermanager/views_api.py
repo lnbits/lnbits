@@ -5,7 +5,6 @@ from fastapi import Query
 from fastapi.params import Depends
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import usermanager_ext
@@ -89,61 +88,43 @@ async def api_usermanager_activate_extension(extension: str = Query(...), userid
 ###Wallets
 
 
-@usermanager_ext.route("/api/v1/wallets", methods=["POST"])
-@api_check_wallet_key(key_type="invoice")
-@api_validate_post_request(
-    schema={
-        "user_id": {"type": "string", "empty": False, "required": True},
-        "wallet_name": {"type": "string", "empty": False, "required": True},
-        "admin_id": {"type": "string", "empty": False, "required": True},
-    }
-)
-async def api_usermanager_wallets_create():
+@usermanager_ext.post("/api/v1/wallets")
+async def api_usermanager_wallets_create(
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    user_id: str = Query(...),
+    wallet_name: str = Query(...),
+    admin_id: str = Query(...)
+):
     user = await create_usermanager_wallet(
-        g.data["user_id"], g.data["wallet_name"], g.data["admin_id"]
+        user_id, wallet_name, admin_id
     )
-    return jsonify(user._asdict()), HTTPStatus.CREATED
+    return user.dict()
 
 
-@usermanager_ext.route("/api/v1/wallets", methods=["GET"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallets():
-    admin_id = g.wallet.user
-    return (
-        jsonify(
-            [wallet._asdict() for wallet in await get_usermanager_wallets(admin_id)]
-        ),
-        HTTPStatus.OK,
-    )
+@usermanager_ext.get("/api/v1/wallets")
+async def api_usermanager_wallets(wallet: WalletTypeInfo = Depends(get_key_type)):
+    admin_id = wallet.wallet.user
+    return [wallet.dict() for wallet in await get_usermanager_wallets(admin_id)]
 
 
-@usermanager_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallet_transactions(wallet_id):
-    return jsonify(await get_usermanager_wallet_transactions(wallet_id)), HTTPStatus.OK
+@usermanager_ext.get("/api/v1/wallets/{wallet_id}")
+async def api_usermanager_wallet_transactions(wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+    return await get_usermanager_wallet_transactions(wallet_id)
 
 
-@usermanager_ext.route("/api/v1/wallets/<user_id>", methods=["GET"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_users_wallets(user_id):
-    wallet = await get_usermanager_users_wallets(user_id)
-    return (
-        jsonify(
-            [
-                wallet._asdict()
-                for wallet in await get_usermanager_users_wallets(user_id)
-            ]
-        ),
-        HTTPStatus.OK,
-    )
+@usermanager_ext.get("/api/v1/wallets/{user_id}")
+async def api_usermanager_users_wallets(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+    # wallet = await get_usermanager_users_wallets(user_id)
+    return [s_wallet.dict() for s_wallet in await get_usermanager_users_wallets(user_id)]
 
 
-@usermanager_ext.route("/api/v1/wallets/<wallet_id>", methods=["DELETE"])
-@api_check_wallet_key(key_type="invoice")
-async def api_usermanager_wallets_delete(wallet_id):
-    wallet = await get_usermanager_wallet(wallet_id)
-    if not wallet:
-        return jsonify({"message": "Wallet does not exist."}), HTTPStatus.NOT_FOUND
-
-    await delete_usermanager_wallet(wallet_id, wallet.user)
-    return "", HTTPStatus.NO_CONTENT
+@usermanager_ext.delete("/api/v1/wallets/{wallet_id}")
+async def api_usermanager_wallets_delete(wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+    get_wallet = await get_usermanager_wallet(wallet_id)
+    if not get_wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet does not exist."
+        )
+    await delete_usermanager_wallet(wallet_id, get_wallet.user)
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
