@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from . import db
-from .models import Jukebox, JukeboxPayment, CreateJukeLinkData
+from .models import Jukebox, JukeboxPayment, CreateJukeLinkData, CreateJukeboxPayment
 from lnbits.helpers import urlsafe_short_hash
 
 
@@ -61,7 +61,6 @@ async def get_jukebox_by_user(user: str) -> Optional[Jukebox]:
 async def get_jukeboxs(user: str) -> List[Jukebox]:
     rows = await db.fetchall("SELECT * FROM jukebox.jukebox WHERE user = ?", (user,))
     for row in rows:
-
         if row.sp_playlists == None:
             print("cunt")
             await delete_jukebox(row.id)
@@ -82,22 +81,20 @@ async def delete_jukebox(juke_id: str):
 #####################################PAYMENTS
 
 
-async def create_jukebox_payment(
-    song_id: str, payment_hash: str, juke_id: str
-) -> JukeboxPayment:
+async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
     result = await db.execute(
         """
         INSERT INTO jukebox.jukebox_payment (payment_hash, juke_id, song_id, paid)
         VALUES (?, ?, ?, ?)
         """,
         (
-            payment_hash,
-            juke_id,
-            song_id,
+            data.payment_hash,
+            data.juke_id,
+            data.song_id,
             False,
         ),
     )
-    jukebox_payment = await get_jukebox_payment(payment_hash)
+    jukebox_payment = await get_jukebox_payment(data.payment_hash)
     assert jukebox_payment, "Newly created Jukebox Payment couldn't be retrieved"
     return jukebox_payment
 

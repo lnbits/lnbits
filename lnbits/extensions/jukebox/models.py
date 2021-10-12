@@ -40,3 +40,11 @@ class JukeboxPayment(BaseModel):
     juke_id: str
     song_id: str
     paid: bool
+
+
+class CreateJukeboxPayment(BaseModel):
+    invoice: str = Query(None)
+    payment_hash: str = Query(None)
+    juke_id: str = Query(None)
+    song_id: str = Query(None)
+    paid: bool = Query(False)

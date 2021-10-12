@@ -157,8 +157,9 @@
               song_id
           )
           .then(function (response) {
-            self.receive.paymentReq = response.data[0][1]
-            self.receive.paymentHash = response.data[0][0]
+            console.log(response.data)
+            self.receive.paymentReq = response.data.invoice
+            self.receive.paymentHash = response.data.payment_hash
             self.receive.dialogues.second = true
             dialog.data = response.data
 
@@ -187,8 +188,10 @@
                           self.receive.paymentHash
                       )
                       .then(function (ress) {
+                        console.log('ress')
                         console.log(ress)
-                        if (ress.data[2] == self.receive.id) {
+                        console.log('ress')
+                        if (ress.data.song_id == self.receive.id) {
                           clearInterval(dialog.paymentChecker)
                           dialog.dismissMsg()
                           self.receive.dialogues.second = false

@@ -9,7 +9,7 @@ import json
 from typing import Optional
 from fastapi.params import Depends
 from fastapi.param_functions import Query
-from .models import CreateJukeLinkData
+from .models import CreateJukeLinkData, CreateJukeboxPayment
 from lnbits.decorators import (
     check_user_exists,
     WalletTypeInfo,
@@ -258,10 +258,7 @@ async def api_get_jukebox_device_check(
 
 
 @jukebox_ext.get("/api/v1/jukebox/jb/invoice/{juke_id}/{song_id}")
-async def api_get_jukebox_invoice(
-    juke_id: str = Query(None),
-    song_id: str = Query(None),
-):
+async def api_get_jukebox_invoice(juke_id, song_id):
     try:
         jukebox = await get_jukebox(juke_id)
         print(jukebox)
@@ -271,6 +268,7 @@ async def api_get_jukebox_invoice(
             detail="No jukebox",
         )
     try:
+
         devices = await api_get_jukebox_device_check(juke_id)
         deviceConnected = False
         for device in devices["devices"]:
@@ -294,9 +292,14 @@ async def api_get_jukebox_invoice(
         extra={"tag": "jukebox"},
     )
 
-    jukebox_payment = await create_jukebox_payment(song_id, invoice[0], juke_id)
+    payment_hash = invoice[0]
+    data = CreateJukeboxPayment(
+        invoice=invoice[1], payment_hash=payment_hash, juke_id=juke_id, song_id=song_id
+    )
+    jukebox_payment = await create_jukebox_payment(data)
+    print(data)
 
-    return {invoice, jukebox_payment}
+    return data
 
 
 @jukebox_ext.get("/api/v1/jukebox/jb/checkinvoice/{pay_hash}/{juke_id}")
@@ -368,7 +371,7 @@ async def api_get_jukebox_invoice_paid(
                         headers={"Authorization": "Bearer " + jukebox.sp_access_token},
                     )
                     if r.status_code == 204:
-                        return jsonify(jukebox_payment), HTTPStatus.OK
+                        return jukebox_payment
                     elif r.status_code == 401 or r.status_code == 403:
                         token = await api_get_token(juke_id)
                         if token == False:
