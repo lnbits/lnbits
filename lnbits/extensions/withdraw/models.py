@@ -62,7 +62,7 @@ class WithdrawLink(BaseModel):
 
     def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
         url = req.url_for(
-            "withdraw.api_lnurl_callback", unique_hash=self.unique_hash, _external=True
+            name="withdraw.api_lnurl_callback", unique_hash=self.unique_hash
         )
         return LnurlWithdrawResponse(
             callback=url,

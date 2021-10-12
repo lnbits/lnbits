@@ -3,7 +3,9 @@ from http import HTTPStatus
 from datetime import datetime
 
 from lnbits.core.services import pay_invoice
+from fastapi.param_functions import Query
 from starlette.requests import Request
+from starlette.exceptions import HTTPException
 
 from . import withdraw_ext
 from .crud import get_withdraw_link_by_hash, update_withdraw_link
@@ -80,19 +82,17 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
         #     HTTPStatus.OK,
         # )
 
-    return link.lnurl_response(request).dict()
+    return link.lnurl_response(req=request).dict()
 
 
 # CALLBACK
 
 
 @withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", status_code=HTTPStatus.OK, name="withdraw.api_lnurl_callback")
-async def api_lnurl_callback(unique_hash):
+async def api_lnurl_callback(unique_hash, k1: str = Query(...), pr: str = Query(...)):
     link = await get_withdraw_link_by_hash(unique_hash)
-    k1 = request.query_params['k1']
-    payment_request = request.query_params['pr']
+    payment_request = pr
     now = int(datetime.now().timestamp())
-
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

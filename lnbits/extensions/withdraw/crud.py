@@ -61,7 +61,7 @@ async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     # for item in row:
     #     link.append(item)
     # link.append(num)
-    print("GET_LINK", WithdrawLink.from_row(row))
+    # print("GET_LINK", WithdrawLink.from_row(row))
     return WithdrawLink.from_row(row)
 
 
