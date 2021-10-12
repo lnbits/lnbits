@@ -19,7 +19,6 @@ from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 from lnbits.core.models import User
 import base64
 
-
 templates = Jinja2Templates(directory="templates")
 
 

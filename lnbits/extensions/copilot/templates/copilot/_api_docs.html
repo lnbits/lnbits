@@ -35,7 +35,7 @@
             &lt;string&gt;, "animation": &lt;string&gt;,
             "show_message":&lt;string&gt;, "amount": &lt;integer&gt;,
             "lnurl_title": &lt;string&gt;}' -H "Content-type: application/json"
-            -H "X-Api-Key: {{g.user.wallets[0].adminkey }}"
+            -H "X-Api-Key: {{user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -63,7 +63,7 @@
             "animation": &lt;string&gt;, "show_message":&lt;string&gt;,
             "amount": &lt;integer&gt;, "lnurl_title": &lt;string&gt;}' -H
             "Content-type: application/json" -H "X-Api-Key:
-            {{g.user.wallets[0].adminkey }}"
+            {{user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -88,7 +88,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}api/v1/copilot/&lt;copilot_id&gt;
-            -H "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -111,7 +111,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}api/v1/copilots -H "X-Api-Key: {{
-            g.user.wallets[0].inkey }}"
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -137,7 +137,7 @@
           <code
             >curl -X DELETE {{ request.url_root
             }}api/v1/copilot/&lt;copilot_id&gt; -H "X-Api-Key: {{
-            g.user.wallets[0].adminkey }}"
+            user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -163,7 +163,7 @@
           <code
             >curl -X GET {{ request.url_root }}/api/v1/copilot/ws/&lt;string,
             copilot_id&gt;/&lt;string, comment&gt;/&lt;string, gif name&gt; -H
-            "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+            "X-Api-Key: {{ user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
