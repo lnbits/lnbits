@@ -2,6 +2,8 @@ from typing import NamedTuple
 from sqlite3 import Row
 from fastapi.param_functions import Query
 from pydantic.main import BaseModel
+from pydantic import BaseModel
+from typing import Optional
 
 
 class CreateJukeLinkData(BaseModel):
@@ -17,32 +19,24 @@ class CreateJukeLinkData(BaseModel):
     price: str = Query(None)
 
 
-class Jukebox(NamedTuple):
-    id: str
-    user: str
-    title: str
-    wallet: str
-    inkey: str
-    sp_user: str
-    sp_secret: str
-    sp_access_token: str
-    sp_refresh_token: str
-    sp_device: str
-    sp_playlists: str
-    price: int
-    profit: int
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Jukebox":
-        return cls(**dict(row))
+class Jukebox(BaseModel):
+    id: Optional[str]
+    user: Optional[str]
+    title: Optional[str]
+    wallet: Optional[str]
+    inkey: Optional[str]
+    sp_user: Optional[str]
+    sp_secret: Optional[str]
+    sp_access_token: Optional[str]
+    sp_refresh_token: Optional[str]
+    sp_device: Optional[str]
+    sp_playlists: Optional[str]
+    price: Optional[int]
+    profit: Optional[int]
 
 
-class JukeboxPayment(NamedTuple):
+class JukeboxPayment(BaseModel):
     payment_hash: str
     juke_id: str
     song_id: str
     paid: bool
-
-    @classmethod
-    def from_row(cls, row: Row) -> "JukeboxPayment":
-        return cls(**dict(row))

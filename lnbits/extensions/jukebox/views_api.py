@@ -38,11 +38,10 @@ async def api_get_jukeboxs(
 ):
     wallet_user = wallet.wallet.user
 
+    jukeboxs = [jukebox.dict() for jukebox in await get_jukeboxs(wallet_user)]
+    print(jukeboxs)
     try:
-        return [
-            {**jukebox.dict(), "jukebox": jukebox.jukebox(req)}
-            for jukebox in await get_jukeboxs(wallet_user)
-        ]
+        return jukeboxs
 
     except:
         raise HTTPException(
@@ -54,7 +53,7 @@ async def api_get_jukeboxs(
 ##################SPOTIFY AUTH#####################
 
 
-@jukebox_ext.get("/api/v1/jukebox/spotify/cb/<juke_id>")
+@jukebox_ext.get("/api/v1/jukebox/spotify/cb/{juke_id}", response_class=HTMLResponse)
 async def api_check_credentials_callbac(
     juke_id: str = Query(None),
     code: str = Query(None),
@@ -69,19 +68,12 @@ async def api_check_credentials_callbac(
     except:
         raise HTTPException(detail="No Jukebox", status_code=HTTPStatus.FORBIDDEN)
     if code:
-        sp_code = code
-        jukebox = await update_jukebox(
-            juke_id=juke_id, sp_secret=jukebox.sp_secret, sp_access_token=sp_code
-        )
+        jukebox.sp_access_token = code
+        jukebox = await update_jukebox(jukebox, juke_id=juke_id)
     if access_token:
-        sp_access_token = access_token
-        sp_refresh_token = refresh_token
-        jukebox = await update_jukebox(
-            juke_id=juke_id,
-            sp_secret=jukebox.sp_secret,
-            sp_access_token=sp_access_token,
-            sp_refresh_token=sp_refresh_token,
-        )
+        jukebox.sp_access_token = access_token
+        jukebox.sp_refresh_token = refresh_token
+        jukebox = await update_jukebox(jukebox, juke_id=juke_id)
     return "<h1>Success!</h1><h2>You can close this window</h2>"
 
 
@@ -103,11 +95,10 @@ async def api_create_update_jukebox(
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     if juke_id:
-        jukebox = await update_jukebox(juke_id=juke_id, inkey=g.wallet.inkey, **g.data)
+        jukebox = await update_jukebox(data, juke_id=juke_id)
     else:
-        jukebox = await create_jukebox(inkey=g.wallet.inkey, **g.data)
-
-    return jukebox.dict()
+        jukebox = await create_jukebox(data, inkey=wallet.wallet.inkey)
+    return jukebox
 
 
 @jukebox_ext.delete("/api/v1/jukebox/{juke_id}")
@@ -117,7 +108,7 @@ async def api_delete_item(
 ):
     await delete_jukebox(juke_id)
     try:
-        return [{**jukebox.dict()} for jukebox in await get_jukeboxs(g.wallet.user)]
+        return [{**jukebox} for jukebox in await get_jukeboxs(wallet.wallet.user)]
     except:
         raise HTTPException(
             status_code=HTTPStatus.NO_CONTENT,
@@ -212,9 +203,8 @@ async def api_get_token(juke_id=None):
             if "access_token" not in r.json():
                 return False
             else:
-                await update_jukebox(
-                    juke_id=juke_id, sp_access_token=r.json()["access_token"]
-                )
+                jukebox.sp_access_token = r.json()["access_token"]
+                await update_jukebox(jukebox, juke_id=juke_id)
         except:
             something = None
     return True
@@ -241,9 +231,8 @@ async def api_get_jukebox_device_check(
             timeout=40,
             headers={"Authorization": "Bearer " + jukebox.sp_access_token},
         )
-
         if rDevice.status_code == 204 or rDevice.status_code == 200:
-            return rDevice
+            return json.loads(rDevice.text)
         elif rDevice.status_code == 401 or rDevice.status_code == 403:
             token = await api_get_token(juke_id)
             if token == False:
@@ -275,14 +264,14 @@ async def api_get_jukebox_invoice(
 ):
     try:
         jukebox = await get_jukebox(juke_id)
+        print(jukebox)
     except:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="No jukebox",
         )
     try:
-        deviceCheck = await api_get_jukebox_device_check(juke_id)
-        devices = json.loads(deviceCheck[0].text)
+        devices = await api_get_jukebox_device_check(juke_id)
         deviceConnected = False
         for device in devices["devices"]:
             if device["id"] == jukebox.sp_device.split("-")[1]:

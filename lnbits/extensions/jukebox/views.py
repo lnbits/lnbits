@@ -31,15 +31,13 @@ async def connect_to_jukebox(request: Request, juke_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Jukebox does not exist."
         )
-    deviceCheck = await api_get_jukebox_device_check(juke_id)
-    devices = json.loads(deviceCheck[0].text)
-    deviceConnected = False
+    devices = await api_get_jukebox_device_check(juke_id)
     for device in devices["devices"]:
         if device["id"] == jukebox.sp_device.split("-")[1]:
             deviceConnected = True
     if deviceConnected:
         return jukebox_renderer().TemplateResponse(
-            "jukebox/display.html",
+            "jukebox/jukebox.html",
             {
                 "request": request,
                 "playlists": jukebox.sp_playlists.split(","),

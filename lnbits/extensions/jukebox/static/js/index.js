@@ -3,17 +3,25 @@
 Vue.component(VueQrcode.name, VueQrcode)
 
 var mapJukebox = obj => {
-  obj._data = _.clone(obj)
-  obj.sp_id = obj.id
-  obj.device = obj.sp_device.split('-')[0]
-  playlists = obj.sp_playlists.split(',')
-  var i
-  playlistsar = []
-  for (i = 0; i < playlists.length; i++) {
-    playlistsar.push(playlists[i].split('-')[0])
+  if(obj.sp_device){
+    obj._data = _.clone(obj)
+   
+    obj.sp_id = obj._data.id
+    obj.device = obj._data.sp_device.split('-')[0]
+    playlists = obj._data.sp_playlists.split(',')
+    var i
+    playlistsar = []
+    for (i = 0; i < playlists.length; i++) {
+      playlistsar.push(playlists[i].split('-')[0])
+    }
+    obj.playlist = playlistsar.join()
+    console.log(obj)
+    return obj
   }
-  obj.playlist = playlistsar.join()
-  return obj
+  else {
+    return
+  }
+  
 }
 
 new Vue({
@@ -79,13 +87,14 @@ new Vue({
       var link = _.findWhere(this.JukeboxLinks, {id: linkId})
 
       this.qrCodeDialog.data = _.clone(link)
-      console.log(this.qrCodeDialog.data)
+    
       this.qrCodeDialog.data.url =
         window.location.protocol + '//' + window.location.host
       this.qrCodeDialog.show = true
     },
     getJukeboxes() {
       self = this
+      
       LNbits.api
         .request(
           'GET',
@@ -93,10 +102,11 @@ new Vue({
           self.g.user.wallets[0].adminkey
         )
         .then(function (response) {
-          self.JukeboxLinks = response.data.map(mapJukebox)
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
+          self.JukeboxLinks = response.data.map(function (obj) {
+
+                return mapJukebox(obj)
+          })
+          console.log(self.JukeboxLinks)
         })
     },
     deleteJukebox(juke_id) {
@@ -125,7 +135,6 @@ new Vue({
       self = this
       var link = _.findWhere(self.JukeboxLinks, {id: linkId})
       self.jukeboxDialog.data = _.clone(link._data)
-      console.log(this.jukeboxDialog.data.sp_access_token)
 
       self.refreshDevices()
       self.refreshPlaylists()
@@ -145,7 +154,7 @@ new Vue({
     submitSpotifyKeys() {
       self = this
       self.jukeboxDialog.data.user = self.g.user.id
-
+      
       LNbits.api
         .request(
           'POST',
@@ -193,9 +202,6 @@ new Vue({
               if (self.jukeboxDialog.data.sp_access_token) {
                 self.refreshPlaylists()
                 self.refreshDevices()
-                console.log('this.devices')
-                console.log(self.devices)
-                console.log('this.devices')
                 setTimeout(function () {
                   if (self.devices.length < 1 || self.playlists.length < 1) {
                     self.$q.notify({
@@ -259,16 +265,14 @@ new Vue({
     },
     updateDB() {
       self = this
-      console.log(self.jukeboxDialog.data)
       LNbits.api
         .request(
           'PUT',
-          '/jukebox/api/v1/jukebox/' + this.jukeboxDialog.data.sp_id,
+          '/jukebox/api/v1/jukebox/' + self.jukeboxDialog.data.sp_id,
           self.g.user.wallets[0].adminkey,
           self.jukeboxDialog.data
         )
         .then(function (response) {
-          console.log(response.data)
           if (
             self.jukeboxDialog.data.sp_playlists &&
             self.jukeboxDialog.data.sp_devices
@@ -307,7 +311,6 @@ new Vue({
             responseObj.items[i].name + '-' + responseObj.items[i].id
           )
         }
-        console.log(self.playlists)
       }
     },
     refreshPlaylists() {
@@ -372,13 +375,6 @@ new Vue({
     },
     callAuthorizationApi(body) {
       self = this
-      console.log(
-        btoa(
-          self.jukeboxDialog.data.sp_user +
-            ':' +
-            self.jukeboxDialog.data.sp_secret
-        )
-      )
       let xhr = new XMLHttpRequest()
       xhr.open('POST', 'https://accounts.spotify.com/api/token', true)
       xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
@@ -403,7 +399,6 @@ new Vue({
     }
   },
   created() {
-    console.log(this.g.user.wallets[0])
     var getJukeboxes = this.getJukeboxes
     getJukeboxes()
     this.selectedWallet = this.g.user.wallets[0]
