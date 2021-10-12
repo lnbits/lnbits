@@ -73,3 +73,15 @@ async def on_invoice_paid(payment: Payment) -> None:
         await updater(copilot.id, data, payment.extra.get("comment"))
     else:
         await updater(copilot.id, data, "none")
+
+
+async def mark_webhook_sent(payment: Payment, status: int) -> None:
+    payment.extra["wh_status"] = status
+
+    await core_db.execute(
+        """
+        UPDATE apipayments SET extra = ?
+        WHERE hash = ?
+        """,
+        (json.dumps(payment.extra), payment.payment_hash),
+    )

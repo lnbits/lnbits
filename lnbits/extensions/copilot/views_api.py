@@ -76,7 +76,7 @@ async def api_copilot_retrieve(
 @copilot_ext.delete("/api/v1/copilot/{copilot_id}", response_class=HTMLResponse)
 async def api_copilot_delete(
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker()),
+    wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     copilot = await get_copilot(copilot_id)
 

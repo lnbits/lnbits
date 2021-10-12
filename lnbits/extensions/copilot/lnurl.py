@@ -17,7 +17,6 @@ from .crud import get_copilot
 from typing import Optional
 from fastapi.params import Depends
 from fastapi.param_functions import Query
-from .models import CreateJukeLinkData, CreateJukeboxPayment
 
 
 @copilot_ext.get("/lnurl/{cp_id}", response_class=HTMLResponse)

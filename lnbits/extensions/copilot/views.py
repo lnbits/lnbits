@@ -23,21 +23,21 @@ import base64
 templates = Jinja2Templates(directory="templates")
 
 
-@copilot_ext.route("/", response_class=HTMLResponse)
+@copilot_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return copilot_renderer().TemplateResponse(
         "copilot/index.html", {"request": request, "user": user.dict()}
     )
 
 
-@copilot_ext.route("/cp/", response_class=HTMLResponse)
+@copilot_ext.get("/cp/", response_class=HTMLResponse)
 async def compose(request: Request):
     return copilot_renderer().TemplateResponse(
         "copilot/compose.html", {"request": request}
     )
 
 
-@copilot_ext.route("/pn/", response_class=HTMLResponse)
+@copilot_ext.get("/pn/", response_class=HTMLResponse)
 async def panel(request: Request):
     return copilot_renderer().TemplateResponse(
         "copilot/panel.html", {"request": request}
@@ -52,25 +52,25 @@ async def panel(request: Request):
 connected_websockets = defaultdict(set)
 
 
-# @copilot_ext.websocket("/ws/{id}/")
-# async def websocket_endpoint(websocket: WebSocket, id: str = Query(None)):
-#    copilot = await get_copilot(id)
-#    if not copilot:
-#        return "", HTTPStatus.FORBIDDEN
-#    await websocket.accept()
-#    invoice_queue = asyncio.Queue()
-#    connected_websockets[id].add(invoice_queue)
-#    try:
-#        while True:
-#            data = await websocket.receive_text()
-#            await websocket.send_text(f"Message text was: {data}")
-#    finally:
-#        connected_websockets[id].remove(invoice_queue)
+@copilot_ext.websocket("/ws/{id}/")
+async def websocket_endpoint(websocket: WebSocket, id: str = Query(None)):
+    copilot = await get_copilot(id)
+    if not copilot:
+        return "", HTTPStatus.FORBIDDEN
+    await websocket.accept()
+    invoice_queue = asyncio.Queue()
+    connected_websockets[id].add(invoice_queue)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message text was: {data}")
+    finally:
+        connected_websockets[id].remove(invoice_queue)
 
 
-# async def updater(copilot_id, data, comment):
-#    copilot = await get_copilot(copilot_id)
-#    if not copilot:
-#        return
-#    for queue in connected_websockets[copilot_id]:
-#        await queue.send(f"{data + '-' + comment}")
+async def updater(copilot_id, data, comment):
+    copilot = await get_copilot(copilot_id)
+    if not copilot:
+        return
+    for queue in connected_websockets[copilot_id]:
+        await queue.send(f"{data + '-' + comment}")
