@@ -1,23 +1,36 @@
 import json
 import hashlib
 import math
-from quart import jsonify, url_for, request
+from fastapi import Request
+import hashlib
+from http import HTTPStatus
+
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
+import base64
 from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
 from lnurl.types import LnurlPayMetadata
 from lnbits.core.services import create_invoice
-
+from .models import Copilots, CreateCopilotData
 from . import copilot_ext
 from .crud import get_copilot
+from typing import Optional
+from fastapi.params import Depends
+from fastapi.param_functions import Query
+from .models import CreateJukeLinkData, CreateJukeboxPayment
 
 
-@copilot_ext.route("/lnurl/<cp_id>", methods=["GET"])
-async def lnurl_response(cp_id):
+@copilot_ext.get("/lnurl/{cp_id}", response_class=HTMLResponse)
+async def lnurl_response(req: Request, cp_id: str = Query(None)):
     cp = await get_copilot(cp_id)
     if not cp:
-        return jsonify({"status": "ERROR", "reason": "Copilot not found."})
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Copilot not found",
+        )
 
     resp = LnurlPayResponse(
-        callback=url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
+        callback=req.url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
         min_sendable=10000,
         max_sendable=50000000,
         metadata=LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]])),
@@ -27,42 +40,36 @@ async def lnurl_response(cp_id):
     if cp.show_message:
         params["commentAllowed"] = 300
 
-    return jsonify(params)
+    return params
 
 
-@copilot_ext.route("/lnurl/cb/<cp_id>", methods=["GET"])
-async def lnurl_callback(cp_id):
+@copilot_ext.get("/lnurl/cb/{cp_id}", response_class=HTMLResponse)
+async def lnurl_callback(
+    cp_id: str = Query(None), amount: str = Query(None), comment: str = Query(None)
+):
     cp = await get_copilot(cp_id)
     if not cp:
-        return jsonify({"status": "ERROR", "reason": "Copilot not found."})
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Copilot not found",
+        )
 
-    amount_received = int(request.args.get("amount"))
+    amount_received = int(amount)
 
     if amount_received < 10000:
-        return (
-            jsonify(
-                LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum 10 sats."
-                ).dict()
-            ),
-        )
+        return LnurlErrorResponse(
+            reason=f"Amount {round(amount_received / 1000)} is smaller than minimum 10 sats."
+        ).dict()
     elif amount_received / 1000 > 10000000:
-        return (
-            jsonify(
-                LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum 50000."
-                ).dict()
-            ),
-        )
+        return LnurlErrorResponse(
+            reason=f"Amount {round(amount_received / 1000)} is greater than maximum 50000."
+        ).dict()
     comment = ""
-    if request.args.get("comment"):
-        comment = request.args.get("comment")
+    if comment:
         if len(comment or "") > 300:
-            return jsonify(
-                LnurlErrorResponse(
-                    reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
-                ).dict()
-            )
+            return LnurlErrorResponse(
+                reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
+            ).dict()
         if len(comment) < 1:
             comment = "none"
 
@@ -83,4 +90,4 @@ async def lnurl_callback(cp_id):
         disposable=False,
         routes=[],
     )
-    return jsonify(resp.dict())
+    return resp.dict()

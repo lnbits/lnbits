@@ -1,15 +1,12 @@
 import asyncio
-
 from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Mount
-
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_copilot")
-
 
 copilot_static_files = [
     {
@@ -18,11 +15,7 @@ copilot_static_files = [
         "name": "copilot_static",
     }
 ]
-copilot_ext: APIRouter = APIRouter(
-    prefix="/copilot",
-    tags=["copilot"]
-    # "lnurlp", __name__, static_folder="static", template_folder="templates"
-)
+copilot_ext: APIRouter = APIRouter(prefix="/copilot", tags=["copilot"])
 
 
 def copilot_renderer():

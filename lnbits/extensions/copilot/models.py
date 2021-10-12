@@ -9,7 +9,7 @@ from sqlite3 import Row
 from pydantic import BaseModel
 
 
-class CreateCopilots(BaseModel):
+class CreateCopilotData(BaseModel):
     id: str = Query(None)
     user: str = Query(None)
     title: str = Query(None)
