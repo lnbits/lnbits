@@ -6,23 +6,22 @@ from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
 
-db = Database("ext_jukebox")
+db = Database("ext_copilot")
 
-jukebox_static_files = [
+copilot_static_files = [
     {
-        "path": "/jukebox/static",
-        "app": StaticFiles(directory="lnbits/extensions/jukebox/static"),
-        "name": "jukebox_static",
+        "path": "/copilot/static",
+        "app": StaticFiles(directory="lnbits/extensions/copilot/static"),
+        "name": "copilot_static",
     }
 ]
+copilot_ext: APIRouter = APIRouter(prefix="/copilot", tags=["copilot"])
 
-jukebox_ext: APIRouter = APIRouter(prefix="/jukebox", tags=["jukebox"])
 
-
-def jukebox_renderer():
+def copilot_renderer():
     return template_renderer(
         [
-            "lnbits/extensions/jukebox/templates",
+            "lnbits/extensions/copilot/templates",
         ]
     )
 
@@ -30,8 +29,9 @@ def jukebox_renderer():
 from .views_api import *  # noqa
 from .views import *  # noqa
 from .tasks import wait_for_paid_invoices
+from .lnurl import *  # noqa
 
 
-def jukebox_start():
+def copilot_start():
     loop = asyncio.get_event_loop()
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
