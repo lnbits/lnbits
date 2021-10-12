@@ -36,7 +36,7 @@ async def api_get_jukeboxs(
     wallet: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
 ):
-    wallet_user = wallet.wallet[0].user
+    wallet_user = wallet.wallet.user
 
     try:
         return [
