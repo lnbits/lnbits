@@ -42,8 +42,10 @@ async def api_copilot_create_or_update(
     copilot_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
+    print(data)
     if not copilot_id:
-        copilot = await create_copilot(data, user=wallet.wallet.user)
+        copilot = await create_copilot(data, inkey=wallet.wallet.inkey)
+
         return copilot, HTTPStatus.CREATED
     else:
         copilot = await update_copilot(data, copilot_id=copilot_id)
@@ -53,7 +55,8 @@ async def api_copilot_create_or_update(
 @copilot_ext.get("/api/v1/copilot", response_class=HTMLResponse)
 async def api_copilots_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
-        return [{copilot} for copilot in await get_copilots(wallet.wallet.user)]
+        print(wallet.wallet.user)
+        return [copilot.dict() for copilot in await get_copilots(wallet.wallet.user)]
     except:
         return ""
 

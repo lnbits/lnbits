@@ -16,7 +16,7 @@ async def create_copilot(
         """
         INSERT INTO copilot.copilots (
             id,
-            "user",
+            user,
             lnurl_toggle,
             wallet,
             title,
@@ -70,21 +70,20 @@ async def update_copilot(copilot_id: str, **kwargs) -> Optional[Copilots]:
     row = await db.fetchone(
         "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
     )
-    return Copilots.from_row(row) if row else None
+    return Copilots(**row) if row else None
 
 
 async def get_copilot(copilot_id: str) -> Copilots:
     row = await db.fetchone(
         "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
     )
-    return Copilots.from_row(row) if row else None
+    return Copilots(**row) if row else None
 
 
 async def get_copilots(user: str) -> List[Copilots]:
-    rows = await db.fetchall(
-        """SELECT * FROM copilot.copilots WHERE "user" = ?""", (user,)
-    )
-    return [Copilots.from_row(row) for row in rows]
+    rows = await db.fetchall("SELECT * FROM copilot.copilots WHERE user = ?", (user,))
+    print(user)
+    return [Copilots(**row) for row in rows]
 
 
 async def delete_copilot(copilot_id: str) -> None:

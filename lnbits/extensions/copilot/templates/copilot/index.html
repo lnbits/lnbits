@@ -390,6 +390,7 @@
 
   var mapCopilot = obj => {
     obj._data = _.clone(obj)
+
     obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
     obj.time = obj.time + 'mins'
 
@@ -488,6 +489,8 @@
             self.formDialogCopilot.data
           )
         } else {
+          console.log(self.g.user.wallets[0].adminkey)
+          console.log(self.formDialogCopilot.data)
           this.createCopilot(
             self.g.user.wallets[0].adminkey,
             self.formDialogCopilot.data
@@ -512,6 +515,9 @@
             updatedData[property] = parseInt(data[property])
           }
         }
+        console.log('updatedData')
+        console.log(updatedData)
+        console.log('updatedData')
         LNbits.api
           .request('POST', '/copilot/api/v1/copilot', wallet, updatedData)
           .then(function (response) {
