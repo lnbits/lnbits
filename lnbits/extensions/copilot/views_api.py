@@ -69,11 +69,9 @@ async def api_copilot_create_or_update(
     copilot_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-    print("cunt")
 
     if not copilot_id:
         copilot = await create_copilot(data, inkey=wallet.wallet.inkey)
-
         return copilot, HTTPStatus.CREATED
     else:
         copilot = await update_copilot(data, copilot_id=copilot_id)

@@ -37,7 +37,7 @@ async def create_copilot(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            data.copilot_id,
+            copilot_id,
             data.user,
             int(data.lnurl_toggle),
             data.wallet,
