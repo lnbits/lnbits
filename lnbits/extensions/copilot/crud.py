@@ -32,9 +32,11 @@ async def create_copilot(
             show_message,
             show_ack,
             show_price,
+            fullscreen_cam,
+            iframe_url,
             amount_made
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             copilot_id,
@@ -56,16 +58,20 @@ async def create_copilot(
             int(data.show_ack),
             data.show_price,
             0,
+            None,
+            0,
         ),
     )
     return await get_copilot(copilot_id)
 
 
-async def update_copilot(copilot_id: str, **kwargs) -> Optional[Copilots]:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(
-        f"UPDATE copilot.copilots SET {q} WHERE id = ?", (*kwargs.values(), copilot_id)
-    )
+async def update_copilot(
+    data: CreateCopilotData, copilot_id: Optional[str] = ""
+) -> Optional[Copilots]:
+    q = ", ".join([f"{field[0]} = ?" for field in data])
+    items = [f"{field[1]}" for field in data]
+    items.append(copilot_id)
+    await db.execute(f"UPDATE copilot.copilots SET {q} WHERE id = ?", (items))
     row = await db.fetchone(
         "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
     )

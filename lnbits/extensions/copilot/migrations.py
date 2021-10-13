@@ -23,7 +23,7 @@ async def m001_initial(db):
             lnurl_title TEXT,
             show_message INTEGER,
             show_ack INTEGER,
-            show_price INTEGER,
+            show_price TEXT,
             amount_made INTEGER,
             fullscreen_cam INTEGER,
             iframe_url TEXT,
@@ -32,13 +32,16 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_fix_data_types(db):
     """
     Fix data types.
     """
-    
-    if(db.type != "SQLITE"):
-        await db.execute("ALTER TABLE copilot.copilots ALTER COLUMN show_price TYPE TEXT;")
+
+    if db.type != "SQLITE":
+        await db.execute(
+            "ALTER TABLE copilot.copilots ALTER COLUMN show_price TYPE TEXT;"
+        )
 
     # If needed, migration for SQLite (RENAME not working properly)
     #

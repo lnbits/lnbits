@@ -35,19 +35,22 @@ from .crud import (
 #######################COPILOT##########################
 
 
-@copilot_ext.get("/api/v1/copilot", response_class=HTMLResponse)
-async def api_copilots_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
+@copilot_ext.get("/api/v1/copilot")
+async def api_copilots_retrieve(
+    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     wallet_user = wallet.wallet.user
     copilots = [copilot.dict() for copilot in await get_copilots(wallet_user)]
-    if copilots:
+    try:
         return copilots
-    raise HTTPException(
-        status_code=HTTPStatus.NO_CONTENT,
-        detail="No Jukeboxes",
-    )
+    except:
+        raise HTTPException(
+            status_code=HTTPStatus.NO_CONTENT,
+            detail="No copilots",
+        )
 
 
-@copilot_ext.get("/api/v1/copilot/{copilot_id}", response_class=HTMLResponse)
+@copilot_ext.get("/api/v1/copilot/{copilot_id}")
 async def api_copilot_retrieve(
     copilot_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -62,23 +65,23 @@ async def api_copilot_retrieve(
     return {**copilot.dict(), **{"lnurl": copilot.lnurl}}
 
 
-@copilot_ext.post("/api/v1/copilot", response_class=HTMLResponse)
-@copilot_ext.put("/api/v1/copilot/{juke_id}", response_class=HTMLResponse)
+@copilot_ext.post("/api/v1/copilot")
+@copilot_ext.put("/api/v1/copilot/{juke_id}")
 async def api_copilot_create_or_update(
     data: CreateCopilotData,
     copilot_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-
-    if not copilot_id:
-        copilot = await create_copilot(data, inkey=wallet.wallet.inkey)
-        return copilot, HTTPStatus.CREATED
-    else:
+    data.user = wallet.wallet.user
+    data.wallet = wallet.wallet.id
+    if copilot_id:
         copilot = await update_copilot(data, copilot_id=copilot_id)
-        return copilot, HTTPStatus.NOT_FOUND
+    else:
+        copilot = await create_copilot(data, inkey=wallet.wallet.inkey)
+    return copilot
 
 
-@copilot_ext.delete("/api/v1/copilot/{copilot_id}", response_class=HTMLResponse)
+@copilot_ext.delete("/api/v1/copilot/{copilot_id}")
 async def api_copilot_delete(
     copilot_id: str = Query(None),
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -96,9 +99,7 @@ async def api_copilot_delete(
     return "", HTTPStatus.NO_CONTENT
 
 
-@copilot_ext.get(
-    "/api/v1/copilot/ws/{copilot_id}/{comment}/{data}", response_class=HTMLResponse
-)
+@copilot_ext.get("/api/v1/copilot/ws/{copilot_id}/{comment}/{data}")
 async def api_copilot_ws_relay(
     copilot_id: str = Query(None),
     comment: str = Query(None),
