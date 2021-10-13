@@ -1,23 +1,20 @@
 from datetime import datetime
 from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
-
+from typing import List, Optional
 from . import db
-from .models import satsdiceWithdraw, HashCheck, satsdiceLink, satsdicePayment
-
-##################SATSDICE PAY LINKS
+from .models import (
+    satsdiceWithdraw,
+    HashCheck,
+    satsdiceLink,
+    satsdicePayment,
+    CreateSatsDiceLink,
+)
+from lnbits.helpers import urlsafe_short_hash
 
 
 async def create_satsdice_pay(
-    *,
-    wallet_id: str,
-    title: str,
-    base_url: str,
-    min_bet: str,
-    max_bet: str,
-    multiplier: int = 0,
-    chance: float = 0,
-    haircut: int = 0,
+    data: CreateSatsDiceLink,
 ) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()
     await db.execute(
@@ -41,14 +38,14 @@ async def create_satsdice_pay(
         """,
         (
             satsdice_id,
-            wallet_id,
-            title,
-            base_url,
-            min_bet,
-            max_bet,
-            multiplier,
-            chance,
-            haircut,
+            data.wallet_id,
+            data.title,
+            data.base_url,
+            data.min_bet,
+            data.max_bet,
+            data.multiplier,
+            data.chance,
+            data.haircut,
             int(datetime.now().timestamp()),
         ),
     )
@@ -111,9 +108,7 @@ async def delete_satsdice_pay(link_id: int) -> None:
 ##################SATSDICE PAYMENT LINKS
 
 
-async def create_satsdice_payment(
-    *, satsdice_pay: str, value: int, payment_hash: str
-) -> satsdicePayment:
+async def create_satsdice_payment(data: CreateSatsDicePayment) -> satsdicePayment:
     await db.execute(
         """
         INSERT INTO satsdice.satsdice_payment (
@@ -126,9 +121,9 @@ async def create_satsdice_payment(
         VALUES (?, ?, ?, ?, ?)
         """,
         (
-            payment_hash,
-            satsdice_pay,
-            value,
+            data.payment_hash,
+            data.satsdice_pay,
+            data.value,
             False,
             False,
         ),
@@ -165,9 +160,7 @@ async def update_satsdice_payment(
 ##################SATSDICE WITHDRAW LINKS
 
 
-async def create_satsdice_withdraw(
-    *, payment_hash: str, satsdice_pay: str, value: int, used: int
-) -> satsdiceWithdraw:
+async def create_satsdice_withdraw(data: CreateSatsDiceWithdraw) -> satsdiceWithdraw:
     await db.execute(
         """
         INSERT INTO satsdice.satsdice_withdraw (
@@ -182,13 +175,13 @@ async def create_satsdice_withdraw(
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            payment_hash,
-            satsdice_pay,
-            value,
+            data.payment_hash,
+            data.satsdice_pay,
+            data.value,
             urlsafe_short_hash(),
             urlsafe_short_hash(),
             int(datetime.now().timestamp()),
-            used,
+            data.used,
         ),
     )
     withdraw = await get_satsdice_withdraw(payment_hash, 0)

@@ -1,11 +1,14 @@
 import json
-from quart import url_for
 from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from sqlite3 import Row
 from typing import NamedTuple, Optional, Dict
 import shortuuid  # type: ignore
+from fastapi.param_functions import Query
+from pydantic.main import BaseModel
+from pydantic import BaseModel
+from typing import Optional
 
 
 class satsdiceLink(NamedTuple):
@@ -120,3 +123,36 @@ class HashCheck(NamedTuple):
     @classmethod
     def from_row(cls, row: Row) -> "Hash":
         return cls(**dict(row))
+
+
+class CreateSatsDiceLink(BaseModel):
+    wallet_id: str = Query(None)
+    title: str = Query(None)
+    base_url: str = Query(None)
+    min_bet: str = Query(None)
+    max_bet: str = Query(None)
+    multiplier: int = Query(0)
+    chance: float = Query(0)
+    haircut: int = Query(0)
+
+
+class CreateSatsDicePayment(BaseModel):
+    satsdice_pay: str = Query(None)
+    value: int = Query(0)
+    payment_hash: str = Query(None)
+
+
+class CreateSatsDiceWithdraw(BaseModel):
+    payment_hash: str = Query(None)
+    satsdice_pay: str = Query(None)
+    value: int = Query(0)
+    used: int = Query(0)
+
+
+class CreateSatsDiceWithdraws(BaseModel):
+    title: str = Query(None)
+    min_satsdiceable: int = Query(0)
+    max_satsdiceable: int = Query(0)
+    uses: int = Query(0)
+    wait_time: str = Query(None)
+    is_unique: bool = Query(False)

@@ -3,7 +3,6 @@ import hashlib
 import math
 from http import HTTPStatus
 from datetime import datetime
-from quart import jsonify, url_for, request
 from lnbits.core.services import pay_invoice, create_invoice
 
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
