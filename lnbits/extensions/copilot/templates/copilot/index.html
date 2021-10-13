@@ -515,9 +515,6 @@
             updatedData[property] = parseInt(data[property])
           }
         }
-        console.log('updatedData')
-        console.log(updatedData)
-        console.log('updatedData')
         LNbits.api
           .request('POST', '/copilot/api/v1/copilot', wallet, updatedData)
           .then(function (response) {

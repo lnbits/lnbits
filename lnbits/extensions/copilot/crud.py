@@ -11,7 +11,6 @@ async def create_copilot(
     data: CreateCopilotData, inkey: Optional[str] = ""
 ) -> Copilots:
     copilot_id = urlsafe_short_hash()
-
     await db.execute(
         """
         INSERT INTO copilot.copilots (
@@ -82,7 +81,6 @@ async def get_copilot(copilot_id: str) -> Copilots:
 
 async def get_copilots(user: str) -> List[Copilots]:
     rows = await db.fetchall("SELECT * FROM copilot.copilots WHERE user = ?", (user,))
-    print(user)
     return [Copilots(**row) for row in rows]
 
 

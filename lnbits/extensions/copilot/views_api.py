@@ -35,30 +35,16 @@ from .crud import (
 #######################COPILOT##########################
 
 
-@copilot_ext.post("/api/v1/copilot", response_class=HTMLResponse)
-@copilot_ext.put("/api/v1/copilot/{juke_id}", response_class=HTMLResponse)
-async def api_copilot_create_or_update(
-    data: CreateCopilotData,
-    copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
-):
-    print(data)
-    if not copilot_id:
-        copilot = await create_copilot(data, inkey=wallet.wallet.inkey)
-
-        return copilot, HTTPStatus.CREATED
-    else:
-        copilot = await update_copilot(data, copilot_id=copilot_id)
-        return copilot
-
-
 @copilot_ext.get("/api/v1/copilot", response_class=HTMLResponse)
 async def api_copilots_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
-    try:
-        print(wallet.wallet.user)
-        return [copilot.dict() for copilot in await get_copilots(wallet.wallet.user)]
-    except:
-        return ""
+    wallet_user = wallet.wallet.user
+    copilots = [copilot.dict() for copilot in await get_copilots(wallet_user)]
+    if copilots:
+        return copilots
+    raise HTTPException(
+        status_code=HTTPStatus.NO_CONTENT,
+        detail="No Jukeboxes",
+    )
 
 
 @copilot_ext.get("/api/v1/copilot/{copilot_id}", response_class=HTMLResponse)
@@ -74,6 +60,24 @@ async def api_copilot_retrieve(
     if not copilot.lnurl_toggle:
         return copilot.dict()
     return {**copilot.dict(), **{"lnurl": copilot.lnurl}}
+
+
+@copilot_ext.post("/api/v1/copilot", response_class=HTMLResponse)
+@copilot_ext.put("/api/v1/copilot/{juke_id}", response_class=HTMLResponse)
+async def api_copilot_create_or_update(
+    data: CreateCopilotData,
+    copilot_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
+    print("cunt")
+
+    if not copilot_id:
+        copilot = await create_copilot(data, inkey=wallet.wallet.inkey)
+
+        return copilot, HTTPStatus.CREATED
+    else:
+        copilot = await update_copilot(data, copilot_id=copilot_id)
+        return copilot, HTTPStatus.NOT_FOUND
 
 
 @copilot_ext.delete("/api/v1/copilot/{copilot_id}", response_class=HTMLResponse)
