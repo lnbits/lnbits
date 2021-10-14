@@ -1,4 +1,5 @@
 from sqlite3 import Row
+from typing import Optional
 from fastapi.param_functions import Query
 from pydantic import BaseModel
 import time
@@ -16,15 +17,15 @@ class CreateCharge(BaseModel):
 class Charges(BaseModel):
     id: str
     user: str
-    description: str
-    onchainwallet: str
-    onchainaddress: str
-    lnbitswallet: str
+    description: Optional[str]
+    onchainwallet: Optional[str]
+    onchainaddress: Optional[str]
+    lnbitswallet: Optional[str]
     payment_request: str
     payment_hash: str
-    webhook: str
-    completelink: str
-    completelinktext: str
+    webhook: Optional[str]
+    completelink: Optional[str]
+    completelinktext: Optional[str] = "Back to Merchant"
     time: int
     amount: int
     balance: int

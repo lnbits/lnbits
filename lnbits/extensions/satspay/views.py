@@ -1,6 +1,7 @@
 from fastapi.param_functions import Depends
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
+from starlette.requests import Request
 from lnbits.core.models import User
 from lnbits.core.crud import get_wallet
 from lnbits.decorators import check_user_exists

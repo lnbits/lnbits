@@ -17,15 +17,6 @@ from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
 async def create_charge(
     user: str,
     data: CreateCharge
-    # user: str,
-    # description: str = None,
-    # onchainwallet: Optional[str] = None,
-    # lnbitswallet: Optional[str] = None,
-    # webhook: Optional[str] = None,
-    # completelink: Optional[str] = None,
-    # completelinktext: Optional[str] = "Back to Merchant",
-    # time: Optional[int] = None,
-    # amount: Optional[int] = None,
 ) -> Charges:
     charge_id = urlsafe_short_hash()
     if data.onchainwallet:

@@ -33,10 +33,10 @@ from .crud import (
 
 async def api_charge_create_or_update(data: CreateCharge, wallet: WalletTypeInfo = Depends(get_key_type), charge_id=None):
     if not charge_id:
-        charge = await create_charge(user=wallet.wallet.user, **data)
+        charge = await create_charge(user=wallet.wallet.user, data=data)
         return charge.dict()
     else:
-        charge = await update_charge(charge_id=charge_id, **data)
+        charge = await update_charge(charge_id=charge_id, data=data)
         return charge.dict()
 
 
