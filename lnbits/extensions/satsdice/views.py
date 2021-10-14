@@ -15,8 +15,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 from lnbits.core.models import User, Payment
-from .views_api import api_get_jukebox_device_check
 
+from fastapi.params import Depends
+from fastapi.param_functions import Query
 
 templates = Jinja2Templates(directory="templates")
 
@@ -38,7 +39,7 @@ async def display(link_id):
         chance=link.chance,
         multiplier=link.multiplier,
         lnurl=link.lnurl,
-        unique=True,{"request": request, "user": user.dict()}
+        unique=True,
     )
 
 
@@ -57,7 +58,7 @@ async def displaywin(link_id, payment_hash):
             multiplier=satsdicelink.multiplier,
             lnurl=withdrawLink.lnurl,
             paid=False,
-            lost=False
+            lost=False,
         )
 
     payment = await get_standalone_payment(payment_hash) or abort(
@@ -72,8 +73,7 @@ async def displaywin(link_id, payment_hash):
         if payment.pending == 1:
             print("pending")
             return satsdice_renderer().TemplateResponse(
-                "satsdice/error.html",
-                link=satsdicelink.id, paid=False, lost=False
+                "satsdice/error.html", link=satsdicelink.id, paid=False, lost=False
             )
 
     await update_satsdice_payment(payment_hash, paid=1)
@@ -85,8 +85,7 @@ async def displaywin(link_id, payment_hash):
     if paylink.lost == 1:
         print("lost")
     return satsdice_renderer().TemplateResponse(
-        "satsdice/error.html",
-        link=satsdicelink.id, paid=False, lost=True
+        "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
     )
     rand = random.randint(0, 100)
     chance = satsdicelink.chance
@@ -94,8 +93,7 @@ async def displaywin(link_id, payment_hash):
         await update_satsdice_payment(payment_hash, lost=1)
 
     return satsdice_renderer().TemplateResponse(
-        "satsdice/error.html",
-        link=satsdicelink.id, paid=False, lost=True
+        "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
     )
 
     withdrawLink = await create_satsdice_withdraw(
@@ -131,5 +129,5 @@ async def img(link_id):
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0",
-        }
+        },
     )

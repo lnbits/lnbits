@@ -5,10 +5,12 @@ from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 from lnbits.core.crud import get_user
 from lnbits.decorators import api_validate_post_request
-from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws
+from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, CreateSatsDicePayment
 from . import satsdice_ext
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
+from typing import Optional
+from fastapi.param_functions import Query
 from .crud import (
     create_satsdice_pay,
     get_satsdice_pay,

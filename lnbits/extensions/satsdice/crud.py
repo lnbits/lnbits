@@ -9,6 +9,8 @@ from .models import (
     satsdiceLink,
     satsdicePayment,
     CreateSatsDiceLink,
+    CreateSatsDicePayment,
+    CreateSatsDiceWithdraw,
 )
 from lnbits.helpers import urlsafe_short_hash
 
