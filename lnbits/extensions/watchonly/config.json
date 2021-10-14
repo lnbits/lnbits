@@ -1,0 +1,8 @@
+{
+  "name": "Watch Only",
+  "short_description": "Onchain watch only wallets",
+  "icon": "visibility",
+  "contributors": [
+    "arcbtc"
+  ]
+}
