@@ -38,7 +38,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}api/v1/wallet -H "X-Api-Key: {{
-            g.user.wallets[0].inkey }}"
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -67,7 +67,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}api/v1/wallet/&lt;wallet_id&gt;
-            -H "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -91,7 +91,7 @@
           <code
             >curl -X POST {{ request.url_root }}api/v1/wallet -d '{"title":
             &lt;string&gt;, "masterpub": &lt;string&gt;}' -H "Content-type:
-            application/json" -H "X-Api-Key: {{ g.user.wallets[0].adminkey }}"
+            application/json" -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -117,7 +117,7 @@
           <code
             >curl -X DELETE {{ request.url_root
             }}api/v1/wallet/&lt;wallet_id&gt; -H "X-Api-Key: {{
-            g.user.wallets[0].adminkey }}"
+            user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -143,7 +143,7 @@
           <code
             >curl -X GET {{ request.url_root
             }}api/v1/addresses/&lt;wallet_id&gt; -H "X-Api-Key: {{
-            g.user.wallets[0].inkey }}"
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -174,7 +174,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}api/v1/address/&lt;wallet_id&gt;
-            -H "X-Api-Key: {{ g.user.wallets[0].inkey }}"
+            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -203,7 +203,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.url_root }}api/v1/mempool -H "X-Api-Key: {{
-            g.user.wallets[0].adminkey }}"
+            user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -235,7 +235,7 @@
           <code
             >curl -X PUT {{ request.url_root }}api/v1/mempool -d '{"endpoint":
             &lt;string&gt;}' -H "Content-type: application/json" -H "X-Api-Key:
-            {{ g.user.wallets[0].adminkey }}"
+            {{ user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>

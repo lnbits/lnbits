@@ -1,8 +1,12 @@
 from sqlite3 import Row
-from typing import NamedTuple
+from fastapi.param_functions import Query
+from pydantic import BaseModel
 
+class CreateWallet(BaseModel):
+    masterpub: str = Query("")
+    title: str = Query("")
 
-class Wallets(NamedTuple):
+class Wallets(BaseModel):
     id: str
     user: str
     masterpub: str
@@ -15,7 +19,7 @@ class Wallets(NamedTuple):
         return cls(**dict(row))
 
 
-class Mempool(NamedTuple):
+class Mempool(BaseModel):
     user: str
     endpoint: str
 
@@ -24,7 +28,7 @@ class Mempool(NamedTuple):
         return cls(**dict(row))
 
 
-class Addresses(NamedTuple):
+class Addresses(BaseModel):
     id: str
     address: str
     wallet: str

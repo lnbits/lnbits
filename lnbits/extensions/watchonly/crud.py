@@ -74,8 +74,9 @@ def parse_key(masterpub: str):
     return desc, network
 
 
-async def create_watch_wallet(*, user: str, masterpub: str, title: str) -> Wallets:
+async def create_watch_wallet(user: str, masterpub: str, title: str) -> Wallets:
     # check the masterpub is fine, it will raise an exception if not
+    print("PARSE", parse_key(masterpub))
     parse_key(masterpub)
     wallet_id = urlsafe_short_hash()
     await db.execute(
@@ -131,19 +132,20 @@ async def delete_watch_wallet(wallet_id: str) -> None:
 
 async def get_derive_address(wallet_id: str, num: int):
     wallet = await get_watch_wallet(wallet_id)
-    key = wallet[2]
+    key = wallet.masterpub
     desc, network = parse_key(key)
     return desc.derive(num).address(network=network)
 
 
 async def get_fresh_address(wallet_id: str) -> Optional[Addresses]:
     wallet = await get_watch_wallet(wallet_id)
+
     if not wallet:
         return None
 
-    address = await get_derive_address(wallet_id, wallet[4] + 1)
+    address = await get_derive_address(wallet_id, wallet.address_no + 1)
 
-    await update_watch_wallet(wallet_id=wallet_id, address_no=wallet[4] + 1)
+    await update_watch_wallet(wallet_id=wallet_id, address_no=wallet.address_no + 1)
     masterpub_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -181,7 +183,7 @@ async def get_addresses(wallet_id: str) -> List[Addresses]:
 async def create_mempool(user: str) -> Optional[Mempool]:
     await db.execute(
         """
-        INSERT INTO watchonly.mempool ("user",endpoint) 
+        INSERT INTO watchonly.mempool ("user",endpoint)
         VALUES (?, ?)
         """,
         (user, "https://mempool.space"),
