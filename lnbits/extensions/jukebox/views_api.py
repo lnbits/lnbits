@@ -1,4 +1,5 @@
 from fastapi import Request
+
 from http import HTTPStatus
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
