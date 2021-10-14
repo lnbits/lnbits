@@ -1,9 +1,19 @@
 from sqlite3 import Row
-from typing import NamedTuple
+from fastapi.param_functions import Query
+from pydantic import BaseModel
 import time
 
+class CreateCharge(BaseModel):
+    onchainwallet: str = Query(None)
+    lnbitswallet: str = Query(None)
+    description: str = Query(...)
+    webhook: str = Query(None)
+    completelink: str = Query(None)
+    completelinktext: str = Query(None)
+    time: int = Query(..., ge=1)
+    amount: int = Query(..., ge=1)
 
-class Charges(NamedTuple):
+class Charges(BaseModel):
     id: str
     user: str
     description: str

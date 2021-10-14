@@ -2,11 +2,10 @@ from typing import List, Optional, Union
 
 # from lnbits.db import open_ext_db
 from . import db
-from .models import Charges
+from .models import Charges, CreateCharge
 
 from lnbits.helpers import urlsafe_short_hash
 
-from quart import jsonify
 import httpx
 from lnbits.core.services import create_invoice, check_invoice_status
 from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
@@ -17,25 +16,27 @@ from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
 
 async def create_charge(
     user: str,
-    description: str = None,
-    onchainwallet: Optional[str] = None,
-    lnbitswallet: Optional[str] = None,
-    webhook: Optional[str] = None,
-    completelink: Optional[str] = None,
-    completelinktext: Optional[str] = "Back to Merchant",
-    time: Optional[int] = None,
-    amount: Optional[int] = None,
+    data: CreateCharge
+    # user: str,
+    # description: str = None,
+    # onchainwallet: Optional[str] = None,
+    # lnbitswallet: Optional[str] = None,
+    # webhook: Optional[str] = None,
+    # completelink: Optional[str] = None,
+    # completelinktext: Optional[str] = "Back to Merchant",
+    # time: Optional[int] = None,
+    # amount: Optional[int] = None,
 ) -> Charges:
     charge_id = urlsafe_short_hash()
-    if onchainwallet:
-        wallet = await get_watch_wallet(onchainwallet)
-        onchain = await get_fresh_address(onchainwallet)
+    if data.onchainwallet:
+        wallet = await get_watch_wallet(data.onchainwallet)
+        onchain = await get_fresh_address(data.onchainwallet)
         onchainaddress = onchain.address
     else:
         onchainaddress = None
-    if lnbitswallet:
+    if data.lnbitswallet:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=lnbitswallet, amount=amount, memo=charge_id
+            wallet_id=data.lnbitswallet, amount=data.amount, memo=charge_id
         )
     else:
         payment_hash = None
@@ -63,17 +64,17 @@ async def create_charge(
         (
             charge_id,
             user,
-            description,
-            onchainwallet,
+            data.description,
+            data.onchainwallet,
             onchainaddress,
-            lnbitswallet,
+            data.lnbitswallet,
             payment_request,
             payment_hash,
-            webhook,
-            completelink,
-            completelinktext,
-            time,
-            amount,
+            data.webhook,
+            data.completelink,
+            data.completelinktext,
+            data.time,
+            data.amount,
             0,
         ),
     )

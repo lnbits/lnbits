@@ -1,12 +1,24 @@
-from quart import Blueprint
+import asyncio
+
+from fastapi import APIRouter
+
 from lnbits.db import Database
+from lnbits.helpers import template_renderer
 
 db = Database("ext_satspay")
 
 
-satspay_ext: Blueprint = Blueprint(
-    "satspay", __name__, static_folder="static", template_folder="templates"
+satspay_ext: APIRouter = APIRouter(
+    prefix="/satspay",
+    tags=["satspay"]
 )
+
+def satspay_renderer():
+    return template_renderer(
+        [
+            "lnbits/extensions/satspay/templates",
+        ]
+    )
 
 
 from .views_api import *  # noqa
