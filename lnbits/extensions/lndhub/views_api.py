@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from lnbits.core.services import pay_invoice, create_invoice
 from lnbits.core.crud import get_payments, delete_expired_invoices
-from lnbits.decorators import api_validate_post_request, WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo
 from lnbits.settings import WALLET
 from lnbits import bolt11
 
@@ -52,7 +52,7 @@ class AddInvoice(BaseModel):
 @lndhub_ext.post("/ext/addinvoice")
 async def lndhub_addinvoice(
     data: AddInvoice,
-    wallet: WalletTypeInfo = Depends(get_key_type)
+    wallet: WalletTypeInfo = Depends(check_wallet)
 ):
     try:
         _, pr = await create_invoice(
@@ -79,7 +79,7 @@ async def lndhub_addinvoice(
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
-    wallet: WalletTypeInfo = Depends(get_key_type), invoice: str = Query(None)
+    wallet: WalletTypeInfo = Depends(check_wallet), invoice: str = Query(None)
 ):
     try:
         await pay_invoice(
@@ -112,7 +112,7 @@ async def lndhub_payinvoice(
 @lndhub_ext.get("/ext/balance")
 # @check_wallet()
 async def lndhub_balance(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(check_wallet),
 ):
     return {"BTC": {"AvailableBalance": wallet.wallet.balance}}
 
@@ -120,7 +120,7 @@ async def lndhub_balance(
 @lndhub_ext.get("/ext/gettxs")
 # @check_wallet()
 async def lndhub_gettxs(
-    wallet: WalletTypeInfo = Depends(get_key_type), limit: int = Query(0, ge=0, lt=200)
+    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
 ):
     print("WALLET", wallet)
     for payment in await get_payments(
@@ -161,7 +161,7 @@ async def lndhub_gettxs(
 
 @lndhub_ext.get("/ext/getuserinvoices")
 async def lndhub_getuserinvoices(
-    wallet: WalletTypeInfo = Depends(get_key_type), limit: int = Query(0, ge=0, lt=200)
+    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
 ):
     await delete_expired_invoices()
     for invoice in await get_payments(
@@ -203,7 +203,7 @@ async def lndhub_getuserinvoices(
 
 
 @lndhub_ext.get("/ext/getbtc")
-async def lndhub_getbtc(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def lndhub_getbtc(wallet: WalletTypeInfo = Depends(check_wallet)):
     "load an address for incoming onchain btc"
     return []
 

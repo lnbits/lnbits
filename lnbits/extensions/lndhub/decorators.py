@@ -1,33 +1,24 @@
 from base64 import b64decode
 from functools import wraps
+from fastapi.param_functions import Security
+
+from fastapi.security.api_key import APIKeyHeader
 
 from lnbits.core.crud import get_wallet_for_key
-from fastapi import Request
-from http import HTTPStatus
+from fastapi import Request, status
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
+from starlette.responses import HTMLResponse, JSONResponse
+
+from lnbits.decorators import WalletTypeInfo, get_key_type  # type: ignore
 
 
-def check_wallet(requires_admin=False):
-    def wrap(view):
-        @wraps(view)
-        async def wrapped_view(request: Request, **kwargs):
-            token = request.headers["Authorization"].split("Bearer ")[1]
-            key_type, key = b64decode(token).decode("utf-8").split(":")
+api_key_header_auth = APIKeyHeader(name="AUTHORIZATION", auto_error=False, description="Admin or Invoice key for LNDHub API's")
+async def check_wallet(r: Request, api_key_header_auth: str = Security(api_key_header_auth)) -> WalletTypeInfo:    
+    if not api_key_header_auth:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
-            if requires_admin and key_type != "admin":
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="insufficient permissions",
-                )
-            g.wallet = await get_wallet_for_key(key, key_type)
-            if not g.wallet:
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="insufficient permissions",
-                )
-            return await view(**kwargs)
+    t = api_key_header_auth.split(" ")[1]
+    _, token = b64decode(t).decode("utf-8").split(":")
 
-        return wrapped_view
+    return await get_key_type(r, api_key_header=token)
 
-    return wrap

@@ -15,6 +15,7 @@ from fastapi.params import Security
 from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security.base import SecurityBase
+from fastapi import status
 from starlette.requests import Request
 
 from lnbits.core.crud import get_user, get_wallet_for_key
@@ -84,25 +85,20 @@ class WalletTypeInfo():
         self.wallet_type = wallet_type
         self.wallet = wallet
 
-api_key_header_xapi = APIKeyHeader(name="X-API-KEY", auto_error=False, description="Admin or Invoice key for wallet API's")
-api_key_header_auth = APIKeyHeader(name="AUTHORIZATION", auto_error=False, description="Admin or Invoice key for wallet API's")
+api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False, description="Admin or Invoice key for wallet API's")
 api_key_query = APIKeyQuery(name="api-key", auto_error=False, description="Admin or Invoice key for wallet API's")
 async def get_key_type(r: Request,
-                        api_key_header_auth: str = Security(api_key_header_auth),
-                        api_key_header: str = Security(api_key_header_auth),
+                        api_key_header: str = Security(api_key_header),
                         api_key_query: str = Security(api_key_query)) -> WalletTypeInfo:
     # 0: admin
     # 1: invoice
     # 2: invalid
-    # print("TOKEN", b64decode(token).decode("utf-8").split(":"))
+    
+    if not api_key_header and not api_key_query: 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
-    if api_key_header_xapi:
-        token = api_key_header_xapi
-    elif api_key_header_auth:
-        _, token = b64decode(api_key_header_auth).decode("utf-8").split(":")
-    elif api_key_query:
-        token = api_key_query
-
+    token = api_key_header if api_key_header else api_key_query
+    
     try:
         checker = WalletAdminKeyChecker(api_key=token)
         await checker.__call__(r)
