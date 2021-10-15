@@ -66,6 +66,9 @@ async def get_satsdice_pay(link_id: str) -> Optional[satsdiceLink]:
 async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceLink]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
+        print("wallet_ids")
+        print(wallet_ids)
+        print("wallet_ids")
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
@@ -75,8 +78,7 @@ async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceL
         """,
         (*wallet_ids,),
     )
-
-    return [satsdiceLink.from_row(row) for row in rows]
+    return [satsdiceLink(**row) for row in rows]
 
 
 async def update_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
@@ -88,7 +90,7 @@ async def update_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return satsdiceLink.from_row(row) if row else None
+    return satsdiceLink(**row) if row else None
 
 
 async def increment_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLink]:

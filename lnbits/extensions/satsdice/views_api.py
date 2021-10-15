@@ -35,17 +35,21 @@ from lnbits.decorators import (
 
 
 @satsdice_ext.get("/api/v1/links")
-async def api_links(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_links(
+    request: Request,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    all_wallets: str = Query(None),
+):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in request.args:
+    if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     try:
-        return [
-            {**link._dict(), **{"lnurl": link.lnurl}}
-            for link in await get_satsdice_pays(wallet_ids)
-        ]
+        links = await get_satsdice_pays(wallet_ids)
+        print(links[0])
+
+        return [{link.dict(), {"lnurl": link.lnurl(request)}} for link in links]
     except LnurlInvalidUrl:
         raise HTTPException(
             status_code=HTTPStatus.UPGRADE_REQUIRED,
@@ -54,7 +58,11 @@ async def api_links(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @satsdice_ext.get("/api/v1/links/{link_id}")
-async def api_link_retrieve(data: CreateSatsDiceLink, link_id: str = Query(None)):
+async def api_link_retrieve(
+    data: CreateSatsDiceLink,
+    link_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     link = await get_satsdice_pay(link_id)
 
     if not link:
@@ -63,7 +71,7 @@ async def api_link_retrieve(data: CreateSatsDiceLink, link_id: str = Query(None)
             detail="Pay link does not exist.",
         )
 
-    if link.wallet != g.wallet.id:
+    if link.wallet != wallet.wallet.id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Not your pay link.",
@@ -98,12 +106,13 @@ async def api_link_create_or_update(
                 status_code=HTTPStatus.FORBIDDEN,
                 detail="Come on, seriously, this isn't your satsdice!",
             )
-
-        link = await update_satsdice_pay(data, link_id)
+        data.link_id = link_id
+        link = await update_satsdice_pay(data)
     else:
-        link = await create_satsdice_pay(data, wallet_id=wallet.wallet.id)
+        data.wallet_id = wallet.wallet.id
+        link = await create_satsdice_pay(data)
 
-    return {**link.dict(), **{"lnurl": link.lnurl}}
+    return {link.dict(), {"lnurl": link.lnurl}}
 
 
 @satsdice_ext.delete("/api/v1/links/{link_id}")
@@ -133,10 +142,12 @@ async def api_link_delete(
 
 
 @satsdice_ext.get("/api/v1/withdraws")
-async def api_withdraws(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_withdraws(
+    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: str = Query(None)
+):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in request.args:
+    if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
         return (
@@ -170,7 +181,7 @@ async def api_withdraw_retrieve(
             detail="satsdice withdraw does not exist.",
         )
 
-    if withdraw.wallet != g.wallet.id:
+    if withdraw.wallet != wallet.wallet.id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Not your satsdice withdraw.",
@@ -193,8 +204,8 @@ async def api_withdraw_create_or_update(
         )
 
     usescsv = ""
-    for i in range(g.data["uses"]):
-        if g.data["is_unique"]:
+    for i in range(data.uses):
+        if data.is_unique:
             usescsv += "," + str(i + 1)
         else:
             usescsv += "," + str(1)
@@ -207,18 +218,18 @@ async def api_withdraw_create_or_update(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="satsdice withdraw does not exist.",
             )
-        if withdraw.wallet != g.wallet.id:
+        if withdraw.wallet != wallet.wallet.id:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN,
                 detail="Not your satsdice withdraw.",
             )
 
         withdraw = await update_satsdice_withdraw(
-            withdraw_id, **g.data, usescsv=usescsv, used=0
+            withdraw_id, **data, usescsv=usescsv, used=0
         )
     else:
         withdraw = await create_satsdice_withdraw(
-            wallet_id=g.wallet.id, **g.data, usescsv=usescsv
+            wallet_id=wallet.wallet.id, **data, usescsv=usescsv
         )
 
     return {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}

@@ -39,8 +39,8 @@ async def api_get_jukeboxs(
 ):
     wallet_user = wallet.wallet.user
 
-    jukeboxs = [jukebox.dict() for jukebox in await get_jukeboxs(wallet_user)]
     try:
+        jukeboxs = [jukebox.dict() for jukebox in await get_jukeboxs(wallet_user)]
         return jukeboxs
 
     except:

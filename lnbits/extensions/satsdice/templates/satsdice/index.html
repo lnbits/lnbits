@@ -346,6 +346,7 @@
             this.g.user.wallets[0].inkey
           )
           .then(response => {
+            console.log(response.data)
             this.payLinks = response.data.map(mapPayLink)
           })
           .catch(err => {
@@ -512,6 +513,7 @@
     },
     created() {
       console.log('this.multiValue')
+      console.log(this.g.user)
       if (this.g.user.wallets.length) {
         var getPayLinks = this.getPayLinks
         getPayLinks()

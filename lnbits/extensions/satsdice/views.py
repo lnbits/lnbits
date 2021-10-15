@@ -9,6 +9,15 @@ from .crud import (
     create_satsdice_withdraw,
     get_satsdice_withdraw,
 )
+from lnbits.core.crud import (
+    get_payments,
+    get_standalone_payment,
+    delete_expired_invoices,
+    get_balance_checks,
+)
+from lnbits.core.services import (
+    check_invoice_status,
+)
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
@@ -44,7 +53,7 @@ async def display(link_id):
 
 
 @satsdice_ext.get("/win/{link_id}/{payment_hash}")
-async def displaywin(link_id, payment_hash):
+async def displaywin(link_id: str = Query(None), payment_hash: str = Query(None)):
     satsdicelink = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
@@ -91,17 +100,15 @@ async def displaywin(link_id, payment_hash):
     chance = satsdicelink.chance
     if rand > chance:
         await update_satsdice_payment(payment_hash, lost=1)
-
-    return satsdice_renderer().TemplateResponse(
-        "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
-    )
-
-    withdrawLink = await create_satsdice_withdraw(
-        payment_hash=payment_hash,
-        satsdice_pay=satsdicelink.id,
-        value=paylink.value * satsdicelink.multiplier,
-        used=0,
-    )
+        return satsdice_renderer().TemplateResponse(
+            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
+        )
+    data = []
+    data.payment_hash = payment_hash
+    data.satsdice_pay = (satsdicelink.id,)
+    data.value = (paylink.value * satsdicelink.multiplier,)
+    data.used = 0
+    withdrawLink = await create_satsdice_withdraw(data)
     return satsdice_renderer().TemplateResponse(
         "satsdice/displaywin.html",
         value=withdrawLink.value,

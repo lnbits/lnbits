@@ -9,10 +9,11 @@ from fastapi.param_functions import Query
 from pydantic.main import BaseModel
 from pydantic import BaseModel
 from typing import Optional
+from fastapi import FastAPI, Request
 
 
-class satsdiceLink(NamedTuple):
-    id: int
+class satsdiceLink(BaseModel):
+    id: str
     wallet: str
     title: str
     min_bet: int
@@ -26,22 +27,20 @@ class satsdiceLink(NamedTuple):
     base_url: str
     open_time: int
 
+    def lnurl(self, req: Request) -> Lnurl:
+        return lnurl_encode(req.url_for("satsdice.lnurlp_response", item_id=self.id))
+
     @classmethod
     def from_row(cls, row: Row) -> "satsdiceLink":
         data = dict(row)
         return cls(**data)
 
     @property
-    def lnurl(self) -> Lnurl:
-        url = url_for("satsdice.api_lnurlp_response", link_id=self.id, _external=True)
-        return lnurl_encode(url)
-
-    @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
-    def success_action(self, payment_hash: str) -> Optional[Dict]:
-        url = url_for(
+    def success_action(self, payment_hash: str, req: Request) -> Optional[Dict]:
+        url = req.url_for(
             "satsdice.displaywin",
             link_id=self.id,
             payment_hash=payment_hash,
@@ -59,20 +58,15 @@ class satsdiceLink(NamedTuple):
         }
 
 
-class satsdicePayment(NamedTuple):
+class satsdicePayment(BaseModel):
     payment_hash: str
     satsdice_pay: str
     value: int
     paid: bool
     lost: bool
 
-    @classmethod
-    def from_row(cls, row: Row) -> "satsdicePayment":
-        data = dict(row)
-        return cls(**data)
 
-
-class satsdiceWithdraw(NamedTuple):
+class satsdiceWithdraw(BaseModel):
     id: str
     satsdice_pay: str
     value: int
@@ -81,28 +75,22 @@ class satsdiceWithdraw(NamedTuple):
     open_time: int
     used: int
 
-    @classmethod
-    def from_row(cls, row: Row) -> "satsdiceWithdraw":
-        data = dict(row)
-        return cls(**data)
+    def lnurl(self, req: Request) -> Lnurl:
+        return lnurl_encode(
+            req.url_for(
+                "satsdice.lnurlw_response",
+                unique_hash=self.unique_hash,
+                _external=True,
+            )
+        )
 
     @property
     def is_spent(self) -> bool:
         return self.used >= 1
 
     @property
-    def lnurl(self) -> Lnurl:
-        url = url_for(
-            "satsdice.api_lnurlw_response",
-            unique_hash=self.unique_hash,
-            _external=True,
-        )
-
-        return lnurl_encode(url)
-
-    @property
-    def lnurl_response(self) -> LnurlWithdrawResponse:
-        url = url_for(
+    def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
+        url = req.url_for(
             "satsdice.api_lnurlw_callback",
             unique_hash=self.unique_hash,
             _external=True,
@@ -116,7 +104,7 @@ class satsdiceWithdraw(NamedTuple):
         )
 
 
-class HashCheck(NamedTuple):
+class HashCheck(BaseModel):
     id: str
     lnurl_id: str
 
