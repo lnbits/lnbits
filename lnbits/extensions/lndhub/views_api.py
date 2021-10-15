@@ -43,19 +43,22 @@ async def lndhub_auth(
     )
     return {"refresh_token": token, "access_token": token}
 
+class AddInvoice(BaseModel):
+    amt: str = Query(None)
+    memo: str = Query(None)
+    preimage: str = Query(None)
+
 
 @lndhub_ext.post("/ext/addinvoice")
 async def lndhub_addinvoice(
-    wallet: WalletTypeInfo = Depends(get_key_type),
-    amt: str = Query(None),
-    memo: str = Query(None),
-    preimage: str = Query(None),
+    data: AddInvoice,
+    wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     try:
         _, pr = await create_invoice(
             wallet_id=wallet.wallet.id,
-            amount=int(amt),
-            memo=memo,
+            amount=int(data.amt),
+            memo=data.memo,
             extra={"tag": "lndhub"},
         )
     except:
