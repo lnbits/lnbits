@@ -1,5 +1,6 @@
 import time
 from base64 import urlsafe_b64encode
+from pydantic import BaseModel
 
 from lnbits.core.services import pay_invoice, create_invoice
 from lnbits.core.crud import get_payments, delete_expired_invoices
@@ -15,6 +16,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 from fastapi.params import Depends
 from fastapi.param_functions import Query
+from fastapi.security import OAuth2PasswordBearer
 
 
 @lndhub_ext.get("/ext/getinfo")
@@ -24,17 +26,20 @@ async def lndhub_getinfo():
         detail="bad auth",
     )
 
+class AuthData(BaseModel):
+    login: str = Query(None)
+    password: str = Query(None)
+    refresh_token: str = Query(None)
+
 
 @lndhub_ext.post("/ext/auth")
 async def lndhub_auth(
-    login: str = Query(None),
-    password: str = Query(None),
-    refresh_token: str = Query(None),
+    data: AuthData
 ):
     token = (
-        refresh_token
-        if refresh_token
-        else urlsafe_b64encode((login + ":" + password).encode("utf-8")).decode("ascii")
+        data.refresh_token
+        if data.refresh_token
+        else urlsafe_b64encode((data.login + ":" + data.password).encode("utf-8")).decode("ascii")
     )
     return {"refresh_token": token, "access_token": token}
 
@@ -102,18 +107,19 @@ async def lndhub_payinvoice(
 
 
 @lndhub_ext.get("/ext/balance")
-@check_wallet()
+# @check_wallet()
 async def lndhub_balance(
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     return {"BTC": {"AvailableBalance": wallet.wallet.balance}}
 
 
-@lndhub_ext.route("/ext/gettxs", methods=["GET"])
-@check_wallet()
+@lndhub_ext.get("/ext/gettxs")
+# @check_wallet()
 async def lndhub_gettxs(
     wallet: WalletTypeInfo = Depends(get_key_type), limit: int = Query(0, ge=0, lt=200)
 ):
+    print("WALLET", wallet)
     for payment in await get_payments(
         wallet_id=wallet.wallet.id,
         complete=False,
@@ -150,7 +156,7 @@ async def lndhub_gettxs(
     ]
 
 
-@lndhub_ext.route("/ext/getuserinvoices", methods=["GET"])
+@lndhub_ext.get("/ext/getuserinvoices")
 async def lndhub_getuserinvoices(
     wallet: WalletTypeInfo = Depends(get_key_type), limit: int = Query(0, ge=0, lt=200)
 ):
@@ -200,7 +206,7 @@ async def lndhub_getbtc(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @lndhub_ext.get("/ext/getpending")
-@check_wallet()
+# @check_wallet()
 async def lndhub_getpending():
     "pending onchain transactions"
     return []
