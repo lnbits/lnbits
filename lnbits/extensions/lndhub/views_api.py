@@ -14,6 +14,8 @@ from .utils import to_buffer, decoded_as_lndhub
 from http import HTTPStatus
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
+from starlette.requests import Request
+from fastapi import Body
 from fastapi.params import Depends
 from fastapi.param_functions import Query
 from fastapi.security import OAuth2PasswordBearer
@@ -76,24 +78,35 @@ async def lndhub_addinvoice(
         "hash": invoice.payment_hash,
     }
 
+class Invoice(BaseModel):
+    invoice: str
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
-    wallet: WalletTypeInfo = Depends(check_wallet), invoice: str = Query(None)
+    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(check_wallet)
 ):
+    # DIRTY HACK NEEDS TO BE ADDRESSED
+    if wallet.wallet_type == 1:
+        print("Not enough permission!")
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Not enough permission!",
+        )
+        return
     try:
         await pay_invoice(
             wallet_id=wallet.wallet.id,
-            payment_request=invoice,
+            payment_request=r_invoice.invoice,
             extra={"tag": "lndhub"},
         )
     except:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="FPayment failed",
+            detail="Payment failed",
         )
 
-    invoice: bolt11.Invoice = bolt11.decode(invoice)
+    invoice: bolt11.Invoice = bolt11.decode(r_invoice.invoice)
+    print("INV2", invoice)
     return {
         "payment_error": "",
         "payment_preimage": "0" * 64,
@@ -122,7 +135,6 @@ async def lndhub_balance(
 async def lndhub_gettxs(
     wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
 ):
-    print("WALLET", wallet)
     for payment in await get_payments(
         wallet_id=wallet.wallet.id,
         complete=False,
@@ -175,6 +187,7 @@ async def lndhub_getuserinvoices(
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
+
     return [
         {
             "r_hash": to_buffer(invoice.payment_hash),
@@ -210,7 +223,7 @@ async def lndhub_getbtc(wallet: WalletTypeInfo = Depends(check_wallet)):
 
 @lndhub_ext.get("/ext/getpending")
 # @check_wallet()
-async def lndhub_getpending():
+async def lndhub_getpending(wallet: WalletTypeInfo = Depends(check_wallet)):
     "pending onchain transactions"
     return []
 
