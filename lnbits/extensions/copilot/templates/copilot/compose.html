@@ -239,8 +239,7 @@
           ':' +
           location.port +
           '/copilot/ws/' +
-          self.copilot.id +
-          '/'
+          self.copilot.id
       } else {
         localUrl =
           'ws://' +
@@ -248,8 +247,7 @@
           ':' +
           location.port +
           '/copilot/ws/' +
-          self.copilot.id +
-          '/'
+          self.copilot.id
       }
       this.connection = new WebSocket(localUrl)
       this.connection.onmessage = function (e) {

@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import List
 import httpx
 from collections import defaultdict
 from lnbits.decorators import check_user_exists
@@ -70,7 +71,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@copilot_ext.websocket("/ws/{socket_id}")
+@copilot_ext.websocket("/copilot/ws/{socket_id}", name="copilot.websocket_by_id")
 async def websocket_endpoint(websocket: WebSocket, socket_id: str):
     await manager.connect(websocket)
     try:
