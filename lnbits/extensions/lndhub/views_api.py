@@ -9,7 +9,7 @@ from lnbits.settings import WALLET
 from lnbits import bolt11
 
 from . import lndhub_ext
-from .decorators import check_wallet
+from .decorators import check_wallet, require_admin_key
 from .utils import to_buffer, decoded_as_lndhub
 from http import HTTPStatus
 from starlette.exceptions import HTTPException
@@ -83,16 +83,8 @@ class Invoice(BaseModel):
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
-    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(check_wallet)
+    r_invoice: Invoice, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    # DIRTY HACK NEEDS TO BE ADDRESSED
-    if wallet.wallet_type == 1:
-        print("Not enough permission!")
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Not enough permission!",
-        )
-        return
     try:
         await pay_invoice(
             wallet_id=wallet.wallet.id,
