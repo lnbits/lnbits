@@ -44,10 +44,7 @@ async def api_get_jukeboxs(
         return jukeboxs
 
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.NO_CONTENT,
-            detail="No Jukeboxes",
-        )
+        raise HTTPException(status_code=HTTPStatus.NO_CONTENT, detail="No Jukeboxes")
 
 
 ##################SPOTIFY AUTH#####################
@@ -102,18 +99,12 @@ async def api_create_update_jukebox(
 
 
 @jukebox_ext.delete("/api/v1/jukebox/{juke_id}")
-async def api_delete_item(
-    juke_id=None,
-    wallet: WalletTypeInfo = Depends(get_key_type),
-):
+async def api_delete_item(juke_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
     await delete_jukebox(juke_id)
     try:
         return [{**jukebox} for jukebox in await get_jukeboxs(wallet.wallet.user)]
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.NO_CONTENT,
-            detail="No Jukebox",
-        )
+        raise HTTPException(status_code=HTTPStatus.NO_CONTENT, detail="No Jukebox")
 
 
 ################JUKEBOX ENDPOINTS##################
@@ -130,10 +121,7 @@ async def api_get_jukebox_song(
     try:
         jukebox = await get_jukebox(juke_id)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No Jukeboxes",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No Jukeboxes")
     tracks = []
     async with httpx.AsyncClient() as client:
         try:
@@ -176,10 +164,7 @@ async def api_get_token(juke_id=None):
     try:
         jukebox = await get_jukebox(juke_id)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No Jukeboxes",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No Jukeboxes")
 
     async with httpx.AsyncClient() as client:
         try:
@@ -215,16 +200,12 @@ async def api_get_token(juke_id=None):
 
 @jukebox_ext.get("/api/v1/jukebox/jb/{juke_id}")
 async def api_get_jukebox_device_check(
-    juke_id: str = Query(None),
-    retry: bool = Query(False),
+    juke_id: str = Query(None), retry: bool = Query(False)
 ):
     try:
         jukebox = await get_jukebox(juke_id)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No Jukeboxes",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No Jukeboxes")
     async with httpx.AsyncClient() as client:
         rDevice = await client.get(
             "https://api.spotify.com/v1/me/player/devices",
@@ -237,20 +218,17 @@ async def api_get_jukebox_device_check(
             token = await api_get_token(juke_id)
             if token == False:
                 raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="No devices connected",
+                    status_code=HTTPStatus.FORBIDDEN, detail="No devices connected"
                 )
             elif retry:
                 raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN,
-                    detail="Failed to get auth",
+                    status_code=HTTPStatus.FORBIDDEN, detail="Failed to get auth"
                 )
             else:
                 return api_get_jukebox_device_check(juke_id, retry=True)
         else:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="No device connected",
+                status_code=HTTPStatus.FORBIDDEN, detail="No device connected"
             )
 
 
@@ -263,10 +241,7 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         jukebox = await get_jukebox(juke_id)
         print(jukebox)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No jukebox",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     try:
 
         devices = await api_get_jukebox_device_check(juke_id)
@@ -276,13 +251,11 @@ async def api_get_jukebox_invoice(juke_id, song_id):
                 deviceConnected = True
         if not deviceConnected:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="No device connected",
+                status_code=HTTPStatus.NOT_FOUND, detail="No device connected"
             )
     except:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="No device connected",
+            status_code=HTTPStatus.NOT_FOUND, detail="No device connected"
         )
 
     invoice = await create_invoice(
@@ -304,16 +277,12 @@ async def api_get_jukebox_invoice(juke_id, song_id):
 
 @jukebox_ext.get("/api/v1/jukebox/jb/checkinvoice/{pay_hash}/{juke_id}")
 async def api_get_jukebox_invoice_check(
-    pay_hash: str = Query(None),
-    juke_id: str = Query(None),
+    pay_hash: str = Query(None), juke_id: str = Query(None)
 ):
     try:
         jukebox = await get_jukebox(juke_id)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No jukebox",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     try:
         status = await check_invoice_status(jukebox.wallet, pay_hash)
         is_paid = not status.pending
@@ -338,10 +307,7 @@ async def api_get_jukebox_invoice_paid(
     try:
         jukebox = await get_jukebox(juke_id)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No jukebox",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     await api_get_jukebox_invoice_check(pay_hash, juke_id)
     jukebox_payment = await get_jukebox_payment(pay_hash)
     if jukebox_payment.paid:
@@ -390,8 +356,7 @@ async def api_get_jukebox_invoice_paid(
                             )
                     else:
                         raise HTTPException(
-                            status_code=HTTPStatus.FORBIDDEN,
-                            detail="Invoice not paid",
+                            status_code=HTTPStatus.FORBIDDEN, detail="Invoice not paid"
                         )
             elif r.status_code == 200:
                 async with httpx.AsyncClient() as client:
@@ -424,29 +389,23 @@ async def api_get_jukebox_invoice_paid(
                             )
                     else:
                         raise HTTPException(
-                            status_code=HTTPStatus.OK,
-                            detail="Invoice not paid",
+                            status_code=HTTPStatus.OK, detail="Invoice not paid"
                         )
             elif r.status_code == 401 or r.status_code == 403:
                 token = await api_get_token(juke_id)
                 if token == False:
                     raise HTTPException(
-                        status_code=HTTPStatus.OK,
-                        detail="Invoice not paid",
+                        status_code=HTTPStatus.OK, detail="Invoice not paid"
                     )
                 elif retry:
                     raise HTTPException(
-                        status_code=HTTPStatus.FORBIDDEN,
-                        detail="Failed to get auth",
+                        status_code=HTTPStatus.FORBIDDEN, detail="Failed to get auth"
                     )
                 else:
                     return await api_get_jukebox_invoice_paid(
                         song_id, juke_id, pay_hash
                     )
-    raise HTTPException(
-        status_code=HTTPStatus.OK,
-        detail="Invoice not paid",
-    )
+    raise HTTPException(status_code=HTTPStatus.OK, detail="Invoice not paid")
 
 
 ############################GET TRACKS
@@ -454,16 +413,12 @@ async def api_get_jukebox_invoice_paid(
 
 @jukebox_ext.get("/api/v1/jukebox/jb/currently/{juke_id}")
 async def api_get_jukebox_currently(
-    retry: bool = Query(False),
-    juke_id: str = Query(None),
+    retry: bool = Query(False), juke_id: str = Query(None)
 ):
     try:
         jukebox = await get_jukebox(juke_id)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="No jukebox",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(
@@ -472,10 +427,7 @@ async def api_get_jukebox_currently(
                 headers={"Authorization": "Bearer " + jukebox.sp_access_token},
             )
             if r.status_code == 204:
-                raise HTTPException(
-                    status_code=HTTPStatus.OK,
-                    detail="Nothing",
-                )
+                raise HTTPException(status_code=HTTPStatus.OK, detail="Nothing")
             elif r.status_code == 200:
                 try:
                     response = r.json()
@@ -490,31 +442,26 @@ async def api_get_jukebox_currently(
                     return track
                 except:
                     raise HTTPException(
-                        status_code=HTTPStatus.NOT_FOUND,
-                        detail="Something went wrong",
+                        status_code=HTTPStatus.NOT_FOUND, detail="Something went wrong"
                     )
 
             elif r.status_code == 401:
                 token = await api_get_token(juke_id)
                 if token == False:
                     raise HTTPException(
-                        status_code=HTTPStatus.FORBIDDEN,
-                        detail="INvoice not paid",
+                        status_code=HTTPStatus.FORBIDDEN, detail="INvoice not paid"
                     )
                 elif retry:
                     raise HTTPException(
-                        status_code=HTTPStatus.FORBIDDEN,
-                        detail="Failed to get auth",
+                        status_code=HTTPStatus.FORBIDDEN, detail="Failed to get auth"
                     )
                 else:
                     return await api_get_jukebox_currently(retry=True, juke_id=juke_id)
             else:
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail="Something went wrong",
+                    status_code=HTTPStatus.NOT_FOUND, detail="Something went wrong"
                 )
         except:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Something went wrong",
+                status_code=HTTPStatus.NOT_FOUND, detail="Something went wrong"
             )

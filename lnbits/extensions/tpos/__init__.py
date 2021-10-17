@@ -14,12 +14,9 @@ tpos_ext: APIRouter = APIRouter(
     # "tpos", __name__, static_folder="static", template_folder="templates"
 )
 
+
 def tpos_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/tpos/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/tpos/templates"])
 
 
 from .views_api import *  # noqa

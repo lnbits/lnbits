@@ -49,20 +49,25 @@ async def api_usermanager_user(user_id, wallet: WalletTypeInfo = Depends(get_key
 #         "password": {"type": "string", "required": False},
 #     }
 # )
-async def api_usermanager_users_create(data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_users_create(
+    data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     user = await create_usermanager_user(data)
     full = user.dict()
-    full["wallets"] = [wallet.dict() for wallet in await get_usermanager_users_wallets(user.id)]
+    full["wallets"] = [
+        wallet.dict() for wallet in await get_usermanager_users_wallets(user.id)
+    ]
     return full
 
 
 @usermanager_ext.delete("/api/v1/users/{user_id}")
-async def api_usermanager_users_delete(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_users_delete(
+    user_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     user = await get_usermanager_user(user_id)
     if not user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="User does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
     await delete_usermanager_user(user_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -72,16 +77,15 @@ async def api_usermanager_users_delete(user_id, wallet: WalletTypeInfo = Depends
 
 
 @usermanager_ext.post("/api/v1/extensions")
-async def api_usermanager_activate_extension(extension: str = Query(...), userid: str = Query(...), active: bool = Query(...)):
+async def api_usermanager_activate_extension(
+    extension: str = Query(...), userid: str = Query(...), active: bool = Query(...)
+):
     user = await get_user(userid)
     if not user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="User does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
-    update_user_extension(
-        user_id=userid, extension=extension, active=active
-    )
+    update_user_extension(user_id=userid, extension=extension, active=active)
     return {"extension": "updated"}
 
 
@@ -93,11 +97,9 @@ async def api_usermanager_wallets_create(
     wallet: WalletTypeInfo = Depends(get_key_type),
     user_id: str = Query(...),
     wallet_name: str = Query(...),
-    admin_id: str = Query(...)
+    admin_id: str = Query(...),
 ):
-    user = await create_usermanager_wallet(
-        user_id, wallet_name, admin_id
-    )
+    user = await create_usermanager_wallet(user_id, wallet_name, admin_id)
     return user.dict()
 
 
@@ -108,23 +110,30 @@ async def api_usermanager_wallets(wallet: WalletTypeInfo = Depends(get_key_type)
 
 
 @usermanager_ext.get("/api/v1/wallets/{wallet_id}")
-async def api_usermanager_wallet_transactions(wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_wallet_transactions(
+    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     return await get_usermanager_wallet_transactions(wallet_id)
 
 
 @usermanager_ext.get("/api/v1/wallets/{user_id}")
-async def api_usermanager_users_wallets(user_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_users_wallets(
+    user_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     # wallet = await get_usermanager_users_wallets(user_id)
-    return [s_wallet.dict() for s_wallet in await get_usermanager_users_wallets(user_id)]
+    return [
+        s_wallet.dict() for s_wallet in await get_usermanager_users_wallets(user_id)
+    ]
 
 
 @usermanager_ext.delete("/api/v1/wallets/{wallet_id}")
-async def api_usermanager_wallets_delete(wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_wallets_delete(
+    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     get_wallet = await get_usermanager_wallet(wallet_id)
     if not get_wallet:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )
     await delete_usermanager_wallet(wallet_id, get_wallet.user)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

@@ -38,29 +38,29 @@ async def api_wallets_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 
 @watchonly_ext.get("/api/v1/wallet/{wallet_id}")
-async def api_wallet_retrieve(wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_wallet_retrieve(
+    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     w_wallet = await get_watch_wallet(wallet_id)
 
     if not w_wallet:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )
 
     return w_wallet.dict()
 
 
 @watchonly_ext.post("/api/v1/wallet")
-async def api_wallet_create_or_update(data: CreateWallet, wallet_id=None, w: WalletTypeInfo = Depends(get_key_type)):
+async def api_wallet_create_or_update(
+    data: CreateWallet, wallet_id=None, w: WalletTypeInfo = Depends(get_key_type)
+):
     try:
         wallet = await create_watch_wallet(
             user=w.wallet.user, masterpub=data.masterpub, title=data.title
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
     mempool = await get_mempool(w.wallet.user)
     if not mempool:
@@ -74,8 +74,7 @@ async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 
     if not wallet:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )
 
     await delete_watch_wallet(wallet_id)
@@ -96,14 +95,12 @@ async def api_fresh_address(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 
 
 @watchonly_ext.get("/api/v1/addresses/{wallet_id}")
-
 async def api_get_addresses(wallet_id, w: WalletTypeInfo = Depends(get_key_type)):
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Wallet does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
         )
 
     addresses = await get_addresses(wallet_id)
@@ -119,7 +116,9 @@ async def api_get_addresses(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 
 
 @watchonly_ext.put("/api/v1/mempool")
-async def api_update_mempool(endpoint: str = Query(...), w: WalletTypeInfo = Depends(get_key_type)):
+async def api_update_mempool(
+    endpoint: str = Query(...), w: WalletTypeInfo = Depends(get_key_type)
+):
     mempool = await update_mempool(endpoint, user=w.wallet.user)
     return mempool.dict()
 

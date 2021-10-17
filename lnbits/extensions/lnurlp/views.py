@@ -14,34 +14,35 @@ from lnbits.core.models import User
 
 templates = Jinja2Templates(directory="templates")
 
+
 @lnurlp_ext.get("/", response_class=HTMLResponse)
 # @validate_uuids(["usr"], required=True)
 # @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return lnurlp_renderer().TemplateResponse("lnurlp/index.html", {"request": request, "user": user.dict()})
+    return lnurlp_renderer().TemplateResponse(
+        "lnurlp/index.html", {"request": request, "user": user.dict()}
+    )
 
 
 @lnurlp_ext.get("/{link_id}", response_class=HTMLResponse)
-async def display(request: Request,link_id):
+async def display(request: Request, link_id):
     link = await get_pay_link(link_id)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Pay link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
         # abort(HTTPStatus.NOT_FOUND, "Pay link does not exist.")
-    ctx = {"request": request, "lnurl":link.lnurl(req=request)}
+    ctx = {"request": request, "lnurl": link.lnurl(req=request)}
     return lnurlp_renderer().TemplateResponse("lnurlp/display.html", ctx)
 
 
 @lnurlp_ext.get("/print/{link_id}", response_class=HTMLResponse)
-async def print_qr(request: Request,link_id):
+async def print_qr(request: Request, link_id):
     link = await get_pay_link(link_id)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Pay link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
         # abort(HTTPStatus.NOT_FOUND, "Pay link does not exist.")
-    ctx = {"request": request, "lnurl":link.lnurl(req=request)}
+    ctx = {"request": request, "lnurl": link.lnurl(req=request)}
     return lnurlp_renderer().TemplateResponse("lnurlp/print_qr.html", ctx)

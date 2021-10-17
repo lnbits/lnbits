@@ -30,8 +30,9 @@ from .crud import (
 
 @satspay_ext.post("/api/v1/charge")
 @satspay_ext.put("/api/v1/charge/{charge_id}")
-
-async def api_charge_create_or_update(data: CreateCharge, wallet: WalletTypeInfo = Depends(get_key_type), charge_id=None):
+async def api_charge_create_or_update(
+    data: CreateCharge, wallet: WalletTypeInfo = Depends(get_key_type), charge_id=None
+):
     if not charge_id:
         charge = await create_charge(user=wallet.wallet.user, data=data)
         return charge.dict()
@@ -44,32 +45,33 @@ async def api_charge_create_or_update(data: CreateCharge, wallet: WalletTypeInfo
 async def api_charges_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
         return [
-                    {
-                        **charge.dict(),
-                        **{"time_elapsed": charge.time_elapsed},
-                        **{"paid": charge.paid},
-                    }
-                    for charge in await get_charges(wallet.wallet.user)
-                ]
+            {
+                **charge.dict(),
+                **{"time_elapsed": charge.time_elapsed},
+                **{"paid": charge.paid},
+            }
+            for charge in await get_charges(wallet.wallet.user)
+        ]
     except:
         return ""
 
 
 @satspay_ext.get("/api/v1/charge/{charge_id}")
-async def api_charge_retrieve(charge_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_charge_retrieve(
+    charge_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     charge = await get_charge(charge_id)
 
     if not charge:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Charge does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Charge does not exist."
         )
 
     return {
-                **charge.dict(),
-                **{"time_elapsed": charge.time_elapsed},
-                **{"paid": charge.paid},
-            }
+        **charge.dict(),
+        **{"time_elapsed": charge.time_elapsed},
+        **{"paid": charge.paid},
+    }
 
 
 @satspay_ext.delete("/api/v1/charge/{charge_id}")
@@ -78,8 +80,7 @@ async def api_charge_delete(charge_id, wallet: WalletTypeInfo = Depends(get_key_
 
     if not charge:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Charge does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Charge does not exist."
         )
 
     await delete_charge(charge_id)
@@ -96,8 +97,7 @@ async def api_charges_balance(charge_id):
 
     if not charge:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Charge does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Charge does not exist."
         )
 
     if charge.paid and charge.webhook:
@@ -129,7 +129,9 @@ async def api_charges_balance(charge_id):
 
 
 @satspay_ext.put("/api/v1/mempool")
-async def api_update_mempool(endpoint: str = Query(...), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_update_mempool(
+    endpoint: str = Query(...), wallet: WalletTypeInfo = Depends(get_key_type)
+):
     mempool = await update_mempool(endpoint, user=wallet.wallet.user)
     return mempool.dict()
 

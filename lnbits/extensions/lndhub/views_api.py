@@ -23,10 +23,8 @@ from fastapi.security import OAuth2PasswordBearer
 
 @lndhub_ext.get("/ext/getinfo")
 async def lndhub_getinfo():
-    raise HTTPException(
-        status_code=HTTPStatus.UNAUTHORIZED,
-        detail="bad auth",
-    )
+    raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="bad auth")
+
 
 class AuthData(BaseModel):
     login: str = Query(None)
@@ -35,15 +33,16 @@ class AuthData(BaseModel):
 
 
 @lndhub_ext.post("/ext/auth")
-async def lndhub_auth(
-    data: AuthData
-):
+async def lndhub_auth(data: AuthData):
     token = (
         data.refresh_token
         if data.refresh_token
-        else urlsafe_b64encode((data.login + ":" + data.password).encode("utf-8")).decode("ascii")
+        else urlsafe_b64encode(
+            (data.login + ":" + data.password).encode("utf-8")
+        ).decode("ascii")
     )
     return {"refresh_token": token, "access_token": token}
+
 
 class AddInvoice(BaseModel):
     amt: str = Query(None)
@@ -53,8 +52,7 @@ class AddInvoice(BaseModel):
 
 @lndhub_ext.post("/ext/addinvoice")
 async def lndhub_addinvoice(
-    data: AddInvoice,
-    wallet: WalletTypeInfo = Depends(check_wallet)
+    data: AddInvoice, wallet: WalletTypeInfo = Depends(check_wallet)
 ):
     try:
         _, pr = await create_invoice(
@@ -65,8 +63,7 @@ async def lndhub_addinvoice(
         )
     except:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Failed to create invoice",
+            status_code=HTTPStatus.NOT_FOUND, detail="Failed to create invoice"
         )
 
     invoice = bolt11.decode(pr)
@@ -78,8 +75,10 @@ async def lndhub_addinvoice(
         "hash": invoice.payment_hash,
     }
 
+
 class Invoice(BaseModel):
     invoice: str
+
 
 @lndhub_ext.post("/ext/payinvoice")
 async def lndhub_payinvoice(
@@ -92,10 +91,7 @@ async def lndhub_payinvoice(
             extra={"tag": "lndhub"},
         )
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Payment failed",
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Payment failed")
 
     invoice: bolt11.Invoice = bolt11.decode(r_invoice.invoice)
     print("INV2", invoice)
@@ -116,9 +112,7 @@ async def lndhub_payinvoice(
 
 @lndhub_ext.get("/ext/balance")
 # @check_wallet()
-async def lndhub_balance(
-    wallet: WalletTypeInfo = Depends(check_wallet),
-):
+async def lndhub_balance(wallet: WalletTypeInfo = Depends(check_wallet),):
     return {"BTC": {"AvailableBalance": wallet.wallet.balance}}
 
 

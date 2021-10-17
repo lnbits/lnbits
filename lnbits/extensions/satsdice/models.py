@@ -51,11 +51,7 @@ class satsdiceLink(BaseModel):
         #        qs: Dict = parse_qs(url.query)
         #        qs["payment_hash"] = payment_hash
         #        url = url._replace(query=urlencode(qs, doseq=True))
-        return {
-            "tag": "url",
-            "description": "Check the attached link",
-            "url": url,
-        }
+        return {"tag": "url", "description": "Check the attached link", "url": url}
 
 
 class satsdicePayment(BaseModel):
@@ -78,9 +74,7 @@ class satsdiceWithdraw(BaseModel):
     def lnurl(self, req: Request) -> Lnurl:
         return lnurl_encode(
             req.url_for(
-                "satsdice.lnurlw_response",
-                unique_hash=self.unique_hash,
-                _external=True,
+                "satsdice.lnurlw_response", unique_hash=self.unique_hash, _external=True
             )
         )
 
@@ -91,9 +85,7 @@ class satsdiceWithdraw(BaseModel):
     @property
     def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
         url = req.url_for(
-            "satsdice.api_lnurlw_callback",
-            unique_hash=self.unique_hash,
-            _external=True,
+            "satsdice.api_lnurlw_callback", unique_hash=self.unique_hash, _external=True
         )
         return LnurlWithdrawResponse(
             callback=url,

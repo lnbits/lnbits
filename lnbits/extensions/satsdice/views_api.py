@@ -67,14 +67,12 @@ async def api_link_retrieve(
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Pay link does not exist.",
+            status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
 
     if link.wallet != wallet.wallet.id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your pay link.",
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your pay link."
         )
 
     return {**link._asdict(), **{"lnurl": link.lnurl}}
@@ -88,17 +86,13 @@ async def api_link_create_or_update(
     link_id: str = Query(None),
 ):
     if data.min_bet > data.max_bet:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Bad request",
-        )
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Bad request")
     if link_id:
         link = await get_satsdice_pay(link_id)
 
         if not link:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Satsdice does not exist",
+                status_code=HTTPStatus.NOT_FOUND, detail="Satsdice does not exist"
             )
 
         if link.wallet != wallet.wallet.id:
@@ -123,14 +117,12 @@ async def api_link_delete(
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Pay link does not exist.",
+            status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
 
     if link.wallet != g.wallet.id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your pay link.",
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your pay link."
         )
 
     await delete_satsdice_pay(link_id)
@@ -153,10 +145,7 @@ async def api_withdraws(
         return (
             jsonify(
                 [
-                    {
-                        **withdraw._asdict(),
-                        **{"lnurl": withdraw.lnurl},
-                    }
+                    {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}
                     for withdraw in await get_satsdice_withdraws(wallet_ids)
                 ]
             ),
@@ -177,14 +166,12 @@ async def api_withdraw_retrieve(
 
     if not withdraw:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="satsdice withdraw does not exist.",
+            status_code=HTTPStatus.NOT_FOUND, detail="satsdice withdraw does not exist."
         )
 
     if withdraw.wallet != wallet.wallet.id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your satsdice withdraw.",
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your satsdice withdraw."
         )
 
     return {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}, HTTPStatus.OK
@@ -220,8 +207,7 @@ async def api_withdraw_create_or_update(
             )
         if withdraw.wallet != wallet.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your satsdice withdraw.",
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your satsdice withdraw."
             )
 
         withdraw = await update_satsdice_withdraw(
@@ -245,14 +231,12 @@ async def api_withdraw_delete(
 
     if not withdraw:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="satsdice withdraw does not exist.",
+            status_code=HTTPStatus.NOT_FOUND, detail="satsdice withdraw does not exist."
         )
 
     if withdraw.wallet != wallet.wallet.id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your satsdice withdraw.",
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your satsdice withdraw."
         )
 
     await delete_satsdice_withdraw(withdraw_id)

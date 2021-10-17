@@ -9,16 +9,23 @@ import httpx
 
 
 async def create_ticket(
-    payment_hash: str,
-    wallet: str,
-    data: CreateTicketData
+    payment_hash: str, wallet: str, data: CreateTicketData
 ) -> Tickets:
     await db.execute(
         """
         INSERT INTO lnticket.ticket (id, form, email, ltext, name, wallet, sats, paid)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_hash, data.form, data.email, data.ltext, data.name, wallet, data.sats, False),
+        (
+            payment_hash,
+            data.form,
+            data.email,
+            data.ltext,
+            data.name,
+            wallet,
+            data.sats,
+            False,
+        ),
     )
 
     ticket = await get_ticket(payment_hash)
@@ -99,17 +106,23 @@ async def delete_ticket(ticket_id: str) -> None:
 # FORMS
 
 
-async def create_form(
-    data: CreateFormData,
-    wallet: Wallet,
-) -> Forms:
+async def create_form(data: CreateFormData, wallet: Wallet) -> Forms:
     form_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO lnticket.form2 (id, wallet, name, webhook, description, flatrate, amount, amountmade)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (form_id, wallet.id, wallet.name, data.webhook, data.description, data.flatrate, data.amount, 0),
+        (
+            form_id,
+            wallet.id,
+            wallet.name,
+            data.webhook,
+            data.description,
+            data.flatrate,
+            data.amount,
+            0,
+        ),
     )
 
     form = await get_form(form_id)

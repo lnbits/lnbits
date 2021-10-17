@@ -12,11 +12,7 @@ lndhub_ext: APIRouter = APIRouter(prefix="/lndhub", tags=["lndhub"])
 
 
 def lndhub_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/lndhub/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/lndhub/templates"])
 
 
 from .views_api import *  # noqa

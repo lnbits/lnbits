@@ -41,7 +41,9 @@ class ExtensionManager:
         ]:
             try:
                 with open(
-                    os.path.join(settings.LNBITS_PATH, "extensions", extension, "config.json")
+                    os.path.join(
+                        settings.LNBITS_PATH, "extensions", extension, "config.json"
+                    )
                 ) as json_file:
                     config = json.load(json_file)
                 is_valid = True
@@ -137,11 +139,8 @@ def get_vendored(ext: str, prefer_minified: bool = False) -> List[str]:
 def url_for_vendored(abspath: str) -> str:
     return "/" + os.path.relpath(abspath, settings.LNBITS_PATH)
 
-def url_for(
-    endpoint: str,
-    external: Optional[bool] = False,
-    **params: Any,
-) -> str:
+
+def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> str:
     base = g().base_url if external else ""
     url_params = "?"
     for key in params:
@@ -149,9 +148,12 @@ def url_for(
     url = f"{base}{endpoint}{url_params}"
     return url
 
+
 def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t = Jinja2Templates(
-     loader=jinja2.FileSystemLoader(["lnbits/templates", "lnbits/core/templates", *additional_folders]),
+        loader=jinja2.FileSystemLoader(
+            ["lnbits/templates", "lnbits/core/templates", *additional_folders]
+        )
     )
     t.env.globals["SITE_TITLE"] = settings.LNBITS_SITE_TITLE
     t.env.globals["SITE_TAGLINE"] = settings.LNBITS_SITE_TAGLINE
@@ -159,7 +161,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
     t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
     t.env.globals["EXTENSIONS"] = get_valid_extensions()
-    
+
     if settings.DEBUG:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
         t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())

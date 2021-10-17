@@ -15,8 +15,7 @@ async def api_public_payment_longpolling(payment_hash):
 
     if not payment:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Payment does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
     elif not payment.pending:
         return {"status": "paid"}
@@ -28,8 +27,7 @@ async def api_public_payment_longpolling(payment_hash):
             return {"status": "expired"}
     except:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Invalid bolt11 invoice."
+            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid bolt11 invoice."
         )
 
     payment_queue = asyncio.Queue(0)
@@ -50,14 +48,10 @@ async def api_public_payment_longpolling(payment_hash):
         await asyncio.sleep(45)
         cancel_scope.cancel()
 
-    
     asyncio.create_task(payment_info_receiver())
     asyncio.create_task(timeouter())
 
     if response:
         return response
     else:
-        raise HTTPException(
-            status_code=HTTPStatus.REQUEST_TIMEOUT,
-            detail="timeout"
-        )
+        raise HTTPException(status_code=HTTPStatus.REQUEST_TIMEOUT, detail="timeout")

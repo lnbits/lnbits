@@ -30,9 +30,7 @@ class LntxbotWallet(Wallet):
     async def status(self) -> StatusResponse:
         async with httpx.AsyncClient() as client:
             r = await client.get(
-                f"{self.endpoint}/balance",
-                headers=self.auth,
-                timeout=40,
+                f"{self.endpoint}/balance", headers=self.auth, timeout=40
             )
         try:
             data = r.json()
@@ -60,10 +58,7 @@ class LntxbotWallet(Wallet):
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                f"{self.endpoint}/addinvoice",
-                headers=self.auth,
-                json=data,
-                timeout=40,
+                f"{self.endpoint}/addinvoice", headers=self.auth, json=data, timeout=40
             )
 
         if r.is_error:
@@ -123,8 +118,7 @@ class LntxbotWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                url=f"{self.endpoint}/paymentstatus/{checking_id}",
-                headers=self.auth,
+                url=f"{self.endpoint}/paymentstatus/{checking_id}", headers=self.auth
             )
 
         data = r.json()

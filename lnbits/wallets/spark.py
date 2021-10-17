@@ -75,8 +75,7 @@ class SparkWallet(Wallet):
             return StatusResponse(str(e), 0)
 
         return StatusResponse(
-            None,
-            sum([ch["channel_sat"] * 1000 for ch in funds["channels"]]),
+            None, sum([ch["channel_sat"] * 1000 for ch in funds["channels"]])
         )
 
     async def create_invoice(

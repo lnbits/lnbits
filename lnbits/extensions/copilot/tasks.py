@@ -38,8 +38,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     if not copilot:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Copilot does not exist",
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
     if copilot.animation1threshold:
         if int(payment.amount / 1000) >= copilot.animation1threshold:

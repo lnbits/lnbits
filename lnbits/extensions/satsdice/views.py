@@ -15,9 +15,7 @@ from lnbits.core.crud import (
     delete_expired_invoices,
     get_balance_checks,
 )
-from lnbits.core.services import (
-    check_invoice_status,
-)
+from lnbits.core.services import check_invoice_status
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates

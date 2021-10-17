@@ -147,9 +147,7 @@ async def pay_invoice(
             # so the other side only has access to his new money when we are sure
             # the payer has enough to deduct from
             await update_payment_status(
-                checking_id=internal_checking_id,
-                pending=False,
-                conn=conn,
+                checking_id=internal_checking_id, pending=False, conn=conn
             )
 
             # notify receiver asynchronously
@@ -213,10 +211,7 @@ async def redeem_lnurl_withdraw(
     if wait_seconds:
         await asyncio.sleep(wait_seconds)
 
-    params = {
-        "k1": res["k1"],
-        "pr": payment_request,
-    }
+    params = {"k1": res["k1"], "pr": payment_request}
 
     try:
         params["balanceNotify"] = url_for(
@@ -235,8 +230,7 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str,
-    conn: Optional[Connection] = None,
+    callback: str, conn: Optional[Connection] = None
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
@@ -304,14 +298,12 @@ async def perform_lnurlauth(
             return LnurlErrorResponse(reason=resp["reason"])
         except (KeyError, json.decoder.JSONDecodeError):
             return LnurlErrorResponse(
-                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text,
+                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text
             )
 
 
 async def check_invoice_status(
-    wallet_id: str,
-    payment_hash: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:

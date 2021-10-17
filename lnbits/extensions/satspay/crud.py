@@ -14,10 +14,7 @@ from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
 ###############CHARGES##########################
 
 
-async def create_charge(
-    user: str,
-    data: CreateCharge
-) -> Charges:
+async def create_charge(user: str, data: CreateCharge) -> Charges:
     charge_id = urlsafe_short_hash()
     if data.onchainwallet:
         wallet = await get_watch_wallet(data.onchainwallet)

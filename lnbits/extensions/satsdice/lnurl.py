@@ -19,7 +19,11 @@ from .crud import (
     get_satsdice_pay,
     create_satsdice_payment,
 )
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+from lnurl import (
+    LnurlPayResponse,
+    LnurlPayActionResponse,
+    LnurlErrorResponse,
+)  # type: ignore
 
 
 ##############LNURLP STUFF
@@ -30,8 +34,7 @@ async def api_lnurlp_response(req: Request, link_id: str = Query(None)):
     link = await get_satsdice_pay(link_id)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="LNURL-pay not found.",
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-pay not found."
         )
     resp = LnurlPayResponse(
         callback=req.url_for(
@@ -51,8 +54,7 @@ async def api_lnurlp_callback(link_id: str = Query(None), amount: str = Query(No
     link = await get_satsdice_pay(link_id)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="LNURL-pay not found.",
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-pay not found."
         )
 
     min, max = link.min_bet, link.max_bet
@@ -87,15 +89,10 @@ async def api_lnurlp_callback(link_id: str = Query(None), amount: str = Query(No
     link = await create_satsdice_payment(data)
     if success_action:
         resp = LnurlPayActionResponse(
-            pr=payment_request,
-            success_action=success_action,
-            routes=[],
+            pr=payment_request, success_action=success_action, routes=[]
         )
     else:
-        resp = LnurlPayActionResponse(
-            pr=payment_request,
-            routes=[],
-        )
+        resp = LnurlPayActionResponse(pr=payment_request, routes=[])
 
     return resp.dict()
 
@@ -109,15 +106,11 @@ async def api_lnurlw_response(unique_hash: str = Query(None)):
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="LNURL-satsdice not found.",
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-satsdice not found."
         )
 
     if link.used:
-        raise HTTPException(
-            status_code=HTTPStatus.OK,
-            detail="satsdice is spent.",
-        )
+        raise HTTPException(status_code=HTTPStatus.OK, detail="satsdice is spent.")
 
     return link.lnurl_response.dict()
 
@@ -136,21 +129,14 @@ async def api_lnurlw_callback(
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="LNURL-satsdice not found.",
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-satsdice not found."
         )
 
     if link.used:
-        raise HTTPException(
-            status_code=HTTPStatus.OK,
-            detail="satsdice is spent.",
-        )
+        raise HTTPException(status_code=HTTPStatus.OK, detail="satsdice is spent.")
 
     if link.k1 != k1:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Bad request..",
-        )
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Bad request..")
 
     if now < link.open_time:
         return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}

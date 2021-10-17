@@ -5,13 +5,14 @@ from sqlite3 import Row
 from pydantic import BaseModel
 import shortuuid  # type: ignore
 
+
 class CreateWithdrawData(BaseModel):
-    title:  str = Query(...)
-    min_withdrawable:  int = Query(..., ge=1)
-    max_withdrawable:  int = Query(..., ge=1)
-    uses:  int = Query(..., ge=1)
-    wait_time:  int = Query(..., ge=1)
-    is_unique:  bool
+    title: str = Query(...)
+    min_withdrawable: int = Query(..., ge=1)
+    max_withdrawable: int = Query(..., ge=1)
+    uses: int = Query(..., ge=1)
+    wait_time: int = Query(..., ge=1)
+    is_unique: bool
 
 
 class WithdrawLink(BaseModel):
@@ -49,16 +50,14 @@ class WithdrawLink(BaseModel):
             url = req.url_for(
                 "withdraw.api_lnurl_multi_response",
                 unique_hash=self.unique_hash,
-                id_unique_hash=multihash
+                id_unique_hash=multihash,
             )
         else:
             url = req.url_for(
-                "withdraw.api_lnurl_response",
-                unique_hash=self.unique_hash
+                "withdraw.api_lnurl_response", unique_hash=self.unique_hash
             )
 
         return lnurl_encode(url)
-
 
     def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
         url = req.url_for(

@@ -14,12 +14,9 @@ lnticket_ext: APIRouter = APIRouter(
     # "lnticket", __name__, static_folder="static", template_folder="templates"
 )
 
+
 def lnticket_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/lnticket/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/lnticket/templates"])
 
 
 from .views_api import *  # noqa
@@ -30,4 +27,3 @@ from .tasks import wait_for_paid_invoices
 def lnticket_start():
     loop = asyncio.get_event_loop()
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
-

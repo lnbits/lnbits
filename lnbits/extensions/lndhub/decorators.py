@@ -12,12 +12,19 @@ from starlette.responses import HTMLResponse, JSONResponse
 from lnbits.decorators import WalletTypeInfo, get_key_type  # type: ignore
 
 
-api_key_header_auth = APIKeyHeader(name="AUTHORIZATION", auto_error=False, description="Admin or Invoice key for LNDHub API's")
-async def check_wallet(r: Request, api_key_header_auth: str = Security(api_key_header_auth)) -> WalletTypeInfo:    
+api_key_header_auth = APIKeyHeader(
+    name="AUTHORIZATION",
+    auto_error=False,
+    description="Admin or Invoice key for LNDHub API's",
+)
+
+
+async def check_wallet(
+    r: Request, api_key_header_auth: str = Security(api_key_header_auth)
+) -> WalletTypeInfo:
     if not api_key_header_auth:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="Invalid auth key"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth key"
         )
 
     t = api_key_header_auth.split(" ")[1]
@@ -26,14 +33,15 @@ async def check_wallet(r: Request, api_key_header_auth: str = Security(api_key_h
     return await get_key_type(r, api_key_header=token)
 
 
-async def require_admin_key(r: Request,  api_key_header_auth: str = Security(api_key_header_auth)):
+async def require_admin_key(
+    r: Request, api_key_header_auth: str = Security(api_key_header_auth)
+):
     wallet = await check_wallet(r, api_key_header_auth)
     if wallet.wallet_type != 0:
         # If wallet type is not admin then return the unauthorized status
         # This also covers when the user passes an invalid key type
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Admin key required.",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin key required."
         )
-    else: 
+    else:
         return wallet

@@ -26,11 +26,7 @@ lnurlp_ext: APIRouter = APIRouter(
 
 
 def lnurlp_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/lnurlp/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/lnurlp/templates"])
 
 
 from .views_api import *  # noqa

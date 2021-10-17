@@ -18,14 +18,16 @@ from fastapi import Request, HTTPException
 
 @offlineshop_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return offlineshop_renderer().TemplateResponse("offlineshop/index.html", {"request": request, "user": user.dict()})
+    return offlineshop_renderer().TemplateResponse(
+        "offlineshop/index.html", {"request": request, "user": user.dict()}
+    )
 
 
 @offlineshop_ext.get("/print", response_class=HTMLResponse)
 async def print_qr_codes(request: Request, items: List[int] = None):
     items = []
     for item_id in request.query_params.get("items").split(","):
-        item = await get_item(item_id) # type: Item
+        item = await get_item(item_id)  # type: Item
         if item:
             items.append(
                 {
@@ -35,11 +37,16 @@ async def print_qr_codes(request: Request, items: List[int] = None):
                 }
             )
 
-    return offlineshop_renderer().TemplateResponse("offlineshop/print.html", {"request": request,"items":items})
+    return offlineshop_renderer().TemplateResponse(
+        "offlineshop/print.html", {"request": request, "items": items}
+    )
 
 
-@offlineshop_ext.get("/confirmation/{p}", name="offlineshop.confirmation_code",
-                    response_class=HTMLResponse)
+@offlineshop_ext.get(
+    "/confirmation/{p}",
+    name="offlineshop.confirmation_code",
+    response_class=HTMLResponse,
+)
 async def confirmation_code(p: str = Query(...)):
     style = "<style>* { font-size: 100px}</style>"
 
@@ -48,20 +55,20 @@ async def confirmation_code(p: str = Query(...)):
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Couldn't find the payment {payment_hash}." + style
+            detail=f"Couldn't find the payment {payment_hash}." + style,
         )
     if payment.pending:
         raise HTTPException(
             status_code=HTTPStatus.PAYMENT_REQUIRED,
-            detail=f"Payment {payment_hash} wasn't received yet. Please try again in a minute." + style
+            detail=f"Payment {payment_hash} wasn't received yet. Please try again in a minute."
+            + style,
         )
 
     if payment.time + 60 * 15 < time.time():
         raise HTTPException(
             status_code=HTTPStatus.REQUEST_TIMEOUT,
-            detail="Too much time has passed." + style
+            detail="Too much time has passed." + style,
         )
-        
 
     item = await get_item(payment.extra.get("item"))
     shop = await get_shop(item.shop)

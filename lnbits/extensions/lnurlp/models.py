@@ -8,15 +8,17 @@ from lnurl.types import LnurlPayMetadata  # type: ignore
 from sqlite3 import Row
 from pydantic import BaseModel
 
+
 class CreatePayLinkData(BaseModel):
-    description:  str
-    min:  int = Query(0.01, ge=0.01)
-    max:  int = Query(0.01, ge=0.01)
-    currency:  str = Query(None)
-    comment_chars:  int = Query(0, ge=0, lt=800)
-    webhook_url:  str = Query(None)
-    success_text:  str = Query(None)
-    success_url:  str = Query(None)
+    description: str
+    min: int = Query(0.01, ge=0.01)
+    max: int = Query(0.01, ge=0.01)
+    currency: str = Query(None)
+    comment_chars: int = Query(0, ge=0, lt=800)
+    webhook_url: str = Query(None)
+    success_text: str = Query(None)
+    success_url: str = Query(None)
+
 
 class PayLink(BaseModel):
     id: int
@@ -36,7 +38,6 @@ class PayLink(BaseModel):
     def from_row(cls, row: Row) -> "PayLink":
         data = dict(row)
         return cls(**data)
-
 
     def lnurl(self, req: Request) -> str:
         url = req.url_for("lnurlp.api_lnurl_response", link_id=self.id)
@@ -58,9 +59,6 @@ class PayLink(BaseModel):
                 "url": urlunparse(url),
             }
         elif self.success_text:
-            return {
-                "tag": "message",
-                "message": self.success_text,
-            }
+            return {"tag": "message", "message": self.success_text}
         else:
             return None

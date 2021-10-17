@@ -15,9 +15,7 @@ from .models import (
 from lnbits.helpers import urlsafe_short_hash
 
 
-async def create_satsdice_pay(
-    data: CreateSatsDiceLink,
-) -> satsdiceLink:
+async def create_satsdice_pay(data: CreateSatsDiceLink,) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -124,13 +122,7 @@ async def create_satsdice_payment(data: CreateSatsDicePayment) -> satsdicePaymen
         )
         VALUES (?, ?, ?, ?, ?)
         """,
-        (
-            data.payment_hash,
-            data.satsdice_pay,
-            data.value,
-            False,
-            False,
-        ),
+        (data.payment_hash, data.satsdice_pay, data.value, False, False),
     )
     payment = await get_satsdice_payment(payment_hash)
     assert payment, "Newly created withdraw couldn't be retrieved"
@@ -211,8 +203,7 @@ async def get_satsdice_withdraw_by_hash(
     unique_hash: str, num=0
 ) -> Optional[satsdiceWithdraw]:
     row = await db.fetchone(
-        "SELECT * FROM satsdice.satsdice_withdraw WHERE unique_hash = ?",
-        (unique_hash,),
+        "SELECT * FROM satsdice.satsdice_withdraw WHERE unique_hash = ?", (unique_hash,)
     )
     if not row:
         return None
@@ -259,10 +250,7 @@ async def delete_satsdice_withdraw(withdraw_id: str) -> None:
     )
 
 
-async def create_withdraw_hash_check(
-    the_hash: str,
-    lnurl_id: str,
-) -> HashCheck:
+async def create_withdraw_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
     await db.execute(
         """
         INSERT INTO satsdice.hash_checkw (
@@ -271,10 +259,7 @@ async def create_withdraw_hash_check(
         )
         VALUES (?, ?)
         """,
-        (
-            the_hash,
-            lnurl_id,
-        ),
+        (the_hash, lnurl_id),
     )
     hashCheck = await get_withdraw_hash_checkw(the_hash, lnurl_id)
     return hashCheck

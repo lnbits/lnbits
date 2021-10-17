@@ -20,11 +20,7 @@ jukebox_ext: APIRouter = APIRouter(prefix="/jukebox", tags=["jukebox"])
 
 
 def jukebox_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/jukebox/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/jukebox/templates"])
 
 
 from .views_api import *  # noqa

@@ -17,6 +17,7 @@ async def wait_for_paid_invoices():
         payment = await invoice_queue.get()
         await on_invoice_paid(payment)
 
+
 async def on_invoice_paid(payment: Payment) -> None:
     if "lnurlp" != payment.extra.get("tag"):
         # not an lnurlp invoice

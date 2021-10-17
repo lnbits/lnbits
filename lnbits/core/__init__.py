@@ -9,5 +9,3 @@ core_app: APIRouter = APIRouter()
 from .views.api import *  # noqa
 from .views.generic import *  # noqa
 from .views.public_api import *  # noqa
-
-

@@ -24,34 +24,49 @@ from lnbits.settings import LNBITS_ALLOWED_USERS
 
 
 class KeyChecker(SecurityBase):
-    def __init__(self, scheme_name: str = None, auto_error: bool = True, api_key: str = None):
+    def __init__(
+        self, scheme_name: str = None, auto_error: bool = True, api_key: str = None
+    ):
         self.scheme_name = scheme_name or self.__class__.__name__
         self.auto_error = auto_error
         self._key_type = "invoice"
         self._api_key = api_key
         if api_key:
-            self.model: APIKey= APIKey(
-                **{"in": APIKeyIn.query}, name="X-API-KEY", description="Wallet API Key - QUERY"
+            self.model: APIKey = APIKey(
+                **{"in": APIKeyIn.query},
+                name="X-API-KEY",
+                description="Wallet API Key - QUERY",
             )
         else:
-            self.model: APIKey= APIKey(
-                **{"in": APIKeyIn.header}, name="X-API-KEY", description="Wallet API Key - HEADER"
+            self.model: APIKey = APIKey(
+                **{"in": APIKeyIn.header},
+                name="X-API-KEY",
+                description="Wallet API Key - HEADER",
             )
         self.wallet = None
 
     async def __call__(self, request: Request) -> Wallet:
         try:
-            key_value = self._api_key if self._api_key else request.headers.get("X-API-KEY") or request.query_params["api-key"]
+            key_value = (
+                self._api_key
+                if self._api_key
+                else request.headers.get("X-API-KEY") or request.query_params["api-key"]
+            )
             # FIXME: Find another way to validate the key. A fetch from DB should be avoided here.
             #        Also, we should not return the wallet here - thats silly.
             #        Possibly store it in a Redis DB
             self.wallet = await get_wallet_for_key(key_value, self._key_type)
             if not self.wallet:
-                raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid key or expired key.")
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED,
+                    detail="Invalid key or expired key.",
+                )
 
         except KeyError:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST,
-                                detail="`X-API-KEY` header missing.")
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="`X-API-KEY` header missing."
+            )
+
 
 class WalletInvoiceKeyChecker(KeyChecker):
     """
@@ -61,9 +76,13 @@ class WalletInvoiceKeyChecker(KeyChecker):
 
     The checker will raise an HTTPException when the key is wrong in some ways.
     """
-    def __init__(self, scheme_name: str = None, auto_error: bool = True, api_key: str = None):
+
+    def __init__(
+        self, scheme_name: str = None, auto_error: bool = True, api_key: str = None
+    ):
         super().__init__(scheme_name, auto_error, api_key)
         self._key_type = "invoice"
+
 
 class WalletAdminKeyChecker(KeyChecker):
     """
@@ -73,11 +92,15 @@ class WalletAdminKeyChecker(KeyChecker):
 
     The checker will raise an HTTPException when the key is wrong in some ways.
     """
-    def __init__(self, scheme_name: str = None, auto_error: bool = True, api_key: str = None):
+
+    def __init__(
+        self, scheme_name: str = None, auto_error: bool = True, api_key: str = None
+    ):
         super().__init__(scheme_name, auto_error, api_key)
         self._key_type = "admin"
 
-class WalletTypeInfo():
+
+class WalletTypeInfo:
     wallet_type: int
     wallet: Wallet
 
@@ -85,20 +108,33 @@ class WalletTypeInfo():
         self.wallet_type = wallet_type
         self.wallet = wallet
 
-api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False, description="Admin or Invoice key for wallet API's")
-api_key_query = APIKeyQuery(name="api-key", auto_error=False, description="Admin or Invoice key for wallet API's")
-async def get_key_type(r: Request,
-                        api_key_header: str = Security(api_key_header),
-                        api_key_query: str = Security(api_key_query)) -> WalletTypeInfo:
+
+api_key_header = APIKeyHeader(
+    name="X-API-KEY",
+    auto_error=False,
+    description="Admin or Invoice key for wallet API's",
+)
+api_key_query = APIKeyQuery(
+    name="api-key",
+    auto_error=False,
+    description="Admin or Invoice key for wallet API's",
+)
+
+
+async def get_key_type(
+    r: Request,
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+) -> WalletTypeInfo:
     # 0: admin
     # 1: invoice
     # 2: invalid
-    
-    if not api_key_header and not api_key_query: 
+
+    if not api_key_header and not api_key_query:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     token = api_key_header if api_key_header else api_key_query
-    
+
     try:
         checker = WalletAdminKeyChecker(api_key=token)
         await checker.__call__(r)
@@ -122,6 +158,8 @@ async def get_key_type(r: Request,
             return WalletTypeInfo(2, None)
     except:
         raise
+
+
 # api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False, description="Admin or Invoice key for wallet API's")
 # api_key_query = APIKeyQuery(name="api-key", auto_error=False, description="Admin or Invoice key for wallet API's")
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -159,6 +197,7 @@ async def get_key_type(r: Request,
 #     except:
 #         raise
 
+
 def api_validate_post_request(*, schema: dict):
     def wrap(view):
         @wraps(view)
@@ -166,7 +205,9 @@ def api_validate_post_request(*, schema: dict):
             if "application/json" not in request.headers["Content-Type"]:
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
-                    detail=jsonify({"message": "Content-Type must be `application/json`."})
+                    detail=jsonify(
+                        {"message": "Content-Type must be `application/json`."}
+                    ),
                 )
 
             v = Validator(schema)
@@ -176,9 +217,8 @@ def api_validate_post_request(*, schema: dict):
             if not v.validate(g().data):
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
-                    detail=jsonify({"message": f"Errors in request data: {v.errors}"})
+                    detail=jsonify({"message": f"Errors in request data: {v.errors}"}),
                 )
-
 
             return await view(**kwargs)
 
@@ -191,14 +231,12 @@ async def check_user_exists(usr: UUID4) -> User:
     g().user = await get_user(usr.hex)
     if not g().user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="User  does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="User  does not exist."
         )
 
     if LNBITS_ALLOWED_USERS and g().user.id not in LNBITS_ALLOWED_USERS:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="User not authorized."
+            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
 
     return g().user

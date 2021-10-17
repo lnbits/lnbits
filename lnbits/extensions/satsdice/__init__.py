@@ -12,11 +12,7 @@ satsdice_ext: APIRouter = APIRouter(prefix="/satsdice", tags=["satsdice"])
 
 
 def satsdice_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/satsdice/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/satsdice/templates"])
 
 
 from .views_api import *  # noqa

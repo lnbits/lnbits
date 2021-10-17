@@ -29,11 +29,7 @@ offlineshop_ext: APIRouter = APIRouter(
 
 
 def offlineshop_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/offlineshop/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/offlineshop/templates"])
 
 
 from .lnurl import *  # noqa

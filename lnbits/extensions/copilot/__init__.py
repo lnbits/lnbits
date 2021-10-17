@@ -19,11 +19,7 @@ copilot_ext: APIRouter = APIRouter(prefix="/copilot", tags=["copilot"])
 
 
 def copilot_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/copilot/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/copilot/templates"])
 
 
 from .views_api import *  # noqa

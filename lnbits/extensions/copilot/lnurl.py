@@ -8,7 +8,11 @@ from http import HTTPStatus
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 import base64
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+from lnurl import (
+    LnurlPayResponse,
+    LnurlPayActionResponse,
+    LnurlErrorResponse,
+)  # type: ignore
 from lnurl.types import LnurlPayMetadata
 from lnbits.core.services import create_invoice
 from .models import Copilots, CreateCopilotData
@@ -24,8 +28,7 @@ async def lnurl_response(req: Request, cp_id: str = Query(None)):
     cp = await get_copilot(cp_id)
     if not cp:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Copilot not found",
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
 
     resp = LnurlPayResponse(
@@ -49,8 +52,7 @@ async def lnurl_callback(
     cp = await get_copilot(cp_id)
     if not cp:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Copilot not found",
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
 
     amount_received = int(amount)
@@ -84,9 +86,6 @@ async def lnurl_callback(
         extra={"tag": "copilot", "copilot": cp.id, "comment": comment},
     )
     resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=None,
-        disposable=False,
-        routes=[],
+        pr=payment_request, success_action=None, disposable=False, routes=[]
     )
     return resp.dict()

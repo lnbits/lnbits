@@ -6,8 +6,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 
 async def create_jukebox(
-    data: CreateJukeLinkData,
-    inkey: Optional[str] = "",
+    data: CreateJukeLinkData, inkey: Optional[str] = ""
 ) -> Jukebox:
     juke_id = urlsafe_short_hash()
     result = await db.execute(
@@ -87,12 +86,7 @@ async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
         INSERT INTO jukebox.jukebox_payment (payment_hash, juke_id, song_id, paid)
         VALUES (?, ?, ?, ?)
         """,
-        (
-            data.payment_hash,
-            data.juke_id,
-            data.song_id,
-            False,
-        ),
+        (data.payment_hash, data.juke_id, data.song_id, False),
     )
     jukebox_payment = await get_jukebox_payment(data.payment_hash)
     assert jukebox_payment, "Newly created Jukebox Payment couldn't be retrieved"

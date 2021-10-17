@@ -44,10 +44,7 @@ async def api_copilots_retrieve(
     try:
         return copilots
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.NO_CONTENT,
-            detail="No copilots",
-        )
+        raise HTTPException(status_code=HTTPStatus.NO_CONTENT, detail="No copilots")
 
 
 @copilot_ext.get("/api/v1/copilot/{copilot_id}")
@@ -57,8 +54,7 @@ async def api_copilot_retrieve(
     copilot = await get_copilot(copilot_id)
     if not copilot:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Copilot not found",
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
     if not copilot.lnurl_toggle:
         return copilot.dict()
@@ -83,15 +79,13 @@ async def api_copilot_create_or_update(
 
 @copilot_ext.delete("/api/v1/copilot/{copilot_id}")
 async def api_copilot_delete(
-    copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    copilot_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     copilot = await get_copilot(copilot_id)
 
     if not copilot:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Copilot does not exist",
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
 
     await delete_copilot(copilot_id)
@@ -101,22 +95,16 @@ async def api_copilot_delete(
 
 @copilot_ext.get("/api/v1/copilot/ws/{copilot_id}/{comment}/{data}")
 async def api_copilot_ws_relay(
-    copilot_id: str = Query(None),
-    comment: str = Query(None),
-    data: str = Query(None),
+    copilot_id: str = Query(None), comment: str = Query(None), data: str = Query(None)
 ):
     copilot = await get_copilot(copilot_id)
     print(copilot)
     if not copilot:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Copilot does not exist",
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
     try:
         await updater(copilot_id, data, comment)
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your copilot",
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your copilot")
     return ""

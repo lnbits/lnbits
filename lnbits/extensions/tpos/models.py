@@ -7,6 +7,7 @@ class CreateTposData(BaseModel):
     name: str
     currency: str
 
+
 class TPoS(BaseModel):
     id: str
     wallet: str

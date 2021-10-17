@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from fastapi.param_functions import Query
 from sqlite3 import Row
 
+
 class CreateUserData(BaseModel):
     user_name: str = Query(...)
     wallet_name: str = Query(...)
