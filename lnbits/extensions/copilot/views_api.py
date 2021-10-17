@@ -98,7 +98,6 @@ async def api_copilot_ws_relay(
     copilot_id: str = Query(None), comment: str = Query(None), data: str = Query(None)
 ):
     copilot = await get_copilot(copilot_id)
-    print(copilot)
     if not copilot:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
