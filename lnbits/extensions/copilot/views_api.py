@@ -49,7 +49,9 @@ async def api_copilots_retrieve(
 
 @copilot_ext.get("/api/v1/copilot/{copilot_id}")
 async def api_copilot_retrieve(
-    copilot_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    req: Request,
+    copilot_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     copilot = await get_copilot(copilot_id)
     if not copilot:
@@ -58,7 +60,7 @@ async def api_copilot_retrieve(
         )
     if not copilot.lnurl_toggle:
         return copilot.dict()
-    return {**copilot.dict(), **{"lnurl": copilot.lnurl}}
+    return {**copilot.dict(), **{"lnurl": copilot.lnurl(req)}}
 
 
 @copilot_ext.post("/api/v1/copilot")

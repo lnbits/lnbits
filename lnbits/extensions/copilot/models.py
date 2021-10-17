@@ -5,6 +5,8 @@ from typing import Optional, Dict
 from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
+import json
+from sqlite3 import Row
 
 
 class CreateCopilotData(BaseModel):
@@ -58,5 +60,5 @@ class Copilots(BaseModel):
     success_url: str = Query(None)
 
     def lnurl(self, req: Request) -> str:
-        url = req.url_for("copilot.lnurl_response", link_id=self.id)
+        url = req.url_for("copilot.lnurl_response", cp_id=self.id)
         return lnurl_encode(url)

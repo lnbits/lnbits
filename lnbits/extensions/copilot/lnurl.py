@@ -23,7 +23,9 @@ from fastapi.params import Depends
 from fastapi.param_functions import Query
 
 
-@copilot_ext.get("/lnurl/{cp_id}", response_class=HTMLResponse)
+@copilot_ext.get(
+    "/lnurl/{cp_id}", response_class=HTMLResponse, name="copilot.lnurl_response"
+)
 async def lnurl_response(req: Request, cp_id: str = Query(None)):
     cp = await get_copilot(cp_id)
     if not cp:
