@@ -1,35 +1,28 @@
 from http import HTTPStatus
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
-from http import HTTPStatus
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-from lnbits.core.crud import get_user
-from lnbits.decorators import api_validate_post_request
-from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, CreateSatsDicePayment
-from . import satsdice_ext
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
-from typing import Optional
+
+from fastapi import Request
 from fastapi.param_functions import Query
+from fastapi.params import Depends
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
+from starlette.exceptions import HTTPException
+
+from lnbits.core.crud import get_user
+from lnbits.decorators import WalletTypeInfo, get_key_type
+
+from . import satsdice_ext
 from .crud import (
     create_satsdice_pay,
+    create_satsdice_withdraw,
+    delete_satsdice_pay,
+    delete_satsdice_withdraw,
     get_satsdice_pay,
     get_satsdice_pays,
-    update_satsdice_pay,
-    delete_satsdice_pay,
-    create_satsdice_withdraw,
     get_satsdice_withdraw,
     get_satsdice_withdraws,
+    update_satsdice_pay,
     update_satsdice_withdraw,
-    delete_satsdice_withdraw,
-    create_withdraw_hash_check,
 )
-from lnbits.decorators import (
-    check_user_exists,
-    WalletTypeInfo,
-    get_key_type,
-    api_validate_post_request,
-)
+from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws
 
 ################LNURL pay
 

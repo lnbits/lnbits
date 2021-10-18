@@ -1,29 +1,25 @@
-import json
-import httpx
 import base64
-from .crud import get_targets, set_targets
-from .models import Target, TargetPut
-from fastapi import Request
+import json
 from http import HTTPStatus
+from typing import Optional
+
+import httpx
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-from typing import Optional
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-from . import splitpayments_ext
-from lnbits.decorators import (
-    check_user_exists,
-    WalletTypeInfo,
-    get_key_type,
-    api_validate_post_request,
-    WalletAdminKeyChecker,
-    WalletInvoiceKeyChecker,
-)
+
 from lnbits.core.crud import get_wallet, get_wallet_for_key
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+
+from . import splitpayments_ext
+from .crud import get_targets, set_targets
+from .models import Target, TargetPut
 
 
 @splitpayments_ext.get("/api/v1/targets")
-async def api_targets_get(wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())):
+async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key)):
     print(wallet)
     targets = await get_targets(wallet.wallet.id)
     return [target.dict() for target in targets] or []
@@ -31,7 +27,7 @@ async def api_targets_get(wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker
 
 @splitpayments_ext.put("/api/v1/targets")
 async def api_targets_set(
-    data: TargetPut, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
+    data: TargetPut, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     targets = []
     for entry in data.targets:

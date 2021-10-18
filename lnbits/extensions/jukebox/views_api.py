@@ -1,34 +1,30 @@
-from fastapi import Request
-
+import base64
+import json
 from http import HTTPStatus
+
+import httpx
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-import base64
+
 from lnbits.core.crud import get_wallet
-from lnbits.core.services import create_invoice, check_invoice_status
-import json
-from typing import Optional
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-from .models import CreateJukeLinkData, CreateJukeboxPayment
-from lnbits.decorators import (
-    check_user_exists,
-    WalletTypeInfo,
-    get_key_type,
-    api_validate_post_request,
-)
-import httpx
+from lnbits.core.services import check_invoice_status, create_invoice
+from lnbits.decorators import WalletTypeInfo, get_key_type
+
 from . import jukebox_ext
 from .crud import (
     create_jukebox,
-    update_jukebox,
-    get_jukebox,
-    get_jukeboxs,
-    delete_jukebox,
     create_jukebox_payment,
+    delete_jukebox,
+    get_jukebox,
     get_jukebox_payment,
+    get_jukeboxs,
+    update_jukebox,
     update_jukebox_payment,
 )
+from .models import CreateJukeboxPayment, CreateJukeLinkData
 
 
 @jukebox_ext.get("/api/v1/jukebox")
