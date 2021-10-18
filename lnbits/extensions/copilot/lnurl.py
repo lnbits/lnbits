@@ -57,7 +57,6 @@ async def lnurl_callback(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
-    print(cp)
     amount_received = int(amount)
 
     if amount_received < 10000:
