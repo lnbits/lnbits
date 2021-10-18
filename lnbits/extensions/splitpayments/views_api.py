@@ -33,14 +33,14 @@ async def api_targets_set(
     data: TargetPut, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
 ):
     targets = []
-    for entry in data["targets"]:
-        wallet = await get_wallet(entry["wallet"])
+    for entry in data.targets:
+        wallet = await get_wallet(entry.wallet)
         if not wallet:
-            wallet = await get_wallet_for_key(entry["wallet"], "invoice")
+            wallet = await get_wallet_for_key(entry.wallet, "invoice")
             if not wallet:
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
-                    detail=f"Invalid wallet '{entry['wallet']}'.",
+                    detail=f"Invalid wallet '{entry.wallet}'.",
                 )
 
         if wallet.id == wallet.wallet.id:
@@ -49,14 +49,14 @@ async def api_targets_set(
                 detail="Can't split to itself.",
             )
 
-        if entry["percent"] < 0:
+        if entry.percent < 0:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Invalid percent '{entry['percent']}'.",
+                detail=f"Invalid percent '{entry.percent}'.",
             )
 
         targets.append(
-            Target(wallet.id, wallet.wallet.id, entry["percent"], entry["alias"] or "")
+            Target(wallet.id, wallet.wallet.id, entry.percent, entry.alias or "")
         )
 
     percent_sum = sum([target.percent for target in targets])

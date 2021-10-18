@@ -8,11 +8,11 @@ from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_splitpayments")
 
-copilot_static_files = [
+splitpayments_static_files = [
     {
-        "path": "/copilot/static",
+        "path": "/splitpayments/static",
         "app": StaticFiles(directory="lnbits/extensions/splitpayments/static"),
-        "name": "copilot_static",
+        "name": "splitpayments_static",
     }
 ]
 splitpayments_ext: APIRouter = APIRouter(
