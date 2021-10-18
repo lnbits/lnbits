@@ -87,7 +87,7 @@ async def lnurl_callback(
                 LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
             ).encode("utf-8")
         ).digest(),
-        extra={"tag": "copilot", "copilot": cp.id, "comment": comment},
+        extra={"tag": "copilot", "copilotid": cp.id, "comment": comment},
     )
     payResponse = {
         "pr": payment_request,

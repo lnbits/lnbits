@@ -29,8 +29,9 @@ async def on_invoice_paid(payment: Payment) -> None:
     if "copilot" != payment.extra.get("tag"):
         # not an copilot invoice
         return
+    print("cunt")
 
-    copilot = await get_copilot(payment.extra.get("copilot", -1))
+    copilot = await get_copilot(payment.extra.get("copilotid", -1))
 
     if not copilot:
         raise HTTPException(
