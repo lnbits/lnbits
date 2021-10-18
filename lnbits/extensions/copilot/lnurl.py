@@ -1,26 +1,27 @@
+import base64
+import hashlib
 import json
-import hashlib
 import math
-from fastapi import Request
-import hashlib
 from http import HTTPStatus
+from typing import Optional
 
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
+from lnurl import (  # type: ignore
+    LnurlErrorResponse,
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+)
+from lnurl.types import LnurlPayMetadata
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-import base64
-from lnurl import (
-    LnurlPayResponse,
-    LnurlPayActionResponse,
-    LnurlErrorResponse,
-)  # type: ignore
-from lnurl.types import LnurlPayMetadata
+
 from lnbits.core.services import create_invoice
-from .models import Copilots, CreateCopilotData
+
 from . import copilot_ext
 from .crud import get_copilot
-from typing import Optional
-from fastapi.params import Depends
-from fastapi.param_functions import Query
+from .models import Copilots, CreateCopilotData
 
 
 @copilot_ext.get(
@@ -58,7 +59,7 @@ async def lnurl_callback(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
     amount_received = int(amount)
-
+    
     if amount_received < 10000:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
@@ -81,7 +82,7 @@ async def lnurl_callback(
     payment_hash, payment_request = await create_invoice(
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
-        memo=cp.lnurl_title,
+        memo=cp.lnurl_title or "",
         description_hash=hashlib.sha256(
             (
                 LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
