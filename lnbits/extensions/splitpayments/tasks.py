@@ -3,7 +3,7 @@ import json
 from lnbits.core.models import Payment
 from lnbits.core.crud import create_payment
 from lnbits.core import db as core_db
-from lnbits.tasks import register_invoice_listener  # , internal_invoice_paid
+from lnbits.tasks import register_invoice_listener, internal_invoice_queue
 from lnbits.helpers import urlsafe_short_hash
 
 from .crud import get_targets
@@ -78,5 +78,5 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
 
         # manually send this for now
-    #  await internal_invoice_paid.send(internal_checking_id)
+    await internal_invoice_queue.put(internal_checking_id)
     return

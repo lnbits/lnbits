@@ -32,8 +32,6 @@ except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
 
 
-
-
 class PaymentFailure(Exception):
     pass
 
@@ -155,9 +153,10 @@ async def pay_invoice(
             )
 
             # notify receiver asynchronously
-            from lnbits.tasks import internal_invoice_paid
 
-            await internal_invoice_paid.send(internal_checking_id)
+            from lnbits.tasks import internal_invoice_queue
+
+            await internal_invoice_queue.put(internal_checking_id)
         else:
             # actually pay the external invoice
             payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
