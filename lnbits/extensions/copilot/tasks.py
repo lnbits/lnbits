@@ -1,6 +1,9 @@
 import asyncio
 import json
+from http import HTTPStatus
+
 import httpx
+from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
@@ -8,10 +11,6 @@ from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
 from .views import updater
-import shortuuid
-from http import HTTPStatus
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 
 async def wait_for_paid_invoices():
@@ -29,7 +28,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     if "copilot" != payment.extra.get("tag"):
         # not an copilot invoice
         return
-    print("cunt")
 
     copilot = await get_copilot(payment.extra.get("copilotid", -1))
 
