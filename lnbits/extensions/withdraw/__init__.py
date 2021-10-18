@@ -26,10 +26,9 @@ def withdraw_renderer():
     return template_renderer(["lnbits/extensions/withdraw/templates"])
 
 
-from .views_api import *  # noqa
-from .views import *  # noqa
 from .lnurl import *  # noqa
-
+from .views import *  # noqa
+from .views_api import *  # noqa
 
 # @withdraw_ext.on_event("startup")
 # def _do_it():

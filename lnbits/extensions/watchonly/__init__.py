@@ -1,5 +1,3 @@
-import asyncio
-
 from fastapi import APIRouter
 
 from lnbits.db import Database
@@ -15,5 +13,5 @@ def watchonly_renderer():
     return template_renderer(["lnbits/extensions/watchonly/templates"])
 
 
-from .views_api import *  # noqa
 from .views import *  # noqa
+from .views_api import *  # noqa

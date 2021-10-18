@@ -1,17 +1,18 @@
 from http import HTTPStatus
-import pyqrcode
 from io import BytesIO
+
+import pyqrcode
+from fastapi import Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse, StreamingResponse
+
+from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import withdraw_ext, withdraw_renderer
-from .crud import get_withdraw_link, chunks
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, StreamingResponse
-from lnbits.core.models import User
+from .crud import chunks, get_withdraw_link
 
 templates = Jinja2Templates(directory="templates")
 

@@ -13,12 +13,8 @@ from .decorators import check_wallet, require_admin_key
 from .utils import to_buffer, decoded_as_lndhub
 from http import HTTPStatus
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-from starlette.requests import Request
-from fastapi import Body
 from fastapi.params import Depends
 from fastapi.param_functions import Query
-from fastapi.security import OAuth2PasswordBearer
 
 
 @lndhub_ext.get("/ext/getinfo")
@@ -111,13 +107,11 @@ async def lndhub_payinvoice(
 
 
 @lndhub_ext.get("/ext/balance")
-# @check_wallet()
 async def lndhub_balance(wallet: WalletTypeInfo = Depends(check_wallet),):
     return {"BTC": {"AvailableBalance": wallet.wallet.balance}}
 
 
 @lndhub_ext.get("/ext/gettxs")
-# @check_wallet()
 async def lndhub_gettxs(
     wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
 ):
@@ -208,7 +202,6 @@ async def lndhub_getbtc(wallet: WalletTypeInfo = Depends(check_wallet)):
 
 
 @lndhub_ext.get("/ext/getpending")
-# @check_wallet()
 async def lndhub_getpending(wallet: WalletTypeInfo = Depends(check_wallet)):
     "pending onchain transactions"
     return []

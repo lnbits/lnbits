@@ -1,6 +1,7 @@
-from pydantic import BaseModel
-from fastapi.param_functions import Query
 from sqlite3 import Row
+
+from fastapi.param_functions import Query
+from pydantic import BaseModel
 
 
 class CreateUserData(BaseModel):

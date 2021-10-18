@@ -1,28 +1,27 @@
 from http import HTTPStatus
-from starlette.exceptions import HTTPException
 
 from fastapi import Query
 from fastapi.params import Depends
+from starlette.exceptions import HTTPException
 
+from lnbits.core import update_user_extension
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import usermanager_ext
-from .models import CreateUserData
 from .crud import (
     create_usermanager_user,
+    create_usermanager_wallet,
+    delete_usermanager_user,
+    delete_usermanager_wallet,
     get_usermanager_user,
     get_usermanager_users,
-    get_usermanager_wallet_transactions,
-    delete_usermanager_user,
-    create_usermanager_wallet,
-    get_usermanager_wallet,
-    get_usermanager_wallets,
     get_usermanager_users_wallets,
-    delete_usermanager_wallet,
+    get_usermanager_wallet,
+    get_usermanager_wallet_transactions,
+    get_usermanager_wallets,
 )
-from lnbits.core import update_user_extension
-
+from .models import CreateUserData
 
 ### Users
 

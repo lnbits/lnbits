@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import TPoS, CreateTposData
+from .models import CreateTposData, TPoS
 
 
 async def create_tpos(wallet_id: str, data: CreateTposData) -> TPoS:

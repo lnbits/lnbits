@@ -2,19 +2,15 @@ from http import HTTPStatus
 
 from fastapi import Query
 from fastapi.params import Depends
-
-from pydantic import BaseModel
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import create_invoice, check_invoice_status
+from lnbits.core.services import check_invoice_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import tpos_ext
-from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
-from .models import TPoS, CreateTposData
+from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
+from .models import CreateTposData
 
 
 @tpos_ext.get("/api/v1/tposs", status_code=HTTPStatus.OK)

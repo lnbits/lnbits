@@ -1,29 +1,17 @@
-import hashlib
 from http import HTTPStatus
-import httpx
-import json
-
-from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
-from .models import CreateWallet
 
+from lnbits.core.crud import get_user
+from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.watchonly import watchonly_ext
-from .crud import (
-    create_watch_wallet,
-    get_watch_wallet,
-    get_watch_wallets,
-    update_watch_wallet,
-    delete_watch_wallet,
-    get_fresh_address,
-    get_addresses,
-    create_mempool,
-    update_mempool,
-    get_mempool,
-)
+
+from .crud import (create_mempool, create_watch_wallet, delete_watch_wallet,
+                   get_addresses, get_fresh_address, get_mempool,
+                   get_watch_wallet, get_watch_wallets, update_mempool)
+from .models import CreateWallet
 
 ###################WALLETS#############################
 

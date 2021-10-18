@@ -1,13 +1,10 @@
 from base64 import b64decode
-from functools import wraps
 from fastapi.param_functions import Security
 
 from fastapi.security.api_key import APIKeyHeader
 
-from lnbits.core.crud import get_wallet_for_key
 from fastapi import Request, status
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.decorators import WalletTypeInfo, get_key_type  # type: ignore
 
