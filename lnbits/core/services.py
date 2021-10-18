@@ -1,33 +1,37 @@
 import asyncio
 import json
-import httpx
-from io import BytesIO
 from binascii import unhexlify
-from typing import Optional, Tuple, Dict
-from urllib.parse import urlparse, parse_qs
-from lnurl import LnurlErrorResponse, decode as decode_lnurl  # type: ignore
+from io import BytesIO
+from typing import Dict, Optional, Tuple
+from urllib.parse import parse_qs, urlparse
+
+import httpx
+from lnurl import LnurlErrorResponse
+from lnurl import decode as decode_lnurl  # type: ignore
+
+from lnbits import bolt11
+from lnbits.db import Connection
+from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.requestvars import g
+from lnbits.settings import WALLET
+from lnbits.wallets.base import PaymentResponse, PaymentStatus
+
+from . import db
+from .crud import (
+    check_internal,
+    create_payment,
+    delete_payment,
+    get_wallet,
+    get_wallet_payment,
+    update_payment_status,
+)
 
 try:
     from typing import TypedDict  # type: ignore
 except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
 
-from lnbits import bolt11
-from lnbits.db import Connection
-from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import WALLET
-from lnbits.wallets.base import PaymentStatus, PaymentResponse
-from lnbits.requestvars import g
 
-from . import db
-from .crud import (
-    get_wallet,
-    create_payment,
-    delete_payment,
-    check_internal,
-    update_payment_status,
-    get_wallet_payment,
-)
 
 
 class PaymentFailure(Exception):
@@ -49,7 +53,7 @@ async def create_invoice(
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
-    storeable_memo = memo
+    storeable_memo = memo or "LN payment"
 
     ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
