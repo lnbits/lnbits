@@ -29,12 +29,9 @@ async def on_invoice_paid(payment: Payment) -> None:
     if "copilot" != payment.extra.get("tag"):
         # not an copilot invoice
         return
+    print("cunt")
 
-    if payment.extra.get("wh_status"):
-        # this webhook has already been sent
-        return
-
-    copilot = await get_copilot(payment.extra.get("copilot", -1))
+    copilot = await get_copilot(payment.extra.get("copilotid", -1))
 
     if not copilot:
         raise HTTPException(
@@ -70,8 +67,8 @@ async def on_invoice_paid(payment: Payment) -> None:
                 await mark_webhook_sent(payment, -1)
     if payment.extra.get("comment"):
         await updater(copilot.id, data, payment.extra.get("comment"))
-    else:
-        await updater(copilot.id, data, "none")
+
+    await updater(copilot.id, data, "none")
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:
