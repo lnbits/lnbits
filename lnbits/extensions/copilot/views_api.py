@@ -1,36 +1,22 @@
-from fastapi import Request
-import hashlib
 from http import HTTPStatus
+
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-import base64
-from lnbits.core.crud import get_user
-from lnbits.core.services import create_invoice, check_invoice_status
-import json
-from typing import Optional
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-from .models import Copilots, CreateCopilotData
-from lnbits.decorators import (
-    WalletAdminKeyChecker,
-    WalletInvoiceKeyChecker,
-    api_validate_post_request,
-    check_user_exists,
-    WalletTypeInfo,
-    get_key_type,
-    api_validate_post_request,
-)
-from .views import updater
-import httpx
+from lnbits.decorators import WalletTypeInfo, get_key_type
+
 from . import copilot_ext
 from .crud import (
     create_copilot,
-    update_copilot,
+    delete_copilot,
     get_copilot,
     get_copilots,
-    delete_copilot,
+    update_copilot,
 )
+from .models import CreateCopilotData
+from .views import updater
 
 #######################COPILOT##########################
 
