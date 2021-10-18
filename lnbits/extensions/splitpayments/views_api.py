@@ -24,6 +24,7 @@ from lnbits.core.crud import get_wallet, get_wallet_for_key
 
 @splitpayments_ext.get("/api/v1/targets")
 async def api_targets_get(wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())):
+    print(wallet)
     targets = await get_targets(wallet.wallet.id)
     return [target.dict() for target in targets] or []
 
