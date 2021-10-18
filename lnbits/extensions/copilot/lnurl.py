@@ -1,27 +1,17 @@
-import base64
 import hashlib
 import json
-import math
 from http import HTTPStatus
-from typing import Optional
 
 from fastapi import Request
 from fastapi.param_functions import Query
-from fastapi.params import Depends
-from lnurl import (  # type: ignore
-    LnurlErrorResponse,
-    LnurlPayActionResponse,
-    LnurlPayResponse,
-)
 from lnurl.types import LnurlPayMetadata
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
+from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.core.services import create_invoice
 
 from . import copilot_ext
 from .crud import get_copilot
-from .models import Copilots, CreateCopilotData
 
 
 @copilot_ext.get(
