@@ -26,6 +26,7 @@ async def wait_for_paid_invoices():
 async def on_invoice_paid(payment: Payment) -> None:
     webhook = None
     data = None
+    print("cunt")
     if "copilot" != payment.extra.get("tag"):
         # not an copilot invoice
         return

@@ -33,21 +33,22 @@ async def lnurl_response(req: Request, cp_id: str = Query(None)):
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
 
-    resp = LnurlPayResponse(
-        callback=req.url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
-        min_sendable=10000,
-        max_sendable=50000000,
-        metadata=LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]])),
-    )
+    payResponse = {
+        "tag": "payRequest",
+        "callback": req.url_for("copilot.lnurl_callback", cp_id=cp_id),
+        "metadata": LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]])),
+        "maxSendable": 50000000,
+        "minSendable": 10000,
+    }
 
-    params = resp.dict()
     if cp.show_message:
-        params["commentAllowed"] = 300
+        payResponse["commentAllowed"] = 300
+    return json.dumps(payResponse)
 
-    return params
 
-
-@copilot_ext.get("/lnurl/cb/{cp_id}", response_class=HTMLResponse)
+@copilot_ext.get(
+    "/lnurl/cb/{cp_id}", response_class=HTMLResponse, name="copilot.lnurl_callback"
+)
 async def lnurl_callback(
     cp_id: str = Query(None), amount: str = Query(None), comment: str = Query(None)
 ):
@@ -56,26 +57,28 @@ async def lnurl_callback(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
-
+    print(cp)
     amount_received = int(amount)
 
     if amount_received < 10000:
-        return LnurlErrorResponse(
-            reason=f"Amount {round(amount_received / 1000)} is smaller than minimum 10 sats."
-        ).dict()
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Amount {round(amount_received / 1000)} is smaller than minimum 10 sats.",
+        )
     elif amount_received / 1000 > 10000000:
-        return LnurlErrorResponse(
-            reason=f"Amount {round(amount_received / 1000)} is greater than maximum 50000."
-        ).dict()
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Amount {round(amount_received / 1000)} is greater than maximum 50000.",
+        )
     comment = ""
     if comment:
         if len(comment or "") > 300:
-            return LnurlErrorResponse(
-                reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
-            ).dict()
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Got a comment with {len(comment)} characters, but can only accept 300",
+            )
         if len(comment) < 1:
             comment = "none"
-
     payment_hash, payment_request = await create_invoice(
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
@@ -87,7 +90,8 @@ async def lnurl_callback(
         ).digest(),
         extra={"tag": "copilot", "copilot": cp.id, "comment": comment},
     )
-    resp = LnurlPayActionResponse(
-        pr=payment_request, success_action=None, disposable=False, routes=[]
-    )
-    return resp.dict()
+    payResponse = {
+        "pr": payment_request,
+        "routes": [],
+    }
+    return json.dumps(payResponse)
