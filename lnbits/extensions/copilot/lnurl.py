@@ -69,10 +69,10 @@ async def lnurl_callback(
             )
         if len(comment) < 1:
             comment = "none"
-    payment_hash, payment_request = await create_invoice(
+    _, payment_request = await create_invoice(
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
-        memo=cp.lnurl_title or "",
+        memo=cp.lnurl_title,
         description_hash=hashlib.sha256(
             (
                 LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
