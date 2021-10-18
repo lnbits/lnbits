@@ -1,17 +1,11 @@
-import base64
-import json
 from http import HTTPStatus
-from typing import Optional
 
-import httpx
 from fastapi import Request
-from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_wallet, get_wallet_for_key
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import WalletTypeInfo, require_admin_key
 
 from . import splitpayments_ext
 from .crud import get_targets, set_targets
@@ -20,17 +14,19 @@ from .models import Target, TargetPut
 
 @splitpayments_ext.get("/api/v1/targets")
 async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key)):
-    print(wallet)
     targets = await get_targets(wallet.wallet.id)
     return [target.dict() for target in targets] or []
 
 
 @splitpayments_ext.put("/api/v1/targets")
 async def api_targets_set(
-    data: TargetPut, wallet: WalletTypeInfo = Depends(require_admin_key)
+    req: Request, wal: WalletTypeInfo = Depends(require_admin_key)
 ):
+    body = await req.json()
     targets = []
-    for entry in data.targets:
+    data = TargetPut.parse_obj(body["targets"])
+    for entry in data.__root__:
+        print("ENTRY", entry)
         wallet = await get_wallet(entry.wallet)
         if not wallet:
             wallet = await get_wallet_for_key(entry.wallet, "invoice")
@@ -40,7 +36,7 @@ async def api_targets_set(
                     detail=f"Invalid wallet '{entry.wallet}'.",
                 )
 
-        if wallet.id == wallet.wallet.id:
+        if wallet.id == wal.wallet.id:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="Can't split to itself.",
@@ -53,7 +49,7 @@ async def api_targets_set(
             )
 
         targets.append(
-            Target(wallet.id, wallet.wallet.id, entry.percent, entry.alias or "")
+            Target(wallet=wallet.id, source=wal.wallet.id, percent=entry.percent, alias=entry.alias)
         )
 
     percent_sum = sum([target.percent for target in targets])
@@ -63,5 +59,5 @@ async def api_targets_set(
             detail="Splitting over 100%.",
         )
 
-    await set_targets(wallet.wallet.id, targets)
+    await set_targets(wal.wallet.id, targets)
     return ""

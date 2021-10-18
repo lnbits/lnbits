@@ -1,21 +1,20 @@
-from pydantic.main import BaseModel
+from typing import List, Optional
+
+from fastapi.param_functions import Query
 from pydantic import BaseModel
-from fastapi import FastAPI, Request
-from typing import List
 
 
 class Target(BaseModel):
     wallet: str
     source: str
     percent: int
-    alias: str
-
+    alias: Optional[str]
 
 class TargetPutList(BaseModel):
-    wallet: str
-    aliat: str
-    percent: int
+    wallet: str = Query(...)
+    alias: str = Query("")
+    percent: int = Query(..., ge=1)
 
 
 class TargetPut(BaseModel):
-    targets: List[TargetPutList]
+    __root__: List[TargetPutList]
