@@ -359,6 +359,7 @@
       },
       openQrCodeDialog(linkId) {
         var link = _.findWhere(this.payLinks, {id: linkId})
+        console.log(link)
         if (link.currency) this.updateFiatRate(link.currency)
 
         this.qrCodeDialog.data = {
@@ -512,8 +513,6 @@
       }
     },
     created() {
-      console.log('this.multiValue')
-      console.log(this.g.user)
       if (this.g.user.wallets.length) {
         var getPayLinks = this.getPayLinks
         getPayLinks()

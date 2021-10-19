@@ -27,8 +27,8 @@ class satsdiceLink(BaseModel):
     base_url: str
     open_time: int
 
-    def lnurl(self, req: Request) -> Lnurl:
-        return lnurl_encode(req.url_for("satsdice.lnurlp_response", item_id=self.id))
+    def lnurl(self, req: Request) -> str:
+        return lnurl_encode(req.url_for("satsdice.lnurlp_response", link_id=self.id))
 
     @classmethod
     def from_row(cls, row: Row) -> "satsdiceLink":

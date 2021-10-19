@@ -29,7 +29,7 @@ from fastapi.param_functions import Query
 templates = Jinja2Templates(directory="templates")
 
 
-@satsdice_ext.get("/", response_class=HTMLResponse)
+@satsdice_ext.get("/")
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return satsdice_renderer().TemplateResponse(
         "satsdice/index.html", {"request": request, "user": user.dict()}

@@ -40,9 +40,8 @@ async def api_links(
 
     try:
         links = await get_satsdice_pays(wallet_ids)
-        print(links[0])
 
-        return [{link.dict(), {"lnurl": link.lnurl(request)}} for link in links]
+        return [{**link.dict(), **{"lnurl": link.lnurl(request)}} for link in links]
     except LnurlInvalidUrl:
         raise HTTPException(
             status_code=HTTPStatus.UPGRADE_REQUIRED,
@@ -99,7 +98,7 @@ async def api_link_create_or_update(
         data.wallet_id = wallet.wallet.id
         link = await create_satsdice_pay(data)
 
-    return {link.dict(), {"lnurl": link.lnurl}}
+    return {**link.dict(), **{"lnurl": link.lnurl}}
 
 
 @satsdice_ext.delete("/api/v1/links/{link_id}")

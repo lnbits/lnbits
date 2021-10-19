@@ -15,7 +15,9 @@ from .models import (
 from lnbits.helpers import urlsafe_short_hash
 
 
-async def create_satsdice_pay(data: CreateSatsDiceLink,) -> satsdiceLink:
+async def create_satsdice_pay(
+    data: CreateSatsDiceLink,
+) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()
     await db.execute(
         """
