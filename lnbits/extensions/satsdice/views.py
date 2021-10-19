@@ -50,7 +50,7 @@ async def display(link_id):
     )
 
 
-@satsdice_ext.get("/win/{link_id}/{payment_hash}")
+@satsdice_ext.get("/win/{link_id}/{payment_hash}", name="satsdice.displaywin")
 async def displaywin(link_id: str = Query(None), payment_hash: str = Query(None)):
     satsdicelink = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."

@@ -1,6 +1,7 @@
 import shortuuid  # type: ignore
 import hashlib
 import math
+import json
 from http import HTTPStatus
 from datetime import datetime
 from lnbits.core.services import pay_invoice, create_invoice
@@ -23,7 +24,8 @@ from lnurl import (
     LnurlPayResponse,
     LnurlPayActionResponse,
     LnurlErrorResponse,
-)  # type: ignore
+)
+from .models import CreateSatsDicePayment
 
 
 ##############LNURLP STUFF
@@ -32,25 +34,32 @@ from lnurl import (
 @satsdice_ext.get("/api/v1/lnurlp/{link_id}", name="satsdice.lnurlp_response")
 async def api_lnurlp_response(req: Request, link_id: str = Query(None)):
     link = await get_satsdice_pay(link_id)
+    print(link)
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-pay not found."
         )
-    resp = LnurlPayResponse(
-        callback=req.url_for(
-            "satsdice.api_lnurlp_callback", link_id=link.id, _external=True
-        ),
-        min_sendable=math.ceil(link.min_bet * 1) * 1000,
-        max_sendable=round(link.max_bet * 1) * 1000,
-        metadata=link.lnurlpay_metadata,
-    )
-    params = resp.dict()
-
-    return params
+    payResponse = {
+        "tag": "payRequest",
+        "callback": req.url_for("satsdice.api_lnurlp_callback", link_id=link.id),
+        "metadata": link.lnurlpay_metadata,
+        "minSendable": math.ceil(link.min_bet * 1) * 1000,
+        "maxSendable": round(link.max_bet * 1) * 1000,
+    }
+    return json.dumps(payResponse)
 
 
-@satsdice_ext.get("/api/v1/lnurlp/cb/{link_id}")
-async def api_lnurlp_callback(link_id: str = Query(None), amount: str = Query(None)):
+@satsdice_ext.get(
+    "/api/v1/lnurlp/cb/{link_id}",
+    response_class=HTMLResponse,
+    name="satsdice.api_lnurlp_callback",
+)
+async def api_lnurlp_callback(
+    data: CreateSatsDicePayment,
+    req: Request,
+    link_id: str = Query(None),
+    amount: str = Query(None),
+):
     link = await get_satsdice_pay(link_id)
     if not link:
         raise HTTPException(
@@ -63,13 +72,15 @@ async def api_lnurlp_callback(link_id: str = Query(None), amount: str = Query(No
 
     amount_received = int(amount or 0)
     if amount_received < min:
-        return LnurlErrorResponse(
-            reason=f"Amount {amount_received} is smaller than minimum {min}."
-        ).dict()
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"Amount {amount_received} is smaller than minimum {min}.",
+        )
     elif amount_received > max:
-        return LnurlErrorResponse(
-            reason=f"Amount {amount_received} is greater than maximum {max}."
-        ).dict()
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail=f"Amount {amount_received} is greater than maximum {max}.",
+        )
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=link.wallet,
@@ -81,20 +92,27 @@ async def api_lnurlp_callback(link_id: str = Query(None), amount: str = Query(No
         extra={"tag": "satsdice", "link": link.id, "comment": "comment"},
     )
 
-    success_action = link.success_action(payment_hash)
-    data = []
-    data.satsdice_payy = link.id
+    success_action = link.success_action(payment_hash=payment_hash, req=req)
+    print("success_action")
+    print(success_action)
+    print("success_action")
+    data.satsdice_pay = link.id
     data.value = amount_received / 1000
     data.payment_hash = payment_hash
     link = await create_satsdice_payment(data)
     if success_action:
-        resp = LnurlPayActionResponse(
-            pr=payment_request, success_action=success_action, routes=[]
-        )
+        payResponse = {
+            "pr": payment_request,
+            "success_action": success_action,
+            "routes": [],
+        }
     else:
-        resp = LnurlPayActionResponse(pr=payment_request, routes=[])
+        payResponse = {
+            "pr": payment_request,
+            "routes": [],
+        }
 
-    return resp.dict()
+    return json.dumps(payResponse)
 
 
 ##############LNURLW STUFF
@@ -112,13 +130,15 @@ async def api_lnurlw_response(unique_hash: str = Query(None)):
     if link.used:
         raise HTTPException(status_code=HTTPStatus.OK, detail="satsdice is spent.")
 
-    return link.lnurl_response.dict()
+    return json.dumps(link.lnurl_response)
 
 
 # CALLBACK
 
 
-@satsdice_ext.get("/api/v1/lnurlw/cb/{unique_hash}")
+@satsdice_ext.get(
+    "/api/v1/lnurlw/cb/{unique_hash}", name="satsdice.api_lnurlw_callback"
+)
 async def api_lnurlw_callback(
     unique_hash: str = Query(None), k1: str = Query(None), pr: str = Query(None)
 ):

@@ -41,16 +41,9 @@ class satsdiceLink(BaseModel):
 
     def success_action(self, payment_hash: str, req: Request) -> Optional[Dict]:
         url = req.url_for(
-            "satsdice.displaywin",
-            link_id=self.id,
-            payment_hash=payment_hash,
-            _external=True,
+            "satsdice.displaywin", link_id=self.id, payment_hash=payment_hash
         )
-        #        url: ParseResult = urlparse(url)
         print(url)
-        #        qs: Dict = parse_qs(url.query)
-        #        qs["payment_hash"] = payment_hash
-        #        url = url._replace(query=urlencode(qs, doseq=True))
         return {"tag": "url", "description": "Check the attached link", "url": url}
 
 
@@ -73,9 +66,7 @@ class satsdiceWithdraw(BaseModel):
 
     def lnurl(self, req: Request) -> Lnurl:
         return lnurl_encode(
-            req.url_for(
-                "satsdice.lnurlw_response", unique_hash=self.unique_hash, _external=True
-            )
+            req.url_for("satsdice.lnurlw_response", unique_hash=self.unique_hash)
         )
 
     @property
@@ -84,16 +75,16 @@ class satsdiceWithdraw(BaseModel):
 
     @property
     def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
-        url = req.url_for(
-            "satsdice.api_lnurlw_callback", unique_hash=self.unique_hash, _external=True
-        )
-        return LnurlWithdrawResponse(
-            callback=url,
-            k1=self.k1,
-            minWithdrawable=self.value * 1000,
-            maxWithdrawable=self.value * 1000,
-            default_description="Satsdice winnings!",
-        )
+        url = req.url_for("satsdice.api_lnurlw_callback", unique_hash=self.unique_hash)
+        withdrawResponse = {
+            "tag": "withdrawRequest",
+            "callback": url,
+            "k1": self.k1,
+            "minWithdrawable": self.value * 1000,
+            "maxWithdrawable": self.value * 1000,
+            "defaultDescription": "Satsdice winnings!",
+        }
+        return withdrawResponse
 
 
 class HashCheck(BaseModel):
