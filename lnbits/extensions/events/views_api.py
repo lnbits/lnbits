@@ -43,7 +43,7 @@ async def api_events(
     return [event.dict() for event in await get_events(wallet_ids)]
 
 @events_ext.post("/api/v1/events")
-@events_ext.put("/api/v1/events/<event_id>")
+@events_ext.put("/api/v1/events/{event_id}")
 async def api_event_create(data: CreateEvent, event_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
     if event_id:
         event = await get_event(event_id)
@@ -58,9 +58,9 @@ async def api_event_create(data: CreateEvent, event_id=None, wallet: WalletTypeI
                 status_code=HTTPStatus.FORBIDDEN,
                 detail=f"Not your event."
             )
-        event = await update_event(event_id, **data)
+        event = await update_event(event_id, **data.dict())
     else:
-        event = await create_event(**data)
+        event = await create_event(data=data)
 
     return event.dict()
 

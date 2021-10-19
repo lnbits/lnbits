@@ -427,7 +427,7 @@
         LNbits.api
           .request(
             'GET',
-            '/events/api/v1/events?all_wallets',
+            '/events/api/v1/events?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {

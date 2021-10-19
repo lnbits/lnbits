@@ -18,7 +18,7 @@ templates = Jinja2Templates(directory="templates")
 
 @events_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return events_renderer.TemplateResponse("events/index.html", {"request": request, "user": user.dict()})
+    return events_renderer().TemplateResponse("events/index.html", {"request": request, "user": user.dict()})
 
 
 @events_ext.get("/{event_id}", response_class=HTMLResponse)
@@ -30,7 +30,7 @@ async def display(request: Request, event_id):
         )
 
     if event.amount_tickets < 1:
-        return events_renderer.TemplateResponse(
+        return events_renderer().TemplateResponse(
             "events/error.html",
             {
                 "request": request,
@@ -40,7 +40,7 @@ async def display(request: Request, event_id):
         )
     datetime_object = datetime.strptime(event.closing_date, "%Y-%m-%d").date()
     if date.today() > datetime_object:
-        return events_renderer.TemplateResponse(
+        return events_renderer().TemplateResponse(
             "events/error.html",
             {
                 "request": request,
@@ -49,7 +49,7 @@ async def display(request: Request, event_id):
             }
         )
 
-    return events_renderer.TemplateResponse(
+    return events_renderer().TemplateResponse(
         "events/display.html",
         {
             "request": request,
@@ -76,7 +76,7 @@ async def ticket(request: Request, ticket_id):
             status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
 
-    return events_renderer.TemplateResponse(
+    return events_renderer().TemplateResponse(
         "events/ticket.html",
         {
             "request": request,
@@ -96,7 +96,7 @@ async def register(request: Request, event_id):
             status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
 
-    return events_renderer.TemplateResponse(
+    return events_renderer().TemplateResponse(
         "events/register.html",
         {
             "request": request,
