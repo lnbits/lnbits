@@ -18,7 +18,8 @@ templates = Jinja2Templates(directory="templates")
 
 def log_event_callback(log):
     string = str(log)
-    string2 = string[string.find('url="https') : string.find('url="https') + 40]
+    print(string)
+    string2 = string[string.find('url="https') : string.find('url="https') + 80]
     if string2:
         string3 = string2
         string4 = string3[4:]
@@ -39,5 +40,5 @@ ngrok_tunnel = ngrok.connect(port)
 @ngrok_ext.get("/")
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return ngrok_renderer().TemplateResponse(
-        "ngrok/index.html", {"request": request, "user": user.dict()}
+        "ngrok/index.html", {"request": request, "ngrok": string5, "user": user.dict()}
     )
