@@ -306,13 +306,26 @@ async def perform_lnurlauth(
 
 
 async def check_invoice_status(
-    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
+    wallet_id: str,
+    payment_hash: str,
+    conn: Optional[Connection] = None,
 ) -> PaymentStatus:
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:
         return PaymentStatus(None)
-
-    return await WALLET.get_invoice_status(payment.checking_id)
+    status = await WALLET.get_invoice_status(payment.checking_id)
+    print(status)
+    if not payment.pending:
+        return status
+    if payment.is_out and status.failed:
+        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        await payment.delete()
+    elif not status.pending:
+        print(
+            f" - marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
+        )
+        await payment.set_pending(status.pending)
+    return status
 
 
 def fee_reserve(amount_msat: int) -> int:
