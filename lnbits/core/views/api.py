@@ -5,7 +5,7 @@ from binascii import unhexlify
 from http import HTTPStatus
 from typing import Dict, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
-
+from lnbits.bolt11 import Invoice
 import httpx
 from fastapi import Query, Request
 from fastapi.exceptions import HTTPException
@@ -34,6 +34,7 @@ from ..services import (
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
+    check_invoice_status,
 )
 from ..tasks import api_invoice_listeners
 
@@ -61,6 +62,16 @@ async def api_update_wallet(
 
 @core_app.get("/api/v1/payments")
 async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
+    await get_payments(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        complete=True,
+    )
+    pendingPayments = await get_payments(wallet_id=wallet.wallet.id, pending=True)
+    for payment in pendingPayments:
+        await check_invoice_status(
+            wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
+        )
     return await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
 
 
@@ -439,6 +450,30 @@ async def api_lnurlscan(code: str):
             )
 
     return params
+
+
+@core_app.post("/api/v1/payments/decode")
+async def api_payments_decode(data: str = Query(None)):
+    try:
+        if g.data["data"][:5] == "LNURL":
+            url = lnurl.decode(g.data["data"])
+            return {"domain": url}
+        else:
+            invoice = bolt11.decode(g.data["data"])
+            return {
+                "payment_hash": invoice.payment_hash,
+                "amount_msat": invoice.amount_msat,
+                "description": invoice.description,
+                "description_hash": invoice.description_hash,
+                "payee": invoice.payee,
+                "date": invoice.date,
+                "expiry": invoice.expiry,
+                "secret": invoice.secret,
+                "route_hints": invoice.route_hints,
+                "min_final_cltv_expiry": invoice.min_final_cltv_expiry,
+            }
+    except:
+        return {"message": "Failed to decode"}
 
 
 @core_app.post("/api/v1/lnurlauth", dependencies=[Depends(WalletAdminKeyChecker())])
