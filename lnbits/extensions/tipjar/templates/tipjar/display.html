@@ -66,21 +66,23 @@
             sats: '',
             message: ''
           }
-        },
+        }
       }
     },
 
     methods: {
       Invoice: function () {
         var self = this
+        console.log('{{ tipjar }}')
         axios
           .post('/tipjar/api/v1/tips', {
-            tipjar: {{ tipjar }},
+            tipjar: '{{ tipjar }}',
             name: self.tipDialog.data.name,
             sats: self.tipDialog.data.sats,
             message: self.tipDialog.data.message
           })
           .then(function (response) {
+            console.log(response.data)
             self.redirect_url = response.data.redirect_url
             console.log(self.redirect_url)
             window.location.href = self.redirect_url

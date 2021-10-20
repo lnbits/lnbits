@@ -8,7 +8,14 @@ from typing import Optional
 from lnbits.db import SQLITE
 
 
-async def create_tip(data: createTip) -> Tip:
+async def create_tip(
+    id: int,
+    wallet: str,
+    message: str,
+    name: str,
+    sats: int,
+    tipjar: str,
+) -> Tip:
     """Create a new Tip"""
     await db.execute(
         """
@@ -22,10 +29,10 @@ async def create_tip(data: createTip) -> Tip:
         )
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (data.id, data.wallet, data.name, data.message, data.sats, data.tipjar),
+        (id, wallet, name, message, sats, tipjar),
     )
 
-    tip = await get_tip(data.id)
+    tip = await get_tip(id)
     assert tip, "Newly created tip couldn't be retrieved"
     return tip
 
@@ -62,7 +69,7 @@ async def create_tipjar(data: createTipJar) -> TipJar:
 async def get_tipjar(tipjar_id: int) -> Optional[TipJar]:
     """Return a tipjar by ID"""
     row = await db.fetchone("SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
-    return TipJar.from_row(row) if row else None
+    return TipJar(**row) if row else None
 
 
 async def get_tipjars(wallet_id: str) -> Optional[list]:
@@ -70,7 +77,7 @@ async def get_tipjars(wallet_id: str) -> Optional[list]:
     rows = await db.fetchall(
         "SELECT * FROM tipjar.TipJars WHERE wallet = ?", (wallet_id,)
     )
-    return [TipJar.from_row(row) for row in rows] if rows else None
+    return [TipJar(**row) for row in rows] if rows else None
 
 
 async def delete_tipjar(tipjar_id: int) -> None:
@@ -84,13 +91,13 @@ async def delete_tipjar(tipjar_id: int) -> None:
 async def get_tip(tip_id: str) -> Optional[Tip]:
     """Return a Tip"""
     row = await db.fetchone("SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,))
-    return Tip.from_row(row) if row else None
+    return Tip(**row) if row else None
 
 
 async def get_tips(wallet_id: str) -> Optional[list]:
     """Return all Tips assigned to wallet_id"""
     rows = await db.fetchall("SELECT * FROM tipjar.Tips WHERE wallet = ?", (wallet_id,))
-    return [Tip.from_row(row) for row in rows] if rows else None
+    return [Tip(**row) for row in rows] if rows else None
 
 
 async def delete_tip(tip_id: str) -> None:

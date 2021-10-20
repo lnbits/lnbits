@@ -32,10 +32,11 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@tipjar_ext.route("/{id}")
-async def tip(request: Request, id: str = Query(None)):
+@tipjar_ext.get("/{tipjar_id}")
+async def tip(request: Request, tipjar_id: int = Query(None)):
     """Return the donation form for the Tipjar corresponding to id"""
-    tipjar = await get_tipjar(id)
+    tipjar = await get_tipjar(tipjar_id)
+    print(tipjar_id)
     if not tipjar:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TipJar does not exist."

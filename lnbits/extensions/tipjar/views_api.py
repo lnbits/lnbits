@@ -34,25 +34,30 @@ from .models import createTipJar, createTips, createTip
 async def api_create_tipjar(data: createTipJar):
     """Create a tipjar, which holds data about how/where to post tips"""
     try:
-        tipjar = await create_tipjar(**data)
+        tipjar = await create_tipjar(data)
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return tipjar.dict()
 
 
+async def user_from_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
+    return wallet.wallet.user
+
+
 @tipjar_ext.post("/api/v1/tips")
-async def api_create_tip(data: createTips, dataCreateTip: createTip):
+async def api_create_tip(data: createTips):
     """Take data from tip form and return satspay charge"""
     sats = data.sats
-    message = data.get("message", "")[:144]
+    message = data.message
     if not message:
         message = "No message"
     tipjar_id = data.tipjar
     tipjar = await get_tipjar(tipjar_id)
+
     webhook = tipjar.webhook
     charge_details = await get_charge_details(tipjar.id)
-    name = data.get("name", "")[:25]
+    name = data.name
     # Ensure that description string can be split reliably
     name = name.replace('"', "''")
     if not name:
@@ -60,18 +65,21 @@ async def api_create_tip(data: createTips, dataCreateTip: createTip):
     description = f'"{name}": {message}'
 
     charge = await create_charge(
-        amount=sats,
-        webhook=webhook,
-        description=description,
-        **charge_details,
+        data={
+            "amount": sats,
+            "webhook": webhook,
+            "description": description,
+            **charge_details,
+        },
     )
-    dataCreateTip.id = charge.id
-    dataCreateTip.wallet = tipjar.wallet
-    dataCreateTip.message = message
-    dataCreateTip.name = name
-    dataCreateTip.sats = data.sats
-    dataCreateTip.tipjar = data.tipjar
-    await create_tip(dataCreateTip)
+    await create_tip(
+        id=charge.id,
+        wallet=tipjar.wallet,
+        message=message,
+        name=name,
+        sats=data.sats,
+        tipjar=data.tipjar,
+    )
 
     return {"redirect_url": f"/satspay/{charge.id}"}
 
