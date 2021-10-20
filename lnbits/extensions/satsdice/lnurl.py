@@ -31,10 +31,13 @@ from .models import CreateSatsDicePayment
 ##############LNURLP STUFF
 
 
-@satsdice_ext.get("/api/v1/lnurlp/{link_id}", name="satsdice.lnurlp_response")
+@satsdice_ext.get(
+    "/api/v1/lnurlp/{link_id}",
+    response_class=HTMLResponse,
+    name="satsdice.lnurlp_response",
+)
 async def api_lnurlp_response(req: Request, link_id: str = Query(None)):
     link = await get_satsdice_pay(link_id)
-    print(link)
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-pay not found."
@@ -55,12 +58,12 @@ async def api_lnurlp_response(req: Request, link_id: str = Query(None)):
     name="satsdice.api_lnurlp_callback",
 )
 async def api_lnurlp_callback(
-    data: CreateSatsDicePayment,
     req: Request,
     link_id: str = Query(None),
     amount: str = Query(None),
 ):
     link = await get_satsdice_pay(link_id)
+    print(link)
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-pay not found."
@@ -93,24 +96,20 @@ async def api_lnurlp_callback(
     )
 
     success_action = link.success_action(payment_hash=payment_hash, req=req)
-    print("success_action")
-    print(success_action)
-    print("success_action")
-    data.satsdice_pay = link.id
-    data.value = amount_received / 1000
-    data.payment_hash = payment_hash
-    link = await create_satsdice_payment(data)
-    if success_action:
-        payResponse = {
-            "pr": payment_request,
-            "success_action": success_action,
-            "routes": [],
-        }
-    else:
-        payResponse = {
-            "pr": payment_request,
-            "routes": [],
-        }
+
+    data: CreateSatsDicePayment = {
+        "satsdice_pay": link.id,
+        "value": amount_received / 1000,
+        "payment_hash": payment_hash,
+    }
+
+    await create_satsdice_payment(data)
+    payResponse = {
+        "pr": payment_request,
+        "successAction": success_action,
+        "routes": [],
+    }
+    print(json.dumps(payResponse))
 
     return json.dumps(payResponse)
 
@@ -118,29 +117,45 @@ async def api_lnurlp_callback(
 ##############LNURLW STUFF
 
 
-@satsdice_ext.get("/api/v1/lnurlw/{unique_hash}", name="satsdice.lnurlw_response")
-async def api_lnurlw_response(unique_hash: str = Query(None)):
+@satsdice_ext.get(
+    "/api/v1/lnurlw/{unique_hash}",
+    response_class=HTMLResponse,
+    name="satsdice.lnurlw_response",
+)
+async def api_lnurlw_response(req: Request, unique_hash: str = Query(None)):
     link = await get_satsdice_withdraw_by_hash(unique_hash)
 
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-satsdice not found."
         )
-
     if link.used:
         raise HTTPException(status_code=HTTPStatus.OK, detail="satsdice is spent.")
-
-    return json.dumps(link.lnurl_response)
+    url = req.url_for("satsdice.api_lnurlw_callback", unique_hash=link.unique_hash)
+    withdrawResponse = {
+        "tag": "withdrawRequest",
+        "callback": url,
+        "k1": link.k1,
+        "minWithdrawable": link.value * 1000,
+        "maxWithdrawable": link.value * 1000,
+        "defaultDescription": "Satsdice winnings!",
+    }
+    return json.dumps(withdrawResponse)
 
 
 # CALLBACK
 
 
 @satsdice_ext.get(
-    "/api/v1/lnurlw/cb/{unique_hash}", name="satsdice.api_lnurlw_callback"
+    "/api/v1/lnurlw/cb/{unique_hash}",
+    response_class=HTMLResponse,
+    name="satsdice.api_lnurlw_callback",
 )
 async def api_lnurlw_callback(
-    unique_hash: str = Query(None), k1: str = Query(None), pr: str = Query(None)
+    req: Request,
+    unique_hash: str = Query(None),
+    k1: str = Query(None),
+    pr: str = Query(None),
 ):
     link = await get_satsdice_withdraw_by_hash(unique_hash)
     paylink = await get_satsdice_pay(link.satsdice_pay)

@@ -43,7 +43,6 @@ class satsdiceLink(BaseModel):
         url = req.url_for(
             "satsdice.displaywin", link_id=self.id, payment_hash=payment_hash
         )
-        print(url)
         return {"tag": "url", "description": "Check the attached link", "url": url}
 
 
@@ -102,7 +101,7 @@ class CreateSatsDiceLink(BaseModel):
     base_url: str = Query(None)
     min_bet: str = Query(None)
     max_bet: str = Query(None)
-    multiplier: int = Query(0)
+    multiplier: float = Query(0)
     chance: float = Query(0)
     haircut: int = Query(0)
 

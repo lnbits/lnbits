@@ -60,7 +60,7 @@ async def get_satsdice_pay(link_id: str) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return satsdiceLink.from_row(row) if row else None
+    return satsdiceLink(**row) if row else None
 
 
 async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceLink]:
@@ -102,7 +102,7 @@ async def increment_satsdice_pay(link_id: int, **kwargs) -> Optional[satsdiceLin
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_pay WHERE id = ?", (link_id,)
     )
-    return satsdiceLink.from_row(row) if row else None
+    return satsdiceLink(**row) if row else None
 
 
 async def delete_satsdice_pay(link_id: int) -> None:
@@ -124,9 +124,9 @@ async def create_satsdice_payment(data: CreateSatsDicePayment) -> satsdicePaymen
         )
         VALUES (?, ?, ?, ?, ?)
         """,
-        (data.payment_hash, data.satsdice_pay, data.value, False, False),
+        (data["payment_hash"], data["satsdice_pay"], data["value"], False, False),
     )
-    payment = await get_satsdice_payment(payment_hash)
+    payment = await get_satsdice_payment(data["payment_hash"])
     assert payment, "Newly created withdraw couldn't be retrieved"
     return payment
 
@@ -136,7 +136,7 @@ async def get_satsdice_payment(payment_hash: str) -> Optional[satsdicePayment]:
         "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?",
         (payment_hash,),
     )
-    return satsdicePayment.from_row(row) if row else None
+    return satsdicePayment(**row) if row else None
 
 
 async def update_satsdice_payment(
@@ -152,7 +152,7 @@ async def update_satsdice_payment(
         "SELECT * FROM satsdice.satsdice_payment WHERE payment_hash = ?",
         (payment_hash,),
     )
-    return satsdicePayment.from_row(row) if row else None
+    return satsdicePayment(**row) if row else None
 
 
 ##################SATSDICE WITHDRAW LINKS
@@ -173,16 +173,16 @@ async def create_satsdice_withdraw(data: CreateSatsDiceWithdraw) -> satsdiceWith
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            data.payment_hash,
-            data.satsdice_pay,
-            data.value,
+            data["payment_hash"],
+            data["satsdice_pay"],
+            data["value"],
             urlsafe_short_hash(),
             urlsafe_short_hash(),
             int(datetime.now().timestamp()),
-            data.used,
+            data["used"],
         ),
     )
-    withdraw = await get_satsdice_withdraw(payment_hash, 0)
+    withdraw = await get_satsdice_withdraw(data["payment_hash"], 0)
     assert withdraw, "Newly created withdraw couldn't be retrieved"
     return withdraw
 
@@ -198,7 +198,7 @@ async def get_satsdice_withdraw(withdraw_id: str, num=0) -> Optional[satsdiceWit
     for item in row:
         withdraw.append(item)
     withdraw.append(num)
-    return satsdiceWithdraw.from_row(row)
+    return satsdiceWithdraw(**row)
 
 
 async def get_satsdice_withdraw_by_hash(
@@ -214,7 +214,7 @@ async def get_satsdice_withdraw_by_hash(
     for item in row:
         withdraw.append(item)
     withdraw.append(num)
-    return satsdiceWithdraw.from_row(row)
+    return satsdiceWithdraw(**row)
 
 
 async def get_satsdice_withdraws(
@@ -229,7 +229,7 @@ async def get_satsdice_withdraws(
         (*wallet_ids,),
     )
 
-    return [satsdiceWithdraw.from_row(row) for row in rows]
+    return [satsdiceWithdraw(**row) for row in rows]
 
 
 async def update_satsdice_withdraw(
@@ -243,7 +243,7 @@ async def update_satsdice_withdraw(
     row = await db.fetchone(
         "SELECT * FROM satsdice.satsdice_withdraw WHERE id = ?", (withdraw_id,)
     )
-    return satsdiceWithdraw.from_row(row) if row else None
+    return satsdiceWithdraw(**row) if row else None
 
 
 async def delete_satsdice_withdraw(withdraw_id: str) -> None:

@@ -22,9 +22,10 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 from lnbits.core.models import User, Payment
-
 from fastapi.params import Depends
 from fastapi.param_functions import Query
+import random
+from .models import CreateSatsDiceWithdraw
 
 templates = Jinja2Templates(directory="templates")
 
@@ -37,35 +38,47 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @satsdice_ext.get("/{link_id}")
-async def display(link_id):
+async def display(request: Request, link_id: str = Query(None)):
     link = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
     return satsdice_renderer().TemplateResponse(
         "satsdice/display.html",
-        chance=link.chance,
-        multiplier=link.multiplier,
-        lnurl=link.lnurl,
-        unique=True,
+        {
+            "request": request,
+            "chance": link.chance,
+            "multiplier": link.multiplier,
+            "lnurl": link.lnurl(request),
+            "unique": True,
+        },
     )
 
 
 @satsdice_ext.get("/win/{link_id}/{payment_hash}", name="satsdice.displaywin")
-async def displaywin(link_id: str = Query(None), payment_hash: str = Query(None)):
+async def displaywin(
+    request: Request, link_id: str = Query(None), payment_hash: str = Query(None)
+):
     satsdicelink = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
-    withdrawLink = await get_satsdice_withdraw(payment_hash)
 
+    status = await check_invoice_status(
+        wallet_id=satsdicelink.wallet, payment_hash=payment_hash
+    )
+
+    withdrawLink = await get_satsdice_withdraw(payment_hash)
     if withdrawLink:
         return satsdice_renderer().TemplateResponse(
             "satsdice/displaywin.html",
-            value=withdrawLink.value,
-            chance=satsdicelink.chance,
-            multiplier=satsdicelink.multiplier,
-            lnurl=withdrawLink.lnurl,
-            paid=False,
-            lost=False,
+            {
+                "request": request,
+                "value": withdrawLink.value,
+                "chance": satsdicelink.chance,
+                "multiplier": satsdicelink.multiplier,
+                "lnurl": withdrawLink.lnurl(request),
+                "paid": False,
+                "lost": False,
+            },
         )
 
     payment = await get_standalone_payment(payment_hash) or abort(
@@ -78,43 +91,63 @@ async def displaywin(link_id: str = Query(None), payment_hash: str = Query(None)
             HTTPStatus.NOT_FOUND, "satsdice link does not exist."
         )
         if payment.pending == 1:
-            print("pending")
+            print("cunt")
             return satsdice_renderer().TemplateResponse(
-                "satsdice/error.html", link=satsdicelink.id, paid=False, lost=False
+                "satsdice/error.html",
+                {
+                    "request": request,
+                    "link": satsdicelink.id,
+                    "paid": False,
+                    "lost": False,
+                },
             )
 
     await update_satsdice_payment(payment_hash, paid=1)
+    paylink = await get_satsdice_payment(payment_hash)
+    if not paylink:
 
-    paylink = await get_satsdice_payment(payment_hash) or abort(
-        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
-    )
-
-    if paylink.lost == 1:
-        print("lost")
-    return satsdice_renderer().TemplateResponse(
-        "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
-    )
+        return satsdice_renderer().TemplateResponse(
+            "satsdice/error.html",
+            {
+                "request": request,
+                "link": satsdicelink.id,
+                "paid": False,
+                "lost": True,
+            },
+        )
     rand = random.randint(0, 100)
     chance = satsdicelink.chance
     if rand > chance:
         await update_satsdice_payment(payment_hash, lost=1)
         return satsdice_renderer().TemplateResponse(
-            "satsdice/error.html", link=satsdicelink.id, paid=False, lost=True
+            "satsdice/error.html",
+            {
+                "request": request,
+                "link": satsdicelink.id,
+                "paid": False,
+                "lost": True,
+            },
         )
-    data = []
-    data.payment_hash = payment_hash
-    data.satsdice_pay = (satsdicelink.id,)
-    data.value = (paylink.value * satsdicelink.multiplier,)
-    data.used = 0
+
+    data: CreateSatsDiceWithdraw = {
+        "satsdice_pay": satsdicelink.id,
+        "value": paylink.value * satsdicelink.multiplier,
+        "payment_hash": payment_hash,
+        "used": 0,
+    }
+
     withdrawLink = await create_satsdice_withdraw(data)
     return satsdice_renderer().TemplateResponse(
         "satsdice/displaywin.html",
-        value=withdrawLink.value,
-        chance=satsdicelink.chance,
-        multiplier=satsdicelink.multiplier,
-        lnurl=withdrawLink.lnurl,
-        paid=False,
-        lost=False,
+        {
+            "request": request,
+            "value": withdrawLink.value,
+            "chance": satsdicelink.chance,
+            "multiplier": satsdicelink.multiplier,
+            "lnurl": withdrawLink.lnurl(request),
+            "paid": False,
+            "lost": False,
+        },
     )
 
 
