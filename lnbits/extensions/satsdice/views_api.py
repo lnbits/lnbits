@@ -125,31 +125,6 @@ async def api_link_delete(
 ##########LNURL withdraw
 
 
-@satsdice_ext.get("/api/v1/withdraws")
-async def api_withdraws(
-    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: str = Query(None)
-):
-    wallet_ids = [wallet.wallet.id]
-
-    if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
-    try:
-        return (
-            jsonify(
-                [
-                    {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}
-                    for withdraw in await get_satsdice_withdraws(wallet_ids)
-                ]
-            ),
-            HTTPStatus.OK,
-        )
-    except LnurlInvalidUrl:
-        raise HTTPException(
-            status_code=HTTPStatus.UPGRADE_REQUIRED,
-            detail="LNURLs need to be delivered over a publically accessible `https` domain or Tor.",
-        )
-
-
 @satsdice_ext.get("/api/v1/withdraws/{withdraw_id}")
 async def api_withdraw_retrieve(
     wallet: WalletTypeInfo = Depends(get_key_type), withdraw_id: str = Query(None)
