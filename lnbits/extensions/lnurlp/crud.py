@@ -5,10 +5,7 @@ from . import db
 from .models import PayLink, CreatePayLinkData
 
 
-async def create_pay_link(
-    data: CreatePayLinkData,
-    wallet_id: str
-) -> PayLink:
+async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone

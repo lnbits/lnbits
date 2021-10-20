@@ -33,10 +33,7 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         if url:
             async with httpx.AsyncClient() as client:
                 try:
-                    r = await client.post(
-                        url,
-                        timeout=4,
-                    )
+                    r = await client.post(url, timeout=4)
                     await mark_webhook_sent(payment, r.status_code)
                 except (httpx.ConnectError, httpx.RequestError):
                     pass
@@ -55,11 +52,7 @@ async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient() as client:
         data = payment._asdict()
         try:
-            r = await client.post(
-                payment.webhook,
-                json=data,
-                timeout=40,
-            )
+            r = await client.post(payment.webhook, json=data, timeout=40)
             await mark_webhook_sent(payment, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
             await mark_webhook_sent(payment, -1)

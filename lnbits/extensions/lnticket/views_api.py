@@ -34,13 +34,18 @@ from .crud import (
 
 
 @lnticket_ext.get("/api/v1/forms")
-async def api_forms_get(r: Request, all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_forms_get(
+    r: Request,
+    all_wallets: bool = Query(False),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     return [form.dict() for form in await get_forms(wallet_ids)]
+
 
 @lnticket_ext.post("/api/v1/forms", status_code=HTTPStatus.CREATED)
 @lnticket_ext.put("/api/v1/forms/{form_id}")
@@ -55,21 +60,21 @@ async def api_forms_get(r: Request, all_wallets: bool = Query(False), wallet: Wa
 #         "flatrate": {"type": "integer", "required": True},
 #     }
 # )
-async def api_form_create(data: CreateFormData, form_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_form_create(
+    data: CreateFormData, form_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     if form_id:
         form = await get_form(form_id)
 
         if not form:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail=f"Form does not exist."
+                status_code=HTTPStatus.NOT_FOUND, detail=f"Form does not exist."
             )
             # return {"message": "Form does not exist."}, HTTPStatus.NOT_FOUND
 
         if form.wallet != wallet.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail=f"Not your form."
+                status_code=HTTPStatus.FORBIDDEN, detail=f"Not your form."
             )
             # return {"message": "Not your form."}, HTTPStatus.FORBIDDEN
 
@@ -86,16 +91,12 @@ async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type
 
     if not form:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Form does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Form does not exist."
         )
         # return {"message": "Form does not exist."}, HTTPStatus.NOT_FOUND
 
     if form.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail=f"Not your form."
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=f"Not your form.")
         # return {"message": "Not your form."}, HTTPStatus.FORBIDDEN
 
     await delete_form(form_id)
@@ -109,13 +110,16 @@ async def api_form_delete(form_id, wallet: WalletTypeInfo = Depends(get_key_type
 
 @lnticket_ext.get("/api/v1/tickets")
 # @api_check_wallet_key("invoice")
-async def api_tickets(all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_tickets(
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
+):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     return [form.dict() for form in await get_tickets(wallet_ids)]
+
 
 @lnticket_ext.post("/api/v1/tickets/{form_id}", status_code=HTTPStatus.CREATED)
 # @api_validate_post_request(
@@ -131,8 +135,7 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
     form = await get_form(form_id)
     if not form:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"LNTicket does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail=f"LNTicket does not exist."
         )
         # return {"message": "LNTicket does not exist."}, HTTPStatus.NOT_FOUND
 
@@ -146,10 +149,7 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
             extra={"tag": "lnticket"},
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
         # return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
     ticket = await create_ticket(
@@ -158,18 +158,14 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
 
     if not ticket:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="LNTicket could not be fetched."
+            status_code=HTTPStatus.NOT_FOUND, detail="LNTicket could not be fetched."
         )
         # return (
         #     {"message": "LNTicket could not be fetched."},
         #     HTTPStatus.NOT_FOUND,
         # )
 
-    return {
-        "payment_hash": payment_hash,
-        "payment_request": payment_request
-    }
+    return {"payment_hash": payment_hash, "payment_request": payment_request}
 
 
 @lnticket_ext.get("/api/v1/tickets/{payment_hash}", status_code=HTTPStatus.OK)
@@ -198,16 +194,12 @@ async def api_ticket_delete(ticket_id, wallet: WalletTypeInfo = Depends(get_key_
 
     if not ticket:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"LNTicket does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail=f"LNTicket does not exist."
         )
         # return {"message": "Paywall does not exist."}, HTTPStatus.NOT_FOUND
 
     if ticket.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Not your ticket."
-        )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your ticket.")
         # return {"message": "Not your ticket."}, HTTPStatus.FORBIDDEN
 
     await delete_ticket(ticket_id)

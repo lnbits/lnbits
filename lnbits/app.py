@@ -16,12 +16,23 @@ import lnbits.settings
 from .commands import db_migrate, handle_assets
 from .core import core_app
 from .core.views.generic import core_html_routes
-from .helpers import (get_css_vendored, get_js_vendored, get_valid_extensions,
-                      template_renderer, url_for_vendored)
+from .helpers import (
+    get_css_vendored,
+    get_js_vendored,
+    get_valid_extensions,
+    template_renderer,
+    url_for_vendored,
+)
 from .requestvars import g
 from .settings import WALLET
-from .tasks import (catch_everything_and_restart, check_pending_payments, internal_invoice_listener,
-                    invoice_listener, run_deferred_async, webhook_handler)
+from .tasks import (
+    catch_everything_and_restart,
+    check_pending_payments,
+    internal_invoice_listener,
+    invoice_listener,
+    run_deferred_async,
+    webhook_handler,
+)
 
 
 def create_app(config_object="lnbits.settings") -> FastAPI:
@@ -30,12 +41,11 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     """
     app = FastAPI()
     app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
-    app.mount("/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static")
+    app.mount(
+        "/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static"
+    )
 
-    origins = [
-        "http://localhost",
-        "http://localhost:5000",
-    ]
+    origins = ["http://localhost", "http://localhost:5000"]
 
     app.add_middleware(
         CORSMiddleware,
@@ -44,14 +54,19 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     g().config = lnbits.settings
     g().base_url = f"http://{lnbits.settings.HOST}:{lnbits.settings.PORT}"
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
-        return template_renderer().TemplateResponse("error.html", {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."})
-        
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
+        return template_renderer().TemplateResponse(
+            "error.html",
+            {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."},
+        )
+
         # return HTMLResponse(
         #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         #     content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
@@ -68,6 +83,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     register_exception_handlers(app)
 
     return app
+
 
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
@@ -95,7 +111,7 @@ def register_routes(app: FastAPI) -> None:
         try:
             ext_module = importlib.import_module(f"lnbits.extensions.{ext.code}")
             ext_route = getattr(ext_module, f"{ext.code}_ext")
-            
+
             if hasattr(ext_module, f"{ext.code}_start"):
                 ext_start_func = getattr(ext_module, f"{ext.code}_start")
                 ext_start_func()
@@ -150,6 +166,7 @@ def register_async_tasks(app):
     async def stop_listeners():
         pass
 
+
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
@@ -157,5 +174,6 @@ def register_exception_handlers(app: FastAPI):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        return template_renderer().TemplateResponse("error.html", {"request": request, "err": err})
-
+        return template_renderer().TemplateResponse(
+            "error.html", {"request": request, "err": err}
+        )

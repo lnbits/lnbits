@@ -1,15 +1,14 @@
 from datetime import datetime
 from typing import List, Optional, Union
+
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import WithdrawLink, HashCheck, CreateWithdrawData
+from .models import CreateWithdrawData, HashCheck, WithdrawLink
 
 
 async def create_withdraw_link(
-    data: CreateWithdrawData,
-    wallet_id: str,
-    usescsv: str,
+    data: CreateWithdrawData, wallet_id: str, usescsv: str
 ) -> WithdrawLink:
     link_id = urlsafe_short_hash()
     await db.execute(
@@ -61,7 +60,7 @@ async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     # for item in row:
     #     link.append(item)
     # link.append(num)
-    print("GET_LINK", WithdrawLink.from_row(row))
+    # print("GET_LINK", WithdrawLink.from_row(row))
     return WithdrawLink.from_row(row)
 
 
@@ -115,10 +114,7 @@ def chunks(lst, n):
         yield lst[i : i + n]
 
 
-async def create_hash_check(
-    the_hash: str,
-    lnurl_id: str,
-) -> HashCheck:
+async def create_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
     await db.execute(
         """
         INSERT INTO withdraw.hash_check (
@@ -127,10 +123,7 @@ async def create_hash_check(
         )
         VALUES (?, ?)
         """,
-        (
-            the_hash,
-            lnurl_id,
-        ),
+        (the_hash, lnurl_id),
     )
     hashCheck = await get_hash_check(the_hash, lnurl_id)
     return hashCheck

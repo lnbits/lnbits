@@ -35,7 +35,7 @@ class CLightningWallet(Wallet):
         try:
             answer = self.ln.help("invoicewithdescriptionhash")
             if answer["help"][0]["command"].startswith(
-                "invoicewithdescriptionhash msatoshi label description_hash",
+                "invoicewithdescriptionhash msatoshi label description_hash"
             ):
                 self.supports_description_hash = True
         except:
@@ -53,8 +53,7 @@ class CLightningWallet(Wallet):
         try:
             funds = self.ln.listfunds()
             return StatusResponse(
-                None,
-                sum([ch["channel_sat"] * 1000 for ch in funds["channels"]]),
+                None, sum([ch["channel_sat"] * 1000 for ch in funds["channels"]])
             )
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
@@ -121,11 +120,7 @@ class CLightningWallet(Wallet):
         i = 0
         while True:
             call = json.dumps(
-                {
-                    "method": "waitanyinvoice",
-                    "id": 0,
-                    "params": [self.last_pay_index],
-                }
+                {"method": "waitanyinvoice", "id": 0, "params": [self.last_pay_index]}
             )
 
             await stream.send_all(call.encode("utf-8"))

@@ -51,12 +51,7 @@ async def set_method(shop: int, method: str, wordlist: str = "") -> Optional[Sho
 
 
 async def add_item(
-    shop: int,
-    name: str,
-    description: str,
-    image: Optional[str],
-    price: int,
-    unit: str,
+    shop: int, name: str, description: str, image: Optional[str], price: int, unit: str
 ) -> int:
     result = await db.execute(
         """

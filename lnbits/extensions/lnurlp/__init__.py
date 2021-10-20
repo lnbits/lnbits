@@ -24,12 +24,9 @@ lnurlp_ext: APIRouter = APIRouter(
     # "lnurlp", __name__, static_folder="static", template_folder="templates"
 )
 
+
 def lnurlp_renderer():
-    return template_renderer(
-        [
-            "lnbits/extensions/lnurlp/templates",
-        ]
-    )
+    return template_renderer(["lnbits/extensions/lnurlp/templates"])
 
 
 from .views_api import *  # noqa
@@ -37,11 +34,10 @@ from .views import *  # noqa
 from .tasks import wait_for_paid_invoices
 from .lnurl import *  # noqa
 
+
 def lnurlp_start():
     loop = asyncio.get_event_loop()
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
-
-
 
 
 # from lnbits.tasks import record_async

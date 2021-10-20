@@ -64,19 +64,11 @@ def load_macaroon(macaroon_path: str):
 
 
 def parse_checking_id(checking_id: str) -> bytes:
-    return base64.b64decode(
-        checking_id.replace("_", "/"),
-    )
+    return base64.b64decode(checking_id.replace("_", "/"))
 
 
 def stringify_checking_id(r_hash: bytes) -> str:
-    return (
-        base64.b64encode(
-            r_hash,
-        )
-        .decode("utf-8")
-        .replace("/", "_")
-    )
+    return base64.b64encode(r_hash).decode("utf-8").replace("/", "_")
 
 
 class LndWallet(Wallet):
@@ -177,28 +169,23 @@ class LndWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         async with purerpc.secure_channel(
-            self.endpoint,
-            self.port,
-            get_ssl_context(self.cert_path),
+            self.endpoint, self.port, get_ssl_context(self.cert_path)
         ) as channel:
             client = purerpc.Client("lnrpc.Lightning", channel)
             subscribe_invoices = client.get_method_stub(
                 "SubscribeInvoices",
                 purerpc.RPCSignature(
-                    purerpc.Cardinality.UNARY_STREAM,
-                    ln.InvoiceSubscription,
-                    ln.Invoice,
+                    purerpc.Cardinality.UNARY_STREAM, ln.InvoiceSubscription, ln.Invoice
                 ),
             )
 
-            if self.macaroon_path.split('.')[-1] == 'macaroon':
+            if self.macaroon_path.split(".")[-1] == "macaroon":
                 macaroon = load_macaroon(self.macaroon_path)
             else:
                 macaroon = self.macaroon_path
 
             async for inv in subscribe_invoices(
-                ln.InvoiceSubscription(),
-                metadata=[("macaroon", macaroon)],
+                ln.InvoiceSubscription(), metadata=[("macaroon", macaroon)]
             ):
                 if not inv.settled:
                     continue

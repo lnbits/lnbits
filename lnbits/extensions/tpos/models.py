@@ -1,11 +1,12 @@
 from sqlite3 import Row
-from fastapi.param_functions import Query
+
 from pydantic import BaseModel
 
 
 class CreateTposData(BaseModel):
     name: str
     currency: str
+
 
 class TPoS(BaseModel):
     id: str

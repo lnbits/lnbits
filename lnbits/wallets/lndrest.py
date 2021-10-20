@@ -39,8 +39,7 @@ class LndRestWallet(Wallet):
         try:
             async with httpx.AsyncClient(verify=self.cert) as client:
                 r = await client.get(
-                    f"{self.endpoint}/v1/balance/channels",
-                    headers=self.auth,
+                    f"{self.endpoint}/v1/balance/channels", headers=self.auth
                 )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
@@ -60,10 +59,7 @@ class LndRestWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        data: Dict = {
-            "value": amount,
-            "private": True,
-        }
+        data: Dict = {"value": amount, "private": True}
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"
@@ -73,9 +69,7 @@ class LndRestWallet(Wallet):
 
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.post(
-                url=f"{self.endpoint}/v1/invoices",
-                headers=self.auth,
-                json=data,
+                url=f"{self.endpoint}/v1/invoices", headers=self.auth, json=data
             )
 
         if r.is_error:
@@ -117,8 +111,7 @@ class LndRestWallet(Wallet):
 
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.get(
-                url=f"{self.endpoint}/v1/invoice/{checking_id}",
-                headers=self.auth,
+                url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth
             )
 
         if r.is_error or not r.json().get("settled"):
@@ -164,9 +157,7 @@ class LndRestWallet(Wallet):
         while True:
             try:
                 async with httpx.AsyncClient(
-                    timeout=None,
-                    headers=self.auth,
-                    verify=self.cert,
+                    timeout=None, headers=self.auth, verify=self.cert
                 ) as client:
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():

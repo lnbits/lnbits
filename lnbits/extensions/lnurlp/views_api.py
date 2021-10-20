@@ -23,6 +23,7 @@ from .crud import (
     delete_pay_link,
 )
 
+
 @lnurlp_ext.get("/api/v1/currencies")
 async def api_list_currencies_available():
     return list(currencies.keys())
@@ -30,14 +31,21 @@ async def api_list_currencies_available():
 
 @lnurlp_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_links(req: Request, wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+async def api_links(
+    req: Request,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    all_wallets: bool = Query(False),
+):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     try:
-        return [{**link.dict(), "lnurl": link.lnurl(req)} for link in await get_pay_links(wallet_ids)]
+        return [
+            {**link.dict(), "lnurl": link.lnurl(req)}
+            for link in await get_pay_links(wallet_ids)
+        ]
         # return [
         #             {**link.dict(), "lnurl": link.lnurl}
         #             for link in await get_pay_links(wallet_ids)
@@ -58,20 +66,20 @@ async def api_links(req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 
 @lnurlp_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_link_retrieve(r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_retrieve(
+    r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     link = await get_pay_link(link_id)
 
     if not link:
         raise HTTPException(
-            detail="Pay link does not exist.",
-            status_code=HTTPStatus.NOT_FOUND
+            detail="Pay link does not exist.", status_code=HTTPStatus.NOT_FOUND
         )
         # return {"message": "Pay link does not exist."}, HTTPStatus.NOT_FOUND
 
     if link.wallet != wallet.wallet.id:
         raise HTTPException(
-            detail="Not your pay link.",
-            status_code=HTTPStatus.FORBIDDEN
+            detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
         )
         # return {"message": "Not your pay link."}, HTTPStatus.FORBIDDEN
 
@@ -81,11 +89,14 @@ async def api_link_retrieve(r: Request, link_id, wallet: WalletTypeInfo = Depend
 @lnurlp_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
 @lnurlp_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 # @api_check_wallet_key("invoice")
-async def api_link_create_or_update(data: CreatePayLinkData, link_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_create_or_update(
+    data: CreatePayLinkData,
+    link_id=None,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     if data.min > data.max:
         raise HTTPException(
-            detail="Min is greater than max.",
-            status_code=HTTPStatus.BAD_REQUEST
+            detail="Min is greater than max.", status_code=HTTPStatus.BAD_REQUEST
         )
         # return {"message": "Min is greater than max."}, HTTPStatus.BAD_REQUEST
 
@@ -93,15 +104,14 @@ async def api_link_create_or_update(data: CreatePayLinkData, link_id=None, walle
         round(data.min) != data.min or round(data.max) != data.max
     ):
         raise HTTPException(
-            detail="Must use full satoshis.",
-            status_code=HTTPStatus.BAD_REQUEST
+            detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
         )
         # return {"message": "Must use full satoshis."}, HTTPStatus.BAD_REQUEST
 
     if "success_url" in data and data.success_url[:8] != "https://":
         raise HTTPException(
             detail="Success URL must be secure https://...",
-            status_code=HTTPStatus.BAD_REQUEST
+            status_code=HTTPStatus.BAD_REQUEST,
         )
         # return (
         #     {"message": "Success URL must be secure https://..."},
@@ -113,8 +123,7 @@ async def api_link_create_or_update(data: CreatePayLinkData, link_id=None, walle
 
         if not link:
             raise HTTPException(
-                detail="Pay link does not exist.",
-                status_code=HTTPStatus.NOT_FOUND
+                detail="Pay link does not exist.", status_code=HTTPStatus.NOT_FOUND
             )
             # return (
             #     {"message": "Pay link does not exist."},
@@ -123,12 +132,11 @@ async def api_link_create_or_update(data: CreatePayLinkData, link_id=None, walle
 
         if link.wallet != wallet.wallet.id:
             raise HTTPException(
-                detail="Not your pay link.",
-                status_code=HTTPStatus.FORBIDDEN
+                detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
             )
             # return {"message": "Not your pay link."}, HTTPStatus.FORBIDDEN
 
-        link = await update_pay_link(link_id, data)
+        link = await update_pay_link(data, link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
         print("LINK", link)
@@ -142,15 +150,13 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type
 
     if not link:
         raise HTTPException(
-            detail="Pay link does not exist.",
-            status_code=HTTPStatus.NOT_FOUND
+            detail="Pay link does not exist.", status_code=HTTPStatus.NOT_FOUND
         )
         # return {"message": "Pay link does not exist."}, HTTPStatus.NOT_FOUND
 
     if link.wallet != wallet.wallet.id:
         raise HTTPException(
-            detail="Not your pay link.",
-            status_code=HTTPStatus.FORBIDDEN
+            detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
         )
         # return {"message": "Not your pay link."}, HTTPStatus.FORBIDDEN
 

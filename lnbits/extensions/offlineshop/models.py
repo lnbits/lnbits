@@ -14,7 +14,7 @@ from .helpers import totp
 shop_counters: Dict = {}
 
 
-class ShopCounter():
+class ShopCounter:
     wordlist: List[str]
     fulfilled_payments: OrderedDict
     counter: int
@@ -66,7 +66,7 @@ class Shop(BaseModel):
     def otp_key(self) -> str:
         return base64.b32encode(
             hashlib.sha256(
-                ("otpkey" + str(self.id) + self.wallet).encode("ascii"),
+                ("otpkey" + str(self.id) + self.wallet).encode("ascii")
             ).digest()
         ).decode("ascii")
 
@@ -90,9 +90,7 @@ class Item(BaseModel):
     unit: str
 
     def lnurl(self, req: Request) -> str:
-        return lnurl_encode(
-            req.url_for("offlineshop.lnurl_response", item_id=self.id)
-        )
+        return lnurl_encode(req.url_for("offlineshop.lnurl_response", item_id=self.id))
 
     def values(self, req: Request):
         values = self.dict()
@@ -116,8 +114,6 @@ class Item(BaseModel):
             return None
 
         return UrlAction(
-            url=req.url_for(
-                "offlineshop.confirmation_code", p=payment_hash
-            ),
+            url=req.url_for("offlineshop.confirmation_code", p=payment_hash),
             description="Open to get the confirmation code for your purchase.",
         )

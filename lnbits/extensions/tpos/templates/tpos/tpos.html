@@ -133,6 +133,15 @@
         </div>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="complete.show" position="top">
+      <q-icon
+        name="check"
+        transition-show="fade"
+        class="text-light-green"
+        style="font-size: 40em"
+      ></q-icon
+    ></q-dialog>
   </q-page>
 </q-page-container>
 {% endblock %} {% block styles %}
@@ -171,6 +180,9 @@
           paymentChecker: null
         },
         urlDialog: {
+          show: false
+        },
+        complete: {
           show: false
         }
       }
@@ -234,11 +246,10 @@
                     dialog.dismissMsg()
                     dialog.show = false
 
-                    self.$q.notify({
-                      type: 'positive',
-                      message: self.fsat + ' sat received!',
-                      icon: null
-                    })
+                    self.complete.show = true
+                    setTimeout(function () {
+                      self.complete.show = false
+                    }, 5000)
                   }
                 })
             }, 3000)

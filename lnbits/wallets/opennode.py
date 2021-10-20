@@ -36,9 +36,7 @@ class OpenNodeWallet(Wallet):
         try:
             async with httpx.AsyncClient() as client:
                 r = await client.get(
-                    f"{self.endpoint}/v1/account/balance",
-                    headers=self.auth,
-                    timeout=40,
+                    f"{self.endpoint}/v1/account/balance", headers=self.auth, timeout=40
                 )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
@@ -137,7 +135,6 @@ class OpenNodeWallet(Wallet):
         if "status" not in data or data["status"] != "paid":
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-
         charge_id = data["id"]
         x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
         x.update(charge_id.encode("ascii"))
@@ -147,4 +144,3 @@ class OpenNodeWallet(Wallet):
 
         await self.queue.put(charge_id)
         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-

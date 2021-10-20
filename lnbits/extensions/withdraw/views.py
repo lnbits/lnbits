@@ -1,25 +1,29 @@
 from http import HTTPStatus
-import pyqrcode
 from io import BytesIO
+
+import pyqrcode
+from fastapi import Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse, StreamingResponse
+
+from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import withdraw_ext, withdraw_renderer
-from .crud import get_withdraw_link, chunks
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-from lnbits.core.models import User
+from .crud import chunks, get_withdraw_link
 
 templates = Jinja2Templates(directory="templates")
+
 
 @withdraw_ext.get("/", response_class=HTMLResponse)
 # @validate_uuids(["usr"], required=True)
 # @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return withdraw_renderer().TemplateResponse("withdraw/index.html", {"request":request,"user": user.dict()})
+    return withdraw_renderer().TemplateResponse(
+        "withdraw/index.html", {"request": request, "user": user.dict()}
+    )
 
 
 @withdraw_ext.get("/{link_id}", response_class=HTMLResponse)
@@ -28,21 +32,28 @@ async def display(request: Request, link_id):
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Withdraw link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist." #probably here is where we should return the 404??
-    return withdraw_renderer().TemplateResponse("withdraw/display.html", {"request":request,"link":{**link.dict(), "lnurl": link.lnurl(request)}, "unique":True})
+    print("LINK", link)
+    return withdraw_renderer().TemplateResponse(
+        "withdraw/display.html",
+        {
+            "request": request,
+            "link": link.dict(),
+            "lnurl": link.lnurl(req=request),
+            "unique": True,
+        },
+    )
 
 
-@withdraw_ext.get("/img/{link_id}", response_class=HTMLResponse)
+@withdraw_ext.get("/img/{link_id}", response_class=StreamingResponse)
 async def img(request: Request, link_id):
     link = await get_withdraw_link(link_id, 0)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Withdraw link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist."
@@ -50,10 +61,14 @@ async def img(request: Request, link_id):
     print(qr)
     stream = BytesIO()
     qr.svg(stream, scale=3)
-    return (
-        stream.getvalue(),
-        200,
-        {
+    stream.seek(0)
+
+    async def _generator(stream: BytesIO):
+        yield stream.getvalue()
+
+    return StreamingResponse(
+        _generator(stream),
+        headers={
             "Content-Type": "image/svg+xml",
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
@@ -67,15 +82,17 @@ async def print_qr(request: Request, link_id):
     link = await get_withdraw_link(link_id)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Withdraw link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
         # response.status_code = HTTPStatus.NOT_FOUND
         # return "Withdraw link does not exist."
 
     if link.uses == 0:
 
-        return withdraw_renderer().TemplateResponse("withdraw/print_qr.html", {"request":request,"link":link.dict(), unique:False})
+        return withdraw_renderer().TemplateResponse(
+            "withdraw/print_qr.html",
+            {"request": request, "link": link.dict(), unique: False},
+        )
     links = []
     count = 0
 
@@ -83,8 +100,7 @@ async def print_qr(request: Request, link_id):
         linkk = await get_withdraw_link(link_id, count)
         if not linkk:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Withdraw link does not exist."
+                status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
             )
             # response.status_code = HTTPStatus.NOT_FOUND
             # return "Withdraw link does not exist."
@@ -93,4 +109,6 @@ async def print_qr(request: Request, link_id):
     page_link = list(chunks(links, 2))
     linked = list(chunks(page_link, 5))
     print("LINKED", linked)
-    return withdraw_renderer().TemplateResponse("withdraw/print_qr.html", {"request":request,"link":linked, "unique":True})
+    return withdraw_renderer().TemplateResponse(
+        "withdraw/print_qr.html", {"request": request, "link": linked, "unique": True}
+    )

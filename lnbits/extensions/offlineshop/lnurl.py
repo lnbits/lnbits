@@ -4,7 +4,11 @@ from fastapi.params import Query
 
 from starlette.requests import Request
 from lnbits.helpers import url_for
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+from lnurl import (
+    LnurlPayResponse,
+    LnurlPayActionResponse,
+    LnurlErrorResponse,
+)  # type: ignore
 
 from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -15,7 +19,7 @@ from .crud import get_shop, get_item
 
 @offlineshop_ext.get("/lnurl/{item_id}", name="offlineshop.lnurl_response")
 async def lnurl_response(req: Request, item_id: int = Query(...)):
-    item = await get_item(item_id) # type: Item
+    item = await get_item(item_id)  # type: Item
     if not item:
         return {"status": "ERROR", "reason": "Item not found."}
 
@@ -40,7 +44,7 @@ async def lnurl_response(req: Request, item_id: int = Query(...)):
 
 @offlineshop_ext.get("/lnurl/cb/{item_id}", name="offlineshop.lnurl_callback")
 async def lnurl_callback(request: Request, item_id: int):
-    item = await get_item(item_id) # type: Item
+    item = await get_item(item_id)  # type: Item
     if not item:
         return {"status": "ERROR", "reason": "Couldn't find item."}
 
@@ -80,7 +84,9 @@ async def lnurl_callback(request: Request, item_id: int):
 
     resp = LnurlPayActionResponse(
         pr=payment_request,
-        success_action=item.success_action(shop, payment_hash, request) if shop.method else None,
+        success_action=item.success_action(shop, payment_hash, request)
+        if shop.method
+        else None,
         routes=[],
     )
 

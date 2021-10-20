@@ -1,33 +1,35 @@
 import asyncio
 import json
-import httpx
-from io import BytesIO
 from binascii import unhexlify
-from typing import Optional, Tuple, Dict
-from urllib.parse import urlparse, parse_qs
-from lnurl import LnurlErrorResponse, decode as decode_lnurl  # type: ignore
+from io import BytesIO
+from typing import Dict, Optional, Tuple
+from urllib.parse import parse_qs, urlparse
+
+import httpx
+from lnurl import LnurlErrorResponse
+from lnurl import decode as decode_lnurl  # type: ignore
+
+from lnbits import bolt11
+from lnbits.db import Connection
+from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.requestvars import g
+from lnbits.settings import WALLET
+from lnbits.wallets.base import PaymentResponse, PaymentStatus
+
+from . import db
+from .crud import (
+    check_internal,
+    create_payment,
+    delete_payment,
+    get_wallet,
+    get_wallet_payment,
+    update_payment_status,
+)
 
 try:
     from typing import TypedDict  # type: ignore
 except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
-
-from lnbits import bolt11
-from lnbits.db import Connection
-from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.settings import WALLET
-from lnbits.wallets.base import PaymentStatus, PaymentResponse
-from lnbits.requestvars import g
-
-from . import db
-from .crud import (
-    get_wallet,
-    create_payment,
-    delete_payment,
-    check_internal,
-    update_payment_status,
-    get_wallet_payment,
-)
 
 
 class PaymentFailure(Exception):
@@ -49,7 +51,7 @@ async def create_invoice(
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
-    storeable_memo = memo
+    storeable_memo = memo or "LN payment"
 
     ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
@@ -147,15 +149,14 @@ async def pay_invoice(
             # so the other side only has access to his new money when we are sure
             # the payer has enough to deduct from
             await update_payment_status(
-                checking_id=internal_checking_id,
-                pending=False,
-                conn=conn,
+                checking_id=internal_checking_id, pending=False, conn=conn
             )
 
             # notify receiver asynchronously
-            from lnbits.tasks import internal_invoice_paid
 
-            await internal_invoice_paid.send(internal_checking_id)
+            from lnbits.tasks import internal_invoice_queue
+
+            await internal_invoice_queue.put(internal_checking_id)
         else:
             # actually pay the external invoice
             payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
@@ -213,10 +214,7 @@ async def redeem_lnurl_withdraw(
     if wait_seconds:
         await asyncio.sleep(wait_seconds)
 
-    params = {
-        "k1": res["k1"],
-        "pr": payment_request,
-    }
+    params = {"k1": res["k1"], "pr": payment_request}
 
     try:
         params["balanceNotify"] = url_for(
@@ -235,8 +233,7 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str,
-    conn: Optional[Connection] = None,
+    callback: str, conn: Optional[Connection] = None
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
@@ -304,7 +301,7 @@ async def perform_lnurlauth(
             return LnurlErrorResponse(reason=resp["reason"])
         except (KeyError, json.decoder.JSONDecodeError):
             return LnurlErrorResponse(
-                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text,
+                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text
             )
 
 
@@ -316,8 +313,19 @@ async def check_invoice_status(
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:
         return PaymentStatus(None)
-
-    return await WALLET.get_invoice_status(payment.checking_id)
+    status = await WALLET.get_invoice_status(payment.checking_id)
+    print(status)
+    if not payment.pending:
+        return status
+    if payment.is_out and status.failed:
+        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        await payment.delete()
+    elif not status.pending:
+        print(
+            f" - marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
+        )
+        await payment.set_pending(status.pending)
+    return status
 
 
 def fee_reserve(amount_msat: int) -> int:

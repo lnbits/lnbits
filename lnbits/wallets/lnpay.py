@@ -139,12 +139,10 @@ class LNPayWallet(Wallet):
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
         async with httpx.AsyncClient() as client:
             r = await client.get(
-                f"{self.endpoint}/lntx/{lntx_id}?fields=settled",
-                headers=self.auth,
+                f"{self.endpoint}/lntx/{lntx_id}?fields=settled", headers=self.auth
             )
             data = r.json()
             if data["settled"]:
                 await self.queue.put(lntx_id)
 
         raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-

@@ -2,7 +2,12 @@ import hashlib
 import math
 from http import HTTPStatus
 from fastapi import FastAPI, Request
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+from starlette.exceptions import HTTPException
+from lnurl import (
+    LnurlPayResponse,
+    LnurlPayActionResponse,
+    LnurlErrorResponse,
+)  # type: ignore
 
 from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
@@ -11,13 +16,16 @@ from . import lnurlp_ext
 from .crud import increment_pay_link
 
 
-@lnurlp_ext.get("/api/v1/lnurl/{link_id}", status_code=HTTPStatus.OK, name="lnurlp.api_lnurl_response")
+@lnurlp_ext.get(
+    "/api/v1/lnurl/{link_id}",
+    status_code=HTTPStatus.OK,
+    name="lnurlp.api_lnurl_response",
+)
 async def api_lnurl_response(request: Request, link_id):
     link = await increment_pay_link(link_id, served_meta=1)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Pay link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
 
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
@@ -36,13 +44,16 @@ async def api_lnurl_response(request: Request, link_id):
     return params
 
 
-@lnurlp_ext.get("/api/v1/lnurl/cb/{link_id}", status_code=HTTPStatus.OK, name="lnurlp.api_lnurl_callback")
+@lnurlp_ext.get(
+    "/api/v1/lnurl/cb/{link_id}",
+    status_code=HTTPStatus.OK,
+    name="lnurlp.api_lnurl_callback",
+)
 async def api_lnurl_callback(request: Request, link_id):
     link = await increment_pay_link(link_id, served_pr=1)
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Pay link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
     min, max = link.min, link.max
     rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
@@ -54,23 +65,22 @@ async def api_lnurl_callback(request: Request, link_id):
         min = link.min * 1000
         max = link.max * 1000
 
-    amount_received = int(request.query_params.get('amount') or 0)
+    amount_received = int(request.query_params.get("amount") or 0)
     if amount_received < min:
         return LnurlErrorResponse(
-                    reason=f"Amount {amount_received} is smaller than minimum {min}."
-                ).dict()
+            reason=f"Amount {amount_received} is smaller than minimum {min}."
+        ).dict()
 
     elif amount_received > max:
         return LnurlErrorResponse(
-                    reason=f"Amount {amount_received} is greater than maximum {max}."
-                ).dict()
-
+            reason=f"Amount {amount_received} is greater than maximum {max}."
+        ).dict()
 
     comment = request.query_params.get("comment")
     if len(comment or "") > link.comment_chars:
         return LnurlErrorResponse(
-                    reason=f"Got a comment with {len(comment)} characters, but can only accept {link.comment_chars}"
-                ).dict()
+            reason=f"Got a comment with {len(comment)} characters, but can only accept {link.comment_chars}"
+        ).dict()
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=link.wallet,
@@ -79,20 +89,20 @@ async def api_lnurl_callback(request: Request, link_id):
         description_hash=hashlib.sha256(
             link.lnurlpay_metadata.encode("utf-8")
         ).digest(),
-        extra={"tag": "lnurlp", "link": link.id, "comment": comment, 'extra': request.query_params.get('amount')},
+        extra={
+            "tag": "lnurlp",
+            "link": link.id,
+            "comment": comment,
+            "extra": request.query_params.get("amount"),
+        },
     )
 
     success_action = link.success_action(payment_hash)
     if success_action:
         resp = LnurlPayActionResponse(
-            pr=payment_request,
-            success_action=success_action,
-            routes=[],
+            pr=payment_request, success_action=success_action, routes=[]
         )
     else:
-        resp = LnurlPayActionResponse(
-            pr=payment_request,
-            routes=[],
-        )
+        resp = LnurlPayActionResponse(pr=payment_request, routes=[])
 
     return resp.dict()

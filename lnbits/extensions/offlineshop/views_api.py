@@ -33,17 +33,16 @@ async def api_list_currencies_available():
 
 @offlineshop_ext.get("/api/v1/offlineshop")
 # @api_check_wallet_key("invoice")
-async def api_shop_from_wallet(r: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_shop_from_wallet(
+    r: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     items = await get_items(shop.id)
 
     try:
         return {
             **shop.dict(),
-            **{
-                "otp_key": shop.otp_key,
-                "items": [item.values(r) for item in items],
-            },
+            **{"otp_key": shop.otp_key, "items": [item.values(r) for item in items]},
         }
     except LnurlInvalidUrl:
         raise HTTPException(
@@ -63,18 +62,15 @@ class CreateItemsData(BaseModel):
 @offlineshop_ext.post("/api/v1/offlineshop/items")
 @offlineshop_ext.put("/api/v1/offlineshop/items/{item_id}")
 # @api_check_wallet_key("invoice")
-async def api_add_or_update_item(data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_add_or_update_item(
+    data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     if item_id == None:
         await add_item(
-            shop.id,
-            data.name,
-            data.description,
-            data.image,
-            data.price,
-            data.unit,
+            shop.id, data.name, data.description, data.image, data.price, data.unit
         )
-        return HTMLResponse(status_code=HTTPStatus.CREATED) 
+        return HTMLResponse(status_code=HTTPStatus.CREATED)
     else:
         await update_item(
             shop.id,
@@ -102,7 +98,9 @@ class CreateMethodData(BaseModel):
 
 @offlineshop_ext.put("/api/v1/offlineshop/method")
 # @api_check_wallet_key("invoice")
-async def api_set_method(data: CreateMethodData, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_set_method(
+    data: CreateMethodData, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     method = data.method
 
     wordlist = data.wordlist.split("\n") if data.wordlist else None

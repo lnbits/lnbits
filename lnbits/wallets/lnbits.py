@@ -30,9 +30,7 @@ class LNbitsWallet(Wallet):
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.get(
-                    url=f"{self.endpoint}/api/v1/wallet",
-                    headers=self.key,
-                    timeout=15,
+                    url=f"{self.endpoint}/api/v1/wallet", headers=self.key, timeout=15
                 )
             except Exception as exc:
                 return StatusResponse(
@@ -65,9 +63,7 @@ class LNbitsWallet(Wallet):
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                url=f"{self.endpoint}/api/v1/payments",
-                headers=self.key,
-                json=data,
+                url=f"{self.endpoint}/api/v1/payments", headers=self.key, json=data
             )
         ok, checking_id, payment_request, error_message = (
             not r.is_error,
