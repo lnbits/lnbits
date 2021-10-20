@@ -16,4 +16,3 @@ def events_renderer():
     
 from .views import *  # noqa
 from .views_api import *  # noqa
-

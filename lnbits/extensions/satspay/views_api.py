@@ -1,29 +1,22 @@
-import hashlib
-
 from http import HTTPStatus
-import httpx
 
+import httpx
 from fastapi import Query
 from fastapi.params import Depends
-
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
-
-from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
-
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.satspay import satspay_ext
-from .models import CreateCharge
+
 from .crud import (
+    check_address_balance,
     create_charge,
-    update_charge,
+    delete_charge,
     get_charge,
     get_charges,
-    delete_charge,
-    check_address_balance,
+    update_charge,
 )
+from .models import CreateCharge
 
 #############################CHARGES##########################
 
@@ -31,7 +24,7 @@ from .crud import (
 @satspay_ext.post("/api/v1/charge")
 @satspay_ext.put("/api/v1/charge/{charge_id}")
 async def api_charge_create_or_update(
-    data: CreateCharge, wallet: WalletTypeInfo = Depends(get_key_type), charge_id=None
+    data: CreateCharge, wallet: WalletTypeInfo = Depends(require_admin_key), charge_id=None
 ):
     if not charge_id:
         charge = await create_charge(user=wallet.wallet.user, data=data)

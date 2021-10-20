@@ -7,7 +7,7 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import satsdice_ext
 from .crud import (
@@ -134,15 +134,10 @@ async def api_withdraws(
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
-        return (
-            jsonify(
-                [
-                    {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}
+        return [
+                    {**withdraw.dict(), **{"lnurl": withdraw.lnurl}}
                     for withdraw in await get_satsdice_withdraws(wallet_ids)
                 ]
-            ),
-            HTTPStatus.OK,
-        )
     except LnurlInvalidUrl:
         raise HTTPException(
             status_code=HTTPStatus.UPGRADE_REQUIRED,
@@ -173,7 +168,7 @@ async def api_withdraw_retrieve(
 @satsdice_ext.put("/api/v1/withdraws/{withdraw_id}", status_code=HTTPStatus.OK)
 async def api_withdraw_create_or_update(
     data: CreateSatsDiceWithdraws,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     withdraw_id: str = Query(None),
 ):
     if data.max_satsdiceable < data.min_satsdiceable:
@@ -216,7 +211,7 @@ async def api_withdraw_create_or_update(
 @satsdice_ext.delete("/api/v1/withdraws/{withdraw_id}")
 async def api_withdraw_delete(
     data: CreateSatsDiceWithdraws,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     withdraw_id: str = Query(None),
 ):
     withdraw = await get_satsdice_withdraw(withdraw_id)

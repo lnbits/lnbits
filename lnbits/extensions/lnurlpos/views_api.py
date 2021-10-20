@@ -1,26 +1,23 @@
-import hashlib
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
 from http import HTTPStatus
-from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-from lnbits.decorators import check_user_exists, WalletTypeInfo, get_key_type
-from lnbits.core.crud import get_user
-from lnbits.core.models import User, Payment
-from . import lnurlpos_ext
 
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
+from starlette.exceptions import HTTPException
+
+from lnbits.core.crud import get_user
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.lnurlpos import lnurlpos_ext
+from lnbits.utils.exchange_rates import currencies
+
+from . import lnurlpos_ext
 from .crud import (
     create_lnurlpos,
-    update_lnurlpos,
+    delete_lnurlpos,
     get_lnurlpos,
     get_lnurlposs,
-    delete_lnurlpos,
+    update_lnurlpos,
 )
-from lnbits.utils.exchange_rates import currencies
 from .models import createLnurlpos
 
 
@@ -37,7 +34,7 @@ async def api_list_currencies_available():
 async def api_lnurlpos_create_or_update(
     request: Request,
     data: createLnurlpos,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     lnurlpos_id: str = Query(None),
 ):
     if not lnurlpos_id:
@@ -79,7 +76,7 @@ async def api_lnurlpos_retrieve(
 @lnurlpos_ext.delete("/api/v1/lnurlpos/{lnurlpos_id}")
 async def api_lnurlpos_delete(
     request: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     lnurlpos_id: str = Query(None),
 ):
     lnurlpos = await get_lnurlpos(lnurlpos_id)
