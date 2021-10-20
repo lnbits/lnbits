@@ -77,4 +77,3 @@ async def m003_fix_data_types(db):
     await db.execute(
         "INSERT INTO copilot.newer_copilots SELECT * FROM copilot.copilots"
     )
-    await db.execute("DROP TABLE IF EXISTS copilot.copilots")
