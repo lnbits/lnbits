@@ -37,7 +37,16 @@ class satsdiceLink(BaseModel):
 
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
-        return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
+        return LnurlPayMetadata(
+            json.dumps(
+                [
+                    [
+                        "text/plain",
+                        f"{self.title} (Chance: {self.chance}%, Multiplier: {self.multiplier})",
+                    ]
+                ]
+            )
+        )
 
     def success_action(self, payment_hash: str, req: Request) -> Optional[Dict]:
         url = req.url_for(

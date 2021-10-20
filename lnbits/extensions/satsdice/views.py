@@ -91,14 +91,13 @@ async def displaywin(
             HTTPStatus.NOT_FOUND, "satsdice link does not exist."
         )
         if payment.pending == 1:
-            print("cunt")
             return satsdice_renderer().TemplateResponse(
                 "satsdice/error.html",
                 {
                     "request": request,
                     "link": satsdicelink.id,
                     "paid": False,
-                    "lost": False,
+                    "lost": True,
                 },
             )
 
@@ -115,7 +114,12 @@ async def displaywin(
                 "lost": True,
             },
         )
-    rand = random.randint(0, 100)
+    rand1 = random.randint(0, 100)
+    rand2 = random.randint(0, 100)
+    rand3 = random.randint(0, 100)
+    rand4 = random.randint(0, 100)
+    rand = (rand1 + rand2 + rand3 + rand4) / 4
+    print(rand)
     chance = satsdicelink.chance
     if rand > chance:
         await update_satsdice_payment(payment_hash, lost=1)
