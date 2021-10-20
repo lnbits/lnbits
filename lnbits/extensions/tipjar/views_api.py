@@ -1,5 +1,5 @@
 from http import HTTPStatus
-
+import json
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
@@ -57,6 +57,7 @@ async def api_create_tip(data: createTips):
 
     webhook = tipjar.webhook
     charge_details = await get_charge_details(tipjar.id)
+    print(charge_details["time"])
     name = data.name
     # Ensure that description string can be split reliably
     name = name.replace('"', "''")
@@ -65,13 +66,19 @@ async def api_create_tip(data: createTips):
     description = f'"{name}": {message}'
 
     charge = await create_charge(
+        user=charge_details["user"],
         data={
             "amount": sats,
             "webhook": webhook,
             "description": description,
-            **charge_details,
+            "onchainwallet": charge_details["onchainwallet"],
+            "lnbitswallet": charge_details["lnbitswallet"],
+            "completelink": charge_details["completelink"],
+            "completelinktext": charge_details["completelinktext"],
+            "time": charge_details["time"],
         },
     )
+
     await create_tip(
         id=charge.id,
         wallet=tipjar.wallet,
