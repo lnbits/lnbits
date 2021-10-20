@@ -67,7 +67,7 @@ async def api_link_retrieve(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your pay link."
         )
 
-    return {**link._asdict(), **{"lnurl": link.lnurl}}
+    return {**link.dict(), **{"lnurl": link.lnurl}}
 
 
 @satsdice_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
@@ -112,7 +112,7 @@ async def api_link_delete(
             status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
 
-    if link.wallet != g.wallet.id:
+    if link.wallet != wallet.wallet.id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your pay link."
         )
