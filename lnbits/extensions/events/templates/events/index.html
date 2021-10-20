@@ -380,14 +380,14 @@
     methods: {
       getTickets: function () {
         var self = this
-        console.log('obj')
         LNbits.api
-          .request(
-            'GET',
-            '/events/api/v1/tickets?all_wallets',
-            this.g.user.wallets[0].inkey
+        .request(
+          'GET',
+          '/events/api/v1/tickets?all_wallets=true',
+          this.g.user.wallets[0].inkey
           )
           .then(function (response) {
+            console.log(response)
             self.tickets = response.data.map(function (obj) {
               console.log(obj)
               return mapEvents(obj)
