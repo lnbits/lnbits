@@ -1,0 +1,447 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="tipjarDialog.show = true"
+          >New TipJar</q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">TipJars</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exporttipjarsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="tipjars"
+          row-key="id"
+          :columns="tipjarsTable.columns"
+          :pagination.sync="tipjarsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="send"
+                  :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteTipJar(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Tips</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exporttipsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="tips"
+          :columns="tipsTable.columns"
+          :pagination.sync="tipsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteTip(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} TipJar extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "tipjar/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="tipjarDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendTipJarData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="tipjarDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <div class="row">
+          <div class="col">
+            <div v-if="walletLinks.length > 0">
+              <q-checkbox v-model="tipjarDialog.data.chain" label="Chain" />
+            </div>
+            <div v-else>
+              <q-checkbox :value="false" label="Chain" disabled>
+                <q-tooltip>
+                  Watch-Only extension MUST be activated and have a wallet
+                </q-tooltip>
+              </q-checkbox>
+            </div>
+          </div>
+        </div>
+        <div v-if="tipjarDialog.data.chain">
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="tipjarDialog.data.onchain"
+            :options="walletLinks"
+            label="Chain Wallet"
+          />
+        </div>
+        <q-input
+          filled
+          dense
+          v-model.trim="tipjarDialog.data.name"
+          type="text"
+          label="Donatee name *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="tipjarDialog.data.webhook"
+          type="url"
+          label="Webhook (URL to send tip details to once paid)"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="tipjarDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update TipJar</q-btn
+          >
+
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="tipjarDialog.data.name == null"
+            type="submit"
+            >Create TipJar</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapTipJar = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.displayUrl = ['/tipjar/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        tipjars: [],
+        tips: [],
+        walletLinks: [],
+        tipjarsTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'name',
+              align: 'left',
+              label: 'Donatee',
+              field: 'name'
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'Wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'onchain address',
+              align: 'left',
+              label: 'Onchain Address',
+              field: 'onchain'
+            },
+            {
+              name: 'webhook',
+              align: 'left',
+              label: 'Webhook',
+              field: 'webhook'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        tipsTable: {
+          columns: [
+            {
+              name: 'tipjar',
+              align: 'left',
+              label: 'TipJar',
+              field: 'tipjar'
+            },
+            {name: 'id', align: 'left', label: 'Charge ID', field: 'id'},
+            {name: 'name', align: 'left', label: 'Donor', field: 'name'},
+            {
+              name: 'message',
+              align: 'left',
+              label: 'Message',
+              field: 'message'
+            },
+            {name: 'sats', align: 'left', label: 'Sats', field: 'sats'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        tipjarDialog: {
+          show: false,
+          chain: false,
+          data: {}
+        }
+      }
+    },
+    methods: {
+      getWalletLinks: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/wallet',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            for (i = 0; i < response.data.length; i++) {
+              self.walletLinks.push(response.data[i].id)
+            }
+            return
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getTips: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/tipjar/api/v1/tips',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.tips = response.data.map(function (obj) {
+              return mapTipJar(obj)
+            })
+          })
+      },
+      deleteTip: function (tipId) {
+        var self = this
+        var tips = _.findWhere(this.tips, {id: tipId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this tip?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/tipjar/api/v1/tips/' + tipId,
+                _.findWhere(self.g.user.wallets, {id: tips.wallet}).inkey
+              )
+              .then(function (response) {
+                self.tips = _.reject(self.tips, function (obj) {
+                  return obj.id == ticketId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exporttipsCSV: function () {
+        LNbits.utils.exportCSV(this.tipsTable.columns, this.tips)
+      },
+
+      getTipJars: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/tipjar/api/v1/tipjars',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.tipjars = response.data.map(function (obj) {
+              return mapTipJar(obj)
+            })
+          })
+      },
+      sendTipJarData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.tipjarDialog.data.wallet
+        })
+        var data = this.tipjarDialog.data
+
+        this.createTipJar(wallet, data)
+      },
+
+      createTipJar: function (wallet, data) {
+        var self = this
+        LNbits.api
+          .request('POST', '/tipjar/api/v1/tipjars', wallet.inkey, data)
+          .then(function (response) {
+            self.tipjars.push(mapTipJar(response.data))
+            self.tipjarDialog.show = false
+            self.tipjarDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updatetipjarDialog: function (tipjarId) {
+        var link = _.findWhere(this.tipjars, {id: tipjarId})
+        console.log(link.id)
+        this.tipjarDialog.data.id = link.id
+        this.tipjarDialog.data.wallet = link.wallet
+        this.tipjarDialog.data.name = link.name
+        this.tipjarDialog.data.webhook = link.webhook
+        this.tipjarDialog.show = true
+      },
+      deleteTipJar: function (tipjarsId) {
+        var self = this
+        var tipjars = _.findWhere(this.tipjars, {id: tipjarsId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this tipjar link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/tipjar/api/v1/tipjars/' + tipjarsId,
+                _.findWhere(self.g.user.wallets, {id: tipjars.wallet}).inkey
+              )
+              .then(function (response) {
+                self.tipjars = _.reject(self.tipjars, function (obj) {
+                  return obj.id == tipjarsId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exporttipjarsCSV: function () {
+        LNbits.utils.exportCSV(this.tipjarsTable.columns, this.tipjars)
+      }
+    },
+
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getWalletLinks()
+        this.getTipJars()
+        this.getTips()
+        this.getServices()
+      }
+    }
+  })
+</script>
+{% endblock %}
