@@ -7,7 +7,7 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import satsdice_ext
 from .crud import (
@@ -67,7 +67,7 @@ async def api_link_retrieve(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your pay link."
         )
 
-    return {**link._asdict(), **{"lnurl": link.lnurl}}
+    return {**link.dict(), **{"lnurl": link.lnurl}}
 
 
 @satsdice_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
@@ -112,7 +112,7 @@ async def api_link_delete(
             status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
 
-    if link.wallet != g.wallet.id:
+    if link.wallet != wallet.wallet.id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not your pay link."
         )
@@ -123,117 +123,6 @@ async def api_link_delete(
 
 
 ##########LNURL withdraw
-
-
-@satsdice_ext.get("/api/v1/withdraws")
-async def api_withdraws(
-    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: str = Query(None)
-):
-    wallet_ids = [wallet.wallet.id]
-
-    if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
-    try:
-        return (
-            jsonify(
-                [
-                    {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}
-                    for withdraw in await get_satsdice_withdraws(wallet_ids)
-                ]
-            ),
-            HTTPStatus.OK,
-        )
-    except LnurlInvalidUrl:
-        raise HTTPException(
-            status_code=HTTPStatus.UPGRADE_REQUIRED,
-            detail="LNURLs need to be delivered over a publically accessible `https` domain or Tor.",
-        )
-
-
-@satsdice_ext.get("/api/v1/withdraws/{withdraw_id}")
-async def api_withdraw_retrieve(
-    wallet: WalletTypeInfo = Depends(get_key_type), withdraw_id: str = Query(None)
-):
-    withdraw = await get_satsdice_withdraw(withdraw_id, 0)
-
-    if not withdraw:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="satsdice withdraw does not exist."
-        )
-
-    if withdraw.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your satsdice withdraw."
-        )
-
-    return {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}, HTTPStatus.OK
-
-
-@satsdice_ext.post("/api/v1/withdraws", status_code=HTTPStatus.CREATED)
-@satsdice_ext.put("/api/v1/withdraws/{withdraw_id}", status_code=HTTPStatus.OK)
-async def api_withdraw_create_or_update(
-    data: CreateSatsDiceWithdraws,
-    wallet: WalletTypeInfo = Depends(get_key_type),
-    withdraw_id: str = Query(None),
-):
-    if data.max_satsdiceable < data.min_satsdiceable:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="`max_satsdiceable` needs to be at least `min_satsdiceable`.",
-        )
-
-    usescsv = ""
-    for i in range(data.uses):
-        if data.is_unique:
-            usescsv += "," + str(i + 1)
-        else:
-            usescsv += "," + str(1)
-    usescsv = usescsv[1:]
-
-    if withdraw_id:
-        withdraw = await get_satsdice_withdraw(withdraw_id, 0)
-        if not withdraw:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="satsdice withdraw does not exist.",
-            )
-        if withdraw.wallet != wallet.wallet.id:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Not your satsdice withdraw."
-            )
-
-        withdraw = await update_satsdice_withdraw(
-            withdraw_id, **data, usescsv=usescsv, used=0
-        )
-    else:
-        withdraw = await create_satsdice_withdraw(
-            wallet_id=wallet.wallet.id, **data, usescsv=usescsv
-        )
-
-    return {**withdraw._asdict(), **{"lnurl": withdraw.lnurl}}
-
-
-@satsdice_ext.delete("/api/v1/withdraws/{withdraw_id}")
-async def api_withdraw_delete(
-    data: CreateSatsDiceWithdraws,
-    wallet: WalletTypeInfo = Depends(get_key_type),
-    withdraw_id: str = Query(None),
-):
-    withdraw = await get_satsdice_withdraw(withdraw_id)
-
-    if not withdraw:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="satsdice withdraw does not exist."
-        )
-
-    if withdraw.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your satsdice withdraw."
-        )
-
-    await delete_satsdice_withdraw(withdraw_id)
-
-    return "", HTTPStatus.NO_CONTENT
 
 
 @satsdice_ext.get("/api/v1/withdraws/{the_hash}/{lnurl_id}")

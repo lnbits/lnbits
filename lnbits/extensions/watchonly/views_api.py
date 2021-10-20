@@ -4,13 +4,20 @@ from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.watchonly import watchonly_ext
 
-from .crud import (create_mempool, create_watch_wallet, delete_watch_wallet,
-                   get_addresses, get_fresh_address, get_mempool,
-                   get_watch_wallet, get_watch_wallets, update_mempool)
+from .crud import (
+    create_mempool,
+    create_watch_wallet,
+    delete_watch_wallet,
+    get_addresses,
+    get_fresh_address,
+    get_mempool,
+    get_watch_wallet,
+    get_watch_wallets,
+    update_mempool,
+)
 from .models import CreateWallet
 
 ###################WALLETS#############################
@@ -41,7 +48,7 @@ async def api_wallet_retrieve(
 
 @watchonly_ext.post("/api/v1/wallet")
 async def api_wallet_create_or_update(
-    data: CreateWallet, wallet_id=None, w: WalletTypeInfo = Depends(get_key_type)
+    data: CreateWallet, wallet_id=None, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
         wallet = await create_watch_wallet(
@@ -57,7 +64,7 @@ async def api_wallet_create_or_update(
 
 
 @watchonly_ext.delete("/api/v1/wallet/{wallet_id}")
-async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(get_key_type)):
+async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(require_admin_key)):
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
@@ -105,14 +112,14 @@ async def api_get_addresses(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 
 @watchonly_ext.put("/api/v1/mempool")
 async def api_update_mempool(
-    endpoint: str = Query(...), w: WalletTypeInfo = Depends(get_key_type)
+    endpoint: str = Query(...), w: WalletTypeInfo = Depends(require_admin_key)
 ):
     mempool = await update_mempool(endpoint, user=w.wallet.user)
     return mempool.dict()
 
 
 @watchonly_ext.get("/api/v1/mempool")
-async def api_get_mempool(w: WalletTypeInfo = Depends(get_key_type)):
+async def api_get_mempool(w: WalletTypeInfo = Depends(require_admin_key)):
     mempool = await get_mempool(w.wallet.user)
     if not mempool:
         mempool = await create_mempool(user=w.wallet.user)

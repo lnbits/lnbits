@@ -7,11 +7,11 @@ from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
+from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.core.crud import get_wallet
 from lnbits.core.services import check_invoice_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import jukebox_ext
 from .crud import (
@@ -30,7 +30,7 @@ from .models import CreateJukeboxPayment, CreateJukeLinkData
 @jukebox_ext.get("/api/v1/jukebox")
 async def api_get_jukeboxs(
     req: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     all_wallets: bool = Query(False),
 ):
     wallet_user = wallet.wallet.user
@@ -72,7 +72,7 @@ async def api_check_credentials_callbac(
 
 @jukebox_ext.get("/api/v1/jukebox/{juke_id}")
 async def api_check_credentials_check(
-    juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     print(juke_id)
     jukebox = await get_jukebox(juke_id)
@@ -85,7 +85,7 @@ async def api_check_credentials_check(
 async def api_create_update_jukebox(
     data: CreateJukeLinkData,
     juke_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     if juke_id:
         jukebox = await update_jukebox(data, juke_id=juke_id)
@@ -95,7 +95,7 @@ async def api_create_update_jukebox(
 
 
 @jukebox_ext.delete("/api/v1/jukebox/{juke_id}")
-async def api_delete_item(juke_id=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_delete_item(juke_id=None, wallet: WalletTypeInfo = Depends(require_admin_key)):
     await delete_jukebox(juke_id)
     try:
         return [{**jukebox} for jukebox in await get_jukeboxs(wallet.wallet.user)]

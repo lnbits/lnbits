@@ -1,27 +1,24 @@
-from typing import Optional
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-from pydantic.main import BaseModel
-
 from http import HTTPStatus
+
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
-from fastapi import Request
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
-from .models import CreatePayLinkData
 
 from . import lnurlp_ext
 from .crud import (
     create_pay_link,
+    delete_pay_link,
     get_pay_link,
     get_pay_links,
     update_pay_link,
-    delete_pay_link,
 )
+from .models import CreatePayLinkData
 
 
 @lnurlp_ext.get("/api/v1/currencies")

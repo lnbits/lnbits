@@ -1,13 +1,14 @@
 import hashlib
 import math
 from http import HTTPStatus
-from fastapi import FastAPI, Request
-from starlette.exceptions import HTTPException
-from lnurl import (
-    LnurlPayResponse,
-    LnurlPayActionResponse,
+
+from fastapi import Request
+from lnurl import (  # type: ignore
     LnurlErrorResponse,
-)  # type: ignore
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+)
+from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
 from lnbits.utils.exchange_rates import get_fiat_rate_satoshis

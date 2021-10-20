@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import check_invoice_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
@@ -33,7 +33,7 @@ async def api_tpos_create(
 
 
 @tpos_ext.delete("/api/v1/tposs/{tpos_id}")
-async def api_tpos_delete(tpos_id: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_tpos_delete(tpos_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:

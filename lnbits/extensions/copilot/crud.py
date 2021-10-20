@@ -13,7 +13,7 @@ async def create_copilot(
     copilot_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO copilot.copilots (
+        INSERT INTO copilot.newer_copilots (
             id,
             user,
             lnurl_toggle,
@@ -71,24 +71,26 @@ async def update_copilot(
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
     items.append(copilot_id)
-    await db.execute(f"UPDATE copilot.copilots SET {q} WHERE id = ?", (items))
+    await db.execute(f"UPDATE copilot.newer_copilots SET {q} WHERE id = ?", (items))
     row = await db.fetchone(
-        "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
+        "SELECT * FROM copilot.newer_copilots WHERE id = ?", (copilot_id,)
     )
     return Copilots(**row) if row else None
 
 
 async def get_copilot(copilot_id: str) -> Copilots:
     row = await db.fetchone(
-        "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
+        "SELECT * FROM copilot.newer_copilots WHERE id = ?", (copilot_id,)
     )
     return Copilots(**row) if row else None
 
 
 async def get_copilots(user: str) -> List[Copilots]:
-    rows = await db.fetchall("SELECT * FROM copilot.copilots WHERE user = ?", (user,))
+    rows = await db.fetchall(
+        "SELECT * FROM copilot.newer_copilots WHERE user = ?", (user,)
+    )
     return [Copilots(**row) for row in rows]
 
 
 async def delete_copilot(copilot_id: str) -> None:
-    await db.execute("DELETE FROM copilot.copilots WHERE id = ?", (copilot_id,))
+    await db.execute("DELETE FROM copilot.newer_copilots WHERE id = ?", (copilot_id,))

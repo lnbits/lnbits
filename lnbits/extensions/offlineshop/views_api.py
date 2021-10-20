@@ -1,27 +1,26 @@
 import json
-
-from typing import List, Optional
-from fastapi.params import Depends
-from pydantic.main import BaseModel
-
 from http import HTTPStatus
+from typing import Optional
+
+from fastapi.params import Depends
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
+from pydantic.main import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
+from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.utils.exchange_rates import currencies
 from lnbits.requestvars import g
+from lnbits.utils.exchange_rates import currencies
 
 from . import offlineshop_ext
 from .crud import (
+    add_item,
+    delete_item_from_shop,
+    get_items,
     get_or_create_shop_by_wallet,
     set_method,
-    add_item,
     update_item,
-    get_items,
-    delete_item_from_shop,
 )
 from .models import ShopCounter
 

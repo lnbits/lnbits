@@ -5,7 +5,7 @@ from fastapi.param_functions import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import copilot_ext
 from .crud import (
@@ -54,7 +54,7 @@ async def api_copilot_retrieve(
 async def api_copilot_create_or_update(
     data: CreateCopilotData,
     copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     data.user = wallet.wallet.user
     data.wallet = wallet.wallet.id
@@ -67,7 +67,7 @@ async def api_copilot_create_or_update(
 
 @copilot_ext.delete("/api/v1/copilot/{copilot_id}")
 async def api_copilot_delete(
-    copilot_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    copilot_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     copilot = await get_copilot(copilot_id)
 
