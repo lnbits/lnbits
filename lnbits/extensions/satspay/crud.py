@@ -9,7 +9,7 @@ from lnbits.helpers import urlsafe_short_hash
 import httpx
 from lnbits.core.services import create_invoice, check_invoice_status
 from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
-
+from lnbits.core.views.api import api_payment
 
 ###############CHARGES##########################
 
@@ -110,10 +110,9 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
             except Exception:
                 pass
         if charge.lnbitswallet:
-            invoice_status = await check_invoice_status(
-                charge.lnbitswallet, charge.payment_hash
-            )
-            if invoice_status.paid:
+            invoice_status = await api_payment(charge.payment_hash)
+
+            if invoice_status["paid"]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None

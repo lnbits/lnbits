@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.core.crud import get_wallet
+from lnbits.core.views.api import api_payment
 from lnbits.core.services import check_invoice_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
@@ -95,7 +96,9 @@ async def api_create_update_jukebox(
 
 
 @jukebox_ext.delete("/api/v1/jukebox/{juke_id}")
-async def api_delete_item(juke_id=None, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_delete_item(
+    juke_id=None, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     await delete_jukebox(juke_id)
     try:
         return [{**jukebox} for jukebox in await get_jukeboxs(wallet.wallet.user)]
@@ -276,20 +279,17 @@ async def api_get_jukebox_invoice_check(
     pay_hash: str = Query(None), juke_id: str = Query(None)
 ):
     try:
-        jukebox = await get_jukebox(juke_id)
+        await get_jukebox(juke_id)
     except:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     try:
-        status = await check_invoice_status(jukebox.wallet, pay_hash)
-        is_paid = not status.pending
+        status = await api_payment(pay_hash)
+        if status["paid"]:
+            await update_jukebox_payment(pay_hash, paid=True)
+            return {"paid": True}
     except:
         return {"paid": False}
-    if is_paid:
-        wallet = await get_wallet(jukebox.wallet)
-        payment = await wallet.get_payment(pay_hash)
-        await payment.set_pending(False)
-        await update_jukebox_payment(pay_hash, paid=True)
-        return {"paid": True}
+
     return {"paid": False}
 
 

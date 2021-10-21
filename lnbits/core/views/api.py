@@ -27,7 +27,12 @@ from lnbits.requestvars import g
 from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 
 from .. import core_app, db
-from ..crud import get_payments, save_balance_check, update_wallet
+from ..crud import (
+    get_payments,
+    save_balance_check,
+    update_wallet,
+    get_standalone_payment,
+)
 from ..services import (
     InvoiceFailure,
     PaymentFailure,
@@ -318,9 +323,11 @@ async def api_payments_sse(
 
 
 @core_app.get("/api/v1/payments/{payment_hash}")
-async def api_payment(payment_hash, wallet: WalletTypeInfo = Depends(get_key_type)):
-    payment = await wallet.wallet.get_payment(payment_hash)
+async def api_payment(payment_hash):
 
+    payment = await get_standalone_payment(payment_hash)
+    await check_invoice_status(payment.wallet_id, payment_hash)
+    payment = await get_standalone_payment(payment_hash)
     if not payment:
         return {"message": "Payment does not exist."}
     elif not payment.pending:

@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
+from lnbits.core.views.api import api_payment
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import check_invoice_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
@@ -169,18 +170,14 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
 @lnticket_ext.get("/api/v1/tickets/{payment_hash}", status_code=HTTPStatus.OK)
 async def api_ticket_send_ticket(payment_hash):
     ticket = await get_ticket(payment_hash)
+
     try:
-        status = await check_invoice_status(ticket.wallet, payment_hash)
-        is_paid = not status.pending
+        status = await api_payment(payment_hash)
+        if status["paid"]:
+            await set_ticket_paid(payment_hash=payment_hash)
+            return {"paid": True}
     except Exception:
         return {"paid": False}
-
-    if is_paid:
-        wallet = await get_wallet(ticket.wallet)
-        payment = await wallet.get_payment(payment_hash)
-        await payment.set_pending(False)
-        ticket = await set_ticket_paid(payment_hash=payment_hash)
-        return {"paid": True}
 
     return {"paid": False}
 

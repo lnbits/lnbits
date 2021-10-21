@@ -15,6 +15,7 @@ from lnbits.core.crud import (
     delete_expired_invoices,
     get_balance_checks,
 )
+from lnbits.core.views.api import api_payment
 from lnbits.core.services import check_invoice_status
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
@@ -62,9 +63,7 @@ async def displaywin(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
 
-    status = await check_invoice_status(
-        wallet_id=satsdicelink.wallet, payment_hash=payment_hash
-    )
+    await api_payment(payment_hash)
 
     withdrawLink = await get_satsdice_withdraw(payment_hash)
     if withdrawLink:
@@ -86,7 +85,7 @@ async def displaywin(
     )
 
     if payment.pending == 1:
-        await check_invoice_status(payment.wallet_id, payment_hash)
+        await api_payment(payment_hash)
         payment = await get_standalone_payment(payment_hash) or abort(
             HTTPStatus.NOT_FOUND, "satsdice link does not exist."
         )
