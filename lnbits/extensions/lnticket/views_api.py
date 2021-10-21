@@ -1,34 +1,32 @@
-from lnbits.extensions.lnticket.models import CreateFormData, CreateTicketData
 import re
 from http import HTTPStatus
 from typing import List
 
 from fastapi import Query
 from fastapi.params import Depends
-
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
 
 from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import create_invoice, check_invoice_status
+from lnbits.core.services import check_invoice_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.extensions.lnticket.models import CreateFormData, CreateTicketData
 
 from . import lnticket_ext
 from .crud import (
-    create_ticket,
-    set_ticket_paid,
-    get_ticket,
-    get_tickets,
-    delete_ticket,
     create_form,
-    update_form,
+    create_ticket,
+    delete_form,
+    delete_ticket,
     get_form,
     get_forms,
-    delete_form,
+    get_ticket,
+    get_tickets,
+    set_ticket_paid,
+    update_form,
 )
-
 
 # FORMS
 
@@ -78,7 +76,7 @@ async def api_form_create(
             )
             # return {"message": "Not your form."}, HTTPStatus.FORBIDDEN
 
-        form = await update_form(form_id, **data)
+        form = await update_form(form_id, **data.dict())
     else:
         form = await create_form(data, wallet.wallet)
     return form.dict()
