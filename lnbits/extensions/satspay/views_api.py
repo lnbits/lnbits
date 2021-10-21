@@ -7,7 +7,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.satspay import satspay_ext
-
+from lnbits.core.views.api import api_payment
 from .crud import (
     check_address_balance,
     create_charge,
@@ -24,7 +24,9 @@ from .models import CreateCharge
 @satspay_ext.post("/api/v1/charge")
 @satspay_ext.put("/api/v1/charge/{charge_id}")
 async def api_charge_create_or_update(
-    data: CreateCharge, wallet: WalletTypeInfo = Depends(require_admin_key), charge_id=None
+    data: CreateCharge,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    charge_id=None,
 ):
     if not charge_id:
         charge = await create_charge(user=wallet.wallet.user, data=data)

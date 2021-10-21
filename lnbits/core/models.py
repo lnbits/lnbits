@@ -46,9 +46,9 @@ class Wallet(BaseModel):
         )
 
     async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
-        from .crud import get_wallet_payment
+        from .crud import get_standalone_payment
 
-        return await get_wallet_payment(self.id, payment_hash)
+        return await get_standalone_payment(payment_hash)
 
 
 class User(BaseModel):

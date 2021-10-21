@@ -29,7 +29,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl {{ request.url_root }}api/v1/wallet -H "X-Api-Key:
+          >curl {{ request.base_url }}api/v1/wallet -H "X-Api-Key:
           <i>{{ wallet.inkey }}</i>"</code
         >
       </q-card-section>
@@ -59,7 +59,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/payments -d '{"out": false,
+          >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": false,
           "amount": &lt;int&gt;, "memo": &lt;string&gt;, "webhook":
           &lt;url:string&gt;}' -H "X-Api-Key: <i>{{ wallet.inkey }}</i>" -H
           "Content-type: application/json"</code
@@ -86,7 +86,7 @@
         <code>{"payment_hash": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/payments -d '{"out": true,
+          >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": true,
           "bolt11": &lt;string&gt;}' -H "X-Api-Key:
           <i>{{ wallet.adminkey }}"</i> -H "Content-type:
           application/json"</code
@@ -116,7 +116,7 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/payments/decode -d
+          >curl -X POST {{ request.base_url }}api/v1/payments/decode -d
           '{"data": &lt;bolt11/lnurl, string&gt;}' -H "X-Api-Key:
           <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code
         >
@@ -144,7 +144,7 @@
         <code>{"paid": &lt;bool&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root
+          >curl -X GET {{ request.base_url
           }}api/v1/payments/&lt;payment_hash&gt; -H "X-Api-Key:
           <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
         >

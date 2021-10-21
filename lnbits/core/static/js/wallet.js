@@ -587,28 +587,29 @@ new Vue({
           }
         })
     },
-    updateWalletName: function(){
+    updateWalletName: function () {
       let newName = this.newName
-      if(!newName || !newName.length) return
+      if (!newName || !newName.length) return
       // let data = {name: newName}
       LNbits.api
-      .request(
-        'PUT',
-        '/api/v1/wallet/' + newName,
-        this.g.wallet.inkey,
-        {}
-      ).then(res => {
-        this.newName = ''
-        this.$q.notify({
-          message: `Wallet named updated.`,
-          type: 'positive',
-          timeout: 3500
+        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.inkey, {})
+        .then(res => {
+          this.newName = ''
+          this.$q.notify({
+            message: `Wallet named updated.`,
+            type: 'positive',
+            timeout: 3500
+          })
+          LNbits.href.updateWallet(
+            res.data.name,
+            this.user.id,
+            this.g.wallet.id
+          )
         })
-        LNbits.href.updateWallet(res.data.name, this.user.id, this.g.wallet.id)
-      }).catch(err => {
-        this.newName = ''
-        LNbits.utils.notifyApiError(err)
-      })
+        .catch(err => {
+          this.newName = ''
+          LNbits.utils.notifyApiError(err)
+        })
     },
     deleteWallet: function (walletId, user) {
       LNbits.utils

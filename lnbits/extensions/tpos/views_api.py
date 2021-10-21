@@ -7,7 +7,8 @@ from starlette.exceptions import HTTPException
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import check_invoice_status, create_invoice
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-
+from lnbits.core.views.api import api_payment
+from lnbits.core.models import Wallet
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
 from .models import CreateTposData
@@ -33,7 +34,9 @@ async def api_tpos_create(
 
 
 @tpos_ext.delete("/api/v1/tposs/{tpos_id}")
-async def api_tpos_delete(tpos_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_tpos_delete(
+    tpos_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
@@ -84,20 +87,9 @@ async def api_tpos_check_invoice(tpos_id: str, payment_hash: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
-        # return {"message": "TPoS does not exist."}, HTTPStatus.NOT_FOUND
-
     try:
-        status = await check_invoice_status(tpos.wallet, payment_hash)
-        is_paid = not status.pending
+        status = await api_payment(payment_hash)
     except Exception as exc:
         print(exc)
         return {"paid": False}
-
-    if is_paid:
-        wallet = await get_wallet(tpos.wallet)
-        payment = await wallet.get_payment(payment_hash)
-        await payment.set_pending(False)
-
-        return {"paid": True}
-
-    return {"paid": False}
+    return status

@@ -314,7 +314,6 @@ async def check_invoice_status(
     if not payment:
         return PaymentStatus(None)
     status = await WALLET.get_invoice_status(payment.checking_id)
-    print(status)
     if not payment.pending:
         return status
     if payment.is_out and status.failed:

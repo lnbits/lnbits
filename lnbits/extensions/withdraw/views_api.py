@@ -93,7 +93,7 @@ async def api_link_create_or_update(
             raise HTTPException(
                 detail="Not your withdraw link.", status_code=HTTPStatus.FORBIDDEN
             )
-        link = await update_withdraw_link(link_id, data=data, usescsv=usescsv, used=0)
+        link = await update_withdraw_link(link_id, **data.dict(), usescsv=usescsv, used=0)
     else:
         link = await create_withdraw_link(
             wallet_id=wallet.wallet.id, data=data, usescsv=usescsv

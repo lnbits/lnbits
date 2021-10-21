@@ -29,6 +29,7 @@ async def tpos(request: Request, tpos_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
+    print(request.base_url)
 
     return tpos_renderer().TemplateResponse(
         "tpos/tpos.html", {"request": request, "tpos": tpos}
