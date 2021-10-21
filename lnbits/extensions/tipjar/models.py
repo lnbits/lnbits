@@ -12,6 +12,17 @@ from typing import Optional, NamedTuple
 from fastapi import FastAPI, Request
 
 
+class CreateCharge(BaseModel):
+    onchainwallet: str = Query(None)
+    lnbitswallet: str = Query(None)
+    description: str = Query(...)
+    webhook: str = Query(None)
+    completelink: str = Query(None)
+    completelinktext: str = Query(None)
+    time: int = Query(..., ge=1)
+    amount: int = Query(..., ge=1)
+
+
 class createTip(BaseModel):
     id: str
     wallet: str

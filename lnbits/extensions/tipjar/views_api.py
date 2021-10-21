@@ -27,7 +27,7 @@ from .crud import (
     delete_tipjar,
 )
 from ..satspay.crud import create_charge
-from .models import createTipJar, createTips, createTip
+from .models import createTipJar, createTips, createTip, CreateCharge
 
 
 @tipjar_ext.post("/api/v1/tipjars")
@@ -64,19 +64,18 @@ async def api_create_tip(data: createTips):
     if not name:
         name = "Anonymous"
     description = f'"{name}": {message}'
-
     charge = await create_charge(
         user=charge_details["user"],
-        data={
-            "amount": sats,
-            "webhook": webhook,
-            "description": description,
-            "onchainwallet": charge_details["onchainwallet"],
-            "lnbitswallet": charge_details["lnbitswallet"],
-            "completelink": charge_details["completelink"],
-            "completelinktext": charge_details["completelinktext"],
-            "time": charge_details["time"],
-        },
+        data=CreateCharge(
+            amount=sats,
+            webhook=webhook,
+            description=description,
+            onchainwallet=charge_details["onchainwallet"],
+            lnbitswallet=charge_details["lnbitswallet"],
+            completelink=charge_details["completelink"],
+            completelinktext=charge_details["completelinktext"],
+            time=charge_details["time"],
+        ),
     )
 
     await create_tip(
