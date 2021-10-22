@@ -23,7 +23,11 @@ from .crud import (
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 
-@lnurlpos_ext.get("/api/v1/lnurl/{nonce}/{payload}/{pos_id}")
+@lnurlpos_ext.get(
+    "/api/v1/lnurl/{nonce}/{payload}/{pos_id}",
+    response_class=HTMLResponse,
+    name="lnurlpos.lnurl_response",
+)
 async def lnurl_response(
     request: Request,
     nonce: str = Query(None),
@@ -46,7 +50,6 @@ async def lnurl_response(
         decryptedAmount = float(int.from_bytes(res[2:6], "little") / 100)
         decryptedPin = int.from_bytes(res[:2], "little")
     if type(decryptedAmount) != float:
-
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not an amount.")
     price_msat = (
         await fiat_amount_as_satoshis(decryptedAmount, pos.currency)
@@ -72,10 +75,15 @@ async def lnurl_response(
         "minSendable": price_msat,
         "maxSendable": price_msat,
     }
+    print(payResponse)
     return json.dumps(payResponse)
 
 
-@lnurlpos_ext.get("/api/v1/lnurl/cb/{paymentid}")
+@lnurlpos_ext.get(
+    "/api/v1/lnurl/cb/{paymentid}",
+    response_class=HTMLResponse,
+    name="lnurlpos.lnurl_callback",
+)
 async def lnurl_callback(paymentid: str = Query(None)):
     lnurlpospayment = await get_lnurlpospayment(paymentid)
     pos = await get_lnurlpos(lnurlpospayment.posid)
