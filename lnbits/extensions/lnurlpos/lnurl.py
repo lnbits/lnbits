@@ -58,7 +58,11 @@ async def lnurl_response(
     ) * 1000
 
     lnurlpospayment = await create_lnurlpospayment(
-        posid=pos.id, payload=payload, sats=price_msat, pin=decryptedPin
+        posid=pos.id,
+        payload=payload,
+        sats=price_msat,
+        pin=decryptedPin,
+        payhash="payment_hash",
     )
     if not lnurlpospayment:
         raise HTTPException(
