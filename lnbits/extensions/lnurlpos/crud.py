@@ -73,6 +73,7 @@ async def create_lnurlpospayment(
     posid: str,
     payload: Optional[str] = None,
     pin: Optional[str] = None,
+    payhash: Optional[str] = None,
     sats: Optional[int] = 0,
 ) -> lnurlpospayment:
     lnurlpospayment_id = urlsafe_short_hash()
@@ -83,11 +84,12 @@ async def create_lnurlpospayment(
             posid,
             payload,
             pin,
+            payhash,
             sats
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (lnurlpospayment_id, posid, payload, pin, sats),
+        (lnurlpospayment_id, posid, payload, pin, payhash, sats),
     )
     return await get_lnurlpospayment(lnurlpospayment_id)
 
