@@ -244,9 +244,9 @@ async def btc_price(currency: str) -> float:
                 r.raise_for_status()
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
-                await send_channel.send(rate)
+                await send_channel.put(rate)
         except Exception:
-            await send_channel.send(None)
+            await send_channel.put(None)
 
     # asyncio.create_task(controller, nursery)
     for key, provider in exchange_rate_providers.items():
