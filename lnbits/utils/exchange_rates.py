@@ -1,6 +1,7 @@
 import asyncio
-import httpx
 from typing import Callable, NamedTuple
+
+import httpx
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
@@ -244,14 +245,15 @@ async def btc_price(currency: str) -> float:
                 r.raise_for_status()
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
+                rates.append(rate)
                 await send_channel.put(rate)
         except Exception:
             await send_channel.put(None)
 
     # asyncio.create_task(controller, nursery)
     for key, provider in exchange_rate_providers.items():
+        await fetch_price(key, provider)
         asyncio.create_task(fetch_price(key, provider))
-
     if not rates:
         return 9999999999
 
