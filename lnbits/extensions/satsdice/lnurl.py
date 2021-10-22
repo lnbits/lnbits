@@ -157,43 +157,22 @@ async def api_lnurlw_callback(
     k1: str = Query(None),
     pr: str = Query(None),
 ):
+
     link = await get_satsdice_withdraw_by_hash(unique_hash)
-    paylink = await get_satsdice_pay(link.satsdice_pay)
-    payment_request = pr
-    now = int(datetime.now().timestamp())
-
     if not link:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-satsdice not found."
-        )
-
+        return {"status": "ERROR", "reason": "no withdraw"}
     if link.used:
-        raise HTTPException(status_code=HTTPStatus.OK, detail="satsdice is spent.")
+        return {"status": "ERROR", "reason": "spent"}
 
-    if link.k1 != k1:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Bad request..")
+    paylink = await get_satsdice_pay(link.satsdice_pay)
 
-    if now < link.open_time:
-        return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
-
-    try:
-        await update_satsdice_withdraw(link.id, used=1)
-
-        await pay_invoice(
-            wallet_id=paylink.wallet,
-            payment_request=payment_request,
-            max_sat=link.value,
-            extra={"tag": "withdraw"},
-        )
-
-    except ValueError as e:
-        await update_satsdice_withdraw(link.id, used=1)
-        return {"status": "ERROR", "reason": str(e)}
-    except PermissionError:
-        await update_satsdice_withdraw(link.id, used=1)
-        return {"status": "ERROR", "reason": "satsdice link is empty."}
-    except Exception as e:
-        await update_satsdice_withdraw(link.id, used=1)
-        return {"status": "ERROR", "reason": str(e)}
+    await update_satsdice_withdraw(link.id, used=1)
+    print("cunt")
+    await pay_invoice(
+        wallet_id=paylink.wallet,
+        payment_request=pr,
+        max_sat=link.value,
+        extra={"tag": "withdraw"},
+    )
 
     return {"status": "OK"}

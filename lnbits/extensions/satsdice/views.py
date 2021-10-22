@@ -63,8 +63,6 @@ async def displaywin(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."
     )
 
-    await api_payment(payment_hash)
-
     withdrawLink = await get_satsdice_withdraw(payment_hash)
     if withdrawLink:
         return satsdice_renderer().TemplateResponse(
@@ -79,58 +77,24 @@ async def displaywin(
                 "lost": False,
             },
         )
-
-    payment = await get_standalone_payment(payment_hash) or abort(
-        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
-    )
-
-    if payment.pending == 1:
-        await api_payment(payment_hash)
-        payment = await get_standalone_payment(payment_hash) or abort(
-            HTTPStatus.NOT_FOUND, "satsdice link does not exist."
+    rand = random.randint(0, 100)
+    chance = satsdicelink.chance
+    print(rand)
+    print(chance)
+    print(rand < chance)
+    status = await api_payment(payment_hash)
+    if not rand < chance or not status["paid"]:
+        return satsdice_renderer().TemplateResponse(
+            "satsdice/error.html",
+            {
+                "request": request,
+                "link": satsdicelink.id,
+                "paid": False,
+                "lost": True,
+            },
         )
-        if payment.pending == 1:
-            return satsdice_renderer().TemplateResponse(
-                "satsdice/error.html",
-                {
-                    "request": request,
-                    "link": satsdicelink.id,
-                    "paid": False,
-                    "lost": True,
-                },
-            )
-
     await update_satsdice_payment(payment_hash, paid=1)
     paylink = await get_satsdice_payment(payment_hash)
-    if not paylink:
-
-        return satsdice_renderer().TemplateResponse(
-            "satsdice/error.html",
-            {
-                "request": request,
-                "link": satsdicelink.id,
-                "paid": False,
-                "lost": True,
-            },
-        )
-    rand1 = random.randint(0, 100)
-    rand2 = random.randint(0, 100)
-    rand3 = random.randint(0, 100)
-    rand4 = random.randint(0, 100)
-    rand = (rand1 + rand2 + rand3 + rand4) / 4
-    print(rand)
-    chance = satsdicelink.chance
-    if rand > chance:
-        await update_satsdice_payment(payment_hash, lost=1)
-        return satsdice_renderer().TemplateResponse(
-            "satsdice/error.html",
-            {
-                "request": request,
-                "link": satsdicelink.id,
-                "paid": False,
-                "lost": True,
-            },
-        )
 
     data: CreateSatsDiceWithdraw = {
         "satsdice_pay": satsdicelink.id,

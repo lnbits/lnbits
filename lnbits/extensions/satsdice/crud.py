@@ -66,9 +66,6 @@ async def get_satsdice_pay(link_id: str) -> Optional[satsdiceLink]:
 async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceLink]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
-        print("wallet_ids")
-        print(wallet_ids)
-        print("wallet_ids")
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
