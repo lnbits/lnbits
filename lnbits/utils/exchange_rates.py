@@ -220,42 +220,30 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
     rates = []
-    send_channel = asyncio.Queue(0)
 
-    async def controller(nursery):
-        failures = 0
-        while True:
-            rate = await send_channel.get()
-            if rate:
-                rates.append(rate)
-            else:
-                failures += 1
-            if len(rates) >= 2 or len(rates) == 1 and failures >= 2:
-                nursery.cancel_scope.cancel()
-                break
-            if failures == len(exchange_rate_providers):
-                nursery.cancel_scope.cancel()
-                break
-
-    async def fetch_price(key: str, provider: Provider):
+    async def fetch_price(provider: Provider):
+        url = provider.api_url.format(**replacements)
         try:
-            url = provider.api_url.format(**replacements)
             async with httpx.AsyncClient() as client:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
                 rates.append(rate)
-                await send_channel.put(rate)
         except Exception:
-            await send_channel.put(None)
+            pass
+        except httpx.ConnectError:
+            pass
 
-    # asyncio.create_task(controller, nursery)
+    tasks = []
     for key, provider in exchange_rate_providers.items():
-        await fetch_price(key, provider)
-        asyncio.create_task(fetch_price(key, provider))
+        tasks.append(asyncio.create_task(fetch_price(key, provider)))
+    await asyncio.gather(*tasks)
+
     if not rates:
         return 9999999999
+    elif rates == 1:
+        print("Warning could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 
