@@ -220,6 +220,26 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
     rates = []
+    tasks = []
+
+    send_channel = asyncio.Queue()
+
+    async def controller():
+        failures = 0
+        while True:
+            rate = await send_channel.get()
+            if rate:
+                rates.append(rate)
+            else:
+                failures += 1
+
+            if len(rates) >= 2 or len(rates) == 1 and failures >= 2:
+                for t in tasks: t.cancel() 
+                break
+            if failures == len(exchange_rate_providers):
+                for t in tasks: t.cancel()
+                break
+
 
     async def fetch_price(provider: Provider):
         url = provider.api_url.format(**replacements)
@@ -229,20 +249,23 @@ async def btc_price(currency: str) -> float:
                 r.raise_for_status()
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
-                rates.append(rate)
-        except Exception:
-            pass
-        except httpx.ConnectError:
-            pass
+                await send_channel.put(rate)
+        except (httpx.ConnectTimeout, httpx.ConnectError, httpx.ReadTimeout):
+            await send_channel.put(None)
 
-    tasks = []
-    for key, provider in exchange_rate_providers.items():
-        tasks.append(asyncio.create_task(fetch_price(key, provider)))
-    await asyncio.gather(*tasks)
+
+    asyncio.create_task(controller())
+    for _, provider in exchange_rate_providers.items():
+        tasks.append(asyncio.create_task(fetch_price(provider)))
+    
+    try:
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        pass
 
     if not rates:
         return 9999999999
-    elif rates == 1:
+    elif len(rates) == 1:
         print("Warning could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
