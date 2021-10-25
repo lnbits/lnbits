@@ -31,7 +31,7 @@ new Vue({
   computed: {
     printItems() {
       return this.offlineshop.items.filter(({enabled}) => enabled)
-    },
+    }
   },
   methods: {
     openNewDialog() {
@@ -119,9 +119,6 @@ new Vue({
     },
     async sendItem() {
       let {id, name, image, description, price, unit} = this.itemDialog.data
-      //convert fiat price to milli (int)
-      price = unit == 'sat' ? price : price * 1000
-      
       const data = {
         name,
         description,
