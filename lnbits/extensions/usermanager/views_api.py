@@ -21,7 +21,7 @@ from .crud import (
     get_usermanager_wallet_transactions,
     get_usermanager_wallets,
 )
-from .models import CreateUserData
+from .models import CreateUserData, CreateUserWallet
 
 ### Users
 
@@ -93,12 +93,10 @@ async def api_usermanager_activate_extension(
 
 @usermanager_ext.post("/api/v1/wallets")
 async def api_usermanager_wallets_create(
-    wallet: WalletTypeInfo = Depends(get_key_type),
-    user_id: str = Query(...),
-    wallet_name: str = Query(...),
-    admin_id: str = Query(...),
+    data: CreateUserWallet,
+    wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    user = await create_usermanager_wallet(user_id, wallet_name, admin_id)
+    user = await create_usermanager_wallet(user_id=data.user_id, wallet_name=data.wallet_name, admin_id=data.admin_id)
     return user.dict()
 
 
