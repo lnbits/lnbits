@@ -27,7 +27,7 @@ from .models import ShopCounter
 
 @offlineshop_ext.get("/api/v1/currencies")
 async def api_list_currencies_available():
-    return json.dumps(list(currencies.keys()))
+    return list(currencies.keys())
 
 
 @offlineshop_ext.get("/api/v1/offlineshop")
@@ -37,7 +37,12 @@ async def api_shop_from_wallet(
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     items = await get_items(shop.id)
-
+    
+    #revert millicents to unit
+    for item in items:
+        if item.unit != 'sat':
+            item.price = item.price / 1000
+    
     try:
         return {
             **shop.dict(),
@@ -60,11 +65,11 @@ class CreateItemsData(BaseModel):
 
 @offlineshop_ext.post("/api/v1/offlineshop/items")
 @offlineshop_ext.put("/api/v1/offlineshop/items/{item_id}")
-# @api_check_wallet_key("invoice")
 async def api_add_or_update_item(
     data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
+    shop = await get_or_create_shop_by_wallet(wallet.wallet.id)    
+
     if item_id == None:
         await add_item(
             shop.id, data.name, data.description, data.image, data.price, data.unit

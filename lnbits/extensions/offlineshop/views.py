@@ -3,17 +3,17 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import List
 
+from fastapi import HTTPException, Request
 from fastapi.params import Depends, Query
 from starlette.responses import HTMLResponse
 
-from lnbits.decorators import check_user_exists
-from lnbits.core.models import Payment, User
 from lnbits.core.crud import get_standalone_payment
+from lnbits.core.models import Payment, User
+from lnbits.decorators import check_user_exists
 
 from . import offlineshop_ext, offlineshop_renderer
-from .models import Item
 from .crud import get_item, get_shop
-from fastapi import Request, HTTPException
+from .models import Item
 
 
 @offlineshop_ext.get("/", response_class=HTMLResponse)
@@ -29,6 +29,8 @@ async def print_qr_codes(request: Request, items: List[int] = None):
     for item_id in request.query_params.get("items").split(","):
         item = await get_item(item_id)  # type: Item
         if item:
+            if item.unit != 'sat':
+                item.price = (item.price / 1000)
             items.append(
                 {
                     "lnurl": item.lnurl(request),

@@ -27,3 +27,6 @@ async def m001_initial(db):
         );
         """
     )
+
+async def m002_store_fiat_in_cents(db):
+    await db.execute("UPDATE offlineshop.items SET price = (price * 1000) WHERE unit NOT LIKE 'sat'")
