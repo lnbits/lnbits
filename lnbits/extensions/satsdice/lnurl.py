@@ -1,32 +1,23 @@
-import shortuuid  # type: ignore
 import hashlib
-import math
 import json
+import math
 from http import HTTPStatus
-from datetime import datetime
-from lnbits.core.services import pay_invoice, create_invoice
-from http import HTTPStatus
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-from lnbits.utils.exchange_rates import get_fiat_rate_satoshis
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
-from typing import Optional
+
+from fastapi import Request
 from fastapi.param_functions import Query
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse  # type: ignore
+
+from lnbits.core.services import create_invoice, pay_invoice
+
 from . import satsdice_ext
 from .crud import (
+    create_satsdice_payment,
+    get_satsdice_pay,
     get_satsdice_withdraw_by_hash,
     update_satsdice_withdraw,
-    get_satsdice_pay,
-    create_satsdice_payment,
-)
-from lnurl import (
-    LnurlPayResponse,
-    LnurlPayActionResponse,
-    LnurlErrorResponse,
 )
 from .models import CreateSatsDicePayment
-
 
 ##############LNURLP STUFF
 

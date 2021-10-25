@@ -31,7 +31,7 @@ from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws
 async def api_links(
     request: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
-    all_wallets: str = Query(None),
+    all_wallets: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
 
@@ -81,7 +81,6 @@ async def api_link_create_or_update(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Bad request")
     if link_id:
         link = await get_satsdice_pay(link_id)
-
         if not link:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="Satsdice does not exist"
@@ -92,11 +91,11 @@ async def api_link_create_or_update(
                 status_code=HTTPStatus.FORBIDDEN,
                 detail="Come on, seriously, this isn't your satsdice!",
             )
-        data.link_id = link_id
-        link = await update_satsdice_pay(data)
-    else:
+
         data.wallet_id = wallet.wallet.id
-        link = await create_satsdice_pay(data)
+        link = await update_satsdice_pay(link_id, **data.dict())
+    else:
+        link = await create_satsdice_pay(wallet_id=wallet.wallet.id, data=data)
 
     return {**link.dict(), **{"lnurl": link.lnurl}}
 

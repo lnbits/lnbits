@@ -1,48 +1,53 @@
+import random
 from datetime import datetime
 from http import HTTPStatus
-from lnbits.decorators import check_user_exists, WalletTypeInfo, get_key_type
-from . import satsdice_ext, satsdice_renderer
-from .crud import (
-    get_satsdice_pay,
-    update_satsdice_payment,
-    get_satsdice_payment,
-    create_satsdice_withdraw,
-    get_satsdice_withdraw,
-)
-from lnbits.core.crud import (
-    get_payments,
-    get_standalone_payment,
-    delete_expired_invoices,
-    get_balance_checks,
-)
-from lnbits.core.views.api import api_payment
-from lnbits.core.services import check_invoice_status
+
 from fastapi import FastAPI, Request
+from fastapi.param_functions import Query
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
-from lnbits.core.models import User, Payment
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-import random
-from .models import CreateSatsDiceWithdraw
+
+from lnbits.core.crud import (
+    delete_expired_invoices,
+    get_balance_checks,
+    get_payments,
+    get_standalone_payment,
+)
+from lnbits.core.models import Payment, User
+from lnbits.core.services import check_invoice_status
+from lnbits.core.views.api import api_payment
+from lnbits.decorators import WalletTypeInfo, check_user_exists, get_key_type
+
+from . import satsdice_ext, satsdice_renderer
+from .crud import (
+    create_satsdice_withdraw,
+    get_satsdice_pay,
+    get_satsdice_payment,
+    get_satsdice_withdraw,
+    update_satsdice_payment,
+)
+from .models import CreateSatsDiceWithdraw, satsdiceLink
 
 templates = Jinja2Templates(directory="templates")
 
 
-@satsdice_ext.get("/")
+@satsdice_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return satsdice_renderer().TemplateResponse(
         "satsdice/index.html", {"request": request, "user": user.dict()}
     )
 
 
-@satsdice_ext.get("/{link_id}")
+@satsdice_ext.get("/{link_id}", response_class=HTMLResponse)
 async def display(request: Request, link_id: str = Query(None)):
-    link = await get_satsdice_pay(link_id) or abort(
-        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
-    )
+    link = await get_satsdice_pay(link_id)
+    if not link:
+        raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
+            )
+
     return satsdice_renderer().TemplateResponse(
         "satsdice/display.html",
         {
@@ -55,13 +60,15 @@ async def display(request: Request, link_id: str = Query(None)):
     )
 
 
-@satsdice_ext.get("/win/{link_id}/{payment_hash}", name="satsdice.displaywin")
+@satsdice_ext.get("/win/{link_id}/{payment_hash}", name="satsdice.displaywin", response_class=HTMLResponse)
 async def displaywin(
     request: Request, link_id: str = Query(None), payment_hash: str = Query(None)
 ):
-    satsdicelink = await get_satsdice_pay(link_id) or abort(
-        HTTPStatus.NOT_FOUND, "satsdice link does not exist."
-    )
+    satsdicelink = await get_satsdice_pay(link_id)
+    if not satsdiceLink:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
+        )
 
     withdrawLink = await get_satsdice_withdraw(payment_hash)
     if withdrawLink:
@@ -118,7 +125,7 @@ async def displaywin(
     )
 
 
-@satsdice_ext.get("/img/{link_id}")
+@satsdice_ext.get("/img/{link_id}", response_class=HTMLResponse)
 async def img(link_id):
     link = await get_satsdice_pay(link_id) or abort(
         HTTPStatus.NOT_FOUND, "satsdice link does not exist."

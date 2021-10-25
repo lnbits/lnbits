@@ -1,21 +1,22 @@
 from datetime import datetime
 from typing import List, Optional, Union
+
 from lnbits.helpers import urlsafe_short_hash
-from typing import List, Optional
+
 from . import db
 from .models import (
-    satsdiceWithdraw,
-    HashCheck,
-    satsdiceLink,
-    satsdicePayment,
     CreateSatsDiceLink,
     CreateSatsDicePayment,
     CreateSatsDiceWithdraw,
+    HashCheck,
+    satsdiceLink,
+    satsdicePayment,
+    satsdiceWithdraw,
 )
-from lnbits.helpers import urlsafe_short_hash
 
 
 async def create_satsdice_pay(
+    wallet_id: str,
     data: CreateSatsDiceLink,
 ) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()
@@ -40,7 +41,7 @@ async def create_satsdice_pay(
         """,
         (
             satsdice_id,
-            data.wallet_id,
+            wallet_id,
             data.title,
             data.base_url,
             data.min_bet,

@@ -342,7 +342,7 @@
         LNbits.api
           .request(
             'GET',
-            '/satsdice/api/v1/links?all_wallets',
+            '/satsdice/api/v1/links?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -446,7 +446,7 @@
               key === 'success_url') &&
             (value === null || value === '')
         )
-
+        
         LNbits.api
           .request(
             'PUT',
@@ -516,9 +516,9 @@
       if (this.g.user.wallets.length) {
         var getPayLinks = this.getPayLinks
         getPayLinks()
-        this.checker = setInterval(() => {
-          getPayLinks()
-        }, 20000)
+        // this.checker = setInterval(() => {
+        //   getPayLinks()
+        // }, 20000)
       }
     }
   })

@@ -59,24 +59,16 @@ async def api_lnurl_callback(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
         )
-        # return (
-        #     {"status": "ERROR", "reason": "LNURL-withdraw not found."},
-        #     HTTPStatus.OK,
-        # )
+        
 
     if link.is_spent:
         raise HTTPException(
             # WHAT STATUS_CODE TO USE??
             detail="Withdraw is spent."
         )
-        # return (
-        #     {"status": "ERROR", "reason": "Withdraw is spent."},
-        #     HTTPStatus.OK,
-        # )
 
     if link.k1 != k1:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Bad request.")
-        # return {"status": "ERROR", "reason": "Bad request."}, HTTPStatus.OK
 
     if now < link.open_time:
         return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
