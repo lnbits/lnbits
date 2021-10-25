@@ -250,7 +250,13 @@ async def btc_price(currency: str) -> float:
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
                 await send_channel.put(rate)
-        except (httpx.ConnectTimeout, httpx.ConnectError, httpx.ReadTimeout):
+        except (
+            TypeError, # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
+            httpx.ConnectTimeout,
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+            httpx.HTTPStatusError, # Some providers throw a 404 when a currency pair is not found
+        ):
             await send_channel.put(None)
 
 
