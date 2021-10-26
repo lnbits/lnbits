@@ -1,8 +1,9 @@
 import json
 import math
-from quart import jsonify, request
-from http import HTTPStatus
 import traceback
+from http import HTTPStatus
+
+from starlette.requests import Request
 
 from . import bleskomat_ext
 from .crud import (
@@ -10,16 +11,12 @@ from .crud import (
     get_bleskomat_by_api_key_id,
     get_bleskomat_lnurl,
 )
-
-from .exchange_rates import (
-    fetch_fiat_exchange_rate,
-)
-
+from .exchange_rates import fetch_fiat_exchange_rate
 from .helpers import (
-    generate_bleskomat_lnurl_signature,
-    generate_bleskomat_lnurl_secret,
     LnurlHttpError,
     LnurlValidationError,
+    generate_bleskomat_lnurl_secret,
+    generate_bleskomat_lnurl_signature,
     prepare_lnurl_params,
     query_to_signing_payload,
     unshorten_lnurl_query,
@@ -27,10 +24,10 @@ from .helpers import (
 
 
 # Handles signed URL from Bleskomat ATMs and "action" callback of auto-generated LNURLs.
-@bleskomat_ext.route("/u", methods=["GET"])
-async def api_bleskomat_lnurl():
+@bleskomat_ext.get("/u", name="bleskomat.api_bleskomat_lnurl")
+async def api_bleskomat_lnurl(request: Request):
     try:
-        query = request.args.to_dict()
+        query = request.query_params
 
         # Unshorten query if "s" is used instead of "signature".
         if "s" in query:
@@ -99,7 +96,7 @@ async def api_bleskomat_lnurl():
                 )
 
             # Reply with LNURL response object.
-            return jsonify(lnurl.get_info_response_object(secret)), HTTPStatus.OK
+            return lnurl.get_info_response_object(secret)
 
         # No signature provided.
         # Treat as "action" callback.
@@ -123,12 +120,9 @@ async def api_bleskomat_lnurl():
             raise LnurlHttpError(str(e), HTTPStatus.BAD_REQUEST)
 
     except LnurlHttpError as e:
-        return jsonify({"status": "ERROR", "reason": str(e)}), e.http_status
+        return {"status": "ERROR", "reason": str(e)}
     except Exception:
         traceback.print_exc()
-        return (
-            jsonify({"status": "ERROR", "reason": "Unexpected error"}),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return {"status": "ERROR", "reason": "Unexpected error"}
 
-    return jsonify({"status": "OK"}), HTTPStatus.OK
+    return {"status": "OK"}
