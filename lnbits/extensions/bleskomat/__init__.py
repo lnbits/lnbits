@@ -1,9 +1,18 @@
 from fastapi import APIRouter
+from starlette.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
 
 db = Database("ext_bleskomat")
+
+bleskomat_static_files = [
+    {
+        "path": "/bleskomat/static",
+        "app": StaticFiles(directory="lnbits/extensions/bleskomat/static"),
+        "name": "bleskomat_static",
+    }
+]
 
 bleskomat_ext: APIRouter = APIRouter(
     prefix="/bleskomat",
@@ -11,7 +20,7 @@ bleskomat_ext: APIRouter = APIRouter(
 )
 
 def bleskomat_renderer():
-    return template_renderer(["lnbits/extensions/events/templates"])
+    return template_renderer(["lnbits/extensions/bleskomat/templates"])
 
 from .lnurl_api import *  # noqa
 from .views import *  # noqa
