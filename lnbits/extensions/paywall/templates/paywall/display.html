@@ -102,11 +102,11 @@
       },
       createInvoice: function () {
         var self = this
-
+        console.log(this.amount)
         axios
           .post(
             '/paywall/api/v1/paywalls/{{ paywall.id }}/invoice',
-            {amount: this.amount}
+            {amount: self.amount}
           )
           .then(function (response) {
             self.paymentReq = response.data.payment_request.toUpperCase()
