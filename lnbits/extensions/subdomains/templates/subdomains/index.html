@@ -440,7 +440,7 @@
         LNbits.api
           .request(
             'GET',
-            '/subdomains/api/v1/domains?all_wallets',
+            '/subdomains/api/v1/domains?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
