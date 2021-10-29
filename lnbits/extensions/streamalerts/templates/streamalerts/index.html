@@ -1,0 +1,502 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="serviceDialog.show = true"
+          >New Service</q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Services</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportservicesCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="services"
+          row-key="id"
+          :columns="servicesTable.columns"
+          :pagination.sync="servicesTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.authUrl"
+                  target="_blank"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="send"
+                  :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+                <a :href="props.row.redirectURI">Redirect URI for Streamlabs</a>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteService(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Donations</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportdonationsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="donations"
+          :columns="donationsTable.columns"
+          :pagination.sync="donationsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteDonation(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Stream Alerts extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "streamalerts/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="serviceDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendServiceData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="serviceDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <div class="row">
+          <div class="col">
+            <div v-if="walletLinks.length > 0">
+              <q-checkbox v-model="serviceDialog.data.chain" label="Chain" />
+            </div>
+            <div v-else>
+              <q-checkbox :value="false" label="Chain" disabled>
+                <q-tooltip>
+                  Watch-Only extension MUST be activated and have a wallet
+                </q-tooltip>
+              </q-checkbox>
+            </div>
+          </div>
+        </div>
+        <div v-if="serviceDialog.data.chain">
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="serviceDialog.data.onchain"
+            :options="walletLinks"
+            label="Chain Wallet"
+          />
+        </div>
+        <q-input
+          filled
+          dense
+          v-model.trim="serviceDialog.data.twitchuser"
+          type="name"
+          label="Twitch Username *"
+        ></q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="serviceDialog.data.servicename"
+          :options="servicenames"
+          label="Streamlabs"
+          hint="The service you use for alerts. (Currently only Streamlabs)"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="serviceDialog.data.client_id"
+          type="name"
+          label="Client ID *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="serviceDialog.data.client_secret"
+          type="name"
+          label="Client Secret *"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="serviceDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Service</q-btn
+          >
+
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="serviceDialog.data.client_id == null || serviceDialog.data.client_secret == 0 || serviceDialog.data.twitchuser == null"
+            type="submit"
+            >Create Service</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapStreamAlerts = function (obj) {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.fsat = new Intl.NumberFormat(LOCALE).format(obj.amount)
+    obj.redirectURI = ['/streamalerts/api/v1/authenticate/', obj.id].join('')
+    obj.authUrl = ['/streamalerts/api/v1/getaccess/', obj.id].join('')
+    obj.displayUrl = ['/streamalerts/', obj.state].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        servicenames: ['Streamlabs'],
+        services: [],
+        donations: [],
+        walletLinks: [],
+        servicesTable: {
+          columns: [
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
+            },
+            {
+              name: 'twitchuser',
+              align: 'left',
+              label: 'Twitch Username',
+              field: 'twitchuser'
+            },
+            {
+              name: 'wallet',
+              align: 'left',
+              label: 'Wallet',
+              field: 'wallet'
+            },
+            {
+              name: 'onchain address',
+              align: 'left',
+              label: 'Onchain Address',
+              field: 'onchain'
+            },
+            {
+              name: 'servicename',
+              align: 'left',
+              label: 'Service',
+              field: 'servicename'
+            },
+            {
+              name: 'client_id',
+              align: 'left',
+              label: 'Client ID',
+              field: 'client_id'
+            },
+            {
+              name: 'client_secret',
+              align: 'left',
+              label: 'Client Secret',
+              field: 'client_secret'
+            },
+            {
+              name: 'authenticated',
+              align: 'left',
+              label: 'Authenticated',
+              field: 'authenticated'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        donationsTable: {
+          columns: [
+            {
+              name: 'service',
+              align: 'left',
+              label: 'Service',
+              field: 'service'
+            },
+            {name: 'id', align: 'left', label: 'Charge ID', field: 'id'},
+            {name: 'name', align: 'left', label: 'Donor', field: 'name'},
+            {
+              name: 'message',
+              align: 'left',
+              label: 'Message',
+              field: 'message'
+            },
+            {name: 'sats', align: 'left', label: 'Sats', field: 'sats'},
+            {
+              name: 'posted',
+              align: 'left',
+              label: 'Posted to API',
+              field: 'posted'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        serviceDialog: {
+          show: false,
+          chain: false,
+          data: {}
+        }
+      }
+    },
+    methods: {
+      getWalletLinks: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/watchonly/api/v1/wallet',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            for (i = 0; i < response.data.length; i++) {
+              self.walletLinks.push(response.data[i].id)
+            }
+            return
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getDonations: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/streamalerts/api/v1/donations',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.donations = response.data.map(function (obj) {
+              return mapStreamAlerts(obj)
+            })
+          })
+      },
+      deleteDonation: function (donationId) {
+        var self = this
+        var donations = _.findWhere(this.donations, {id: donationId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this donation?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/streamalerts/api/v1/donations/' + donationId,
+                _.findWhere(self.g.user.wallets, {id: donations.wallet}).inkey
+              )
+              .then(function (response) {
+                self.donations = _.reject(self.donations, function (obj) {
+                  return obj.id == ticketId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportdonationsCSV: function () {
+        LNbits.utils.exportCSV(this.donationsTable.columns, this.donations)
+      },
+
+      getServices: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/streamalerts/api/v1/services',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.services = response.data.map(function (obj) {
+              return mapStreamAlerts(obj)
+            })
+          })
+      },
+      sendServiceData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.serviceDialog.data.wallet
+        })
+        var data = this.serviceDialog.data
+
+        this.createService(wallet, data)
+      },
+
+      createService: function (wallet, data) {
+        var self = this
+        LNbits.api
+          .request('POST', '/streamalerts/api/v1/services', wallet.inkey, data)
+          .then(function (response) {
+            self.services.push(mapStreamAlerts(response.data))
+            self.serviceDialog.show = false
+            self.serviceDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateserviceDialog: function (serviceId) {
+        var link = _.findWhere(this.services, {id: serviceId})
+        console.log(link.id)
+        this.serviceDialog.data.id = link.id
+        this.serviceDialog.data.wallet = link.wallet
+        this.serviceDialog.data.twitchuser = link.twitchuser
+        this.serviceDialog.data.servicename = link.servicename
+        this.serviceDialog.data.client_id = link.client_id
+        this.serviceDialog.data.client_secret = link.client_secret
+        this.serviceDialog.show = true
+      },
+      deleteService: function (servicesId) {
+        var self = this
+        var services = _.findWhere(this.services, {id: servicesId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this service link?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/streamalerts/api/v1/services/' + servicesId,
+                _.findWhere(self.g.user.wallets, {id: services.wallet}).inkey
+              )
+              .then(function (response) {
+                self.services = _.reject(self.services, function (obj) {
+                  return obj.id == servicesId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportservicesCSV: function () {
+        LNbits.utils.exportCSV(this.servicesTable.columns, this.services)
+      }
+    },
+
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getWalletLinks()
+        this.getDonations()
+        this.getServices()
+      }
+    }
+  })
+</script>
+{% endblock %}
