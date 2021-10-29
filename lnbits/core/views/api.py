@@ -5,16 +5,17 @@ from binascii import unhexlify
 from http import HTTPStatus
 from typing import Dict, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
-from lnbits.bolt11 import Invoice
+
 import httpx
 from fastapi import Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
-from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 from lnbits import bolt11, lnurl
+from lnbits.bolt11 import Invoice
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletAdminKeyChecker,
@@ -29,17 +30,17 @@ from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
 from .. import core_app, db
 from ..crud import (
     get_payments,
+    get_standalone_payment,
     save_balance_check,
     update_wallet,
-    get_standalone_payment,
 )
 from ..services import (
     InvoiceFailure,
     PaymentFailure,
+    check_invoice_status,
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
-    check_invoice_status,
 )
 from ..tasks import api_invoice_listeners
 
@@ -100,8 +101,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     else:
         description_hash = b""
         memo = data.memo
-
-    if data.unit or "sat" == "sat":
+    if data.unit == "sat":
         amount = data.amount
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
