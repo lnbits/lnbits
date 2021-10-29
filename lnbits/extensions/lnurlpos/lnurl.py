@@ -64,6 +64,7 @@ async def lnurl_response(
         pin=decryptedPin,
         payhash="payment_hash",
     )
+    print(price_msat)
     if not lnurlpospayment:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Could not create payment"

@@ -1,6 +1,7 @@
 import asyncio
-import httpx
 from typing import Callable, NamedTuple
+
+import httpx
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
@@ -219,9 +220,11 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
     rates = []
-    send_channel = asyncio.Queue(0)
+    tasks = []
 
-    async def controller(nursery):
+    send_channel = asyncio.Queue()
+
+    async def controller():
         failures = 0
         while True:
             rate = await send_channel.get()
@@ -229,31 +232,47 @@ async def btc_price(currency: str) -> float:
                 rates.append(rate)
             else:
                 failures += 1
+
             if len(rates) >= 2 or len(rates) == 1 and failures >= 2:
-                nursery.cancel_scope.cancel()
+                for t in tasks: t.cancel() 
                 break
             if failures == len(exchange_rate_providers):
-                nursery.cancel_scope.cancel()
+                for t in tasks: t.cancel()
                 break
 
-    async def fetch_price(key: str, provider: Provider):
+
+    async def fetch_price(provider: Provider):
+        url = provider.api_url.format(**replacements)
         try:
-            url = provider.api_url.format(**replacements)
             async with httpx.AsyncClient() as client:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
-                await send_channel.send(rate)
-        except Exception:
-            await send_channel.send(None)
+                await send_channel.put(rate)
+        except (
+            TypeError, # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
+            httpx.ConnectTimeout,
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+            httpx.HTTPStatusError, # Some providers throw a 404 when a currency pair is not found
+        ):
+            await send_channel.put(None)
 
-    # asyncio.create_task(controller, nursery)
-    for key, provider in exchange_rate_providers.items():
-        asyncio.create_task(fetch_price(key, provider))
+
+    asyncio.create_task(controller())
+    for _, provider in exchange_rate_providers.items():
+        tasks.append(asyncio.create_task(fetch_price(provider)))
+    
+    try:
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        pass
 
     if not rates:
         return 9999999999
+    elif len(rates) == 1:
+        print("Warning could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 

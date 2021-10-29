@@ -1,5 +1,4 @@
 import asyncio
-
 from http import HTTPStatus
 from typing import Optional
 
@@ -13,10 +12,10 @@ from pydantic.types import UUID4
 from starlette.responses import HTMLResponse
 
 from lnbits.core import db
-from lnbits.helpers import template_renderer, url_for
-from lnbits.requestvars import g
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
+from lnbits.helpers import template_renderer, url_for
+from lnbits.requestvars import g
 from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_SITE_TITLE, SERVICE_FEE
 
 from ..crud import (
@@ -189,21 +188,20 @@ async def lnurl_full_withdraw_callback(request: Request):
 
 
 @core_html_routes.get("/deletewallet")
-# @validate_uuids(["usr", "wal"], required=True)
-# @check_user_exists()
-async def deletewallet(request: Request):
-    wallet_id = request.path_params.get("wal", type=str)
-    user_wallet_ids = g().user.wallet_ids
+async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):
+    user = await get_user(usr)
+    user_wallet_ids = [u.id for u in user.wallets]
+    print("USR", user_wallet_ids)
 
-    if wallet_id not in user_wallet_ids:
+    if wal not in user_wallet_ids:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
-        await delete_wallet(user_id=g().user.id, wallet_id=wallet_id)
-        user_wallet_ids.remove(wallet_id)
+        await delete_wallet(user_id=user.id, wallet_id=wal)
+        user_wallet_ids.remove(wal)
 
     if user_wallet_ids:
         return RedirectResponse(
-            url_for("/wallet", usr=g().user.id, wal=user_wallet_ids[0]),
+            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
