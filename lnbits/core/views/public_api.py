@@ -1,12 +1,22 @@
 import asyncio
 import datetime
 from http import HTTPStatus
+
 from fastapi import HTTPException
+from starlette.requests import Request
+
 from lnbits import bolt11
 
 from .. import core_app
 from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
+
+
+@core_app.get("/.well-known/lnurlp/{username}")
+async def lnaddress(username: str, request: Request):
+    from lnbits.extensions.lnaddress.lnurl import lnurl_response
+    domain = request.client.host
+    return await lnurl_response(username, domain)
 
 
 @core_app.get("/public/v1/payment/{payment_hash}")
