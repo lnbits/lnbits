@@ -87,7 +87,7 @@ async def api_authenticate_service(service_id, request: Request, code: str = Que
             detail="State doesn't match!"
         )
 
-    redirect_uri = request.scheme + "://" + request.headers["Host"]
+    redirect_uri = request.url.scheme + "://" + request.headers["Host"]
     redirect_uri += f"/streamalerts/api/v1/authenticate/{service_id}"
     url, success = await authenticate_service(service_id, code, redirect_uri)
     if success:
@@ -109,7 +109,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
     # Fiat amount is calculated here while frontend is limited
     price = await btc_price(cur_code)
     amount = sats * (10 ** (-8)) * price
-    webhook_base = request.scheme + "://" + request.headers["Host"]
+    webhook_base = request.url.scheme + "://" + request.headers["Host"]
     service_id = data.service
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)

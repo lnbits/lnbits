@@ -14,7 +14,7 @@ from .models import CreateService, Donation, Service
 
 async def get_service_redirect_uri(request, service_id):
     """Return the service's redirect URI, to be given to the third party API"""
-    uri_base = request.scheme + "://"
+    uri_base = request.url.scheme + "://"
     uri_base += request.headers["Host"] + "/streamalerts/api/v1"
     redirect_uri = uri_base + f"/authenticate/{service_id}"
     return redirect_uri
