@@ -1,0 +1,6 @@
+{
+    "name": "Jitsi",
+    "short_description": "Jitsi with lightning payments",
+    "icon": "info",
+    "contributors": ["nochiel"]
+}

@@ -1,0 +1,32 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%}
+{% block scripts %} {{ window_vars(user) }} 
+
+{# <script src='https://meet.jit.si/external_api.js'></script> #}
+{# 
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://meet.jit.si/libs/lib-jitsi-meet.min.js"></script>
+#}
+
+<script src='/jitsi/static/js/external_api.js'></script>
+<script  src='/jitsi/static/js/jitsi.js'></script>
+
+{% endblock %} 
+{% block page %}
+
+<q-card>
+    <q-card-section>
+    <h5 class="text-subtitle1 q-mt-none q-mb-md">
+      Jitsi on {{SITE_TITLE}}
+    </h5>
+    <q-card id='meet' style='height:500px'>
+    </q-card>
+    {# <q-separator class="q-my-lg"></q-separator> #}
+    {# A magical "g" is always available, with info about the user, wallets and
+      extensions:
+      <code class="text-caption">{% raw %}{{ JSON.stringify(g) }}{% endraw %}</code>
+
+      #}
+  </q-card-section>
+</q-card>
+{% endblock %}
