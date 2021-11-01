@@ -34,6 +34,8 @@ There's a [slightly different setup](docs/devs/installation.md) if you want to c
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
+## Credit
+LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for LNbits.
 
 [docs]: https://lnbits.org/
 [docs-badge]: https://img.shields.io/badge/docs-lnbits.org-673ab7.svg
