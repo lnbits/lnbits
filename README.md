@@ -22,19 +22,19 @@ Checkout [Awesome-LNbits](https://github.com/cryptoteun/awesome-lnbits), a curra
 
 Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
 
-## Running LNbits
+### Running LNbits
 
 See the [install guide](docs/guide/installation.md) for details on installation and setup.
 
-### Contributing to LNbits
+#### Contributing to LNbits
 
 There's a [slightly different setup](docs/devs/installation.md) if you want to contribute to LNbits, but if your changes don't require adding or removing any package dependencies you don't have to bother with that, just follow the [normal installation](docs/guide/installation.md) steps.
 
-## Tip us
+### Tip us
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
-## Credit
+### Credits
 LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for LNbits.
 
 [docs]: https://lnbits.org/
