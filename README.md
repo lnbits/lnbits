@@ -44,24 +44,6 @@ Each wallet also comes with its own API keys, to help partition the exposure of 
 
 ![lnurl ATM](https://i.imgur.com/WfCg8wY.png)
 
-## LNbits as an LNURL-withdraw fallback
-
-LNURL has a fallback scheme, so if scanned by a regular QR code reader it can default to a URL. LNbits exploits this to generate an instant wallet using the [LNURL-withdraw](https://github.com/btcontract/lnurl-rfc/blob/master/lnurl-withdraw.md).
-
-![lnurl fallback](https://i.imgur.com/CPBKHIv.png)
-
-Using **lnbits.com/?lightning="LNURL-withdraw"** will trigger a withdraw that builds an LNbits wallet.
-Example use would be an ATM, which utilises LNURL, if the user scans the QR with a regular QR code scanner app, they will stilll be able to access the funds.
-
-![lnurl ATM](https://i.imgur.com/Gi6bn3L.jpg)
-
-## LNbits as an insta-wallet
-
-Wallets can be easily generated and given out to people at events (one click multi-wallet generation to be added soon).
-"Go to this  website", has a lot less friction than "Download this app".
-
-![lnurl ATM](https://i.imgur.com/xFWDnwy.png)
-
 ## Tip us
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
