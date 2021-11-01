@@ -1,4 +1,4 @@
-LNbits
+LNbits Legend (BETA)
 ======
 
 [![github-tests-badge]][github-tests]
@@ -10,7 +10,7 @@ LNbits
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
-# LNbits Legend (BETA), Free Open-Source Lightning Accounts System with Extensions
+# Free Open-Source Lightning Accounts System with Extensions
 
 For the Go version of LNbits checkout <a href="https://github.com/lnbits/lnbits-infinity/">Infinity</a>. Demo servers available on [lnbits.com](https://lnbits.com).
 
