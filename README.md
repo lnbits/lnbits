@@ -22,8 +22,6 @@ Checkout [Awesome-LNbits](https://github.com/cryptoteun/awesome-lnbits), a curra
 
 Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbSYG0ciIQUWJru1dWstPHshe) video series.
 
-LNbits is inspired by all the great work of [opennode.com](https://www.opennode.com/), and in particular [lnpay.co](https://lnpay.co/). Both work as excellent funding sources for LNbits.
-
 ## Running LNbits
 
 See the [install guide](docs/guide/installation.md) for details on installation and setup.
