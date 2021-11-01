@@ -26,8 +26,6 @@ Checkout the LNbits [YouTube](https://www.youtube.com/playlist?list=PLPj3KCksGbS
 
 See the [install guide](docs/guide/installation.md) for details on installation and setup.
 
-#### Contributing to LNbits
-
 There's a [slightly different setup](docs/devs/installation.md) if you want to contribute to LNbits, but if your changes don't require adding or removing any package dependencies you don't have to bother with that, just follow the [normal installation](docs/guide/installation.md) steps.
 
 ### Tip us
