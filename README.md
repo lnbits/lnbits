@@ -12,11 +12,7 @@ LNbits
 
 # LNbits Legend (BETA), Free Open-Source Lightning Accounts System with Extensions
 
-For the Go version of LNbits checkout <a href="https://github.com/lnbits/lnbits-infinity/">Infinity</a>
-
-(Join us on [https://t.me/lnbits](https://t.me/lnbits))
-
-Use [lnbits.com](https://lnbits.com), or run your own LNbits server!
+For the Go version of LNbits checkout <a href="https://github.com/lnbits/lnbits-infinity/">Infinity</a>. (Join us on [https://t.me/lnbits](https://t.me/lnbits)). Demo servers available on [lnbits.com](https://lnbits.com).
 
 LNbits can run on top of any lightning-network funding source, currently there is support for LND, c-lightning, Spark, LNpay, OpenNode, lntxbot, with more being added regularly.
 
