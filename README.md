@@ -32,18 +32,6 @@ See the [install guide](docs/guide/installation.md) for details on installation 
 
 There's a [slightly different setup](docs/devs/installation.md) if you want to contribute to LNbits, but if your changes don't require adding or removing any package dependencies you don't have to bother with that, just follow the [normal installation](docs/guide/installation.md) steps.
 
-## LNbits as an account system
-
-LNbits is packaged with tools to help manage funds, such as a table of transactions, line chart of spending, export to csv + more to come..
-
-![Lightning network wallet](https://i.imgur.com/w8jdGpF.png)
-
-Each wallet also comes with its own API keys, to help partition the exposure of your funding source.
-
-(LNbits M5StackSats available here https://github.com/arcbtc/M5StackSats)
-
-![lnurl ATM](https://i.imgur.com/WfCg8wY.png)
-
 ## Tip us
 
 If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
