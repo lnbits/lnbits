@@ -10,7 +10,9 @@ LNbits
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
-# LNbits v0.3 BETA, free and open-source lightning-network wallet/accounts system
+# LNbits Legend (BETA), free and open-source lightning-network wallet/accounts system
+
+For the Go version of LNbits checkout <a href="https://github.com/lnbits/lnbits-infinity/">Infinity</a>
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
 
