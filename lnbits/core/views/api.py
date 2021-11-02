@@ -86,7 +86,7 @@ class CreateInvoiceData(BaseModel):
     amount: int = Query(None, ge=1)
     memo: str = None
     unit: Optional[str] = None
-    description_hash: str = None
+    description_hash: Optional[str] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
@@ -101,7 +101,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     else:
         description_hash = b""
         memo = data.memo
-    if data.unit == "sat":
+    if not "unit" in data or data.unit == "sat":
         amount = data.amount
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
@@ -185,8 +185,8 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 
 @core_app.post(
     "/api/v1/payments",
-    deprecated=True,
-    description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
+    # deprecated=True,
+    # description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
