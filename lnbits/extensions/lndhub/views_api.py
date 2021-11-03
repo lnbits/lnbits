@@ -1,20 +1,21 @@
 import time
 from base64 import urlsafe_b64encode
-from pydantic import BaseModel
+from http import HTTPStatus
 
-from lnbits.core.services import pay_invoice, create_invoice
-from lnbits.core.crud import get_payments, delete_expired_invoices
+from fastapi.param_functions import Query
+from fastapi.params import Depends
+from pydantic import BaseModel
+from starlette.exceptions import HTTPException
+
+from lnbits import bolt11
+from lnbits.core.crud import delete_expired_invoices, get_payments
+from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
 from lnbits.settings import WALLET
-from lnbits import bolt11
 
 from . import lndhub_ext
 from .decorators import check_wallet, require_admin_key
-from .utils import to_buffer, decoded_as_lndhub
-from http import HTTPStatus
-from starlette.exceptions import HTTPException
-from fastapi.params import Depends
-from fastapi.param_functions import Query
+from .utils import decoded_as_lndhub, to_buffer
 
 
 @lndhub_ext.get("/ext/getinfo")
@@ -41,8 +42,8 @@ async def lndhub_auth(data: AuthData):
 
 
 class AddInvoice(BaseModel):
-    amt: str = Query(None)
-    memo: str = Query(None)
+    amt: str = Query(...)
+    memo: str = Query(...)
     preimage: str = Query(None)
 
 
@@ -54,7 +55,7 @@ async def lndhub_addinvoice(
         _, pr = await create_invoice(
             wallet_id=wallet.wallet.id,
             amount=int(data.amt),
-            memo=data.memo,
+            memo=data.memo or "received sats",
             extra={"tag": "lndhub"},
         )
     except:
@@ -73,7 +74,7 @@ async def lndhub_addinvoice(
 
 
 class Invoice(BaseModel):
-    invoice: str
+    invoice: str = Query(...)
 
 
 @lndhub_ext.post("/ext/payinvoice")
@@ -90,7 +91,7 @@ async def lndhub_payinvoice(
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Payment failed")
 
     invoice: bolt11.Invoice = bolt11.decode(r_invoice.invoice)
-    print("INV2", invoice)
+    
     return {
         "payment_error": "",
         "payment_preimage": "0" * 64,
