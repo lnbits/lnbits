@@ -98,15 +98,17 @@ class LNbitsWallet(Wallet):
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key
-            )
-
-        if r.is_error:
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.get(
+                    url=f"{self.endpoint}/api/v1/payments/{checking_id}",
+                    headers=self.key,
+                )
+            if r.is_error:
+                return PaymentStatus(None)
+            return PaymentStatus(r.json()["paid"])
+        except:
             return PaymentStatus(None)
-
-        return PaymentStatus(r.json()["paid"])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:
