@@ -50,7 +50,7 @@ async def create_invoice(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
-    if not memo:
+    if memo == None:
         memo = "LN payment"
     invoice_memo = None if description_hash else memo
 
