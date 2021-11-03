@@ -44,7 +44,7 @@ async def create_invoice(
     *,
     wallet_id: str,
     amount: int,  # in satoshis
-    memo: str,
+    memo: Optional[str] = None,
     description_hash: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
@@ -53,6 +53,7 @@ async def create_invoice(
     if not memo:
         memo = "LN payment"
     invoice_memo = None if description_hash else memo
+
     ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
     )
@@ -68,7 +69,7 @@ async def create_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
-        memo=invoice_memo,
+        memo=memo,
         extra=extra,
         webhook=webhook,
         conn=conn,
