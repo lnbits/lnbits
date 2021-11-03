@@ -52,10 +52,9 @@ async def create_invoice(
 ) -> Tuple[str, str]:
     if not memo:
         memo = "LN payment"
-    # invoice_memo = None if description_hash else memo
-    # storeable_memo = memo
+    invoice_memo = None if description_hash else memo
     ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
-        amount=amount, memo=memo, description_hash=description_hash
+        amount=amount, memo=invoice_memo, description_hash=description_hash
     )
     if not ok:
         raise InvoiceFailure(error_message or "Unexpected backend error.")
@@ -69,7 +68,7 @@ async def create_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
-        memo=storeable_memo,
+        memo=invoice_memo,
         extra=extra,
         webhook=webhook,
         conn=conn,
