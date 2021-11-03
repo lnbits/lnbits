@@ -101,7 +101,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     else:
         description_hash = b""
         memo = data.memo
-    if not "unit" in data or data.unit == "sat":
+    if not data.unit or data.unit == "sat":
         amount = data.amount
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
