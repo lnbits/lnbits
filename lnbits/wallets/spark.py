@@ -183,11 +183,13 @@ class SparkWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        url = self.url + "/stream?access-key=" + self.token
+        url = f"{self.url}/stream?access-key={self.token}"
 
         while True:
             try:
-                async with httpx.AsyncClient(timeout=None) as client:
+                async with httpx.AsyncClient(
+                    timeout=None, headers=self.token
+                ) as client:
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():
                             if line.startswith("data:"):
