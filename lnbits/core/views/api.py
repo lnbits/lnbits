@@ -95,7 +95,7 @@ class CreateInvoiceData(BaseModel):
 
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
-    if "description_hash" in data:
+    if data.description_hash:
         description_hash = unhexlify(data.description_hash)
         memo = ""
     else:
