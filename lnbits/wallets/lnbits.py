@@ -45,7 +45,7 @@ class LNbitsWallet(Wallet):
             )
 
         if r.is_error:
-            return StatusResponse(data["message"], 0)
+            return StatusResponse(data["detail"], 0)
 
         return StatusResponse(None, data["balance"])
 
@@ -73,7 +73,7 @@ class LNbitsWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.json()["detail"]
         else:
             data = r.json()
             checking_id, payment_request = data["checking_id"], data["payment_request"]
@@ -90,7 +90,7 @@ class LNbitsWallet(Wallet):
         ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.json()["detail"]
         else:
             data = r.json()
             checking_id = data["checking_id"]
@@ -98,15 +98,17 @@ class LNbitsWallet(Wallet):
         return PaymentResponse(ok, checking_id, fee_msat, error_message)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                url=f"{self.endpoint}/api/v1/payments/{checking_id}", headers=self.key
-            )
-
-        if r.is_error:
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.get(
+                    url=f"{self.endpoint}/api/v1/payments/{checking_id}",
+                    headers=self.key,
+                )
+            if r.is_error:
+                return PaymentStatus(None)
+            return PaymentStatus(r.json()["paid"])
+        except:
             return PaymentStatus(None)
-
-        return PaymentStatus(r.json()["paid"])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:

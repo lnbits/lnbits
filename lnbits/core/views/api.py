@@ -324,12 +324,14 @@ async def api_payments_sse(
 
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash):
-
     payment = await get_standalone_payment(payment_hash)
     await check_invoice_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(payment_hash)
     if not payment:
-        return {"message": "Payment does not exist."}
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Payment does not exist.",
+        )
     elif not payment.pending:
         return {"paid": True, "preimage": payment.preimage}
 
