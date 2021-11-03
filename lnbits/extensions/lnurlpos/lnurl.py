@@ -89,7 +89,7 @@ async def lnurl_response(
     response_class=HTMLResponse,
     name="lnurlpos.lnurl_callback",
 )
-async def lnurl_callback(paymentid: str = Query(None)):
+async def lnurl_callback(request: Request, paymentid: str = Query(None)):
     lnurlpospayment = await get_lnurlpospayment(paymentid)
     pos = await get_lnurlpos(lnurlpospayment.posid)
     if not pos:
@@ -110,7 +110,7 @@ async def lnurl_callback(paymentid: str = Query(None)):
     lnurlpospayment = await update_lnurlpospayment(
         lnurlpospayment_id=paymentid, payhash=payment_hash
     )
-    success_action = pos.success_action(paymentid)
+    success_action = pos.success_action(paymentid, request)
 
     payResponse = {
         "pr": payment_request,
