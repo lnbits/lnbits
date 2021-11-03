@@ -125,9 +125,8 @@ class CLightningWallet(Wallet):
             writer.write(call.encode())
             await writer.drain()
 
-            data = await reader.read(500)
+            data = await reader.read()
             paid = json.loads(data.decode("ascii"))
-            print(paid)
 
             paid = self.ln.waitanyinvoice(self.last_pay_index)
             self.last_pay_index = paid["pay_index"]
