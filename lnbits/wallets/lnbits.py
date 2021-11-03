@@ -45,7 +45,7 @@ class LNbitsWallet(Wallet):
             )
 
         if r.is_error:
-            return StatusResponse(data["message"], 0)
+            return StatusResponse(data["detail"], 0)
 
         return StatusResponse(None, data["balance"])
 
@@ -73,7 +73,7 @@ class LNbitsWallet(Wallet):
         )
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.json()["detail"]
         else:
             data = r.json()
             checking_id, payment_request = data["checking_id"], data["payment_request"]
@@ -90,7 +90,7 @@ class LNbitsWallet(Wallet):
         ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
 
         if r.is_error:
-            error_message = r.json()["message"]
+            error_message = r.json()["detail"]
         else:
             data = r.json()
             checking_id = data["checking_id"]
