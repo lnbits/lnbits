@@ -82,7 +82,6 @@ async def api_lnurl_callback(request: Request, link_id):
         return LnurlErrorResponse(
             reason=f"Got a comment with {len(comment)} characters, but can only accept {link.comment_chars}"
         ).dict()
-
     payment_hash, payment_request = await create_invoice(
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
