@@ -115,17 +115,17 @@ class CLightningWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        stream = await asyncio.open_unix_connection(self.rpc)
+        reader, writer = await asyncio.open_unix_connection(self.rpc)
 
         i = 0
         while True:
             call = json.dumps(
                 {"method": "waitanyinvoice", "id": 0, "params": [self.last_pay_index]}
             )
+            writer.write(call.encode("utf-8"))
+            await writer.drain()
 
-            await stream.send_all(call.encode("utf-8"))
-
-            data = await stream.receive_some()
+            data = await reader.read(100)
             paid = json.loads(data.decode("ascii"))
 
             paid = self.ln.waitanyinvoice(self.last_pay_index)
