@@ -9,6 +9,7 @@ from starlette.responses import HTMLResponse
 from lnbits.decorators import check_user_exists
 from lnbits.core.models import Payment, User
 from lnbits.core.crud import get_standalone_payment
+from lnbits.core.views.api import api_payment
 
 from . import offlineshop_ext, offlineshop_renderer
 from .models import Item
@@ -51,6 +52,7 @@ async def confirmation_code(p: str = Query(...)):
     style = "<style>* { font-size: 100px}</style>"
 
     payment_hash = p
+    await api_payment(payment_hash)
     payment: Payment = await get_standalone_payment(payment_hash)
     if not payment:
         raise HTTPException(
