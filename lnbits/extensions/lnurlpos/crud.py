@@ -39,14 +39,14 @@ async def update_lnurlpos(lnurlpos_id: str, **kwargs) -> Optional[lnurlposs]:
     row = await db.fetchone(
         "SELECT * FROM lnurlpos.lnurlposs WHERE id = ?", (lnurlpos_id,)
     )
-    return lnurlposs.from_row(row) if row else None
+    return lnurlposs(**row) if row else None
 
 
 async def get_lnurlpos(lnurlpos_id: str) -> lnurlposs:
     row = await db.fetchone(
         "SELECT * FROM lnurlpos.lnurlposs WHERE id = ?", (lnurlpos_id,)
     )
-    return lnurlposs.from_row(row) if row else None
+    return lnurlposs(**row) if row else None
 
 
 async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
@@ -60,7 +60,7 @@ async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
         (*wallet_ids,),
     )
 
-    return [lnurlposs.from_row(row) for row in rows]
+    return [lnurlposs(**row) if row else None]
 
 
 async def delete_lnurlpos(lnurlpos_id: str) -> None:
@@ -105,11 +105,11 @@ async def update_lnurlpospayment(
     row = await db.fetchone(
         "SELECT * FROM lnurlpos.lnurlpospayment WHERE id = ?", (lnurlpospayment_id,)
     )
-    return lnurlpospayment.from_row(row) if row else None
+    return lnurlpospayment(**row) if row else None
 
 
 async def get_lnurlpospayment(lnurlpospayment_id: str) -> lnurlpospayment:
     row = await db.fetchone(
         "SELECT * FROM lnurlpos.lnurlpospayment WHERE id = ?", (lnurlpospayment_id,)
     )
-    return lnurlpospayment.from_row(row) if row else None
+    return lnurlpospayment(**row) if row else None
