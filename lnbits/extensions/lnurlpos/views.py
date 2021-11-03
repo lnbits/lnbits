@@ -26,14 +26,16 @@ from lnbits.core.models import User, Payment
 templates = Jinja2Templates(directory="templates")
 
 
-@lnurlpos_ext.get("/")
+@lnurlpos_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return lnurlpos_renderer().TemplateResponse(
         "lnurlpos/index.html", {"request": request, "user": user.dict()}
     )
 
 
-@lnurlpos_ext.get("/{paymentid}")
+@lnurlpos_ext.get(
+    "/{paymentid}", name="lnurlpos.displaypin", response_class=HTMLResponse
+)
 async def displaypin(request: Request, paymentid: str = Query(None)):
     lnurlpospayment = await get_lnurlpospayment(paymentid)
     if not lnurlpospayment:

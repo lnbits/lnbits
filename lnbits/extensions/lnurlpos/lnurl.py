@@ -25,7 +25,7 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 @lnurlpos_ext.get(
     "/api/v1/lnurl/{nonce}/{payload}/{pos_id}",
-    response_class=HTMLResponse,
+    status_code=HTTPStatus.OK,
     name="lnurlpos.lnurl_response",
 )
 async def lnurl_response(
@@ -64,33 +64,33 @@ async def lnurl_response(
         pin=decryptedPin,
         payhash="payment_hash",
     )
-    print(price_msat)
+
     if not lnurlpospayment:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Could not create payment"
         )
 
-    payResponse = {
-        "tag": "payRequest",
-        "callback": request.url_for(
-            "lnurlpos.lnurl_callback",
-            paymentid=lnurlpospayment.id,
+    resp = LnurlPayResponse(
+        callback=request.url_for(
+            "lnurlpos.lnurl_callback", paymentid=lnurlpospayment.id
         ),
-        "metadata": LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]])),
-        "minSendable": price_msat,
-        "maxSendable": price_msat,
-    }
-    print(payResponse)
-    return json.dumps(payResponse)
+        min_sendable=price_msat,
+        max_sendable=price_msat,
+        metadata=await pos.lnurlpay_metadata(),
+    )
+
+    return resp.dict()
 
 
 @lnurlpos_ext.get(
     "/api/v1/lnurl/cb/{paymentid}",
-    response_class=HTMLResponse,
+    status_code=HTTPStatus.OK,
     name="lnurlpos.lnurl_callback",
 )
 async def lnurl_callback(request: Request, paymentid: str = Query(None)):
+    print("lnurlpospayment")
     lnurlpospayment = await get_lnurlpospayment(paymentid)
+    print(lnurlpospayment)
     pos = await get_lnurlpos(lnurlpospayment.posid)
     if not pos:
         raise HTTPException(
@@ -101,21 +101,18 @@ async def lnurl_callback(request: Request, paymentid: str = Query(None)):
         amount=int(lnurlpospayment.sats / 1000),
         memo=pos.title,
         description_hash=hashlib.sha256(
-            (LnurlPayMetadata(json.dumps([["text/plain", str(pos.title)]]))).encode(
-                "utf-8"
-            )
+            (await pos.lnurlpay_metadata()).encode("utf-8")
         ).digest(),
         extra={"tag": "lnurlpos"},
     )
     lnurlpospayment = await update_lnurlpospayment(
         lnurlpospayment_id=paymentid, payhash=payment_hash
     )
-    success_action = pos.success_action(paymentid, request)
 
-    payResponse = {
-        "pr": payment_request,
-        "success_action": success_action,
-        "disposable": False,
-        "routes": [],
-    }
-    return json.dumps(payResponse)
+    resp = LnurlPayActionResponse(
+        pr=payment_request,
+        success_action=pos.success_action(paymentid, request),
+        routes=[],
+    )
+
+    return resp.dict()
