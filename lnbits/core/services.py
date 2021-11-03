@@ -50,8 +50,6 @@ async def create_invoice(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
-    if memo == None:
-        memo = "LN payment"
     invoice_memo = None if description_hash else memo
 
     ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
