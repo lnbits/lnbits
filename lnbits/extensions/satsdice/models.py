@@ -1,15 +1,16 @@
 import json
-from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
-from lnurl.types import LnurlPayMetadata  # type: ignore
 from sqlite3 import Row
-from typing import NamedTuple, Optional, Dict
+from typing import Dict, NamedTuple, Optional
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+
 import shortuuid  # type: ignore
-from fastapi.param_functions import Query
-from pydantic.main import BaseModel
-from pydantic import BaseModel
-from typing import Optional
 from fastapi import FastAPI, Request
+from fastapi.param_functions import Query
+from lnurl import Lnurl, LnurlWithdrawResponse
+from lnurl import encode as lnurl_encode  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from pydantic import BaseModel
+from pydantic.main import BaseModel
 
 
 class satsdiceLink(BaseModel):
@@ -105,7 +106,7 @@ class HashCheck(BaseModel):
 
 
 class CreateSatsDiceLink(BaseModel):
-    wallet_id: str = Query(None)
+    wallet: str = Query(None)
     title: str = Query(None)
     base_url: str = Query(None)
     min_bet: str = Query(None)
