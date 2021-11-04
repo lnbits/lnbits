@@ -22,7 +22,7 @@ from .crud import (
     update_satsdice_pay,
     update_satsdice_withdraw,
 )
-from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws
+from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, satsdiceLink
 
 ################LNURL pay
 
@@ -92,7 +92,8 @@ async def api_link_create_or_update(
                 detail="Come on, seriously, this isn't your satsdice!",
             )
 
-        data.wallet_id = wallet.wallet.id
+
+        data.wallet = wallet.wallet.id
         link = await update_satsdice_pay(link_id, **data.dict())
     else:
         link = await create_satsdice_pay(wallet_id=wallet.wallet.id, data=data)

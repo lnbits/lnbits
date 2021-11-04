@@ -16,12 +16,10 @@ python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
 mkdir data
-./venv/bin/quart assets
-./venv/bin/quart migrate
-./venv/bin/hypercorn -k trio --bind 0.0.0.0:5000 'lnbits.app:create_app()'
+./venv/bin/uvicorn lnbits.__main__:app --port 5000
 ```
 
-Now you can visit your LNbits at http://localhost:5000/.
+Now you can visit your LNbits at http://localhost:5000/. 
 
 Now modify the `.env` file with any settings you prefer and add a proper [funding source](./wallets.md) by modifying the value of `LNBITS_BACKEND_WALLET_CLASS` and providing the extra information and credentials related to the chosen funding source.
 
