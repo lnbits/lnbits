@@ -72,7 +72,7 @@ class Payment(BaseModel):
     pending: bool
     amount: int
     fee: int
-    memo: str
+    memo: Optional[str]
     time: int
     bolt11: str
     preimage: str
