@@ -54,25 +54,22 @@ async def api_lnurl_callback(
 ):
     link = await get_withdraw_link_by_hash(unique_hash)
     now = int(datetime.now().timestamp())
-
+    print("link")
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
         )
-        
+    print("link")
 
     if link.is_spent:
-        raise HTTPException(
-            # WHAT STATUS_CODE TO USE??
-            detail="Withdraw is spent."
-        )
-
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
+    print("link")
     if link.k1 != k1:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Bad request.")
-
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Bad request.")
+    print("link")
     if now < link.open_time:
         return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
-
+    print("link")
     try:
         usescsv = ""
         for x in range(1, link.uses - link.used):
@@ -92,7 +89,6 @@ async def api_lnurl_callback(
             "used": link.used + 1,
             "usescsv": usescsv,
         }
-
         await update_withdraw_link(link.id, **changes)
 
         await pay_invoice(
@@ -101,18 +97,11 @@ async def api_lnurl_callback(
             max_sat=link.max_withdrawable,
             extra={"tag": "withdraw"},
         )
-    # should these be "raise" instead of the "return" ??
-    except ValueError as e:
-        await update_withdraw_link(link.id, **changesback)
-        return {"status": "ERROR", "reason": str(e)}
-    except PermissionError:
-        await update_withdraw_link(link.id, **changesback)
-        return {"status": "ERROR", "reason": "Withdraw link is empty."}
-    except Exception as e:
-        await update_withdraw_link(link.id, **changesback)
-        return {"status": "ERROR", "reason": str(e)}
+        return {"status": "OK"}
 
-    return {"status": "OK"}
+    except Exception as e:
+        wibble = await update_withdraw_link(link.id, **changesback)
+        return {"status": "ERROR", "reason": str(e)}
 
 
 # FOR LNURLs WHICH ARE UNIQUE
@@ -128,22 +117,11 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
 
     if not link:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
+            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
         )
-        # return (
-        #     {"status": "ERROR", "reason": "LNURL-withdraw not found."},
-        #     HTTPStatus.OK,
-        # )
 
     if link.is_spent:
-        raise HTTPException(
-            # WHAT STATUS_CODE TO USE??
-            detail="Withdraw is spent."
-        )
-        # return (
-        #     {"status": "ERROR", "reason": "Withdraw is spent."},
-        #     HTTPStatus.OK,
-        # )
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
 
     useslist = link.usescsv.split(",")
     found = False
@@ -153,11 +131,7 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
             found = True
     if not found:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
+            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
         )
-        # return (
-        #     {"status": "ERROR", "reason": "LNURL-withdraw not found."},
-        #     HTTPStatus.OK,
-        # )
 
     return link.lnurl_response(request).dict()

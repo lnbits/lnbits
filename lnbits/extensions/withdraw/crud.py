@@ -56,12 +56,7 @@ async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     if not row:
         return None
 
-    # link = []
-    # for item in row:
-    #     link.append(item)
-    # link.append(num)
-    # print("GET_LINK", WithdrawLink.from_row(row))
-    return WithdrawLink.from_row(row)
+    return WithdrawLink(**row) if row else None
 
 
 async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[WithdrawLink]:
@@ -70,12 +65,7 @@ async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[Withdra
     )
     if not row:
         return None
-
-    # link = []
-    # for item in row:
-    #     link.append(item)
-    # link.append(num)
-    return WithdrawLink.from_row(row)
+    return WithdrawLink(**row) if row else None
 
 
 async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
@@ -86,14 +76,12 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
     rows = await db.fetchall(
         f"SELECT * FROM withdraw.withdraw_link WHERE wallet IN ({q})", (*wallet_ids,)
     )
-
-    return [WithdrawLink.from_row(row) for row in rows]
+    return [WithdrawLink(**row) for row in rows]
 
 
 async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
     if "is_unique" in kwargs:
         kwargs["is_unique"] = int(kwargs["is_unique"])
-
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE withdraw.withdraw_link SET {q} WHERE id = ?",
@@ -102,7 +90,7 @@ async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]
     row = await db.fetchone(
         "SELECT * FROM withdraw.withdraw_link WHERE id = ?", (link_id,)
     )
-    return WithdrawLink.from_row(row) if row else None
+    return WithdrawLink(**row) if row else None
 
 
 async def delete_withdraw_link(link_id: str) -> None:

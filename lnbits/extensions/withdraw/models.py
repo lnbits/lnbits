@@ -19,26 +19,19 @@ class CreateWithdrawData(BaseModel):
 
 class WithdrawLink(BaseModel):
     id: str
-    wallet: str
-    title: str
-    min_withdrawable: int
-    max_withdrawable: int
-    uses: int
-    wait_time: int
-    is_unique: bool
-    unique_hash: str
-    k1: str
-    open_time: int
-    used: int
-    usescsv: str
-    number: int
-
-    @classmethod
-    def from_row(cls, row: Row) -> "WithdrawLink":
-        data = dict(row)
-        data["is_unique"] = bool(data["is_unique"])
-        data["number"] = 0
-        return cls(**data)
+    wallet: str = Query(None)
+    title: str = Query(None)
+    min_withdrawable: int = Query(0)
+    max_withdrawable: int = Query(0)
+    uses: int = Query(0)
+    wait_time: int = Query(0)
+    is_unique: bool = Query(False)
+    unique_hash: str = Query(0)
+    k1: str = Query(None)
+    open_time: int = Query(0)
+    used: int = Query(0)
+    usescsv: str = Query(None)
+    number: int = Query(0)
 
     @property
     def is_spent(self) -> bool:

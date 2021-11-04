@@ -150,14 +150,16 @@
           dense
           v-model.number="formDialog.data.min_withdrawable"
           type="number"
-          label="Min withdrawable (sat) *"
+          min="10"
+          label="Min withdrawable (sat, at least 10) *"
         ></q-input>
         <q-input
           filled
           dense
           v-model.number="formDialog.data.max_withdrawable"
           type="number"
-          label="Max withdrawable (sat) *"
+          min="10"
+          label="Max withdrawable (sat, at least 10) *"
         ></q-input>
         <q-input
           filled
@@ -264,7 +266,8 @@
           dense
           v-model.number="simpleformDialog.data.max_withdrawable"
           type="number"
-          label="Withdraw amount per voucher"
+          min="10"
+          label="Withdraw amount per voucher (sat, at least 10)"
         ></q-input>
         <q-input
           filled
