@@ -54,22 +54,21 @@ async def api_lnurl_callback(
 ):
     link = await get_withdraw_link_by_hash(unique_hash)
     now = int(datetime.now().timestamp())
-    print("link")
+
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found."
         )
-    print("link")
 
     if link.is_spent:
         raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
-    print("link")
+
     if link.k1 != k1:
         raise HTTPException(status_code=HTTPStatus.OK, detail="Bad request.")
-    print("link")
+
     if now < link.open_time:
         return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
-    print("link")
+
     try:
         usescsv = ""
         for x in range(1, link.uses - link.used):
@@ -100,8 +99,8 @@ async def api_lnurl_callback(
         return {"status": "OK"}
 
     except Exception as e:
-        wibble = await update_withdraw_link(link.id, **changesback)
-        return {"status": "ERROR", "reason": str(e)}
+        await update_withdraw_link(link.id, **changesback)
+        return {"status": "ERROR", "reason": "Link not working"}
 
 
 # FOR LNURLs WHICH ARE UNIQUE
