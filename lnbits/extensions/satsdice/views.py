@@ -45,8 +45,8 @@ async def display(request: Request, link_id: str = Query(None)):
     link = await get_satsdice_pay(link_id)
     if not link:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
+        )
 
     return satsdice_renderer().TemplateResponse(
         "satsdice/display.html",
@@ -60,7 +60,11 @@ async def display(request: Request, link_id: str = Query(None)):
     )
 
 
-@satsdice_ext.get("/win/{link_id}/{payment_hash}", name="satsdice.displaywin", response_class=HTMLResponse)
+@satsdice_ext.get(
+    "/win/{link_id}/{payment_hash}",
+    name="satsdice.displaywin",
+    response_class=HTMLResponse,
+)
 async def displaywin(
     request: Request, link_id: str = Query(None), payment_hash: str = Query(None)
 ):
@@ -86,9 +90,6 @@ async def displaywin(
         )
     rand = random.randint(0, 100)
     chance = satsdicelink.chance
-    print(rand)
-    print(chance)
-    print(rand < chance)
     status = await api_payment(payment_hash)
     if not rand < chance or not status["paid"]:
         return satsdice_renderer().TemplateResponse(

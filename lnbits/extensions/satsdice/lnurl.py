@@ -139,7 +139,7 @@ async def api_lnurlw_response(req: Request, unique_hash: str = Query(None)):
 
 @satsdice_ext.get(
     "/api/v1/lnurlw/cb/{unique_hash}",
-    response_class=HTMLResponse,
+    status_code=HTTPStatus.OK,
     name="satsdice.api_lnurlw_callback",
 )
 async def api_lnurlw_callback(
@@ -158,7 +158,6 @@ async def api_lnurlw_callback(
     paylink = await get_satsdice_pay(link.satsdice_pay)
 
     await update_satsdice_withdraw(link.id, used=1)
-    print("cunt")
     await pay_invoice(
         wallet_id=paylink.wallet,
         payment_request=pr,
