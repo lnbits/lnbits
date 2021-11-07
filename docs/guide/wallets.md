@@ -29,7 +29,7 @@ Using this wallet requires the installation of the `pylightning` Python package.
 
 ### LND (gRPC)
 
-Using this wallet requires the installation of the `lndgrpc` and `purerpc` Python packages.
+Using this wallet requires the installation of the `grpcio` Python packages.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndWallet**
 - `LND_GRPC_ENDPOINT`: ip_address
