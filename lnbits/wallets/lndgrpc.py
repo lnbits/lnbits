@@ -1,7 +1,10 @@
+imports_ok = True
 try:
+    from google import protobuf
     import grpc
 except ImportError:  # pragma: nocover
-    grpc = None
+    imports_ok = False
+
 
 import binascii
 import base64
@@ -9,8 +12,9 @@ import hashlib
 from os import environ, error, getenv
 from typing import Optional, Dict, AsyncGenerator
 
-import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
-import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
+if imports_ok:
+    import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
+    import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 
 from .base import (
     StatusResponse,
@@ -76,9 +80,9 @@ environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 class LndWallet(Wallet):
     def __init__(self):
-        if grpc is None:  # pragma: nocover
+        if not imports_ok:  # pragma: nocover
             raise ImportError(
-                "The `grpcio` library must be installed to use `GRPC LndWallet`. Alternatively try using the LndRESTWallet."
+                "The `grpcio` and `protobuf` library must be installed to use `GRPC LndWallet`. Alternatively try using the LndRESTWallet."
             )
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
