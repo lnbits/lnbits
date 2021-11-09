@@ -14,13 +14,11 @@ Download the latest stable release https://github.com/lnbits/lnbits/releases
 The application uses [Pipenv][pipenv] to manage Python packages.
 While in development, you will need to install all dependencies:
 
-```sh
-$ git clone https://github.com/lnbits/lnbits-legend.git
-$ cd lnbits-legend/
-$ # for now you'll need to `git checkout FastAPI`
-$ pipenv shell
-$ pipenv install --dev
-```
+    git clone https://github.com/lnbits/lnbits-legend.git
+    cd lnbits-legend/
+    # for now you'll need to `git checkout FastAPI`
+    pipenv shell
+    pipenv install --dev
 
 If any of the modules fails to install, try checking and upgrading your setupTool module.  
 `pip install -U setuptools`
