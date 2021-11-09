@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from typing import Optional
 
@@ -10,7 +9,6 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.requestvars import g
 from lnbits.utils.exchange_rates import currencies
 
 from . import offlineshop_ext
@@ -27,11 +25,10 @@ from .models import ShopCounter
 
 @offlineshop_ext.get("/api/v1/currencies")
 async def api_list_currencies_available():
-    return json.dumps(list(currencies.keys()))
+    return list(currencies.keys())
 
 
 @offlineshop_ext.get("/api/v1/offlineshop")
-# @api_check_wallet_key("invoice")
 async def api_shop_from_wallet(
     r: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -60,7 +57,6 @@ class CreateItemsData(BaseModel):
 
 @offlineshop_ext.post("/api/v1/offlineshop/items")
 @offlineshop_ext.put("/api/v1/offlineshop/items/{item_id}")
-# @api_check_wallet_key("invoice")
 async def api_add_or_update_item(
     data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -83,7 +79,6 @@ async def api_add_or_update_item(
 
 
 @offlineshop_ext.delete("/api/v1/offlineshop/items/{item_id}")
-# @api_check_wallet_key("invoice")
 async def api_delete_item(item_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     await delete_item_from_shop(shop.id, item_id)
@@ -96,7 +91,6 @@ class CreateMethodData(BaseModel):
 
 
 @offlineshop_ext.put("/api/v1/offlineshop/method")
-# @api_check_wallet_key("invoice")
 async def api_set_method(
     data: CreateMethodData, wallet: WalletTypeInfo = Depends(get_key_type)
 ):

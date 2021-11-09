@@ -417,7 +417,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/subdomain/api/v1/subdomains/' + subdomainId,
+                '/subdomains/api/v1/subdomains/' + subdomainId,
                 _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
               )
               .then(function (response) {

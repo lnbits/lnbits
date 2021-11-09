@@ -124,7 +124,7 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
         ip=data.ip,
     )
     if cf_response["success"] == True:
-        cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
+        await cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
     else:
         raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
