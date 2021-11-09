@@ -47,16 +47,22 @@ from ..tasks import api_invoice_listeners
 
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    return {
-        "id": wallet.wallet.id,
-        "name": wallet.wallet.name,
-        "balance": wallet.wallet.balance_msat,
-    }
+    if wallet.wallet_type == 0:
+        return {
+            "id": wallet.wallet.id,
+            "name": wallet.wallet.name,
+            "balance": wallet.wallet.balance_msat,
+        }
+    else:
+        return {
+            "name": wallet.wallet.name,
+            "balance": wallet.wallet.balance_msat,
+        }
 
 
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(
-    new_name: str, wallet: WalletTypeInfo = Depends(get_key_type)
+    new_name: str, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
 ):
     await update_wallet(wallet.wallet.id, new_name)
     return {
@@ -193,7 +199,6 @@ async def api_payments_create(
     wallet: WalletTypeInfo = Depends(get_key_type),
     invoiceData: CreateInvoiceData = Body(...),
 ):
-
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
 
@@ -315,7 +320,7 @@ async def subscribe(request: Request, wallet: Wallet):
 
 @core_app.get("/api/v1/payments/sse")
 async def api_payments_sse(
-    request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+    request: Request, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
 ):
     return EventSourceResponse(
         subscribe(request, wallet), ping=20, media_type="text/event-stream"
