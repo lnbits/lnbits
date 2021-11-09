@@ -14,19 +14,18 @@ Download the latest stable release https://github.com/lnbits/lnbits/releases
 The application uses [Pipenv][pipenv] to manage Python packages.
 While in development, you will need to install all dependencies:
 
-```sh
-$ pipenv shell
-$ pipenv install --dev
-```
+    git clone https://github.com/lnbits/lnbits-legend.git
+    cd lnbits-legend/
+    # for now you'll need to `git checkout FastAPI`
+    pipenv shell
+    pipenv install --dev
 
 If any of the modules fails to install, try checking and upgrading your setupTool module.  
 `pip install -U setuptools`
 
 If you wish to use a version of Python higher than 3.7:
 
-```sh
-$ pipenv --python 3.8 install --dev
-```
+    pipenv --python 3.8 install --dev
 
 You will need to copy `.env.example` to `.env`, then set variables there.
 
@@ -39,24 +38,20 @@ Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Ne
 
 ## Running the server
 
-LNbits uses [Quart][quart] as an application server.
-Before running the server for the first time, make sure to create the data folder:
+LNbits uses [FastAPI][fastapi] as an application server.
+Before running the server for the first time, make sure to create the data folder and edit the .env file:
 
-```sh
-$ mkdir data
-```
+    mkdir data
+    cp .env.example .env
+    sudo nano .env
 
 To then run the server, use:
 
-```sh
-$ pipenv run python -m lnbits
-```
+    pipenv run python -m uvicorn lnbits.__main__:app --reload
 
 **Note**: You'll need to use _https_ for some endpoints and/or extensions. You can use [ngrok](https://ngrok.com/) for that. Follow the installation instructions on the website and when it's all set you can run:
 
-```sh
-$ ./nrok http 5000
-```
+    ./nrok http 5000
 
 this will give you an _https_ tunnel for the _localhost_, use that URL for navigating to LNBits.
 
