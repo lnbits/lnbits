@@ -91,7 +91,7 @@ class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
     amount: int = Query(None, ge=1)
     memo: str = None
-    unit: Optional[str] = None
+    unit: Optional[str] = 'sat'
     description_hash: Optional[str] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
@@ -107,7 +107,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     else:
         description_hash = b""
         memo = data.memo
-    if not data.unit or data.unit == "sat":
+    if data.unit == 'sat':
         amount = data.amount
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
