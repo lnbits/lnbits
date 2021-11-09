@@ -88,7 +88,7 @@ async def m003_changed(db):
 
     await db.execute(
         """
-        CREATE TABLE lnticket.form (
+        CREATE TABLE IF NOT EXISTS lnticket.form (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
