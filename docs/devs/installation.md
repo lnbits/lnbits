@@ -42,10 +42,11 @@ LNbits uses [Quart][quart] as an application server.
 Before running the server for the first time, make sure to create the data folder:
 
     mkdir data
+    
 
 To then run the server, use:
 
-    pipenv run python -m lnbits
+    pipenv run python -m uvicorn lnbits.__main__:app --reload
 
 **Note**: You'll need to use _https_ for some endpoints and/or extensions. You can use [ngrok](https://ngrok.com/) for that. Follow the installation instructions on the website and when it's all set you can run:
 
