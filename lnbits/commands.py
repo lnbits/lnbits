@@ -109,3 +109,5 @@ async def migrate_databases():
 
         async with ext_db.connect() as ext_conn:
             await run_migration(ext_conn, ext_migrations)
+
+    print("  ✔️ All migrations done.")

@@ -320,7 +320,7 @@ async def subscribe(request: Request, wallet: Wallet):
 
 @core_app.get("/api/v1/payments/sse")
 async def api_payments_sse(
-    request: Request, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
+    request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     return EventSourceResponse(
         subscribe(request, wallet), ping=20, media_type="text/event-stream"
