@@ -38,11 +38,12 @@ Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Ne
 
 ## Running the server
 
-LNbits uses [Quart][quart] as an application server.
-Before running the server for the first time, make sure to create the data folder:
+LNbits uses [FastAPI][fastapi] as an application server.
+Before running the server for the first time, make sure to create the data folder and edit the .env file:
 
     mkdir data
-    
+    cp .env.example .env
+    sudo nano .env
 
 To then run the server, use:
 
