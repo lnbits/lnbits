@@ -2,9 +2,11 @@ from datetime import datetime
 from http import HTTPStatus
 
 import shortuuid  # type: ignore
+import json
 from fastapi import HTTPException
 from fastapi.param_functions import Query
 from starlette.requests import Request
+from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.core.services import pay_invoice
 
@@ -16,7 +18,7 @@ from .crud import get_withdraw_link_by_hash, update_withdraw_link
 
 @withdraw_ext.get(
     "/api/v1/lnurl/{unique_hash}",
-    status_code=HTTPStatus.OK,
+    response_class=HTMLResponse,
     name="withdraw.api_lnurl_response",
 )
 async def api_lnurl_response(request: Request, unique_hash):
@@ -35,17 +37,67 @@ async def api_lnurl_response(request: Request, unique_hash):
             # WHAT STATUS_CODE TO USE??
             detail="Withdraw is spent."
         )
-        # return ({"status": "ERROR", "reason": "Withdraw is spent."},
-        #     HTTPStatus.OK,
-        # )
+    url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
+    withdrawResponse = {
+        "tag": "withdrawRequest",
+        "callback": url,
+        "k1": link.k1,
+        "minWithdrawable": link.min_withdrawable * 1000,
+        "maxWithdrawable": link.max_withdrawable * 1000,
+        "defaultDescription": link.title,
+    }
+    return json.dumps(withdrawResponse)
 
-    return link.lnurl_response(request).dict()
+
+# FOR LNURLs WHICH ARE UNIQUE
+
+
+@withdraw_ext.get(
+    "/api/v1/lnurl/{unique_hash}/{id_unique_hash}",
+    response_class=HTMLResponse,
+    name="withdraw.api_lnurl_multi_response",
+)
+async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash):
+    link = await get_withdraw_link_by_hash(unique_hash)
+
+    if not link:
+        raise HTTPException(
+            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
+        )
+
+    if link.is_spent:
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
+
+    useslist = link.usescsv.split(",")
+    found = False
+    for x in useslist:
+        tohash = link.id + link.unique_hash + str(x)
+        if id_unique_hash == shortuuid.uuid(name=tohash):
+            found = True
+    if not found:
+        raise HTTPException(
+            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
+        )
+
+    url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
+    withdrawResponse = {
+        "tag": "withdrawRequest",
+        "callback": url,
+        "k1": link.k1,
+        "minWithdrawable": link.min_withdrawable * 1000,
+        "maxWithdrawable": link.max_withdrawable * 1000,
+        "defaultDescription": link.title,
+    }
+    return json.dumps(withdrawResponse)
 
 
 # CALLBACK
 
-
-@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", name="withdraw.api_lnurl_callback")
+@withdraw_ext.get(
+    "/api/v1/lnurl/cb/{unique_hash}", 
+    status_code=HTTPStatus.OK, 
+    name="withdraw.api_lnurl_callback"
+    )
 async def api_lnurl_callback(
     request: Request,
     unique_hash: str = Query(...),
@@ -102,35 +154,3 @@ async def api_lnurl_callback(
         await update_withdraw_link(link.id, **changesback)
         return {"status": "ERROR", "reason": "Link not working"}
 
-
-# FOR LNURLs WHICH ARE UNIQUE
-
-
-@withdraw_ext.get(
-    "/api/v1/lnurl/{unique_hash}/{id_unique_hash}",
-    status_code=HTTPStatus.OK,
-    name="withdraw.api_lnurl_multi_response",
-)
-async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash):
-    link = await get_withdraw_link_by_hash(unique_hash)
-
-    if not link:
-        raise HTTPException(
-            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
-        )
-
-    if link.is_spent:
-        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
-
-    useslist = link.usescsv.split(",")
-    found = False
-    for x in useslist:
-        tohash = link.id + link.unique_hash + str(x)
-        if id_unique_hash == shortuuid.uuid(name=tohash):
-            found = True
-    if not found:
-        raise HTTPException(
-            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
-        )
-
-    return link.lnurl_response(request).dict()
