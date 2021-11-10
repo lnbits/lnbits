@@ -509,6 +509,13 @@
           .then(function (response) {
             self.ChargeLinks.push(mapCharge(response.data))
             self.formDialogCharge.show = false
+            self.formDialogCharge.data = {
+              onchain: false,
+              lnbits: false,
+              description: '',
+              time: null,
+              amount: null
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
