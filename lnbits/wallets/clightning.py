@@ -8,6 +8,7 @@ import random
 from functools import partial, wraps
 from os import getenv
 from typing import AsyncGenerator, Optional
+import time
 
 from .base import (
     InvoiceResponse,
@@ -28,6 +29,10 @@ def async_wrap(func):
         return await loop.run_in_executor(executor, partial_func)
 
     return run
+
+
+def _pay_invoice(ln, bolt11):
+    return ln.pay(bolt11)
 
 
 def _paid_invoices_stream(ln, last_pay_index):
@@ -99,7 +104,8 @@ class CLightningWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         try:
-            r = self.ln.pay(bolt11)
+            wrapped = async_wrap(_pay_invoice)
+            r = await wrapped(self.ln, bolt11)
         except RpcError as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
