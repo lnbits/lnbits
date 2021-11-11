@@ -15,7 +15,7 @@ from .utils import to_buffer, decoded_as_lndhub
 
 @lndhub_ext.route("/ext/getinfo", methods=["GET"])
 async def lndhub_getinfo():
-    return jsonify({"error": True, "code": 1, "message": "bad auth"})
+    return jsonify({"alias": "lnbits-lndhub"})
 
 
 @lndhub_ext.route("/ext/auth", methods=["POST"])
