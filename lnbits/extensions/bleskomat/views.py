@@ -14,13 +14,13 @@ templates = Jinja2Templates(directory="templates")
 
 
 @bleskomat_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(req: Request, user: User = Depends(check_user_exists)):
     bleskomat_vars = {
-        "callback_url": get_callback_url(request=request),
+        "callback_url": get_callback_url(req),
         "exchange_rate_providers": exchange_rate_providers_serializable,
         "fiat_currencies": fiat_currencies,
     }
     return bleskomat_renderer().TemplateResponse(
         "bleskomat/index.html",
-        {"request": request, "user": user.dict(), "bleskomat_vars": bleskomat_vars},
+        {"request": req, "user": user.dict(), "bleskomat_vars": bleskomat_vars},
     )

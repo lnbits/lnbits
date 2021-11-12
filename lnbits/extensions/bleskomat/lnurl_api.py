@@ -25,9 +25,9 @@ from .helpers import (
 
 # Handles signed URL from Bleskomat ATMs and "action" callback of auto-generated LNURLs.
 @bleskomat_ext.get("/u", name="bleskomat.api_bleskomat_lnurl")
-async def api_bleskomat_lnurl(request: Request):
+async def api_bleskomat_lnurl(req: Request):
     try:
-        query = request.query_params
+        query = req.query_params
 
         # Unshorten query if "s" is used instead of "signature".
         if "s" in query:
@@ -96,7 +96,7 @@ async def api_bleskomat_lnurl(request: Request):
                 )
 
             # Reply with LNURL response object.
-            return lnurl.get_info_response_object(secret)
+            return lnurl.get_info_response_object(secret, req)
 
         # No signature provided.
         # Treat as "action" callback.
