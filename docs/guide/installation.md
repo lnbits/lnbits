@@ -11,11 +11,13 @@ Install Postgres and setup a database for LNbits:
 # or follow instructions at https://www.postgresql.org/download/linux/
 
 # Postgres doesn't have a default password, so we'll create one.
-sudo -i -u postgres psql
+sudo -i -u postgres
+psql
 # on psql
 ALTER USER postgres PASSWORD 'myPassword'; # choose whatever password you want
-createdb lnbits
 \q
+# on postgres user
+createdb lnbits
 exit
 ```
 
