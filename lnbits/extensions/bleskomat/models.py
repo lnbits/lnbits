@@ -20,23 +20,24 @@ class CreateBleskomat(BaseModel):
     exchange_rate_provider: str = Query(...)
     fee: str = Query(...)
 
-    @validator('fiat_currency')
+    @validator("fiat_currency")
     def allowed_fiat_currencies(cls, v):
-        if(v not in fiat_currencies.keys()):
-            raise ValueError('Not allowed currency')
+        if v not in fiat_currencies.keys():
+            raise ValueError("Not allowed currency")
         return v
 
-    @validator('exchange_rate_provider')
+    @validator("exchange_rate_provider")
     def allowed_providers(cls, v):
-        if(v not in exchange_rate_providers.keys()):
-            raise ValueError('Not allowed provider')
+        if v not in exchange_rate_providers.keys():
+            raise ValueError("Not allowed provider")
         return v
 
-    @validator('fee')
+    @validator("fee")
     def fee_type(cls, v):
-        if(not isinstance(v, (str, float, int))):
-            raise ValueError('Fee type not allowed')
+        if not isinstance(v, (str, float, int)):
+            raise ValueError("Fee type not allowed")
         return v
+
 
 class Bleskomat(BaseModel):
     id: str
@@ -119,8 +120,7 @@ class BleskomatLnurl(BaseModel):
             if tag == "withdrawRequest":
                 try:
                     payment_hash = await pay_invoice(
-                        wallet_id=self.wallet,
-                        payment_request=query["pr"],
+                        wallet_id=self.wallet, payment_request=query["pr"]
                     )
                 except Exception:
                     raise LnurlValidationError("Failed to pay invoice")

@@ -13,11 +13,14 @@ class CreatePaywall(BaseModel):
     amount: int = Query(..., ge=0)
     remembers: bool = Query(...)
 
+
 class CreatePaywallInvoice(BaseModel):
     amount: int = Query(..., ge=1)
 
+
 class CheckPaywallInvoice(BaseModel):
     payment_hash: str = Query(...)
+
 
 class Paywall(BaseModel):
     id: str

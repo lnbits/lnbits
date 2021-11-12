@@ -6,10 +6,7 @@ from fastapi.params import Depends
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
-from lnbits.decorators import (
-    WalletTypeInfo,
-    get_key_type,
-)
+from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.core.crud import get_user
 
 from . import tipjar_ext
@@ -193,8 +190,7 @@ async def api_delete_tipjar(
     tipjar = await get_tipjar(tipjar_id)
     if not tipjar:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="No tipjar with this ID!",
+            status_code=HTTPStatus.NOT_FOUND, detail="No tipjar with this ID!"
         )
     if tipjar.wallet != g.wallet.id:
 

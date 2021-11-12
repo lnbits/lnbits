@@ -13,7 +13,9 @@ from .models import CheckPaywallInvoice, CreatePaywall, CreatePaywallInvoice
 
 
 @paywall_ext.get("/api/v1/paywalls")
-async def api_paywalls(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+async def api_paywalls(
+    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
@@ -23,47 +25,51 @@ async def api_paywalls(wallet: WalletTypeInfo = Depends(get_key_type), all_walle
 
 
 @paywall_ext.post("/api/v1/paywalls")
-async def api_paywall_create(data: CreatePaywall, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_paywall_create(
+    data: CreatePaywall, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     paywall = await create_paywall(wallet_id=wallet.wallet.id, data=data)
     return paywall.dict()
 
 
 @paywall_ext.delete("/api/v1/paywalls/{paywall_id}")
-async def api_paywall_delete(paywall_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_paywall_delete(
+    paywall_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     paywall = await get_paywall(paywall_id)
 
     if not paywall:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Paywall does not exist."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
+        )
 
     if paywall.wallet != wallet.wallet.id:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your paywall."
-            )
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your paywall."
+        )
 
     await delete_paywall(paywall_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
 @paywall_ext.post("/api/v1/paywalls/{paywall_id}/invoice")
-async def api_paywall_create_invoice(paywall_id, data: CreatePaywallInvoice, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_paywall_create_invoice(
+    paywall_id,
+    data: CreatePaywallInvoice,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     paywall = await get_paywall(paywall_id)
     print("PAYW", paywall)
     print("DATA", data)
-    
+
     if data.amount < paywall.amount:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Minimum amount is {paywall.amount} sat."
-            )
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Minimum amount is {paywall.amount} sat.",
+        )
 
     try:
-        amount = (
-            data.amount if data.amount > paywall.amount else paywall.amount
-        )
+        amount = data.amount if data.amount > paywall.amount else paywall.amount
         payment_hash, payment_request = await create_invoice(
             wallet_id=paywall.wallet,
             amount=amount,
@@ -71,10 +77,7 @@ async def api_paywall_create_invoice(paywall_id, data: CreatePaywallInvoice, wal
             extra={"tag": "paywall"},
         )
     except Exception as e:
-        raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=str(e)
-            )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
@@ -85,9 +88,8 @@ async def api_paywal_check_invoice(data: CheckPaywallInvoice, paywall_id):
     payment_hash = data.payment_hash
     if not paywall:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Paywall does not exist."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
+        )
 
     try:
         status = await check_invoice_status(paywall.wallet, payment_hash)

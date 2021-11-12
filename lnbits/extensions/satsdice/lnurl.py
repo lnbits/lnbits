@@ -49,9 +49,7 @@ async def api_lnurlp_response(req: Request, link_id: str = Query(None)):
     name="satsdice.api_lnurlp_callback",
 )
 async def api_lnurlp_callback(
-    req: Request,
-    link_id: str = Query(None),
-    amount: str = Query(None),
+    req: Request, link_id: str = Query(None), amount: str = Query(None)
 ):
     link = await get_satsdice_pay(link_id)
     print(link)
@@ -95,11 +93,7 @@ async def api_lnurlp_callback(
     }
 
     await create_satsdice_payment(data)
-    payResponse = {
-        "pr": payment_request,
-        "successAction": success_action,
-        "routes": [],
-    }
+    payResponse = {"pr": payment_request, "successAction": success_action, "routes": []}
     print(json.dumps(payResponse))
 
     return json.dumps(payResponse)

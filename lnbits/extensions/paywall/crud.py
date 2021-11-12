@@ -6,17 +6,22 @@ from . import db
 from .models import CreatePaywall, Paywall
 
 
-async def create_paywall(
-    wallet_id: str,
-    data: CreatePaywall
-) -> Paywall:
+async def create_paywall(wallet_id: str, data: CreatePaywall) -> Paywall:
     paywall_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO paywall.paywalls (id, wallet, url, memo, description, amount, remembers)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (paywall_id, wallet_id, data.url, data.memo, data.description, data.amount, int(data.remembers)),
+        (
+            paywall_id,
+            wallet_id,
+            data.url,
+            data.memo,
+            data.description,
+            data.amount,
+            int(data.remembers),
+        ),
     )
 
     paywall = await get_paywall(paywall_id)

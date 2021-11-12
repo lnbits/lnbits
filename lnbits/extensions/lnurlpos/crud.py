@@ -8,9 +8,7 @@ from .models import lnurlposs, lnurlpospayment, createLnurlpos
 ###############lnurlposS##########################
 
 
-async def create_lnurlpos(
-    data: createLnurlpos,
-) -> lnurlposs:
+async def create_lnurlpos(data: createLnurlpos,) -> lnurlposs:
     print(data)
     lnurlpos_id = urlsafe_short_hash()
     lnurlpos_key = urlsafe_short_hash()

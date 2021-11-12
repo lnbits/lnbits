@@ -13,7 +13,9 @@ from .crud import get_paywall
 
 @paywall_ext.get("/")
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return paywall_renderer().TemplateResponse("paywall/index.html", {"request": request, "user": user.dict()})
+    return paywall_renderer().TemplateResponse(
+        "paywall/index.html", {"request": request, "user": user.dict()}
+    )
 
 
 @paywall_ext.get("/{paywall_id}")
@@ -23,4 +25,6 @@ async def display(request: Request, paywall_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
         )
-    return paywall_renderer().TemplateResponse("paywall/display.html", {"request": request, "paywall": paywall})
+    return paywall_renderer().TemplateResponse(
+        "paywall/display.html", {"request": request, "paywall": paywall}
+    )

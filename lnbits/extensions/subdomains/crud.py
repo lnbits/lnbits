@@ -6,11 +6,7 @@ from . import db
 from .models import CreateDomain, Domains, Subdomains
 
 
-async def create_subdomain(
-    payment_hash,
-    wallet,
-    data: CreateDomain
-) -> Subdomains:
+async def create_subdomain(payment_hash, wallet, data: CreateDomain) -> Subdomains:
     await db.execute(
         """
         INSERT INTO subdomains.subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)
@@ -105,9 +101,7 @@ async def delete_subdomain(subdomain_id: str) -> None:
 # Domains
 
 
-async def create_domain(
-    data: CreateDomain
-) -> Domains:
+async def create_domain(data: CreateDomain) -> Domains:
     domain_id = urlsafe_short_hash()
     await db.execute(
         """

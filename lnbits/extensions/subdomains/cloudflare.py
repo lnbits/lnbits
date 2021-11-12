@@ -50,11 +50,7 @@ async def cloudflare_deletesubdomain(domain: Domains, domain_id: str):
     }
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.delete(
-                url + "/" + domain_id,
-                headers=header,
-                timeout=40,
-            )
+            r = await client.delete(url + "/" + domain_id, headers=header, timeout=40)
             cf_response = r.text
         except AssertionError:
             cf_response = "Error occured"

@@ -94,12 +94,7 @@ async def displaywin(
     if not rand < chance or not status["paid"]:
         return satsdice_renderer().TemplateResponse(
             "satsdice/error.html",
-            {
-                "request": request,
-                "link": satsdicelink.id,
-                "paid": False,
-                "lost": True,
-            },
+            {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
         )
     await update_satsdice_payment(payment_hash, paid=1)
     paylink = await get_satsdice_payment(payment_hash)

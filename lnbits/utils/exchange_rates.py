@@ -234,12 +234,13 @@ async def btc_price(currency: str) -> float:
                 failures += 1
 
             if len(rates) >= 2 or len(rates) == 1 and failures >= 2:
-                for t in tasks: t.cancel() 
+                for t in tasks:
+                    t.cancel()
                 break
             if failures == len(exchange_rate_providers):
-                for t in tasks: t.cancel()
+                for t in tasks:
+                    t.cancel()
                 break
-
 
     async def fetch_price(provider: Provider):
         url = provider.api_url.format(**replacements)
@@ -251,19 +252,18 @@ async def btc_price(currency: str) -> float:
                 rate = float(provider.getter(data, replacements))
                 await send_channel.put(rate)
         except (
-            TypeError, # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
+            TypeError,  # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
             httpx.ConnectTimeout,
             httpx.ConnectError,
             httpx.ReadTimeout,
-            httpx.HTTPStatusError, # Some providers throw a 404 when a currency pair is not found
+            httpx.HTTPStatusError,  # Some providers throw a 404 when a currency pair is not found
         ):
             await send_channel.put(None)
-
 
     asyncio.create_task(controller())
     for _, provider in exchange_rate_providers.items():
         tasks.append(asyncio.create_task(fetch_price(provider)))
-    
+
     try:
         await asyncio.gather(*tasks)
     except asyncio.CancelledError:

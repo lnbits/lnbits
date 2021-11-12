@@ -15,10 +15,7 @@ from .models import (
 )
 
 
-async def create_satsdice_pay(
-    wallet_id: str,
-    data: CreateSatsDiceLink,
-) -> satsdiceLink:
+async def create_satsdice_pay(wallet_id: str, data: CreateSatsDiceLink) -> satsdiceLink:
     satsdice_id = urlsafe_short_hash()
     await db.execute(
         """

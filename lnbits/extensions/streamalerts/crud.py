@@ -25,9 +25,7 @@ async def get_charge_details(service_id):
 
     These might be different depending for services implemented in the future.
     """
-    details = {
-        "time": 1440,
-    }
+    details = {"time": 1440}
     service = await get_service(service_id)
     wallet_id = service.wallet
     wallet = await get_wallet(wallet_id)
@@ -111,9 +109,7 @@ async def post_donation(donation_id: str) -> tuple:
     return response.json()
 
 
-async def create_service(
-    data: CreateService
-) -> Service:
+async def create_service(data: CreateService) -> Service:
     """Create a new Service"""
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
@@ -215,10 +211,7 @@ async def service_add_token(service_id, token):
         return False
     await db.execute(
         "UPDATE streamalerts.Services SET authenticated = 1, token = ? where id = ?",
-        (
-            token,
-            service_id,
-        ),
+        (token, service_id),
     )
     return True
 

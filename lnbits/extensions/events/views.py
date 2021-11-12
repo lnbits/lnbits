@@ -18,7 +18,9 @@ templates = Jinja2Templates(directory="templates")
 
 @events_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return events_renderer().TemplateResponse("events/index.html", {"request": request, "user": user.dict()})
+    return events_renderer().TemplateResponse(
+        "events/index.html", {"request": request, "user": user.dict()}
+    )
 
 
 @events_ext.get("/{event_id}", response_class=HTMLResponse)
@@ -35,8 +37,8 @@ async def display(request: Request, event_id):
             {
                 "request": request,
                 "event_name": event.name,
-                "event_error": "Sorry, tickets are sold out :("
-            }
+                "event_error": "Sorry, tickets are sold out :(",
+            },
         )
     datetime_object = datetime.strptime(event.closing_date, "%Y-%m-%d").date()
     if date.today() > datetime_object:
@@ -45,8 +47,8 @@ async def display(request: Request, event_id):
             {
                 "request": request,
                 "event_name": event.name,
-                "event_error": "Sorry, ticket closing date has passed :("
-            }
+                "event_error": "Sorry, ticket closing date has passed :(",
+            },
         )
 
     return events_renderer().TemplateResponse(
@@ -57,8 +59,7 @@ async def display(request: Request, event_id):
             "event_name": event.name,
             "event_info": event.info,
             "event_price": event.price_per_ticket,
-        }
-        
+        },
     )
 
 
@@ -83,8 +84,7 @@ async def ticket(request: Request, ticket_id):
             "ticket_id": ticket_id,
             "ticket_name": event.name,
             "ticket_info": event.info,
-
-        }
+        },
     )
 
 
@@ -103,5 +103,5 @@ async def register(request: Request, event_id):
             "event_id": event_id,
             "event_name": event.name,
             "wallet_id": event.wallet,
-        }
+        },
     )

@@ -12,6 +12,7 @@ class CreateDomain(BaseModel):
     cost: int = Query(..., ge=0)
     allowed_record_types: str = Query(...)
 
+
 class CreateSubdomain(BaseModel):
     domain: str = Query(...)
     subdomain: str = Query(...)
@@ -20,6 +21,7 @@ class CreateSubdomain(BaseModel):
     sats: int = Query(..., ge=0)
     duration: int = Query(...)
     record_type: str = Query(...)
+
 
 class Domains(BaseModel):
     id: str
@@ -33,6 +35,7 @@ class Domains(BaseModel):
     amountmade: int
     time: int
     allowed_record_types: str
+
 
 class Subdomains(BaseModel):
     id: str

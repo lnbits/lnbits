@@ -1,4 +1,3 @@
-
 from fastapi import Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
@@ -22,5 +21,6 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "fiat_currencies": fiat_currencies,
     }
     return bleskomat_renderer().TemplateResponse(
-        "bleskomat/index.html", {"request": request, "user": user.dict(), "bleskomat_vars": bleskomat_vars}
+        "bleskomat/index.html",
+        {"request": request, "user": user.dict(), "bleskomat_vars": bleskomat_vars},
     )

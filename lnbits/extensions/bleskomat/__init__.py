@@ -14,13 +14,12 @@ bleskomat_static_files = [
     }
 ]
 
-bleskomat_ext: APIRouter = APIRouter(
-    prefix="/bleskomat",
-    tags=["Bleskomat"]
-)
+bleskomat_ext: APIRouter = APIRouter(prefix="/bleskomat", tags=["Bleskomat"])
+
 
 def bleskomat_renderer():
     return template_renderer(["lnbits/extensions/bleskomat/templates"])
+
 
 from .lnurl_api import *  # noqa
 from .views import *  # noqa

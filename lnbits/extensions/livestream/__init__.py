@@ -17,13 +17,12 @@ livestream_static_files = [
     }
 ]
 
-livestream_ext: APIRouter = APIRouter(
-    prefix="/livestream",
-    tags=["livestream"]
-)
+livestream_ext: APIRouter = APIRouter(prefix="/livestream", tags=["livestream"])
+
 
 def livestream_renderer():
     return template_renderer(["lnbits/extensions/livestream/templates"])
+
 
 from .lnurl import *  # noqa
 from .tasks import wait_for_paid_invoices

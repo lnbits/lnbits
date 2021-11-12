@@ -38,8 +38,7 @@ async def api_targets_set(
 
         if wallet.id == wal.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="Can't split to itself.",
+                status_code=HTTPStatus.BAD_REQUEST, detail="Can't split to itself."
             )
 
         if entry.percent < 0:
@@ -49,14 +48,18 @@ async def api_targets_set(
             )
 
         targets.append(
-            Target(wallet=wallet.id, source=wal.wallet.id, percent=entry.percent, alias=entry.alias)
+            Target(
+                wallet=wallet.id,
+                source=wal.wallet.id,
+                percent=entry.percent,
+                alias=entry.alias,
+            )
         )
 
     percent_sum = sum([target.percent for target in targets])
     if percent_sum > 100:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Splitting over 100%.",
+            status_code=HTTPStatus.BAD_REQUEST, detail="Splitting over 100%."
         )
 
     await set_targets(wal.wallet.id, targets)

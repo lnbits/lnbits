@@ -54,10 +54,7 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
             "balance": wallet.wallet.balance_msat,
         }
     else:
-        return {
-            "name": wallet.wallet.name,
-            "balance": wallet.wallet.balance_msat,
-        }
+        return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
 
 
 @core_app.put("/api/v1/wallet/{new_name}")
@@ -74,11 +71,7 @@ async def api_update_wallet(
 
 @core_app.get("/api/v1/payments")
 async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
-    await get_payments(
-        wallet_id=wallet.wallet.id,
-        pending=True,
-        complete=True,
-    )
+    await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
     pendingPayments = await get_payments(wallet_id=wallet.wallet.id, pending=True)
     for payment in pendingPayments:
         await check_invoice_status(
@@ -91,7 +84,7 @@ class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
     amount: int = Query(None, ge=1)
     memo: str = None
-    unit: Optional[str] = 'sat'
+    unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
@@ -107,7 +100,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     else:
         description_hash = b""
         memo = data.memo
-    if data.unit == 'sat':
+    if data.unit == "sat":
         amount = data.amount
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
@@ -334,8 +327,7 @@ async def api_payment(payment_hash):
     payment = await get_standalone_payment(payment_hash)
     if not payment:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Payment does not exist.",
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
     elif not payment.pending:
         return {"paid": True, "preimage": payment.preimage}
