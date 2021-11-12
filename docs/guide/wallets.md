@@ -65,7 +65,7 @@ For the invoice listener to work you have a publicly accessible URL in your LNbi
 ### lntxbot
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LntxbotWallet**
-- `LNTXBOT_API_ENDPOINT`: https://lntxbot.bigsun.xyz/
+- `LNTXBOT_API_ENDPOINT`: https://lntxbot.com/
 - `LNTXBOT_KEY`: lntxbotAdminApiKey
 
 
