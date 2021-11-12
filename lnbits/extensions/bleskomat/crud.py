@@ -8,10 +8,7 @@ from .helpers import generate_bleskomat_lnurl_hash
 from .models import Bleskomat, BleskomatLnurl, CreateBleskomat
 
 
-async def create_bleskomat(
-    data: CreateBleskomat,
-    wallet_id: str,
-) -> Bleskomat:
+async def create_bleskomat(data: CreateBleskomat, wallet_id: str) -> Bleskomat:
     bleskomat_id = uuid4().hex
     api_key_id = secrets.token_hex(8)
     api_key_secret = secrets.token_hex(32)

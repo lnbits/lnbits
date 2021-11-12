@@ -46,7 +46,9 @@ async def api_links(
 
 
 @withdraw_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_retrieve(link_id, request: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_retrieve(
+    link_id, request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     link = await get_withdraw_link(link_id, 0)
 
     if not link:
@@ -93,7 +95,9 @@ async def api_link_create_or_update(
             raise HTTPException(
                 detail="Not your withdraw link.", status_code=HTTPStatus.FORBIDDEN
             )
-        link = await update_withdraw_link(link_id, **data.dict(), usescsv=usescsv, used=0)
+        link = await update_withdraw_link(
+            link_id, **data.dict(), usescsv=usescsv, used=0
+        )
     else:
         link = await create_withdraw_link(
             wallet_id=wallet.wallet.id, data=data, usescsv=usescsv

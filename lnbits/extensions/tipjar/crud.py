@@ -9,12 +9,7 @@ from lnbits.db import SQLITE
 
 
 async def create_tip(
-    id: int,
-    wallet: str,
-    message: str,
-    name: str,
-    sats: int,
-    tipjar: str,
+    id: int, wallet: str, message: str, name: str, sats: int, tipjar: str
 ) -> Tip:
     """Create a new Tip"""
     await db.execute(
@@ -110,8 +105,7 @@ async def update_tip(tip_id: str, **kwargs) -> Tip:
     """Update a Tip"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE tipjar.Tips SET {q} WHERE id = ?",
-        (*kwargs.values(), tip_id),
+        f"UPDATE tipjar.Tips SET {q} WHERE id = ?", (*kwargs.values(), tip_id)
     )
     row = await db.fetchone("SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,))
     assert row, "Newly updated tip couldn't be retrieved"
@@ -122,8 +116,7 @@ async def update_tipjar(tipjar_id: str, **kwargs) -> TipJar:
     """Update a tipjar"""
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE tipjar.TipJars SET {q} WHERE id = ?",
-        (*kwargs.values(), tipjar_id),
+        f"UPDATE tipjar.TipJars SET {q} WHERE id = ?", (*kwargs.values(), tipjar_id)
     )
     row = await db.fetchone("SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
     assert row, "Newly updated tipjar couldn't be retrieved"

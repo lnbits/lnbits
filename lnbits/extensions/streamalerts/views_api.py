@@ -35,14 +35,14 @@ from .crud import (
 
 
 @streamalerts_ext.post("/api/v1/services")
-async def api_create_service(data : CreateService, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_create_service(
+    data: CreateService, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     """Create a service, which holds data about how/where to post donations"""
     try:
         service = await create_service(data=data)
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return service.dict()
 
@@ -68,23 +68,24 @@ async def api_get_access(service_id, request: Request):
         return RedirectResponse(redirect_url)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Service does not exist!"
+            status_code=HTTPStatus.BAD_REQUEST, detail="Service does not exist!"
         )
 
+
 @streamalerts_ext.get("/api/v1/authenticate/{service_id}")
-async def api_authenticate_service(service_id, request: Request, code: str = Query(...), state: str = Query(...)):
+async def api_authenticate_service(
+    service_id, request: Request, code: str = Query(...), state: str = Query(...)
+):
     """Endpoint visited via redirect during third party API authentication
 
     If successful, an API access token will be added to the service, and
     the user will be redirected to index.html.
     """
-    
+
     service = await get_service(service_id)
     if service.state != state:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="State doesn't match!"
+            status_code=HTTPStatus.BAD_REQUEST, detail="State doesn't match!"
         )
 
     redirect_uri = request.url.scheme + "://" + request.headers["Host"]
@@ -94,8 +95,7 @@ async def api_authenticate_service(service_id, request: Request, code: str = Que
         return RedirectResponse(url)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Service already authenticated!"
+            status_code=HTTPStatus.BAD_REQUEST, detail="Service already authenticated!"
         )
 
 
@@ -114,7 +114,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
     name = data.name
-    
+
     description = f"{sats} sats donation from {name} to {service.twitchuser}"
     charge = await create_charge(
         amount=sats,
@@ -132,7 +132,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
         cur_code=cur_code,
         sats=data.sats,
         amount=amount,
-        service=data.service
+        service=data.service,
     )
     return {"redirect_url": f"/satspay/{charge.id}"}
 
@@ -141,15 +141,14 @@ async def api_create_donation(data: CreateDonation, request: Request):
 async def api_post_donation(request: Request, data: ValidateDonation):
     """Post a paid donation to Stremalabs/StreamElements.
     This endpoint acts as a webhook for the SatsPayServer extension."""
-    
+
     donation_id = data.id
     charge = await get_charge(donation_id)
     if charge and charge.paid:
         return await post_donation(donation_id)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Not a paid charge!"
+            status_code=HTTPStatus.BAD_REQUEST, detail="Not a paid charge!"
         )
 
 
@@ -178,58 +177,55 @@ async def api_get_donations(g: WalletTypeInfo = Depends(get_key_type)):
 
 
 @streamalerts_ext.put("/api/v1/donations/{donation_id}")
-async def api_update_donation(data: CreateDonation, donation_id=None, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_update_donation(
+    data: CreateDonation, donation_id=None, g: WalletTypeInfo = Depends(get_key_type)
+):
     """Update a donation with the data given in the request"""
     if donation_id:
         donation = await get_donation(donation_id)
 
         if not donation:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Donation does not exist."
+                status_code=HTTPStatus.NOT_FOUND, detail="Donation does not exist."
             )
-        
 
         if donation.wallet != g.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your donation."
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your donation."
             )
 
         donation = await update_donation(donation_id, **data.dict())
     else:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="No donation ID specified"
-            )
+            status_code=HTTPStatus.BAD_REQUEST, detail="No donation ID specified"
+        )
 
     return donation.dict()
 
 
 @streamalerts_ext.put("/api/v1/services/{service_id}")
-async def api_update_service(data: CreateService, service_id=None, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_update_service(
+    data: CreateService, service_id=None, g: WalletTypeInfo = Depends(get_key_type)
+):
     """Update a service with the data given in the request"""
     if service_id:
         service = await get_service(service_id)
 
         if not service:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Service does not exist."
+                status_code=HTTPStatus.NOT_FOUND, detail="Service does not exist."
             )
 
         if service.wallet != g.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your service."
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your service."
             )
 
         service = await update_service(service_id, **data.dict())
     else:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="No service ID specified"
-            )
+            status_code=HTTPStatus.BAD_REQUEST, detail="No service ID specified"
+        )
     return service.dict()
 
 
@@ -239,14 +235,13 @@ async def api_delete_donation(donation_id, g: WalletTypeInfo = Depends(get_key_t
     donation = await get_donation(donation_id)
     if not donation:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="No donation with this ID!"
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="No donation with this ID!"
+        )
     if donation.wallet != g.wallet.id:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not authorized to delete this donation!"
-            )
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Not authorized to delete this donation!",
+        )
     await delete_donation(donation_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
@@ -257,13 +252,12 @@ async def api_delete_service(service_id, g: WalletTypeInfo = Depends(get_key_typ
     service = await get_service(service_id)
     if not service:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="No service with this ID!"
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="No service with this ID!"
+        )
     if service.wallet != g.wallet.id:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not authorized to delete this service!"
-            )
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Not authorized to delete this service!",
+        )
     await delete_service(service_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

@@ -10,4 +10,6 @@ from . import hivemind_ext, hivemind_renderer
 
 @hivemind_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return hivemind_renderer().TemplateResponse("hivemind/index.html", {"request": request, "user": user.dict()})
+    return hivemind_renderer().TemplateResponse(
+        "hivemind/index.html", {"request": request, "user": user.dict()}
+    )

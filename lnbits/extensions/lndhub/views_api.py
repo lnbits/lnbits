@@ -91,7 +91,7 @@ async def lndhub_payinvoice(
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Payment failed")
 
     invoice: bolt11.Invoice = bolt11.decode(r_invoice.invoice)
-    
+
     return {
         "payment_error": "",
         "payment_preimage": "0" * 64,

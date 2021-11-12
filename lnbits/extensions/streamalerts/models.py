@@ -13,11 +13,13 @@ class CreateService(BaseModel):
     servicename: str = Query(...)
     onchain: str = Query(None)
 
+
 class CreateDonation(BaseModel):
     name: str = Query("Anonymous")
     sats: int = Query(..., ge=1)
     service: int = Query(...)
     message: str = Query("")
+
 
 class ValidateDonation(BaseModel):
     id: str = Query(...)

@@ -10,6 +10,7 @@ class Target(BaseModel):
     percent: int
     alias: Optional[str]
 
+
 class TargetPutList(BaseModel):
     wallet: str = Query(...)
     alias: str = Query("")

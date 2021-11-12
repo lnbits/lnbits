@@ -17,6 +17,7 @@ class CreateTrack(BaseModel):
     producer_id: str = Query(None)
     producer_name: str = Query(None)
 
+
 class Livestream(BaseModel):
     id: int
     wallet: str
@@ -68,15 +69,15 @@ class Track(BaseModel):
 
         return LnurlPayMetadata(json.dumps([["text/plain", description]]))
 
-    def success_action(self, payment_hash: str, request: Request) -> Optional[LnurlPaySuccessAction]:
+    def success_action(
+        self, payment_hash: str, request: Request
+    ) -> Optional[LnurlPaySuccessAction]:
         if not self.download_url:
             return None
 
         return UrlAction(
             url=request.url_for(
-                "livestream.track_redirect_download",
-                track_id=self.id,
-                p=payment_hash
+                "livestream.track_redirect_download", track_id=self.id, p=payment_hash
             ),
             description=f"Download the track {self.name}!",
         )

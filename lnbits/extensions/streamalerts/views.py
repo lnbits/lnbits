@@ -18,7 +18,9 @@ templates = Jinja2Templates(directory="templates")
 @streamalerts_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     """Return the extension's settings page"""
-    return streamalerts_renderer().TemplateResponse("streamalerts/index.html", {"request": request, "user": user.dict()})
+    return streamalerts_renderer().TemplateResponse(
+        "streamalerts/index.html", {"request": request, "user": user.dict()}
+    )
 
 
 @streamalerts_ext.get("/{state}")
@@ -31,9 +33,5 @@ async def donation(state, request: Request):
         )
     return streamalerts_renderer().TemplateResponse(
         "streamalerts/display.html",
-        {
-            "request": request,
-            "twitchuser": service.twitchuser,
-            "service":service.id
-        }
+        {"request": request, "twitchuser": service.twitchuser, "service": service.id},
     )

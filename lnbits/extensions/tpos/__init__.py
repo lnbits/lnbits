@@ -5,10 +5,7 @@ from lnbits.helpers import template_renderer
 
 db = Database("ext_tpos")
 
-tpos_ext: APIRouter = APIRouter(
-    prefix="/tpos",
-    tags=["TPoS"]
-)
+tpos_ext: APIRouter = APIRouter(prefix="/tpos", tags=["TPoS"])
 
 
 def tpos_renderer():

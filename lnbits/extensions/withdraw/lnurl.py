@@ -93,11 +93,12 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
 
 # CALLBACK
 
+
 @withdraw_ext.get(
-    "/api/v1/lnurl/cb/{unique_hash}", 
-    status_code=HTTPStatus.OK, 
-    name="withdraw.api_lnurl_callback"
-    )
+    "/api/v1/lnurl/cb/{unique_hash}",
+    status_code=HTTPStatus.OK,
+    name="withdraw.api_lnurl_callback",
+)
 async def api_lnurl_callback(
     request: Request,
     unique_hash: str = Query(...),
@@ -153,4 +154,3 @@ async def api_lnurl_callback(
     except Exception as e:
         await update_withdraw_link(link.id, **changesback)
         return {"status": "ERROR", "reason": "Link not working"}
-

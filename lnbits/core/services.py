@@ -305,9 +305,7 @@ async def perform_lnurlauth(
 
 
 async def check_invoice_status(
-    wallet_id: str,
-    payment_hash: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:

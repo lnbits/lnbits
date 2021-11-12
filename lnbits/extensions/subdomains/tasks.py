@@ -17,6 +17,7 @@ async def wait_for_paid_invoices():
         payment = await invoice_queue.get()
         await on_invoice_paid(payment)
 
+
 # async def register_listeners():
 #     invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
 #     register_invoice_listener(invoice_paid_chan_send)

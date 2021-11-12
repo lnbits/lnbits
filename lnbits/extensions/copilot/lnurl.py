@@ -49,7 +49,7 @@ async def lnurl_callback(
             status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
         )
     amount_received = int(amount)
-    
+
     if amount_received < 10000:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
@@ -80,8 +80,5 @@ async def lnurl_callback(
         ).digest(),
         extra={"tag": "copilot", "copilotid": cp.id, "comment": comment},
     )
-    payResponse = {
-        "pr": payment_request,
-        "routes": [],
-    }
+    payResponse = {"pr": payment_request, "routes": []}
     return json.dumps(payResponse)

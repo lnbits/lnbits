@@ -93,10 +93,11 @@ async def api_usermanager_activate_extension(
 
 @usermanager_ext.post("/api/v1/wallets")
 async def api_usermanager_wallets_create(
-    data: CreateUserWallet,
-    wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateUserWallet, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    user = await create_usermanager_wallet(user_id=data.user_id, wallet_name=data.wallet_name, admin_id=data.admin_id)
+    user = await create_usermanager_wallet(
+        user_id=data.user_id, wallet_name=data.wallet_name, admin_id=data.admin_id
+    )
     return user.dict()
 
 

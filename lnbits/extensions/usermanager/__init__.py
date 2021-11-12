@@ -5,10 +5,7 @@ from lnbits.helpers import template_renderer
 
 db = Database("ext_usermanager")
 
-usermanager_ext: APIRouter = APIRouter(
-    prefix="/usermanager",
-    tags=["usermanager"]
-)
+usermanager_ext: APIRouter = APIRouter(prefix="/usermanager", tags=["usermanager"])
 
 
 def usermanager_renderer():

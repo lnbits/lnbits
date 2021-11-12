@@ -11,6 +11,7 @@ class CreateUserData(BaseModel):
     email: str = Query("")
     password: str = Query("")
 
+
 class CreateUserWallet(BaseModel):
     user_id: str = Query(...)
     wallet_name: str = Query(...)

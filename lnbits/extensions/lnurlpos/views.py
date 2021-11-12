@@ -54,6 +54,5 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
             "lnurlpos/paid.html", {"request": request, "pin": lnurlpospayment.pin}
         )
     return lnurlpos_renderer().TemplateResponse(
-        "lnurlpos/error.html",
-        {"request": request, "pin": "filler", "not_paid": True},
+        "lnurlpos/error.html", {"request": request, "pin": "filler", "not_paid": True}
     )

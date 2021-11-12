@@ -67,8 +67,7 @@ async def update_current_track(ls_id: int, track_id: Optional[int]):
 
 async def update_livestream_fee(ls_id: int, fee_pct: int):
     await db.execute(
-        "UPDATE livestream.livestreams SET fee_pct = ? WHERE id = ?",
-        (fee_pct, ls_id),
+        "UPDATE livestream.livestreams SET fee_pct = ? WHERE id = ?", (fee_pct, ls_id)
     )
 
 

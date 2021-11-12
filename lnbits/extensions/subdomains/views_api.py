@@ -28,7 +28,9 @@ from .crud import (
 
 
 @subdomains_ext.get("/api/v1/domains")
-async def api_domains(g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+async def api_domains(
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+):
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
@@ -39,19 +41,19 @@ async def api_domains(g: WalletTypeInfo = Depends(get_key_type), all_wallets: bo
 
 @subdomains_ext.post("/api/v1/domains")
 @subdomains_ext.put("/api/v1/domains/{domain_id}")
-async def api_domain_create(data: CreateDomain, domain_id=None, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_domain_create(
+    data: CreateDomain, domain_id=None, g: WalletTypeInfo = Depends(get_key_type)
+):
     if domain_id:
         domain = await get_domain(domain_id)
 
         if not domain:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Domain does not exist."
+                status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
             )
         if domain.wallet != g.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your domain."
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your domain."
             )
 
         domain = await update_domain(domain_id, **data.dict())
@@ -66,14 +68,10 @@ async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)
 
     if not domain:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Domain does not exist."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
+        )
     if domain.wallet != g.wallet.id:
-        raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your domain."
-            )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your domain.")
 
     await delete_domain(domain_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -83,7 +81,9 @@ async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)
 
 
 @subdomains_ext.get("/api/v1/subdomains")
-async def api_subdomains(all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)):
+async def api_subdomains(
+    all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)
+):
     wallet_ids = [g.wallet.id]
 
     if all_wallets:
@@ -99,22 +99,21 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
     # If the request is coming for the non-existant domain
     if not domain:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="LNsubdomain does not exist."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="LNsubdomain does not exist."
+        )
     ## If record_type is not one of the allowed ones reject the request
     if data.record_type not in domain.allowed_record_types:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"{data.record_type} not a valid record."
-            )
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"{data.record_type} not a valid record.",
+        )
 
     ## If domain already exist in our database reject it
     if await get_subdomainBySubdomain(data.subdomain) is not None:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"{data.subdomain}.{domain.domain} domain already taken."
-            )
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"{data.subdomain}.{domain.domain} domain already taken.",
+        )
 
     ## Dry run cloudflare... (create and if create is sucessful delete it)
     cf_response = await cloudflare_create_subdomain(
@@ -124,12 +123,14 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
         ip=data.ip,
     )
     if cf_response["success"] == True:
-        await cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
+        await cloudflare_deletesubdomain(
+            domain=domain, domain_id=cf_response["result"]["id"]
+        )
     else:
         raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f'Problem with cloudflare: {cf_response["errors"][0]["message"]}'
-            )
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f'Problem with cloudflare: {cf_response["errors"][0]["message"]}',
+        )
 
     ## ALL OK - create an invoice and return it to the user
     sats = data.sats
@@ -142,10 +143,7 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
             extra={"tag": "lnsubdomain"},
         )
     except Exception as e:
-        raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=str(e)
-            )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     subdomain = await create_subdomain(
         payment_hash=payment_hash, wallet=domain.wallet, data=data
@@ -153,9 +151,8 @@ async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
 
     if not subdomain:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="LNsubdomain could not be fetched."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="LNsubdomain could not be fetched."
+        )
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
@@ -181,15 +178,13 @@ async def api_subdomain_delete(subdomain_id, g: WalletTypeInfo = Depends(get_key
 
     if not subdomain:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="LNsubdomain does not exist."
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="LNsubdomain does not exist."
+        )
 
     if subdomain.wallet != g.wallet.id:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your subdomain."
-            )
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your subdomain."
+        )
 
     await delete_subdomain(subdomain_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

@@ -74,6 +74,7 @@ async def get_tickets(wallet_ids: Union[str, List[str]]) -> List[Tickets]:
 async def delete_ticket(payment_hash: str) -> None:
     await db.execute("DELETE FROM events.ticket WHERE id = ?", (payment_hash,))
 
+
 async def delete_event_tickets(event_id: str) -> None:
     await db.execute("DELETE FROM events.tickets WHERE event = ?", (event_id,))
 
@@ -81,9 +82,7 @@ async def delete_event_tickets(event_id: str) -> None:
 # EVENTS
 
 
-async def create_event(
-    data: CreateEvent
-) -> Events:
+async def create_event(data: CreateEvent) -> Events:
     event_id = urlsafe_short_hash()
     await db.execute(
         """
