@@ -5,6 +5,19 @@ nav_order: 2
 ---
 
 # Basic installation
+Install Postgres and setup a database for LNbits:
+```sh
+# on debian/ubuntu 'sudo apt-get -y install postgresql'
+# or follow instructions at https://www.postgresql.org/download/linux/
+
+# Postgres doesn't have a default password, so we'll create one.
+sudo -i -u postgres psql
+# on psql
+ALTER USER postgres PASSWORD 'myPassword'; # choose whatever password you want
+createdb lnbits
+\q
+exit
+```
 
 Download this repo and install the dependencies:
 
@@ -16,7 +29,10 @@ cd lnbits/
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
-mkdir data
+# add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
+# postgres://<user>:<password>@<host>/<database> - alter line bellow with your user, password and db name
+LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
+# save and exit
 ./venv/bin/uvicorn lnbits.__main__:app --port 5000
 ```
 
@@ -27,6 +43,10 @@ Now modify the `.env` file with any settings you prefer and add a proper [fundin
 Then you can restart it and it will be using the new settings.
 
 You might also need to install additional packages or perform additional setup steps, depending on the chosen backend. See [the short guide](./wallets.md) on each different funding source.
+
+## Important note
+If you already have LNbits installed and running, we **HIGHLY** recommend you migrate to postgres!
+You can use the script and instructions on [this guide](https://github.com/talvasconcelos/lnbits-sqlite-to-postgres) to migrate your SQLite database to Postgres.
 
 # Additional guides
 
