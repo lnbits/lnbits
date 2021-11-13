@@ -21,7 +21,8 @@ class LndRestWallet(Wallet):
         endpoint = getenv("LND_REST_ENDPOINT")
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
-            "https://" + endpoint if not endpoint.startswith("http") else endpoint
+            "https://" +
+            endpoint if not endpoint.startswith("http") else endpoint
         )
         self.endpoint = endpoint
 
@@ -109,8 +110,9 @@ class LndRestWallet(Wallet):
         data = r.json()
         payment_hash = data["payment_hash"]
         checking_id = payment_hash
+        fee_msat = int(data["payment_route"]["total_fees_msat"])
         preimage = base64.b64decode(data["payment_preimage"]).hex()
-        return PaymentResponse(True, checking_id, 0, preimage, None)
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
@@ -177,7 +179,8 @@ class LndRestWallet(Wallet):
                             except:
                                 continue
 
-                            payment_hash = base64.b64decode(inv["r_hash"]).hex()
+                            payment_hash = base64.b64decode(
+                                inv["r_hash"]).hex()
                             yield payment_hash
             except (OSError, httpx.ConnectError, httpx.ReadError):
                 pass
