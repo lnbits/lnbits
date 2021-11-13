@@ -84,72 +84,74 @@ async def pay_invoice(
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
-    temp_id = f"temp_{urlsafe_short_hash()}"
-    internal_id = f"internal_{urlsafe_short_hash()}"
+    async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
+        temp_id = f"temp_{urlsafe_short_hash()}"
+        internal_id = f"internal_{urlsafe_short_hash()}"
 
-    invoice = bolt11.decode(payment_request)
-    if invoice.amount_msat == 0:
-        raise ValueError("Amountless invoices not supported.")
-    if max_sat and invoice.amount_msat > max_sat * 1000:
-        raise ValueError("Amount in invoice is too high.")
+        invoice = bolt11.decode(payment_request)
+        if invoice.amount_msat == 0:
+            raise ValueError("Amountless invoices not supported.")
+        if max_sat and invoice.amount_msat > max_sat * 1000:
+            raise ValueError("Amount in invoice is too high.")
 
-    # put all parameters that don't change here
-    PaymentKwargs = TypedDict(
-        "PaymentKwargs",
-        {
-            "wallet_id": str,
-            "payment_request": str,
-            "payment_hash": str,
-            "amount": int,
-            "memo": str,
-            "extra": Optional[Dict],
-        },
-    )
-    payment_kwargs: PaymentKwargs = dict(
-        wallet_id=wallet_id,
-        payment_request=payment_request,
-        payment_hash=invoice.payment_hash,
-        amount=-invoice.amount_msat,
-        memo=description or invoice.description or "",
-        extra=extra,
-    )
-
-    # check_internal() returns the checking_id of the invoice we're waiting for
-    internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
-    if internal_checking_id:
-        # create a new payment from this wallet
-        await create_payment(
-            checking_id=internal_id,
-            fee=0,
-            pending=False,
-            conn=conn,
-            **payment_kwargs,
+        # put all parameters that don't change here
+        PaymentKwargs = TypedDict(
+            "PaymentKwargs",
+            {
+                "wallet_id": str,
+                "payment_request": str,
+                "payment_hash": str,
+                "amount": int,
+                "memo": str,
+                "extra": Optional[Dict],
+            },
         )
-    else:
-        # create a temporary payment here so we can check if
-        # the balance is enough in the next step
-        await create_payment(
-            checking_id=temp_id,
-            fee=-fee_reserve(invoice.amount_msat),
-            conn=conn,
-            **payment_kwargs,
+        payment_kwargs: PaymentKwargs = dict(
+            wallet_id=wallet_id,
+            payment_request=payment_request,
+            payment_hash=invoice.payment_hash,
+            amount=-invoice.amount_msat,
+            memo=description or invoice.description or "",
+            extra=extra,
         )
 
-    # do the balance check
-    wallet = await get_wallet(wallet_id, conn=conn)
-    assert wallet
-    if wallet.balance_msat < 0:
-        raise PermissionError("Insufficient balance.")
+        # check_internal() returns the checking_id of the invoice we're waiting for
+        internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
+        if internal_checking_id:
+            # create a new payment from this wallet
+            await create_payment(
+                checking_id=internal_id,
+                fee=0,
+                pending=False,
+                conn=conn,
+                **payment_kwargs,
+            )
+        else:
+            # create a temporary payment here so we can check if
+            # the balance is enough in the next step
+            await create_payment(
+                checking_id=temp_id,
+                fee=-fee_reserve(invoice.amount_msat),
+                conn=conn,
+                **payment_kwargs,
+            )
+
+        # do the balance check
+        wallet = await get_wallet(wallet_id, conn=conn)
+        assert wallet
+        if wallet.balance_msat < 0:
+            raise PermissionError("Insufficient balance.")
 
     if internal_checking_id:
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
         # the payer has enough to deduct from
-        await update_payment_status(
-            checking_id=internal_checking_id,
-            pending=False,
-            conn=conn,
-        )
+        async with db.connect() as conn:
+            await update_payment_status(
+                checking_id=internal_checking_id,
+                pending=False,
+                conn=conn,
+            )
 
         # notify receiver asynchronously
         from lnbits.tasks import internal_invoice_paid
@@ -159,7 +161,7 @@ async def pay_invoice(
         # actually pay the external invoice
         payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
         if payment.checking_id:
-            async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
+            async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
                     fee=payment.fee_msat,
@@ -324,7 +326,8 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        print(
+            f" - deleting outgoing failed payment {payment.checking_id}: {status}")
         await payment.delete()
     elif not status.pending:
         print(
