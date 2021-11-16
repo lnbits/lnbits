@@ -69,7 +69,7 @@ async def displaywin(
     request: Request, link_id: str = Query(None), payment_hash: str = Query(None)
 ):
     satsdicelink = await get_satsdice_pay(link_id)
-    if not satsdiceLink:
+    if not satsdicelink:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
         )
