@@ -73,13 +73,13 @@ async def displaywin(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
         )
-    if satsdicelink.lost:
+
+    withdrawLink = await get_satsdice_withdraw(payment_hash)
+    if withdrawLink.lost:
         return satsdice_renderer().TemplateResponse(
             "satsdice/error.html",
             {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
         )
-
-    withdrawLink = await get_satsdice_withdraw(payment_hash)
     if withdrawLink:
         return satsdice_renderer().TemplateResponse(
             "satsdice/displaywin.html",
