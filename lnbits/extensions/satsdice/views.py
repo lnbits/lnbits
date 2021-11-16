@@ -73,7 +73,7 @@ async def displaywin(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
         )
-    if satsdiceLink.lost:
+    if satsdicelink.lost:
         return satsdice_renderer().TemplateResponse(
             "satsdice/error.html",
             {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
