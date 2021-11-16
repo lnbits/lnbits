@@ -1,9 +1,10 @@
-import os
 import asyncio
-import time
 import datetime
-from typing import Optional
+import os
+import time
 from contextlib import asynccontextmanager
+from typing import Optional
+
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore
@@ -93,6 +94,12 @@ class Database(Compat):
 
             import psycopg2  # type: ignore
 
+            def _parse_timestamp(value, _):
+                f = "%Y-%m-%d %H:%M:%S.%f"
+                if not "." in value:
+                    f = "%Y-%m-%d %H:%M:%S"
+                return time.mktime(datetime.datetime.strptime(value, f).timetuple())
+
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
                     psycopg2.extensions.DECIMAL.values,
@@ -114,11 +121,12 @@ class Database(Compat):
                 psycopg2.extensions.new_type(
                     (1184, 1114),
                     "TIMESTAMP2INT",
-                    lambda value, curs: time.mktime(
-                        datetime.datetime.strptime(
-                            value, "%Y-%m-%d %H:%M:%S.%f"
-                        ).timetuple()
-                    ),
+                    _parse_timestamp
+                    # lambda value, curs: time.mktime(
+                    #     datetime.datetime.strptime(
+                    #         value, "%Y-%m-%d %H:%M:%S.%f"
+                    #     ).timetuple()
+                    # ),
                 )
             )
         else:

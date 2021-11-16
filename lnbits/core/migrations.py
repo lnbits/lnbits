@@ -64,7 +64,7 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE VIEW IF NOT EXISTS balances AS
+        CREATE VIEW balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
             FROM apipayments
@@ -144,7 +144,7 @@ async def m004_ensure_fees_are_always_negative(db):
     await db.execute("DROP VIEW balances")
     await db.execute(
         """
-        CREATE VIEW IF NOT EXISTS balances AS
+        CREATE VIEW balances AS
         SELECT wallet, COALESCE(SUM(s), 0) AS balance FROM (
             SELECT wallet, SUM(amount) AS s  -- incoming
             FROM apipayments
