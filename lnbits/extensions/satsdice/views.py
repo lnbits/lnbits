@@ -74,8 +74,8 @@ async def displaywin(
             status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
         )
 
-    withdrawLink = await get_satsdice_withdraw(payment_hash)
-    if withdrawLink.lost:
+    payment = await get_satsdice_payment(payment_hash)
+    if payment.lost:
         return satsdice_renderer().TemplateResponse(
             "satsdice/error.html",
             {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
