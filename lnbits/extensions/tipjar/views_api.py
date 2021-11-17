@@ -172,7 +172,7 @@ async def api_delete_tip(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="No tip with this ID!"
         )
-    if tip.wallet != g.wallet.id:
+    if tip.wallet != wallet.wallet.id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
             detail="Not authorized to delete this tip!",
@@ -192,7 +192,7 @@ async def api_delete_tipjar(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="No tipjar with this ID!"
         )
-    if tipjar.wallet != g.wallet.id:
+    if tipjar.wallet != wallet.wallet.id:
 
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
