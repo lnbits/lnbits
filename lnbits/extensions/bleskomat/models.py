@@ -124,7 +124,8 @@ class BleskomatLnurl(BaseModel):
                     )
                 except (ValueError, PermissionError, PaymentFailure) as e:
                     raise LnurlValidationError("Failed to pay invoice: " + str(e))
-                except Exception:
+                except Exception as e:
+                    print(str(e))
                     raise LnurlValidationError("Unexpected error")
 
     async def use(self, conn) -> bool:

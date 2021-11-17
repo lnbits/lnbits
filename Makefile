@@ -1,3 +1,5 @@
+.PHONY: test
+
 all: format check requirements.txt
 
 format: prettier black
@@ -26,3 +28,10 @@ Pipfile.lock: Pipfile
 
 requirements.txt: Pipfile.lock
 	cat Pipfile.lock | jq -r '.default | map_values(.version) | to_entries | map("\(.key)\(.value)") | join("\n")' > requirements.txt
+
+test:
+	rm -rf ./tests/data
+	mkdir -p ./tests/data
+	LNBITS_DATA_FOLDER="./tests/data" \
+	PYTHONUNBUFFERED=1 \
+	./venv/bin/pytest -s
