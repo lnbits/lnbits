@@ -73,8 +73,13 @@ async def displaywin(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="satsdice link does not exist."
         )
-
     withdrawLink = await get_satsdice_withdraw(payment_hash)
+    payment = await get_satsdice_payment(payment_hash)
+    if payment.lost:
+        return satsdice_renderer().TemplateResponse(
+            "satsdice/error.html",
+            {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
+        )
     if withdrawLink:
         return satsdice_renderer().TemplateResponse(
             "satsdice/displaywin.html",
@@ -92,6 +97,7 @@ async def displaywin(
     chance = satsdicelink.chance
     status = await api_payment(payment_hash)
     if not rand < chance or not status["paid"]:
+        await update_satsdice_payment(payment_hash, lost=1)
         return satsdice_renderer().TemplateResponse(
             "satsdice/error.html",
             {"request": request, "link": satsdicelink.id, "paid": False, "lost": True},
