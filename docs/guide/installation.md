@@ -47,8 +47,23 @@ Then you can restart it and it will be using the new settings.
 You might also need to install additional packages or perform additional setup steps, depending on the chosen backend. See [the short guide](./wallets.md) on each different funding source.
 
 ## Important note
-If you already have LNbits installed and running, we **HIGHLY** recommend you migrate to postgres!
-You can use the script and instructions on [this guide](https://github.com/talvasconcelos/lnbits-sqlite-to-postgres) to migrate your SQLite database to Postgres.
+If you already have LNbits installed and running, on an SQLite database, we **HIGHLY** recommend you migrate to postgres!
+
+There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user, check the guide above.
+```sh
+# STOP LNbits
+# on the LNBits folder, locate and edit 'conv.py' with the relevant credentials
+python3 conv.py
+
+# add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
+# postgres://<user>:<password>@<host>/<database> - alter line bellow with your user, password and db name
+LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
+# save and exit
+```
+
+Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
+
+
 
 # Additional guides
 
