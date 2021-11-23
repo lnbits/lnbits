@@ -347,7 +347,6 @@
           )
           .then(function (response) {
             if (response.data) {
-              console.log(response.data)
               self.lnurlposLinks = response.data.map(maplnurlpos)
             }
           })
