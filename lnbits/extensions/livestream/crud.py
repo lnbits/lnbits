@@ -36,8 +36,8 @@ async def get_livestream(ls_id: int) -> Optional[Livestream]:
 async def get_livestream_by_track(track_id: int) -> Optional[Livestream]:
     row = await db.fetchone(
         """
-        SELECT livestreams.* FROM livestream.livestreams
-        INNER JOIN tracks ON tracks.livestream = livestreams.id
+        SELECT livestreams.* AS livestreams FROM livestream.livestreams
+        INNER JOIN livestream.tracks AS tracks ON tracks.livestream = livestreams.id
         WHERE tracks.id = ?
         """,
         (track_id,),

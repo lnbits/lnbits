@@ -91,7 +91,7 @@ async def print_qr(request: Request, link_id):
 
         return withdraw_renderer().TemplateResponse(
             "withdraw/print_qr.html",
-            {"request": request, "link": link.dict(), unique: False},
+            {"request": request, "link": link.dict(), "unique": False},
         )
     links = []
     count = 0
