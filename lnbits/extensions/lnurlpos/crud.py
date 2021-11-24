@@ -8,7 +8,9 @@ from .models import lnurlposs, lnurlpospayment, createLnurlpos
 ###############lnurlposS##########################
 
 
-async def create_lnurlpos(data: createLnurlpos,) -> lnurlposs:
+async def create_lnurlpos(
+    data: createLnurlpos,
+) -> lnurlposs:
     print(data)
     lnurlpos_id = urlsafe_short_hash()
     lnurlpos_key = urlsafe_short_hash()
@@ -59,6 +61,7 @@ async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
     )
 
     return [lnurlposs(**row) if row else None for row in rows]
+
 
 async def delete_lnurlpos(lnurlpos_id: str) -> None:
     await db.execute("DELETE FROM lnurlpos.lnurlposs WHERE id = ?", (lnurlpos_id,))

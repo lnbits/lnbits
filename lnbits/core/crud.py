@@ -278,7 +278,9 @@ async def get_payments(
     return [Payment.from_row(row) for row in rows]
 
 
-async def delete_expired_invoices(conn: Optional[Connection] = None,) -> None:
+async def delete_expired_invoices(
+    conn: Optional[Connection] = None,
+) -> None:
     # first we delete all invoices older than one month
     await (conn or db).execute(
         f"""

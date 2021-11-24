@@ -1,5 +1,5 @@
 ## Python script to migrate an LNbits SQLite DB to Postgres
-## All credits to @Fritz446 for the awesome work 
+## All credits to @Fritz446 for the awesome work
 
 ## pip install psycopg2 OR psycopg2-binary
 

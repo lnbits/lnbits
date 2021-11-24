@@ -2,9 +2,7 @@ from lnbits.extensions.lnaddress.models import Domains
 import httpx, json
 
 
-async def cloudflare_create_record(
-    domain: Domains, ip: str
-):
+async def cloudflare_create_record(domain: Domains, ip: str):
     url = (
         "https://api.cloudflare.com/client/v4/zones/"
         + domain.cf_zone_id

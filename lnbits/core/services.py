@@ -316,8 +316,7 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        print(
-            f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
         await payment.delete()
     elif not status.pending:
         print(
