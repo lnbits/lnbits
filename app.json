@@ -1,7 +1,1 @@
-{
-  "scripts": {
-    "dokku": {
-      "predeploy": "quart migrate && quart assets"
-    }
-  }
-}
+{"scripts": {"dokku": {"predeploy": "quart migrate && quart assets"}}}

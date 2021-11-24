@@ -14,7 +14,7 @@ async def create_tip(
     sats: int,
     tipjar: int,
     name: str = "Anonymous",
-    message: str = ""
+    message: str = "",
 ) -> Tip:
     """Create a new Tip"""
     await db.execute(
@@ -59,12 +59,7 @@ async def create_tipjar(
         VALUES (?, ?, ?, ?)
         {returning}
         """,
-        (
-            name,
-            wallet,
-            webhook,
-            onchain
-        ),
+        (name, wallet, webhook, onchain),
     )
     if db.type == SQLITE:
         tipjar_id = result._result_proxy.lastrowid
@@ -78,9 +73,7 @@ async def create_tipjar(
 
 async def get_tipjar(tipjar_id: int) -> Optional[TipJar]:
     """Return a tipjar by ID"""
-    row = await db.fetchone(
-        "SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,)
-    )
+    row = await db.fetchone("SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
     return TipJar.from_row(row) if row else None
 
 
@@ -95,26 +88,20 @@ async def get_tipjars(wallet_id: str) -> Optional[list]:
 async def delete_tipjar(tipjar_id: int) -> None:
     """Delete a TipJar and all corresponding Tips"""
     await db.execute("DELETE FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
-    rows = await db.fetchall(
-        "SELECT * FROM tipjar.Tips WHERE tipjar = ?", (tipjar_id,)
-    )
+    rows = await db.fetchall("SELECT * FROM tipjar.Tips WHERE tipjar = ?", (tipjar_id,))
     for row in rows:
         await delete_tip(row["id"])
 
 
 async def get_tip(tip_id: str) -> Optional[Tip]:
     """Return a Tip"""
-    row = await db.fetchone(
-        "SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,)
-    )
+    row = await db.fetchone("SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,))
     return Tip.from_row(row) if row else None
 
 
 async def get_tips(wallet_id: str) -> Optional[list]:
     """Return all Tips assigned to wallet_id"""
-    rows = await db.fetchall(
-        "SELECT * FROM tipjar.Tips WHERE wallet = ?", (wallet_id,)
-    )
+    rows = await db.fetchall("SELECT * FROM tipjar.Tips WHERE wallet = ?", (wallet_id,))
     return [Tip.from_row(row) for row in rows] if rows else None
 
 
@@ -131,9 +118,7 @@ async def update_tip(tip_id: str, **kwargs) -> Tip:
         f"UPDATE tipjar.Tips SET {q} WHERE id = ?",
         (*kwargs.values(), tip_id),
     )
-    row = await db.fetchone(
-        "SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,)
-    )
+    row = await db.fetchone("SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,))
     assert row, "Newly updated tip couldn't be retrieved"
     return Tip(**row)
 
@@ -145,8 +130,6 @@ async def update_tipjar(tipjar_id: str, **kwargs) -> TipJar:
         f"UPDATE tipjar.TipJars SET {q} WHERE id = ?",
         (*kwargs.values(), tipjar_id),
     )
-    row = await db.fetchone(
-        "SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,)
-    )
+    row = await db.fetchone("SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
     assert row, "Newly updated tipjar couldn't be retrieved"
     return TipJar(**row)

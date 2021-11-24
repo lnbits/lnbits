@@ -14,6 +14,6 @@ async def get_charge_details(tipjar_id):
         "lnbitswallet": wallet_id,
         "onchainwallet": tipjar.onchain,
         "completelink": "/tipjar/" + str(tipjar_id),
-        "completelinktext": "Thanks for the tip!"
+        "completelinktext": "Thanks for the tip!",
     }
     return details

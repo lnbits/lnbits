@@ -6,6 +6,7 @@ from pyngrok import conf, ngrok
 from . import ngrok_ext
 from os import getenv
 
+
 def log_event_callback(log):
     string = str(log)
     string2 = string[string.find('url="https') : string.find('url="https') + 40]

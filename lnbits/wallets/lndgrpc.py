@@ -191,7 +191,7 @@ class LndWallet(Wallet):
                 ),
             )
 
-            if self.macaroon_path.split('.')[-1] == 'macaroon':
+            if self.macaroon_path.split(".")[-1] == "macaroon":
                 macaroon = load_macaroon(self.macaroon_path)
             else:
                 macaroon = self.macaroon_path

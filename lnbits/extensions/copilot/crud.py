@@ -89,17 +89,23 @@ async def update_copilot(copilot_id: str, **kwargs) -> Optional[Copilots]:
     await db.execute(
         f"UPDATE copilot.copilots SET {q} WHERE id = ?", (*kwargs.values(), copilot_id)
     )
-    row = await db.fetchone("SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,))
+    row = await db.fetchone(
+        "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
+    )
     return Copilots.from_row(row) if row else None
 
 
 async def get_copilot(copilot_id: str) -> Copilots:
-    row = await db.fetchone("SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,))
+    row = await db.fetchone(
+        "SELECT * FROM copilot.copilots WHERE id = ?", (copilot_id,)
+    )
     return Copilots.from_row(row) if row else None
 
 
 async def get_copilots(user: str) -> List[Copilots]:
-    rows = await db.fetchall("""SELECT * FROM copilot.copilots WHERE "user" = ?""", (user,))
+    rows = await db.fetchall(
+        """SELECT * FROM copilot.copilots WHERE "user" = ?""", (user,)
+    )
     return [Copilots.from_row(row) for row in rows]
 
 
