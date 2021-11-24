@@ -329,7 +329,8 @@
       chanceValueCalc() {
         this.chanceValue = (
           (1 / this.multiValue) * 100 -
-          this.formDialog.data.haircut
+          this.formDialog.data.haircut -
+          (1 / this.multiValue) * 10
         ).toFixed(2)
         return this.chanceValue
       }
@@ -446,7 +447,7 @@
               key === 'success_url') &&
             (value === null || value === '')
         )
-        
+
         LNbits.api
           .request(
             'PUT',

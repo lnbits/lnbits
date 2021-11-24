@@ -148,7 +148,7 @@ async def api_lnurlw_callback(
         return {"status": "ERROR", "reason": "no withdraw"}
     if link.used:
         return {"status": "ERROR", "reason": "spent"}
-
+    print("winner")
     paylink = await get_satsdice_pay(link.satsdice_pay)
 
     await update_satsdice_withdraw(link.id, used=1)
