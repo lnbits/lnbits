@@ -18,10 +18,7 @@ templates = Jinja2Templates(directory="templates")
 
 @lnaddress_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return lnaddress_renderer().TemplateResponse(
-        "lnaddress/index.html", {"request": request, "user": user.dict()}
-    )
-
+    return lnaddress_renderer().TemplateResponse("lnaddress/index.html", {"request": request, "user": user.dict()})
 
 @lnaddress_ext.get("/{domain_id}")
 async def display(domain_id, request: Request):
@@ -36,12 +33,11 @@ async def display(domain_id, request: Request):
     wallet = await get_wallet(domain.wallet)
 
     return lnaddress_renderer().TemplateResponse(
-        "lnaddress/display.html",
-        {
+        "lnaddress/display.html",{
             "request": request,
-            "domain_id": domain.id,
+            "domain_id":domain.id,
             "domain_domain": domain.domain,
             "domain_cost": domain.cost,
-            "domain_wallet_inkey": wallet.inkey,
-        },
+            "domain_wallet_inkey": wallet.inkey
+        }
     )

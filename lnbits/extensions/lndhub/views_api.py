@@ -108,9 +108,7 @@ async def lndhub_payinvoice(
 
 
 @lndhub_ext.get("/ext/balance")
-async def lndhub_balance(
-    wallet: WalletTypeInfo = Depends(check_wallet),
-):
+async def lndhub_balance(wallet: WalletTypeInfo = Depends(check_wallet),):
     return {"BTC": {"AvailableBalance": wallet.wallet.balance}}
 
 
