@@ -472,6 +472,7 @@
             this.payLinks.push(mapPayLink(response.data))
             this.formDialog.show = false
             this.resetFormData()
+            this.getPayLinks()
           })
           .catch(err => {
             LNbits.utils.notifyApiError(err)
