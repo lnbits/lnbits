@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 from http import HTTPStatus
+from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from starlette.requests import Request
@@ -15,8 +16,9 @@ from ..tasks import api_invoice_listeners
 @core_app.get("/.well-known/lnurlp/{username}")
 async def lnaddress(username: str, request: Request):
     from lnbits.extensions.lnaddress.lnurl import lnurl_response
-    domain = request.client.host
-    print("client", domain)
+    domain = request.client
+    root_url = urlparse(str(request.url)).netloc
+    print("client", root_url, request.client)
     return await lnurl_response(username, domain, request)
 
 
