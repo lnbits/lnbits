@@ -97,7 +97,6 @@ async def post_donation(donation_id: str) -> tuple:
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, data=data)
-        print(response.json())
         status = [s for s in list(HTTPStatus) if s == response.status_code][0]
     elif service.servicename == "StreamElements":
         return {"message": "StreamElements not yet supported!"}
@@ -191,10 +190,8 @@ async def authenticate_service(service_id, code, redirect_uri):
         "client_secret": service.client_secret,
         "redirect_uri": redirect_uri,
     }
-    print(data)
     async with httpx.AsyncClient() as client:
         response = (await client.post(url, data=data)).json()
-    print(response)
     token = response["access_token"]
     success = await service_add_token(service_id, token)
     return f"/streamalerts/?usr={user}", success

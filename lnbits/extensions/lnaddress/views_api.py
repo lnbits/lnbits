@@ -159,7 +159,6 @@ async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, 
             )
 
     if user:
-        print("USER", user, domain.domain)
         address = await get_address_by_username(user, domain.domain)
 
         if not address:

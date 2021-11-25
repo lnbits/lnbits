@@ -1,6 +1,6 @@
 from lnbits.core.crud import get_wallet
+
 from .crud import get_tipjar
-import json
 
 
 async def get_charge_details(tipjar_id):

@@ -7,7 +7,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.satspay import satspay_ext
-from lnbits.core.views.api import api_payment
+
 from .crud import (
     check_address_balance,
     create_charge,

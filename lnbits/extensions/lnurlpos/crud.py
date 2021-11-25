@@ -1,15 +1,14 @@
-from datetime import datetime
 from typing import List, Optional, Union
+
 from lnbits.helpers import urlsafe_short_hash
-from typing import List, Optional
+
 from . import db
-from .models import lnurlposs, lnurlpospayment, createLnurlpos
+from .models import createLnurlpos, lnurlpospayment, lnurlposs
 
 ###############lnurlposS##########################
 
 
 async def create_lnurlpos(data: createLnurlpos,) -> lnurlposs:
-    print(data)
     lnurlpos_id = urlsafe_short_hash()
     lnurlpos_key = urlsafe_short_hash()
     await db.execute(

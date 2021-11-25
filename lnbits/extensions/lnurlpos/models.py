@@ -1,16 +1,14 @@
 import json
-from lnurl import Lnurl, LnurlWithdrawResponse, encode as lnurl_encode  # type: ignore
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
-from lnurl.types import LnurlPayMetadata  # type: ignore
-from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 from sqlite3 import Row
-from typing import NamedTuple, Optional, Dict
-import shortuuid  # type: ignore
-from fastapi.param_functions import Query
-from pydantic.main import BaseModel
-from pydantic import BaseModel
 from typing import Optional
-from fastapi import FastAPI, Request
+
+from fastapi import Request
+from lnurl import Lnurl
+from lnurl import encode as lnurl_encode  # type: ignore
+from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from pydantic import BaseModel
+from pydantic.main import BaseModel
 
 
 class createLnurlpos(BaseModel):

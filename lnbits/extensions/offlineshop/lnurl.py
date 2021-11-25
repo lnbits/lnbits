@@ -1,20 +1,19 @@
 import hashlib
-from lnbits.extensions.offlineshop.models import Item
-from fastapi.params import Query
 
-from starlette.requests import Request
-from lnbits.helpers import url_for
-from lnurl import (
-    LnurlPayResponse,
-    LnurlPayActionResponse,
+from fastapi.params import Query
+from lnurl import (  # type: ignore
     LnurlErrorResponse,
-)  # type: ignore
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+)
+from starlette.requests import Request
 
 from lnbits.core.services import create_invoice
+from lnbits.extensions.offlineshop.models import Item
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import offlineshop_ext
-from .crud import get_shop, get_item
+from .crud import get_item, get_shop
 
 
 @offlineshop_ext.get("/lnurl/{item_id}", name="offlineshop.lnurl_response")

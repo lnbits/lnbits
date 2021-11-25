@@ -1,6 +1,3 @@
-from sqlalchemy.exc import OperationalError  # type: ignore
-
-
 async def m001_initial(db):
     """
     Initial paywalls table.

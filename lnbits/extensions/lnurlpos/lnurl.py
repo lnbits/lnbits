@@ -1,30 +1,21 @@
-import json
 import hashlib
-import math
-from lnurl import (
-    LnurlPayResponse,
-    LnurlPayActionResponse,
-    LnurlErrorResponse,
-)  # type: ignore
-from lnurl.types import LnurlPayMetadata
-from lnbits.core.services import create_invoice
-from hashlib import md5
+from http import HTTPStatus
+
 from fastapi import Request
 from fastapi.param_functions import Query
-from . import lnurlpos_ext
-from fastapi.templating import Jinja2Templates
+from lnurl import LnurlPayActionResponse, LnurlPayResponse  # type: ignore
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-from http import HTTPStatus
-from fastapi.params import Depends
-from fastapi.param_functions import Query
+
+from lnbits.core.services import create_invoice
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+
+from . import lnurlpos_ext
 from .crud import (
-    get_lnurlpos,
     create_lnurlpospayment,
+    get_lnurlpos,
     get_lnurlpospayment,
     update_lnurlpospayment,
 )
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 
 @lnurlpos_ext.get(
@@ -92,9 +83,7 @@ async def lnurl_response(
     name="lnurlpos.lnurl_callback",
 )
 async def lnurl_callback(request: Request, paymentid: str = Query(None)):
-    print("lnurlpospayment")
     lnurlpospayment = await get_lnurlpospayment(paymentid)
-    print(lnurlpospayment)
     pos = await get_lnurlpos(lnurlpospayment.posid)
     if not pos:
         raise HTTPException(

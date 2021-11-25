@@ -77,7 +77,6 @@ async def get_subdomainBySubdomain(subdomain: str) -> Optional[Subdomains]:
         "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
         (subdomain,),
     )
-    print(row)
     return Subdomains(**row) if row else None
 
 

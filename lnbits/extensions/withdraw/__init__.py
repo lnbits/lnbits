@@ -18,7 +18,6 @@ withdraw_static_files = [
 withdraw_ext: APIRouter = APIRouter(
     prefix="/withdraw",
     tags=["withdraw"],
-    # "withdraw", __name__, static_folder="static", template_folder="templates"
 )
 
 
@@ -29,7 +28,3 @@ def withdraw_renderer():
 from .lnurl import *  # noqa
 from .views import *  # noqa
 from .views_api import *  # noqa
-
-# @withdraw_ext.on_event("startup")
-# def _do_it():
-#     register_listeners()

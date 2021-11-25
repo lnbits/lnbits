@@ -1,30 +1,28 @@
 from http import HTTPStatus
-import json
-from fastapi import Request
+
 from fastapi.param_functions import Query
 from fastapi.params import Depends
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
-from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.core.crud import get_user
+from lnbits.decorators import WalletTypeInfo, get_key_type
 
+from ..satspay.crud import create_charge
 from . import tipjar_ext
-from .helpers import get_charge_details
 from .crud import (
-    create_tipjar,
-    get_tipjar,
     create_tip,
-    get_tipjars,
+    create_tipjar,
+    delete_tip,
+    delete_tipjar,
     get_tip,
+    get_tipjar,
+    get_tipjars,
     get_tips,
     update_tip,
     update_tipjar,
-    delete_tip,
-    delete_tipjar,
 )
-from ..satspay.crud import create_charge
-from .models import createTipJar, createTips, createTip, CreateCharge
+from .helpers import get_charge_details
+from .models import CreateCharge, createTipJar, createTips
 
 
 @tipjar_ext.post("/api/v1/tipjars")
@@ -54,7 +52,6 @@ async def api_create_tip(data: createTips):
 
     webhook = tipjar.webhook
     charge_details = await get_charge_details(tipjar.id)
-    print(charge_details["time"])
     name = data.name
     # Ensure that description string can be split reliably
     name = name.replace('"', "''")

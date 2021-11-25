@@ -1,13 +1,13 @@
-from fastapi.param_functions import Depends
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-from starlette.requests import Request
-from lnbits.core.models import User
-from lnbits.core.crud import get_wallet
-from lnbits.decorators import check_user_exists
 from http import HTTPStatus
 
+from fastapi.param_functions import Depends
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
+
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
 
 from . import satspay_ext, satspay_renderer
 from .crud import get_charge

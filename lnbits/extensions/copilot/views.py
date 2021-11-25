@@ -1,23 +1,15 @@
-from http import HTTPStatus
 from typing import List
-import httpx
-from collections import defaultdict
-from lnbits.decorators import check_user_exists
-from .crud import get_copilot
 
-from functools import wraps
+from fastapi import Request, WebSocket, WebSocketDisconnect
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse  # type: ignore
 
+from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import copilot_ext, copilot_renderer
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-from fastapi.param_functions import Query
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse, JSONResponse  # type: ignore
-from lnbits.core.models import User
-import base64
+from .crud import get_copilot
 
 templates = Jinja2Templates(directory="templates")
 

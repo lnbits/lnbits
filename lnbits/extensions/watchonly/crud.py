@@ -75,7 +75,6 @@ def parse_key(masterpub: str):
 
 async def create_watch_wallet(user: str, masterpub: str, title: str) -> Wallets:
     # check the masterpub is fine, it will raise an exception if not
-    print("PARSE", parse_key(masterpub))
     parse_key(masterpub)
     wallet_id = urlsafe_short_hash()
     await db.execute(

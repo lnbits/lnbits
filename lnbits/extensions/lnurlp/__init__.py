@@ -20,7 +20,6 @@ lnurlp_static_files = [
 lnurlp_ext: APIRouter = APIRouter(
     prefix="/lnurlp",
     tags=["lnurlp"]
-    # "lnurlp", __name__, static_folder="static", template_folder="templates"
 )
 
 
@@ -37,8 +36,3 @@ from .views_api import *  # noqa
 def lnurlp_start():
     loop = asyncio.get_event_loop()
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
-
-
-# from lnbits.tasks import record_async
-
-# lnurlp_ext.record(record_async(register_listeners))

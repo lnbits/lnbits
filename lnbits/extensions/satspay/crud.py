@@ -1,15 +1,16 @@
-from typing import List, Optional, Union
+from typing import List, Optional
+
+import httpx
+
+from lnbits.core.services import create_invoice
+from lnbits.core.views.api import api_payment
+from lnbits.helpers import urlsafe_short_hash
+
+from ..watchonly.crud import get_fresh_address, get_mempool, get_watch_wallet
 
 # from lnbits.db import open_ext_db
 from . import db
 from .models import Charges, CreateCharge
-
-from lnbits.helpers import urlsafe_short_hash
-
-import httpx
-from lnbits.core.services import create_invoice, check_invoice_status
-from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
-from lnbits.core.views.api import api_payment
 
 ###############CHARGES##########################
 

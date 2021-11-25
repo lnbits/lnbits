@@ -110,7 +110,6 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-        print("LINK", link)
     return {**link.dict(), "lnurl": link.lnurl}
 
 
