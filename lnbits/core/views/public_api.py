@@ -16,6 +16,7 @@ from ..tasks import api_invoice_listeners
 async def lnaddress(username: str, request: Request):
     from lnbits.extensions.lnaddress.lnurl import lnurl_response
     domain = request.client.host
+    print("client", domain)
     return await lnurl_response(username, domain, request)
 
 
