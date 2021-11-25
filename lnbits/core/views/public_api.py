@@ -16,10 +16,7 @@ from ..tasks import api_invoice_listeners
 @core_app.get("/.well-known/lnurlp/{username}")
 async def lnaddress(username: str, request: Request):
     from lnbits.extensions.lnaddress.lnurl import lnurl_response
-
-    # domain = request.client
     domain = urlparse(str(request.url)).netloc
-    # print("client", root_url, request.client)
     return await lnurl_response(username, domain, request)
 
 
