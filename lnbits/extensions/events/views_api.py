@@ -5,8 +5,8 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
-from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import check_invoice_status, create_invoice
+from lnbits.core.crud import get_user
+from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.events.models import CreateEvent, CreateTicket
@@ -33,7 +33,6 @@ from .crud import (
 
 @events_ext.get("/api/v1/events")
 async def api_events(
-    r: Request,
     all_wallets: bool = Query(False),
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
@@ -89,7 +88,6 @@ async def api_form_delete(event_id, wallet: WalletTypeInfo = Depends(get_key_typ
 
 @events_ext.get("/api/v1/tickets")
 async def api_tickets(
-    r: Request,
     all_wallets: bool = Query(False),
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):

@@ -59,8 +59,6 @@ async def api_paywall_create_invoice(
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
     paywall = await get_paywall(paywall_id)
-    print("PAYW", paywall)
-    print("DATA", data)
 
     if data.amount < paywall.amount:
         raise HTTPException(

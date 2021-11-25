@@ -11,7 +11,6 @@ db = Database("ext_lnticket")
 lnticket_ext: APIRouter = APIRouter(
     prefix="/lnticket",
     tags=["LNTicket"]
-    # "lnticket", __name__, static_folder="static", template_folder="templates"
 )
 
 
@@ -19,9 +18,9 @@ def lnticket_renderer():
     return template_renderer(["lnbits/extensions/lnticket/templates"])
 
 
-from .views_api import *  # noqa
-from .views import *  # noqa
 from .tasks import wait_for_paid_invoices
+from .views import *  # noqa
+from .views_api import *  # noqa
 
 
 def lnticket_start():

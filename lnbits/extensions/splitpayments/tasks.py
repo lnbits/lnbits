@@ -1,19 +1,13 @@
+import asyncio
 import json
 
-from lnbits.core.models import Payment
-from lnbits.core.crud import create_payment
 from lnbits.core import db as core_db
-from lnbits.tasks import register_invoice_listener, internal_invoice_queue
+from lnbits.core.crud import create_payment
+from lnbits.core.models import Payment
 from lnbits.helpers import urlsafe_short_hash
+from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import get_targets
-
-
-import asyncio
-import httpx
-
-from lnbits.core import db as core_db
-from lnbits.core.models import Payment
 
 
 async def wait_for_paid_invoices():

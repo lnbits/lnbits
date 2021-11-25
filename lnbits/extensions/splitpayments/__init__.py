@@ -1,7 +1,8 @@
 import asyncio
-from fastapi import APIRouter, FastAPI
+
+from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
-from starlette.routing import Mount
+
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
@@ -23,14 +24,9 @@ splitpayments_ext: APIRouter = APIRouter(
 def splitpayments_renderer():
     return template_renderer(["lnbits/extensions/splitpayments/templates"])
 
-
-# from lnbits.tasks import record_async
-# splitpayments_ext.record(record_async(register_listeners))
-
-
-from .views_api import *  # noqa
-from .views import *  # noqa
 from .tasks import wait_for_paid_invoices
+from .views import *  # noqa
+from .views_api import *  # noqa
 
 
 def splitpayments_start():

@@ -4,11 +4,11 @@ from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import check_invoice_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.core.crud import get_user
+from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
-from lnbits.core.models import Wallet
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
 from .models import CreateTposData
@@ -43,15 +43,12 @@ async def api_tpos_delete(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
-        # return {"message": "TPoS does not exist."}, HTTPStatus.NOT_FOUND
 
     if tpos.wallet != wallet.wallet.id:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your TPoS.")
-        # return {"message": "Not your TPoS."}, HTTPStatus.FORBIDDEN
 
     await delete_tpos(tpos_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-    # return "", HTTPStatus.NO_CONTENT
 
 
 @tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
@@ -62,7 +59,6 @@ async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str =
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
-        # return {"message": "TPoS does not exist."}, HTTPStatus.NOT_FOUND
 
     try:
         payment_hash, payment_request = await create_invoice(
@@ -73,7 +69,6 @@ async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str =
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
-        # return {"message": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 

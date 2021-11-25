@@ -29,7 +29,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
         return LnurlErrorResponse(reason="Address has expired.").dict()
 
     resp = LnurlPayResponse(
-        callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id, _external=True),
+        callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id),
         min_sendable=1000,
         max_sendable=1000000000,
         metadata=await address.lnurlpay_metadata(),
@@ -47,21 +47,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
             ).dict()
 
     amount_received = amount
-    # min = 1000
-    # max = 1000000000
-
-    # if amount_received < min:
-    #     return LnurlErrorResponse(
-    #             reason=f"Amount {amount_received} is smaller than minimum."
-    #         ).dict()
-
-    # elif amount_received > max:
-    #     return jsonify(
-    #         LnurlErrorResponse(
-    #             reason=f"Amount {amount_received} is greater than maximum."
-    #         ).dict()
-    #     )
-
+    
     domain = await get_domain(address.domain)
 
     base_url = address.wallet_endpoint[:-1] if address.wallet_endpoint.endswith('/') else address.wallet_endpoint

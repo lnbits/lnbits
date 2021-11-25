@@ -1,26 +1,16 @@
-from .crud import get_tipjar
-
 from http import HTTPStatus
-import httpx
-from collections import defaultdict
-from lnbits.decorators import check_user_exists
 
-from functools import wraps
-import hashlib
-from lnbits.core.services import check_invoice_status
-from lnbits.core.crud import update_payment_status, get_standalone_payment
-from fastapi import FastAPI, Request
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-import random
 
-from datetime import datetime
-from http import HTTPStatus
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
 from . import tipjar_ext, tipjar_renderer
-from lnbits.core.models import User, Payment
+from .crud import get_tipjar
 
 templates = Jinja2Templates(directory="templates")
 
@@ -36,7 +26,6 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def tip(request: Request, tipjar_id: int = Query(None)):
     """Return the donation form for the Tipjar corresponding to id"""
     tipjar = await get_tipjar(tipjar_id)
-    print(tipjar_id)
     if not tipjar:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TipJar does not exist."

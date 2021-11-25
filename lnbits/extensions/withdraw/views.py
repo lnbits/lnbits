@@ -18,8 +18,6 @@ templates = Jinja2Templates(directory="templates")
 
 
 @withdraw_ext.get("/", response_class=HTMLResponse)
-# @validate_uuids(["usr"], required=True)
-# @check_user_exists()
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return withdraw_renderer().TemplateResponse(
         "withdraw/index.html", {"request": request, "user": user.dict()}
@@ -34,9 +32,6 @@ async def display(request: Request, link_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
-        # response.status_code = HTTPStatus.NOT_FOUND
-        # return "Withdraw link does not exist." #probably here is where we should return the 404??
-    print("LINK", link)
     return withdraw_renderer().TemplateResponse(
         "withdraw/display.html",
         {
@@ -55,10 +50,7 @@ async def img(request: Request, link_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
-        # response.status_code = HTTPStatus.NOT_FOUND
-        # return "Withdraw link does not exist."
     qr = pyqrcode.create(link.lnurl(request))
-    print(qr)
     stream = BytesIO()
     qr.svg(stream, scale=3)
     stream.seek(0)
@@ -102,13 +94,11 @@ async def print_qr(request: Request, link_id):
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
             )
-            # response.status_code = HTTPStatus.NOT_FOUND
-            # return "Withdraw link does not exist."
         links.append(str(linkk.lnurl(request)))
         count = count + 1
     page_link = list(chunks(links, 2))
     linked = list(chunks(page_link, 5))
-    print("LINKED", linked)
+    
     return withdraw_renderer().TemplateResponse(
         "withdraw/print_qr.html", {"request": request, "link": linked, "unique": True}
     )

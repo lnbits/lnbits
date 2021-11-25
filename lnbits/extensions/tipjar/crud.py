@@ -1,11 +1,10 @@
-from . import db
-from .models import Tip, TipJar, createTip, createTipJar
-
-from ..satspay.crud import delete_charge  # type: ignore
-
 from typing import Optional
 
 from lnbits.db import SQLITE
+
+from ..satspay.crud import delete_charge  # type: ignore
+from . import db
+from .models import Tip, TipJar, createTipJar
 
 
 async def create_tip(

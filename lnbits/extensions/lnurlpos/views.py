@@ -1,27 +1,19 @@
 from http import HTTPStatus
-import httpx
-from collections import defaultdict
-from lnbits.decorators import check_user_exists
 
-from .crud import get_lnurlpos, get_lnurlpospayment
-from functools import wraps
-from lnbits.core.crud import get_standalone_payment
-import hashlib
-from lnbits.core.services import check_invoice_status
-from lnbits.core.crud import update_payment_status
-from lnbits.core.views.api import api_payment
-from fastapi import FastAPI, Request
+from fastapi import Request
+from fastapi.param_functions import Query
+from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
-from fastapi.params import Depends
-from fastapi.param_functions import Query
-import random
 
-from datetime import datetime
-from http import HTTPStatus
+from lnbits.core.crud import update_payment_status
+from lnbits.core.models import User
+from lnbits.core.views.api import api_payment
+from lnbits.decorators import check_user_exists
+
 from . import lnurlpos_ext, lnurlpos_renderer
-from lnbits.core.models import User, Payment
+from .crud import get_lnurlpos, get_lnurlpospayment
 
 templates = Jinja2Templates(directory="templates")
 

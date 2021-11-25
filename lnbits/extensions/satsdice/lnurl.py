@@ -52,7 +52,6 @@ async def api_lnurlp_callback(
     req: Request, link_id: str = Query(None), amount: str = Query(None)
 ):
     link = await get_satsdice_pay(link_id)
-    print(link)
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="LNURL-pay not found."
@@ -94,7 +93,6 @@ async def api_lnurlp_callback(
 
     await create_satsdice_payment(data)
     payResponse = {"pr": payment_request, "successAction": success_action, "routes": []}
-    print(json.dumps(payResponse))
 
     return json.dumps(payResponse)
 
@@ -130,7 +128,6 @@ async def api_lnurlw_response(req: Request, unique_hash: str = Query(None)):
 
 # CALLBACK
 
-
 @satsdice_ext.get(
     "/api/v1/lnurlw/cb/{unique_hash}",
     status_code=HTTPStatus.OK,
@@ -148,7 +145,6 @@ async def api_lnurlw_callback(
         return {"status": "ERROR", "reason": "no withdraw"}
     if link.used:
         return {"status": "ERROR", "reason": "spent"}
-    print("winner")
     paylink = await get_satsdice_pay(link.satsdice_pay)
 
     await update_satsdice_withdraw(link.id, used=1)

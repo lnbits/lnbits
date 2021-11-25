@@ -1,7 +1,8 @@
 import asyncio
-from fastapi import APIRouter, FastAPI
+
+from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
-from starlette.routing import Mount
+
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
@@ -23,9 +24,9 @@ def jukebox_renderer():
     return template_renderer(["lnbits/extensions/jukebox/templates"])
 
 
-from .views_api import *  # noqa
-from .views import *  # noqa
 from .tasks import wait_for_paid_invoices
+from .views import *  # noqa
+from .views_api import *  # noqa
 
 
 def jukebox_start():
