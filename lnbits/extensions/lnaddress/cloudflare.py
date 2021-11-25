@@ -1,5 +1,8 @@
+import json
+
+import httpx
+
 from lnbits.extensions.lnaddress.models import Domains
-import httpx, json
 
 
 async def cloudflare_create_record(

@@ -20,7 +20,7 @@ class Domains(BaseModel):
     domain: str
     cf_token: str
     cf_zone_id: str
-    webhook: str
+    webhook: Optional[str]
     cost: int
     time: int
 
@@ -37,7 +37,7 @@ class Addresses(BaseModel):
     id: str
     wallet: str
     domain: str
-    email: str
+    email: Optional[str]
     username: str
     wallet_key: str
     wallet_endpoint: str

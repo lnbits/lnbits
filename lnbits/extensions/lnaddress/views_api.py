@@ -63,8 +63,7 @@ async def api_domain_create(request: Request,data: CreateDomain, domain_id=None,
     else:
 
         domain = await create_domain(data=data)
-        root_url = urlparse(request.url.path).netloc
-        #root_url = request.url_root
+        root_url = urlparse(str(request.url)).netloc
 
         cf_response = await cloudflare_create_record(
             domain=domain,
@@ -113,6 +112,12 @@ async def api_addresses(
 
     return [address.dict() for address in await get_addresses(wallet_ids)]
 
+@lnaddress_ext.get("/api/v1/address/availabity/{domain_id}/{username}")
+async def api_check_available_username(domain_id, username):
+    used_username = await check_address_available(username, domain_id)
+
+    return used_username
+
 @lnaddress_ext.get("/api/v1/address/{domain}/{username}/{wallet_key}")
 async def api_get_user_info(username, wallet_key, domain):
     address = await get_address_by_username(username, domain)
@@ -131,12 +136,6 @@ async def api_get_user_info(username, wallet_key, domain):
 
     return address.dict()
 
-@lnaddress_ext.get("/api/v1/address/availabity/{domain_id}/{username}")
-async def api_check_available_username(domain_id, username):
-    used_username = await check_address_available(username, domain_id)
-
-    return used_username
-
 @lnaddress_ext.post("/api/v1/address/{domain_id}")
 @lnaddress_ext.put("/api/v1/address/{domain_id}/{user}/{wallet_key}")
 async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, wallet_key=None):
@@ -149,7 +148,7 @@ async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, 
                 detail="The domain does not exist.",
             )
 
-    domain_cost = domain[6]
+    domain_cost = domain.cost
     sats = data.sats
 
     ## FAILSAFE FOR CREATING ADDRESSES BY API

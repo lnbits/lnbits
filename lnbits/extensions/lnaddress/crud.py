@@ -125,10 +125,9 @@ async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
     return [Addresses(**row) for row in rows]
 
 async def set_address_paid(payment_hash: str) -> Addresses:
-    _address = await get_address(payment_hash)
-    address = _address._asdict()
+    address = await get_address(payment_hash)
 
-    if address["paid"] == False:
+    if address.paid == False:
         await db.execute(
             """
             UPDATE lnaddress.address
@@ -143,10 +142,9 @@ async def set_address_paid(payment_hash: str) -> Addresses:
     return new_address
 
 async def set_address_renewed(address_id: str, duration: int):
-    _address = await get_address(address_id)
-    address = _address._asdict()
+    address = await get_address(address_id)
 
-    extend_duration = int(address["duration"]) + duration
+    extend_duration = int(address.duration) + duration
     await db.execute(
         """
         UPDATE lnaddress.address
