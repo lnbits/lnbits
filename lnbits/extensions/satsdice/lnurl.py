@@ -128,6 +128,7 @@ async def api_lnurlw_response(req: Request, unique_hash: str = Query(None)):
 
 # CALLBACK
 
+
 @satsdice_ext.get(
     "/api/v1/lnurlw/cb/{unique_hash}",
     status_code=HTTPStatus.OK,

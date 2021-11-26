@@ -16,6 +16,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_addresses(db):
     await db.execute(
         """

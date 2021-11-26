@@ -17,10 +17,7 @@ lnurlp_static_files = [
     }
 ]
 
-lnurlp_ext: APIRouter = APIRouter(
-    prefix="/lnurlp",
-    tags=["lnurlp"]
-)
+lnurlp_ext: APIRouter = APIRouter(prefix="/lnurlp", tags=["lnurlp"])
 
 
 def lnurlp_renderer():

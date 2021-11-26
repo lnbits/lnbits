@@ -1,4 +1,3 @@
-
 from os import getenv
 
 from fastapi import Request

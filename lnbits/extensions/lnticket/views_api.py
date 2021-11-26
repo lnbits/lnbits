@@ -30,8 +30,7 @@ from .crud import (
 
 @lnticket_ext.get("/api/v1/forms")
 async def api_forms_get(
-    all_wallets: bool = Query(False),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    all_wallets: bool = Query(False), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     wallet_ids = [wallet.wallet.id]
 

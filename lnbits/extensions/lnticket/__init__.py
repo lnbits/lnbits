@@ -8,10 +8,7 @@ from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_lnticket")
 
-lnticket_ext: APIRouter = APIRouter(
-    prefix="/lnticket",
-    tags=["LNTicket"]
-)
+lnticket_ext: APIRouter = APIRouter(prefix="/lnticket", tags=["LNTicket"])
 
 
 def lnticket_renderer():

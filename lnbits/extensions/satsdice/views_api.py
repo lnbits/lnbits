@@ -46,8 +46,7 @@ async def api_links(
 
 @satsdice_ext.get("/api/v1/links/{link_id}")
 async def api_link_retrieve(
-    link_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    link_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     link = await get_satsdice_pay(link_id)
 

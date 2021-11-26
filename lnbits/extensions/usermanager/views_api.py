@@ -25,6 +25,7 @@ from .models import CreateUserData, CreateUserWallet
 
 ### Users
 
+
 @usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
 async def api_usermanager_users(wallet: WalletTypeInfo = Depends(get_key_type)):
     user_id = wallet.wallet.user

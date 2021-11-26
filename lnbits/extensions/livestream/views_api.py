@@ -29,7 +29,7 @@ async def api_livestream_from_wallet(
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     tracks = await get_tracks(ls.id)
     producers = await get_producers(ls.id)
-   
+
     try:
         return {
             **ls.dict(),

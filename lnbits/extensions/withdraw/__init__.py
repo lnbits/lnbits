@@ -15,10 +15,7 @@ withdraw_static_files = [
 ]
 
 
-withdraw_ext: APIRouter = APIRouter(
-    prefix="/withdraw",
-    tags=["withdraw"],
-)
+withdraw_ext: APIRouter = APIRouter(prefix="/withdraw", tags=["withdraw"])
 
 
 def withdraw_renderer():

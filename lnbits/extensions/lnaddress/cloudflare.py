@@ -5,9 +5,7 @@ import httpx
 from lnbits.extensions.lnaddress.models import Domains
 
 
-async def cloudflare_create_record(
-    domain: Domains, ip: str
-):
+async def cloudflare_create_record(domain: Domains, ip: str):
     url = (
         "https://api.cloudflare.com/client/v4/zones/"
         + domain.cf_zone_id
@@ -51,11 +49,7 @@ async def cloudflare_deleterecord(domain: Domains, domain_id: str):
     }
     async with httpx.AsyncClient() as client:
         try:
-            r = await client.delete(
-                url + "/" + domain_id,
-                headers=header,
-                timeout=40,
-            )
+            r = await client.delete(url + "/" + domain_id, headers=header, timeout=40)
             cf_response = r.text
         except AssertionError:
             cf_response = "Error occured"
