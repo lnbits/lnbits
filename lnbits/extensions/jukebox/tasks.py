@@ -1,12 +1,9 @@
 import asyncio
-import json
-import httpx
 
-from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_jukebox, update_jukebox_payment
+from .crud import update_jukebox_payment
 
 
 async def wait_for_paid_invoices():

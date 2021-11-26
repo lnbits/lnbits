@@ -26,7 +26,6 @@ async def api_targets_set(
     targets = []
     data = TargetPut.parse_obj(body["targets"])
     for entry in data.__root__:
-        print("ENTRY", entry)
         wallet = await get_wallet(entry.wallet)
         if not wallet:
             wallet = await get_wallet_for_key(entry.wallet, "invoice")

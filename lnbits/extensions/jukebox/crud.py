@@ -1,8 +1,9 @@
 from typing import List, Optional
 
-from . import db
-from .models import Jukebox, JukeboxPayment, CreateJukeLinkData, CreateJukeboxPayment
 from lnbits.helpers import urlsafe_short_hash
+
+from . import db
+from .models import CreateJukeboxPayment, CreateJukeLinkData, Jukebox, JukeboxPayment
 
 
 async def create_jukebox(
@@ -40,8 +41,6 @@ async def update_jukebox(
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
     items.append(juke_id)
-    print(q)
-    print(items)
     await db.execute(f"UPDATE jukebox.jukebox SET {q} WHERE id = ?", (items))
     row = await db.fetchone("SELECT * FROM jukebox.jukebox WHERE id = ?", (juke_id,))
     return Jukebox(**row) if row else None
@@ -61,7 +60,6 @@ async def get_jukeboxs(user: str) -> List[Jukebox]:
     rows = await db.fetchall("SELECT * FROM jukebox.jukebox WHERE user = ?", (user,))
     for row in rows:
         if row.sp_playlists == None:
-            print("cunt")
             await delete_jukebox(row.id)
     rows = await db.fetchall("SELECT * FROM jukebox.jukebox WHERE user = ?", (user,))
 

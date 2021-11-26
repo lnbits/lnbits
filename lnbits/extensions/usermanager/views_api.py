@@ -39,15 +39,6 @@ async def api_usermanager_user(user_id, wallet: WalletTypeInfo = Depends(get_key
 
 
 @usermanager_ext.post("/api/v1/users", status_code=HTTPStatus.CREATED)
-# @api_validate_post_request(
-#     schema={
-#         "user_name": {"type": "string", "empty": False, "required": True},
-#         "wallet_name": {"type": "string", "empty": False, "required": True},
-#         "admin_id": {"type": "string", "empty": False, "required": True},
-#         "email": {"type": "string", "required": False},
-#         "password": {"type": "string", "required": False},
-#     }
-# )
 async def api_usermanager_users_create(
     data: CreateUserData, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -118,7 +109,6 @@ async def api_usermanager_wallet_transactions(
 async def api_usermanager_users_wallets(
     user_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    # wallet = await get_usermanager_users_wallets(user_id)
     return [
         s_wallet.dict() for s_wallet in await get_usermanager_users_wallets(user_id)
     ]

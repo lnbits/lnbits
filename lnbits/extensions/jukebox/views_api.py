@@ -9,10 +9,9 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse  # type: ignore
 
-from lnbits.core.crud import get_wallet
+from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
-from lnbits.core.services import check_invoice_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import WalletTypeInfo, require_admin_key
 
 from . import jukebox_ext
 from .crud import (
@@ -75,7 +74,6 @@ async def api_check_credentials_callbac(
 async def api_check_credentials_check(
     juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    print(juke_id)
     jukebox = await get_jukebox(juke_id)
 
     return jukebox
@@ -238,7 +236,7 @@ async def api_get_jukebox_device_check(
 async def api_get_jukebox_invoice(juke_id, song_id):
     try:
         jukebox = await get_jukebox(juke_id)
-        print(jukebox)
+
     except:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     try:
@@ -269,7 +267,6 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         invoice=invoice[1], payment_hash=payment_hash, juke_id=juke_id, song_id=song_id
     )
     jukebox_payment = await create_jukebox_payment(data)
-    print(data)
 
     return data
 

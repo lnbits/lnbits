@@ -7,12 +7,13 @@ from pydantic.main import BaseModel  # type: ignore
 
 
 class CreateDomain(BaseModel):
-    wallet: str = Query(...) 
+    wallet: str = Query(...)
     domain: str = Query(...)
     cf_token: str = Query(...)
     cf_zone_id: str = Query(...)
     webhook: str = Query(None)
     cost: int = Query(..., ge=0)
+
 
 class Domains(BaseModel):
     id: str
@@ -20,9 +21,10 @@ class Domains(BaseModel):
     domain: str
     cf_token: str
     cf_zone_id: str
-    webhook: str
+    webhook: Optional[str]
     cost: int
     time: int
+
 
 class CreateAddress(BaseModel):
     domain: str = Query(...)
@@ -33,11 +35,12 @@ class CreateAddress(BaseModel):
     sats: int = Query(..., ge=0)
     duration: int = Query(..., ge=1)
 
+
 class Addresses(BaseModel):
     id: str
     wallet: str
     domain: str
-    email: str
+    email: Optional[str]
     username: str
     wallet_key: str
     wallet_endpoint: str

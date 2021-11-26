@@ -30,8 +30,7 @@ from .crud import (
 # DOMAINS
 @lnaddress_ext.get("/api/v1/domains")
 async def api_domains(
-    g: WalletTypeInfo = Depends(get_key_type),
-    all_wallets: bool = Query(False),
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
 
@@ -43,42 +42,43 @@ async def api_domains(
 
 @lnaddress_ext.post("/api/v1/domains")
 @lnaddress_ext.put("/api/v1/domains/{domain_id}")
-async def api_domain_create(request: Request,data: CreateDomain, domain_id=None, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_domain_create(
+    request: Request,
+    data: CreateDomain,
+    domain_id=None,
+    g: WalletTypeInfo = Depends(get_key_type),
+):
     if domain_id:
         domain = await get_domain(domain_id)
 
         if not domain:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Domain does not exist.",
+                status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
             )
 
         if domain.wallet != g.wallet.id:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your domain",
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your domain"
             )
 
         domain = await update_domain(domain_id, **data.dict())
     else:
 
         domain = await create_domain(data=data)
-        root_url = urlparse(request.url.path).netloc
-        #root_url = request.url_root
+        root_url = urlparse(str(request.url)).netloc
 
-        cf_response = await cloudflare_create_record(
-            domain=domain,
-            ip=root_url,
-        )
+        cf_response = await cloudflare_create_record(domain=domain, ip=root_url)
 
         if not cf_response or cf_response["success"] != True:
             await delete_domain(domain.id)
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail="Problem with cloudflare: " + cf_response["errors"][0]["message"],
+                detail="Problem with cloudflare: "
+                + cf_response["errors"][0]["message"],
             )
 
     return domain.dict()
+
 
 @lnaddress_ext.delete("/api/v1/domains/{domain_id}")
 async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)):
@@ -86,25 +86,22 @@ async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)
 
     if not domain:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Domain does not exist.",
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
+        )
 
     if domain.wallet != g.wallet.id:
-        raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your domain",
-            )
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your domain")
 
     await delete_domain(domain_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
+
 # ADDRESSES
+
 
 @lnaddress_ext.get("/api/v1/addresses")
 async def api_addresses(
-    g: WalletTypeInfo = Depends(get_key_type),
-    all_wallets: bool = Query(False),
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
 
@@ -113,23 +110,6 @@ async def api_addresses(
 
     return [address.dict() for address in await get_addresses(wallet_ids)]
 
-@lnaddress_ext.get("/api/v1/address/{domain}/{username}/{wallet_key}")
-async def api_get_user_info(username, wallet_key, domain):
-    address = await get_address_by_username(username, domain)
-
-    if not address:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Address does not exist.",
-        )
-
-    if address.wallet_key != wallet_key:
-        raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Incorrect user/wallet information.",
-            )
-
-    return address.dict()
 
 @lnaddress_ext.get("/api/v1/address/availabity/{domain_id}/{username}")
 async def api_check_available_username(domain_id, username):
@@ -137,42 +117,59 @@ async def api_check_available_username(domain_id, username):
 
     return used_username
 
+
+@lnaddress_ext.get("/api/v1/address/{domain}/{username}/{wallet_key}")
+async def api_get_user_info(username, wallet_key, domain):
+    address = await get_address_by_username(username, domain)
+
+    if not address:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Address does not exist."
+        )
+
+    if address.wallet_key != wallet_key:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Incorrect user/wallet information.",
+        )
+
+    return address.dict()
+
+
 @lnaddress_ext.post("/api/v1/address/{domain_id}")
 @lnaddress_ext.put("/api/v1/address/{domain_id}/{user}/{wallet_key}")
-async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, wallet_key=None):
+async def api_lnaddress_make_address(
+    domain_id, data: CreateAddress, user=None, wallet_key=None
+):
     domain = await get_domain(domain_id)
 
     # If the request is coming for the non-existant domain
     if not domain:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="The domain does not exist.",
-            )
+            status_code=HTTPStatus.FORBIDDEN, detail="The domain does not exist."
+        )
 
-    domain_cost = domain[6]
+    domain_cost = domain.cost
     sats = data.sats
 
     ## FAILSAFE FOR CREATING ADDRESSES BY API
-    if(domain_cost * data.duration != data.sats):
+    if domain_cost * data.duration != data.sats:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="The amount is not correct. Either 'duration', or 'sats' are wrong.",
-            )
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="The amount is not correct. Either 'duration', or 'sats' are wrong.",
+        )
 
     if user:
-        print("USER", user, domain.domain)
         address = await get_address_by_username(user, domain.domain)
 
         if not address:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="The address does not exist.",
+                status_code=HTTPStatus.NOT_FOUND, detail="The address does not exist."
             )
 
         if address.wallet_key != wallet_key:
             raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your address.",
+                status_code=HTTPStatus.FORBIDDEN, detail="Not your address."
             )
 
         try:
@@ -183,14 +180,13 @@ async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, 
                 extra={
                     "tag": "renew lnaddress",
                     "id": address.id,
-                    "duration": data.duration
+                    "duration": data.duration,
                 },
             )
 
         except Exception as e:
             raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=str(e),
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
             )
     else:
         used_username = await check_address_available(data.username, data.domain)
@@ -212,10 +208,9 @@ async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, 
             )
         except Exception as e:
             raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=str(e),
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
             )
-            
+
         address = await create_address(
             payment_hash=payment_hash, wallet=domain.wallet, data=data
         )
@@ -228,6 +223,7 @@ async def api_lnaddress_make_address(domain_id, data: CreateAddress, user=None, 
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
+
 @lnaddress_ext.get("/api/v1/addresses/{payment_hash}")
 async def api_address_send_address(payment_hash):
     address = await get_address(payment_hash)
@@ -236,27 +232,25 @@ async def api_address_send_address(payment_hash):
         status = await check_invoice_status(domain.wallet, payment_hash)
         is_paid = not status.pending
     except Exception as e:
-        return {"paid": False, 'error': str(e)}
+        return {"paid": False, "error": str(e)}
 
     if is_paid:
         return {"paid": True}
 
     return {"paid": False}
 
+
 @lnaddress_ext.delete("/api/v1/addresses/{address_id}")
 async def api_address_delete(address_id, g: WalletTypeInfo = Depends(get_key_type)):
     address = await get_address(address_id)
     if not address:
         raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail="Address does not exist.",
-            )
+            status_code=HTTPStatus.NOT_FOUND, detail="Address does not exist."
+        )
     if address.wallet != g.wallet.id:
         raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN,
-                detail="Not your address.",
-            )
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your address."
+        )
 
     await delete_address(address_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-    

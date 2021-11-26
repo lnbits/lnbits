@@ -16,6 +16,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_addresses(db):
     await db.execute(
         """
@@ -36,6 +37,3 @@ async def m002_addresses(db):
         );
     """
     )
-
-# async def m003_create_unique_indexes(db):
-#     await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS address_at_domain ON lnaddress.address (domain, username);")

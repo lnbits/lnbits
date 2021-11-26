@@ -1,6 +1,5 @@
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
-from starlette.routing import Mount
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -15,17 +14,7 @@ offlineshop_static_files = [
     }
 ]
 
-offlineshop_ext: APIRouter = APIRouter(
-    prefix="/offlineshop",
-    tags=["Offlineshop"],
-    # routes=[
-    #     Mount(
-    #         "/static",
-    #         app=StaticFiles(directory="lnbits/extensions/offlineshop/static"),
-    #         name="offlineshop_static",
-    #     )
-    # ],
-)
+offlineshop_ext: APIRouter = APIRouter(prefix="/offlineshop", tags=["Offlineshop"])
 
 
 def offlineshop_renderer():

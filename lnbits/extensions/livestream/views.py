@@ -24,7 +24,6 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 @livestream_ext.get("/track/{track_id}", name="livestream.track_redirect_download")
 async def track_redirect_download(track_id, p: str = Query(...)):
-    print("BOO", track_id, p)
     payment_hash = p
     track = await get_track(track_id)
     ls = await get_livestream_by_track(track_id)

@@ -7,20 +7,15 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import satsdice_ext
 from .crud import (
     create_satsdice_pay,
-    create_satsdice_withdraw,
     delete_satsdice_pay,
-    delete_satsdice_withdraw,
     get_satsdice_pay,
     get_satsdice_pays,
-    get_satsdice_withdraw,
-    get_satsdice_withdraws,
     update_satsdice_pay,
-    update_satsdice_withdraw,
 )
 from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, satsdiceLink
 
@@ -51,9 +46,7 @@ async def api_links(
 
 @satsdice_ext.get("/api/v1/links/{link_id}")
 async def api_link_retrieve(
-    data: CreateSatsDiceLink,
-    link_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    link_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     link = await get_satsdice_pay(link_id)
 

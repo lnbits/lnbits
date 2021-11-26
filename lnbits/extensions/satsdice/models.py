@@ -1,10 +1,8 @@
 import json
 from sqlite3 import Row
-from typing import Dict, NamedTuple, Optional
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+from typing import Dict, Optional
 
-import shortuuid  # type: ignore
-from fastapi import FastAPI, Request
+from fastapi import Request
 from fastapi.param_functions import Query
 from lnurl import Lnurl, LnurlWithdrawResponse
 from lnurl import encode as lnurl_encode  # type: ignore

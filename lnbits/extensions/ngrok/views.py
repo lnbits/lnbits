@@ -1,24 +1,20 @@
-from http import HTTPStatus
+from os import getenv
 
+from fastapi import Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from pyngrok import conf, ngrok
+
+from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import ngrok_ext, ngrok_renderer
-from fastapi import FastAPI, Request
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-from lnbits.core.models import User
-from os import getenv
-from pyngrok import conf, ngrok
 
 templates = Jinja2Templates(directory="templates")
 
 
 def log_event_callback(log):
     string = str(log)
-    print(string)
     string2 = string[string.find('url="https') : string.find('url="https') + 80]
     if string2:
         string3 = string2

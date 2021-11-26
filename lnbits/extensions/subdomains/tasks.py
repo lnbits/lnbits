@@ -18,17 +18,6 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 
-# async def register_listeners():
-#     invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
-#     register_invoice_listener(invoice_paid_chan_send)
-#     await wait_for_paid_invoices(invoice_paid_chan_recv)
-
-
-# async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
-#     async for payment in invoice_paid_chan:
-#         await on_invoice_paid(payment)
-
-
 async def on_invoice_paid(payment: Payment) -> None:
     if "lnsubdomain" != payment.extra.get("tag"):
         # not an lnurlp invoice
