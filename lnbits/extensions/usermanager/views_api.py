@@ -20,7 +20,7 @@ from .crud import (
 from lnbits.core import update_user_extension
 
 
-### Users
+# Users
 
 
 @usermanager_ext.route("/api/v1/users", methods=["GET"])
@@ -71,7 +71,7 @@ async def api_usermanager_users_delete(user_id):
     return "", HTTPStatus.NO_CONTENT
 
 
-###Activate Extension
+# Activate Extension
 
 
 @usermanager_ext.route("/api/v1/extensions", methods=["POST"])
@@ -93,7 +93,7 @@ async def api_usermanager_activate_extension():
     return jsonify({"extension": "updated"}), HTTPStatus.CREATED
 
 
-###Wallets
+# Wallets
 
 
 @usermanager_ext.route("/api/v1/wallets", methods=["POST"])
@@ -124,7 +124,7 @@ async def api_usermanager_wallets():
     )
 
 
-@usermanager_ext.route("/api/v1/wallets<wallet_id>", methods=["GET"])
+@usermanager_ext.route("/api/v1/transactions/<wallet_id>", methods=["GET"])
 @api_check_wallet_key(key_type="invoice")
 async def api_usermanager_wallet_transactions(wallet_id):
     return jsonify(await get_usermanager_wallet_transactions(wallet_id)), HTTPStatus.OK
