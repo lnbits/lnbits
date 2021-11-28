@@ -23,7 +23,7 @@ from .crud import (
 )
 from .models import CreateUserData, CreateUserWallet
 
-### Users
+# Users
 
 
 @usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
@@ -63,7 +63,7 @@ async def api_usermanager_users_delete(
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-###Activate Extension
+# Activate Extension
 
 
 @usermanager_ext.post("/api/v1/extensions")
@@ -79,7 +79,7 @@ async def api_usermanager_activate_extension(
     return {"extension": "updated"}
 
 
-###Wallets
+# Wallets
 
 
 @usermanager_ext.post("/api/v1/wallets")
@@ -98,7 +98,7 @@ async def api_usermanager_wallets(wallet: WalletTypeInfo = Depends(get_key_type)
     return [wallet.dict() for wallet in await get_usermanager_wallets(admin_id)]
 
 
-@usermanager_ext.get("/api/v1/wallets/{wallet_id}")
+@usermanager_ext.get("/api/v1/transactions/{wallet_id}")
 async def api_usermanager_wallet_transactions(
     wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):

@@ -23,7 +23,7 @@ class Jinja2Templates(templating.Jinja2Templates):
     def get_environment(self, loader: "jinja2.BaseLoader") -> "jinja2.Environment":
         @jinja2.contextfunction
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
-            request: Request = context["request"]  # type: starlette.requests.Request
+            request: Request = context["request"]
             return request.app.url_path_for(name, **path_params)
 
         def url_params_update(init: QueryParams, **new: typing.Any) -> QueryParams:
