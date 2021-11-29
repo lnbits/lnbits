@@ -105,8 +105,8 @@ class LndRestWallet(Wallet):
                 json={
                     "payment_request": bolt11,
                     "fee_limit": {
-                        "percent": "1" if invoice.amount_msat >= 1000_000 else "0",
-                        "fixed": "0" if invoice.amount_msat < 1000_000 else "10"
+                        "percent": "1" if invoice.amount_msat > 1000_000 else "0",
+                        "fixed": "0" if invoice.amount_msat <= 1000_000 else "10"
                     }
                 },
                 timeout=180,
