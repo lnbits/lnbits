@@ -5,6 +5,8 @@ import base64
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
+from lnbits import bolt11 as lnbits_bolt11
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -96,7 +98,7 @@ class LndRestWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         async with httpx.AsyncClient(verify=self.cert) as client:
-            invoice = bolt11.decode(bolt11)
+            invoice = lnbits_bolt11.decode(bolt11)
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
