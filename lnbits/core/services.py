@@ -172,6 +172,7 @@ async def pay_invoice(
                 )
                 await delete_payment(temp_id, conn=conn)
         else:
+            print("---- ERROR CAUGHT ----")
             raise PaymentFailure(
                 payment.error_message
                 or "Payment failed, but backend didn't give us an error message."
