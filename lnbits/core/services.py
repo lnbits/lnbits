@@ -170,6 +170,8 @@ async def pay_invoice(
                 )
                 await delete_payment(temp_id, conn=conn)
         else:
+            async with db.connect() as conn:
+                await delete_payment(temp_id, conn=conn)
             raise PaymentFailure(
                 payment.error_message
                 or "Payment failed, but backend didn't give us an error message."
@@ -314,7 +316,8 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        print(
+            f" - deleting outgoing failed payment {payment.checking_id}: {status}")
         await payment.delete()
     elif not status.pending:
         print(
