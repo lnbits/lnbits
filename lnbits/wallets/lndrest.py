@@ -106,7 +106,7 @@ class LndRestWallet(Wallet):
                     "payment_request": bolt11,
                     "fee_limit": {
                         # "percent": "1"  # if invoice.amount_msat > 1000_000 else "0",
-                        "fixed": "10"  # if invoice.amount_msat <= 1000_000 else "10"
+                        "fixed": "1"  # if invoice.amount_msat <= 1000_000 else "10"
                     }
                 },
                 timeout=180,
