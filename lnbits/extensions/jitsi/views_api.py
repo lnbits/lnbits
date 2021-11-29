@@ -14,7 +14,8 @@ from http import HTTPStatus
 from lnbits.core.crud import (
         create_account,
         get_user,
-        create_wallet
+        create_wallet,
+        get_wallet
 )
 
 from lnbits.decorators import api_check_wallet_key, api_validate_post_request
@@ -28,45 +29,7 @@ from .crud import (
     create_participant
 )
 
-# add your endpoints here
-
-@jitsi_ext.route('/api/v1/wallet/new/', methods=['POST'])
-@api_validate_post_request(
-        schema = {
-            'conference_id',
-            'participant_id'
-            }
-        )
-async def api_new_wallet():
-
-    conference_id = 0
-    if 'conference_id' in g.data:
-        conference_id = g.data['conference_id' ]
-
-    if conference_id == 0:
-        raise TypeError('conference_id is required to create wallets for participants')
-
-    participant_id = 0
-    if 'participant_id' in g.data:
-        participant_id = g.data['participant_id']
-
-    if participant_id == 0:
-        raise TypeError('participant_id is required to create a wallet for a participant in this conference')
-
-    participant = await get_participant(participant_id) # FIXME(nochiel)
-    if participant:
-        if participant.walletId == 0:
-            await new_participant_wallet(conference.id, participant.id)
-            return '', HTTPStatus.CREATED
-    else:
-        await add_participant(
-                conference.id,
-                participant_id
-                )
-        return '', HTTPStatus.CREATED
-
-
-@jitsi_ext.route('/api/v1/conferences', methods=['POST'])
+@jitsi_ext.route('/api/v1/conference', methods=['POST'])
 @api_check_wallet_key(key_type='invoice')
 @api_validate_post_request(
         schema = {
@@ -83,22 +46,18 @@ async def api_jitsi_conferences_create():
         assert conference != {}, 'api_jitsi_conferences_create: conference is empty!'
     return jsonify(conference._asdict()) , HTTPStatus.CREATED
 
-
-# FIXME(nochiel) One user can have multiple conferences. 
-# We need to know the currently active conference. How do we get that?
-@jitsi_ext.route('/api/v1/conferences/<wallet_id>', methods=['GET'])
-async def api_get_conference(wallet_id):
-    conference = await get_conference(wallet_id)
-
-    return jsonify(conference), HTTPStatus.OK
-
 @jitsi_ext.route('/api/v1/conference/<conference_id>/participant/<participant_id>', methods=['GET'])
 @api_check_wallet_key(key_type = 'invoice')
 async def api_jitsi_conference_participant(conference_id, participant_id):
     assert participant_id != '', 'participant_id is required'
 
     participant = await get_participant(conference_id, participant_id)
-    return jsonify(participant), HTTPStatus.OK
+    if participant:
+        status = HTTPStatus.OK
+    else:
+        status = HTTPStatus.NOT_FOUND
+
+    return jsonify(participant._asdict()) if participant else {}, status
 
 # Ref. UserManager
 @jitsi_ext.route("/api/v1/conference/participant", methods=["POST"])
@@ -133,6 +92,21 @@ async def api_jitsi_participant_create():
     print('api_jitsi_participant_create: new participant:', participant)
 
     return jsonify(participant._asdict()), HTTPStatus.CREATED
+
+@jitsi_ext.route('/api/v1/conference/participant/wallet/<wallet_id>', methods=['GET'])
+@api_check_wallet_key(key_type='invoice')
+async def api_jitsi_participant_wallet(wallet_id):
+
+    wallet = await get_wallet(wallet_id);
+    status = HTTPStatus.OK
+    if wallet is None:
+        status = HTTPStatus.NOT_FOUND
+
+    print('api_jitsi_participant_wallet: wallet found: ', wallet)
+    # FIXME(nochiel) Construct a better wallet struct using properties e.g. balance().
+    return jsonify(wallet._asdict()) if wallet else {}, status
+        
+
 
 
 

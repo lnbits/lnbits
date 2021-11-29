@@ -58,6 +58,14 @@ async def get_participant(
         conference: str,
         participant: str
         ) -> Participant:
+    print('crud.py.get_participant')
+
+    # rows = await db.fetchall(
+    #         '''
+    #         SELECT * FROM jitsi.participants
+    #         '''
+    #         )
+    # print('crud.py.get_participant: rows', rows)
 
     row = await db.fetchone(
             '''

@@ -1,11 +1,9 @@
+// FIXME(nochiel) If the host leaves then rejoins the conference, he has to reprocess all the events all over again.
+// - Save a conference timestamp and don't process messages before that timestamp.
 // TODO(nochiel) Handle errors from LNBits.api calls. 
 // - Which errors should the host user see?
-// TODO(nochiel) Ref. Use UserManager extension.
-// - How do I use/enable another extension as a dependency?
-// - Ref. Quasar documentation. Can one blueprint depend on another? What is even a blueprint?
-// - FINDOUT: How are Jitsi extensions enabled?
-//      - If UserManager isn't in the list of active extensions, ask the user to enable it when he enables Jitsi.
-// FIXME(nochiel) We need this.g.user
+// TODO(nochiel) Ref. Use UserManager extension?
+// See https://github.com/LightningTipBot for how to use the UserManager API .
 // TODO(nochiel) Wrap jitsi in  a vue component
 /*
  * TODO(nochiel) For each participant, add a 'pay Lightning' component.
@@ -14,6 +12,7 @@
  *   - Allow the user to copy the bolt11 string.
 */
 
+// TODO(nochiel) Chat bot
 // When a participant joins a conference, the participant is not running LNBits.
 // Therefore, we have 2 options for implementation:
 // 1. Custom UX (we'll do this eventually)
@@ -41,6 +40,10 @@ function log(message, ...rest) {
     console.log(`%c ${message}`,  'background: steelblue; color: white; font-size:14px', ...rest);
 }
 
+
+function notImplemented() {
+    assert(false, 'not implemented');
+}
 
 function jitsiFunctions(api) {
 
@@ -72,9 +75,9 @@ const app = new Vue({
     mixins: [windowMixin],
 
     data: function() {
-        return { api: null, conference: '',
-            participants: [],   // participant: {id, wallet}
-        }; },
+        return {  api: null, conference: '',
+        }; 
+    },
 
     /*
     computed: {
@@ -103,6 +106,7 @@ const app = new Vue({
 
     mounted: function () {
 
+        // TODO(nochiel) Show user dialog so they can set these when creating a conference?
         let domain = 'meet.jit.si';
         let tenant = 'AAAA';
         let roomName = 'room_AAAA';
@@ -128,9 +132,11 @@ const app = new Vue({
         // FINDOUT How do I do handle events in Vue? Specifically, how do I determine why this listeners aren't running?
         api.on('videoConferenceJoined', this.videoConferenceJoined);
         api.on('participantJoined', this.newParticipant);
-        api.on('errorOccurred', function (data) { console.error('error in Jitsi'); });
-        api.on('log', function (data) { log('logging'); });
+        api.on('incomingMessage', this.incomingMessage);
 
+        // FIXME(nochiel) Why don't these work? 
+        api.on('errorOccurred', function (data) { console.error('error in Jitsi'); });
+        api.on('log', (data) => { log('logging'); });     
 
     },
 
@@ -141,13 +147,83 @@ const app = new Vue({
             //
         },
 
-        async videoConferenceJoined(event) {
+        async getWallet(walletId) {
 
-            {
-                participants = this.api.getParticipantsInfo();
-                log('videoConferenceJoined: participants:', participants);
+            let result = await LNbits.api
+                .request(
+                    'GET',
+                    `/jitsi/api/v1/conference/participant/wallet/${walletId}`,
+                    this.g.user.wallets[0].inkey,
+                );
+
+            return result;
+        },
+
+        mSatstoSats(v) {
+            let result = 0
+            if(v > 0) {
+                result = v / 1000;
             }
+            return result;
+        },
 
+        async incomingMessage(event) {
+            /*
+                {
+                    from: string, // The id of the user that sent the message
+                    nick: string, // the nickname of the user that sent the message
+                    privateMessage: boolean, // whether this is a private or group message
+                    message: string // the text of the message
+                }
+            */
+            if(!this._isMounted) return;
+
+            log(`incomingMessage: from "${event.from}". Says: ${event.message}`);
+
+            if(event.message.startsWith('/')) {
+                // TODO(nochiel) Chat commands shouldn't show up in group chat. How do we filter out commands?
+                // - We won't. Instead, the bot will reply privately to the user who is commanding it.
+                this.getParticipant(this.conference, event.from)
+                    .then(participant => {
+
+                        assert(participant, `Jitsi participant ${event.from} does not exist in the LNBits database.`);
+                        this.getWallet(participant.wallet)
+                            .then(wallet => {
+
+                                assert(wallet != null, `Jitsi participant ${event.from} does not have a wallet in the database.`);
+                                let words = event.message.substring(1,).split(' ');
+                                let command = words[0];
+                                switch (command) {
+                                    case 'balance': {
+                                        log(`incomingMessage: command balance`);
+                                        log(`incomingMessage: ${event.from} has a balance of: ${wallet.balance}`);
+                                        // FIXME(nochiel) Make this a private message
+                                        this.api.executeCommand('sendChatMessage',
+                                            `Your balance is ${this.mSatstoSats(wallet.balance_msat)}`,
+                                            event.from, // the receiving participant ID or empty string/undefined for group chat.
+                                        );
+
+                                    }; break;
+
+                                    case 'pay': {
+                                        log(`incomingMessage: command pay`);
+
+                                        let payeeName = event.message.substring('/pay'.length - 1).trim();
+                                        if(payeeName == '') {
+
+                                            log('incomingMessage: command was "/pay" but no payee name was given');
+                                            // TODO(nochiel) Tell the user the syntax to use and give an example of how to pay the host.
+
+
+                                        }
+                                    }; break;
+                                }
+                            });
+                    });
+            }
+        },
+
+        async videoConferenceJoined(event) {
             /*
                 {
                     roomName: string, // the room name of the conference
@@ -155,11 +231,11 @@ const app = new Vue({
                     displayName: string, // the display name of the local participant
                     avatarURL: string // the avatar URL of the local participant
                 }
-            */
+                */
 
-            // This is called when the host/user starts the video conference.
-
+            if(!this._isMounted) return;
             assert(event.roomName != null);
+
             this.conference = event.roomName;
             data = {
                 conference: event.roomName,     
@@ -168,7 +244,7 @@ const app = new Vue({
             LNbits.api
                 .request(
                     'POST',
-                    '/jitsi/api/v1/conferences',
+                    '/jitsi/api/v1/conference',
                     this.g.user.wallets[0].inkey,
                     data
                 )
@@ -181,6 +257,7 @@ const app = new Vue({
 
         async getConference(adminId) {
 
+            // FIXME(nochiel) Handle errors.
             assert(adminId != null);
             let result = null;
             response = await LNbits.api
@@ -198,16 +275,24 @@ const app = new Vue({
 
         },
 
-        async getParticipant(data) {
-            assert(data.participant != '', 'participant id must be given');
+        async getParticipant(conference, participant) {
+            assert(conference && conference != '', 'conference id must be given');
+            assert(participant && participant != '', 'participant id must be given');
+            log('getParticipant');
 
-            let result = await LNbits.api
-                .request(
-                    'GET',
-                    `/jitsi/api/v1/conference/${data.conference}/participant/${data.participant}`,
-                    this.g.user.wallets[0].inkey,
-                );
-            return result.data;
+            let result = null;
+            try {
+                let response = await LNbits.api
+                    .request(
+                        'GET',
+                        `/jitsi/api/v1/conference/${conference}/participant/${participant}`,
+                        this.g.user.wallets[0].inkey,
+                    );
+                result = response.data;
+            } catch(e) {
+                log('getParticipant: error: ', e);
+            }
+            return result;
         },
 
 
@@ -218,7 +303,9 @@ const app = new Vue({
                     id: string, // the id of the participant
                     displayName: string // the display name of the participant
                 }
-                */
+            */
+
+            if(!this._isMounted) return;
             assert(event.id != '');
             log('newParticipant: ', event.id);
 
@@ -231,9 +318,9 @@ const app = new Vue({
                 // The LNBits api changes the window location when a new wallet is created. 
                 var data = { participant: event.id, conference: this.conference };
 
-                let participant = await this.getParticipant(data);
+                let participant = await this.getParticipant(data.conference, data.participant);
                 log('newParticipant: got participant: ', participant);
-                if(participant == null) {
+                if(!participant) {
 
                     // FINDOUT(nochiel) What do we need to store with the participant so that we can generate invoices?
                     // - create a new LNBits userId.
