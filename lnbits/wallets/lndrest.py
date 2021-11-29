@@ -102,10 +102,11 @@ class LndRestWallet(Wallet):
             # set the fee limit for the payment
             invoice = lnbits_bolt11.decode(bolt11)
             lnrpcFeeLimit = dict()
-            if invoice.amount_msat > 1000_000:
-                lnrpcFeeLimit["percent"] = "1"  # in percent
-            else:
-                lnrpcFeeLimit["fixed"] = "10"  # in sat
+            # if invoice.amount_msat > 1000_000:
+            #     lnrpcFeeLimit["percent"] = "1"  # in percent
+            # else:
+            #     lnrpcFeeLimit["fixed"] = "10"  # in sat
+            lnrpcFeeLimit["fixed"] = "1"
 
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
