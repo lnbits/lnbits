@@ -70,7 +70,7 @@ async def api_payments():
             )
         )
 
-    pendingPayments = await get_payments(wallet_id=g.wallet.id, pending=True)
+    pendingPayments = await get_payments(wallet_id=g.wallet.id, pending=True, exclude_uncheckable=True)
     for payment in pendingPayments:
         await check_invoice_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
