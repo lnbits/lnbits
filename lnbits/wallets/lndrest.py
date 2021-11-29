@@ -121,6 +121,7 @@ class LndRestWallet(Wallet):
 
         if r.is_error or r.json().get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
+            print(f"We have an ordinary error: {error_message}")
             return PaymentResponse(False, None, 0, None, error_message)
 
         data = r.json()
