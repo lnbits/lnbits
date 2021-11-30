@@ -236,7 +236,7 @@ async def api_get_jukebox_device_check(
 async def api_get_jukebox_invoice(juke_id, song_id):
     try:
         jukebox = await get_jukebox(juke_id)
-        
+
     except:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="No jukebox")
     try:
@@ -267,7 +267,7 @@ async def api_get_jukebox_invoice(juke_id, song_id):
         invoice=invoice[1], payment_hash=payment_hash, juke_id=juke_id, song_id=song_id
     )
     jukebox_payment = await create_jukebox_payment(data)
-    
+
     return data
 
 

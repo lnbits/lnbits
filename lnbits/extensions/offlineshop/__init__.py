@@ -14,10 +14,7 @@ offlineshop_static_files = [
     }
 ]
 
-offlineshop_ext: APIRouter = APIRouter(
-    prefix="/offlineshop",
-    tags=["Offlineshop"],
-)
+offlineshop_ext: APIRouter = APIRouter(prefix="/offlineshop", tags=["Offlineshop"])
 
 
 def offlineshop_renderer():

@@ -72,7 +72,7 @@ async def api_update_wallet(
 @core_app.get("/api/v1/payments")
 async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
     await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
-    pendingPayments = await get_payments(wallet_id=wallet.wallet.id, pending=True)
+    pendingPayments = await get_payments(wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True)
     for payment in pendingPayments:
         await check_invoice_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
@@ -193,7 +193,8 @@ async def api_payments_create(
     invoiceData: CreateInvoiceData = Body(...),
 ):
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
 
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -204,7 +205,8 @@ async def api_payments_create(
         return await api_payments_pay_invoice(
             invoiceData.bolt11, wallet.wallet
         )  # admin key
-    return await api_payments_create_invoice(invoiceData, wallet.wallet)  # invoice key
+    # invoice key
+    return await api_payments_create_invoice(invoiceData, wallet.wallet)
 
 
 class CreateLNURLData(BaseModel):
@@ -372,14 +374,16 @@ async def api_lnurlscan(code: str):
         params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = g().wallet.lnurlauth_key(domain)
-        params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
+        params.update(
+            pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
             r = await client.get(url, timeout=5)
             if r.is_error:
                 raise HTTPException(
                     status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                    detail={"domain": domain, "message": "failed to get parameters"},
+                    detail={"domain": domain,
+                            "message": "failed to get parameters"},
                 )
 
         try:
@@ -409,7 +413,8 @@ async def api_lnurlscan(code: str):
 
             if tag == "withdrawRequest":
                 params.update(kind="withdraw")
-                params.update(fixed=data["minWithdrawable"] == data["maxWithdrawable"])
+                params.update(fixed=data["minWithdrawable"]
+                              == data["maxWithdrawable"])
 
                 # callback with k1 already in it
                 parsed_callback: ParseResult = urlparse(data["callback"])

@@ -98,7 +98,7 @@ async def print_qr(request: Request, link_id):
         count = count + 1
     page_link = list(chunks(links, 2))
     linked = list(chunks(page_link, 5))
-    
+
     return withdraw_renderer().TemplateResponse(
         "withdraw/print_qr.html", {"request": request, "link": linked, "unique": True}
     )

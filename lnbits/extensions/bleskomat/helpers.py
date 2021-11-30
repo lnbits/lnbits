@@ -35,8 +35,8 @@ def generate_bleskomat_lnurl_secret(api_key_id: str, signature: str):
     return m.hexdigest()
 
 
-def get_callback_url(request: Request):
-    return request.url_for("bleskomat.api_bleskomat_lnurl")
+def get_callback_url(req: Request):
+    return req.url_for("bleskomat.api_bleskomat_lnurl")
 
 
 def is_supported_lnurl_subprotocol(tag: str) -> bool:

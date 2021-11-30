@@ -59,6 +59,7 @@ async def get_lnurlposs(wallet_ids: Union[str, List[str]]) -> List[lnurlposs]:
 
     return [lnurlposs(**row) if row else None for row in rows]
 
+
 async def delete_lnurlpos(lnurlpos_id: str) -> None:
     await db.execute("DELETE FROM lnurlpos.lnurlposs WHERE id = ?", (lnurlpos_id,))
 

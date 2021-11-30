@@ -8,10 +8,8 @@ from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_lnaddress")
 
-lnaddress_ext: APIRouter = APIRouter(
-    prefix="/lnaddress",
-    tags=["lnaddress"]
-)
+lnaddress_ext: APIRouter = APIRouter(prefix="/lnaddress", tags=["lnaddress"])
+
 
 def lnaddress_renderer():
     return template_renderer(["lnbits/extensions/lnaddress/templates"])

@@ -45,9 +45,7 @@ async def api_lnurlpos_create_or_update(
 
 
 @lnurlpos_ext.get("/api/v1/lnurlpos")
-async def api_lnurlposs_retrieve(
-    wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_lnurlposs_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
         return [{**lnurlpos.dict()} for lnurlpos in await get_lnurlposs(wallet_ids)]
@@ -73,8 +71,7 @@ async def api_lnurlpos_retrieve(
 
 @lnurlpos_ext.delete("/api/v1/lnurlpos/{lnurlpos_id}")
 async def api_lnurlpos_delete(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-    lnurlpos_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(require_admin_key), lnurlpos_id: str = Query(None)
 ):
     lnurlpos = await get_lnurlpos(lnurlpos_id)
 

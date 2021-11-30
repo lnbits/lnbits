@@ -143,23 +143,25 @@ async def pay_invoice(
         if wallet.balance_msat < 0:
             raise PermissionError("Insufficient balance.")
 
-        if internal_checking_id:
-            # mark the invoice from the other side as not pending anymore
-            # so the other side only has access to his new money when we are sure
-            # the payer has enough to deduct from
+    if internal_checking_id:
+        # mark the invoice from the other side as not pending anymore
+        # so the other side only has access to his new money when we are sure
+        # the payer has enough to deduct from
+        async with db.connect() as conn:
             await update_payment_status(
                 checking_id=internal_checking_id, pending=False, conn=conn
             )
 
-            # notify receiver asynchronously
+        # notify receiver asynchronously
 
-            from lnbits.tasks import internal_invoice_queue
+        from lnbits.tasks import internal_invoice_queue
 
-            await internal_invoice_queue.put(internal_checking_id)
-        else:
-            # actually pay the external invoice
-            payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
-            if payment.checking_id:
+        await internal_invoice_queue.put(internal_checking_id)
+    else:
+        # actually pay the external invoice
+        payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
+        if payment.checking_id:
+            async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
                     fee=payment.fee_msat,
@@ -169,13 +171,15 @@ async def pay_invoice(
                     **payment_kwargs,
                 )
                 await delete_payment(temp_id, conn=conn)
-            else:
-                raise PaymentFailure(
-                    payment.error_message
-                    or "Payment failed, but backend didn't give us an error message."
-                )
+        else:
+            async with db.connect() as conn:
+                await delete_payment(temp_id, conn=conn)
+            raise PaymentFailure(
+                payment.error_message
+                or "Payment failed, but backend didn't give us an error message."
+            )
 
-        return invoice.payment_hash
+    return invoice.payment_hash
 
 
 async def redeem_lnurl_withdraw(
@@ -314,7 +318,8 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        print(
+            f" - deleting outgoing failed payment {payment.checking_id}: {status}")
         await payment.delete()
     elif not status.pending:
         print(

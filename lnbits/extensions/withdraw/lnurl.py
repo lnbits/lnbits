@@ -28,12 +28,9 @@ async def api_lnurl_response(request: Request, unique_hash):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
-        
 
     if link.is_spent:
-        raise HTTPException(
-            detail="Withdraw is spent."
-        )
+        raise HTTPException(detail="Withdraw is spent.")
     url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
     withdrawResponse = {
         "tag": "withdrawRequest",
@@ -48,15 +45,10 @@ async def api_lnurl_response(request: Request, unique_hash):
 
 # CALLBACK
 
-@withdraw_ext.get(
-    "/api/v1/lnurl/cb/{unique_hash}",
-    name="withdraw.api_lnurl_callback",
-)
+
+@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", name="withdraw.api_lnurl_callback")
 async def api_lnurl_callback(
-    unique_hash,
-    request: Request,
-    k1: str = Query(...),
-    pr: str = Query(...)
+    unique_hash, request: Request, k1: str = Query(...), pr: str = Query(...)
 ):
     link = await get_withdraw_link_by_hash(unique_hash)
     now = int(datetime.now().timestamp())
@@ -94,8 +86,8 @@ async def api_lnurl_callback(
             "usescsv": usescsv,
         }
         await update_withdraw_link(link.id, **changes)
-        
-        payment_request=pr
+
+        payment_request = pr
 
         await pay_invoice(
             wallet_id=link.wallet,

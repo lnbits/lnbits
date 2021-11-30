@@ -7,9 +7,7 @@ from . import db
 from .models import Addresses, CreateAddress, CreateDomain, Domains
 
 
-async def create_domain(
-    data: CreateDomain
-) -> Domains:
+async def create_domain(data: CreateDomain) -> Domains:
     domain_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -37,21 +35,20 @@ async def update_domain(domain_id: str, **kwargs) -> Domains:
     await db.execute(
         f"UPDATE lnaddress.domain SET {q} WHERE id = ?", (*kwargs.values(), domain_id)
     )
-    row = await db.fetchone(
-        "SELECT * FROM lnaddress.domain WHERE id = ?", (domain_id,)
-    )
+    row = await db.fetchone("SELECT * FROM lnaddress.domain WHERE id = ?", (domain_id,))
     assert row, "Newly updated domain couldn't be retrieved"
     return Domains(**row)
 
+
 async def delete_domain(domain_id: str) -> None:
-    
+
     await db.execute("DELETE FROM lnaddress.domain WHERE id = ?", (domain_id,))
 
+
 async def get_domain(domain_id: str) -> Optional[Domains]:
-    row = await db.fetchone(
-        "SELECT * FROM lnaddress.domain WHERE id = ?", (domain_id,)
-    )
+    row = await db.fetchone("SELECT * FROM lnaddress.domain WHERE id = ?", (domain_id,))
     return Domains(**row) if row else None
+
 
 async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
     if isinstance(wallet_ids, str):
@@ -64,12 +61,12 @@ async def get_domains(wallet_ids: Union[str, List[str]]) -> List[Domains]:
 
     return [Domains(**row) for row in rows]
 
+
 ## ADRESSES
 
+
 async def create_address(
-    payment_hash: str,
-    wallet: str,
-    data: CreateAddress
+    payment_hash: str, wallet: str, data: CreateAddress
 ) -> Addresses:
     await db.execute(
         """
@@ -94,6 +91,7 @@ async def create_address(
     assert new_address, "Newly created address couldn't be retrieved"
     return new_address
 
+
 async def get_address(address_id: str) -> Optional[Addresses]:
     row = await db.fetchone(
         "SELECT a.* FROM lnaddress.address AS a INNER JOIN lnaddress.domain AS d ON a.id = ? AND a.domain = d.id",
@@ -101,16 +99,19 @@ async def get_address(address_id: str) -> Optional[Addresses]:
     )
     return Addresses(**row) if row else None
 
+
 async def get_address_by_username(username: str, domain: str) -> Optional[Addresses]:
     row = await db.fetchone(
         "SELECT a.* FROM lnaddress.address AS a INNER JOIN lnaddress.domain AS d ON a.username = ? AND d.domain = ?",
-        (username, domain,),
+        (username, domain),
     )
-    
+
     return Addresses(**row) if row else None
+
 
 async def delete_address(address_id: str) -> None:
     await db.execute("DELETE FROM lnaddress.address WHERE id = ?", (address_id,))
+
 
 async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
     if isinstance(wallet_ids, str):
@@ -118,10 +119,10 @@ async def get_addresses(wallet_ids: Union[str, List[str]]) -> List[Addresses]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM lnaddress.address WHERE wallet IN ({q})",
-        (*wallet_ids,),
+        f"SELECT * FROM lnaddress.address WHERE wallet IN ({q})", (*wallet_ids,)
     )
     return [Addresses(**row) for row in rows]
+
 
 async def set_address_paid(payment_hash: str) -> Addresses:
     address = await get_address(payment_hash)
@@ -140,6 +141,7 @@ async def set_address_paid(payment_hash: str) -> Addresses:
     assert new_address, "Newly paid address couldn't be retrieved"
     return new_address
 
+
 async def set_address_renewed(address_id: str, duration: int):
     address = await get_address(address_id)
 
@@ -150,7 +152,7 @@ async def set_address_renewed(address_id: str, duration: int):
         SET duration = ?
         WHERE id = ?
         """,
-        (extend_duration, address_id,),
+        (extend_duration, address_id),
     )
     updated_address = await get_address(address_id)
     assert updated_address, "Renewed address couldn't be retrieved"
@@ -160,15 +162,15 @@ async def set_address_renewed(address_id: str, duration: int):
 async def check_address_available(username: str, domain: str):
     row, = await db.fetchone(
         "SELECT COUNT(username) FROM lnaddress.address WHERE username = ? AND domain = ?",
-        (username, domain,),
+        (username, domain),
     )
     return row
+
 
 async def purge_addresses(domain_id: str):
 
     rows = await db.fetchall(
-        "SELECT * FROM lnaddress.address WHERE domain = ?",
-        (domain_id, ),
+        "SELECT * FROM lnaddress.address WHERE domain = ?", (domain_id,)
     )
 
     now = datetime.now().timestamp()
@@ -178,8 +180,10 @@ async def purge_addresses(domain_id: str):
 
         start = datetime.fromtimestamp(r["time"])
         paid = r["paid"]
-        pay_expire = now > start.timestamp() + 86400 #if payment wasn't made in 1 day
-        expired = now > (start  + timedelta(days = r["duration"] + 1)).timestamp() #give user 1 day to topup is address
+        pay_expire = now > start.timestamp() + 86400  # if payment wasn't made in 1 day
+        expired = (
+            now > (start + timedelta(days=r["duration"] + 1)).timestamp()
+        )  # give user 1 day to topup is address
 
         if not paid and pay_expire:
             print("DELETE UNP_PAY_EXP", r["username"])

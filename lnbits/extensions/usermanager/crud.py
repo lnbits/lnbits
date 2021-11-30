@@ -14,6 +14,7 @@ from .models import CreateUserData, Users, Wallets
 
 ### Users
 
+
 async def create_usermanager_user(data: CreateUserData) -> Users:
     account = await create_account()
     user = await get_user(account.id)

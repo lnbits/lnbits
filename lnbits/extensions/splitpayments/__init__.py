@@ -24,6 +24,7 @@ splitpayments_ext: APIRouter = APIRouter(
 def splitpayments_renderer():
     return template_renderer(["lnbits/extensions/splitpayments/templates"])
 
+
 from .tasks import wait_for_paid_invoices
 from .views import *  # noqa
 from .views_api import *  # noqa

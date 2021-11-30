@@ -7,7 +7,7 @@ from pydantic import BaseModel, validator
 from starlette.requests import Request
 
 from lnbits import bolt11
-from lnbits.core.services import pay_invoice
+from lnbits.core.services import pay_invoice, PaymentFailure
 
 from . import db
 from .exchange_rates import exchange_rate_providers, fiat_currencies
@@ -119,13 +119,13 @@ class BleskomatLnurl(BaseModel):
             tag = self.tag
             if tag == "withdrawRequest":
                 try:
-                    payment_hash = await pay_invoice(
+                    await pay_invoice(
                         wallet_id=self.wallet, payment_request=query["pr"]
                     )
+                except (ValueError, PermissionError, PaymentFailure) as e:
+                    raise LnurlValidationError("Failed to pay invoice: " + str(e))
                 except Exception:
-                    raise LnurlValidationError("Failed to pay invoice")
-                if not payment_hash:
-                    raise LnurlValidationError("Failed to pay invoice")
+                    raise LnurlValidationError("Unexpected error")
 
     async def use(self, conn) -> bool:
         now = int(time.time())
