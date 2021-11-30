@@ -370,10 +370,9 @@
         if (data.wallet_endpoint == '') {
           data.wallet_endpoint = null
         }
-        data.wallet_endpoint = data.wallet_endpoint ?? '{{ request.url_root }}'
+        data.wallet_endpoint = data.wallet_endpoint ?? '{{ root_url }}'
         data.duration = parseInt(data.duration)
-        console.log('data', data)
-
+        
         axios
           .post('/lnaddress/api/v1/address/{{ domain_id }}', data)
           .then(response => {

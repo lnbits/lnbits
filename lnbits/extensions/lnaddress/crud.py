@@ -176,7 +176,7 @@ async def purge_addresses(domain_id: str):
     now = datetime.now().timestamp()
 
     for row in rows:
-        r = Addresses(**row)._asdict()
+        r = Addresses(**row).dict()
 
         start = datetime.fromtimestamp(r["time"])
         paid = r["paid"]
