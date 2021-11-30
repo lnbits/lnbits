@@ -27,7 +27,7 @@
           dense
           flat
           :data="recurrent"
-          row-key="id"
+          row-key="wallet"
           :columns="recurrentTable.columns"
           :pagination.sync="recurrentTable.pagination"
         >
@@ -63,7 +63,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="updateDomainDialog(props.row.id)"
+                  @click="updateRecurrentDialog(props.row.id)"
                   icon="edit"
                   color="light-blue"
                 >
@@ -74,7 +74,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="deleteDomain(props.row.id)"
+                  @click="deleteRecurrent(props.row.id)"
                   icon="cancel"
                   color="pink"
                 ></q-btn>
@@ -246,7 +246,7 @@
             color="primary"
             :disable="swapOutDialog.data.onchainaddress == null || swapOutDialog.data.amount < 1 || swapOutDialog.data.fee < 1"
             type="submit"
-            >Create Domain</q-btn
+            >Create Swap</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="resetSwapOutDialog"
             >Cancel</q-btn
@@ -280,6 +280,10 @@
             recurrent: false
           }
         },
+        updateRecurrentDialog: {
+          show: false,
+          data: {}
+        },
         swapOutsTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
@@ -309,12 +313,11 @@
         },
         recurrentTable: {
           columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
             {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
             {
               name: 'amount',
               align: 'left',
-              label: 'Amount',
+              label: 'Threshold',
               field: 'amount'
             },
             {
@@ -384,8 +387,6 @@
             this.swapOuts = response.data.map(function (obj) {
               return mapSwapOuts(obj)
             })
-            this.recurrent = this.swapOuts.filter(obj => obj.recurrent)
-            console.log(this.swapOuts, this.recurrent)
           })
       },
       sendSwapOutFormData: function () {
@@ -393,6 +394,12 @@
           id: this.swapOutDialog.data.wallet
         })
         let data = this.swapOutDialog.data
+        if(data.recurrent) {
+          data.threshold = data.amount
+          delete data.amount
+          delete data.recurrent
+          return this.createRecurrent(wallet, data)
+        }
         if (data.id) {
           this.updateSwapOut(wallet, data)
         } else {
@@ -412,9 +419,53 @@
           .catch(error => {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      // RECURRENT
+      getRecurrents(){
+        LNbits.api
+          .request(
+            'GET',
+            '/swap/api/v1/recurrent?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.recurrent = response.data.map(function (obj) {
+              return mapSwapOuts(obj)
+            })
+            console.log(this.recurrent)
+          })
+      },
+      createRecurrent(wallet, data){
+        LNbits.api
+        .request('POST', '/swap/api/v1/recurrent', this.g.user.wallets[0].adminkey, data)
+        .then(res => {
+          this.recurrent.push(mapSwapOuts(res.data))
+          this.updateRecurrentDialog = {
+            show: false,
+            data: {}
+          }
+        })
+        .catch(error => {
+          LNbits.utils.notifyApiError(error)
+        })
+      },
+      updateRecurrent(id, data){
+        LNbits.api
+        .request('PUT', '/swap/api/v1/recurrent', this.g.user.wallets[0].adminkey, data)
+        .then(res => {
+          this.recurrent.push(mapSwapOuts(res.data))
+          this.updateRecurrentDialog = {
+            show: false,
+            data: {}
+          }
+        })
+        .catch(error => {
+          LNbits.utils.notifyApiError(error)
+        })
       }
     },
     created: function () {
+      this.getRecurrents()
       this.getSwapOuts()
       this.getWalletLinks()
     }

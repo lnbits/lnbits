@@ -23,20 +23,21 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment) -> None:
     has_recurrent = await get_recurrent_swapout(payment.wallet_id)
-    print("TASK#1", has_recurrent)
+    
     if has_recurrent:
         # do the balance check
         wallet = await get_wallet(wallet_id=payment.wallet_id)
         assert wallet
         if wallet.balance_msat < (has_recurrent.amount * 1000):
             return
-        data = CreateSwapOut(
-            has_recurrent.wallet,
-            has_recurrent.onchainwallet,
-            has_recurrent.onchainaddress,
-            has_recurrent.amount,
-            has_recurrent.recurrent,
-            has_recurrent.fee
-        )
-        print("TASK#2", data)
-        await create_swapout(data=data)
+
+        data = {
+            "wallet": has_recurrent.wallet,
+            "onchainwallet": has_recurrent.onchainwallet,
+            "onchainaddress": has_recurrent.onchainaddress,
+            "amount": has_recurrent.threshold,
+            "recurrent": True,
+            "fee": has_recurrent.fee,
+        }
+        
+        await create_swapout(CreateSwapOut(**data))

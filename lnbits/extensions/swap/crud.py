@@ -9,7 +9,7 @@ from lnbits.extensions.watchonly.crud import get_fresh_address
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateSwapOut, SwapOut
+from .models import CreateRecurrent, CreateSwapOut, Recurrent, SwapOut
 
 
 #SWAP OUT
@@ -76,20 +76,77 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
     )
     return await get_swapout(swap_id)
 
-async def update_swapout() -> SwapOut:
-    pass
 
-async def get_recurrent_swapout(wallet_id) -> Optional[SwapOut]:
-    row = await db.fetchone(
-        "SELECT * from swap.out WHERE wallet = ? AND recurrent = ?",
-        (wallet_id, True,),
+async def delete_swapout(swap_id):
+    await db.execute("DELETE FROM swap.out WHERE id = ?", (swap_id,))
+
+## RECURRENT SWAP OUT
+
+async def get_recurrents(wallet_ids: Union[str, List[str]]) -> List[Recurrent]:
+    if isinstance(wallet_ids, str):
+        wallet_ids = [wallet_ids]
+
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM swap.recurrent WHERE wallet IN ({q})", (*wallet_ids,)
     )
-    return SwapOut(**row) if row else None
+
+    return [Recurrent(**row) for row in rows]
+
+async def create_recurrent(data: CreateRecurrent):
+    swap_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO swap.recurrent (
+            id,
+            wallet,
+            onchainwallet,
+            onchainaddress,
+            threshold,
+            fee
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            swap_id,
+            data.wallet,
+            data.onchainwallet,
+            data.onchainaddress,
+            data.threshold,
+            data.fee
+        )
+    )
+    return await get_recurrent_swapout(data.wallet)
+     
+
+# async def get_recurrent():
+#     ## THERE SHOULD BE ONLY ONE
+#     row = await db.fetchone("SELECT * FROM swap.recurrent")
+#     return Recurrent(**row) if row else None
+
+async def update_recurrent(swap_id: str, **kwargs) -> Optional[Recurrent]:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(
+        f"UPDATE swap.recurrent SET {q} WHERE id = ?", (*kwargs.values(), swap_id)
+    )
+    row = await db.fetchone("SELECT * FROM swap.recurrent WHERE id = ?", (swap_id,))
+    return Recurrent(**row) if row else None
+
+async def delete_recurrent(swap_id):
+    await db.execute("DELETE FROM swap.recurrent WHERE id = ?", (swap_id,))
+
+
+async def get_recurrent_swapout(wallet_id) -> Optional[Recurrent]:
+    row = await db.fetchone(
+        "SELECT * from swap.recurrent WHERE wallet = ?",
+        (wallet_id,),
+    )
+    return Recurrent(**row) if row else None
 
 
 async def unique_recurrent_swapout(wallet_id):
     row, = await db.fetchone(
-        "SELECT COUNT(wallet) FROM swap.out WHERE wallet = ? AND recurrent = ?",
-        (wallet_id, True,),
+        "SELECT COUNT(wallet) FROM swap.recurrent WHERE wallet = ?",
+        (wallet_id,),
     )
     return row
