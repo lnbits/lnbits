@@ -34,7 +34,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
         max_sendable=1000000000,
         metadata=await address.lnurlpay_metadata(),
     )
-
+    print("RESP", resp)
     return resp.dict()
 
 
