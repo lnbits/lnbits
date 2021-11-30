@@ -15,6 +15,7 @@ from .crud import get_address, get_address_by_username, get_domain
 
 
 async def lnurl_response(username: str, domain: str, request: Request):
+    print("LNU", username, domain)
     address = await get_address_by_username(username, domain)
 
     if not address:
@@ -54,7 +55,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
         if address.wallet_endpoint.endswith("/")
         else address.wallet_endpoint
     )
-
+    print("BASE", base_url)
     async with httpx.AsyncClient() as client:
         try:
             call = await client.post(
