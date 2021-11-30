@@ -94,6 +94,10 @@ async def get_recurrents(wallet_ids: Union[str, List[str]]) -> List[Recurrent]:
     return [Recurrent(**row) for row in rows]
 
 async def create_recurrent(data: CreateRecurrent):
+    if data.onchainwallet:
+        onchainaddress = f"Using {data.onchainwallet} addresses"
+    else:
+        onchainaddress = data.onchainaddress
     swap_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -136,7 +140,14 @@ async def delete_recurrent(swap_id):
     await db.execute("DELETE FROM swap.recurrent WHERE id = ?", (swap_id,))
 
 
-async def get_recurrent_swapout(wallet_id) -> Optional[Recurrent]:
+async def get_recurrent_swapout(swap_id) -> Optional[Recurrent]:
+    row = await db.fetchone(
+        "SELECT * from swap.recurrent WHERE id = ?",
+        (swap_id,),
+    )
+    return Recurrent(**row) if row else None
+
+async def get_recurrent_swapout_by_wallet(wallet_id) -> Optional[Recurrent]:
     row = await db.fetchone(
         "SELECT * from swap.recurrent WHERE wallet = ?",
         (wallet_id,),

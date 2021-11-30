@@ -13,6 +13,8 @@ from . import swap_ext
 from .crud import (
     create_recurrent,
     create_swapout,
+    delete_recurrent,
+    get_recurrent_swapout,
     get_recurrents,
     get_swapouts,
     unique_recurrent_swapout,
@@ -78,6 +80,20 @@ async def api_swapout_update_recurrent(
         print("REC", recurrent)
         return recurrent.dict()
     else:
-        recurrent = await update_recurrent(swap_id=swap_id, data=data)
+        recurrent = await update_recurrent(swap_id, **data.dict())
         return recurrent.dict()
-    
+
+@swap_ext.delete("/api/v1/recurrent/{swap_id}")
+async def api_delete_recurrent_swapout(swap_id, g: WalletTypeInfo = Depends(require_admin_key)):
+    swap = await get_recurrent_swapout(swap_id)
+    if not swap:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Recurrent swap does not exist."
+        )
+    if swap.wallet != g.wallet.id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your Swap."
+        )
+
+    await delete_recurrent(swap_id)
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
