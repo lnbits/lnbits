@@ -2,24 +2,21 @@ import json
 
 import httpx
 
-from .models import SwapOut
-
 URL = "https://etleneum.com"
 CONTRACT = "c8w0c13v75"
 
-async def create_queue_pay(data: SwapOut):
+async def create_queue_pay(amount, address, fee):
     # Create a queuepay call to etleneum
     url = (
         URL
         + f"/~/contract/{CONTRACT}/call"
     )
     payload = {
-        "msatoshi": data.amount * 1000, #amount * 1000
-        "addr": data.onchainaddress, #onchain address
-        "fee_msat": data.fee #fee
+        "addr": address, #onchain address
+        "fee_msat": fee #fee
     }
 
-    response = ""
+    response = None
 
     async with httpx.AsyncClient() as client:
         try:
@@ -29,7 +26,7 @@ async def create_queue_pay(data: SwapOut):
                 json={
                     "method": "queuepay",
                     "payload": payload,
-                    "msatoshi": 0
+                    "msatoshi": amount * 1000
                     },
                 timeout=40,
             )

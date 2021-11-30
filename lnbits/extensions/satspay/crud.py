@@ -69,7 +69,6 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
     )
     return await get_charge(charge_id)
 
-
 async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(

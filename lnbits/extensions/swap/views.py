@@ -19,5 +19,5 @@ templates = Jinja2Templates(directory="templates")
 
 @swap_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
-    return swap_renderer().TemplateResponse("lnaddress/index.html", {"request": request, "user": user.dict()})
+    return swap_renderer().TemplateResponse("swap/index.html", {"request": request, "user": user.dict()})
 
