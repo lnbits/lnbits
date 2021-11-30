@@ -4,18 +4,16 @@ from typing import Optional
 
 from fastapi import Request, status
 from fastapi.exceptions import HTTPException
-from fastapi.param_functions import Body
 from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
 from pydantic.types import UUID4
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, JSONResponse
 
 from lnbits.core import db
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.requestvars import g
 from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_SITE_TITLE, SERVICE_FEE
 
 from ..crud import (
@@ -32,7 +30,7 @@ from ..services import pay_invoice, redeem_lnurl_withdraw
 core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])
 
 
-@core_html_routes.get("/favicon.ico")
+@core_html_routes.get("/favicon.ico", response_class=FileResponse)
 async def favicon():
     return FileResponse("lnbits/core/static/favicon.ico")
 
@@ -44,7 +42,11 @@ async def home(request: Request, lightning: str = None):
     )
 
 
-@core_html_routes.get("/extensions", name="core.extensions")
+@core_html_routes.get(
+    "/extensions",
+    name="core.extensions",
+    response_class=HTMLResponse,
+)
 async def extensions(
     request: Request,
     user: User = Depends(check_user_exists),
@@ -77,9 +79,19 @@ async def extensions(
     )
 
 
-@core_html_routes.get("/wallet", response_class=HTMLResponse)
-# Not sure how to validate
-# @validate_uuids(["usr", "nme"])
+@core_html_routes.get(
+    "/wallet",
+    response_class=HTMLResponse,
+    description="""
+Args:
+
+just **wallet_name**: create a new user, then create a new wallet for user with wallet_name<br>
+just **user_id**: return the first user wallet or create one if none found (with default wallet_name)<br>
+**user_id** and **wallet_name**: create a new wallet for user with wallet_name<br>
+**user_id** and **wallet_id**: return that wallet if user is the owner<br>
+nothing: create everything<br>
+""",
+)
 async def wallet(
     request: Request = Query(None),
     nme: Optional[str] = Query(None),
@@ -90,12 +102,6 @@ async def wallet(
     wallet_id = wal.hex if wal else None
     wallet_name = nme
     service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
-
-    # just wallet_name: create a new user, then create a new wallet for user with wallet_name
-    # just user_id: return the first user wallet or create one if none found (with default wallet_name)
-    # user_id and wallet_name: create a new wallet for user with wallet_name
-    # user_id and wallet_id: return that wallet if user is the owner
-    # nothing: create everything
 
     if not user_id:
         user = await get_user((await create_account()).id)
@@ -137,14 +143,13 @@ async def wallet(
     )
 
 
-@core_html_routes.get("/withdraw")
-# @validate_uuids(["usr", "wal"], required=True)
+@core_html_routes.get("/withdraw", response_class=JSONResponse)
 async def lnurl_full_withdraw(request: Request):
-    user = await get_user(request.args.get("usr"))
+    user = await get_user(request.query_params.get("usr"))
     if not user:
         return {"status": "ERROR", "reason": "User does not exist."}
 
-    wallet = user.get_wallet(request.args.get("wal"))
+    wallet = user.get_wallet(request.query_params.get("wal"))
     if not wallet:
         return {"status": "ERROR", "reason": "Wallet does not exist."}
 
@@ -159,18 +164,17 @@ async def lnurl_full_withdraw(request: Request):
     }
 
 
-@core_html_routes.get("/withdraw/cb")
-# @validate_uuids(["usr", "wal"], required=True)
+@core_html_routes.get("/withdraw/cb", response_class=JSONResponse)
 async def lnurl_full_withdraw_callback(request: Request):
-    user = await get_user(request.args.get("usr"))
+    user = await get_user(request.query_params.get("usr"))
     if not user:
         return {"status": "ERROR", "reason": "User does not exist."}
 
-    wallet = user.get_wallet(request.args.get("wal"))
+    wallet = user.get_wallet(request.query_params.get("wal"))
     if not wallet:
         return {"status": "ERROR", "reason": "Wallet does not exist."}
 
-    pr = request.args.get("pr")
+    pr = request.query_params.get("pr")
 
     async def pay():
         try:
@@ -180,14 +184,14 @@ async def lnurl_full_withdraw_callback(request: Request):
 
     asyncio.create_task(pay())
 
-    balance_notify = request.args.get("balanceNotify")
+    balance_notify = request.query_params.get("balanceNotify")
     if balance_notify:
         await save_balance_notify(wallet.id, balance_notify)
 
     return {"status": "OK"}
 
 
-@core_html_routes.get("/deletewallet")
+@core_html_routes.get("/deletewallet", response_class=RedirectResponse)
 async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
     user_wallet_ids = [u.id for u in user.wallets]
@@ -211,14 +215,13 @@ async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query
 
 
 @core_html_routes.get("/withdraw/notify/{service}")
-# @validate_uuids(["wal"], required=True)
 async def lnurl_balance_notify(request: Request, service: str):
-    bc = await get_balance_check(request.args.get("wal"), service)
+    bc = await get_balance_check(request.query_params.get("wal"), service)
     if bc:
         redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_html_routes.get("/lnurlwallet")
+@core_html_routes.get("/lnurlwallet", response_class=RedirectResponse)
 async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)
@@ -228,7 +231,7 @@ async def lnurlwallet(request: Request):
     asyncio.create_task(
         redeem_lnurl_withdraw(
             wallet.id,
-            request.args.get("lightning"),
+            request.query_params.get("lightning"),
             "LNbits initial funding: voucher redeem.",
             {"tag": "lnurlwallet"},
             5,  # wait 5 seconds before sending the invoice to the service
