@@ -55,7 +55,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
         if address.wallet_endpoint.endswith("/")
         else address.wallet_endpoint
     )
-    print("BASE", base_url)
+    print("BASE", base_url )
     async with httpx.AsyncClient() as client:
         try:
             call = await client.post(
