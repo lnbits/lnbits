@@ -34,12 +34,13 @@ async def lnurl_response(username: str, domain: str, request: Request):
         max_sendable=1000000000,
         metadata=await address.lnurlpay_metadata(),
     )
-    print("RESP", resp)
+    print("RESP", resp.dict())
     return resp.dict()
 
 
 @lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback")
 async def lnurl_callback(address_id, amount: int = Query(...)):
+    print("PING")
     address = await get_address(address_id)
 
     if not address:
