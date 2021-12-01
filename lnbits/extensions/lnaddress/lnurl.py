@@ -42,13 +42,14 @@ async def lnurl_response(username: str, domain: str, request: Request):
 async def lnurl_callback(address_id, amount: int = Query(...)):
     print("PING")
     address = await get_address(address_id)
-
     if not address:
         return LnurlErrorResponse(reason=f"Address not found").dict()
 
     amount_received = amount
 
     domain = await get_domain(address.domain)
+    print("ADR", address)
+    print("DOM", domain)
 
     base_url = (
         address.wallet_endpoint[:-1]
