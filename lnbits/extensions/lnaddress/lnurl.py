@@ -30,14 +30,16 @@ async def lnurl_response(username: str, domain: str, request: Request):
     if now > expiration:
         return LnurlErrorResponse(reason="Address has expired.").dict()
 
-    resp = LnurlPayResponse(
-        callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id),
-        min_sendable=1000,
-        max_sendable=1000000000,
-        metadata=await address.lnurlpay_metadata(domain=domain),
-    )
-    print("RESP", resp.dict())
-    return resp.dict()
+    resp = {
+        "tag": "payRequest",
+        "callback": request.url_for("lnaddress.lnurl_callback", address_id=address.id),
+        "metadata": await address.lnurlpay_metadata(domain=domain),
+        "minSendable": 1000,
+        "maxSendable": 1000000000,
+    }
+
+    print("RESP", resp)
+    return json.dumps(resp)
 
 
 @lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback")
@@ -82,6 +84,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
         except AssertionError as e:
             return LnurlErrorResponse(reason="ERROR")
 
-    resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])
+    # resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])
+    resp = {"pr": r["payment_request"], "routes": []}
 
-    return resp.dict()
+    return json.dumps(resp)
