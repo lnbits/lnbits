@@ -9,6 +9,7 @@ from lnurl import (  # type: ignore
     LnurlPayResponse,
 )
 from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from . import lnaddress_ext
 from .crud import get_address, get_address_by_username, get_domain
@@ -35,10 +36,10 @@ async def lnurl_response(username: str, domain: str, request: Request):
         metadata=await address.lnurlpay_metadata(domain=domain),
     )
     print("RESP", resp.dict())
-    return resp
+    return resp.dict()
 
 
-@lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback")
+@lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback", response_class=HTMLResponse)
 async def lnurl_callback(address_id, amount: int = Query(...)):
     print("PING")
     address = await get_address(address_id)
@@ -82,4 +83,4 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
 
     resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])
 
-    return resp
+    return resp.dict()

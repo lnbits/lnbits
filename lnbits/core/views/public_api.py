@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from lnbits import bolt11
 
@@ -13,7 +14,7 @@ from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
 
 
-@core_app.get("/.well-known/lnurlp/{username}")
+@core_app.get("/.well-known/lnurlp/{username}", response_class=HTMLResponse)
 async def lnaddress(username: str, request: Request):
     from lnbits.extensions.lnaddress.lnurl import lnurl_response
 
