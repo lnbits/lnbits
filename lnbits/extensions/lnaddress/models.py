@@ -52,7 +52,6 @@ class Addresses(BaseModel):
     async def lnurlpay_metadata(self, domain) -> LnurlPayMetadata:
         text = f"Payment to {self.username}"
         identifier = f"{self.username}@{domain}"
-        metadata = [["text/plain", text], ["text/identifier"], identifier]
-        print(json.dumps(metadata))
-
+        metadata = [["text/plain", text], ["text/identifier", identifier]]
+        
         return LnurlPayMetadata(json.dumps(metadata))
