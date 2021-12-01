@@ -84,11 +84,13 @@ async def pay_invoice(
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
+    invoice = bolt11.decode(payment_request)
+    fee_reserve_msat = fee_reserve(invoice.amount_msat)
+
     async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
         temp_id = f"temp_{urlsafe_short_hash()}"
         internal_id = f"internal_{urlsafe_short_hash()}"
 
-        invoice = bolt11.decode(payment_request)
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
         if max_sat and invoice.amount_msat > max_sat * 1000:
@@ -131,7 +133,7 @@ async def pay_invoice(
             # the balance is enough in the next step
             await create_payment(
                 checking_id=temp_id,
-                fee=-fee_reserve(invoice.amount_msat),
+                fee=-fee_reserve_msat,
                 conn=conn,
                 **payment_kwargs,
             )
@@ -159,7 +161,7 @@ async def pay_invoice(
         await internal_invoice_paid.send(internal_checking_id)
     else:
         # actually pay the external invoice
-        payment: PaymentResponse = await WALLET.pay_invoice(payment_request, fee_reserve(invoice.amount_msat))
+        payment: PaymentResponse = await WALLET.pay_invoice(payment_request, fee_reserve_msat)
         if payment.checking_id:
             async with db.connect() as conn:
                 await create_payment(
@@ -339,5 +341,6 @@ async def check_invoice_status(
     return status
 
 
+# WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
     return max(1000, int(amount_msat * 0.01))
