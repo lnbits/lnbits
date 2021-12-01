@@ -30,7 +30,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
 
     resp = LnurlPayResponse(
         # callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id),
-        callback=f"https://fastbits.lnto.me/lnurl/cb/{address.id}",
+        callback=f"https://fastbits.lnto.me/lnaddress/lnurl/cb/{address.id}",
         min_sendable=1000,
         max_sendable=1000000000,
         metadata=await address.lnurlpay_metadata(),
