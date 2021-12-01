@@ -32,7 +32,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
         callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id),
         min_sendable=1000,
         max_sendable=1000000000,
-        metadata=await address.lnurlpay_metadata(),
+        metadata=await address.lnurlpay_metadata(domain=domain),
     )
     print("RESP", resp.dict())
     return resp.dict()
@@ -69,7 +69,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "description_hash": hashlib.sha256(
-                        (await address.lnurlpay_metadata()).encode("utf-8")
+                        (await address.lnurlpay_metadata(domain=domain.domain)).encode("utf-8")
                     ).hexdigest(),
                     "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },
