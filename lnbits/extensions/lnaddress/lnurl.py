@@ -52,9 +52,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
     amount_received = amount
 
     domain = await get_domain(address.domain)
-    print("ADR", address)
-    print("DOM", domain)
-
+    
     base_url = (
         address.wallet_endpoint[:-1]
         if address.wallet_endpoint.endswith("/")
