@@ -10,6 +10,8 @@ import json
 from os import getenv
 from typing import Optional, AsyncGenerator
 
+from lnbits import bolt11 as lnbits_bolt11
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -85,8 +87,16 @@ class CLightningWallet(Wallet):
             return InvoiceResponse(False, label, None, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        invoice = lnbits_bolt11.decode(bolt11)
+        fee_limit_percent = (invoice.amount_msat // fee_limit_msat) // 100
+
+        payload = {
+            "bolt11" : bolt11,
+            "maxfeepercent" : fee_limit_percent
+        }
+        
         try:
-            r = self.ln.pay(bolt11)
+            r = self.ln.call("pay", payload)
         except RpcError as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
