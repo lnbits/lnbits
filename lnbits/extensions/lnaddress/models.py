@@ -51,10 +51,9 @@ class Addresses(BaseModel):
     paid: bool
     time: int
 
-    async def lnurlpay_metadata(self) -> LnurlPayMetadata:
-        domain = await get_domain(self.domain)
-        text = f"Payment to {self.username}@{domain.domain}"
-        identifier = f"{self.username}@{domain.domain}"
+    async def lnurlpay_metadata(self, domain) -> LnurlPayMetadata:
+        text = f"Payment to {self.username}@{domain}"
+        identifier = f"{self.username}@{domain}"
         metadata = [["text/plain", text], ["text/identifier", identifier]]
 
         return LnurlPayMetadata(json.dumps(metadata))
