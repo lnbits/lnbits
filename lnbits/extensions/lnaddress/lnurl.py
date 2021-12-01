@@ -37,7 +37,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
         metadata=await address.lnurlpay_metadata(domain=domain),
     )
     print("RESP", resp.dict())
-    return json.dumps(resp)
+    return json.dumps(resp.dict())
 
 
 @lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback", response_class=HTMLResponse)
@@ -84,4 +84,4 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
 
     resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])
 
-    return json.dumps(resp)
+    return json.dumps(resp.dict())
