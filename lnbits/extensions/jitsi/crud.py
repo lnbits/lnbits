@@ -23,7 +23,7 @@ async def create_conference(
 
     await db.execute(
             '''
-            INSERT INTO jitsi.conferences (id, admin)
+            INSERT INTO jitsi.conferences (name, admin)
             VALUES (? , ?)
             ''',
             (conference, admin),
@@ -35,20 +35,21 @@ async def create_conference(
     return conference
 
 async def get_conference(
-        conference: str,
+        name: str,
         admin: str
         ) -> Conference:
 
-    assert conference != '', 'conference id is null'
+    assert name != '', 'conference id is null'
     assert admin != '', 'admin id is null'
 
     row = await db.fetchone(
             '''
             SELECT * FROM jitsi.conferences 
-            WHERE id = ? AND admin = ?
+            WHERE name = ? AND admin = ?
             ''',
-            (conference, admin))
+            (name, admin))
 
+    print('get_conference: row: ', row)
     result = Conference(**row) if row else None
     print('crud.py.get_conference: result: ', result)
 
@@ -76,7 +77,7 @@ async def get_participant(
     
     return Participant(**row) if row else None
 
-async def create_participant(
+async def create_participant(*,
         participant_id: str,
         user_id: str,
         conference_id : str,

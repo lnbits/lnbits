@@ -2,8 +2,8 @@
 from typing import NamedTuple
 
 class Conference(NamedTuple):
-    id: str
-    admin: str
+    name: str
+    admin: str  # This should be a foreign key into the LNBits.Users table.
 
 class Participant(NamedTuple):
     id: str
@@ -11,4 +11,13 @@ class Participant(NamedTuple):
     user: str
     wallet: str
 
+class Message(NamedTuple):
+    id:     str
+    message:str
+    stamp:  str      # FIXME(nochiel) Use a unix timestamp.
 
+class Payment(NamedTuple):
+    payer:  str
+    payee:  str
+    amount: int
+    memo:   str
