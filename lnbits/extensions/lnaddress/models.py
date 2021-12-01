@@ -5,8 +5,6 @@ from fastapi.params import Query
 from lnurl.types import LnurlPayMetadata
 from pydantic.main import BaseModel
 
-from lnbits.extensions.lnaddress.crud import get_domain  # type: ignore
-
 
 class CreateDomain(BaseModel):
     wallet: str = Query(...)
