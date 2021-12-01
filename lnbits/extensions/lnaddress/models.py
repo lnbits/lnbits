@@ -54,4 +54,4 @@ class Addresses(BaseModel):
         identifier = f"{self.username}"
         metadata = [["text/plain", text], ["text/identifier", identifier]]
 
-        return LnurlPayMetadata(metadata)
+        return LnurlPayMetadata(json.dumps(metadata))
