@@ -31,6 +31,7 @@ async def lnurl_response(username: str, domain: str, request: Request):
         return LnurlErrorResponse(reason="Address has expired.").dict()
 
     resp = LnurlPayResponse(
+        tag="payRequest",
         callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id),
         min_sendable=1000,
         max_sendable=1000000000,
