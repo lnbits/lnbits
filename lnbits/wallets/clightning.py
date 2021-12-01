@@ -84,7 +84,7 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             r = self.ln.pay(bolt11)
         except RpcError as exc:

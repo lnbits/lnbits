@@ -159,7 +159,7 @@ async def pay_invoice(
         await internal_invoice_paid.send(internal_checking_id)
     else:
         # actually pay the external invoice
-        payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
+        payment: PaymentResponse = await WALLET.pay_invoice(payment_request, fee_reserve(invoice.amount_msat))
         if payment.checking_id:
             async with db.connect() as conn:
                 await create_payment(

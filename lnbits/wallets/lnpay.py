@@ -76,7 +76,7 @@ class LNPayWallet(Wallet):
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",

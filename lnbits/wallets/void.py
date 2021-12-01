@@ -23,7 +23,7 @@ class VoidWallet(Wallet):
         print("This backend does nothing, it is here just as a placeholder, you must configure an actual backend before being able to do anything useful with LNbits.")
         return StatusResponse(None, 0)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         raise Unsupported("")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

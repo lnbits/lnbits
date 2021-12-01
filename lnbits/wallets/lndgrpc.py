@@ -144,7 +144,7 @@ class LndWallet(Wallet):
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         resp = self.rpc.send_payment(payment_request=bolt11)
 
         if resp.payment_error:

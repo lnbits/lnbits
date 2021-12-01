@@ -96,15 +96,12 @@ class LndRestWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient(verify=self.cert) as client:
             # set the fee limit for the payment
             invoice = lnbits_bolt11.decode(bolt11)
             lnrpcFeeLimit = dict()
-            if invoice.amount_msat > 1000_000:
-                lnrpcFeeLimit["percent"] = "1"  # in percent
-            else:
-                lnrpcFeeLimit["fixed"] = "10"  # in sat
+            lnrpcFeeLimit["fixed"] = "{}".format(fee_limit_msat//1000)  # in sat
 
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
