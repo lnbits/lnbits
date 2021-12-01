@@ -53,5 +53,6 @@ class Addresses(BaseModel):
         text = f"Payment to {self.username}"
         identifier = f"{self.username}@{domain}"
         metadata = [["text/plain", text], ["text/identifier"], identifier]
+        print(json.dumps(metadata))
 
         return LnurlPayMetadata(json.dumps(metadata))
