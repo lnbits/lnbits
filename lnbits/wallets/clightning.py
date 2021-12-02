@@ -88,8 +88,7 @@ class CLightningWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
-       fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-
+        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
 
         payload = {
             "bolt11" : bolt11,
