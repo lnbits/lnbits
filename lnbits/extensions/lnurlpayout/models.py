@@ -3,7 +3,6 @@ from sqlite3 import Row
 from pydantic import BaseModel
 
 class CreateLnurlPayoutData(BaseModel):
-    wallet: str
     lnurlpay: str
     threshold: int
 

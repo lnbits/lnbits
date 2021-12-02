@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
-from lnbits.core.views.api import api_payment
+from lnbits.core.views.api import api_payment, api_payments_decode
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import lnurlpayout_ext
@@ -29,9 +29,11 @@ async def api_lnurlpayouts(
 async def api_lnurlpayout_create(
     data: CreateLnurlPayoutData, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    print("data")
-  #  lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
-    return #lnurlpayout.dict()
+    url = api_payments_decode(data.lnurlpay)
+    if url[0:4] != "http":
+        raise PermissionError("Not valid LNURL")
+    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
+    return lnurlpayout.dict()
 
 
 @lnurlpayout_ext.delete("/api/v1/lnurlpayouts/{lnurlpayout_id}")

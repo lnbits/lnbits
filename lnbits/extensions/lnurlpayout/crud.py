@@ -13,7 +13,7 @@ async def create_lnurlpayout(wallet_id: str, data: CreateLnurlPayoutData) -> lnu
         INSERT INTO lnurlpayout.lnurlpayouts (id, wallet, lnurlpay, threshold)
         VALUES (?, ?, ?, ?)
         """,
-        (lnurlpayout_id, wallet_id, data.name, data.currency),
+        (lnurlpayout_id, wallet_id, data.lnurlpay, data.threshold),
     )
 
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
@@ -23,8 +23,7 @@ async def create_lnurlpayout(wallet_id: str, data: CreateLnurlPayoutData) -> lnu
 
 async def get_lnurlpayout(lnurlpayout_id: str) -> Optional[lnurlpayout]:
     row = await db.fetchone("SELECT * FROM lnurlpayout.lnurlpayouts WHERE id = ?", (lnurlpayout_id,))
-    return lnurlpayout.from_row(row) if row else None
-
+    return lnurlpayout(**row) if row else None
 
 async def get_lnurlpayouts(wallet_ids: Union[str, List[str]]) -> List[lnurlpayout]:
     if isinstance(wallet_ids, str):
@@ -35,7 +34,7 @@ async def get_lnurlpayouts(wallet_ids: Union[str, List[str]]) -> List[lnurlpayou
         f"SELECT * FROM lnurlpayout.lnurlpayouts WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
-    return [lnurlpayout.from_row(row) for row in rows]
+    return [lnurlpayout(**row) if row else None for row in rows]
 
 
 async def delete_lnurlpayout(lnurlpayout_id: str) -> None:
