@@ -343,4 +343,4 @@ async def check_invoice_status(
 
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(1000, int(amount_msat * 0.01))
+    return max(2000, int(amount_msat * 0.01))
