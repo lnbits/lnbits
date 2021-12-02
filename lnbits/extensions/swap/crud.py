@@ -37,16 +37,15 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
     
     
     etl_resp = await create_queue_pay(data.amount, onchainaddress, data.fee)
-    print("ETL", etl_resp)    
+    # print("ETL", etl_resp)    
     invoice = etl_resp["value"].get("invoice")
-    print(invoice, data.wallet)
+    
     try:
-        payment = await pay_invoice(
+        await pay_invoice(
             wallet_id=data.wallet,
             payment_request=invoice,
             extra={"tag": "swapout"},
         )
-        print(payment)
     except:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Payment failed")
 
@@ -95,7 +94,7 @@ async def get_recurrents(wallet_ids: Union[str, List[str]]) -> List[Recurrent]:
 
 async def create_recurrent(data: CreateRecurrent):
     if data.onchainwallet:
-        onchainaddress = f"Using {data.onchainwallet} addresses"
+        onchainaddress = f"Watch-only wallet {data.onchainwallet}."
     else:
         onchainaddress = data.onchainaddress
     swap_id = urlsafe_short_hash()
@@ -115,18 +114,12 @@ async def create_recurrent(data: CreateRecurrent):
             swap_id,
             data.wallet,
             data.onchainwallet,
-            data.onchainaddress,
+            onchainaddress,
             data.threshold,
             data.fee
         )
     )
-    return await get_recurrent_swapout(data.wallet)
-     
-
-# async def get_recurrent():
-#     ## THERE SHOULD BE ONLY ONE
-#     row = await db.fetchone("SELECT * FROM swap.recurrent")
-#     return Recurrent(**row) if row else None
+    return await get_recurrent_swapout(swap_id)
 
 async def update_recurrent(swap_id: str, **kwargs) -> Optional[Recurrent]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])

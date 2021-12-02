@@ -1,7 +1,5 @@
 from http import HTTPStatus
-from urllib.parse import urlparse
 
-from fastapi import Request
 from fastapi.params import Depends, Query
 from starlette.exceptions import HTTPException
 
@@ -20,7 +18,6 @@ from .crud import (
     unique_recurrent_swapout,
     update_recurrent,
 )
-from .etleneum import create_queue_pay
 
 
 # SWAP OUT
@@ -62,7 +59,7 @@ async def api_swap_outs(
 
 @swap_ext.post("/api/v1/recurrent")
 @swap_ext.put("/api/v1/recurrent/{swap_id}")
-async def api_swapout_update_recurrent(
+async def api_swapout_create_or_update_recurrent(
     data: CreateRecurrent,
     wallet: WalletTypeInfo = Depends(require_admin_key),
     swap_id = None,
@@ -77,10 +74,13 @@ async def api_swapout_update_recurrent(
                 detail="This wallet already has a recurrent swap!"
             )
         recurrent = await create_recurrent(data=data)
-        print("REC", recurrent)
         return recurrent.dict()
     else:
-        recurrent = await update_recurrent(swap_id, **data.dict())
+        obj = data.dict()
+        if obj["onchainwallet"] and len(obj["onchainwallet"]) > 0:
+            obj["onchainaddress"] = f"Watch-only wallet {obj['onchainwallet']}."
+        
+        recurrent = await update_recurrent(swap_id, **obj)
         return recurrent.dict()
 
 @swap_ext.delete("/api/v1/recurrent/{swap_id}")

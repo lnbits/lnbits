@@ -45,6 +45,9 @@
             <q-tr :props="props">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
+                <q-tooltip v-if="col.label == 'Onchain Address'" class="bg-grey-8" anchor="bottom left" self="top left">
+                  Addresses will be pulled from watch-only extension at the time of the swap out
+                </q-tooltip>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -105,15 +108,26 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td auto-width>
-                <q-btn
+                <q-icon
+                  v-if=props.row.recurrent
+                  name="autorenew"
+                  size="xs"
+                  color="green-3"
                   unelevated
                   dense
+                >
+                  <q-tooltip>Recurrent Swap</q-tooltip>
+                </q-icon>
+                
+                <q-icon
+                  v-else
+                  name="touch_app"
                   size="xs"
-                  icon="email"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="'mailto:' + props.row.email"
-                ></q-btn>
+                  color="grey-5"
+                  unelevated
+                  dense>
+                  <q-tooltip>Manual Swap</q-tooltip>
+                </q-icon>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -217,6 +231,8 @@
                 :disable="swapOutDialog.data.id ? true : false">
                 <q-tooltip>
                   By enabling this, every time the balance reaches this amount, it will trigger a Swap Out
+                  <br>
+                  It won't trigger a Swap now!
                 </q-tooltip>
               </q-toggle>
               
@@ -228,15 +244,17 @@
             unelevated
             color="primary"
             type="submit"
-            >Update Swap</q-btn
+            :label="swapOutDialog.data.recurrent ? 'Update Recurrent Swap' : 'Update Swap'"
+            ></q-btn
           >
           <q-btn
             v-else
             unelevated
             color="primary"
-            :disable="swapOutDialog.data.onchainaddress == null || swapOutDialog.data.amount < 1 || swapOutDialog.data.fee < 1"
+            :disable="(swapOutDialog.data.onchainaddress == null && swapOutDialog.data.onchainwallet == null) || swapOutDialog.data.amount < 1 || swapOutDialog.data.fee < 1"
             type="submit"
-            >Create Swap</q-btn
+            :label="swapOutDialog.data.recurrent ? 'Create Recurrent Swap' : 'Create Swap'"
+            ></q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="resetSwapOutDialog"
             >Cancel</q-btn
@@ -382,6 +400,13 @@
           id: this.swapOutDialog.data.wallet
         })
         let data = this.swapOutDialog.data
+
+        if(data.onchain && data.onchainwallet){
+          data.onchainaddress = ''
+        } else {
+          data.onchainwallet = null
+        }
+        
         if(data.recurrent) {
           data.threshold = data.amount
           delete data.amount
@@ -433,10 +458,7 @@
         .request('POST', '/swap/api/v1/recurrent', this.g.user.wallets[0].adminkey, data)
         .then(res => {
           this.recurrent.push(mapSwapOuts(res.data))
-          this.updateRecurrentDialog = {
-            show: false,
-            data: {}
-          }
+          this.resetSwapOutDialog()
         })
         .catch(error => {
           LNbits.utils.notifyApiError(error)
@@ -444,10 +466,15 @@
       },
       updateRecurrentDialog(swap_id){
         let swap = _.findWhere(this.recurrent, {id: swap_id})
-        this.swapOutDialog.data = _.clone(swap)
-        this.swapOutDialog.data.amount = swap.threshold
-        this.swapOutDialog.data.recurrent = true
-        this.swapOutDialog.show = true
+        data = _.clone(swap)
+        data.amount = data.threshold
+        delete data.threshold
+        data.recurrent = true
+        if(data.onchainwallet){
+          data.onchain = true 
+          data.onchainaddress = ''
+        }
+        this.swapOutDialog = {data, show: true}
       },
       updateRecurrent(wallet, data){
         LNbits.api
@@ -462,22 +489,23 @@
       },
       deleteRecurrent(swap_id){
         let swap = _.findWhere(this.recurrent, {id: swap_id})
-        .confirmDialog('Are you sure you want to delete this domain link?')
-        .onOk(() => {
-          LNbits.api
-            .request(
-              'DELETE',
-              '/swap/api/v1/recurrent/' + swap.id, this.g.user.wallets[0].adminkey
-            )
-            .then((response) => {
-              this.recurrent = _.reject(this.recurrent, (obj) => {
-                return obj.id == swap_id
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this domain link?')
+          .onOk(() => {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/swap/api/v1/recurrent/' + swap.id, this.g.user.wallets[0].adminkey
+              )
+              .then((response) => {
+                this.recurrent = _.reject(this.recurrent, (obj) => {
+                  return obj.id == swap_id
+                })
               })
-            })
-            .catch(function (error) {
-              LNbits.utils.notifyApiError(error)
-            })
-        })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
       }
     },
     created: function () {
