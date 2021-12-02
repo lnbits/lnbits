@@ -92,7 +92,7 @@ class CLightningWallet(Wallet):
 
         payload = {
             "bolt11" : bolt11,
-            "maxfeepercent" : fee_limit_percent
+            "maxfeepercent" : "{:.1f}".format(fee_limit_percent)
         }
         
         try:
