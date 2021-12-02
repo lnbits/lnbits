@@ -95,6 +95,10 @@ async def pay_invoice(
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
 
+        wallet = await get_wallet(wallet_id, conn=conn)
+        if invoice.amount_msat > wallet.balance_msat - (wallet.balance_msat / 100 * 2):
+            raise PermissionError("LNbits requires you keep at least 2% reserve to cover potential routing fees.")
+
         # put all parameters that don't change here
         PaymentKwargs = TypedDict(
             "PaymentKwargs",
