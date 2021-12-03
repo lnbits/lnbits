@@ -31,9 +31,8 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
+                {{ col.label}}
               </q-th>
               <q-th auto-width></q-th>
             </q-tr>
@@ -42,7 +41,14 @@
           <template v-slot:body="props">
             <q-tr :props="props">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
+                <a v-if="col.label == 'LNURLPay'" @click="copyText(col.value)"
+                  ><q-tooltip>Click to copy LNURL</q-tooltip>{{
+                  col.value.substring(0, 40) }}...</a
+                >
+                <div v-else-if="col.label == 'Threshold'">
+                  {{ col.value }} Sats
+                </div>
+                <div v-else>{{ col.value.substring(0, 40) }}</div>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -102,9 +108,10 @@
           filled
           dense
           v-model.trim="formDialog.data.threshold"
-          label="Threshold"
+          label="Threshold (100k sats max)"
           placeholder="Threshold"
           type="number"
+          max="100000"
         ></q-input>
         <div class="row q-mt-lg">
           <q-btn
@@ -201,7 +208,7 @@
             data
           )
           .then(function (response) {
-            console.log(response.data)
+            console.log(data)
             self.lnurlpayouts.push(maplnurlpayout(response.data))
             self.formDialog.show = false
           })
