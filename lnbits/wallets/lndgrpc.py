@@ -144,6 +144,8 @@ class LndWallet(Wallet):
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
+    # WARNING: correct handling of fee_limit_msat is required to avoid security vulnerabilities!
+    # The backend MUST NOT spend satoshis above invoice amount + fee_limit_msat.
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat//1000)
         req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)

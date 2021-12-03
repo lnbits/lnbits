@@ -108,6 +108,8 @@ class SparkWallet(Wallet):
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
+    # WARNING: correct handling of fee_limit_msat is required to avoid security vulnerabilities!
+    # The backend MUST NOT spend satoshis above invoice amount + fee_limit_msat.
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             r = await self.pay(bolt11)

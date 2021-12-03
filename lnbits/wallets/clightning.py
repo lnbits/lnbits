@@ -86,6 +86,8 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
 
+    # WARNING: correct handling of fee_limit_msat is required to avoid security vulnerabilities!
+    # The backend MUST NOT spend satoshis above invoice amount + fee_limit_msat.
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
