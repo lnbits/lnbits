@@ -466,11 +466,12 @@ async def api_lnurlscan(code: str):
 @core_app.post("/api/v1/payments/decode")
 async def api_payments_decode(data: str = Query(None)):
     try:
-        if g.data["data"][:5] == "LNURL":
-            url = lnurl.decode(g.data["data"])
+        print(data["data"][:5])
+        if data["data"][:5] == "LNURL":
+            url = lnurl.decode(data["data"])
             return {"domain": url}
         else:
-            invoice = bolt11.decode(g.data["data"])
+            invoice = bolt11.decode(data["data"])
             return {
                 "payment_hash": invoice.payment_hash,
                 "amount_msat": invoice.amount_msat,

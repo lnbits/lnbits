@@ -41,18 +41,6 @@
 
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="launch"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.lnurlpayout"
-                  target="_blank"
-                ></q-btn>
-              </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
@@ -213,7 +201,7 @@
             data
           )
           .then(function (response) {
-            console.log(data)
+            console.log(response.data)
             self.lnurlpayouts.push(maplnurlpayout(response.data))
             self.formDialog.show = false
           })

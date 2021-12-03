@@ -28,12 +28,17 @@ async def api_lnurlpayouts(
 @lnurlpayout_ext.post("/api/v1/lnurlpayouts", status_code=HTTPStatus.CREATED)
 async def api_lnurlpayout_create(
     data: CreateLnurlPayoutData, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    url = api_payments_decode(data.lnurlpay)
-    if url[0:4] != "http":
-        raise PermissionError("Not valid LNURL")
-    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
-    return lnurlpayout.dict()
+):  
+    try:
+        url = await api_payments_decode({"data": data.lnurlpay})
+
+        if str(url["domain"])[0:4] != "http":
+            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
+        lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
+        return lnurlpayout.dict()
+    except Exception:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
+    
 
 
 @lnurlpayout_ext.delete("/api/v1/lnurlpayouts/{lnurlpayout_id}")
