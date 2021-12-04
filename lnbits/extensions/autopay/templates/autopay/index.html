@@ -1,0 +1,112 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%}
+
+{% block scripts %} {{ window_vars(user) }}
+<script src="/autopay/static/js/index.js"></script>
+{% endblock %}
+
+{% block page %}
+<q-card>
+  <q-card-section>
+    <h5 class="text-subtitle1 q-mt-none q-mb-md">
+      Scheduled payments
+    </h5>
+    <q-list>
+      <q-item
+        v-for="se in scheduleEntries"
+        v-bind:key="se.id"
+      >
+        {% raw %}
+        <q-item-section>
+          <q-item-label>{{ se.title }} ({{ formatAmount(se.amount_msat) }} from {{ walletName(se.wallet_id) }})
+            <q-btn flat dense
+              @click="deleteScheduleEntry(se)"
+              icon="delete"
+              title="Delete"
+              ></q-btn>
+            </q-item-label>
+          <q-item-label caption>{{se.base_datetime}} and then every {{se.repeat_freq}} </q-item-label>
+          <q-item-label caption>
+            Next payment: {{se.next_payment}}
+          </q-item-label>
+        </q-item-section>
+        {% endraw %}
+      </q-item>
+    </q-list>
+
+
+    <q-separator class="q-my-lg"></q-separator>
+    <h5 class="text-subtitle1 q-mt-none q-mb-md">
+      Schedule new payment
+    </h5>
+
+    <q-form @submit="submitNewScheduleEntry" class="q-gutter-md">
+{% raw %}
+      <q-input
+        filled
+        dense
+        v-model.trim="newScheduleEntry.title"
+        label="Title"
+        placeholder=""
+      ></q-input>
+
+      <q-select
+        filled
+        dense
+        v-model="newScheduleEntry.wallet"
+        type="text"
+        label="Pay using wallet"
+        :options="walletOptions()"
+      ></q-select>
+
+      <q-input
+        filled
+        dense
+        type="number"
+        v-model="newScheduleEntry.amount_sat"
+        label="Amount in satoshis"
+        placeholder=""
+      ></q-input>
+
+      <q-input
+        filled
+        dense
+        v-model.trim="newScheduleEntry.base_datetime"
+        label="First payment (YYYY-MM-DD HH:MM)"
+        placeholder=""
+      ></q-input>
+
+      <q-select
+        filled
+        dense
+        v-model="newScheduleEntry.repeat_freq"
+        type="text"
+        label="Then repeat every"
+        :options="scheduleFrequencyOptions"
+      ></q-select>
+
+      <q-input
+        filled
+        dense
+        v-model.trim="newScheduleEntry.lnurl"
+        label="LNURL code"
+        placeholder=""
+      ></q-input>
+
+      <q-btn
+        outline
+        color="blue"
+        class="text-center q-mb-md"
+        @click="submitNewScheduleEntry()"
+      >Schedule</q-btn>
+
+      {% endraw %}
+      <!-- <q-spinner
+        v-if="receive.status == 'loading'"
+        color="primary"
+        size="2.55em"
+      ></q-spinner> -->
+    </q-form>
+  </q-card-section>
+</q-card>
+{% endblock %}

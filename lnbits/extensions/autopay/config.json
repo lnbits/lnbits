@@ -1,0 +1,6 @@
+{
+    "name": "AutoPay",
+    "short_description": "Schedule payments with LNBits",
+    "icon": "info",
+    "contributors": ["crowphale"]
+}
