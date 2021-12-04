@@ -94,7 +94,7 @@ class CLightningWallet(Wallet):
 
         payload = {
             "bolt11" : bolt11,
-            "maxfeepercent" : fee_limit_percent,
+            "maxfeepercent" : "{:.11}".format(fee_limit_percent),
             "exemptfee": 0 # so fee_limit_percent is applied even on payments with fee under 5000 millisatoshi (which is default value of exemptfee)
         }
         
