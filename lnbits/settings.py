@@ -59,3 +59,12 @@ try:
     )
 except:
     LNBITS_COMMIT = "unknown"
+
+EMAIL_PROVIDER: str = env.str("EMAIL_PROVIDER", default=None)
+EMAIL_ENABLED: bool = EMAIL_PROVIDER != None
+EMAIL_SENDER: str = env.str("EMAIL_SENDER", default="")
+
+SMTP_URL: str = env.str("SMTP_URL", default=None)
+SMTP_PORT: int = env.int("SMTP_PORT", 0)
+SMTP_LOGIN: str = env.str("SMTP_LOGIN", default=None)
+SMTP_PASSWORD: str = env.str("SMTP_PASSWORD", default=None)
