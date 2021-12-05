@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from fastapi.param_functions import Query
 from starlette.requests import Request
 from starlette.responses import HTMLResponse  # type: ignore
+from fastapi.responses import JSONResponse
 
 from lnbits.core.services import pay_invoice
 
@@ -25,12 +26,16 @@ async def api_lnurl_response(request: Request, unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
+        return JSONResponse(
+            status_code=HTTPStatus.NOT_FOUND,
+            content={"status": "ERROR", "reason": "Withdraw link does not exist."},
         )
 
     if link.is_spent:
-        raise HTTPException(detail="Withdraw is spent.")
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "Withdraw is spent."},
+        )
     url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
     withdrawResponse = {
         "tag": "withdrawRequest",
@@ -53,18 +58,28 @@ async def api_lnurl_callback(
     link = await get_withdraw_link_by_hash(unique_hash)
     now = int(datetime.now().timestamp())
     if not link:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found"
+        return JSONResponse(
+            status_code=HTTPStatus.NOT_FOUND,
+            content={"status": "ERROR", "reason": "LNURL-withdraw not found"},
         )
 
     if link.is_spent:
-        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "Withdraw is spent."},
+        )
 
     if link.k1 != k1:
-        raise HTTPException(status_code=HTTPStatus.OK, detail="Bad request.")
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "Bad request."},
+        )
 
     if now < link.open_time:
-        return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."},
+        )
 
     try:
         usescsv = ""
@@ -99,7 +114,10 @@ async def api_lnurl_callback(
 
     except Exception as e:
         await update_withdraw_link(link.id, **changesback)
-        return {"status": "ERROR", "reason": "Link not working"}
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "Link not working"},
+        )
 
 
 # FOR LNURLs WHICH ARE UNIQUE
@@ -114,12 +132,16 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        raise HTTPException(
-            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "LNURL-withdraw not found."},
         )
 
     if link.is_spent:
-        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "Withdraw is spent."},
+        )
 
     useslist = link.usescsv.split(",")
     found = False
@@ -128,8 +150,9 @@ async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash
         if id_unique_hash == shortuuid.uuid(name=tohash):
             found = True
     if not found:
-        raise HTTPException(
-            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "ERROR", "reason": "LNURL-withdraw not found."},
         )
 
     url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
