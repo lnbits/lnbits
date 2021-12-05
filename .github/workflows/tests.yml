@@ -3,11 +3,11 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  build:
+  unit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -15,22 +15,44 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        env: 
+          VIRTUAL_ENV: ./venv
+          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Test with pytest
-        env:
-          LNBITS_BACKEND_WALLET_CLASS: LNPayWallet
-          LNBITS_FORCE_HTTPS: 0
-          LNPAY_API_ENDPOINT: https://api.lnpay.co/v1/
-          LNPAY_API_KEY: sak_gG5pSFZhFgOLHm26a8hcWvXKt98yd
-          LNPAY_ADMIN_KEY: waka_HqWfOoNE0TPqmQHSYErbF4n9
-          LNPAY_INVOICE_KEY: waki_ZqFEbhrTyopuPlOZButZUw
-          LNPAY_READ_KEY: wakr_6IyTaNrvSeu3jbojSWt4ou6h
-        run: |
-          pip install pytest pytest-cov
-          pytest --cov=lnbits --cov-report=xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          file: ./coverage.xml
+          python -m venv ${{ env.VIRTUAL_ENV }}
+          ./venv/bin/python -m pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install pytest pytest-asyncio requests trio mock
+      - name: Run tests
+        run: make test
+  # build:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: [3.7, 3.8]
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v1
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install -r requirements.txt
+  #     - name: Test with pytest
+  #       env:
+  #         LNBITS_BACKEND_WALLET_CLASS: LNPayWallet
+  #         LNBITS_FORCE_HTTPS: 0
+  #         LNPAY_API_ENDPOINT: https://api.lnpay.co/v1/
+  #         LNPAY_API_KEY: sak_gG5pSFZhFgOLHm26a8hcWvXKt98yd
+  #         LNPAY_ADMIN_KEY: waka_HqWfOoNE0TPqmQHSYErbF4n9
+  #         LNPAY_INVOICE_KEY: waki_ZqFEbhrTyopuPlOZButZUw
+  #         LNPAY_READ_KEY: wakr_6IyTaNrvSeu3jbojSWt4ou6h
+  #       run: |
+  #         pip install pytest pytest-cov
+  #         pytest --cov=lnbits --cov-report=xml
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v1
+  #       with:
+  #         file: ./coverage.xml
