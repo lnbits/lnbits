@@ -20,38 +20,33 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
+    # Check its got a payout associated with it
+    lnurlpayout_link = await get_lnurlpayout(payment.extra.get("link", -1))
+    
+    if lnurlpayout_link:
+        # Check the wallet balance is more than the threshold
 
-    if payment.extra.get("wh_status"):
-        # this webhook has already been sent
-        return
-    # check link
-    pay_link = await get_lnurlpayout(payment.extra.get("link", -1))
-    if pay_link and pay_link.webhook_url:
+        # Getthe invoice from the LNURL to pay
         async with httpx.AsyncClient() as client:
             try:
-                r = await client.post(
-                    pay_link.webhook_url,
-                    json={
-                        "payment_hash": payment.payment_hash,
-                        "payment_request": payment.bolt11,
-                        "amount": payment.amount,
-                        "comment": payment.extra.get("comment"),
-                        "lnurlp": pay_link.id,
-                    },
-                    timeout=40,
-                )
-                await mark_webhook_sent(payment, r.status_code)
-            except (httpx.ConnectError, httpx.RequestError):
-                await mark_webhook_sent(payment, -1)
+                url = await api_payments_decode({"data": data.lnurlpay})
+                if str(url["domain"])[0:4] != "http":
+                    raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="LNURL broken")
+                try:
+                    r = await client.post(
+                        str(url["domain"]),
+                        json={
+                            "payment_hash": payment.payment_hash,
+                            "payment_request": payment.bolt11,
+                            "amount": payment.amount,
+                            "comment": payment.extra.get("comment"),
+                            "lnurlp": pay_link.id,
+                        },
+                        timeout=40,
+                    )
+                    await mark_webhook_sent(payment, r.status_code)
+                except (httpx.ConnectError, httpx.RequestError):
+                    await mark_webhook_sent(payment, -1)
 
-
-async def mark_webhook_sent(payment: Payment, status: int) -> None:
-    payment.extra["wh_status"] = status
-
-    await core_db.execute(
-        """
-        UPDATE apipayments SET extra = ?
-        WHERE hash = ?
-        """,
-        (json.dumps(payment.extra), payment.payment_hash),
-    )
+            except Exception:
+                raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
