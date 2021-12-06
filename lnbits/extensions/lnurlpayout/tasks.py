@@ -2,6 +2,7 @@ import asyncio
 import json
 import httpx
 
+from lnbits.core.crud import get_wallet
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
@@ -19,15 +20,11 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    print(payment)
-    if "lnurlpayout" != payment.extra.get("tag"):
-        # not an lnurlpayout invoice
-        return
 
     if payment.extra.get("wh_status"):
         # this webhook has already been sent
         return
-
+    # check link
     pay_link = await get_lnurlpayout(payment.extra.get("link", -1))
     if pay_link and pay_link.webhook_url:
         async with httpx.AsyncClient() as client:
