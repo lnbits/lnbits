@@ -25,6 +25,10 @@ async def get_lnurlpayout(lnurlpayout_id: str) -> Optional[lnurlpayout]:
     row = await db.fetchone("SELECT * FROM lnurlpayout.lnurlpayouts WHERE id = ?", (lnurlpayout_id,))
     return lnurlpayout(**row) if row else None
 
+async def get_lnurlpayout_from_wallet(wallet_id: str) -> Optional[lnurlpayout]:
+    row = await db.fetchone("SELECT * FROM lnurlpayout.lnurlpayouts WHERE wallet = ?", (wallet_id,))
+    return lnurlpayout(**row) if row else None
+
 async def get_lnurlpayouts(wallet_ids: Union[str, List[str]]) -> List[lnurlpayout]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]

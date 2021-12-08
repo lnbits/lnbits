@@ -5,9 +5,9 @@ import httpx
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
-from lnbits.core.api import api_wallet
+from lnbits.core.views.api import api_wallet
 
-from .crud import get_lnurlpayout
+from .crud import get_lnurlpayout, get_lnurlpayout_from_wallet
 
 
 async def wait_for_paid_invoices():
@@ -22,12 +22,13 @@ async def wait_for_paid_invoices():
 async def on_invoice_paid(payment: Payment) -> None:
     try:
         # Check its got a payout associated with it
-        lnurlpayout_link = await get_lnurlpayout(payment.extra.get("link", -1))
+        lnurlpayout_link = await get_lnurlpayout_from_wallet(payment.wallet_id)
+        print(lnurlpayout_link)
     
         if lnurlpayout_link:
             # Check the wallet balance is more than the threshold
-            wallet = api_wallet(payment.wallet_id)
-            if wallet.balance < lnurlpayout_link.threshold:
+            wallet = await api_wallet(payment.wallet_id)
+            if wallet.balance + (wallet.balance/100*2) < lnurlpayout_link.threshold:
                 return
             # Get the invoice from the LNURL to pay
             async with httpx.AsyncClient() as client:
@@ -36,20 +37,24 @@ async def on_invoice_paid(payment: Payment) -> None:
                     if str(url["domain"])[0:4] != "http":
                         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="LNURL broken")
                     try:
-                        r = await client.post(
+                        r = await client.get(
                             str(url["domain"]),
-                            json={
-                                "payment_hash": payment.payment_hash,
-                                "payment_request": payment.bolt11,
-                                "amount": payment.amount,
-                                "comment": payment.extra.get("comment"),
-                                "lnurlp": pay_link.id,
-                            },
                             timeout=40,
                         )
-                        await mark_webhook_sent(payment, r.status_code)
+                        res = r.json()
+                        print(res)
+                        try:
+                            r = await client.get(
+                                res.callback + "?amount=" + (lnurlpayout_link.threshold * 1000),
+                                timeout=40,
+                            )
+                            res = r.json()
+                            print(res)
+                            await api_payments_pay_invoice(res.pr, payment.wallet_id)
+                        except:
+                            return
                     except (httpx.ConnectError, httpx.RequestError):
-                        await mark_webhook_sent(payment, -1)
+                        return
 
                 except Exception:
                     raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")

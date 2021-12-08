@@ -10,7 +10,7 @@ from lnbits.core.views.api import api_payment, api_payments_decode
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import lnurlpayout_ext
-from .crud import create_lnurlpayout, delete_lnurlpayout, get_lnurlpayout, get_lnurlpayouts
+from .crud import create_lnurlpayout, delete_lnurlpayout, get_lnurlpayout, get_lnurlpayouts, get_lnurlpayout_from_wallet
 from .models import lnurlpayout, CreateLnurlPayoutData
 
 
@@ -29,17 +29,22 @@ async def api_lnurlpayouts(
 async def api_lnurlpayout_create(
     data: CreateLnurlPayoutData, wallet: WalletTypeInfo = Depends(get_key_type)
 ):  
-    try:
-        url = await api_payments_decode({"data": data.lnurlpay})
-
-        if str(url["domain"])[0:4] != "http":
-            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
-        lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
-        return lnurlpayout.dict()
-    except Exception:
+    print(await get_lnurlpayout_from_wallet(wallet.wallet.id))
+    if await get_lnurlpayout_from_wallet(wallet.wallet.id):
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Wallet already has lnurlpayout set")
+        return
+    url = await api_payments_decode({"data": data.lnurlpay})
+    if "domain" not in url:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="LNURL could not be decoded")
+        return
+    if str(url["domain"])[0:4] != "http":
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not valid LNURL")
+        return
+    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
+    if not lnurlpayout:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
-    
-
+        return
+    return lnurlpayout.dict()
 
 @lnurlpayout_ext.delete("/api/v1/lnurlpayouts/{lnurlpayout_id}")
 async def api_lnurlpayout_delete(
