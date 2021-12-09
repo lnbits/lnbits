@@ -8,6 +8,7 @@ class CreateLnurlPayoutData(BaseModel):
 
 class lnurlpayout(BaseModel):
     id: str
+    title: str
     wallet: str
     lnurlpay: str
     threshold: str

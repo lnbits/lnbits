@@ -6,6 +6,7 @@ async def m001_initial(db):
         """
         CREATE TABLE lnurlpayout.lnurlpayouts (
             id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
             wallet TEXT NOT NULL,
             lnurlpay TEXT NOT NULL,
             threshold INT NOT NULL

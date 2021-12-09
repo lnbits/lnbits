@@ -88,6 +88,14 @@
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="createlnurlpayout" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.title"
+          label="Title"
+          placeholder="Title"
+          type="text"
+        ></q-input>
         <q-select
           filled
           dense

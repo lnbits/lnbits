@@ -10,10 +10,10 @@ async def create_lnurlpayout(wallet_id: str, data: CreateLnurlPayoutData) -> lnu
     lnurlpayout_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO lnurlpayout.lnurlpayouts (id, wallet, lnurlpay, threshold)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO lnurlpayout.lnurlpayouts (id, title, wallet, lnurlpay, threshold)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (lnurlpayout_id, wallet_id, data.lnurlpay, data.threshold),
+        (lnurlpayout_id, data.title, wallet_id, data.lnurlpay, data.threshold),
     )
 
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
