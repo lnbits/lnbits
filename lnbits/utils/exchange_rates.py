@@ -253,6 +253,7 @@ async def btc_price(currency: str) -> float:
                 await send_channel.put(rate)
         except (
             TypeError,  # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
+            KeyError,  # Kraken's response dictionary doesn't include keys we look up for
             httpx.ConnectTimeout,
             httpx.ConnectError,
             httpx.ReadTimeout,
