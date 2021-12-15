@@ -130,8 +130,7 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <div class="text-h6">Copy to LNURLPoS device</div>
       <div class="text-subtitle2">
-        {% raw %} String server = "{{location}}";<br />
-        String posId = "{{settingsDialog.data.id}}";<br />
+        {% raw %} String server = "{{location}}/lnurlpos/api/v2/lnurl/{{settingsDialog.data.id}}";<br />
         String key = "{{settingsDialog.data.key}}";<br />
         String currency = "{{settingsDialog.data.currency}}";{% endraw %}
       </div>
