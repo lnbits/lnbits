@@ -35,16 +35,6 @@ class lnurlposs(BaseModel):
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
-    def success_action(
-        self, paymentid: str, req: Request
-    ) -> Optional[LnurlPaySuccessAction]:
-
-        return UrlAction(
-            url=req.url_for("lnurlpos.displaypin", paymentid=paymentid),
-            description="Check the attached link",
-        )
-
-
 class lnurlpospayment(BaseModel):
     id: str
     posid: str
