@@ -121,8 +121,8 @@ async def api_bleskomat_lnurl(req: Request):
 
     except LnurlHttpError as e:
         return {"status": "ERROR", "reason": str(e)}
-    except Exception:
-        traceback.print_exc()
+    except Exception as e:
+        print(str(e))
         return {"status": "ERROR", "reason": "Unexpected error"}
 
     return {"status": "OK"}

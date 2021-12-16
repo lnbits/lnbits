@@ -117,8 +117,9 @@ class LndRestWallet(Wallet):
         data = r.json()
         payment_hash = data["payment_hash"]
         checking_id = payment_hash
+        fee_msat = int(data["payment_route"]["total_fees_msat"])
         preimage = base64.b64decode(data["payment_preimage"]).hex()
-        return PaymentResponse(True, checking_id, 0, preimage, None)
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")

@@ -127,11 +127,14 @@
     position="top"
     @hide="closeFormDialog"
   >
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <q-card
+      style="width: 700px; max-width: 80vw"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
       <div class="text-h6">Copy to LNURLPoS device</div>
       <div class="text-subtitle2">
-        {% raw %} String server = "{{location}}";<br />
-        String posId = "{{settingsDialog.data.id}}";<br />
+        {% raw %} String baseURL =
+        "{{location}}/lnurlpos/api/v1/lnurl/{{settingsDialog.data.id}}";<br />
         String key = "{{settingsDialog.data.key}}";<br />
         String currency = "{{settingsDialog.data.currency}}";{% endraw %}
       </div>
