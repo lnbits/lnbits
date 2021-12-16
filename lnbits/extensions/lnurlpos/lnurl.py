@@ -83,9 +83,12 @@ async def handle_lnurl_firstrequest(
                 "reason": f"Invalid hex or base64 payload: {payload}",
             }
 
-    h = hashlib.sha256(nonceb)
-    h.update(pos.key.encode())
-    s = h.digest()
+    if len(payloadb)!=8:
+        raise RuntimeError("Expected 8 bytes")
+    expected = hmac.new(pos.key.encode(), payloadb[:-2], digestmod="sha256").digest()
+    if expected[:2] != payloadb[-2:]:
+        raise RuntimeError("Invalid HMAC")
+    s = hmac.new(pos.key.encode(), nonceb, digestmod="sha256").digest()
 
     res = bytearray(payloadb)
     for i in range(len(res)):
