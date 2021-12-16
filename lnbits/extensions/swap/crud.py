@@ -9,7 +9,14 @@ from lnbits.extensions.watchonly.crud import get_fresh_address
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateRecurrent, CreateSwapOut, Recurrent, SwapOut
+from .models import (
+    CreateRecurrent,
+    CreateSwapIn,
+    CreateSwapOut,
+    Recurrent,
+    SwapIn,
+    SwapOut,
+)
 
 
 #SWAP OUT
@@ -154,3 +161,57 @@ async def unique_recurrent_swapout(wallet_id):
         (wallet_id,),
     )
     return row
+
+
+#SWAP IN
+async def get_swapins(wallet_ids: Union[str, List[str]]) -> List[SwapIn]:
+    if isinstance(wallet_ids, str):
+        wallet_ids = [wallet_ids]
+
+    q = ",".join(["?"] * len(wallet_ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM swap.in WHERE wallet IN ({q})", (*wallet_ids,)
+    )
+
+    return [SwapIn(**row) for row in rows]
+
+async def get_swap_in(swap_id) -> Optional[SwapIn]:
+    row = await db.fetchone(
+        "SELECT * from swap.in WHERE id = ?",
+        (swap_id,),
+    )
+    return SwapIn(**row) if row else None
+
+async def create_swap_in(data: CreateSwapIn):
+    swap_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO swap.in (
+            id,
+            wallet,
+            session_id,
+            reserve_id,
+            amount
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            swap_id,
+            data.wallet,
+            data.session_id,
+            data.reserve_id,
+            data.amount
+        )
+    )
+
+    return await get_swap_in(swap_id)
+
+async def update_swap_in(swap_id: str, **kwargs) -> SwapIn:
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    await db.execute(
+        f"UPDATE swap.in SET {q} WHERE id = ?", (*kwargs.values(), swap_id)
+    )
+    row = await db.fetchone("SELECT * FROM swap.in WHERE id = ?", (swap_id,))
+    assert row, "Updated swap in couldn't be retrieved"
+    print("ROW", SwapIn(**row))
+    return SwapIn(**row)

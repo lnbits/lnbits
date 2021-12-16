@@ -225,7 +225,7 @@ window.LNbits = {
       Quasar.plugins.Notify.create({
         timeout: 5000,
         type: types[error.response.status] || 'warning',
-        message: error.response.data.message || error.response.data.detail || null,
+        message: error.response.data.message || error.response.data.detail || error || null,
         caption:
           [error.response.status, ' ', error.response.statusText]
             .join('')

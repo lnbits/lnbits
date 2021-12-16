@@ -1,14 +1,10 @@
 import asyncio
 
-import httpx
-
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
 from lnbits.extensions.swap.crud import create_swapout, get_recurrent_swapout_by_wallet
 from lnbits.extensions.swap.models import CreateSwapOut
 from lnbits.tasks import register_invoice_listener
-
-# from .crud import get_address, get_domain, set_address_paid, set_address_renewed
 
 
 async def wait_for_paid_invoices():

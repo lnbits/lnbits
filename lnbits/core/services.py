@@ -6,11 +6,13 @@ from typing import Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from fastapi.params import Depends
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 
 from lnbits import bolt11
 from lnbits.db import Connection
+from lnbits.decorators import WalletAdminKeyChecker, WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import WALLET
@@ -236,12 +238,12 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str, conn: Optional[Connection] = None
+    callback: str, wallet, conn: Optional[Connection] = None
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
-
+    
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
-    key = g().wallet.lnurlauth_key(cb.netloc)
+    key = wallet.wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""
@@ -286,7 +288,6 @@ async def perform_lnurlauth(
         return signature.getvalue()
 
     sig = key.sign_digest_deterministic(k1, sigencode=encode_strict_der)
-
     async with httpx.AsyncClient() as client:
         r = await client.get(
             callback,
@@ -298,6 +299,7 @@ async def perform_lnurlauth(
         )
         try:
             resp = json.loads(r.text)
+            print(resp)
             if resp["status"] == "OK":
                 return None
 

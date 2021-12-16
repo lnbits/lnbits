@@ -9,13 +9,16 @@
             Send offchain funds to onchain address (LN -> BTC)
           </q-tooltip>
         </q-btn>
-        <q-btn disabled label="Create Swap In" unelevated color="primary" @click="swapOutDialog.show = true">
+        <q-btn label="Create Swap In" unelevated color="primary" @click="() => startSwapIn()">
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
             Send onchain funds offchain (BTC - LN)
           </q-tooltip>
         </q-btn>
       </q-card-section>
     </q-card>
+    <!-- SWAP IN CREATE -->
+    {% include "swap/_swap_in_create.html" %}
+    <!-- END SWAP IN CREATE -->
     <q-card>
       <q-card-section v-if="recurrent.length > 0">
         <div class="row items-center no-wrap q-mb-md">
@@ -128,6 +131,69 @@
                   dense>
                   <q-tooltip>Manual Swap</q-tooltip>
                 </q-icon>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+    <q-card v-if="swapIns.length > 0">
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Swap Ins</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportSwapOutsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="swapIns"
+          row-key="id"
+          :columns="swapInsTable.columns"
+          :pagination.sync="swapInsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-icon
+                  v-if=props.row.done
+                  name="check"
+                  size="xs"
+                  color="green-3"
+                  unelevated
+                  dense
+                >
+                  <q-tooltip>Swap In done</q-tooltip>
+                </q-icon>
+                <q-btn
+                  v-else
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateSwapIn(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                <q-tooltip>Enter TXID</q-tooltip>
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -266,6 +332,8 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
   const mapSwapOuts = obj => {
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -280,7 +348,10 @@
     data: function () {
       return {
         swapOuts: [],
+        swapIns: [],
         recurrent: [],
+        offers: [],
+        rawOffers: {},
         walletLinks: [],
         swapOutDialog: {
           show: false,
@@ -315,6 +386,39 @@
             rowsPerPage: 10
           }
         },
+        swapInsTable: {
+          columns: [
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Amount',
+              field: 'amount'
+            },
+            {
+              name: 'reserve_id',
+              align: 'left',
+              label: 'Reserve ID',
+              field: 'reserve_id'
+            },
+            {
+              name: 'txid',
+              align: 'left',
+              label: 'TX ID',
+              field: 'txid'
+            },
+            {
+              name: 'done',
+              align: 'left',
+              label: 'Done',
+              field: 'done'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
         recurrentTable: {
           columns: [
             {name: 'id', align: 'left', label: 'ID', field: 'id'},
@@ -342,7 +446,30 @@
             rowsPerPage: 10
           }
         },
-        visibleColumns: ['wallet', 'threshold', 'address', 'fee']
+        visibleColumns: ['wallet', 'threshold', 'address', 'fee'],
+        offersTable: {
+          columns: [
+            {name: "address", align: "left", label: "Address", field: "addr"},
+            {name: "fee", align: "left", label: "Fee (sat)", field: "fee_msat", format: val => parseInt(val / 1000)},
+            {name: "sat", align: "left", label: "Amount (sat)", field: "sat"},
+          ],
+          rows: this.offers,
+          pagination: {
+            rowsPerPage: 0
+          }
+        },
+        selected: [],
+        swapInCard: {
+          show: false,
+          data: {}
+        },
+        etl: {},
+        receive: {
+          show: false,
+          status: 'pending',
+          paymentReq: null
+        },
+        tip: 1
       }
     },
     computed: {
@@ -352,6 +479,11 @@
         let wallet = this.getWallet(walId)
         
         return `Max: ${wallet.sat}`     
+      },
+      batchAddresses(){
+        this.selected.map(obj => {
+          return 'Hello'
+        })
       }
     },
     methods: {
@@ -506,12 +638,287 @@
                 LNbits.utils.notifyApiError(error)
               })
           })
-      }
+      },
+      // SWAP IN
+      getSwapIns(){
+        LNbits.api
+          .request(
+            'GET',
+            '/swap/api/v1/in?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(response => {
+            this.swapIns = response.data.map(function (obj) {
+              return mapSwapOuts(obj)
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      startSwapIn(){
+        this.getBlockchainTip()
+          .then(() => {
+            this.swapInCard.show = true
+            this.startEventSource()
+            this.getEtlOffers()
+          })
+      },
+      endSwapInCard(){
+        this.swapInCard.data = {}
+        this.swapInCard.show = false
+        this.es.close()
+      },
+      startEventSource() {
+        const es = new EventSource(
+          `https://etleneum.com/~~~/session?src=lnbits-swap`
+        )
+        es.addEventListener('lnurls', e => {
+          let data = JSON.parse(e.data)
+          this.swapInCard.data.lnurlAuth = data.auth
+          this.etl.lnurls = {...data}
+        })
+        es.addEventListener('auth', e => {
+          let data = JSON.parse(e.data)
+          this.etl.account = {...data}
+          this.swapInCard.data.session = data.session
+          if(data.balance > 0){
+            console.log('has balance')
+          }
+        })
+        es.addEventListener('withdraw', e => {
+          let data = JSON.parse(e.data)
+          console.log('withdraw', data)
+        })
+        this.es = es
+      },
+      lnurlAuth(){
+        let auth = this.swapInCard.data.lnurlAuth
+        let selectedWallet = this.g.user.wallets.find(wal => wal.id == this.swapInCard.data.wallet)
+        LNbits.api
+          .request(
+            'GET',
+            `/swap/api/v1/auth/${auth}`,
+            selectedWallet.adminkey
+          )
+          .then(_ => {
+            console.log(this.etl)
+          }) 
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+          console.log("SWAPIN", this.swapInCard.data)
+      },
+      getEtlOffers() {
+        LNbits.api
+          .request('GET', '/swap/api/v1/offers')
+          .then(res => {
+            let offers = res.data
+            this.rawOffers = offers
+            this.offers = Object.keys(offers)
+              .map(addr => ({...offers[addr], addr}))
+              .map(offer => ({
+                ...offer,
+                reserved:
+                  offer.reserved && offer.reserved.upto > this.tip ? offer.reserved : null
+              }))
+              .filter(c => !c.reserved)
+              .sort((a, b) => a.fee_msat - b.fee_msat)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+          //console.log(this.offers)
+      },
+      reserveOffers(){
+        this.swapInCard.data.addresses = this.selected
+        let data = {}
+        data.addresses = this.selected.filter(addr => {
+          return addr["addr"]
+        })
+        data.fees = data.addresses.length * 100
+
+        LNbits.api
+          .request(
+            'POST',
+            '/swap/api/v1/reserve/' + this.swapInCard.data.session,
+            this.g.user.wallets[0].adminkey,
+            data  
+          )
+          .then(res => {
+            this.swapInCard.data.reserve_id = res.data.id
+            this.receive.paymentReq = res.data.invoice
+            this.receive.show = true
+            console.log(this.selected.reduce((acc, cur) => acc + cur.sat, 0))
+            dismissMsg = this.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+            console.log(res.data)
+            this.startCallStream(res.data.id, 'reserve')
+          })
+          .catch(function (error) {
+            console.error(error)
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      createSwapIn(){
+        LNbits.api
+        .request(
+          'POST',
+          '/swap/api/v1/in',
+          this.g.user.wallets[0].adminkey,
+          {
+            wallet: this.swapInCard.data.wallet,
+            session_id: this.swapInCard.data.session,
+            reserve_id: this.swapInCard.data.reserve_id,
+            amount: this.selected.reduce((acc, cur) => acc + cur.sat, 0)
+          }
+        )
+        .then(res => {
+          this.swapIns.push(mapSwapOuts(res.data))
+          this.swapInCard.data.id = res.data.id
+          this.closeReceiveDialog()
+          this.callStream.close()
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+      },
+      updateSwapIn(swap_id) {
+        let swap = _.findWhere(this.swapIns, {id: swap_id})
+        this.swapInCard.data = swap
+        this.startEventSource()
+        this.startSwapIn()
+        this.scrollToElement('swapin')
+      },
+      updateSwapInTx(){
+        LNbits.api
+        .request(
+          'PUT',
+          '/swap/api/v1/in/' + this.swapInCard.data.id,
+          this.g.user.wallets[0].adminkey,
+          {
+            txid: this.swapInCard.data.txid
+          }
+        )
+        .then(res => {
+          this.endSwapInCard()
+          this.callStream.close()
+          this.getSwapIns()
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+      },
+      callTxSent(swap_id, txid){
+        LNbits.api
+          .request(
+            'GET',
+            `/swap/api/v1/in/${swap_id}/${txid}`,
+            this.g.user.wallets[0].adminkey
+          )
+          .then(res => {
+            this.receive.paymentReq = res.data.invoice
+            this.receive.show = true
+            dismissMsg = this.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+            this.startCallStream(res.data.id, 'txsent')
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      callBump(){
+        return
+      },
+      getSelectedString() {
+        return this.selected.length === 0 ? '' :
+        `${this.selected.length} offer${this.selected.length > 1 ? 's' : ''} selected of ${this.offers.length}`
+      },
+      startCallStream(callId, method) {
+        const contractId = "c8w0c13v75"
+        const es = new EventSource(`https://etleneum.com/~~~/contract/${contractId}`);
+
+        es.addEventListener("call-made", (e) => {
+          let data = JSON.parse(e.data);
+          if(data.id === callId){
+            this.$q.notify({
+              type: 'positive',
+              message: 'Sent, thank you!',
+              icon: 'thumb_up'
+            })
+            switch(method) {
+              case 'reserve':
+                this.createSwapIn()
+                break;
+              case 'txsent':
+                this.updateSwapInTx()
+                break;
+              case 'txsent':
+                this.bump()
+                break;
+              default:
+                // code block
+                return
+            } 
+          }
+        });
+
+        es.addEventListener("call-error", (e) => {
+          let data = JSON.parse(e.data);
+          if (data.kind === "internal") {
+            this.$q.notify({
+              message: `internal error, please notify: ${data.message}`
+            })
+          } else if (data.kind === "runtime") {
+            this.$q.notify({
+              message: `runtime error: ${data.message}`
+            })
+          }
+        });
+
+        this.callStream = es
+      },
+      async getBlockchainTip() {
+        try {
+          this.tip = await (
+            await fetch('https://blockstream.info/api/blocks/tip/height')
+          ).json()
+        } catch (err) {
+          toast.warning(`Failed to load blockchain tip: ${err}`)
+        }
+        console.log(this.tip)
+      },
+      closeReceiveDialog() {
+        dismissMsg()
+        this.receive = {
+          show: false,
+          status: 'complete',
+          paymentReq: null
+        }
+        if (this.callStream){
+          this.callStream.close()
+        }
+      },
+      scrollToElement(id) {
+        const el = document.getElementById(id)
+        if(el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      },
     },
     created: function () {
       this.getRecurrents()
       this.getSwapOuts()
+      this.getSwapIns()
       this.getWalletLinks()
+    },
+    beforeDestroy: function() {
+      console.log("Destroy")
+      this.es.close()
     }
   })
 </script>
