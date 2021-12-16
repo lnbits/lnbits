@@ -4,7 +4,7 @@ from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user
+from lnbits.core.crud import get_user, get_payments
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment, api_payments_decode
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
@@ -12,7 +12,7 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from . import lnurlpayout_ext
 from .crud import create_lnurlpayout, delete_lnurlpayout, get_lnurlpayout, get_lnurlpayouts, get_lnurlpayout_from_wallet
 from .models import lnurlpayout, CreateLnurlPayoutData
-
+from .tasks import on_invoice_paid
 
 @lnurlpayout_ext.get("/api/v1/lnurlpayouts", status_code=HTTPStatus.OK)
 async def api_lnurlpayouts(
@@ -61,3 +61,16 @@ async def api_lnurlpayout_delete(
 
     await delete_lnurlpayout(lnurlpayout_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+@lnurlpayout_ext.get("/api/v1/lnurlpayouts/{lnurlpayout_id}", status_code=HTTPStatus.OK)
+async def api_lnurlpayout_check(
+    lnurlpayout_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
+):  
+    lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
+    payments = get_payments(
+        wallet_id=lnurlpayout.wallet_id, complete=True, pending=False, outgoing=True, incoming=True
+    )
+    print(payments[0])
+    result = on_invoice_paid(payments[0].id)
+    wallet_ids = [wallet.wallet.id]
+    return
