@@ -157,6 +157,7 @@
         lnurlpayouts: [],
         lnurlpayoutsTable: {
           columns: [
+            {name: 'title', align: 'left', label: 'Title', field: 'title'},
             {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
             {
               name: 'lnurlpay',
@@ -202,6 +203,7 @@
       },
       createlnurlpayout: function () {
         var data = {
+          title: this.formDialog.data.title,
           lnurlpay: this.formDialog.data.lnurlpay,
           threshold: this.formDialog.data.threshold
         }

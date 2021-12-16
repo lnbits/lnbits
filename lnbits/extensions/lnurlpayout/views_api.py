@@ -29,7 +29,6 @@ async def api_lnurlpayouts(
 async def api_lnurlpayout_create(
     data: CreateLnurlPayoutData, wallet: WalletTypeInfo = Depends(get_key_type)
 ):  
-    print(await get_lnurlpayout_from_wallet(wallet.wallet.id))
     if await get_lnurlpayout_from_wallet(wallet.wallet.id):
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Wallet already has lnurlpayout set")
         return
