@@ -25,10 +25,13 @@ async def on_invoice_paid(payment: Payment) -> None:
         lnurlpayout_link = await get_lnurlpayout_from_wallet(payment.wallet_id)
         print(lnurlpayout_link)
         if lnurlpayout_link:
+            print("poo11")
             # Check the wallet balance is more than the threshold
-            wallet = await api_wallet(payment.wallet_id)
+            wallet = await api_wallet(lnurlpayout_link.admin_key)
+            print("poo1")
             if wallet.balance + (wallet.balance/100*2) < lnurlpayout_link.threshold:
                 return
+            print("poo2")
             # Get the invoice from the LNURL to pay
             async with httpx.AsyncClient() as client:
                 try:

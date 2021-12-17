@@ -11,5 +11,6 @@ class lnurlpayout(BaseModel):
     id: str
     title: str
     wallet: str
+    admin_key: str
     lnurlpay: str
     threshold: str

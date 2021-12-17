@@ -39,7 +39,7 @@ async def api_lnurlpayout_create(
     if str(url["domain"])[0:4] != "http":
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not valid LNURL")
         return
-    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, data=data)
+    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, admin_key=wallet.admin_key, data=data)
     if not lnurlpayout:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
         return
@@ -67,10 +67,9 @@ async def api_lnurlpayout_check(
     lnurlpayout_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):  
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
-    payments = get_payments(
-        wallet_id=lnurlpayout.wallet_id, complete=True, pending=False, outgoing=True, incoming=True
+    payments = await get_payments(
+        wallet_id=lnurlpayout.wallet, complete=True, pending=False, outgoing=True, incoming=True
     )
     print(payments[0])
-    result = on_invoice_paid(payments[0].id)
-    wallet_ids = [wallet.wallet.id]
+    result = await on_invoice_paid(payments[0])
     return

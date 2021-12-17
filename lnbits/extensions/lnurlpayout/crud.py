@@ -6,14 +6,14 @@ from . import db
 from .models import lnurlpayout, CreateLnurlPayoutData
 
 
-async def create_lnurlpayout(wallet_id: str, data: CreateLnurlPayoutData) -> lnurlpayout:
+async def create_lnurlpayout(wallet_id: str, admin_key: str, data: CreateLnurlPayoutData) -> lnurlpayout:
     lnurlpayout_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO lnurlpayout.lnurlpayouts (id, title, wallet, lnurlpay, threshold)
+        INSERT INTO lnurlpayout.lnurlpayouts (id, title, wallet, admin_key, lnurlpay, threshold)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (lnurlpayout_id, data.title, wallet_id, data.lnurlpay, data.threshold),
+        (lnurlpayout_id, data.title, wallet_id, admin_key, data.lnurlpay, data.threshold),
     )
 
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
