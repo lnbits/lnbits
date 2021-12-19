@@ -466,7 +466,6 @@ async def api_lnurlscan(code: str):
 @core_app.post("/api/v1/payments/decode")
 async def api_payments_decode(data: str = Query(None)):
     try:
-        print(data["data"][:5])
         if data["data"][:5] == "LNURL":
             url = lnurl.decode(data["data"])
             return {"domain": url}
