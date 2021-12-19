@@ -51,12 +51,15 @@ async def on_invoice_paid(payment: Payment) -> None:
                                 timeout=40,
                             )
                             res = r.json()
-                            await pay_invoice(
-                                wallet_id=payment.wallet_id,
-                                payment_request=res["pr"],
-                                extra={"tag": "lnurlpayout"},
-                            )
-                            return
+                            try:
+                                await pay_invoice(
+                                    wallet_id=payment.wallet_id,
+                                    payment_request=res["pr"],
+                                    extra={"tag": "lnurlpayout"},
+                                )
+                                return
+                            except:
+                                pass
                         except:
                             return
                     except (httpx.ConnectError, httpx.RequestError):
