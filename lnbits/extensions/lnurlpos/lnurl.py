@@ -56,7 +56,7 @@ async def handle_lnurl_firstrequest(
     if not pos:
         return {
             "status": "ERROR",
-            "reason": f"lnurlpos {pos_id} not found on this server.",
+            "reason": f"lnurlpos {pos_id} not found on this server",
         }
 
     try:
@@ -83,21 +83,23 @@ async def handle_lnurl_firstrequest(
                 "reason": f"Invalid hex or base64 payload: {payload}",
             }
 
-    if len(payloadb)!=8:
-        raise RuntimeError("Expected 8 bytes")
-    expected = hmac.new(pos.key.encode(), payloadb[:-2], digestmod="sha256").digest()
-    if expected[:2] != payloadb[-2:]:
-        raise RuntimeError("Invalid HMAC")
-    s = hmac.new(pos.key.encode(), nonceb, digestmod="sha256").digest()
+    # check payload and nonce sizes
+    if len(payloadb) != 8 or len(nonceb) != 8:
+        return {"status": "ERROR", "reason": "Expected 8 bytes"}
 
+    # verify hmac
+    if verify_checksum:
+        expected = hmac.new(
+            pos.key.encode(), payloadb[:-2], digestmod="sha256"
+        ).digest()
+        if expected[:2] != payloadb[-2:]:
+            return {"status": "ERROR", "reason": "Invalid HMAC"}
+
+    # decrypt
+    s = hmac.new(pos.key.encode(), nonceb, digestmod="sha256").digest()
     res = bytearray(payloadb)
     for i in range(len(res)):
         res[i] = res[i] ^ s[i]
-
-    if verify_checksum:
-        checksum = res[6:8]
-        if hashlib.sha256(res[0:6]).digest()[0:2] != checksum:
-            return {"status": "ERROR", "reason": "Invalid checksum!"}
 
     pin = int.from_bytes(res[0:2], "little")
     amount = int.from_bytes(res[2:6], "little")
