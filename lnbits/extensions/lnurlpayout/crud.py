@@ -11,7 +11,7 @@ async def create_lnurlpayout(wallet_id: str, admin_key: str, data: CreateLnurlPa
     await db.execute(
         """
         INSERT INTO lnurlpayout.lnurlpayouts (id, title, wallet, admin_key, lnurlpay, threshold)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (lnurlpayout_id, data.title, wallet_id, admin_key, data.lnurlpay, data.threshold),
     )

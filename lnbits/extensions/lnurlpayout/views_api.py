@@ -18,7 +18,7 @@ from .tasks import on_invoice_paid
 async def api_lnurlpayouts(
     all_wallets: bool = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    wallet_ids = [wallet.wallet.id]
+    wallet_ids = wallet.wallet.id
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
@@ -39,7 +39,8 @@ async def api_lnurlpayout_create(
     if str(url["domain"])[0:4] != "http":
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not valid LNURL")
         return
-    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, admin_key=wallet.admin_key, data=data)
+    print(wallet)
+    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, admin_key=wallet.wallet.adminkey, data=data)
     if not lnurlpayout:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
         return
