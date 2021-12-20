@@ -85,16 +85,26 @@
             color="primary"
             @click="endSwapInCard">
           </q-btn>
-          <q-btn 
-            :disable="!!swapInCard.data.id ? false : (selected.length == 0 || !swapInCard.data.wallet)"
-            label="Send TXid"
-            class="q-ml-auto"
-            color="primary"
-            @click="callTxSent(swapInCard.data.id, swapInCard.data.txid)">
-            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-              Send TXID
-            </q-tooltip>
-          </q-btn>
+          <div class="q-ml-auto">
+            <q-btn 
+              label="withdraw"
+              class="q-ml-auto"
+              color="primary"
+              @click="checkBalance(swapInCard.data.wallet, etl.lnurls.withdraw)">
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Send TXID
+              </q-tooltip>
+            </q-btn>
+            <q-btn 
+              :disable="!!swapInCard.data.id ? false : (selected.length == 0 || !swapInCard.data.wallet)"
+              label="Send TXid"
+              color="primary"
+              @click="callTxSent(swapInCard.data.id, swapInCard.data.txid)">
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Send TXID
+              </q-tooltip>
+            </q-btn>
+          </div>
         </div>
       </q-form>
     </q-card-section>

@@ -214,7 +214,7 @@ async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query
     )
 
 
-@core_html_routes.get("/withdraw/notify/{service}")
+@core_html_routes.get("/withdraw/notify/{service}", name="core.withdraw_notify")
 async def lnurl_balance_notify(request: Request, service: str):
     bc = await get_balance_check(request.query_params.get("wal"), service)
     if bc:

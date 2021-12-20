@@ -4,9 +4,10 @@ from http import HTTPStatus
 from fastapi.param_functions import Body
 from fastapi.params import Depends, Query
 from starlette.exceptions import HTTPException
+from starlette.requests import Request
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import perform_lnurlauth
+from lnbits.core.services import perform_lnurlauth, redeem_lnurl_withdraw
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.swap.etleneum import contract_call_method, get_contract_state
 from lnbits.extensions.swap.models import (
@@ -131,6 +132,7 @@ async def api_swap_ins(
 @swap_ext.get("/api/v1/offers")
 async def api_get_etleneum_offers():
     offers = await get_contract_state()
+    print(offers["value"])
     return offers["value"]
 
 @swap_ext.get("/api/v1/auth/{lnurl}")
@@ -158,7 +160,7 @@ async def api_swapin_create(data: CreateSwapIn, wallet: WalletTypeInfo = Depends
 
 @swap_ext.put("/api/v1/in/{swap_id}")
 async def api_update_swap_in(swap_id, data: Txid, wallet: WalletTypeInfo = Depends(require_admin_key)):
-    print(data)
+    
     updated_swap = await update_swap_in(swap_id, **data.dict())
     return updated_swap.dict()
 
@@ -191,4 +193,31 @@ async def api_perform_txsent(swap_id, txid, wallet: WalletTypeInfo = Depends(req
     
     resp = call["value"]
     return {"id": resp["id"], "invoice": resp["invoice"]}
+
+@swap_ext.get("/api/v1/checkbalance/{lnurl_w}")
+async def check_account_widthraw(lnurl_w, request: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
+    swap_id = request.path_params['id']
+    await redeem_lnurl_withdraw(
+        wallet_id=wallet.wallet.id,
+        lnurl_request=lnurl_w,
+        memo=swap_id,
+        extra={"tag": f"swapin"},
+        )
+
+
+@swap_ext.get("/api/v1/bump")
+async def api_perform_bump(wallet: WalletTypeInfo = Depends(get_key_type)):
+    call = await contract_call_method(
+        "bump",
+        {},
+        0,
+    )
+    if not call["ok"]:        
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Problem with etleneum: "
+            + call["error"],
+        )
     
+    resp = call["value"]
+    return {"id": resp["id"], "invoice": resp["invoice"]}

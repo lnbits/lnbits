@@ -669,7 +669,7 @@
         this.swapInCard.show = false
         this.es.close()
       },
-      startEventSource() {
+      startEventSource(auto = false) {
         const es = new EventSource(
           `https://etleneum.com/~~~/session?src=lnbits-swap`
         )
@@ -677,6 +677,9 @@
           let data = JSON.parse(e.data)
           this.swapInCard.data.lnurlAuth = data.auth
           this.etl.lnurls = {...data}
+          if(auto) {
+            this.lnurlAuth()
+          }
         })
         es.addEventListener('auth', e => {
           let data = JSON.parse(e.data)
@@ -719,11 +722,11 @@
               .map(addr => ({...offers[addr], addr}))
               .map(offer => ({
                 ...offer,
-                reserved:
-                  offer.reserved && offer.reserved.upto > this.tip ? offer.reserved : null
+                reserved: offer.reserved && offer.reserved.to ? offer.reserved.to : null
               }))
               .filter(c => !c.reserved)
               .sort((a, b) => a.fee_msat - b.fee_msat)
+            console.log("OFFERS", this.offers, this.rawOffers)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -788,7 +791,7 @@
       updateSwapIn(swap_id) {
         let swap = _.findWhere(this.swapIns, {id: swap_id})
         this.swapInCard.data = swap
-        this.startEventSource()
+        this.startEventSource(true)
         this.startSwapIn()
         this.scrollToElement('swapin')
       },
@@ -803,10 +806,27 @@
           }
         )
         .then(res => {
+          let wallet = this.swapInCard.data.wallet
+          let lnurl_w = this.etl.lnurls.withdraw
+          let swap_id = this.swapInCard.data.id
           this.endSwapInCard()
           this.callStream.close()
           this.getSwapIns()
+          this.checkBalance(wallet, lnurl_w, swap_id)
         })
+        .catch(function (error) {
+          console.error(error)
+          LNbits.utils.notifyApiError(error)
+        })
+      },
+      checkBalance(wallet, lnurl_w, swap_id){
+        let _wallet = this.g.user.wallets.find(wal => wal.id == wallet)
+        LNbits.api
+        .request(
+          'GET',
+          `/swap/api/v1/checkbalance/${lnurl_w}?id=${swap_id}`,
+          _wallet.inkey
+        )
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
@@ -832,7 +852,27 @@
           })
       },
       callBump(){
-        return
+        LNbits.api
+          .request(
+            'GET',
+            `/swap/api/v1/bump`,
+            this.g.user.wallets[0].inkey
+          )
+          .then(res => {
+            this.receive.paymentReq = res.data.invoice
+            this.receive.show = true
+            dismissMsg = this.$q.notify({
+              timeout: 0,
+              message: 'Waiting for payment...'
+            })
+            this.startCallStream(res.data.id, 'bump')
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateSwapInWithdraw() {
+        this.callStream.close()
       },
       getSelectedString() {
         return this.selected.length === 0 ? '' :
@@ -857,8 +897,8 @@
               case 'txsent':
                 this.updateSwapInTx()
                 break;
-              case 'txsent':
-                this.bump()
+              case 'bump':
+                this.updateSwapInWithdraw()
                 break;
               default:
                 // code block
@@ -888,7 +928,9 @@
             await fetch('https://blockstream.info/api/blocks/tip/height')
           ).json()
         } catch (err) {
-          toast.warning(`Failed to load blockchain tip: ${err}`)
+          this.$q.notify({
+            message: `Failed to load blockchain tip: ${err}`
+          })
         }
         console.log(this.tip)
       },

@@ -8,7 +8,8 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from fastapi.params import Depends
 from lnurl import LnurlErrorResponse
-from lnurl import decode as decode_lnurl  # type: ignore
+from lnurl import decode as decode_lnurl
+from starlette.requests import Request  # type: ignore
 
 from lnbits import bolt11
 from lnbits.db import Connection
@@ -222,11 +223,9 @@ async def redeem_lnurl_withdraw(
     params = {"k1": res["k1"], "pr": payment_request}
 
     try:
-        params["balanceNotify"] = url_for(
-            f"/withdraw/notify/{urlparse(lnurl_request).netloc}",
-            external=True,
-            wal=wallet_id,
-        )
+        request = Request
+        url = request.url_for("core.withdraw_notify", service=urlparse(lnurl_request).netloc)
+        params["balanceNotify"] = f"{url}?wal={wallet_id}"
     except Exception:
         pass
 
