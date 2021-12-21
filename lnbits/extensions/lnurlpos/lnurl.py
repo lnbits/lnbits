@@ -74,9 +74,6 @@ def xor_decrypt(key, blob):
     s = BytesIO(payload)
     pin = compact.read_from(s)
     # currency
-    currency = s.read(1)
-    if currency != USD_CENTS:
-        raise RuntimeError("Unsupported currency: %s" % currency)
     amount_in_cent = compact.read_from(s)
     if s.read():
         raise RuntimeError("Unexpected data")
