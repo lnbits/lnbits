@@ -163,7 +163,7 @@ async def lnurl_callback(request: Request, paymentid: str = Query(None)):
         "successAction": {
             "tag": "url",
             "description": "Check the attached link",
-            "url": req.url_for("lnurlpos.displaypin", paymentid=paymentid),
+            "url": request.url_for("lnurlpos.displaypin", paymentid=paymentid),
         },
         "routes": [],
     }
