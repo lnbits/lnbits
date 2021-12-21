@@ -73,7 +73,6 @@ def xor_decrypt(key, blob):
         payload[i] = payload[i] ^ secret[i]
     s = BytesIO(payload)
     pin = compact.read_from(s)
-    # currency
     amount_in_cent = compact.read_from(s)
     return pin, amount_in_cent
 
@@ -105,7 +104,6 @@ async def handle_lnurl_firstrequest(
 
     data = base64.urlsafe_b64decode(payload)
     pin, amount_in_cent = xor_decrypt(pos.key.encode(), data)
-
     price_msat = (
         await fiat_amount_as_satoshis(float(amount_in_cent) / 100, pos.currency)
         if pos.currency != "sat"
