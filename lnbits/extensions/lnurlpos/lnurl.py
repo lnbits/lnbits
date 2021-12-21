@@ -75,8 +75,6 @@ def xor_decrypt(key, blob):
     pin = compact.read_from(s)
     # currency
     amount_in_cent = compact.read_from(s)
-    if s.read():
-        raise RuntimeError("Unexpected data")
     return pin, amount_in_cent
 
 @lnurlpos_ext.get(
