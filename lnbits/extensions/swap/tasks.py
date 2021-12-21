@@ -23,7 +23,7 @@ async def wait_for_paid_invoices():
 async def on_invoice_paid(payment: Payment) -> None:
     if "swapin" == payment.extra.get("tag"):
         swap_id = payment.memo
-        await update_swap_in(swap_id, {"done": True})
+        await update_swap_in(swap_id, **{"done": True})
     
     has_recurrent = await get_recurrent_swapout_by_wallet(payment.wallet_id)
     

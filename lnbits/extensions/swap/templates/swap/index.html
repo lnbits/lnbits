@@ -667,7 +667,7 @@
       endSwapInCard(){
         this.swapInCard.data = {}
         this.swapInCard.show = false
-        this.es.close()
+        //this.es.close()
       },
       startEventSource(auto = false) {
         const es = new EventSource(
@@ -676,6 +676,7 @@
         es.addEventListener('lnurls', e => {
           let data = JSON.parse(e.data)
           this.swapInCard.data.lnurlAuth = data.auth
+          this.swapInCard.data.lnurlW = data.withdraw
           this.etl.lnurls = {...data}
           if(auto) {
             this.lnurlAuth()
@@ -684,8 +685,10 @@
         es.addEventListener('auth', e => {
           let data = JSON.parse(e.data)
           this.etl.account = {...data}
-          this.swapInCard.data.session = data.session
-          if(data.balance > 0){
+          this.swapInCard.data.account = data.account
+          this.swapInCard.data.session_id = data.session
+          
+          if(data.balance > 10000){
             console.log('has balance')
           }
         })
@@ -703,14 +706,10 @@
             'GET',
             `/swap/api/v1/auth/${auth}`,
             selectedWallet.adminkey
-          )
-          .then(_ => {
-            console.log(this.etl)
-          }) 
+          ) 
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-          console.log("SWAPIN", this.swapInCard.data)
       },
       getEtlOffers() {
         LNbits.api
@@ -726,12 +725,10 @@
               }))
               .filter(c => !c.reserved)
               .sort((a, b) => a.fee_msat - b.fee_msat)
-            console.log("OFFERS", this.offers, this.rawOffers)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-          //console.log(this.offers)
       },
       reserveOffers(){
         this.swapInCard.data.addresses = this.selected
@@ -744,7 +741,7 @@
         LNbits.api
           .request(
             'POST',
-            '/swap/api/v1/reserve/' + this.swapInCard.data.session,
+            '/swap/api/v1/reserve/' + this.swapInCard.data.session_id,
             this.g.user.wallets[0].adminkey,
             data  
           )
@@ -773,7 +770,7 @@
           this.g.user.wallets[0].adminkey,
           {
             wallet: this.swapInCard.data.wallet,
-            session_id: this.swapInCard.data.session,
+            session_id: this.swapInCard.data.account,
             reserve_id: this.swapInCard.data.reserve_id,
             amount: this.selected.reduce((acc, cur) => acc + cur.sat, 0)
           }
@@ -792,8 +789,9 @@
         let swap = _.findWhere(this.swapIns, {id: swap_id})
         this.swapInCard.data = swap
         this.startEventSource(true)
-        this.startSwapIn()
+        this.swapInCard.show = true
         this.scrollToElement('swapin')
+        
       },
       updateSwapInTx(){
         LNbits.api
@@ -807,7 +805,7 @@
         )
         .then(res => {
           let wallet = this.swapInCard.data.wallet
-          let lnurl_w = this.etl.lnurls.withdraw
+          let lnurl_w = this.swapInCard.data.lnurlW
           let swap_id = this.swapInCard.data.id
           this.endSwapInCard()
           this.callStream.close()
@@ -815,7 +813,6 @@
           this.checkBalance(wallet, lnurl_w, swap_id)
         })
         .catch(function (error) {
-          console.error(error)
           LNbits.utils.notifyApiError(error)
         })
       },
@@ -827,6 +824,11 @@
           `/swap/api/v1/checkbalance/${lnurl_w}?id=${swap_id}`,
           _wallet.inkey
         )
+        .then(_ => {
+          this.endSwapInCard()
+          this.es.close()
+          this.getSwapIns()
+        })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
@@ -898,7 +900,7 @@
                 this.updateSwapInTx()
                 break;
               case 'bump':
-                this.updateSwapInWithdraw()
+                console.log("bump")
                 break;
               default:
                 // code block
@@ -957,10 +959,6 @@
       this.getSwapOuts()
       this.getSwapIns()
       this.getWalletLinks()
-    },
-    beforeDestroy: function() {
-      console.log("Destroy")
-      this.es.close()
     }
   })
 </script>

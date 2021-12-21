@@ -14,13 +14,13 @@
           :options="g.user.walletOptions"
           label="Wallet *"
           hint="Select LNbits wallet to receive funds"
-          :disable="swapInCard.data.session ? true : false || !!swapInCard.data.id"
+          :disable="(swapInCard.data.session_id ? true : false) || !!swapInCard.data.id"
         >
         </q-select>
         <div class="row q-mt-lg">
           <q-btn 
-            v-if="!swapInCard.data.session"
-            :disable="swapInCard.data.wallet ? false : true || !!swapInCard.data.id"
+            v-if="!swapInCard.data.session_id"
+            :disable="swapInCard.data.wallet ? false : true"
             label="LNURL Auth"
             flat
             class="q-ml-auto"
@@ -31,35 +31,36 @@
             </q-tooltip>
           </q-btn>
         </div>
-        <q-table
-          v-if="!swapInCard.data.id"
-          style="height: 400px"
-          title="Choose offers"
-          :data="offers"
-          :columns="offersTable.columns"
-          row-key="addr"
-          :selected-rows-label="getSelectedString"
-          :selected.sync="selected"
-          selection="multiple"
-          virtual-scroll
-          :pagination.sync="offersTable.pagination"
-        ></q-table>
-        <div class="row q-mt-lg">
-          {%raw%}
-          {{ `Total amount: ${selected.reduce((acc, cur) => acc + cur.sat, 0)}` }}
-          {%endraw%}
-          <q-btn 
-            :disable="!swapInCard.data.session || selected.length == 0 || !!swapInCard.data.id"
-            label="Reserve"
-            class="q-ml-auto"
-            color="primary"
-            @click="reserveOffers">
-            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-              Reserve selected offers
-            </q-tooltip>
-          </q-btn>
-        </div>          
-        <q-list dense >
+        <div v-if="!swapInCard.data.id">
+          <q-table            
+            style="height: 400px"
+            title="Choose offers"
+            :data="offers"
+            :columns="offersTable.columns"
+            row-key="addr"
+            :selected-rows-label="getSelectedString"
+            :selected.sync="selected"
+            selection="multiple"
+            virtual-scroll
+            :pagination.sync="offersTable.pagination"
+          ></q-table>
+          <div class="row q-mt-lg">
+            {%raw%}
+            {{ `Total amount: ${selected.reduce((acc, cur) => acc + cur.sat, 0)}` }}
+            {%endraw%}
+            <q-btn 
+              :disable="!swapInCard.data.session_id || selected.length == 0 || !!swapInCard.data.id"
+              label="Reserve"
+              class="q-ml-auto"
+              color="primary"
+              @click="reserveOffers">
+              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+                Reserve selected offers
+              </q-tooltip>
+            </q-btn>
+          </div>          
+        </div>
+        <q-list dense v-if="!swapInCard.data.reserve_id">
           <q-item-label header>Create a batch transaction with the following addresses and amounts</q-item-label>
           <q-item v-for="row in selected" :key="row.addr">
             <q-item-section>
@@ -68,15 +69,14 @@
               </q-item-label>
             </q-item-section>
           </q-item>
-          <q-item-label header>Enter the transaction ID to complete de Swap</q-item-label>
         </q-list>          
         <q-input
           filled
           dense
           emit-value
+          label="Enter the transaction ID to complete de Swap"
           v-model.trim="swapInCard.data.txid"
           type="text"
-          hint="Paste transaction id"
         ></q-input>          
         <div class="row q-mt-lg">
           <q-btn 
@@ -87,10 +87,11 @@
           </q-btn>
           <div class="q-ml-auto">
             <q-btn 
+              v-if="swapInCard.data.txid"
               label="withdraw"
               class="q-ml-auto"
               color="primary"
-              @click="checkBalance(swapInCard.data.wallet, etl.lnurls.withdraw)">
+              @click="checkBalance(swapInCard.data.wallet, swapInCard.data.lnurlW, swapInCard.data.id)">
               <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
                 Send TXID
               </q-tooltip>
