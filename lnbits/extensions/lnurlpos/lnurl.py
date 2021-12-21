@@ -109,7 +109,7 @@ async def handle_lnurl_firstrequest(
         payload += "="*(4-(len(payload)%4))
 
     data = base64.urlsafe_b64decode(payload)
-    pin, amount_in_cent = xor_decrypt(key, data)
+    pin, amount_in_cent = xor_decrypt(pos.key, data)
 
     price_msat = (
         await fiat_amount_as_satoshis(float(amount_in_cent) / 100, pos.currency)
