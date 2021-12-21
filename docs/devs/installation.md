@@ -16,7 +16,6 @@ While in development, you will need to install all dependencies:
 
     git clone https://github.com/lnbits/lnbits-legend.git
     cd lnbits-legend/
-    # for now you'll need to `git checkout FastAPI`
     pipenv shell
     pipenv install --dev
 
