@@ -107,7 +107,7 @@ async def handle_lnurl_firstrequest(
     price_msat = (
         await fiat_amount_as_satoshis(float(amount_in_cent) / 100, pos.currency)
         if pos.currency != "sat"
-        else amount
+        else amount_in_cent
     ) * 1000
 
     lnurlpospayment = await create_lnurlpospayment(
