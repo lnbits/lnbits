@@ -99,10 +99,10 @@ async def lnurl_v1_params(
             "reason": f"lnurlpos {pos_id} not found on this server",
         }
 
-    if len(payload) % 4 > 0:
-        payload += "=" * (4 - (len(payload) % 4))
+    if len(p) % 4 > 0:
+        p += "=" * (4 - (len(p) % 4))
 
-    data = base64.urlsafe_b64decode(payload)
+    data = base64.urlsafe_b64decode(p)
     pin = 0
     amount_in_cent = 0
     try:
@@ -120,7 +120,7 @@ async def lnurl_v1_params(
 
     lnurlpospayment = await create_lnurlpospayment(
         posid=pos.id,
-        payload=payload,
+        payload=p,
         sats=price_msat,
         pin=pin,
         payhash="payment_hash",
