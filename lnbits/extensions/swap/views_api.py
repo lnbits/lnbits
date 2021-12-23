@@ -165,18 +165,20 @@ async def api_update_swap_in(swap_id, data: Txid, wallet: WalletTypeInfo = Depen
     return updated_swap.dict()
 
 @swap_ext.get("/api/v1/in/{swap_id}/{txid}")
-async def api_perform_txsent(swap_id, txid, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_perform_txsent(swap_id, txid, request: Request, wallet: WalletTypeInfo = Depends(require_admin_key)):
     swap = await get_swap_in(swap_id)
+    session_id = request.query_params["session"]
     if not swap:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail="Swap does not exist."
             )
+    print(swap, session_id)
     call = await contract_call_method(
         "txsent",
         {"txid": txid},
         0,
-        swap.session_id
+        session_id
     )
     if not call:
         raise HTTPException(

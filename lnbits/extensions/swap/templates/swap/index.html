@@ -663,8 +663,9 @@
             this.startEventSource()
             this.getEtlOffers()
           })
-      },
+        },
       endSwapInCard(){
+        this.selected = []
         this.swapInCard.data = {}
         this.swapInCard.show = false
         //this.es.close()
@@ -688,8 +689,9 @@
           this.swapInCard.data.account = data.account
           this.swapInCard.data.session_id = data.session
           
-          if(data.balance > 10000){
+          if(data.balance > 100 * 1000){
             console.log('has balance')
+            this.swapInCard.data.balance = data.balance
           }
         })
         es.addEventListener('withdraw', e => {
@@ -731,6 +733,7 @@
           })
       },
       reserveOffers(){
+        console.log(this.selected)
         this.swapInCard.data.addresses = this.selected
         let data = {}
         data.addresses = this.selected.filter(addr => {
@@ -778,22 +781,27 @@
         .then(res => {
           this.swapIns.push(mapSwapOuts(res.data))
           this.swapInCard.data.id = res.data.id
-          this.closeReceiveDialog()
-          this.callStream.close()
+          //this.closeReceiveDialog()
+          //this.callStream.close()
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)
         })
       },
-      updateSwapIn(swap_id) {
+      async updateSwapIn(swap_id) {
         let swap = _.findWhere(this.swapIns, {id: swap_id})
         this.swapInCard.data = swap
+        await this.getEtlOffers()
+        await this.getCallInfo(swap.reserve_id)          
         this.startEventSource(true)
         this.swapInCard.show = true
         this.scrollToElement('swapin')
-        
+        console.log(this.swapInCard.data)
+     
       },
       updateSwapInTx(){
+        this.closeReceiveDialog()
+        this.callStream.close()
         LNbits.api
         .request(
           'PUT',
@@ -837,7 +845,7 @@
         LNbits.api
           .request(
             'GET',
-            `/swap/api/v1/in/${swap_id}/${txid}`,
+            `/swap/api/v1/in/${swap_id}/${txid}?session=${this.swapInCard.data.session_id}`,
             this.g.user.wallets[0].adminkey
           )
           .then(res => {
@@ -852,6 +860,22 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      getCallInfo(callId) {
+        const contractId = "c8w0c13v75"
+          axios
+            .get(`https://etleneum.com/~/contract/${contractId}/call/${callId}`, {
+              headers: {"Content-Type": "application/json"}
+            })
+            .then(resp => {
+              this.selected = resp.data.value.payload.addresses.map(a => {
+                console.log(this.rawOffers[a])
+                return {addr: a, ...this.rawOffers[a]}
+              })
+            })
+            .catch(function (error) {
+              LNbits.utils.notifyApiError(error)
+            })
       },
       callBump(){
         LNbits.api
@@ -900,12 +924,15 @@
                 this.updateSwapInTx()
                 break;
               case 'bump':
-                console.log("bump")
+                let {wallet, lnurlW, id} = this.swapInCard.data
+                this.checkBalance(wallet, lnurlW, id)
+                this.getSwapIns()
                 break;
               default:
                 // code block
                 return
             } 
+            this.closeReceiveDialog()
           }
         });
 
@@ -959,6 +986,7 @@
       this.getSwapOuts()
       this.getSwapIns()
       this.getWalletLinks()
+      this.getEtlOffers()
     }
   })
 </script>

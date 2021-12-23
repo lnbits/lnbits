@@ -298,7 +298,6 @@ async def perform_lnurlauth(
         )
         try:
             resp = json.loads(r.text)
-            print(resp)
             if resp["status"] == "OK":
                 return None
 
