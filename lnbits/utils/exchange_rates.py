@@ -124,6 +124,7 @@ currencies = {
     "RUB": "Russian Ruble",
     "RWF": "Rwandan Franc",
     "SAR": "Saudi Riyal",
+    "sats": "Satoshis",
     "SBD": "Solomon Islands Dollar",
     "SCR": "Seychellois Rupee",
     "SEK": "Swedish Krona",
