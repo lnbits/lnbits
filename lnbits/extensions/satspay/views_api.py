@@ -6,8 +6,6 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.decorators import (
-    WalletAdminKeyChecker,
-    WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
     require_admin_key,
