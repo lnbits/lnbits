@@ -6,11 +6,10 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.decorators import (
-    WalletAdminKeyChecker,
-    WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.extensions.satspay import satspay_ext
 
@@ -26,15 +25,15 @@ from .models import CreateCharge
 
 #############################CHARGES##########################
 
-@satspay_ext.post("/api/v1/charge", dependencies=[Depends(WalletInvoiceKeyChecker())])
+@satspay_ext.post("/api/v1/charge")
 async def api_charge_create(
     data: CreateCharge,
-    wallet: WalletTypeInfo = Depends(get_key_type)
+    wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
     charge = await create_charge(user=wallet.wallet.user, data=data)
     return charge.dict()
 
-@satspay_ext.put("/api/v1/charge/{charge_id}", dependencies=[Depends(WalletAdminKeyChecker())])
+@satspay_ext.put("/api/v1/charge/{charge_id}")
 async def api_charge_update(
     data: CreateCharge,
     wallet: WalletTypeInfo = Depends(require_admin_key),
