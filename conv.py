@@ -1,19 +1,23 @@
-## Python script to migrate an LNbits SQLite DB to Postgres
-## All credits to @Fritz446 for the awesome work 
-
-## pip install psycopg2 OR psycopg2-binary
-
-import os
-import sqlite3
-
 import psycopg2
+import sqlite3
+import os
+<< << << < Updated upstream
+# Python script to migrate an LNbits SQLite DB to Postgres
+# All credits to @Fritz446 for the awesome work
+== == == =
+# Python script to migrate an LNbits SQLite DB to Postgres
+# All credits to @Fritz446 for the awesome work
+>>>>>> > Stashed changes
+
+# pip install psycopg2 OR psycopg2-binary
+
 
 # Change these values as needed
 
 sqfolder = "data/"
 pgdb = "lnbits"
 pguser = "postgres"
-pgpswd = "yourpassword"
+pgpswd = "postgres"
 pghost = "localhost"
 pgport = "5432"
 pgschema = ""
@@ -34,7 +38,8 @@ def get_postgres_cursor():
 def check_db_versions(sqdb):
     sqlite = get_sqlite_cursor(sqdb)
     dblite = dict(sqlite.execute("SELECT * FROM dbversions;").fetchall())
-    del dblite["lnurlpos"]  # wrongly added?
+    if "lnurlpos" in dblite:
+        del dblite["lnurlpos"]
     sqlite.close()
 
     postgres = get_postgres_cursor()
@@ -42,7 +47,7 @@ def check_db_versions(sqdb):
     dbpost = dict(postgres.fetchall())
 
     for key in dblite.keys():
-        if dblite[key] != dbpost[key]:
+        if key in dblite and key in dbpost and dblite[key] != dbpost[key]:
             raise Exception(
                 f"sqlite database version ({dblite[key]}) of {key} doesn't match postgres database version {dbpost[key]}"
             )
@@ -76,7 +81,10 @@ def insert_to_pg(query, data):
     connection = cursor.connection
 
     for d in data:
-        cursor.execute(query, d)
+        try:
+            cursor.execute(query, d)
+        except:
+            raise ValueError(f"Failed to insert {d}")
     connection.commit()
 
     cursor.close()
