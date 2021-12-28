@@ -13,7 +13,7 @@ import os
 sqfolder = "data/"
 pgdb = "lnbits"
 pguser = "postgres"
-pgpswd = "postgres"
+pgpswd = "yourpassword"
 pghost = "localhost"
 pgport = "5432"
 pgschema = ""
