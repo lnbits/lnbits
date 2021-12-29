@@ -235,10 +235,24 @@
         charge_time_elapsed: '{{charge.time_elapsed}}',
         charge_amount: '{{charge.amount}}',
         charge_balance: '{{charge.balance}}',
-        charge_paid: '{{charge.paid}}'
+        charge_paid: '{{charge.paid}}',
+        wallet: {
+          inkey: ''
+        },
+        cancelListener: () => {}
       }
     },
     methods: {
+      startPaymentNotifier(){
+        this.cancelListener()
+
+        this.cancelListener = LNbits.event.onInvoicePaid(
+          this.wallet,
+          payment => {
+            this.checkBalance()
+          }
+        )
+      },
       checkBalance: function () {
         var self = this
         LNbits.api
@@ -307,12 +321,14 @@
         this.lnbtc = false
         this.onbtc = true
       }
+      this.wallet.inkey = '{{ wallet_inkey }}'
       this.getTheTime()
       this.getThePercentage()
       var timerCount = this.timerCount
       if ('{{ charge.paid }}' == 'False') {
         timerCount()
       }
+      this.startPaymentNotifier()
     }
   })
 </script>

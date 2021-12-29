@@ -6,6 +6,7 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
+from lnbits.core.crud import get_wallet
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
@@ -29,6 +30,7 @@ async def display(request: Request, charge_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
         )
+    wallet = await get_wallet(charge.lnbitswallet)
     return satspay_renderer().TemplateResponse(
-        "satspay/display.html", {"request": request, "charge": charge}
+        "satspay/display.html", {"request": request, "charge": charge, "wallet_key": wallet.inkey}
     )
