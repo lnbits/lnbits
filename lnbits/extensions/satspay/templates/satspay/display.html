@@ -132,7 +132,7 @@
                 lightning-network invoice</span
               >
             </center>
-            <a href="lightning://{{ charge.payment_request }}">
+            <a href="lightning:{{ charge.payment_request }}">
               <q-responsive :ratio="1" class="q-mx-md">
                 <qrcode
                   :value="'{{ charge.payment_request }}'"
