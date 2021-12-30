@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-from lnbits.core.tasks import register_task_listeners
 import sys
 import traceback
 import warnings
@@ -12,6 +11,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import lnbits.settings
+from lnbits.core.tasks import register_task_listeners
 
 from .commands import db_migrate, handle_assets
 from .core import core_app
@@ -45,12 +45,11 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         "/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static"
     )
 
-    origins = ["http://localhost", "http://localhost:5000"]
+    origins = ["*"]
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
