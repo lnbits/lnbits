@@ -1,8 +1,9 @@
+import time
 from sqlite3 import Row
 from typing import Optional
+
 from fastapi.param_functions import Query
 from pydantic import BaseModel
-import time
 
 
 class CreateCharge(BaseModel):
@@ -23,8 +24,8 @@ class Charges(BaseModel):
     onchainwallet: Optional[str]
     onchainaddress: Optional[str]
     lnbitswallet: Optional[str]
-    payment_request: str
-    payment_hash: str
+    payment_request: Optional[str]
+    payment_hash: Optional[str]
     webhook: Optional[str]
     completelink: Optional[str]
     completelinktext: Optional[str] = "Back to Merchant"
