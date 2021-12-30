@@ -84,7 +84,7 @@ async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(require_admin
 async def api_fresh_address(wallet_id, w: WalletTypeInfo = Depends(get_key_type)):
     address = await get_fresh_address(wallet_id)
 
-    return address.dict()
+    return [address.dict()]
 
 
 @watchonly_ext.get("/api/v1/addresses/{wallet_id}")
