@@ -25,7 +25,10 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
         onchainaddress = None
     if data.lnbitswallet:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=data.lnbitswallet, amount=data.amount, memo=charge_id
+            wallet_id=data.lnbitswallet,
+            amount=data.amount,
+            memo=charge_id,
+            extra={"tag": "charge"},
         )
     else:
         payment_hash = None
@@ -112,7 +115,7 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
                 pass
         if charge.lnbitswallet:
             invoice_status = await api_payment(charge.payment_hash)
-
+            
             if invoice_status["paid"]:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
