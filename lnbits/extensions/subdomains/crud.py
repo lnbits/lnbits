@@ -33,7 +33,7 @@ async def create_subdomain(payment_hash, wallet, data: CreateDomain) -> Subdomai
 
 async def set_subdomain_paid(payment_hash: str) -> Subdomains:
     row = await db.fetchone(
-        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
+        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.id = ?",
         (payment_hash,),
     )
     if row[8] == False:
@@ -66,7 +66,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
     row = await db.fetchone(
-        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
+        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.id = ?",
         (subdomain_id,),
     )
     return Subdomains(**row) if row else None
@@ -74,7 +74,7 @@ async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
 
 async def get_subdomainBySubdomain(subdomain: str) -> Optional[Subdomains]:
     row = await db.fetchone(
-        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
+        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
         (subdomain,),
     )
     return Subdomains(**row) if row else None
@@ -86,7 +86,7 @@ async def get_subdomains(wallet_ids: Union[str, List[str]]) -> List[Subdomains]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})",
+        f"SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})",
         (*wallet_ids,),
     )
 
