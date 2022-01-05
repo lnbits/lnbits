@@ -173,7 +173,7 @@ async def api_get_donations(g: WalletTypeInfo = Depends(get_key_type)):
     for wallet_id in wallet_ids:
         new_donations = await get_donations(wallet_id)
         donations += new_donations if new_donations else []
-    return [donation._asdict() for donation in donations] if donations else []
+    return [donation.dict() for donation in donations] if donations else []
 
 
 @streamalerts_ext.put("/api/v1/donations/{donation_id}")

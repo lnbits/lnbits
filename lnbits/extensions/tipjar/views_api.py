@@ -92,7 +92,7 @@ async def api_get_tipjars(wallet: WalletTypeInfo = Depends(get_key_type)):
     for wallet_id in wallet_ids:
         new_tipjars = await get_tipjars(wallet_id)
         tipjars += new_tipjars if new_tipjars else []
-    return [tipjar._asdict() for tipjar in tipjars] if tipjars else []
+    return [tipjar.dict() for tipjar in tipjars] if tipjars else []
 
 
 @tipjar_ext.get("/api/v1/tips")
@@ -103,7 +103,7 @@ async def api_get_tips(wallet: WalletTypeInfo = Depends(get_key_type)):
     for wallet_id in wallet_ids:
         new_tips = await get_tips(wallet_id)
         tips += new_tips if new_tips else []
-    return [tip._asdict() for tip in tips] if tips else []
+    return [tip.dict() for tip in tips] if tips else []
 
 
 @tipjar_ext.put("/api/v1/tips/{tip_id}")
