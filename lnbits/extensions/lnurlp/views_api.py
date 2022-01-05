@@ -66,7 +66,7 @@ async def api_link_retrieve(
             detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
         )
 
-    return {**link._asdict(), **{"lnurl": link.lnurl(r)}}
+    return {**link.dict(), **{"lnurl": link.lnurl(r)}}
 
 
 @lnurlp_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
