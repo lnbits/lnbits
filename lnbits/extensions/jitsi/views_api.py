@@ -16,7 +16,7 @@ from lnbits.core.crud import (
         get_wallet
 )
 
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from lnbits.core.services import (
         create_invoice,
@@ -24,6 +24,7 @@ from lnbits.core.services import (
 )
 
 from . import jitsi_ext
+
 from .crud import (
     create_conference,
     get_conference,
@@ -31,76 +32,82 @@ from .crud import (
     create_participant
 )
 
-@jitsi_ext.get('/api/v1/conference/{conferenceId}', status_code = HTTPStatus.OK)
-# @api_check_wallet_key(key_type='invoice')
-async def api_jitsi_conference(conferenceId):
-    assert conferenceId != '', 'conferenceId is required'
 
-    conference = await get_conference(conferenceId)
+from pydantic import BaseModel
+class CreateJitsiConference(BaseModel):
+    admin: str
+    conference_id: str
+
+@jitsi_ext.post('/api/v1/conference', status_code = HTTPStatus.CREATED)
+async def api_jitsi_conference_create(
+        createConference: CreateJitsiConference,
+        walletInfo: WalletTypeInfo = Depends(require_admin_key),    # FIXME
+        ):
+
+    print('XXXX')
+    result = None
+
+    # FIXME(nochiel) An LNBits user can have different conferences that have the same name! Distinguish the wallets or make conference names unique.
+
+    wallet = walletInfo.wallet;
+    assert wallet
+    user = await get_user(wallet.user)
+    assert user, f'api_jitsi_conferences_create: user with id "{wallet.user}" was not found.'
+    print('api_jitsi_conferences_create: ', user)
+
+    conference = await get_conference(createConference.conference_id, user.id)  
+    if conference is None:
+        conference = await create_conference(conferenceId, user.id)
+
+    assert conference is not None, 'api_jitsi_conferences_create: failed to get/create conference!'
+    result = conference.dict()
+
+    # Ref. lnbits/core/views/generic.py
+    conference_wallet = None
+    assert user.wallets
+    for w in user.wallets:
+        if w.name == conference.name:
+            conference_wallet = w
+            break
+
+    if conference_wallet is None:
+        conference_wallet = await create_wallet(user_id = user.id, wallet_name = conference.name)
+        print('api_jitsi_conference_create: created new wallet for admin : ', conference_wallet)
+
+    assert conference_wallet
+    participant = await create_participant(
+            participant_id = createConference.admin,
+            user_id = user.id,
+            conference_id = createConference.conference_id,
+            wallet_id = conference_wallet.id)
+
+    print('api_jitsi_conference_create: new admin set for conference: ', participant)
+    if participant is None:
+        raise HTTPException(
+                status_code = HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail = 'LNBits Jitsi admin participant could not be created'
+                )
+
+    return result
+
+@jitsi_ext.get('/api/v1/conference/{conference_id}', status_code = HTTPStatus.OK)
+# @api_check_wallet_key(key_type='invoice')
+async def api_jitsi_conference(conference_id):
+    assert conference_id != '', 'conference_id is required'
+
+    conference = await get_conference(conference_id)
     if conference:
         status = HTTPStatus.OK
     else:
         status = HTTPStatus.NOT_FOUND
 
-    return jsonify(conference._asdict()) if conference else {}, status
+    return conference.dict() if conference else {}, status
 
 
-@jitsi_ext.post('/api/v1/conference', status_code = HTTPStatus.CREATED)
-# @api_check_wallet_key(key_type='invoice')
-# @api_validate_post_request(
-        #         schema = {
-        #             'conference': {'type': 'string', 'required': True},
-        #             'admin': {'type' : 'string', 'required': True},
-        #             }
-        #         )
-async def api_jitsi_conferences_create():
-    conferenceId, admin = g.data['conference'], g.data['admin']
-    conference = await get_conference(conferenceId, admin)
-    print('api_jitsi_conferences_create', conference)
-    result, status = None, HTTPStatus.INTERNAL_SERVER_ERROR
-
-    # FIXME(nochiel) An LNBits user can have different conferences that have the same name! Distinguish the wallets or make conference names unique.
-
-    user = await get_user(g.wallet.user)
-    print('api_jitsi_conferences_create', user)
-
-    conference = await get_conference(conferenceId, user.id)  
-    if conference is None:
-        conference = await create_conference(conferenceId, user.id)
-
-    assert conference is not None, 'api_jitsi_conferences_create: conference is empty!'
-    status = HTTPStatus.CREATED
-    result = jsonify(conference._asdict())
-
-    # Ref. lnbits/core/views/generic.py
-    wallet = None
-    assert user.wallets
-    for w in user.wallets:
-        if w.name == conference.name:
-            wallet = w
-            break
-
-    if wallet is None:
-        wallet = await create_wallet(user_id = user.id, wallet_name = conference.name)
-        print('api_jitsi_conference_create: created new wallet for admin :', wallet)
-
-    assert wallet
-    participant = await create_participant(
-            participant_id = admin,
-            user_id = user.id,
-            conference_id = conferenceId,
-            wallet_id = wallet.id)
-
-    print('api_jitsi_conference_create: new admin: ', participant)
-    if participant is None:
-        status = HTTPStatus.INTERNAL_SERVER_ERROR
-
-    return jsonify(conference._asdict()) , HTTPStatus.CREATED
-
-@jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participant_id}',
+@jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
         status_code = HTTPStatus.OK)
 # @api_check_wallet_key(key_type = 'invoice')
-async def api_jitsi_conference_participant(conferenceId, participant_id):
+async def api_jitsi_conference_participant(conference_id, participant_id):  # FIXME
     assert participant_id != '', 'participant_id is required'
 
     participant = await get_participant(conferenceId, participant_id)

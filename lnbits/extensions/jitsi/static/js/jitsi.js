@@ -350,6 +350,7 @@ const app = new Vue({
                                             case 'balance': {
 
                                                 // FIXME(nochiel) TEST Make a deposit then check the balance. It should show up immediately without having to browse to the wallet in a new tab.
+                                                // FIXME(nochiel) When making payments or generating invoices, use the correct wallet invoice key.
 
                                                 LNbits.api.getWallet(wallet)
                                                     .then(wallet => {
@@ -528,22 +529,31 @@ const app = new Vue({
             assert(event.roomName);     // TODO(nochiel) Make the roomName mandatory.
             this.conference = event.roomName;
 
+            log('wallet: ', this.g.user.wallets);
+
+            // TODO: Check if user already has a wallet for this room.
             data = {
-                conference: event.roomName,     
+                conference_id: event.roomName,     
                 admin: event.id,
             };
             LNbits.api
                 .request(
                     'POST',
                     '/jitsi/api/v1/conference',
-                    this.g.user.wallets[0].inkey,
+                    this.g.user.wallets[0].adminkey,
                     data
                 )
                 .then(response => {
+
                     log('videoConferenceJoined: response : ', response.data);
                     let conference = response.data;
-                    this.getParticipant(conference.name, event.id)
-                        .then(admin => assert(admin.id == event.id));
+                    if(conference.name) {
+                        assert(conference.name,
+                            `the conference in the response is invalid. conference.name: "${conference.name}"`); 
+                        this.getParticipant(conference.name, event.id)
+                            .then(admin => assert(admin.id == event.id));
+                    }
+
                 })
                 .catch(e => {
                     logError('videoConferenceJoined: error : ', e);

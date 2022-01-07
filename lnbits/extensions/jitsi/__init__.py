@@ -14,7 +14,7 @@ jitsi_static_files = [
             }
         ]
 
-jitsi_ext: APIRouter = APIRouter(
+jitsi_ext = APIRouter(
     prefix = '/jitsi', 
     tags = ['jitsi'],
 )
