@@ -41,13 +41,13 @@ class CreateJitsiConference(BaseModel):
 @jitsi_ext.post('/api/v1/conference', status_code = HTTPStatus.CREATED)
 async def api_jitsi_conference_create(
         createConference: CreateJitsiConference,
-        walletInfo: WalletTypeInfo = Depends(require_admin_key),    # FIXME
+        walletInfo: WalletTypeInfo = Depends(require_admin_key),    
         ):
 
-    print('XXXX')
     result = None
 
-    # FIXME(nochiel) An LNBits user can have different conferences that have the same name! Distinguish the wallets or make conference names unique.
+    # FIXME(nochiel) An LNBits user can have different conferences that have the same name! 
+    # Should I conference names unique so that wallets can be guaranteed unique for each .
 
     wallet = walletInfo.wallet;
     assert wallet
@@ -85,38 +85,43 @@ async def api_jitsi_conference_create(
     if participant is None:
         raise HTTPException(
                 status_code = HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail = 'LNBits Jitsi admin participant could not be created'
+                detail = 'LNBits Jitsi admin participant was not created'
                 )
 
     return result
 
 @jitsi_ext.get('/api/v1/conference/{conference_id}', status_code = HTTPStatus.OK)
-# @api_check_wallet_key(key_type='invoice')
-async def api_jitsi_conference(conference_id):
+async def api_jitsi_conference(
+        conference_id,
+        walletInfo: WalletTypeInfo = Depends(require_admin_key),
+        ):
     assert conference_id != '', 'conference_id is required'
 
     conference = await get_conference(conference_id)
-    if conference:
-        status = HTTPStatus.OK
-    else:
-        status = HTTPStatus.NOT_FOUND
+    if conference is None:
+        raise HTTPException(
+                status_code = HTTPStatus.NOT_FOUND,
+                detail = f'jitsi conference "{conference_id}" does not exist.'
+        )
 
-    return conference.dict() if conference else {}, status
+    return conference.dict()
 
 
 @jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
         status_code = HTTPStatus.OK)
-# @api_check_wallet_key(key_type = 'invoice')
-async def api_jitsi_conference_participant(conference_id, participant_id):  # FIXME
-    assert participant_id != '', 'participant_id is required'
+async def api_jitsi_conference_participant(conference_id, participant_id,
+        walletInfo: WalletTypeInfo = Depends(require_admin_key)
+        ):  
 
-    participant = await get_participant(conferenceId, participant_id)
-    if participant:
-        status = HTTPStatus.OK
-    else:
-        status = HTTPStatus.NOT_FOUND
+    assert participant_id, 'participant_id is required'
+    participant = await get_participant(conference_id, participant_id)
+    if participant is None:
+        raise HTTPException(
+                status_code = HTTPStatus.NOT_FOUND,
+                detail = f'jitsi participant "{participant_id}" was not found in conference "{conference_id}"'
+        )
 
-    return jsonify(participant._asdict()) if participant else {}, status
+    return participant.dict()
 
 @jitsi_ext.post('/api/v1/conference/<conferenceId>/pay', status_code = HTTPStatus.CREATED)
 # @api_check_wallet_key(key_type = 'invoice')

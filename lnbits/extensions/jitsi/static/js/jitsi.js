@@ -91,6 +91,7 @@ const app = new Vue({
         return {  
             api: null,
             conference: '',     // The jitsi id of the current conference.
+            wallet: null,
         }; 
     },
 
@@ -189,7 +190,7 @@ const app = new Vue({
                 .request(
                     'GET',
                     `/jitsi/api/v1/conference/participant/wallet/${walletId}`,
-                    this.g.user.wallets[0].inkey,       // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
+                    this.wallet.adminkey,
 
                 )
                 .then(response => {
@@ -528,10 +529,8 @@ const app = new Vue({
             log('videoConferenceJoined: ', event);
             assert(event.roomName);     // TODO(nochiel) Make the roomName mandatory.
             this.conference = event.roomName;
+            this.wallet = this.g.user.wallets[0];
 
-            log('wallet: ', this.g.user.wallets);
-
-            // TODO: Check if user already has a wallet for this room.
             data = {
                 conference_id: event.roomName,     
                 admin: event.id,
@@ -540,7 +539,7 @@ const app = new Vue({
                 .request(
                     'POST',
                     '/jitsi/api/v1/conference',
-                    this.g.user.wallets[0].adminkey,
+                    this.wallet.adminkey,
                     data
                 )
                 .then(response => {
@@ -551,12 +550,18 @@ const app = new Vue({
                         assert(conference.name,
                             `the conference in the response is invalid. conference.name: "${conference.name}"`); 
                         this.getParticipant(conference.name, event.id)
-                            .then(admin => assert(admin.id == event.id));
+                            .then(admin => {
+
+                                assert(admin.id == event.id);
+                                this.wallet = this.g.user.wallets.find(w => w.id == admin.wallet);
+                                log('created admin who will use wallet: ', this.wallet);
+
+                            });
                     }
 
                 })
                 .catch(e => {
-                    logError('videoConferenceJoined: error : ', e);
+                    logError('videoConferenceJoined: error : ', e.detail);
                     this.conference = '';
                     // TODO(nochiel) Show the admin an error and ask them to try to create the conference again.
                 });
@@ -565,13 +570,13 @@ const app = new Vue({
         async getConference(adminId) {
 
             // FIXME(nochiel) Handle errors.
-            assert(adminId != null);
+            assert(adminId);
             let result = null;
             let response = await LNbits.api
                 .request(
                     'GET',
                     `/jitsi/api/v1/conference/${adminId}`,
-                    this.g.user.wallets[0].inkey,
+                    this.wallet.adminkey,
                 );
 
             if(response != null) {
@@ -601,7 +606,7 @@ const app = new Vue({
                     .request(
                         'GET',
                         `/jitsi/api/v1/conference/${conference}/participant/${participant}`,
-                        this.g.user.wallets[0].inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
+                        this.wallet.adminkey,
                     );
                 result = response.data;
             } catch(e) {
@@ -642,7 +647,7 @@ const app = new Vue({
                         .request(
                             'POST',
                             '/jitsi/api/v1/conference/participant',
-                            this.g.user.wallets[0].inkey,       // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
+                            this.wallet.adminkey,
                             data
                         )
                         .then(response => {

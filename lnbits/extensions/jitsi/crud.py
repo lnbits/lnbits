@@ -49,7 +49,6 @@ async def get_conference(
             ''',
             (name, admin))
 
-    print('get_conference: row: ', row)
     result = Conference(**row) if row else None
     print('crud.py.get_conference: result: ', result)
 
