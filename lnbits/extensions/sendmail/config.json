@@ -1,0 +1,6 @@
+{
+  "name": "Sendmail",
+  "short_description": "Send Email via SMTP",
+  "icon": "email",
+  "contributors": ["dni"]
+}
