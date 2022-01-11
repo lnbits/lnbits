@@ -501,3 +501,12 @@ async def api_perform_lnurlauth(callback: str):
 @core_app.get("/api/v1/currencies")
 async def api_list_currencies_available():
     return list(currencies.keys())
+
+
+class ConversionData(BaseModel):
+    unit: str
+    amount: float
+
+@core_app.post("/api/v1/conversion")
+async def api_fiat_as_sats(data: ConversionData):
+    return await fiat_amount_as_satoshis(data.amount, data.unit)
