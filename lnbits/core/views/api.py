@@ -3,7 +3,7 @@ import hashlib
 import json
 from binascii import unhexlify
 from http import HTTPStatus
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -25,7 +25,11 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for
 from lnbits.requestvars import g
-from lnbits.utils.exchange_rates import currencies, fiat_amount_as_satoshis
+from lnbits.utils.exchange_rates import (
+    currencies,
+    fiat_amount_as_satoshis,
+    satoshis_amount_as_fiat,
+)
 
 from .. import core_app, db
 from ..crud import (
@@ -504,9 +508,20 @@ async def api_list_currencies_available():
 
 
 class ConversionData(BaseModel):
-    unit: str
+    unit: str = Query('sat')
     amount: float
+    to: str = Query('usd')
 
 @core_app.post("/api/v1/conversion")
 async def api_fiat_as_sats(data: ConversionData):
-    return await fiat_amount_as_satoshis(data.amount, data.unit)
+    output = {}
+    if data.unit == 'sat':
+        output["sats"] = data.amount
+        output["BTC"] = data.amount / 100000000
+        for currency in data.to.split(','):            
+            output[currency.strip().upper()] = await satoshis_amount_as_fiat(data.amount, currency.strip())
+        return output
+    else:
+        output["sats"] = await fiat_amount_as_satoshis(data.amount, data.to)
+        output["BTC"] = output["sats"] / 100000000
+        return output
