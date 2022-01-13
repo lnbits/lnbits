@@ -516,12 +516,13 @@ class ConversionData(BaseModel):
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
     if data.unit == 'sat':
-        output["sats"] = data.amount
+        output["sats"] = int(data.amount)
         output["BTC"] = data.amount / 100000000
         for currency in data.to.split(','):            
             output[currency.strip().upper()] = await satoshis_amount_as_fiat(data.amount, currency.strip())
         return output
     else:
+        output[data.unit.upper()] = data.amount
         output["sats"] = await fiat_amount_as_satoshis(data.amount, data.to)
         output["BTC"] = output["sats"] / 100000000
         return output
