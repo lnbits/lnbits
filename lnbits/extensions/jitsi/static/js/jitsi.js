@@ -25,6 +25,7 @@
 //              - participant pays participant_id using the balance in their LNBits wallet.
 //
 // TODO(nochiel) Show an error if the chatBot is offline (because the host is offline).
+// TODO(nochiel) Use exceptions where necessary.
 // TODO(nochiel) Parse chat commands that the host sends (they aren't broadcast as events).
 
 // ref. https://github.com/jitsi/jitsi-meet/blob/master/modules/API/external/external_api.js
@@ -35,6 +36,7 @@
 const assert = console.assert;
 /*
 function assert(condition, message, ...args) {
+    // assert with an exception
     console.assert(condition, message, ...args);
     throw new Error(message);
 }
@@ -58,90 +60,94 @@ function NOTIMPLEMENTED() {
     throw new Error('NOT IMPLEMENTED');
 }
 
-function jitsiFunctions(api) {
-
-    return {
-
-
-        onConnectionEstablished: function(data) {
-
-            const options = {
-                roomName: roomName,
-                parentNode: document.querySelector('#meet'),    // TODO(nochiel) Create this node in index.html.
-                // height: '700px',         // FIXME(nochiel) Make this 75% of the viewport.
-                // onload : jitsiOnload,       // FIXME(nochiel) Goes nowhere des nothing.
-                // configOverwrite : {};    // see: https://github.com/jitsi/jitsi-meet/blob/master/config.js
-                // interfaceConfigOverwrite: {};    // see: https://github.com/jitsi/jitsi-meet/blob/master/interface_config.js
-            }
-
-        },
-
-        hello: function(name) {
-            log(`hello ${name}`);
-        },
-
-    }
-}
-
 const app = new Vue({
+
     el: '#vue',
     mixins: [windowMixin],
 
     data: function() {
+
         return {  
-            api: null,
-            conference: '',     // The jitsi id of the current conference.
-            wallet: null,
+            api         : null,
+            conference  : '',     // The jitsi id of the current conference.
+            wallet      : null,
+
+            setupDialog : {
+                show            : true,
+                data            : {
+                    roomName        : '',
+
+                    // TODO(nochiel) Use `email` when creating admin profile on jitsi.
+                    // TODO(nochiel) Use `email` when saving admin participant to db?
+                    email           : '',       
+                },
+            },
+
+            jitsiPanel  : {
+                show : false,
+                data : {},    
+            }
         }; 
-    },
-
-    mounted: function () {
-
-        // let random = Math.floor(Math.random() * 0xFFFFFFFF);
-
-        // TODO(nochiel) Show user dialog so they can set these when creating a conference?
-        let domain = 'meet.jit.si';
-        let tenant = '';  // FIXME(nochiel) What is 'tenant' for?
-        let roomName = `room_AAAA`;     // This is the conferenceId
-
-        const options = {
-            roomName: roomName,
-            parentNode: document.querySelector('#meet'),    // TODO(nochiel) Create this node in index.html.
-            height: '700px',         // FIXME(nochiel) Make this 75% of the viewport.
-            // chromeExtensionBanner: {},       // FIXME(nochiel) Does nothing.
-            configOverwrite : { 
-                // apiLogLevels: ['warn', 'log', 'error', 'info', 'debug'],     // see: https://github.com/jitsi/jitsi-meet/blob/master/config.js 
-            },    
-            // onload : jitsiOnload,       // FIXME(nochiel) Goes nowhere does nothing.
-            // interfaceConfigOverwrite: {};    // see: https://github.com/jitsi/jitsi-meet/blob/master/interface_config.js
-        };
-
-        this.api = new JitsiMeetExternalAPI(domain, options);
-        assert(this.api);
-        log('this: ', this);
-        jitsiFunctions = jitsiFunctions.bind(this);
-        jitsiFunctions  = jitsiFunctions(this.api);
-        const api = this.api;
-        // console.log('jitsi event names:', api.events);
-
-        // FIXME(nochiel) Does nothing. My assumption is that the api is destroyed even though I made it global.
-        // FINDOUT How do I do handle events in Vue? Specifically, how do I determine why this listeners aren't running?
-        api.on('videoConferenceJoined', this.videoConferenceJoined);
-        api.on('participantJoined', this.newParticipant);
-        api.on('incomingMessage', this.incomingMessage);
-        // api.on('chatUpdated', this.chatUpdated);        
-
-        // FIXME(nochiel) Why don't these work? 
-        // api.on('errorOccurred', function (data) { console.error('error in Jitsi'); });
-        api.on('log', event  => { log(`logging[${event.logLevel}`, ...event.args); });     
 
     },
 
     methods: {
 
+        setupJitsi () {
+
+            let domain = 'meet.jit.si';
+
+            let random = Math.floor(Math.random() * 0xFFFFFFFF);    // Use this to generate insecure unique ids. 
+            // 'tenant' is only relevant if the user is running their own Jitsi server. 
+            // We would want to use the 'tenant' option to allow the LNBits user to run multiple conferences simultaneously. 
+            // Ref. https://digitalguardian.com/blog/saas-single-tenant-vs-multi-tenant-whats-difference
+            // let tenant = `tenant_${random}`;  
+
+            const options = {
+                roomName: this.setupDialog.data.roomName ?? `LNBits-${random}`,     // FIXME(nochiel) Generate a unique default room name. 
+                parentNode: document.querySelector('#meet'),   // ref. templates/jitsi/index.html 
+                height: '700px',         // FIXME(nochiel) Make this 75% of the viewport.
+                // chromeExtensionBanner: {},       // FIXME(nochiel) Does nothing.
+                configOverwrite : { 
+                    // apiLogLevels: ['warn', 'log', 'error', 'info', 'debug'],     // see: https://github.com/jitsi/jitsi-meet/blob/master/config.js 
+                },    
+                // onload : jitsiOnload,       // FIXME(nochiel) Goes nowhere does nothing.
+                // interfaceConfigOverwrite: {};    // see: https://github.com/jitsi/jitsi-meet/blob/master/interface_config.js
+            };
+
+            log('jitsi options: ', options);
+            this.api = new JitsiMeetExternalAPI(domain, options);
+            this.jitsiPanel.show = true;
+            assert(this.api);
+            // log('this: ', this);
+            const api = this.api;
+            // console.log('jitsi event names:', api.events);
+
+            // FIXME(nochiel) Does nothing. My assumption is that the api is destroyed even though I made it global.
+            // FINDOUT How do I do handle events in Vue? Specifically, how do I determine why this listeners aren't running?
+            api.on('videoConferenceJoined', this.videoConferenceJoined);
+            api.on('participantJoined', this.newParticipant);
+            api.on('incomingMessage', this.incomingMessage);
+            // api.on('chatUpdated', this.chatUpdated);        
+
+            // FIXME(nochiel) Why don't these work? 
+            // api.on('errorOccurred', function (data) { console.error('error in Jitsi'); });
+            api.on('log', event  => { log(`logging[${event.logLevel}`, ...event.args); });     
+
+        },
+
+        sendSetupFormData() {
+
+            this.setupDialog.show = false;
+            this.setupJitsi();
+        },
+
+
         async test() {
             // TODO(nochiel) Tests for all api flows.
-            //
+            
+            NOTIMPLEMENTED();
+
         },
 
         async chatUpdated(event) {
