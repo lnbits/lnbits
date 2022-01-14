@@ -32,7 +32,7 @@ python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
-# postgres://<user>:<myPassword>@<host>/lnbits - alter line bellow with your user, password and db name
+# postgres://<user>:<myPassword>@<host>/<lnbits> - alter line bellow with your user, password and db name
 LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 # save and exit
 ./venv/bin/uvicorn lnbits.__main__:app --port 5000
