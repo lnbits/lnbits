@@ -28,7 +28,7 @@ Create the data folder and edit the .env file:
     cp .env.example .env
     sudo nano .env
 
-To then run the server for development purposes (include hot-reload), use:
+To then run the server for development purposes (includes hot-reload), use:
 
     pipenv run python -m uvicorn lnbits.__main__:app --reload
     
