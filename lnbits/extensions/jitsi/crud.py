@@ -13,13 +13,13 @@ from lnbits.core.crud import (
 from . import db
 from .models import Conference, Participant
 
-async def create_conference(
+async def createConference(
         conference: str,
         admin: str,
         ) -> Conference:
 
     assert conference != '', 'a conference id was not given'
-    print('crud.py.create_conference: ', conference)
+    print('crud.py.createConference: ', conference)
 
     await db.execute(
             '''
@@ -29,12 +29,12 @@ async def create_conference(
             (conference, admin),
             )
 
-    conference = await get_conference(conference, admin)
-    assert conference, 'create_conference failed'
+    conference = await getConference(conference, admin)
+    assert conference, 'createConference failed'
 
     return conference
 
-async def get_conference(
+async def getConference(
         name: str,
         admin: str
         ) -> Conference:
@@ -50,22 +50,22 @@ async def get_conference(
             (name, admin))
 
     result = Conference(**row) if row else None
-    print('crud.py.get_conference: result: ', result)
+    print('crud.py.getConference: result: ', result)
 
     return result
 
-async def get_participant(
+async def getParticipant(
         conference: str,
         participant: str
         ) -> Participant:
-    print('crud.py.get_participant')
+    print('crud.py.getParticipant')
 
     # rows = await db.fetchall(
     #         '''
     #         SELECT * FROM jitsi.participants
     #         '''
     #         )
-    # print('crud.py.get_participant: rows', rows)
+    # print('crud.py.getParticipant: rows', rows)
 
     row = await db.fetchone(
             '''
@@ -76,27 +76,27 @@ async def get_participant(
     
     return Participant(**row) if row else None
 
-async def create_participant(*,
-        participant_id: str,
-        user_id: str,
-        conference_id : str,
-        wallet_id: str
+async def createParticipant(*,
+        participantId: str,
+        userId: str,
+        conferenceId : str,
+        walletId: str
 ) -> Participant:
 
-    assert participant_id != '';
-    assert user_id != '';
-    assert conference_id != '';
-    assert wallet_id != '';
+    assert participantId   
+    assert userId          
+    assert conferenceId    
+    assert walletId        
 
     await db.execute(
         """
         INSERT INTO jitsi.participants (id, user, conference, wallet)
         VALUES (?, ?, ?, ?)
         """,
-        (participant_id, user_id, conference_id, wallet_id),
+        (participantId, userId, conferenceId, walletId),
     )
 
-    participant = await get_participant(conference_id, participant_id)
+    participant = await getParticipant(conferenceId, participantId)
     assert participant, "newly created participant couldn't be retrieved"
     return participant
 

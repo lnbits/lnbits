@@ -1,7 +1,13 @@
 # Ref. UserManager extension.
 # TODO(nochiel) Handle errors.
-# FIXME(nochiel) Correctness? api_check_wallet_key(key_type="invoice")
+# TODO(nochiel) Remove print statements. FIXME Replace print with logging.
 # FIXME(nochiel) Use camelCase instead of snake_case or just be consistent wtf.
+
+# FIXME(nochiel) Port to FastAPI
+# - [ ] Remove references to `g`.
+
+# TODO(nochiel) TEST
+# - [ ] What happens if the admin joins the conference after starting the conference e.g. from a different tab.
 
 from fastapi import Query
 from fastapi.params import Depends
@@ -26,62 +32,58 @@ from lnbits.core.services import (
 from . import jitsi_ext
 
 from .crud import (
-    create_conference,
-    get_conference,
-    get_participant,
-    create_participant
+    createConference,
+    getConference,
+    getParticipant,
+    createParticipant
 )
-
 
 from pydantic import BaseModel
 class CreateJitsiConference(BaseModel):
-    admin: str
-    conference_id: str
+    admin:         str
+    conferenceId:  str
 
 @jitsi_ext.post('/api/v1/conference', status_code = HTTPStatus.CREATED)
-async def api_jitsi_conference_create(
+async def createJitsiConference(
         createConference: CreateJitsiConference,
         walletInfo: WalletTypeInfo = Depends(require_admin_key),    
         ):
 
     result = None
 
-    # FIXME(nochiel) An LNBits user can have different conferences that have the same name! 
-    # Should I conference names unique so that wallets can be guaranteed unique for each .
-
     wallet = walletInfo.wallet;
     assert wallet
     user = await get_user(wallet.user)
-    assert user, f'api_jitsi_conferences_create: user with id "{wallet.user}" was not found.'
-    print('api_jitsi_conferences_create: ', user)
+    assert user, f'createJitsiConference: user with id "{wallet.user}" was not found.'
+    print('createJitsiConference: ', user)
 
-    conference = await get_conference(createConference.conference_id, user.id)  
-    if conference is None:
-        conference = await create_conference(conferenceId, user.id)
+    conference = await getConference(createConference.conferenceId, user.id)  
+    if conference is None:  #TODO test
+        conference = await create_conference(createConference.conferenceId, user.id)
 
-    assert conference is not None, 'api_jitsi_conferences_create: failed to get/create conference!'
+    assert conference is not None, 'createJitsiConference: failed to get/create conference!'
     result = conference.dict()
 
     # Ref. lnbits/core/views/generic.py
-    conference_wallet = None
+    conferenceWallet = None
     assert user.wallets
     for w in user.wallets:
         if w.name == conference.name:
-            conference_wallet = w
+            conferenceWallet = w
             break
 
-    if conference_wallet is None:
-        conference_wallet = await create_wallet(user_id = user.id, wallet_name = conference.name)
-        print('api_jitsi_conference_create: created new wallet for admin : ', conference_wallet)
+    if conferenceWallet is None:
+        conferenceWallet = await create_wallet(user_id = user.id, wallet_name = conference.name)
+        print('createJitsiConference: created new wallet for admin : ', conferenceWallet)
 
-    assert conference_wallet
-    participant = await create_participant(
-            participant_id = createConference.admin,
-            user_id = user.id,
-            conference_id = createConference.conference_id,
-            wallet_id = conference_wallet.id)
+    assert conferenceWallet
+    participant = await createParticipant(
+            participantId = createConference.admin,
+            userId = user.id,
+            conferenceId = createConference.conferenceId,
+            walletId = conferenceWallet.id)
 
-    print('api_jitsi_conference_create: new admin set for conference: ', participant)
+    print('createJitsiConference: new admin set for conference: ', participant)
     if participant is None:
         raise HTTPException(
                 status_code = HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -90,12 +92,12 @@ async def api_jitsi_conference_create(
 
     return result
 
-@jitsi_ext.get('/api/v1/conference/{conference_id}', status_code = HTTPStatus.OK)
+@jitsi_ext.get('/api/v1/conference/{conferenceId}', status_code = HTTPStatus.OK)
 async def api_jitsi_conference(
-        conference_id,
+        conferenceId,
         walletInfo: WalletTypeInfo = Depends(require_admin_key),
         ):
-    assert conference_id != '', 'conference_id is required'
+    assert conferenceId != '', 'conference id is required'
 
     conference = await get_conference(conference_id)
     if conference is None:
@@ -114,7 +116,7 @@ async def api_jitsi_conference_participant(conference_id, participant_id,
         ):  
 
     assert participant_id, 'participant_id is required'
-    participant = await get_participant(conference_id, participant_id)
+    participant = await getParticipant(conference_id, participant_id)
     if participant is None:
         raise HTTPException(
                 status_code = HTTPStatus.NOT_FOUND,

@@ -532,7 +532,7 @@ const app = new Vue({
             this.wallet = this.g.user.wallets[0];
 
             data = {
-                conference_id: event.roomName,     
+                conferenceId: event.roomName,     
                 admin: event.id,
             };
             LNbits.api
