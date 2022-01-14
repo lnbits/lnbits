@@ -44,9 +44,7 @@ To then run the server, use:
 
     pipenv run python -m uvicorn lnbits.__main__:app --reload
 
-**Note**: You'll need to use _https_ for some endpoints and/or extensions. You can use [ngrok](https://ngrok.com/) for that. Follow the installation instructions on the website and when it's all set you can run:
-
-    ./nrok http 5000
+**Note**: We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy, if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
 
 this will give you an _https_ tunnel for the _localhost_, use that URL for navigating to LNBits.
 
