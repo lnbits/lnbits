@@ -22,8 +22,7 @@ pipenv install --dev
 ``` 
 ## Running the server
 
-LNbits uses [FastAPI][fastapi] as an application server.
-Before running the server for the first time, make sure to create the data folder and edit the .env file:
+Create the data folder and edit the .env file:
 
     mkdir data
     cp .env.example .env
