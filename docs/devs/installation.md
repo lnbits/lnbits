@@ -45,12 +45,3 @@ To then run the server, use:
     pipenv run python -m uvicorn lnbits.__main__:app --reload
 
 **Note**: We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy, if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
-
-## Frontend
-
-The frontend uses [Vue.js and Quasar][quasar].
-
-[quart]: https://pgjones.gitlab.io/
-[pipenv]: https://pipenv.pypa.io/
-[polar]: https://lightningpolar.com/
-[quasar]: https://quasar.dev/start/how-to-use-vue
