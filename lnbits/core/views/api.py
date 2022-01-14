@@ -12,6 +12,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
 from pydantic import BaseModel
+from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
 
 from lnbits import bolt11, lnurl
@@ -508,21 +509,21 @@ async def api_list_currencies_available():
 
 
 class ConversionData(BaseModel):
-    unit: str = Query('sat')
+    from_: str = Field('sat', alias="from")
     amount: float
     to: str = Query('usd')
 
 @core_app.post("/api/v1/conversion")
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
-    if data.unit == 'sat':
+    if data.from_ == 'sat':
         output["sats"] = int(data.amount)
         output["BTC"] = data.amount / 100000000
         for currency in data.to.split(','):            
             output[currency.strip().upper()] = await satoshis_amount_as_fiat(data.amount, currency.strip())
         return output
     else:
-        output[data.unit.upper()] = data.amount
+        output[data.from_.upper()] = data.amount
         output["sats"] = await fiat_amount_as_satoshis(data.amount, data.to)
         output["BTC"] = output["sats"] / 100000000
         return output
