@@ -29,9 +29,13 @@ Before running the server for the first time, make sure to create the data folde
     cp .env.example .env
     sudo nano .env
 
-To then run the server, use:
+To then run the server for development purposes (include hot-reload), use:
 
     pipenv run python -m uvicorn lnbits.__main__:app --reload
+    
+For production, use:
+
+    pipenv run python -m uvicorn lnbits.__main__:app
 
 You might also need to install additional packages, depending on the [backend wallet](../guide/wallets.md) you use.
 E.g. when you want to use LND you have to `pipenv run pip install lndgrpc` and `pipenv run pip install purerpc`.
