@@ -7,8 +7,7 @@ nav_order: 1
 
 # Installation
 
-The application uses [Pipenv][pipenv] to manage Python packages.
-While in development, you will need to install all dependencies:
+LNbits uses [Pipenv][pipenv] to manage Python packages.
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
