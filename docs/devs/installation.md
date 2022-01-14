@@ -46,8 +46,6 @@ To then run the server, use:
 
 **Note**: We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy, if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
 
-this will give you an _https_ tunnel for the _localhost_, use that URL for navigating to LNBits.
-
 ## Frontend
 
 The frontend uses [Vue.js and Quasar][quasar].
