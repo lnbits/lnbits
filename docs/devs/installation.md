@@ -20,16 +20,6 @@ pipenv install --dev
 # If any of the modules fails to install, try checking and upgrading your setupTool module
 # pip install -U setuptools
 ``` 
-
-You will need to copy `.env.example` to `.env`, then set variables there.
-
-![Files](https://i.imgur.com/ri2zOe8.png)
-
-You might also need to install additional packages, depending on the [backend wallet](../guide/wallets.md) you use.
-E.g. when you want to use LND you have to `pipenv run pip install lndgrpc` and `pipenv run pip install purerpc`.
-
-Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Network dev environment.
-
 ## Running the server
 
 LNbits uses [FastAPI][fastapi] as an application server.
@@ -42,5 +32,10 @@ Before running the server for the first time, make sure to create the data folde
 To then run the server, use:
 
     pipenv run python -m uvicorn lnbits.__main__:app --reload
+
+You might also need to install additional packages, depending on the [backend wallet](../guide/wallets.md) you use.
+E.g. when you want to use LND you have to `pipenv run pip install lndgrpc` and `pipenv run pip install purerpc`.
+
+Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Network dev environment.
 
 **Note**: We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy, if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
