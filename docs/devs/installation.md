@@ -13,14 +13,12 @@ While in development, you will need to install all dependencies:
     git clone https://github.com/lnbits/lnbits-legend.git
     cd lnbits-legend/
     pipenv shell
+    # pipenv --python 3.8 install --dev, If you wish to use a version of Python higher than 3.7
     pipenv install --dev
+    # pipenv --python 3.8 install --dev, If you wish to use a version of Python higher than 3.7
 
 If any of the modules fails to install, try checking and upgrading your setupTool module.  
 `pip install -U setuptools`
-
-If you wish to use a version of Python higher than 3.7:
-
-    pipenv --python 3.8 install --dev
 
 You will need to copy `.env.example` to `.env`, then set variables there.
 
