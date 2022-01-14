@@ -7,10 +7,6 @@ nav_order: 1
 
 # Installation
 
-Download the latest stable release https://github.com/lnbits/lnbits/releases
-
-## Application dependencies
-
 The application uses [Pipenv][pipenv] to manage Python packages.
 While in development, you will need to install all dependencies:
 
