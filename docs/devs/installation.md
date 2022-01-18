@@ -30,11 +30,11 @@ Create the data folder and edit the .env file:
 
 To then run the server for development purposes (includes hot-reload), use:
 
-    pipenv run python -m uvicorn lnbits.__main__:app --reload
+    pipenv run python -m uvicorn lnbits.__main__:app --host 0.0.0.0  --reload
     
 For production, use:
 
-    pipenv run python -m uvicorn lnbits.__main__:app
+    pipenv run python -m uvicorn lnbits.__main__:app --host 0.0.0.0
 
 You might also need to install additional packages, depending on the [backend wallet](../guide/wallets.md) you use.
 E.g. when you want to use LND you have to `pipenv run pip install lndgrpc` and `pipenv run pip install purerpc`.
