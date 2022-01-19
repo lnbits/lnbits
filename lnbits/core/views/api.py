@@ -524,6 +524,6 @@ async def api_fiat_as_sats(data: ConversionData):
         return output
     else:
         output[data.from_.upper()] = data.amount
-        output["sats"] = await fiat_amount_as_satoshis(data.amount, data.to)
+        output["sats"] = await fiat_amount_as_satoshis(data.amount, data.from_)
         output["BTC"] = output["sats"] / 100000000
         return output
