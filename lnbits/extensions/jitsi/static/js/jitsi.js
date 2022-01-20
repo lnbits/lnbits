@@ -200,9 +200,9 @@ const app = new Vue({
 
                     if(response.data) {
 
-                        let values = [response.data.id, response.data.name, response.data.user, response.data.adminkey, response.data.inkey, response.data.balance_msat];      // FIXME(nochiel) Relying on positional arguments is brittle.
-                        let wallet = LNbits.map.wallet(values);
-                        assert(wallet.id);
+                        log('getWallet: response: ', response);
+                        let wallet = LNbits.map.wallet(response.data);
+                        assert(wallet.id, wallet);
 
                         return  wallet;
                     }
@@ -562,7 +562,8 @@ const app = new Vue({
                                 // FIXME(nochiel) If the admin participant is newly created,
                                 // this.g.user.wallets should be refreshed to get the new wallet.
                                 // assert this.g.user.wallets.find(w => w.id == admin.wallet);
-                                this.wallet = admin.wallet;
+                                // TODO(nochiel) FINDOUT Can we use: LNbits.api.getWallet(admin.wallet) ?
+                                this.getWallet(admin.wallet).then(wallet => this.wallet = wallet);
                                 log('created admin who will use wallet: ', this.wallet);
 
                             });

@@ -117,7 +117,7 @@ async def api_jitsi_conference(
 @jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
         status_code = HTTPStatus.OK)
 async def api_jitsi_conference_participant(conference_id, participant_id,
-        walletTypeInfo: WalletTypeInfo = Depends(require_admin_key)
+        walletTypeInfo = Depends(require_admin_key)
         ):  
 
     assert participant_id, 'participant_id is required'
@@ -139,8 +139,9 @@ class JitsiPayment(BaseModel):
 @jitsi_ext.post('/api/v1/conference/{conferenceId}/pay', status_code = HTTPStatus.CREATED)
 async def pay(
         payment: JitsiPayment,
-        walletTypeInfo: WalletTypeInfo = Depends(require_invoice_key)   # TODO(nochiel) Make this work in jitsi.js.
+        walletTypeInfo = Depends(require_invoice_key)   # TODO(nochiel) Make this work in jitsi.js.
         ):
+    assert False, 'not implemented' # FIXME(nochiel) 
 
     print('api_jitsi_conference_participant_pay: payment', payment)
     assert payment.amount > 0, 'the amount in the payment is invalid';
@@ -200,17 +201,20 @@ async def api_jitsi_participant_create():
 
 @jitsi_ext.get('/api/v1/conference/participant/wallet/{walletId}',
         status_code = HTTPStatus.OK)
-# @api_check_wallet_key(key_type='invoice')
-async def api_jitsi_participant_wallet(wallet_id):
+async def getJitsiParticipantWallet(
+        walletId,
+        walletTypeInfo = Depends(require_admin_key),  
+        ):
 
-    wallet = await get_wallet(wallet_id);
-    status = HTTPStatus.OK
+    wallet = await get_wallet(walletId);
     if wallet is None:
-        status = HTTPStatus.NOT_FOUND
+        raise HTTPException(
+                status_code = HTTPStatus.NOT_FOUND,
+                detail = f'wallet "{walletId}" was not found', 
+                )
 
-    print('api_jitsi_participant_wallet: wallet found: ', wallet)
-    # FIXME(nochiel) Construct a better wallet struct using properties e.g. balance().
-    return jsonify(wallet._asdict()) if wallet else {}, status
+    print('getJitsiParticipantWallet: wallet found: ', wallet)
+    return wallet
         
 @jitsi_ext.post("/api/v1/conference/message")
 # @api_check_wallet_key(key_type="invoice")
