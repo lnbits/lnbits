@@ -37,19 +37,13 @@
           filled
           dense
           v-model.trim="setupDialog.data.roomName"
-          label="Room / Conference name">
-        </q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="setupDialog.data.email"
-          label="Email">
+          label="Meeting name">
         </q-input>
         <q-btn
           unelevated
           color="primary"
           type="submit">
-            Start Jitsi conference
+            Start Jitsi meeting 
         </q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </q-form>

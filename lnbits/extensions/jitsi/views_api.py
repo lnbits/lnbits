@@ -19,14 +19,20 @@ from lnbits.core.crud import (
         create_account,
         get_user,
         create_wallet,
-        get_wallet
+        get_wallet,
 )
 
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import (
+        WalletTypeInfo, 
+        get_key_type,
+        require_admin_key,
+        require_invoice_key,
+)
 
 from lnbits.core.services import (
         create_invoice,
-        check_invoice_status
+        check_invoice_status,
+        pay_invoice,
 )
 
 from . import jitsi_ext
@@ -35,7 +41,7 @@ from .crud import (
     createConference,
     getConference,
     getParticipant,
-    createParticipant
+    createParticipant,
 )
 
 from pydantic import BaseModel
@@ -45,21 +51,20 @@ class CreateJitsiConference(BaseModel):
 
 @jitsi_ext.post('/api/v1/conference', status_code = HTTPStatus.CREATED)
 async def createJitsiConference(
-        createConference: CreateJitsiConference,
-        walletInfo: WalletTypeInfo = Depends(require_admin_key),    
+        conferenceParams: CreateJitsiConference,
+        walletTypeInfo: WalletTypeInfo = Depends(require_admin_key),    
         ):
 
     result = None
 
-    wallet = walletInfo.wallet;
-    assert wallet
+    wallet = walletTypeInfo.wallet;
     user = await get_user(wallet.user)
     assert user, f'createJitsiConference: user with id "{wallet.user}" was not found.'
-    print('createJitsiConference: ', user)
+    print('createJitsiConference: user: ', user)
 
-    conference = await getConference(createConference.conferenceId, user.id)  
+    conference = await getConference(conferenceParams.conferenceId, user.id)  
     if conference is None:  #TODO test
-        conference = await create_conference(createConference.conferenceId, user.id)
+        conference = await createConference(conferenceParams.conferenceId, user.id)
 
     assert conference is not None, 'createJitsiConference: failed to get/create conference!'
     result = conference.dict()
@@ -78,9 +83,9 @@ async def createJitsiConference(
 
     assert conferenceWallet
     participant = await createParticipant(
-            participantId = createConference.admin,
+            participantId = conferenceParams.admin,
             userId = user.id,
-            conferenceId = createConference.conferenceId,
+            conferenceId = conferenceParams.conferenceId,
             walletId = conferenceWallet.id)
 
     print('createJitsiConference: new admin set for conference: ', participant)
@@ -95,9 +100,9 @@ async def createJitsiConference(
 @jitsi_ext.get('/api/v1/conference/{conferenceId}', status_code = HTTPStatus.OK)
 async def api_jitsi_conference(
         conferenceId,
-        walletInfo: WalletTypeInfo = Depends(require_admin_key),
+        walletTypeInfo: WalletTypeInfo = Depends(require_admin_key),
         ):
-    assert conferenceId != '', 'conference id is required'
+    assert conferenceId, 'conference id is required'
 
     conference = await get_conference(conference_id)
     if conference is None:
@@ -112,7 +117,7 @@ async def api_jitsi_conference(
 @jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
         status_code = HTTPStatus.OK)
 async def api_jitsi_conference_participant(conference_id, participant_id,
-        walletInfo: WalletTypeInfo = Depends(require_admin_key)
+        walletTypeInfo: WalletTypeInfo = Depends(require_admin_key)
         ):  
 
     assert participant_id, 'participant_id is required'
@@ -125,36 +130,38 @@ async def api_jitsi_conference_participant(conference_id, participant_id,
 
     return participant.dict()
 
-@jitsi_ext.post('/api/v1/conference/<conferenceId>/pay', status_code = HTTPStatus.CREATED)
-# @api_check_wallet_key(key_type = 'invoice')
-# @api_validate_post_request(
-        #     schema={
-        #         "payer": {"type": "string", "required": True}, 
-        #         "payee": {"type": "string", "required": True}, 
-        # 
-        #         # Amount in sats. We assume msats aren't used.
-        #         # TODO(nochiel) Can we validate amount > 0.
-        #         "amount": {"type": "int", "required": True},    
-        # 
-        #         "memo": {"type": "string", "required": True}, 
-        #     }
-        # )
-async def api_jitsi_conference_participant_pay(conferenceId):
-    assert(amount > 0);
-    
-    print('api_jitsi_conference_participant_pay', g.data)
-    payment = Payment(**g.data);
+class JitsiPayment(BaseModel):
+    payer:  str
+    payee:  str
+    amount: int
+    memo:   str
+
+@jitsi_ext.post('/api/v1/conference/{conferenceId}/pay', status_code = HTTPStatus.CREATED)
+async def pay(
+        payment: JitsiPayment,
+        walletTypeInfo: WalletTypeInfo = Depends(require_invoice_key)   # TODO(nochiel) Make this work in jitsi.js.
+        ):
+
     print('api_jitsi_conference_participant_pay: payment', payment)
+    assert payment.amount > 0, 'the amount in the payment is invalid';
 
     payer = await getParticipant(conferenceId, payment.payer)
-    assert payer
+    assert payer, 'the payer is not in the database'
 
     paymentHash, paymentRequest = await create_invoice(wallet_id = payer.wallet, amount = payment.amount,)
-    assert(paymentHash != '')
-    assert(paymentRequest != '')
+    assert paymentHash 
+    assert paymentRequest 
+
+    result = pay_invoice(
+            wallet_id       = payer.wallet,
+            payment_request = paymentRequest,
+            description     = payment.memo,
+            )
+    assert paymentHash == result, f'bad payment hash: {result}'
 
 
-@jitsi_ext.post("/api/v1/conference/participant", status_code = HTTPStatus.CREATED)
+
+@jitsi_ext.post('/api/v1/conference/participant', status_code = HTTPStatus.CREATED)
 # @api_check_wallet_key(key_type="invoice")
 # @api_validate_post_request(
         #     schema = {
@@ -191,7 +198,7 @@ async def api_jitsi_participant_create():
 
     return result, status
 
-@jitsi_ext.get('/api/v1/conference/participant/wallet/<wallet_id>',
+@jitsi_ext.get('/api/v1/conference/participant/wallet/{walletId}',
         status_code = HTTPStatus.OK)
 # @api_check_wallet_key(key_type='invoice')
 async def api_jitsi_participant_wallet(wallet_id):

@@ -69,17 +69,12 @@ const app = new Vue({
 
         return {  
             api         : null,
-            conference  : '',     // The jitsi id of the current conference.
+            conference  : null,     // The jitsi id of the current conference.
             wallet      : null,
 
             setupDialog : {
                 show            : true,
                 data            : {
-                    roomName        : '',
-
-                    // TODO(nochiel) Use `email` when creating admin profile on jitsi.
-                    // TODO(nochiel) Use `email` when saving admin participant to db?
-                    email           : '',       
                 },
             },
 
@@ -116,15 +111,17 @@ const app = new Vue({
             };
 
             log('jitsi options: ', options);
+
+            // TODO(nochiel) Use this.g.user to set the administrator participant's details.
+            log('LnBits user: ', this.g.user);
+
             this.api = new JitsiMeetExternalAPI(domain, options);
             this.jitsiPanel.show = true;
             assert(this.api);
             // log('this: ', this);
             const api = this.api;
-            // console.log('jitsi event names:', api.events);
 
-            // FIXME(nochiel) Does nothing. My assumption is that the api is destroyed even though I made it global.
-            // FINDOUT How do I do handle events in Vue? Specifically, how do I determine why this listeners aren't running?
+            // console.log('jitsi event names:', api.events);
             api.on('videoConferenceJoined', this.videoConferenceJoined);
             api.on('participantJoined', this.newParticipant);
             api.on('incomingMessage', this.incomingMessage);
@@ -156,8 +153,8 @@ const app = new Vue({
                     'unreadCount': unreadCounter, // the unread message(s) counter,
                     'isOpen': isOpen, // whether the chat panel is open or not
                 }
-                */
-            // TODO(nochiel) If there are no unread messages then don't reprocess chat commands.
+            */
+
             log('chatUpdated: event: ', event);
         },
 
@@ -183,7 +180,7 @@ const app = new Vue({
                     this.g.user.wallets[0].inkey,       // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
                     data,
                 );
-                */
+            */
             let result = data;
             log('logChatMessage: ', result);
             return result;
@@ -224,6 +221,7 @@ const app = new Vue({
         },
 
         async incomingMessage(event) {
+
             if(!this._isMounted) return;
             log('incomingMessage: event: ', event);
             /*
@@ -233,7 +231,7 @@ const app = new Vue({
                     privateMessage: boolean, // whether this is a private or group message
                     message: string // the text of the message
                 }
-                */
+            */
 
             // FIXME(nochiel) The bot is run as the host. Ideally, the bot should be an independent participant.
             // FIXME(nochiel) If the host (local user) leaves the chat, we have no way of knowing infallibly
@@ -410,6 +408,7 @@ const app = new Vue({
                                                 log(`incomingMessage: command pay`);
                                                 const HELPSYNTAXMESSAGE = 'Please use the correct format for this command. It is: /pay amount @name [note]\n"@name" is the name of a participant.\nThe note is an optional message to send to @name with the payment.';
 
+                                                assert(participant, 'no participant has been set');
                                                 const payer = participant;
 
                                                 if(words.length < 3) {
@@ -433,7 +432,7 @@ const app = new Vue({
                                                 const payee = participants.find(p => p.displayName == payeeName)
                                                                             ?.participantId;
                                                 if(!payee) {
-                                                    sendChatMessage(payer.id, `You tried to send money to ${payeeName} but they aren't in this conference! Please try again with a name that is in use by someone here.`);
+                                                    sendChatMessage(payer.id, `You tried to send money to ${payeeName} but they aren't in this meeting! Please try again with a name that is in use by someone here.`);
                                                     return;
                                                 }
 
@@ -456,7 +455,7 @@ const app = new Vue({
                                                     LNbits.api
                                                         .request(
                                                             'POST',
-                                                            `/jitsi/api/v1/conference/${this.conference}/participant/${payer.id}/pay`,
+                                                            `/jitsi/api/v1/conference/${this.conference}/pay`,
                                                             this.g.user.wallets[0].inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
                                                             payment,
                                                         );
@@ -559,7 +558,11 @@ const app = new Vue({
                             .then(admin => {
 
                                 assert(admin.id == event.id);
-                                this.wallet = this.g.user.wallets.find(w => w.id == admin.wallet);
+
+                                // FIXME(nochiel) If the admin participant is newly created,
+                                // this.g.user.wallets should be refreshed to get the new wallet.
+                                // assert this.g.user.wallets.find(w => w.id == admin.wallet);
+                                this.wallet = admin.wallet;
                                 log('created admin who will use wallet: ', this.wallet);
 
                             });
