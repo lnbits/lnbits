@@ -11,33 +11,37 @@ from pydantic import BaseModel
 from pydantic.main import BaseModel
 
 
-class createLnurlpos(BaseModel):
+class createLnurldevice(BaseModel):
     title: str
     wallet: str
     currency: str
+    device: str
+    profit: float
 
 
-class lnurlposs(BaseModel):
+class lnurldevices(BaseModel):
     id: str
     key: str
     title: str
     wallet: str
     currency: str
+    device: str
+    profit: float
     timestamp: str
 
-    def from_row(cls, row: Row) -> "lnurlposs":
+    def from_row(cls, row: Row) -> "lnurldevices":
         return cls(**dict(row))
 
     def lnurl(self, req: Request) -> Lnurl:
-        url = req.url_for("lnurlpos.lnurl_response", pos_id=self.id, _external=True)
+        url = req.url_for("lnurldevice.lnurl_response", device_id=self.id, _external=True)
         return lnurl_encode(url)
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
-class lnurlpospayment(BaseModel):
+class lnurldevicepayment(BaseModel):
     id: str
-    posid: str
+    deviceid: str
     payhash: str
     payload: str
     pin: int
@@ -45,5 +49,5 @@ class lnurlpospayment(BaseModel):
     timestamp: str
 
     @classmethod
-    def from_row(cls, row: Row) -> "lnurlpospayment":
+    def from_row(cls, row: Row) -> "lnurldevicepayment":
         return cls(**dict(row))
