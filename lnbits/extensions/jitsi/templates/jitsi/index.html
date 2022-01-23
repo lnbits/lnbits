@@ -30,14 +30,17 @@
   </q-card-section>
 </q-card>
 
-<q-dialog v-model="setupDialog.show" position="top">
+<q-dialog v-model="setupDialog.show">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="sendSetupFormData" class="q-gutter-md">
         <q-input
           filled
           dense
-          v-model.trim="setupDialog.data.roomName"
-          label="Meeting name">
+          v-model.trim = "setupDialog.data.roomName"
+          type  = "text"
+          label = "Meeting name"
+          :rules = "[value => value.length > 0 || 'The meeting must have a name!']"
+          > 
         </q-input>
         <q-btn
           unelevated
@@ -45,7 +48,6 @@
           type="submit">
             Start Jitsi meeting 
         </q-btn>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </q-form>
     </q-card>
   </q-dialog>

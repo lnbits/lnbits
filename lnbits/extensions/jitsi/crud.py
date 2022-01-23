@@ -58,7 +58,7 @@ async def getParticipant(
         conference: str,
         participant: str
         ) -> Participant:
-    print('crud.py.getParticipant')
+    # print('crud.py.getParticipant')
 
     # rows = await db.fetchall(
     #         '''
@@ -73,7 +73,9 @@ async def getParticipant(
             WHERE id = ? AND conference = ?
             ''',
             (participant, conference))
+
     
+    # print('crud.py.getParticipant: row: ', row)
     return Participant(**row) if row else None
 
 async def createParticipant(*,
