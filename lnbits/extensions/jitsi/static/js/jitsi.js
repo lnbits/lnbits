@@ -104,7 +104,7 @@ const app = new Vue({
                 height: '700px',         // FIXME(nochiel) Make this 75% of the viewport.
                 // chromeExtensionBanner: {},       // FIXME(nochiel) Does nothing.
                 configOverwrite : { 
-                    // apiLogLevels: ['warn', 'log', 'error', 'info', 'debug'],     // see: https://github.com/jitsi/jitsi-meet/blob/master/config.js 
+                // apiLogLevels: ['warn', 'log', 'error', 'info', 'debug'],     // see: https://github.com/jitsi/jitsi-meet/blob/master/config.js 
                 },    
                 // onload : jitsiOnload,       // FIXME(nochiel) Goes nowhere does nothing.
                 // interfaceConfigOverwrite: {};    // see: https://github.com/jitsi/jitsi-meet/blob/master/interface_config.js
@@ -187,27 +187,33 @@ const app = new Vue({
 
         },
 
-        async getWallet(walletId) {
+        async getWallet(conferenceId, participantId) {
+            assert(conferenceId);
+            assert(participantId);
 
-            let result = LNbits.api
-                .request(
-                    'GET',
-                    `/jitsi/api/v1/conference/participant/wallet/${walletId}`,
-                    this.wallet.adminkey,
+            let result;
 
-                )
-                .then(response => {
+            if(conferenceId && participantId) {
+                result = LNbits.api
+                    .request(
+                        'GET',
+                        `/jitsi/api/v1/conference/${conferenceId}/participant/${participantId}/wallet`,
+                        this.wallet.adminkey,
 
-                    if(response.data) {
+                    )
+                    .then(response => {
 
-                        log('getWallet: response: ', response);
-                        let wallet = LNbits.map.wallet(response.data);
-                        assert(wallet.id, wallet);
+                        if(response.data) {
 
-                        return  wallet;
-                    }
+                            log('getWallet: response: ', response);
+                            let wallet = LNbits.map.wallet(response.data);
+                            assert(wallet.id, wallet);
 
-                });
+                            return  wallet;
+                        }
+
+                    });
+            }
 
             return result;
         },
@@ -286,7 +292,7 @@ const app = new Vue({
                         .then(participant => {
 
                             assert(participant, `Jitsi participant ${message.from} does not exist in the LNBits database.`);
-                            this.getWallet(participant.wallet)
+                            this.getWallet(this.conference, participant.id)
                                 .then(async wallet => {
 
                                     log(`incomingMessage: using ${message.from}'s wallet: `, wallet);
@@ -308,7 +314,7 @@ const app = new Vue({
 
                                         let participant = await this.getParticipant(this.conference, payee);
                                         assert(participant);
-                                        let wallet = await this.getWallet(participant.wallet);
+                                        let wallet = await this.getWallet(this.conference, participant.id);
                                         assert(wallet);
                                         log('incomingMessage.getInvoice: wallet: ', wallet);
 
@@ -532,7 +538,7 @@ const app = new Vue({
 
             if(!this._isMounted) return;
             log('videoConferenceJoined: ', event);
-            assert(event.roomName);     // TODO(nochiel) Make the roomName mandatory.
+            assert(event.roomName);     
             this.conference = event.roomName;
             this.wallet = this.g.user.wallets[0];
 
@@ -563,7 +569,8 @@ const app = new Vue({
                                 // this.g.user.wallets should be refreshed to get the new wallet.
                                 // assert this.g.user.wallets.find(w => w.id == admin.wallet);
                                 // TODO(nochiel) FINDOUT Can we use: LNbits.api.getWallet(admin.wallet) ?
-                                this.getWallet(admin.wallet).then(wallet => this.wallet = wallet);
+                                log('videoConferenceJoined: admin: ', admin);
+                                this.getWallet(this.conference, admin.id).then(wallet => this.wallet = wallet);
                                 log('created admin who will use wallet: ', this.wallet);
 
                             });

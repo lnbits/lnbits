@@ -113,23 +113,6 @@ async def api_jitsi_conference(
 
     return conference.dict()
 
-
-@jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
-        status_code = HTTPStatus.OK)
-async def api_jitsi_conference_participant(conference_id, participant_id,
-        walletTypeInfo = Depends(require_admin_key)
-        ):  
-
-    assert participant_id, 'participant_id is required'
-    participant = await getParticipant(conference_id, participant_id)
-    if participant is None:
-        raise HTTPException(
-                status_code = HTTPStatus.NOT_FOUND,
-                detail = f'jitsi participant "{participant_id}" was not found in conference "{conference_id}"'
-        )
-
-    return participant.dict()
-
 class JitsiPayment(BaseModel):
     payer:  str
     payee:  str
@@ -199,14 +182,18 @@ async def api_jitsi_participant_create():
 
     return result, status
 
-@jitsi_ext.get('/api/v1/conference/participant/wallet/{walletId}',
+@jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participantId}/wallet',
         status_code = HTTPStatus.OK)
 async def getJitsiParticipantWallet(
-        walletId,
+        conferenceId,
+        participantId,
         walletTypeInfo = Depends(require_admin_key),  
         ):
 
-    wallet = await get_wallet(walletId);
+
+    participant = await getParticipant(conferenceId, participantId)
+    assert participant
+    wallet = await get_wallet(participant.wallet);
     if wallet is None:
         raise HTTPException(
                 status_code = HTTPStatus.NOT_FOUND,
@@ -230,7 +217,21 @@ async def api_jitsi_conference_message_push():
     m = Message(g.data['from'], g.data['from'], g.data['stamp'])
 
 
+@jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
+        status_code = HTTPStatus.OK)
+async def api_jitsi_conference_participant(conference_id, participant_id,
+        walletTypeInfo = Depends(require_admin_key)
+        ):  
 
+    assert participant_id, 'participant_id is required'
+    participant = await getParticipant(conference_id, participant_id)
+    if participant is None:
+        raise HTTPException(
+                status_code = HTTPStatus.NOT_FOUND,
+                detail = f'jitsi participant "{participant_id}" was not found in conference "{conference_id}"'
+        )
+
+    return participant.dict()
 
 
 
