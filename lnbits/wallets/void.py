@@ -1,12 +1,12 @@
-from typing import Optional, AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
-    Wallet,
+    StatusResponse,
     Unsupported,
+    Wallet,
 )
 
 
@@ -20,8 +20,9 @@ class VoidWallet(Wallet):
         raise Unsupported("")
 
     async def status(self) -> StatusResponse:
+        print("This backend does nothing, it is here just as a placeholder, you must configure an actual backend before being able to do anything useful with LNbits.")
         return StatusResponse(
-            "This backend does nothing, it is here just as a placeholder, you must configure an actual backend before being able to do anything useful with LNbits.",
+            None,
             0,
         )
 
