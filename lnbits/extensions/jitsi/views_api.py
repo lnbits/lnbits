@@ -143,45 +143,6 @@ async def pay(
             )
     assert paymentHash == result, f'bad payment hash: {result}'
 
-
-
-@jitsi_ext.post('/api/v1/conference/participant', status_code = HTTPStatus.CREATED)
-# @api_check_wallet_key(key_type="invoice")
-# @api_validate_post_request(
-        #     schema = {
-        #         "participant": {"type": "string", "required": True}, 
-        #         "conference": {"type": "string", "required": True}, 
-        #     }
-        # )
-async def api_jitsi_participant_create():
-
-    participantId, conference = g.data['participant'], g.data['conference']
-
-    account = await create_account()
-    print('api_jitsi_participant_create: new account:', account)
-
-    user = await get_user(account.id)
-    result, status = None, HTTPStatus.INTERNAL_SERVER_ERROR
-    if user is not None:
-        print('api_jitsi_participant_create: new user:', user)
-
-        wallet = await create_wallet(user_id = user.id, wallet_name = conference)
-        if wallet is not None:
-            print('api_jitsi_participant_create: new wallet:', wallet)
-
-            participant = await create_participant(
-                    participant_id = participantId,
-                    user_id = user.id,
-                    conference_id = conference,
-                    wallet_id = wallet.id)
-
-            if participant is not None:
-                print('api_jitsi_participant_create: new participant:', participant)
-                status = HTTPStatus.CREATED
-                result = jsonify(participant._asdict())
-
-    return result, status
-
 @jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participantId}/wallet',  
         status_code = HTTPStatus.OK)
 async def getJitsiParticipantWallet(
@@ -202,7 +163,58 @@ async def getJitsiParticipantWallet(
 
     print('getJitsiParticipantWallet: wallet found: ', wallet)
     return wallet
-        
+
+
+class JitsiParticipant(BaseModel):
+    id: str
+
+@jitsi_ext.post('/api/v1/conference/{conferenceId}/participant', status_code = HTTPStatus.CREATED)
+async def createJitsiParticipant(conferenceId: str, jitsiParticipant: JitsiParticipant,):   # FIXME(nochiel) Migrate to FastAPI
+
+    user = await create_account()
+    assert user, 'we were not able to create a new user'
+
+    print('createJitsiParticipant: new user: ', user)
+
+    wallet = await create_wallet(user_id = user.id, wallet_name = conferenceId)
+    assert wallet, 'we were not able to create a new wallet'
+
+    print('createJitsiParticipant: new wallet: ', wallet)
+
+    participant = await createParticipant(
+            participantId = jitsiParticipant.id,
+            userId = user.id,
+            conferenceId = conferenceId,
+            walletId = wallet.id)
+
+    if participant is None:
+        raise HTTPException(
+                status_code = HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail = 'unable to create new jitsi participant'
+                )
+
+    print('createJitsiParticipant: new participant:', participant)
+
+    return participant.dict()
+
+@jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
+        status_code = HTTPStatus.OK)
+async def getJitsiParticipant(conference_id, participant_id,
+        walletTypeInfo = Depends(require_admin_key)
+        ):  
+    print('getJitsiParticipant')
+
+    assert participant_id, 'participant_id is required'
+    participant = await getParticipant(conference_id, participant_id)
+    if participant is None:
+        raise HTTPException(
+                status_code = HTTPStatus.NOT_FOUND,
+                detail = f'jitsi participant "{participant_id}" was not found in conference "{conference_id}"'
+        )
+
+    return participant.dict()
+
+
 @jitsi_ext.post("/api/v1/conference/message")
 # @api_check_wallet_key(key_type="invoice")
 # @api_validate_post_request(
@@ -216,22 +228,6 @@ async def getJitsiParticipantWallet(
 async def api_jitsi_conference_message_push():
     m = Message(g.data['from'], g.data['from'], g.data['stamp'])
 
-
-@jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
-        status_code = HTTPStatus.OK)
-async def api_jitsi_conference_participant(conference_id, participant_id,
-        walletTypeInfo = Depends(require_admin_key)
-        ):  
-
-    assert participant_id, 'participant_id is required'
-    participant = await getParticipant(conference_id, participant_id)
-    if participant is None:
-        raise HTTPException(
-                status_code = HTTPStatus.NOT_FOUND,
-                detail = f'jitsi participant "{participant_id}" was not found in conference "{conference_id}"'
-        )
-
-    return participant.dict()
 
 
 

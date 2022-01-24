@@ -623,22 +623,22 @@ const app = new Vue({
                     wallet: str
                 }
             */
-            assert(conference && conference != '', 'conference id must be given');
-            assert(participant && participant != '', 'participant id must be given');
+            assert(conference, 'conference id must be given');
+            assert(participant, 'participant id must be given');
+
             log(`getParticipant: ${participant}`);
 
-            let result = null;
-            try {
-                let response = await LNbits.api
-                    .request(
-                        'GET',
-                        `/jitsi/api/v1/conference/${conference}/participant/${participant}`,
-                        this.wallet.adminkey,
-                    );
-                result = response.data;
-            } catch(e) {
-                log('getParticipant: error: ', e);
-            }
+            let result = LNbits.api
+                .request(
+                    'GET',
+                    `/jitsi/api/v1/conference/${conference}/participant/${participant}`,
+                    this.wallet.adminkey,
+                )
+                .then(response => response.data)
+                .catch(e => {
+                    log('getParticipant: error: ', e);
+                });
+
             return result;
         },
 
@@ -656,24 +656,23 @@ const app = new Vue({
             // append an ordinal to the name.
             // - If the participant does not have a nick, give them a random nik. (use Breez's system)
 
-            assert(event.id != '');
+            assert(event.id);
             log('newParticipant: ', event.id);
 
             // Give new participants an LNBits account.
-            // FINDOUT Should I create a new admin wallet for each conference and save the conference with the wallet?
-            assert(this.conference, 'The conference has not been set!');
-            if(this.conference != '') {
+            assert(this.conference, 'The conference has not been set! We cannot create participants unless we have a conference. ');
+            if(this.conference) {
                 log(`newParticipant: creating ${event.id} in conference ${this.conference}`);
 
-                let data = { participantId: event.id, conferenceId: this.conference };
-                let participant = await this.getParticipant(data.conference, data.participant);
+                let participant = await this.getParticipant(this.conference, event.id);
                 log('newParticipant: got participant: ', participant);
                 if(!participant) {
 
+                    let data = { id: event.id };
                     LNbits.api
                         .request(
                             'POST',
-                            '/jitsi/api/v1/conference/participant',
+                            `/jitsi/api/v1/conference/${this.conference}/participant`,
                             this.wallet.adminkey,
                             data
                         )
@@ -681,8 +680,8 @@ const app = new Vue({
                             log('newParticipant: result: ', response.data);
                         })
                         .catch(e => {
-                            // TODO(nochiel) Show the host an error?
-                            logError('newParticipant: error response when creating new participant', e );
+                            // TODO(nochiel) Show the admin an error.
+                            logError('newParticipant: error when creating new participant', e );
                         });
 
                 }
