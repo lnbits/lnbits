@@ -182,7 +182,7 @@ async def api_jitsi_participant_create():
 
     return result, status
 
-@jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participantId}/wallet',
+@jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participantId}/wallet',  
         status_code = HTTPStatus.OK)
 async def getJitsiParticipantWallet(
         conferenceId,

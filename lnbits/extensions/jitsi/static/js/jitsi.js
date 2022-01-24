@@ -193,12 +193,22 @@ const app = new Vue({
 
             let result;
 
+            data = {
+                conferenceId: conferenceId,
+                participantId: participantId
+            }
+
             if(conferenceId && participantId) {
                 result = LNbits.api
                     .request(
                         'GET',
+                        // `/jitsi/api/v1/wallet`,
                         `/jitsi/api/v1/conference/${conferenceId}/participant/${participantId}/wallet`,
                         this.wallet.adminkey,
+                        /*
+                        null,
+                        data,
+                        */
 
                     )
                     .then(response => {
@@ -561,7 +571,7 @@ const app = new Vue({
                         assert(conference.name,
                             `the conference in the response is invalid. conference.name: "${conference.name}"`); 
                         this.getParticipant(conference.name, event.id)
-                            .then(admin => {
+                            .then(async admin => {
 
                                 assert(admin.id == event.id);
 
@@ -570,7 +580,7 @@ const app = new Vue({
                                 // assert this.g.user.wallets.find(w => w.id == admin.wallet);
                                 // TODO(nochiel) FINDOUT Can we use: LNbits.api.getWallet(admin.wallet) ?
                                 log('videoConferenceJoined: admin: ', admin);
-                                this.getWallet(this.conference, admin.id).then(wallet => this.wallet = wallet);
+                                this.wallet = await this.getWallet(this.conference, admin.id).then(wallet => this.wallet = wallet);
                                 log('created admin who will use wallet: ', this.wallet);
 
                             });
@@ -655,7 +665,7 @@ const app = new Vue({
             if(this.conference != '') {
                 log(`newParticipant: creating ${event.id} in conference ${this.conference}`);
 
-                let data = { participant: event.id, conference: this.conference };
+                let data = { participantId: event.id, conferenceId: this.conference };
                 let participant = await this.getParticipant(data.conference, data.participant);
                 log('newParticipant: got participant: ', participant);
                 if(!participant) {
