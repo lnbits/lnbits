@@ -217,6 +217,7 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
+    limit: Optional[int] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """
@@ -261,6 +262,9 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
+    # TODO: add support for pagination
+    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
+
     where = ""
     if clause:
         where = f"WHERE {' AND '.join(clause)}"
@@ -271,6 +275,7 @@ async def get_payments(
         FROM apipayments
         {where}
         ORDER BY time DESC
+        {limit_clause}
         """,
         tuple(args),
     )
