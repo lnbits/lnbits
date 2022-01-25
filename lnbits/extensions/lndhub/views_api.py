@@ -88,7 +88,8 @@ async def lndhub_payinvoice(
             extra={"tag": "lndhub"},
         )
     except:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Payment failed")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
+                            detail="Payment failed")
 
     invoice: bolt11.Invoice = bolt11.decode(r_invoice.invoice)
 
@@ -116,7 +117,7 @@ async def lndhub_balance(
 
 @lndhub_ext.get("/ext/gettxs")
 async def lndhub_gettxs(
-    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
+    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=20)
 ):
     for payment in await get_payments(
         wallet_id=wallet.wallet.id,
@@ -124,6 +125,7 @@ async def lndhub_gettxs(
         pending=True,
         outgoing=True,
         incoming=False,
+        limit=limit,
         exclude_uncheckable=True,
     ):
         await payment.set_pending(
@@ -148,23 +150,24 @@ async def lndhub_gettxs(
                     complete=True,
                     outgoing=True,
                     incoming=False,
+                    limit=limit,
                 )
-            )[:limit]
+            )
         )
     ]
 
 
 @lndhub_ext.get("/ext/getuserinvoices")
 async def lndhub_getuserinvoices(
-    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
+    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=20)
 ):
-    await delete_expired_invoices()
     for invoice in await get_payments(
         wallet_id=wallet.wallet.id,
         complete=False,
         pending=True,
         outgoing=False,
         incoming=True,
+        limit=limit,
         exclude_uncheckable=True,
     ):
         await invoice.set_pending(
@@ -192,8 +195,9 @@ async def lndhub_getuserinvoices(
                     complete=True,
                     incoming=True,
                     outgoing=False,
+                    limit=limit,
                 )
-            )[:limit]
+            )
         )
     ]
 
