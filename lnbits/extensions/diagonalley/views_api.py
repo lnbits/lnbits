@@ -39,7 +39,15 @@ from .crud import (
     update_diagonalley_stall,
     update_diagonalley_zone,
 )
-from .models import Orders, Products, Stalls, Zones, createProduct, createZones
+from .models import (
+    Orders,
+    Products,
+    Stalls,
+    Zones,
+    createProduct,
+    createStalls,
+    createZones,
+)
 
 # from lnbits.db import open_ext_db
 
@@ -167,33 +175,33 @@ async def api_diagonalley_zone_delete(zone_id, wallet: WalletTypeInfo = Depends(
 
 
 @diagonalley_ext.get("/api/v1/stalls")
-async def api_diagonalley_stalls(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_stalls(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in request.args:
+    if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return ([stall._asdict() for stall in await get_diagonalley_stalls(wallet_ids)])
+    return ([stall.dict() for stall in await get_diagonalley_stalls(wallet_ids)])
 
 
 @diagonalley_ext.post("/api/v1/stalls")
 @diagonalley_ext.put("/api/v1/stalls/{stall_id}")
-async def api_diagonalley_stall_create(data: createStalls, stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_stall_create(data: createStalls, stall_id = None, wallet: WalletTypeInfo = Depends(get_key_type)):
 
     if stall_id:
         stall = await get_diagonalley_stall(stall_id)
 
         if not stall:
-            return ({"message": "Withdraw stall does not exist."}))
+            return ({"message": "Withdraw stall does not exist."})
 
         if stall.wallet != wallet.wallet.id:
-            return ({"message": "Not your withdraw stall."}))
+            return ({"message": "Not your withdraw stall."})
 
-        stall = await update_diagonalley_stall(stall_id, data)
+        stall = await update_diagonalley_stall(stall_id, **data.dict())
     else:
-        stall = await create_diagonalley_stall(wallet_id=wallet.wallet.id, data)
+        stall = await create_diagonalley_stall(data=data)
 
-    return ({**stall._asdict()}))
+    return stall.dict()
 
 
 @diagonalley_ext.delete("/api/v1/stalls/{stall_id}")
@@ -207,7 +215,6 @@ async def api_diagonalley_stall_delete(stall_id: str = Query(None), wallet: Wall
         return ({"message": "Not your Stall."})
 
     await delete_diagonalley_stall(stall_id)
-
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 

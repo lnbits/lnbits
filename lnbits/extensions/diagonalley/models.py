@@ -13,20 +13,21 @@ from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 
 
 class Stalls(BaseModel):
-    id: str = Query(None)
-    wallet: str = Query(None)
-    name: str = Query(None)
-    publickey: str = Query(None)
-    privatekey: str = Query(None)
-    relays: str = Query(None)
+    id: str
+    wallet: str
+    name: str
+    publickey: str
+    privatekey: str
+    relays: str
+    shippingzones: str
 
 class createStalls(BaseModel):
-    wallet: str = Query(None)
-    name: str = Query(None)
-    publickey: str = Query(None)
-    privatekey: str = Query(None)
-    relays: str = Query(None)
-    shippingzones: str = Query(None)
+    wallet: str = Query(...)
+    name: str = Query(...)
+    publickey: str = Query(...)
+    privatekey: str = Query(...)
+    relays: str = Query(...)
+    shippingzones: str = Query(...)
 
 class createProduct(BaseModel):
     stall: str = Query(None)
