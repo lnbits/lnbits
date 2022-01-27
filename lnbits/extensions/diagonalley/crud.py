@@ -1,17 +1,17 @@
+import re
 from base64 import urlsafe_b64encode
-from uuid import uuid4
 from typing import List, Optional, Union
+from uuid import uuid4
 
-from lnbits.settings import WALLET
+import httpx
 
 # from lnbits.db import open_ext_db
 from lnbits.db import SQLITE
-from . import db
-from .models import Products, Orders, Stalls, Zones
-
-import httpx
 from lnbits.helpers import urlsafe_short_hash
-import re
+from lnbits.settings import WALLET
+
+from . import db
+from .models import Orders, Products, Stalls, Zones, createProduct, createZones
 
 regex = re.compile(
     r"^(?:http|ftp)s?://"  # http:// or https://
@@ -28,35 +28,27 @@ regex = re.compile(
 
 
 async def create_diagonalley_product(
-    *,
-    stall_id: str,
-    product: str,
-    categories: str,
-    description: str,
-    image: Optional[str] = None,
-    price: int,
-    quantity: int,
-    shippingzones: str,
+    data: createProduct
 ) -> Products:
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
+    # returning = "" if db.type == SQLITE else "RETURNING ID"
+    # method = db.execute if db.type == SQLITE else db.fetchone
     product_id = urlsafe_short_hash()
     # with open_ext_db("diagonalley") as db:
-    result = await (method)(
+    # result = await (method)(
+    await db.execute(
         f"""
-        INSERT INTO diagonalley.products (id, stall, product, categories, description, image, price, quantity, shippingzones)
+        INSERT INTO diagonalley.products (id, stall, product, categories, description, image, price, quantity)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        {returning}
         """,
         (
             product_id,
-            stall_id,
-            product,
-            categories,
-            description,
-            image,
-            price,
-            quantity,
+            data.stall,
+            data.product,
+            data.categories,
+            data.description,
+            data.image,
+            data.price,
+            data.quantity,
         ),
     )
     product = await get_diagonalley_product(product_id)
@@ -109,17 +101,11 @@ async def delete_diagonalley_product(product_id: str) -> None:
 
 
 async def create_diagonalley_zone(
-    *,
-    wallet: Optional[str] = None,
-    cost: Optional[int] = 0,
-    countries: Optional[str] = None,
+    wallet,
+    data: createZones
 ) -> Zones:
-
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
-
     zone_id = urlsafe_short_hash()
-    result = await (method)(
+    await db.execute(
         f"""
         INSERT INTO diagonalley.zones (
             id,
@@ -129,9 +115,8 @@ async def create_diagonalley_zone(
 
         )
         VALUES (?, ?, ?, ?)
-        {returning}
         """,
-        (zone_id, wallet, cost, countries),
+        (zone_id, wallet, data.cost, data.countries),
     )
 
     zone = await get_diagonalley_zone(zone_id)
