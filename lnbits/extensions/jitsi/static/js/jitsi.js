@@ -360,20 +360,14 @@ const app = new Vue({
                                             }; break
 
                                             case 'balance': {
+                                                log(`incomingMessage: command 'balance'`);
 
                                                 // FIXME(nochiel) TEST Make a deposit then check the balance. It should show up immediately without having to browse to the wallet in a new tab.
-                                                // FIXME(nochiel) When making payments or generating invoices, use the correct wallet invoice key.
+                                                log(`incomingMessage: ${message.from} has a balance of: ${wallet.fsat} sats.`);
+                                                sendChatMessage(message.from,
+                                                    `Your Lightning wallet balance for this conference is ${wallet.fsat} satoshis` + '\n' +
+                                                    `You can manage your LNbits wallet by visiting: ${window.location.origin + wallet.url} (YOU SHOULD SAVE THIS URL!)`);
 
-                                                LNbits.api.getWallet(wallet)
-                                                .then(wallet => {
-
-                                                    log(`incomingMessage: command balance`);
-                                                    log(`incomingMessage: ${message.from} has a balance of: ${wallet.sat}`);
-                                                    sendChatMessage(message.from,
-                                                        `Your Lightning wallet balance for this conference is ${LNbits.utils.formatSat(wallet.fsat)}` + '\n\n' +
-                                                        `You can manage your LNbits wallet by visiting: ${window.location.origin + wallet.url} (YOU SHOULD SAVE THIS URL!)`);
-
-                                                });
 
                                             }; break;
 
@@ -448,9 +442,9 @@ const app = new Vue({
 
                                                 const pay = (payer, amount, payee, memo) => {
                                                     // TODO(nochiel) Get an invoice from payee.
-                                                    // TODO(nochiel) Payer pays payee's invoice.
+                                                        // TODO(nochiel) Payer pays payee's invoice.
 
-                                                    NOTIMPLEMENTED();
+                                                        NOTIMPLEMENTED();
 
                                                     let payment = {
                                                         payer: payer,
@@ -691,7 +685,7 @@ const app = new Vue({
 
         },
 
-}
+    }
 
 });
 

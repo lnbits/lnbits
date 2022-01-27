@@ -54,6 +54,21 @@ async def getConference(
 
     return result
 
+async def getAllParticipants(
+        conference: str,
+        ) -> List[Participant]:
+
+    rows = await db.fetchall(
+            '''
+            SELECT * FROM jitsi.participants
+            '''
+            )
+    # print('crud.py.getAllParticipants: rows', rows)
+
+    result = [Participant(**row) for row in rows]
+    return result
+
+
 async def getParticipant(
         conference: str,
         participant: str

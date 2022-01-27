@@ -41,6 +41,7 @@ from .crud import (
     createConference,
     getConference,
     getParticipant,
+    getAllParticipants,
     createParticipant,
 )
 
