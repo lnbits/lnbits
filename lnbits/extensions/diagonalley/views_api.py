@@ -1,4 +1,6 @@
+from base64 import urlsafe_b64encode
 from http import HTTPStatus
+from uuid import uuid4
 
 from fastapi import Request
 from fastapi.param_functions import Query
@@ -6,41 +8,44 @@ from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from lnbits.core.services import create_invoice
+from lnbits.decorators import (
+    WalletTypeInfo,
+    api_check_wallet_key,
+    api_validate_post_request,
+    get_key_type,
+    require_admin_key,
+)
 
-from . import diagonalley_ext
+from . import db, diagonalley_ext
 from .crud import (
-    create_diagonalley_product,
-    get_diagonalley_product,
-    get_diagonalley_products,
-    delete_diagonalley_product,
-    create_diagonalley_zone,
-    update_diagonalley_zone,
-    get_diagonalley_zone,
-    get_diagonalley_zones,
-    delete_diagonalley_zone,
-    create_diagonalley_stall,
-    update_diagonalley_stall,
-    get_diagonalley_stall,
-    get_diagonalley_stalls,
-    delete_diagonalley_stall,
     create_diagonalley_order,
+    create_diagonalley_product,
+    create_diagonalley_stall,
+    create_diagonalley_zone,
+    delete_diagonalley_order,
+    delete_diagonalley_product,
+    delete_diagonalley_stall,
+    delete_diagonalley_zone,
     get_diagonalley_order,
     get_diagonalley_orders,
+    get_diagonalley_product,
+    get_diagonalley_products,
+    get_diagonalley_stall,
+    get_diagonalley_stalls,
+    get_diagonalley_zone,
+    get_diagonalley_zones,
     update_diagonalley_product,
-    delete_diagonalley_order,
+    update_diagonalley_stall,
+    update_diagonalley_zone,
 )
-from lnbits.core.services import create_invoice
-from base64 import urlsafe_b64encode
-from uuid import uuid4
+from .models import Orders, Products, Stalls
 
 # from lnbits.db import open_ext_db
 
-from . import db
-from .models import Products, Orders, Stalls
 
 ### Products
-
+"""
 @copilot_ext.get("/api/v1/copilot/{copilot_id}")
 async def api_copilot_retrieve(
     req: Request,
@@ -55,26 +60,27 @@ async def api_copilot_retrieve(
     if not copilot.lnurl_toggle:
         return copilot.dict()
     return {**copilot.dict(), **{"lnurl": copilot.lnurl(req)}}
-
+"""
 
 @diagonalley_ext.get("/api/v1/products")
 async def api_diagonalley_products(
     req: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
+    all_stalls: bool = Query(False)
 ):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_stalls" in request.args:
+    if all_stalls:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return ([product._asdict() for product in await get_diagonalley_products(wallet_ids)])
+    return ([product.dict() for product in await get_diagonalley_products(wallet_ids)])
 
 
 @diagonalley_ext.post("/api/v1/products")
 @diagonalley_ext.put("/api/v1/products/{product_id}")
 async def api_diagonalley_product_create(
     data: Products, 
-    product_id=: str = Query(None), 
+    product_id: str = Query(None), 
     wallet: WalletTypeInfo = Depends(get_key_type)
     ):
 
@@ -82,19 +88,19 @@ async def api_diagonalley_product_create(
         product = await get_diagonalley_product(product_id)
 
         if not product:
-            return ({"message": "Withdraw product does not exist."}))
+            return ({"message": "Withdraw product does not exist."})
 
         if product.wallet != wallet.wallet.id:
-            return ({"message": "Not your withdraw product."}))
+            return ({"message": "Not your withdraw product."})
 
         product = await update_diagonalley_product(product_id, data)
     else:
         product = await create_diagonalley_product(wallet_id=wallet.wallet.id, data)
 
-    return ({**product._asdict()}))
+    return product.dict()
 
 
-@diagonalley_ext.route("/api/v1/products/{product_id}")
+@diagonalley_ext.delete("/api/v1/products/{product_id}")
 async def api_diagonalley_products_delete(product_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
     product = await get_diagonalley_product(product_id)
 
@@ -105,7 +111,6 @@ async def api_diagonalley_products_delete(product_id, wallet: WalletTypeInfo = D
         return ({"message": "Not your Diagon Alley."})
 
     await delete_diagonalley_product(product_id)
-
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
@@ -113,13 +118,13 @@ async def api_diagonalley_products_delete(product_id, wallet: WalletTypeInfo = D
 
 
 @diagonalley_ext.get("/api/v1/zones")
-async def api_diagonalley_zones(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_zones(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
     wallet_ids = [wallet.wallet.id]
 
-    if "all_wallets" in request.args:
+    if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return ([zone._asdict() for zone in await get_diagonalley_zones(wallet_ids)]))
+    return ([zone.dict() for zone in await get_diagonalley_zones(wallet_ids)])
 
 
 @diagonalley_ext.post("/api/v1/zones")
