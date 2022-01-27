@@ -11,7 +11,15 @@ from lnbits.helpers import urlsafe_short_hash
 from lnbits.settings import WALLET
 
 from . import db
-from .models import Orders, Products, Stalls, Zones, createProduct, createZones
+from .models import (
+    Orders,
+    Products,
+    Stalls,
+    Zones,
+    createProduct,
+    createStalls,
+    createZones,
+)
 
 regex = re.compile(
     r"^(?:http|ftp)s?://"  # http:// or https://
@@ -185,20 +193,10 @@ async def delete_diagonalley_zone(zone_id: str) -> None:
 
 
 async def create_diagonalley_stall(
-    *,
-    wallet: str,
-    name: str,
-    publickey: str,
-    privatekey: str,
-    relays: str,
-    shippingzones: str,
+    data: createStalls
 ) -> Stalls:
-
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
-
     stall_id = urlsafe_short_hash()
-    result = await (method)(
+    await db.execute(
         f"""
         INSERT INTO diagonalley.stalls (
             id,
@@ -210,9 +208,15 @@ async def create_diagonalley_stall(
             shippingzones
         )
         VALUES (?, ?, ?, ?, ?, ?, ?)
-        {returning}
         """,
-        (stall_id, wallet, name, publickey, privatekey, relays, shippingzones),
+        (
+            stall_id,
+            data.wallet,
+            data.name,
+            data.publickey,
+            data.privatekey,
+            data.relays,
+            data.shippingzones),
     )
 
     stall = await get_diagonalley_stall(stall_id)
