@@ -1,12 +1,15 @@
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
-from starlette.requests import Request
+import json
+from lib2to3.pytree import Base
+from sqlite3 import Row
+from typing import Dict, Optional
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+
 from fastapi.param_functions import Query
-from typing import Optional, Dict
-from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
-import json
-from sqlite3 import Row
+from starlette.requests import Request
+
+from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 
 
 class Stalls(BaseModel):
@@ -25,22 +28,34 @@ class createStalls(BaseModel):
     relays: str = Query(None)
     shippingzones: str = Query(None)
 
-class Products(BaseModel):
-    id: str = Query(None)
+class createProduct(BaseModel):
     stall: str = Query(None)
     product: str = Query(None)
     categories: str = Query(None)
     description: str = Query(None)
     image: str = Query(None)
-    price: int = Query(0)
-    quantity: int = Query(0)
+    price: int = Query(0, ge=0)
+    quantity: int = Query(0, ge=0)
 
+class Products(BaseModel):
+    id: str
+    stall: str
+    product: str
+    categories: str
+    description: str
+    image: str
+    price: int
+    quantity: int
 
-class Zones(BaseModel):
-    id: str = Query(None)
-    wallet: str = Query(None)
+class createZones(BaseModel):
     cost: str = Query(None)
     countries: str = Query(None)
+
+class Zones(BaseModel):
+    id: str
+    wallet: str
+    cost: str
+    countries: str
 
 
 class Orders(BaseModel):

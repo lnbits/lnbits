@@ -39,7 +39,7 @@ from .crud import (
     update_diagonalley_stall,
     update_diagonalley_zone,
 )
-from .models import Orders, Products, Stalls
+from .models import Orders, Products, Stalls, Zones, createProduct, createZones
 
 # from lnbits.db import open_ext_db
 
@@ -79,7 +79,7 @@ async def api_diagonalley_products(
 @diagonalley_ext.post("/api/v1/products")
 @diagonalley_ext.put("/api/v1/products/{product_id}")
 async def api_diagonalley_product_create(
-    data: Products, 
+    data: createProduct, 
     product_id: str = Query(None), 
     wallet: WalletTypeInfo = Depends(get_key_type)
     ):
@@ -93,9 +93,9 @@ async def api_diagonalley_product_create(
         if product.wallet != wallet.wallet.id:
             return ({"message": "Not your withdraw product."})
 
-        product = await update_diagonalley_product(product_id, data)
+        product = await update_diagonalley_product(product_id, **data.dict())
     else:
-        product = await create_diagonalley_product(wallet_id=wallet.wallet.id, data)
+        product = await create_diagonalley_product(data=data)
 
     return product.dict()
 
@@ -126,11 +126,10 @@ async def api_diagonalley_zones(wallet: WalletTypeInfo = Depends(get_key_type), 
 
     return ([zone.dict() for zone in await get_diagonalley_zones(wallet_ids)])
 
-
 @diagonalley_ext.post("/api/v1/zones")
 @diagonalley_ext.put("/api/v1/zones/{zone_id}")
 async def api_diagonalley_zone_create(
-    data: Zones, 
+    data: createZones, 
     zone_id: str = Query(None),  
     wallet: WalletTypeInfo = Depends(get_key_type)
     ):
@@ -138,20 +137,20 @@ async def api_diagonalley_zone_create(
         zone = await get_diagonalley_zone(zone_id)
 
         if not zone:
-            return ({"message": "Zone does not exist."}))
+            return ({"message": "Zone does not exist."})
 
-        if zone.wallet != walley.wallet.id:
-            return ({"message": "Not your record."}))
+        if zone.wallet != wallet.wallet.id:
+            return ({"message": "Not your record."})
 
-        zone = await update_diagonalley_zone(zone_id, data)
+        zone = await update_diagonalley_zone(zone_id, **data.dict())
     else:
-        zone = await create_diagonalley_zone(wallet=wallet.wallet.id, data)
+        zone = await create_diagonalley_zone(wallet=wallet.wallet.id, data=data)
 
-    return ({**zone._asdict()}))
+    return zone.dict()
 
 
 @diagonalley_ext.delete("/api/v1/zones/{zone_id}")
-async def api_diagonalley_zone_delete(zone_id: str = Query(None),  wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_diagonalley_zone_delete(zone_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
     zone = await get_diagonalley_zone(zone_id)
 
     if not zone:
@@ -161,7 +160,6 @@ async def api_diagonalley_zone_delete(zone_id: str = Query(None),  wallet: Walle
         return ({"message": "Not your zone."})
 
     await delete_diagonalley_zone(zone_id)
-
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
