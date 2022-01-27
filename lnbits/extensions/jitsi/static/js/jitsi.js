@@ -28,6 +28,10 @@
 // TODO(nochiel) Use exceptions where necessary.
 // TODO(nochiel) Parse chat commands that the host sends (they aren't broadcast as events).
 
+// FIXME(nochiel) Cleanup: Use consistent language for:
+// - Jitsi meeting.
+// - Jitsi host.
+
 // ref. https://github.com/jitsi/jitsi-meet/blob/master/modules/API/external/external_api.js
 // import "./external_api.js";
 // import "lib-jitsi-meet.min.js";
@@ -158,35 +162,6 @@ const app = new Vue({
             log('chatUpdated: event: ', event);
         },
 
-        async logChatMessage(event) {
-            // FIXME(nochiel) If the host leaves then rejoins the conference, he has to reprocess all the events all over again because he is sent the whole chatlog. 
-            // - Save a conference timestamp and don't process messages before that timestamp.
-            // - How do we filter out old messages without accidentally ignoring old messages?
-            // - The host can send themselves a private timestamp every time he receives a message. 
-            // - Or: create a participant who is the chatbot. The host can then send logs to the chatbot.
-            // FIXME(nochiel) Upstream: events should have a timestamp. We need to know when a chat message was sent.
-
-            // log('logChatMessage: event: ', event);
-            assert(event);
-            assert(event.message != '');
-
-            let data = event;
-            data.timestamp = performance.now();
-            /*
-            let result = await LNbits.api
-                .request(
-                    'POST',
-                    '/jitsi/api/v1/conference/message',
-                    this.g.user.wallets[0].inkey,       // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
-                    data,
-                );
-            */
-            let result = data;
-            log('logChatMessage: ', result);
-            return result;
-
-        },
-
         async getWallet(conferenceId, participantId) {
             assert(conferenceId);
             assert(participantId);
@@ -228,14 +203,6 @@ const app = new Vue({
             return result;
         },
 
-        mSatstoSats(v) {
-            let result = 0
-            if(v > 0) {
-                result = floor(v / 1000);
-            }
-            return result;
-        },
-
         async incomingMessage(event) {
 
             if(!this._isMounted) return;
@@ -259,39 +226,57 @@ const app = new Vue({
 
             /*
                 getParticipantsInfo returns {displayName: 'b', formattedDisplayName: 'b', avatarURL: undefined, participantId: '259448ce'}
-            */
+                */
             const participants = this.api.getParticipantsInfo();
-            let sendChatMessage = (to = '', message) => {
 
-                if(to == '') {
+            const sendChatMessage = (to, message) => {
 
-                        this.api.executeCommand('sendChatMessage',
-                            message,
-                            '', // the receiving participant ID or empty string/undefined for group chat.
-                        );
+                const recipient = participants.find(p => p.participantId == to)
+                    ?.displayName;
+                assert(to && recipient, `participant id ${to} is not in this conference`);
 
-                } else {
-
-                    const participants = this.api.getParticipantsInfo();
-                    const recipient = participants.find(p => p.participantId == to)
-                        ?.displayName;
-                    assert(recipient, `${to} is an invalid id`);
-                    if(recipient) {
-                        this.api.executeCommand('sendChatMessage',
-                            message,
-                            to, // the receiving participant ID or empty string/undefined for group chat.
-                        );
-                    }
-
+                if((to && recipient) || !to) {
+                    this.api.executeCommand('sendChatMessage',
+                        message,
+                        to, // the receiving participant ID or empty string/undefined for group chat.
+                    );
                 }
+
             };
 
+            const logChatMessage = async (event) => {
+                // FIXME(nochiel) If the host leaves then rejoins the conference, he has to reprocess all the events all over again because he is sent the whole chatlog. 
+                // - Save a conference timestamp and don't process messages before that timestamp.
+                // - How do we filter out old messages without accidentally ignoring old messages?
+                // - The host can send themselves a private timestamp every time he receives a message. 
+                // - Or: create a participant who is the chatbot. The host can then send logs to the chatbot.
+                // FIXME(nochiel) Upstream: events should have a timestamp. We need to know when a chat message was sent.
 
+                // log('logChatMessage: event: ', event);
+                assert(event);
+                assert(event.message);
 
-            let message = await this.logChatMessage(event);
+                let data = event;
+                data.timestamp = performance.now();
+                /*
+                    let result = await LNbits.api
+                    .request(
+                        'POST',
+                        '/jitsi/api/v1/conference/${this.conference}/message',
+                        this.g.user.wallets[0].inkey,       // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
+                        data,
+                    );
+                    */
+                let result = data;
+                log('logChatMessage: ', result);
+                return result;
+
+            };
+
+            let message = await logChatMessage(event);
             if(message) {
 
-                log(`incomingMessage: from "${message.from}". Says: ${message.message} at ${message.timestamp}`);
+                log(`incomingMessage: from: "${message.from}"\nmessage: "${message.message}"\nat: ${message.timestamp}`);
 
                 if(message.message.trim().startsWith('/')) {
 
@@ -313,28 +298,34 @@ const app = new Vue({
                                         const payeeName = participants.find(p => p.participantId == payee)
                                             ?.displayName;
 
-                                        memo ??= `Paying ${payeeName} in the "${this.conference}" Jitsi conference call.`;
+                                        memo ??= `Paying ${payeeName} in the "${this.conference}" Jitsi meeting.`;
 
-                                        log(`incomingMessage.getInvoice: ${payee}, ${amount}, ${memo}`);
+                                        log(`incomingMessage.getInvoice: pay ${payeeName}(${payee}), ${amount}, ${memo}`);
 
-                                        let result = { 
-                                            paymentRequest: null, 
-                                            qrCode: null,
-                                        };
+                                        return this.getParticipant(this.conference, payee)
+                                            .then(async participant => {
 
-                                        let participant = await this.getParticipant(this.conference, payee);
-                                        assert(participant);
-                                        let wallet = await this.getWallet(this.conference, participant.id);
-                                        assert(wallet);
-                                        log('incomingMessage.getInvoice: wallet: ', wallet);
+                                                assert(participant);
+                                                let wallet = await this.getWallet(this.conference, participant.id);
+                                                assert(wallet);
+                                                log('incomingMessage.getInvoice: payee: ', participant.user , ' wallet: ', wallet);
 
-                                        let response = await LNbits.api.createInvoice(wallet, amount, memo);
-                                        assert(response.data);
-                                        log('incomingMessage.getInvoice: createInvoice response: ', response.data);
-                                        assert(response.data.payment_request);  
-                                        result.paymentRequest = response.data.payment_request; 
-                                        return result;
+                                                return LNbits.api.createInvoice(wallet, amount, memo)
+                                                    .then(response => response.data)
+                                                    .then(data => {
 
+                                                        assert(data);
+                                                        log('incomingMessage.getInvoice: createInvoice response.data: ', data);
+                                                        assert(data.payment_request);  
+
+                                                        let result = { 
+                                                            paymentRequest: data.payment_request, 
+                                                            qrCode: null,       // TODO(nochiel)
+                                                        };
+
+                                                        return result;
+                                                    });
+                                            });
                                     };
 
 
@@ -374,16 +365,16 @@ const app = new Vue({
                                                 // FIXME(nochiel) When making payments or generating invoices, use the correct wallet invoice key.
 
                                                 LNbits.api.getWallet(wallet)
-                                                    .then(wallet => {
+                                                .then(wallet => {
 
-                                                        log(`incomingMessage: command balance`);
-                                                        log(`incomingMessage: ${message.from} has a balance of: ${wallet.sat}`);
-                                                        sendChatMessage(message.from,
-                                                            `Your Lightning wallet balance for this conference is ${LNbits.utils.formatSat(wallet.fsat)}` + '\n\n' +
-                                                            `You can manage your LNbits wallet by visiting: ${window.location.origin + wallet.url} (YOU SHOULD SAVE THIS URL!)`);
+                                                    log(`incomingMessage: command balance`);
+                                                    log(`incomingMessage: ${message.from} has a balance of: ${wallet.sat}`);
+                                                    sendChatMessage(message.from,
+                                                        `Your Lightning wallet balance for this conference is ${LNbits.utils.formatSat(wallet.fsat)}` + '\n\n' +
+                                                        `You can manage your LNbits wallet by visiting: ${window.location.origin + wallet.url} (YOU SHOULD SAVE THIS URL!)`);
 
-                                                    });
-                                                
+                                                });
+
                                             }; break;
 
                                             case 'deposit': {
@@ -401,21 +392,21 @@ const app = new Vue({
                                                 }
 
                                                 let name = participants.find(p => p.participantId == message.from) 
-                                                                            ?.displayName;
+                                                ?.displayName;
                                                 let memo = `Deposit for "${name}" in the "${this.conference}" Jitsi conference call.`;
                                                 if(2 in words) { memo = words[2] }
 
                                                 getInvoice(message.from, amount, memo)
-                                                    .then(invoice => {
-                                                        assert(invoice, 'An invoice was not created');
-                                                        sendChatMessage(message.from, `Use your Lightning wallet to deposit into your LNbits wallet with the following invoice:\n\n`
-                                                            + `${invoice.paymentRequest}`);
-                                                    })
-                                                    .catch(e => {
+                                                .then(invoice => {
+                                                    assert(invoice, 'An invoice was not created');
+                                                    sendChatMessage(message.from, `Use your Lightning wallet to deposit into your LNbits wallet with the following invoice:\n\n`
+                                                        + `${invoice.paymentRequest}`);
+                                                })
+                                                .catch(e => {
 
-                                                        logError('incomingMessage: ', e);
-                                                        sendChatMessage(message.from, 'LNbits failed to generate an invoice for your deposit. Please try again or inform the host of this conference call that wallets are not working.');
-                                                    });
+                                                    logError('incomingMessage: ', e);
+                                                    sendChatMessage(message.from, 'LNbits failed to generate an invoice for your deposit. Please try again or inform the host of this conference call that wallets are not working.');
+                                                });
 
                                             }; break
 
@@ -441,12 +432,12 @@ const app = new Vue({
                                                 }
 
                                                 const payerName = participants.find(p => p.participantId == payer.id)
-                                                                                ?.displayName;
+                                                ?.displayName;
 
                                                 const payeeName = words[2];
                                                 log(`incomingMessage: payee: ${payeeName}`);
                                                 const payee = participants.find(p => p.displayName == payeeName)
-                                                                            ?.participantId;
+                                                ?.participantId;
                                                 if(!payee) {
                                                     sendChatMessage(payer.id, `You tried to send money to ${payeeName} but they aren't in this meeting! Please try again with a name that is in use by someone here.`);
                                                     return;
@@ -472,7 +463,7 @@ const app = new Vue({
                                                         .request(
                                                             'POST',
                                                             `/jitsi/api/v1/conference/${this.conference}/pay`,
-                                                            this.g.user.wallets[0].inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
+                                                            payerWallet.inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
                                                             payment,
                                                         );
 
@@ -508,11 +499,11 @@ const app = new Vue({
 
                                                 assert(amount > 0);
                                                 getInvoice(payee, amount, memo)
-                                                    .then(invoice => {
-                                                        assert(invoice, 'An invoice was not created');
-                                                        sendChatMessage(payer.id, `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n\n`
-                                                            + `${invoice.paymentRequest}`);
-                                                        // sendChatMessage(payer.id, invoice.qrCode);       // TODO(nochiel)
+                                                .then(invoice => {
+                                                    assert(invoice, 'An invoice was not created');
+                                                    sendChatMessage(payer.id, `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n\n`
+                                                        + `${invoice.paymentRequest}`);
+                                                    // sendChatMessage(payer.id, invoice.qrCode);       // TODO(nochiel)
 
                                                 })
                                                 .catch(e => {
@@ -626,18 +617,26 @@ const app = new Vue({
             assert(conference, 'conference id must be given');
             assert(participant, 'participant id must be given');
 
-            log(`getParticipant: ${participant}`);
+            let result = null;
+            if(conference && participant) {
 
-            let result = LNbits.api
-                .request(
-                    'GET',
-                    `/jitsi/api/v1/conference/${conference}/participant/${participant}`,
-                    this.wallet.adminkey,
-                )
-                .then(response => response.data)
-                .catch(e => {
-                    log('getParticipant: error: ', e);
-                });
+                log(`getParticipant: ${participant}`);
+
+                result = LNbits.api
+                    .request(
+                        'GET',
+                        `/jitsi/api/v1/conference/${conference}/participant/${participant}`,
+                        this.wallet.adminkey,
+                    )
+                    .then(response => {
+                        let result = response.data;
+                        log('getParticipant: data: ', result);
+                        return result;
+                    })
+                    .catch(e => {
+                        log('getParticipant: error: ', e);
+                    });
+            }
 
             return result;
         },

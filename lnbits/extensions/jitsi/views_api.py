@@ -169,7 +169,7 @@ class JitsiParticipant(BaseModel):
     id: str
 
 @jitsi_ext.post('/api/v1/conference/{conferenceId}/participant', status_code = HTTPStatus.CREATED)
-async def createJitsiParticipant(conferenceId: str, jitsiParticipant: JitsiParticipant,):   # FIXME(nochiel) Migrate to FastAPI
+async def createJitsiParticipant(conferenceId: str, jitsiParticipant: JitsiParticipant,):
 
     user = await create_account()
     assert user, 'we were not able to create a new user'
@@ -197,19 +197,22 @@ async def createJitsiParticipant(conferenceId: str, jitsiParticipant: JitsiParti
 
     return participant.dict()
 
-@jitsi_ext.get('/api/v1/conference/{conference_id}/participant/{participant_id}',
+@jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participantId}',
         status_code = HTTPStatus.OK)
-async def getJitsiParticipant(conference_id, participant_id,
+async def getJitsiParticipant(conferenceId, participantId,
         walletTypeInfo = Depends(require_admin_key)
         ):  
     print('getJitsiParticipant')
 
-    assert participant_id, 'participant_id is required'
-    participant = await getParticipant(conference_id, participant_id)
+    # participants = await getAllParticipants(conferenceId)
+    # print('all participants: ', participants);
+
+    assert participantId, 'participantId is required'
+    participant = await getParticipant(conferenceId, participantId)
     if participant is None:
         raise HTTPException(
                 status_code = HTTPStatus.NOT_FOUND,
-                detail = f'jitsi participant "{participant_id}" was not found in conference "{conference_id}"'
+                detail = f'jitsi participant "{participantId}" was not found in conference "{conferenceId}"'
         )
 
     return participant.dict()
@@ -226,6 +229,7 @@ async def getJitsiParticipant(conference_id, participant_id,
         # )
 
 async def api_jitsi_conference_message_push():
+    assert False, 'not implemented'
     m = Message(g.data['from'], g.data['from'], g.data['stamp'])
 
 
