@@ -185,7 +185,7 @@ async def get_standalone_payment(
         """
         SELECT *
         FROM apipayments
-        WHERE (checking_id = ? OR hash = ?) AND amount > 0 -- only the incoming payment
+        WHERE checking_id = ? OR hash = ?
         LIMIT 1
         """,
         (checking_id_or_hash, checking_id_or_hash),
