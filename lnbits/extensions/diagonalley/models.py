@@ -59,15 +59,25 @@ class Zones(BaseModel):
     countries: str
 
 
+class createOrder(BaseModel):
+    productid: str = Query(...)
+    stall: str = Query(...)
+    product: str = Query(...)
+    quantity: int = Query(..., ge=1)
+    shippingzone: int = Query(...)
+    address: str = Query(...)
+    email: str = Query(...)
+    invoiceid: str = Query(...)
+
 class Orders(BaseModel):
-    id: str = Query(None)
-    productid: str = Query(None)
-    stall: str = Query(None)
-    product: str = Query(None)
-    quantity: int = Query(0)
-    shippingzone: int = Query(0)
-    address: str = Query(None)
-    email: str = Query(None)
-    invoiceid: str = Query(None)
+    id: str
+    productid: str
+    stall: str
+    product: str
+    quantity: int
+    shippingzone: int
+    address: str
+    email: str
+    invoiceid: str
     paid: bool
     shipped: bool
