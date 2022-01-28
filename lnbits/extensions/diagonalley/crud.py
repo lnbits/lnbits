@@ -16,6 +16,7 @@ from .models import (
     Products,
     Stalls,
     Zones,
+    createOrder,
     createProduct,
     createStalls,
     createZones,
@@ -83,7 +84,7 @@ async def get_diagonalley_product(product_id: str) -> Optional[Products]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
     )
-    return Products.from_row(row) if row else None
+    return Products(**row) if row else None
 
 
 async def get_diagonalley_products(wallet_ids: Union[str, List[str]]) -> List[Products]:
@@ -98,7 +99,7 @@ async def get_diagonalley_products(wallet_ids: Union[str, List[str]]) -> List[Pr
         """,
         (*wallet_ids,),
     )
-    return [Products.from_row(row) for row in rows]
+    return [Products(**row) for row in rows]
 
 
 async def delete_diagonalley_product(product_id: str) -> None:
@@ -139,12 +140,12 @@ async def update_diagonalley_zone(zone_id: str, **kwargs) -> Optional[Zones]:
         (*kwargs.values(), zone_id),
     )
     row = await db.fetchone("SELECT * FROM diagonalley.zones WHERE id = ?", (zone_id,))
-    return Zones.from_row(row) if row else None
+    return Zones(**row) if row else None
 
 
 async def get_diagonalley_zone(zone_id: str) -> Optional[Zones]:
     row = await db.fetchone("SELECT * FROM diagonalley.zones WHERE id = ?", (zone_id,))
-    return Zones.from_row(row) if row else None
+    return Zones(**row) if row else None
 
 
 async def get_diagonalley_zones(wallet_ids: Union[str, List[str]]) -> List[Zones]:
@@ -182,7 +183,7 @@ async def get_diagonalley_zones(wallet_ids: Union[str, List[str]]) -> List[Zones
     rows = await db.fetchall(
         f"SELECT * FROM diagonalley.zones WHERE wallet IN ({q})", (*wallet_ids,)
     )
-    return [Zones.from_row(row) for row in rows]
+    return [Zones(**row) for row in rows]
 
 
 async def delete_diagonalley_zone(zone_id: str) -> None:
@@ -233,7 +234,7 @@ async def update_diagonalley_stall(stall_id: str, **kwargs) -> Optional[Stalls]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
-    return Stalls.from_row(row) if row else None
+    return Stalls(**row) if row else None
 
 
 async def get_diagonalley_stall(stall_id: str) -> Optional[Stalls]:
@@ -266,7 +267,7 @@ async def get_diagonalley_stall(stall_id: str) -> Optional[Stalls]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
-    return Stalls.from_row(row) if row else None
+    return Stalls(**row) if row else None
 
 
 async def get_diagonalley_stalls(wallet_ids: Union[str, List[str]]) -> List[Stalls]:
@@ -303,7 +304,7 @@ async def get_diagonalley_stalls(wallet_ids: Union[str, List[str]]) -> List[Stal
     rows = await db.fetchall(
         f"SELECT * FROM diagonalley.stalls WHERE wallet IN ({q})", (*wallet_ids,)
     )
-    return [Stalls.from_row(row) for row in rows]
+    return [Stalls(**row) for row in rows]
 
 
 async def delete_diagonalley_stall(stall_id: str) -> None:
@@ -314,47 +315,34 @@ async def delete_diagonalley_stall(stall_id: str) -> None:
 
 
 async def create_diagonalley_order(
-    *,
-    productid: str,
-    wallet: str,
-    product: str,
-    quantity: int,
-    shippingzone: str,
-    address: str,
-    email: str,
-    invoiceid: str,
-    paid: bool,
-    shipped: bool,
+    data: createOrder
 ) -> Orders:
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
 
     order_id = urlsafe_short_hash()
-    result = await (method)(
+    await db.execute(
         f"""
             INSERT INTO diagonalley.orders (id, productid, wallet, product,
             quantity, shippingzone, address, email, invoiceid, paid, shipped)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            {returning}
             """,
         (
             order_id,
-            productid,
-            wallet,
-            product,
-            quantity,
-            shippingzone,
-            address,
-            email,
-            invoiceid,
+            data.productid,
+            data.wallet,
+            data.product,
+            data.quantity,
+            data.shippingzone,
+            data.address,
+            data.email,
+            data.invoiceid,
             False,
             False,
         ),
     )
-    if db.type == SQLITE:
-        order_id = result._result_proxy.lastrowid
-    else:
-        order_id = result[0]
+    # if db.type == SQLITE:
+    #     order_id = result._result_proxy.lastrowid
+    # else:
+    #     order_id = result[0]
 
     link = await get_diagonalley_order(order_id)
     assert link, "Newly created link couldn't be retrieved"
@@ -365,7 +353,7 @@ async def get_diagonalley_order(order_id: str) -> Optional[Orders]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,)
     )
-    return Orders.from_row(row) if row else None
+    return Orders(**row) if row else None
 
 
 async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
@@ -377,7 +365,7 @@ async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orde
         f"SELECT * FROM diagonalley.orders WHERE wallet IN ({q})", (*wallet_ids,)
     )
     #
-    return [Orders.from_row(row) for row in rows]
+    return [Orders(**row) for row in rows]
 
 
 async def delete_diagonalley_order(order_id: str) -> None:
