@@ -440,7 +440,7 @@ const app = new Vue({
                                                 let memo;
                                                 if (3 in words) { memo = words.slice(3).join(' '); }
 
-                                                const pay = (payer, wallet, amount, payeeId, memo) => {
+                                                const pay = async (payer, wallet, amount, payeeId, memo) => {
 
                                                     getInvoice(payeeId, amount, memo)
                                                         .then(invoice => {
@@ -452,73 +452,57 @@ const app = new Vue({
 
 
                                                                 sendChatMessage(payer.id, 
-                                                                    `You don't have enough sats to send that amount from your LNbits wallet. Your balance is ${wallet.sat}.\n` + 
-                                                        HELPBALANCE  + '\n' +
-                                                        HELPDEPOSIT);
+                                                                    `You don't have enough sats to send that amount from your LNbits wallet. Your balance is ${wallet.sat}.`);
+                                                                sendChatMessage(payer.id, HELPBALANCE);
+                                                                sendChatMessage(HELPDEPOSIT);
 
 
-                                                    sendChatMessage(payer.id, `Paying ${payeeName} ${amount} sats.`);
-                                                    sendChatMessage(payer.id,
-                                                        `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n` +
-                                                        `${invoice.paymentRequest}`);
-                                                    return;
-                                                }
+                                                                // sendChatMessage(payer.id, `Paying ${payeeName} ${amount} sats.`);
+                                                                sendChatMessage(payer.id,
+                                                                    `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n\n` +
+                                                                    `${invoice.paymentRequest}`);
+                                                                return;
+                                                            }
 
-                                                LNbits.api.payInvoice(wallet, invoice.paymentRequest)
-                                                .then(response =>  response.data)
-                                                .then(({payment_hash, }) => {
+                                                            LNbits.api.payInvoice(wallet, invoice.paymentRequest)
+                                                                .then(response =>  response.data)
+                                                                .then(({payment_hash, }) => {
 
-                                                    assert(payment_hash);
-                                                    log(`incomingMessage.pay: ${payer.id} paid ${amount} to ${payee}.\nPayment hash: ${payment_hash}`);
-                                                })
+                                                                    assert(payment_hash);
+                                                                    log(`incomingMessage.pay: ${payer.id} paid ${amount} to ${payee}.\nPayment hash: ${payment_hash}`);
+                                                                });
 
-                                            })
-                                .catch(e => {
-                                    logError('incomingMessage: ', e);
-                                    sendChatMessage(payer.id, 'Payment failed. Please try again or inform the host of this conference call that payments are not working.');
-                                });
+                                                    })
+                                                    .catch(e => {
+                                                        logError('incomingMessage: ', e);
+                                                        sendChatMessage(payer.id, 'Payment failed. Please try again or inform the host of this conference call that payments are not working.');
+                                                    });
 
+                                                };
 
-                            let payment = {
-                                payer: payer,
-                                payee: payee,
-                                amount: amount,
-                                memo: memo,
-                            };
+                                                pay(participant, wallet, amount, payee, memo)
+                                                    .then(payment => {
 
-                            LNbits.api
-                                .request(
-                                    'POST',
-                                    `/jitsi/api/v1/conference/${this.conference}/pay`,
-                                    payerWallet.inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
-                                    payment,
-                                );
+                                                        log(`incomingMessage.pay: Payment(${payment.hash}) from ${payment.payer.id} to ${payment.payee.id} for ${payment.sats} sats.`);
+                                                        sendChatMessage(payment.payee, `${payerName} has paid you {payment.sats} sats.`);        // FIXME(nochiel)
+                                                    })
+                                                    .catch(e => {
+                                                        // TODO(nochiel) Give specific error messages to the payer.
+                                                        // - Insufficient balance error.
+                                                        // - Server/Node error
+                                                        sendChatMessage(participant.id, `Sorry, your payment of ${amount} to ${payeeName} failed! Please try again.`);
+                                                    });
 
-                                        };
+                                                return;
 
-                                        pay(participant, wallet, amount, payee, memo)
-                                            .then(payment => {
+                                                }; break;
 
-                                                log(`incomingMessage.pay: Payment(${payment.hash}) from ${payment.payer.id} to ${payment.payee.id} for ${payment.sats} sats.`);
-                                                sendChatMessage(payment.payee, `${payerName} has paid you {payment.sats} sats.`);        // FIXME(nochiel)
-                                            })
-                                            .catch(e => {
-                                                // TODO(nochiel) Give specific error messages to the payer.
-                                                // - Insufficient balance error.
-                                                // - Server/Node error
-                                                sendChatMessage(payment.payer, `Sorry, your payment of ${payment.amount} to ${payment.payee.name} failed! Please try again.`);
-                                            });
-
-                                        return;
-
-                                    }; break;
-
-                                }
-                        }
-                });
-            });
-        }
-    }
+                                            }
+                                    }
+                            });
+                        });
+                    }
+                }
         },
 
         async videoConferenceJoined(event) {
