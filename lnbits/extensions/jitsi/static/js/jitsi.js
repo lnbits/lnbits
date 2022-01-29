@@ -214,7 +214,7 @@ const app = new Vue({
                     privateMessage: boolean, // whether this is a private or group message
                     message: string // the text of the message
                 }
-            */
+                */
 
             // FIXME(nochiel) The bot is run as the host. Ideally, the bot should be an independent participant.
             // FIXME(nochiel) If the host (local user) leaves the chat, we have no way of knowing infallibly
@@ -273,7 +273,7 @@ const app = new Vue({
 
             };
 
-            let message = await logChatMessage(event);
+            const message = await logChatMessage(event);
             if(message) {
 
                 log(`incomingMessage: from: "${message.from}"\nmessage: "${message.message}"\nat: ${message.timestamp}`);
@@ -388,7 +388,7 @@ const app = new Vue({
                                                 let name = participants.find(p => p.participantId == message.from) 
                                                 ?.displayName;
                                                 let memo = `Deposit for "${name}" in the "${this.conference}" Jitsi conference call.`;
-                                                if(2 in words) { memo = words[2] }
+                                                if(2 in words) { memo = words.slice(2).join(' ') }
 
                                                 getInvoice(message.from, amount, memo)
                                                 .then(invoice => {
@@ -438,82 +438,87 @@ const app = new Vue({
                                                 }
 
                                                 let memo;
-                                                if (3 in words) { memo = words[3]; }
+                                                if (3 in words) { memo = words.slice(3).join(' '); }
 
-                                                const pay = (payer, amount, payee, memo) => {
-                                                    // TODO(nochiel) Get an invoice from payee.
-                                                        // TODO(nochiel) Payer pays payee's invoice.
+                                                const pay = (payer, wallet, amount, payeeId, memo) => {
 
-                                                        NOTIMPLEMENTED();
+                                                    getInvoice(payeeId, amount, memo)
+                                                        .then(invoice => {
 
-                                                    let payment = {
-                                                        payer: payer,
-                                                        payee: payee,
-                                                        amount: amount,
-                                                        memo: memo,
-                                                    };
+                                                            // assert(participant.id == payer, `using payer participant: ${participant}`);
+                                                            // assert(wallet.user == participant.user, `using payer wallet: ${wallet}`);
 
-                                                    LNbits.api
-                                                        .request(
-                                                            'POST',
-                                                            `/jitsi/api/v1/conference/${this.conference}/pay`,
-                                                            payerWallet.inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
-                                                            payment,
-                                                        );
+                                                            if(wallet.sat < amount) {
 
-                                                };
 
-                                                if(wallet.sat < amount) {
-                                                    sendChatMessage(payer.id, 
-                                                        `You don't have enough sats to send that amount from your LNbits wallet. Your balance is ${wallet.sat}` + '\n\n' +
-                                                        HELPBALANCE + '\n\n' +
+                                                                sendChatMessage(payer.id, 
+                                                                    `You don't have enough sats to send that amount from your LNbits wallet. Your balance is ${wallet.sat}.\n` + 
+                                                        HELPBALANCE  + '\n' +
                                                         HELPDEPOSIT);
-                                                }
 
-                                                if(wallet.sat >= amount) {
 
                                                     sendChatMessage(payer.id, `Paying ${payeeName} ${amount} sats.`);
-
-                                                    pay(payer.id, amount, payee, memo)
-                                                        .then(payment => {
-
-                                                            log(`incomingMessage.pay: Payment(${payment.hash}) from ${payment.payer.id} to ${payment.payee.id} for ${payment.sats} sats.`);
-                                                            sendChatMessage(payment.payee, `${payerName} has paid you {payment.sats} sats.`);        // FIXME(nochiel)
-                                                        })
-                                                        .catch(e => {
-                                                            // TODO(nochiel) Give specific error messages to the payer.
-                                                                // - Insufficient balance error.
-                                                                // - Server/Node error
-                                                            sendChatMessage(payment.payer, `Sorry, your payment of ${payment.amount} to ${payment.payee.name} failed! Please try again.`);
-                                                        });
-
+                                                    sendChatMessage(payer.id,
+                                                        `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n` +
+                                                        `${invoice.paymentRequest}`);
                                                     return;
-
                                                 }
 
-                                                assert(amount > 0);
-                                                getInvoice(payee, amount, memo)
-                                                .then(invoice => {
-                                                    assert(invoice, 'An invoice was not created');
-                                                    sendChatMessage(payer.id, `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n\n`
-                                                        + `${invoice.paymentRequest}`);
-                                                    // sendChatMessage(payer.id, invoice.qrCode);       // TODO(nochiel)
+                                                LNbits.api.payInvoice(wallet, invoice.paymentRequest)
+                                                .then(response =>  response.data)
+                                                .then(({payment_hash, }) => {
 
+                                                    assert(payment_hash);
+                                                    log(`incomingMessage.pay: ${payer.id} paid ${amount} to ${payee}.\nPayment hash: ${payment_hash}`);
                                                 })
-                                                .catch(e => {
-                                                    logError('incomingMessage: ', e);
-                                                    // TODO(nochiel) Give the user an actionable reason for the error.
-                                                        sendChatMessage(payer.id, 'Payment failed. Please try again or inform the host of this conference call that payments are not working.');
-                                                });
 
-                                            }; break;
-
-                                        }
-                                    }
+                                            })
+                                .catch(e => {
+                                    logError('incomingMessage: ', e);
+                                    sendChatMessage(payer.id, 'Payment failed. Please try again or inform the host of this conference call that payments are not working.');
                                 });
-                        });
-                }
-            }
+
+
+                            let payment = {
+                                payer: payer,
+                                payee: payee,
+                                amount: amount,
+                                memo: memo,
+                            };
+
+                            LNbits.api
+                                .request(
+                                    'POST',
+                                    `/jitsi/api/v1/conference/${this.conference}/pay`,
+                                    payerWallet.inkey,   // FIXME(nochiel) Make sure we use the correct API key for the hosts wallet. Do we know that the first wallet is the correct one?
+                                    payment,
+                                );
+
+                                        };
+
+                                        pay(participant, wallet, amount, payee, memo)
+                                            .then(payment => {
+
+                                                log(`incomingMessage.pay: Payment(${payment.hash}) from ${payment.payer.id} to ${payment.payee.id} for ${payment.sats} sats.`);
+                                                sendChatMessage(payment.payee, `${payerName} has paid you {payment.sats} sats.`);        // FIXME(nochiel)
+                                            })
+                                            .catch(e => {
+                                                // TODO(nochiel) Give specific error messages to the payer.
+                                                // - Insufficient balance error.
+                                                // - Server/Node error
+                                                sendChatMessage(payment.payer, `Sorry, your payment of ${payment.amount} to ${payment.payee.name} failed! Please try again.`);
+                                            });
+
+                                        return;
+
+                                    }; break;
+
+                                }
+                        }
+                });
+            });
+        }
+    }
         },
 
         async videoConferenceJoined(event) {
@@ -582,18 +587,15 @@ const app = new Vue({
         async getConference(adminId) {
 
             // FIXME(nochiel) Handle errors.
-            assert(adminId);
+                assert(adminId);
             let result = null;
-            let response = await LNbits.api
+            result = LNbits.api
                 .request(
                     'GET',
                     `/jitsi/api/v1/conference/${adminId}`,
                     this.wallet.adminkey,
-                );
-
-            if(response != null) {
-                result = response.data;
-            }
+                )
+                .then(response => response.data);
 
             return result;
 
@@ -607,7 +609,7 @@ const app = new Vue({
                     user: str
                     wallet: str
                 }
-            */
+                */
             assert(conference, 'conference id must be given');
             assert(participant, 'participant id must be given');
 
@@ -641,7 +643,7 @@ const app = new Vue({
                     id: string, // the id of the participant
                     displayName: string // the display name of the participant
                 }
-            */
+                */
             if(!this._isMounted) return;
 
             // FIXME(nochiel) Unique nicknames: Prevent participants from having the same displayName. 
