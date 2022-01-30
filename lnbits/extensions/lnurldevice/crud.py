@@ -24,7 +24,15 @@ async def create_lnurldevice(data: createLnurldevice,) -> lnurldevices:
         )
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (lnurldevice_id, lnurldevice_key, data.title, data.wallet, data.currency, data.device, data.profit,),
+        (
+            lnurldevice_id,
+            lnurldevice_key,
+            data.title,
+            data.wallet,
+            data.currency,
+            data.device,
+            data.profit,
+        ),
     )
     return await get_lnurldevice(lnurldevice_id)
 
@@ -63,7 +71,9 @@ async def get_lnurldevices(wallet_ids: Union[str, List[str]]) -> List[lnurldevic
 
 
 async def delete_lnurldevice(lnurldevice_id: str) -> None:
-    await db.execute("DELETE FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,))
+    await db.execute(
+        "DELETE FROM lnurldevice.lnurldevices WHERE id = ?", (lnurldevice_id,)
+    )
 
     ########################lnuldevice payments###########################
 
@@ -102,19 +112,23 @@ async def update_lnurldevicepayment(
         (*kwargs.values(), lnurldevicepayment_id),
     )
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?", (lnurldevicepayment_id,)
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?",
+        (lnurldevicepayment_id,),
     )
     return lnurldevicepayment(**row) if row else None
 
 
 async def get_lnurldevicepayment(lnurldevicepayment_id: str) -> lnurldevicepayment:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?", (lnurldevicepayment_id,)
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?",
+        (lnurldevicepayment_id,),
     )
     return lnurldevicepayment(**row) if row else None
 
+
 async def get_lnurlpayload(lnurldevicepayment_payload: str) -> lnurldevicepayment:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ?", (lnurldevicepayment_payload,)
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ?",
+        (lnurldevicepayment_payload,),
     )
     return lnurldevicepayment(**row) if row else None

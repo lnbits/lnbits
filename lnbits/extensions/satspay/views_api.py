@@ -25,13 +25,14 @@ from .models import CreateCharge
 
 #############################CHARGES##########################
 
+
 @satspay_ext.post("/api/v1/charge")
 async def api_charge_create(
-    data: CreateCharge,
-    wallet: WalletTypeInfo = Depends(require_invoice_key)
+    data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
     charge = await create_charge(user=wallet.wallet.user, data=data)
     return charge.dict()
+
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
 async def api_charge_update(

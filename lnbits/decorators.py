@@ -171,6 +171,7 @@ async def require_admin_key(
     else:
         return wallet
 
+
 async def require_invoice_key(
     r: Request,
     api_key_header: str = Security(api_key_header),
@@ -184,7 +185,8 @@ async def require_invoice_key(
         # If wallet type is not invoice then return the unauthorized status
         # This also covers when the user passes an invalid key type
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invoice (or Admin) key required."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invoice (or Admin) key required.",
         )
     else:
         return wallet

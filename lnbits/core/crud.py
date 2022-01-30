@@ -30,8 +30,7 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (
-            user_id,)
+        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,)
     )
 
     return User(**row) if row else None
@@ -305,8 +304,7 @@ async def delete_expired_invoices(conn: Optional[Connection] = None,) -> None:
         except:
             continue
 
-        expiration_date = datetime.datetime.fromtimestamp(
-            invoice.date + invoice.expiry)
+        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
 

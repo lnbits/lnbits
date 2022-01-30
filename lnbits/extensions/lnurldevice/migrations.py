@@ -2,6 +2,7 @@ from lnbits.db import Database
 
 db2 = Database("ext_lnurlpos")
 
+
 async def m001_initial(db):
     """
     Initial lnurldevice table.
@@ -59,7 +60,8 @@ async def m002_redux(db):
                 (row[0], row[1], row[2], row[3], row[4], "pos", 0),
             )
         for row in [
-            list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlpospayment")
+            list(row)
+            for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlpospayment")
         ]:
             await db.execute(
                 """

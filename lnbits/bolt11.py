@@ -116,7 +116,6 @@ def decode(pr: str) -> Invoice:
     return invoice
 
 
-
 def encode(options):
     """ Convert options into LnAddr and pass it to the encoder
     """
@@ -131,27 +130,31 @@ def encode(options):
     addr.paymenthash = unhexlify(options.paymenthash)
 
     if options.description:
-        addr.tags.append(('d', options.description))
+        addr.tags.append(("d", options.description))
     if options.description_hashed:
-        addr.tags.append(('h', options.description_hashed))
+        addr.tags.append(("h", options.description_hashed))
     if options.expires:
-        addr.tags.append(('x', options.expires))
+        addr.tags.append(("x", options.expires))
 
     if options.fallback:
-        addr.tags.append(('f', options.fallback))
+        addr.tags.append(("f", options.fallback))
 
     for r in options.route:
-        splits = r.split('/')
-        route=[]
+        splits = r.split("/")
+        route = []
         while len(splits) >= 5:
-            route.append((unhexlify(splits[0]),
-                          unhexlify(splits[1]),
-                          int(splits[2]),
-                          int(splits[3]),
-                          int(splits[4])))
+            route.append(
+                (
+                    unhexlify(splits[0]),
+                    unhexlify(splits[1]),
+                    int(splits[2]),
+                    int(splits[3]),
+                    int(splits[4]),
+                )
+            )
             splits = splits[5:]
-        assert(len(splits) == 0)
-        addr.tags.append(('r', route))
+        assert len(splits) == 0
+        addr.tags.append(("r", route))
     return lnencode(addr, options.privkey)
 
 
@@ -159,21 +162,22 @@ def lnencode(addr, privkey):
     if addr.amount:
         amount = Decimal(str(addr.amount))
         # We can only send down to millisatoshi.
-        if amount * 10**12 % 10:
-            raise ValueError("Cannot encode {}: too many decimal places".format(
-                addr.amount))
+        if amount * 10 ** 12 % 10:
+            raise ValueError(
+                "Cannot encode {}: too many decimal places".format(addr.amount)
+            )
 
         amount = addr.currency + shorten_amount(amount)
     else:
-        amount = addr.currency if addr.currency else ''
+        amount = addr.currency if addr.currency else ""
 
-    hrp = 'ln' + amount
+    hrp = "ln" + amount
 
     # Start with the timestamp
-    data = bitstring.pack('uint:35', addr.date)
+    data = bitstring.pack("uint:35", addr.date)
 
     # Payment hash
-    data += tagged_bytes('p', addr.paymenthash)
+    data += tagged_bytes("p", addr.paymenthash)
     tags_set = set()
 
     for k, v in addr.tags:
@@ -181,30 +185,36 @@ def lnencode(addr, privkey):
         # BOLT #11:
         #
         # A writer MUST NOT include more than one `d`, `h`, `n` or `x` fields,
-        if k in ('d', 'h', 'n', 'x'):
+        if k in ("d", "h", "n", "x"):
             if k in tags_set:
                 raise ValueError("Duplicate '{}' tag".format(k))
 
-        if k == 'r':
+        if k == "r":
             route = bitstring.BitArray()
             for step in v:
                 pubkey, channel, feebase, feerate, cltv = step
-                route.append(bitstring.BitArray(pubkey) + bitstring.BitArray(channel) + bitstring.pack('intbe:32', feebase) + bitstring.pack('intbe:32', feerate) + bitstring.pack('intbe:16', cltv))
-            data += tagged('r', route)
-        elif k == 'f':
+                route.append(
+                    bitstring.BitArray(pubkey)
+                    + bitstring.BitArray(channel)
+                    + bitstring.pack("intbe:32", feebase)
+                    + bitstring.pack("intbe:32", feerate)
+                    + bitstring.pack("intbe:16", cltv)
+                )
+            data += tagged("r", route)
+        elif k == "f":
             data += encode_fallback(v, addr.currency)
-        elif k == 'd':
-            data += tagged_bytes('d', v.encode())
-        elif k == 'x':
+        elif k == "d":
+            data += tagged_bytes("d", v.encode())
+        elif k == "x":
             # Get minimal length by trimming leading 5 bits at a time.
-            expirybits = bitstring.pack('intbe:64', v)[4:64]
-            while expirybits.startswith('0b00000'):
+            expirybits = bitstring.pack("intbe:64", v)[4:64]
+            while expirybits.startswith("0b00000"):
                 expirybits = expirybits[5:]
-            data += tagged('x', expirybits)
-        elif k == 'h':
-            data += tagged_bytes('h', hashlib.sha256(v.encode('utf-8')).digest())
-        elif k == 'n':
-            data += tagged_bytes('n', v)
+            data += tagged("x", expirybits)
+        elif k == "h":
+            data += tagged_bytes("h", hashlib.sha256(v.encode("utf-8")).digest())
+        elif k == "n":
+            data += tagged_bytes("n", v)
         else:
             # FIXME: Support unknown tags?
             raise ValueError("Unknown tag {}".format(k))
@@ -215,26 +225,31 @@ def lnencode(addr, privkey):
     #
     # A writer MUST include either a `d` or `h` field, and MUST NOT include
     # both.
-    if 'd' in tags_set and 'h' in tags_set:
+    if "d" in tags_set and "h" in tags_set:
         raise ValueError("Cannot include both 'd' and 'h'")
-    if not 'd' in tags_set and not 'h' in tags_set:
+    if not "d" in tags_set and not "h" in tags_set:
         raise ValueError("Must include either 'd' or 'h'")
-    
+
     # We actually sign the hrp, then data (padded to 8 bits with zeroes).
     privkey = secp256k1.PrivateKey(bytes(unhexlify(privkey)))
-    sig = privkey.ecdsa_sign_recoverable(bytearray([ord(c) for c in hrp]) + data.tobytes())
+    sig = privkey.ecdsa_sign_recoverable(
+        bytearray([ord(c) for c in hrp]) + data.tobytes()
+    )
     # This doesn't actually serialize, but returns a pair of values :(
     sig, recid = privkey.ecdsa_recoverable_serialize(sig)
     data += bytes(sig) + bytes([recid])
 
     return bech32_encode(hrp, bitarray_to_u5(data))
 
+
 class LnAddr(object):
-    def __init__(self, paymenthash=None, amount=None, currency='bc', tags=None, date=None):
+    def __init__(
+        self, paymenthash=None, amount=None, currency="bc", tags=None, date=None
+    ):
         self.date = int(time.time()) if not date else int(date)
         self.tags = [] if not tags else tags
         self.unknown_tags = []
-        self.paymenthash=paymenthash
+        self.paymenthash = paymenthash
         self.signature = None
         self.pubkey = None
         self.currency = currency
@@ -242,11 +257,11 @@ class LnAddr(object):
 
     def __str__(self):
         return "LnAddr[{}, amount={}{} tags=[{}]]".format(
-            hexlify(self.pubkey.serialize()).decode('utf-8'),
-            self.amount, self.currency,
-            ", ".join([k + '=' + str(v) for k, v in self.tags])
+            hexlify(self.pubkey.serialize()).decode("utf-8"),
+            self.amount,
+            self.currency,
+            ", ".join([k + "=" + str(v) for k, v in self.tags]),
         )
-
 
 
 def _unshorten_amount(amount: str) -> int:

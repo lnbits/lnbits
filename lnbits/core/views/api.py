@@ -77,7 +77,9 @@ async def api_update_wallet(
 @core_app.get("/api/v1/payments")
 async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
     await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
-    pendingPayments = await get_payments(wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True)
+    pendingPayments = await get_payments(
+        wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True
+    )
     for payment in pendingPayments:
         await check_invoice_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
@@ -198,8 +200,7 @@ async def api_payments_create(
     invoiceData: CreateInvoiceData = Body(...),
 ):
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
 
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -379,16 +380,14 @@ async def api_lnurlscan(code: str):
         params.update(callback=url)  # with k1 already in it
 
         lnurlauth_key = g().wallet.lnurlauth_key(domain)
-        params.update(
-            pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
+        params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
             r = await client.get(url, timeout=5)
             if r.is_error:
                 raise HTTPException(
                     status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                    detail={"domain": domain,
-                            "message": "failed to get parameters"},
+                    detail={"domain": domain, "message": "failed to get parameters"},
                 )
 
         try:
@@ -418,8 +417,7 @@ async def api_lnurlscan(code: str):
 
             if tag == "withdrawRequest":
                 params.update(kind="withdraw")
-                params.update(fixed=data["minWithdrawable"]
-                              == data["maxWithdrawable"])
+                params.update(fixed=data["minWithdrawable"] == data["maxWithdrawable"])
 
                 # callback with k1 already in it
                 parsed_callback: ParseResult = urlparse(data["callback"])
@@ -509,18 +507,21 @@ async def api_list_currencies_available():
 
 
 class ConversionData(BaseModel):
-    from_: str = Field('sat', alias="from")
+    from_: str = Field("sat", alias="from")
     amount: float
-    to: str = Query('usd')
+    to: str = Query("usd")
+
 
 @core_app.post("/api/v1/conversion")
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
-    if data.from_ == 'sat':
+    if data.from_ == "sat":
         output["sats"] = int(data.amount)
         output["BTC"] = data.amount / 100000000
-        for currency in data.to.split(','):            
-            output[currency.strip().upper()] = await satoshis_amount_as_fiat(data.amount, currency.strip())
+        for currency in data.to.split(","):
+            output[currency.strip().upper()] = await satoshis_amount_as_fiat(
+                data.amount, currency.strip()
+            )
         return output
     else:
         output[data.from_.upper()] = data.amount

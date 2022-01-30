@@ -32,5 +32,6 @@ async def display(request: Request, charge_id):
         )
     wallet = await get_wallet(charge.lnbitswallet)
     return satspay_renderer().TemplateResponse(
-        "satspay/display.html", {"request": request, "charge": charge, "wallet_key": wallet.inkey}
+        "satspay/display.html",
+        {"request": request, "charge": charge, "wallet_key": wallet.inkey},
     )
