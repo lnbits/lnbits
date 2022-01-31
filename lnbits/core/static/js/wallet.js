@@ -185,6 +185,7 @@ new Vue({
         location: window.location
       },
       balance: 0,
+      credit: 0,
       newName: ''
     }
   },
@@ -249,11 +250,11 @@ new Vue({
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
-    updateBalance: function(scopeValue){
+    updateBalance: function(credit){
       LNbits.api
           .request(
             'PUT',
-            '/api/v1/wallet/balance/' + scopeValue,
+            '/api/v1/wallet/balance/' + credit,
             this.g.wallet.inkey
           )
           .catch(err => {

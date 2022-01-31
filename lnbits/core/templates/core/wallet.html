@@ -25,14 +25,14 @@
             icon="add"
             size="md"
           >
-            <q-popup-edit class="bg-accent text-white" v-slot="scope">
+            <q-popup-edit class="bg-accent text-white">
               <q-input
                 label="Amount to credit account"
-                v-model="scope.value"
+                v-model="credit"
                 dense
                 autofocus
                 type="number"
-                @keyup.enter="updateBalance(scope.value)"
+                @keyup.enter="updateBalance(credit)"
               >
                 <template v-slot:append>
                   <q-icon name="edit" />

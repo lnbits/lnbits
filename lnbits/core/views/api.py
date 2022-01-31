@@ -92,7 +92,7 @@ async def api_update_balance(
     return {
         "id": wallet.wallet.id,
         "name": wallet.wallet.name,
-        "balance": wallet.wallet.balance_msat + amount,
+        "balance": amount,
     }
 
 
