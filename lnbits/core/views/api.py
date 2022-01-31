@@ -38,6 +38,9 @@ from ..crud import (
     get_standalone_payment,
     save_balance_check,
     update_wallet,
+    create_payment,
+    get_wallet,
+    update_payment_status,
 )
 from ..services import (
     InvoiceFailure,
@@ -48,6 +51,8 @@ from ..services import (
     perform_lnurlauth,
 )
 from ..tasks import api_invoice_listeners
+from lnbits.settings import LNBITS_ADMIN_USERS
+from lnbits.helpers import urlsafe_short_hash
 
 
 @core_app.get("/api/v1/wallet")
@@ -60,6 +65,35 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
         }
     else:
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
+
+
+@core_app.put("/api/v1/wallet/balance/{amount}")
+async def api_update_balance(
+    amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    if LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
+        )
+
+    payHash = urlsafe_short_hash()
+    await create_payment(
+        wallet_id=wallet.wallet.id,
+        checking_id=payHash,
+        payment_request="selfPay",
+        payment_hash=payHash,
+        amount=amount*1000,
+        memo="selfPay",
+        fee=0,
+    )
+    await update_payment_status(checking_id=payHash, pending=False)
+    updatedWallet = await get_wallet(wallet.wallet.id)
+
+    return {
+        "id": wallet.wallet.id,
+        "name": wallet.wallet.name,
+        "balance": wallet.wallet.balance_msat + amount,
+    }
 
 
 @core_app.put("/api/v1/wallet/{new_name}")

@@ -14,7 +14,12 @@ from lnbits.core import db
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_SITE_TITLE, SERVICE_FEE
+from lnbits.settings import (
+    LNBITS_ALLOWED_USERS,
+    LNBITS_ADMIN_USERS,
+    LNBITS_SITE_TITLE,
+    SERVICE_FEE,
+)
 
 from ..crud import (
     create_account,
@@ -113,6 +118,8 @@ async def wallet(
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User not authorized."}
             )
+        if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
+            user.admin = True
     if not wallet_id:
         if user.wallets and not wallet_name:
             wallet = user.wallets[0]

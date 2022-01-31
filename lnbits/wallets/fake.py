@@ -37,6 +37,7 @@ class FakeWallet(Wallet):
             "The FakeWallet backend is for using LNbits as a centralised, stand-alone payment system."
         )
         return StatusResponse(None, float("inf"))
+
     async def create_invoice(
         self,
         amount: int,
@@ -54,14 +55,15 @@ class FakeWallet(Wallet):
             self.memo = memo
             self.description = memo
         letters = string.ascii_lowercase
-        randomHash = hashlib.sha256(str(random.getrandbits(256)).encode('utf-8')).hexdigest()
+        randomHash = hashlib.sha256(
+            str(random.getrandbits(256)).encode("utf-8")
+        ).hexdigest()
         self.paymenthash = randomHash
         payment_request = encode(self)
         print(payment_request)
         checking_id = randomHash
 
         return InvoiceResponse(True, checking_id, payment_request)
-
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         invoice = decode(bolt11)

@@ -8,7 +8,9 @@ from .models import createLnurldevice, lnurldevicepayment, lnurldevices
 ###############lnurldeviceS##########################
 
 
-async def create_lnurldevice(data: createLnurldevice,) -> lnurldevices:
+async def create_lnurldevice(
+    data: createLnurldevice,
+) -> lnurldevices:
     lnurldevice_id = urlsafe_short_hash()
     lnurldevice_key = urlsafe_short_hash()
     await db.execute(

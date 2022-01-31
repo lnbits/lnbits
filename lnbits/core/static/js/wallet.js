@@ -249,6 +249,29 @@ new Vue({
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
+    updateBalance: function(scopeValue){
+      LNbits.api
+          .request(
+            'PUT',
+            '/api/v1/wallet/balance/' + scopeValue,
+            this.g.wallet.inkey
+          )
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
+          .then(response => {
+            let data = response.data
+            if (data.status === 'ERROR') {
+              this.$q.notify({
+                timeout: 5000,
+                type: 'warning',
+                message: `Failed to update.`,
+              })
+              return
+            }
+            this.balance = this.balance + data.balance
+          })
+    },
     closeReceiveDialog: function () {
       setTimeout(() => {
         clearInterval(this.receive.paymentChecker)

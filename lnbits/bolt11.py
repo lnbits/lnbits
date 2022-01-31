@@ -11,6 +11,7 @@ from decimal import Decimal
 import embit
 import secp256k1
 
+
 class Route(NamedTuple):
     pubkey: str
     short_channel_id: str
@@ -120,8 +121,7 @@ def decode(pr: str) -> Invoice:
 
 
 def encode(options):
-    """ Convert options into LnAddr and pass it to the encoder
-    """
+    """Convert options into LnAddr and pass it to the encoder"""
     addr = LnAddr()
     addr.currency = options.currency
     addr.fallback = options.fallback if options.fallback else None
@@ -268,17 +268,17 @@ class LnAddr(object):
 
 
 def shorten_amount(amount):
-    """ Given an amount in bitcoin, shorten it
-    """
+    """Given an amount in bitcoin, shorten it"""
     # Convert to pico initially
-    amount = int(amount * 10**12)
-    units = ['p', 'n', 'u', 'm', '']
+    amount = int(amount * 10 ** 12)
+    units = ["p", "n", "u", "m", ""]
     for unit in units:
         if amount % 1000 == 0:
             amount //= 1000
         else:
             break
     return str(amount) + unit
+
 
 def _unshorten_amount(amount: str) -> int:
     """Given a shortened amount, return millisatoshis"""
@@ -313,20 +313,30 @@ def _pull_tagged(stream):
 def is_p2pkh(currency, prefix):
     return prefix == base58_prefix_map[currency][0]
 
+
 def is_p2sh(currency, prefix):
     return prefix == base58_prefix_map[currency][1]
+
 
 # Tagged field containing BitArray
 def tagged(char, l):
     # Tagged fields need to be zero-padded to 5 bits.
     while l.len % 5 != 0:
-        l.append('0b0')
-    return bitstring.pack("uint:5, uint:5, uint:5",
-                          CHARSET.find(char),
-                          (l.len / 5) / 32, (l.len / 5) % 32) + l
+        l.append("0b0")
+    return (
+        bitstring.pack(
+            "uint:5, uint:5, uint:5",
+            CHARSET.find(char),
+            (l.len / 5) / 32,
+            (l.len / 5) % 32,
+        )
+        + l
+    )
+
 
 def tagged_bytes(char, l):
     return tagged(char, bitstring.BitArray(l))
+
 
 def _trim_to_bytes(barr):
     # Adds a byte if necessary.
@@ -338,9 +348,9 @@ def _trim_to_bytes(barr):
 
 def _readable_scid(short_channel_id: int) -> str:
     return "{blockheight}x{transactionindex}x{outputindex}".format(
-        blockheight=((short_channel_id >> 40) & 0xFFFFFF),
-        transactionindex=((short_channel_id >> 16) & 0xFFFFFF),
-        outputindex=(short_channel_id & 0xFFFF),
+        blockheight=((short_channel_id >> 40) & 0xffffff),
+        transactionindex=((short_channel_id >> 16) & 0xffffff),
+        outputindex=(short_channel_id & 0xffff),
     )
 
 
@@ -349,6 +359,7 @@ def _u5_to_bitarray(arr: List[int]) -> bitstring.BitArray:
     for a in arr:
         ret += bitstring.pack("uint:5", a)
     return ret
+
 
 def bitarray_to_u5(barr):
     assert barr.len % 5 == 0

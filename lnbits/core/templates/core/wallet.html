@@ -15,7 +15,31 @@
     <q-card>
       <q-card-section>
         <h3 class="q-my-none">
-          <strong>{% raw %}{{ formattedBalance }}{% endraw %}</strong> sat
+          <strong>{% raw %}{{ formattedBalance }}{% endraw %} </strong>
+          sat
+          <q-btn
+            v-if="'{{user.admin}}' == 'True'"
+            flat
+            round
+            color="primary"
+            icon="add"
+            size="md"
+          >
+            <q-popup-edit class="bg-accent text-white" v-slot="scope">
+              <q-input
+                label="Amount to credit account"
+                v-model="scope.value"
+                dense
+                autofocus
+                type="number"
+                @keyup.enter="updateBalance(scope.value)"
+              >
+                <template v-slot:append>
+                  <q-icon name="edit" />
+                </template>
+              </q-input>
+            </q-popup-edit>
+          </q-btn>
         </h3>
       </q-card-section>
       <div class="row q-pb-md q-px-md q-col-gutter-md">
