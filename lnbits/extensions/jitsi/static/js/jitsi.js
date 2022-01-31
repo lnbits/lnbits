@@ -1,41 +1,11 @@
-// TODO(nochiel) TEST If the host leaves the conference and rejoins, the chatbot should still work for participants who are still in the conference i.e. participants' data should persist correctly.
-// FIXME(nochiel) If a participant has or adds an e-mail address, use the e-mail address to make the participant data persistent for this conference.
-// FIXME(nochiel) Use the correct wallet for the LNBits user, i.e the wallet whose name = conferenceName.
 // TODO(nochiel) Handle errors from LNBits.api calls. 
 // - Which errors should the host user see?
-// TODO(nochiel) Wrap jitsi in  a vue component
-// TODO(nochiel) For each participant, add a 'pay Lightning' component.
-//    - Generates an invoice without an amount.
-//    - Show a QR code.
-//    - Allow the user to copy the bolt11 string.
-
-// TODO(nochiel) Chat bot
-// When a participant joins a conference, the participant is not running LNBits.
-// Therefore, we have 2 options for implementation:
-// 1. [ ] Custom UX (we'll do this eventually)
-//      - Use LibJitsiMeet to create an LNBits extension that only uses jitsi in the backend.
-//      - With a custom UX, we can ensure that participants always see our LNBits-Jitsi app and the features we want.
-//      - Maximum flexibility.
-// 2. [ ] Chat commands (simple, easy to prototype)
-//      - Use lntxbot/LightningTipBot command UX.
-//      - All we have to do is handle commands.
-//      - /pay participant_id [amount]
-//              - participant is given a blank/filled invoice that they can pay to using an external wallet.
-//      - /wallet pay participant_id amount
-//              - participant pays participant_id using the balance in their LNBits wallet.
-//
-// TODO(nochiel) Show an error if the chatBot is offline (because the host is offline).
-// TODO(nochiel) Use exceptions where necessary.
-// TODO(nochiel) Parse chat commands that the host sends (they aren't broadcast as events).
 
 // FIXME(nochiel) Cleanup: Use consistent language for:
 // - Jitsi meeting.
 // - Jitsi host.
 
 // ref. https://github.com/jitsi/jitsi-meet/blob/master/modules/API/external/external_api.js
-// import "./external_api.js";
-// import "lib-jitsi-meet.min.js";
-// import "./jitsi_external_api.js";
 
 const assert = console.assert;
 /*
@@ -96,7 +66,7 @@ const app = new Vue({
 
             let domain = 'meet.jit.si';
 
-            let random = Math.floor(Math.random() * 0xFFFFFFFF);    // Use this to generate insecure unique ids. 
+            // let random = Math.floor(Math.random() * 0xFFFFFFFF);    // Use this to generate insecure unique ids. 
             // 'tenant' is only relevant if the user is running their own Jitsi server. 
             // We would want to use the 'tenant' option to allow the LNBits user to run multiple conferences simultaneously. 
             // Ref. https://digitalguardian.com/blog/saas-single-tenant-vs-multi-tenant-whats-difference
@@ -206,6 +176,7 @@ const app = new Vue({
         async incomingMessage(event) {
 
             if(!this._isMounted) return;
+            if(!this.conference) return;
             log('incomingMessage: event: ', event);
             /*
                 {
@@ -332,9 +303,10 @@ const app = new Vue({
                                     let words = message.message.substring(1,).match(/\w+/g);
                                     if(words) {
 
-                                        const HELPDEPOSIT = 'You can deposit sats into your wallet for this chat using the "/deposit" command to get a Lightning invoice.',
+                                        const HELPDEPOSIT = 'You can deposit sats into your wallet for this chat sing the "/deposit" command to get a Lightning invoice.',
                                             HELPDEPOSITSYNTAX = `/deposit 💰 Deposit funds into your wallet for the ${this.conference} conference call: /deposit <amount> [<memo>]`,
-                                            HELPBALANCE = 'Use the "/balance" command to check your balance.';
+                                            HELPBALANCE = 'Use the "/balance" command to check your balance.',
+                                            HELPPAYSYNTAX = '/pay 💸 Send funds to a user: /pay <amount> <user or id> [<memo>]';
 
                                         let command = words[0];
                                         switch (command) {
@@ -344,25 +316,34 @@ const app = new Vue({
 
                                                 sendChatMessage(message.from,
                                                     'To run a command, send a chat message starting with a "/" followed by the command name:' + '\n\n' +
-                                                    '/balance Check your balance: /balance' + '\n\n' +
-                                                    '/pay 💸 Send funds to a user: /pay <amount> <user> [<memo>]' + '\n\n' +
+                                                    '/balance ⚖️ Check your balance: /balance' + '\n\n' +
+                                                    HELPPAYSYNTAX + '\n\n' +
                                                     HELPDEPOSITSYNTAX + '\n\n' +
+                                                    '/users 😀 List user names and ids of participants in this meeting.' + '\n\n' +
                                                     '/help 📖 Read this help.' + '\n\n' +
                                                     '/donate ❤️ Donate to the project: /donate <amount>'
                                                 );
 
-                                            }; break
+                                            }; break;
+
+                                            case 'users': {
+
+                                                NOTIMPLEMENTED();       // TODO(nochiel)
+
+                                            }
 
                                             case 'donate': {
-                                                log('incomingMessage: donate: ');
+
                                                 // TODO(nochiel) Show how to donate to LNbits.
                                                 // TODO(nochiel) Show how to donate to @nochiel or whomever is working on the Jitsi extension.
-                                            }; break
+                                                log('incomingMessage: donate: ');
+                                                NOTIMPLEMENTED();       
+
+                                            }; break;
 
                                             case 'balance': {
                                                 log(`incomingMessage: command 'balance'`);
 
-                                                // FIXME(nochiel) TEST Make a deposit then check the balance. It should show up immediately without having to browse to the wallet in a new tab.
                                                 log(`incomingMessage: ${message.from} has a balance of: ${wallet.fsat} sats.`);
                                                 sendChatMessage(message.from,
                                                     `Your Lightning wallet balance for this conference is ${wallet.fsat} satoshis` + '\n' +
@@ -402,12 +383,12 @@ const app = new Vue({
                                                     sendChatMessage(message.from, 'LNbits failed to generate an invoice for your deposit. Please try again or inform the host of this conference call that wallets are not working.');
                                                 });
 
-                                            }; break
+                                            }; break;
 
                                             case 'pay': {
 
                                                 log(`incomingMessage: command pay`);
-                                                const HELPSYNTAXMESSAGE = 'Please use the correct format for this command. It is: /pay amount @name [note]\n"@name" is the name of a participant.\nThe note is an optional message to send to @name with the payment.';
+                                                const HELPSYNTAXMESSAGE = `Please use the correct syntax for this command.\n\n${HELPPAYSYNTAX}`;
 
                                                 assert(participant, 'no participant has been set');
                                                 const payer = participant;
@@ -433,7 +414,7 @@ const app = new Vue({
                                                 const payee = participants.find(p => p.displayName == payeeName)
                                                 ?.participantId;
                                                 if(!payee) {
-                                                    sendChatMessage(payer.id, `You tried to send money to ${payeeName} but they aren't in this meeting! Please try again with a name that is in use by someone here.`);
+                                                    sendChatMessage(payer.id, `You tried to send money to ${payeeName} but they aren't in this meeting! Please try again with a name that is in use by someone here. Use the '/users' command to get a list of users and their ids then try paying to the id if the username doesn't work.`);
                                                     return;
                                                 }
 
@@ -633,10 +614,11 @@ const app = new Vue({
             // FIXME(nochiel) Unique nicknames: Prevent participants from having the same displayName. 
             // - When a new participant joins, if they choose a nick that is already in use,
             // append an ordinal to the name.
-            // - If the participant does not have a nick, give them a random nik. (use Breez's system)
+            // - If the participant does not have a nick, give them a standard name with an ordinal. 
+            // The Jitsi api doesn't allow us to rename participants so we can't actually fix this problem.
 
             assert(event.id);
-            log('newParticipant: ', event.id);
+            log('newParticipant: id: ', event.id);
 
             // Give new participants an LNBits account.
             assert(this.conference, 'The conference has not been set! We cannot create participants unless we have a conference. ');

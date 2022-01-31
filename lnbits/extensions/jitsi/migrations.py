@@ -20,13 +20,3 @@ async def m006_initial(db):         # TODO(nochiel) Reset this to m001 when read
                 );
             """
             )
-
-
-# await db.execute(
-#         # NOCHECKIN(nochiel) 
-#         '''
-#         DROP TABLE IF EXISTS jitsi.wallets;
-#         '''
-#     )
-
-

@@ -38,11 +38,12 @@ from lnbits.core.services import (
 from . import jitsi_ext
 
 from .crud import (
-    createConference,
-    getConference,
-    getParticipant,
-    getAllParticipants,
-    createParticipant,
+        addChatMessage,
+        createConference,
+        getConference,
+        getParticipant,
+        getAllParticipants,
+        createParticipant,
 )
 
 from pydantic import BaseModel
@@ -53,12 +54,12 @@ class CreateJitsiConference(BaseModel):
 @jitsi_ext.post('/api/v1/conference', status_code = HTTPStatus.CREATED)
 async def createJitsiConference(
         conferenceParams: CreateJitsiConference,
-        walletTypeInfo: WalletTypeInfo = Depends(require_admin_key),    
+        walletType: WalletTypeInfo = Depends(require_admin_key),    
         ):
 
     result = None
 
-    wallet = walletTypeInfo.wallet;
+    wallet = walletType.wallet;
     user = await get_user(wallet.user)
     assert user, f'createJitsiConference: user with id "{wallet.user}" was not found.'
     print('createJitsiConference: user: ', user)
@@ -101,7 +102,7 @@ async def createJitsiConference(
 @jitsi_ext.get('/api/v1/conference/{conferenceId}', status_code = HTTPStatus.OK)
 async def api_jitsi_conference(
         conferenceId,
-        walletTypeInfo: WalletTypeInfo = Depends(require_admin_key),
+        walletType: WalletTypeInfo = Depends(require_admin_key),
         ):
     assert conferenceId, 'conference id is required'
 
@@ -123,7 +124,7 @@ class JitsiPayment(BaseModel):
 @jitsi_ext.post('/api/v1/conference/{conferenceId}/pay', status_code = HTTPStatus.CREATED)
 async def pay(
         payment: JitsiPayment,
-        walletTypeInfo = Depends(require_invoice_key)   # TODO(nochiel) Make this work in jitsi.js.
+        walletType = Depends(require_invoice_key)   # TODO(nochiel) Make this work in jitsi.js.
         ):
     assert False, 'not implemented' # FIXME(nochiel) 
 
@@ -149,7 +150,7 @@ async def pay(
 async def getJitsiParticipantWallet(
         conferenceId,
         participantId,
-        walletTypeInfo = Depends(require_admin_key),  
+        walletType = Depends(require_admin_key),  
         ):
 
 
@@ -200,8 +201,10 @@ async def createJitsiParticipant(conferenceId: str, jitsiParticipant: JitsiParti
 
 @jitsi_ext.get('/api/v1/conference/{conferenceId}/participant/{participantId}',
         status_code = HTTPStatus.OK)
-async def getJitsiParticipant(conferenceId, participantId,
-        walletTypeInfo = Depends(require_admin_key)
+async def getJitsiParticipant(
+        conferenceId, 
+        participantId,
+        walletType = Depends(require_admin_key)
         ):  
     print('getJitsiParticipant')
 
@@ -219,19 +222,22 @@ async def getJitsiParticipant(conferenceId, participantId,
     return participant.dict()
 
 
-@jitsi_ext.post("/api/v1/conference/message")
-# @api_check_wallet_key(key_type="invoice")
-# @api_validate_post_request(
-        #     schema={
-        #         'from': {'type': 'string', 'empty': False, 'required': True}, # From Jitsi when the conference is started.
-        #         'message': {'type': 'string', 'empty': False, 'required': True},       # The user/host of the conference
-        #         'timestamp': {'type': 'int', 'empty': False, 'required': True},    
-        #     }
-        # )
+class JitsiChatMessage(BaseModel):
+    message: str
 
-async def api_jitsi_conference_message_push():
+@jitsi_ext.post("/api/v1/conference/{conferenceId}/message")
+async def logChatMessage(
+        chatMessage: JitsiChatMessage,
+        walletType = Depends(require_admin_key)
+        ):
+
+    assert False, 'not implemented'  # FIXME(nochiel)
+
+    assert chatMessage.message
+    numberOfMessages = addChatMessage(conferenceId,)
+
+
     assert False, 'not implemented'
-    m = Message(g.data['from'], g.data['from'], g.data['stamp'])
 
 
 
