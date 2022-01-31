@@ -38,7 +38,6 @@ from lnbits.core.services import (
 from . import jitsi_ext
 
 from .crud import (
-        addChatMessage,
         createConference,
         getConference,
         getParticipant,
