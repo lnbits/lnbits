@@ -353,6 +353,7 @@ const app = new Vue({
                                             }; break;
 
                                             case 'deposit': {
+                                                // TODO(nochiel) When the deposit invoice is paid, tell the participant that the deposit has succeeded.
 
                                                 if(words.length < 2) {
                                                     sendChatMessage(message.from, HELPDEPOSIT + '\n\n' + HELPDEPOSITSYNTAX);
@@ -448,13 +449,7 @@ const app = new Vue({
 
                                                             return LNbits.api.payInvoice(wallet, invoice.paymentRequest)
                                                                 .then(response =>  response.data)
-                                                                .then(({payment_hash, }) => {
-
-                                                                    assert(payment_hash);
-                                                                    log(`incomingMessage.pay: ${payer.id} paid ${amount} to ${payee}.\nPayment hash: ${payment_hash}`);
-                                                                    return payment_hash;
-                                                                });
-
+                                                                .then(({payment_hash, }) => payment_hash);
                                                         })
                                                         .catch(e => {
                                                             logError('incomingMessage: ', e);
@@ -465,8 +460,11 @@ const app = new Vue({
                                                 pay(participant, wallet, amount, payee, memo)
                                                     .then(payment_hash => {
 
-                                                        log(`incomingMessage.pay: Payment(${payment_hash}) from ${participant.id} to ${payee} for ${amount} sats.`);
-                                                        sendChatMessage(payee, `${payerName} has paid you {amount} sats.`);        // FIXME(nochiel)
+                                                        if(payment_hash) {
+                                                            log(`incomingMessage.pay: Payment(${payment_hash}) from ${participant.id} to ${payee} for ${amount} sats.`);
+                                                            sendChatMessage(payee, `${payerName} has paid you ${amount} sats.`);        
+                                                            sendChatMessage(participant.id, `You have paid ${payeeName} ${amount} sats.`);        
+                                                        }
                                                     })
                                                     .catch(e => {
                                                         // TODO(nochiel) Give specific error messages to the payer.
