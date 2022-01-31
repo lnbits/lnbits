@@ -4,6 +4,9 @@ import httpx
 from os import getenv
 from datetime import datetime, timedelta
 from typing import Optional, Dict, AsyncGenerator
+import random
+import string
+from lnbits.helpers import urlsafe_short_hash
 import hashlib
 from ..bolt11 import encode
 from .base import (
@@ -15,43 +18,48 @@ from .base import (
 )
 
 class FakeWallet(Wallet):
-    """https://github.com/lnbits/lnbits"""
-
+    def __init__(self):
+        self.amount = 0
+        self.timestamp = 0
+        self.currency = "bc"
+        self.paymenthash = ""
+        self.privkey = getenv("FAKE_WALLET_KEY")
+        self.memo = ""
+        self.description_hashed = ""
+        self.description = ""
+        self.fallback = None
+        self.expires = None
+        self.route = None
+    async def status(self) -> StatusResponse:
         print(
             "The FakeWallet backend is for using LNbits as a centralised, stand-alone payment system."
         )
         return StatusResponse(None, 21000000000)
-
     async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        class options:
-            def __init__(self, amount, timestamp, payments_hash, privkey, memo, ):
-                self.name = name
-                self.age = age
-                async def status(self) -> StatusResponse:
-        
-        randomHash = hashlib.sha256(b"some random data").hexdigest()
-        options = {
-            "amount": amount,
-            "timestamp": datetime.now().timestamp(),
-            "payments_hash": randomHash,
-            "privkey": "v3qrevqrevm39qin0vq3r0ivmrewvmq3rimq03ig",
-            "memo": "",
-            "description_hashed": "",
-        }
+        print(self.privkey)
+        self.amount = amount
+        self.timestamp = datetime.now().timestamp()
         if description_hash:
-            options.description_hashed = description_hash
+            self.tags_set = {"h"}
+            self.description_hashed = description_hash
         else:
-            options.memo = memo
-        payment_request = encode(options)
+            self.tags_set = {"d"}
+            self.memo = memo
+            self.description = memo
+        letters = string.ascii_lowercase
+        randomHash = hashlib.sha256(str(random.getrandbits(256)).encode('utf-8')).hexdigest()
+        self.paymenthash = randomHash
+        payment_request = encode(self)
         print(payment_request)
         checking_id = randomHash
 
-        return InvoiceResponse(ok, checking_id, payment_request)
+        return InvoiceResponse(True, checking_id, payment_request)
+
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
 

@@ -2,11 +2,14 @@ import bitstring  # type: ignore
 import re
 import hashlib
 from typing import List, NamedTuple, Optional
-from bech32 import bech32_decode, CHARSET  # type: ignore
+from bech32 import bech32_encode, bech32_decode, CHARSET
 from ecdsa import SECP256k1, VerifyingKey  # type: ignore
 from ecdsa.util import sigdecode_string  # type: ignore
 from binascii import unhexlify
-
+import time
+from decimal import Decimal
+import embit
+import secp256k1
 
 class Route(NamedTuple):
     pubkey: str
@@ -138,23 +141,23 @@ def encode(options):
 
     if options.fallback:
         addr.tags.append(("f", options.fallback))
-
-    for r in options.route:
-        splits = r.split("/")
-        route = []
-        while len(splits) >= 5:
-            route.append(
-                (
-                    unhexlify(splits[0]),
-                    unhexlify(splits[1]),
-                    int(splits[2]),
-                    int(splits[3]),
-                    int(splits[4]),
+    if options.route:
+        for r in options.route:
+            splits = r.split("/")
+            route = []
+            while len(splits) >= 5:
+                route.append(
+                    (
+                        unhexlify(splits[0]),
+                        unhexlify(splits[1]),
+                        int(splits[2]),
+                        int(splits[3]),
+                        int(splits[4]),
+                    )
                 )
-            )
-            splits = splits[5:]
-        assert len(splits) == 0
-        addr.tags.append(("r", route))
+                splits = splits[5:]
+            assert len(splits) == 0
+            addr.tags.append(("r", route))
     return lnencode(addr, options.privkey)
 
 
@@ -171,7 +174,7 @@ def lnencode(addr, privkey):
     else:
         amount = addr.currency if addr.currency else ""
 
-    hrp = "ln" + amount
+    hrp = "ln" + amount + "0n"
 
     # Start with the timestamp
     data = bitstring.pack("uint:35", addr.date)
@@ -264,6 +267,19 @@ class LnAddr(object):
         )
 
 
+def shorten_amount(amount):
+    """ Given an amount in bitcoin, shorten it
+    """
+    # Convert to pico initially
+    amount = int(amount * 10**12)
+    units = ['p', 'n', 'u', 'm', '']
+    for unit in units:
+        if amount % 1000 == 0:
+            amount //= 1000
+        else:
+            break
+    return str(amount) + unit
+
 def _unshorten_amount(amount: str) -> int:
     """Given a shortened amount, return millisatoshis"""
     # BOLT #11:
@@ -294,6 +310,24 @@ def _pull_tagged(stream):
     return (CHARSET[tag], stream.read(length * 5), stream)
 
 
+def is_p2pkh(currency, prefix):
+    return prefix == base58_prefix_map[currency][0]
+
+def is_p2sh(currency, prefix):
+    return prefix == base58_prefix_map[currency][1]
+
+# Tagged field containing BitArray
+def tagged(char, l):
+    # Tagged fields need to be zero-padded to 5 bits.
+    while l.len % 5 != 0:
+        l.append('0b0')
+    return bitstring.pack("uint:5, uint:5, uint:5",
+                          CHARSET.find(char),
+                          (l.len / 5) / 32, (l.len / 5) % 32) + l
+
+def tagged_bytes(char, l):
+    return tagged(char, bitstring.BitArray(l))
+
 def _trim_to_bytes(barr):
     # Adds a byte if necessary.
     b = barr.tobytes()
@@ -314,4 +348,12 @@ def _u5_to_bitarray(arr: List[int]) -> bitstring.BitArray:
     ret = bitstring.BitArray()
     for a in arr:
         ret += bitstring.pack("uint:5", a)
+    return ret
+
+def bitarray_to_u5(barr):
+    assert barr.len % 5 == 0
+    ret = []
+    s = bitstring.ConstBitStream(barr)
+    while s.pos != s.len:
+        ret.append(s.read(5).uint)
     return ret
