@@ -17,7 +17,7 @@ function assert(condition, message, ...args) {
 */
 
 function logError(message, ...rest) {
-    console.error(`%c ${message}`,  'background: coral; color: white; font-size:14px', ...rest);
+    console.error(`error: %c ${message}`,  'background: coral; color: white; font-size:14px', ...rest);
 }
 
 function error(message, ...rest) {
@@ -421,7 +421,7 @@ const app = new Vue({
                                                 let memo;
                                                 if (3 in words) { memo = words.slice(3).join(' '); }
 
-                                                const pay = async (payer, wallet, amount, payeeId, memo) => {
+                                                const pay = async (payer, wallet, amount, payeeId, memo) => 
 
                                                     getInvoice(payeeId, amount, memo)
                                                         .then(invoice => {
@@ -435,42 +435,44 @@ const app = new Vue({
                                                                 sendChatMessage(payer.id, 
                                                                     `You don't have enough sats to send that amount from your LNbits wallet. Your balance is ${wallet.sat}.`);
                                                                 sendChatMessage(payer.id, HELPBALANCE);
-                                                                sendChatMessage(HELPDEPOSIT);
+                                                                sendChatMessage(payer.id, HELPDEPOSIT);
 
 
                                                                 // sendChatMessage(payer.id, `Paying ${payeeName} ${amount} sats.`);
                                                                 sendChatMessage(payer.id,
                                                                     `Use your Lightning wallet to pay ${payeeName} with the following invoice:\n\n` +
                                                                     `${invoice.paymentRequest}`);
+
                                                                 return;
                                                             }
 
-                                                            LNbits.api.payInvoice(wallet, invoice.paymentRequest)
+                                                            return LNbits.api.payInvoice(wallet, invoice.paymentRequest)
                                                                 .then(response =>  response.data)
                                                                 .then(({payment_hash, }) => {
 
                                                                     assert(payment_hash);
                                                                     log(`incomingMessage.pay: ${payer.id} paid ${amount} to ${payee}.\nPayment hash: ${payment_hash}`);
+                                                                    return payment_hash;
                                                                 });
 
-                                                    })
-                                                    .catch(e => {
-                                                        logError('incomingMessage: ', e);
-                                                        sendChatMessage(payer.id, 'Payment failed. Please try again or inform the host of this conference call that payments are not working.');
-                                                    });
+                                                        })
+                                                        .catch(e => {
+                                                            logError('incomingMessage: ', e);
+                                                            sendChatMessage(payer.id, 'Payment failed. Please try again or inform the host of this conference call that payments are not working.');
+                                                        });
 
-                                                };
 
                                                 pay(participant, wallet, amount, payee, memo)
-                                                    .then(payment => {
+                                                    .then(payment_hash => {
 
-                                                        log(`incomingMessage.pay: Payment(${payment.hash}) from ${payment.payer.id} to ${payment.payee.id} for ${payment.sats} sats.`);
-                                                        sendChatMessage(payment.payee, `${payerName} has paid you {payment.sats} sats.`);        // FIXME(nochiel)
+                                                        log(`incomingMessage.pay: Payment(${payment_hash}) from ${participant.id} to ${payee} for ${amount} sats.`);
+                                                        sendChatMessage(payee, `${payerName} has paid you {amount} sats.`);        // FIXME(nochiel)
                                                     })
                                                     .catch(e => {
                                                         // TODO(nochiel) Give specific error messages to the payer.
                                                         // - Insufficient balance error.
                                                         // - Server/Node error
+                                                        log('pay: ', e);
                                                         sendChatMessage(participant.id, `Sorry, your payment of ${amount} to ${payeeName} failed! Please try again.`);
                                                     });
 
