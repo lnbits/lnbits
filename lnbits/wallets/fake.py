@@ -17,7 +17,6 @@ from .base import (
     Wallet,
 )
 
-
 class FakeWallet(Wallet):
     def __init__(self):
         self.amount = 0
@@ -34,7 +33,7 @@ class FakeWallet(Wallet):
 
     async def status(self) -> StatusResponse:
         print(
-            "The FakeWallet backend is for using LNbits as a centralised, stand-alone payment system."
+            "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system, with brrrrrr."
         )
         return StatusResponse(None, float("inf"))
 
@@ -70,10 +69,10 @@ class FakeWallet(Wallet):
         return PaymentResponse(True, invoice.payment_hash, 0)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return PaymentStatus(True)
+        return PaymentStatus(False)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        return PaymentStatus(True)
+        return PaymentStatus(False)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue = asyncio.Queue(0)
