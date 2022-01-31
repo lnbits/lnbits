@@ -8,7 +8,7 @@ import random
 import string
 from lnbits.helpers import urlsafe_short_hash
 import hashlib
-from ..bolt11 import encode
+from ..bolt11 import encode, decode
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -62,19 +62,20 @@ class FakeWallet(Wallet):
 
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-
-        return ""
+        invoice = decode(bolt11)
+        return PaymentResponse(True, invoice.payment_hash, 0)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-
-        return ""
+        return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-
-        return ""
+        return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        yield ""
+        self.queue = asyncio.Queue(0)
+        while True:
+            value = await self.queue.get()
+            yield value
 
 
 # invoice = "lnbc"
