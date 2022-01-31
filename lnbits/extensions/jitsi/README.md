@@ -14,3 +14,5 @@ Host a Jitsi meeting with a chatBot that allows participants to send funds to ea
 - In the "Join Meeting" dialog, enter the name *ChatBot*.
     - If you want to participate in the meeting, you should join as a different user. You can name the host user *ChatBot*, for example.
 - Note that if the *ChatBot* participant (the hosting LNbits user), types in chat commands, they will not run, which is, again, why you should join the conference call as a different user and not as the *ChatBot*. 
+- As a participant, type `/help` to view available chatbot commands.
+
