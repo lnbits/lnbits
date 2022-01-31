@@ -17,6 +17,7 @@ from .base import (
     Wallet,
 )
 
+
 class FakeWallet(Wallet):
     def __init__(self):
         self.amount = 0
@@ -30,18 +31,19 @@ class FakeWallet(Wallet):
         self.fallback = None
         self.expires = None
         self.route = None
+
     async def status(self) -> StatusResponse:
         print(
             "The FakeWallet backend is for using LNbits as a centralised, stand-alone payment system."
         )
-        return StatusResponse(None, 21000000000)
+        return StatusResponse(None, float("inf"))
     async def create_invoice(
         self,
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        print(self.privkey)
+
         self.amount = amount
         self.timestamp = datetime.now().timestamp()
         if description_hash:
@@ -76,12 +78,3 @@ class FakeWallet(Wallet):
         while True:
             value = await self.queue.get()
             yield value
-
-
-# invoice = "lnbc"
-# invoice += str(data.amount) + "m1"
-# invoice += str(datetime.now().timestamp()).to_bytes(35, byteorder='big'))
-# invoice += str(hashlib.sha256(b"some random data").hexdigest()) # hash of preimage, can be fake as invoice handled internally
-# invoice += "dpl" # d then pl (p = 1, l = 31; 1 * 32 + 31 == 63)
-# invoice += "2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq" #description, how do I encode this?
-# invoice += str(hashlib.sha224("lnbc" + str(data.amount) + "m1").hexdigest())
