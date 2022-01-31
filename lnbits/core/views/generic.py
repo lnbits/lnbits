@@ -43,9 +43,7 @@ async def home(request: Request, lightning: str = None):
 
 
 @core_html_routes.get(
-    "/extensions",
-    name="core.extensions",
-    response_class=HTMLResponse,
+    "/extensions", name="core.extensions", response_class=HTMLResponse
 )
 async def extensions(
     request: Request,

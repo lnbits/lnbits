@@ -105,10 +105,7 @@ async def lnurl_v1_params(
     paymentcheck = await get_lnurlpayload(p)
     if device.device == "atm":
         if paymentcheck:
-            return {
-                "status": "ERROR",
-                "reason": f"Payment already claimed",
-            }
+            return {"status": "ERROR", "reason": f"Payment already claimed"}
 
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
@@ -174,27 +171,28 @@ async def lnurl_v1_params(
     }
 
 
-
 @lnurldevice_ext.get(
     "/api/v1/lnurl/cb/{paymentid}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_callback",
 )
-async def lnurl_callback(request: Request, paymentid: str = Query(None), pr: str = Query(None), k1: str = Query(None)):
+async def lnurl_callback(
+    request: Request,
+    paymentid: str = Query(None),
+    pr: str = Query(None),
+    k1: str = Query(None),
+):
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
     device = await get_lnurldevice(lnurldevicepayment.deviceid)
     if not device:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
         )
-    if pr: 
+    if pr:
         if lnurldevicepayment.id != k1:
             return {"status": "ERROR", "reason": "Bad K1"}
         if lnurldevicepayment.payhash != "payment_hash":
-            return {
-                "status": "ERROR",
-                "reason": f"Payment already claimed",
-            }
+            return {"status": "ERROR", "reason": f"Payment already claimed"}
             lnurldevicepayment = await update_lnurldevicepayment(
                 lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
             )

@@ -41,10 +41,13 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         )
     status = await api_payment(lnurldevicepayment.payhash)
     if status["paid"]:
-        await update_payment_status(checking_id=lnurldevicepayment.payhash, pending=True)
+        await update_payment_status(
+            checking_id=lnurldevicepayment.payhash, pending=True
+        )
         return lnurldevice_renderer().TemplateResponse(
             "lnurldevice/paid.html", {"request": request, "pin": lnurldevicepayment.pin}
         )
     return lnurldevice_renderer().TemplateResponse(
-        "lnurldevice/error.html", {"request": request, "pin": "filler", "not_paid": True}
+        "lnurldevice/error.html",
+        {"request": request, "pin": "filler", "not_paid": True},
     )

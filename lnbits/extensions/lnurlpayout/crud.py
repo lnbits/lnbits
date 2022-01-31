@@ -6,14 +6,23 @@ from . import db
 from .models import lnurlpayout, CreateLnurlPayoutData
 
 
-async def create_lnurlpayout(wallet_id: str, admin_key: str, data: CreateLnurlPayoutData) -> lnurlpayout:
+async def create_lnurlpayout(
+    wallet_id: str, admin_key: str, data: CreateLnurlPayoutData
+) -> lnurlpayout:
     lnurlpayout_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO lnurlpayout.lnurlpayouts (id, title, wallet, admin_key, lnurlpay, threshold)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (lnurlpayout_id, data.title, wallet_id, admin_key, data.lnurlpay, data.threshold),
+        (
+            lnurlpayout_id,
+            data.title,
+            wallet_id,
+            admin_key,
+            data.lnurlpay,
+            data.threshold,
+        ),
     )
 
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
@@ -22,12 +31,18 @@ async def create_lnurlpayout(wallet_id: str, admin_key: str, data: CreateLnurlPa
 
 
 async def get_lnurlpayout(lnurlpayout_id: str) -> Optional[lnurlpayout]:
-    row = await db.fetchone("SELECT * FROM lnurlpayout.lnurlpayouts WHERE id = ?", (lnurlpayout_id,))
+    row = await db.fetchone(
+        "SELECT * FROM lnurlpayout.lnurlpayouts WHERE id = ?", (lnurlpayout_id,)
+    )
     return lnurlpayout(**row) if row else None
 
+
 async def get_lnurlpayout_from_wallet(wallet_id: str) -> Optional[lnurlpayout]:
-    row = await db.fetchone("SELECT * FROM lnurlpayout.lnurlpayouts WHERE wallet = ?", (wallet_id,))
+    row = await db.fetchone(
+        "SELECT * FROM lnurlpayout.lnurlpayouts WHERE wallet = ?", (wallet_id,)
+    )
     return lnurlpayout(**row) if row else None
+
 
 async def get_lnurlpayouts(wallet_ids: Union[str, List[str]]) -> List[lnurlpayout]:
     if isinstance(wallet_ids, str):
@@ -42,4 +57,6 @@ async def get_lnurlpayouts(wallet_ids: Union[str, List[str]]) -> List[lnurlpayou
 
 
 async def delete_lnurlpayout(lnurlpayout_id: str) -> None:
-    await db.execute("DELETE FROM lnurlpayout.lnurlpayouts WHERE id = ?", (lnurlpayout_id,))
+    await db.execute(
+        "DELETE FROM lnurlpayout.lnurlpayouts WHERE id = ?", (lnurlpayout_id,)
+    )
