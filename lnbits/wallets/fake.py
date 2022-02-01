@@ -43,7 +43,7 @@ class FakeWallet(Wallet):
             "expires": None,
             "route": None,
         }
-        data["amount"] = amount
+        data["amount"] = amount * 1000
         data["timestamp"] = datetime.now().timestamp()
         if description_hash:
             data["tags_set"] = ["h"]
