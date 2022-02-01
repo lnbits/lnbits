@@ -16,7 +16,6 @@ from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.bolt11 import Invoice
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
     WalletAdminKeyChecker,
@@ -24,8 +23,9 @@ from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
+from lnbits.settings import LNBITS_ADMIN_USERS
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
@@ -34,13 +34,13 @@ from lnbits.utils.exchange_rates import (
 
 from .. import core_app, db
 from ..crud import (
+    create_payment,
     get_payments,
     get_standalone_payment,
-    save_balance_check,
-    update_wallet,
-    create_payment,
     get_wallet,
+    save_balance_check,
     update_payment_status,
+    update_wallet,
 )
 from ..services import (
     InvoiceFailure,
@@ -51,8 +51,6 @@ from ..services import (
     perform_lnurlauth,
 )
 from ..tasks import api_invoice_listeners
-from lnbits.settings import LNBITS_ADMIN_USERS
-from lnbits.helpers import urlsafe_short_hash
 
 
 @core_app.get("/api/v1/wallet")
@@ -164,11 +162,11 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             raise exc
 
     invoice = bolt11.decode(payment_request)
-
     lnurl_response: Union[None, bool, str] = None
+
     if data.lnurl_callback:
-        if "lnurl_balance_check" in g().data:
-            save_balance_check(g().wallet.id, data.lnurl_balance_check)
+        if "lnurl_balance_check" in data:
+            save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
             try:
@@ -179,7 +177,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                         "balanceNotify": url_for(
                             f"/withdraw/notify/{urlparse(data.lnurl_callback).netloc}",
                             external=True,
-                            wal=g().wallet.id,
+                            wal=wallet.id,
                         ),
                     },
                     timeout=10,
