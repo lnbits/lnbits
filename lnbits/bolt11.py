@@ -123,26 +123,26 @@ def decode(pr: str) -> Invoice:
 def encode(options):
     """Convert options into LnAddr and pass it to the encoder"""
     addr = LnAddr()
-    addr.currency = options.currency
-    addr.fallback = options.fallback if options.fallback else None
-    if options.amount:
-        addr.amount = options.amount
-    if options.timestamp:
-        addr.date = int(options.timestamp)
+    addr.currency = options["currency"]
+    addr.fallback = options["fallback"] if options["fallback"] else None
+    if options["amount"]:
+        addr.amount = options["amount"]
+    if options["timestamp"]:
+        addr.date = int(options["timestamp"])
 
-    addr.paymenthash = unhexlify(options.paymenthash)
+    addr.paymenthash = unhexlify(options["paymenthash"])
 
-    if options.description:
-        addr.tags.append(("d", options.description))
-    if options.description_hash:
-        addr.tags.append(("h", options.description_hash))
-    if options.expires:
-        addr.tags.append(("x", options.expires))
+    if options["description"]:
+        addr.tags.append(("d", options["description"]))
+    if options["description_hash"]:
+        addr.tags.append(("h", options["description_hash"]))
+    if options["expires"]:
+        addr.tags.append(("x", options["expires"]))
 
-    if options.fallback:
-        addr.tags.append(("f", options.fallback))
-    if options.route:
-        for r in options.route:
+    if options["fallback"]:
+        addr.tags.append(("f", options["fallback"]))
+    if options["route"]:
+        for r in options["route"]:
             splits = r.split("/")
             route = []
             while len(splits) >= 5:
@@ -158,7 +158,7 @@ def encode(options):
                 splits = splits[5:]
             assert len(splits) == 0
             addr.tags.append(("r", route))
-    return lnencode(addr, options.privkey)
+    return lnencode(addr, options["privkey"])
 
 
 def lnencode(addr, privkey):

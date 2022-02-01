@@ -82,7 +82,7 @@ async def api_update_balance(
         checking_id=payHash,
         payment_request="selfPay",
         payment_hash=payHash,
-        amount=amount*1000,
+        amount=amount * 1000,
         memo="selfPay",
         fee=0,
     )

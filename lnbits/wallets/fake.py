@@ -17,20 +17,8 @@ from .base import (
     Wallet,
 )
 
-class FakeWallet(Wallet):
-    def __init__(self):
-        self.amount = 0
-        self.timestamp = 0
-        self.currency = "bc"
-        self.paymenthash = ""
-        self.privkey = getenv("FAKE_WALLET_KEY")
-        self.memo = ""
-        self.description_hash = ""
-        self.description = ""
-        self.fallback = None
-        self.expires = None
-        self.route = None
 
+class FakeWallet(Wallet):
     async def status(self) -> StatusResponse:
         print(
             "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system with brrrrrr."
@@ -43,22 +31,32 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-
-        self.amount = amount
-        self.timestamp = datetime.now().timestamp()
+        data: Dict = {
+            "out": False,
+            "amount": amount,
+            "currency": "bc",
+            "privkey": getenv("FAKE_WALLET_KEY"),
+            "memo": None,
+            "description_hash": None,
+            "description": "",
+            "fallback": None,
+            "expires": None,
+            "route": None,
+        }
+        data["amount"] = amount
+        data["timestamp"] = datetime.now().timestamp()
         if description_hash:
-            self.tags_set = {"h"}
-            self.description_hash = description_hash.hex()
+            data["tags_set"] = ["h"]
+            data["description_hash"] = description_hash.hex()
         else:
-            self.tags_set = {"d"}
-            self.memo = memo
-            self.description = memo
-        letters = string.ascii_lowercase
+            data["tags_set"] = ["d"]
+            data["memo"] = memo
+            data["description"] = memo
         randomHash = hashlib.sha256(
             str(random.getrandbits(256)).encode("utf-8")
         ).hexdigest()
-        self.paymenthash = randomHash
-        payment_request = encode(self)
+        data["paymenthash"] = randomHash
+        payment_request = encode(data)
         print(payment_request)
         checking_id = randomHash
 
