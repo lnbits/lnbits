@@ -57,7 +57,6 @@ class FakeWallet(Wallet):
         ).hexdigest()
         data["paymenthash"] = randomHash
         payment_request = encode(data)
-        print(payment_request)
         checking_id = randomHash
 
         return InvoiceResponse(True, checking_id, payment_request)
