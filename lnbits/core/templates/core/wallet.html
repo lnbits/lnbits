@@ -25,7 +25,11 @@
             icon="add"
             size="md"
           >
-            <q-popup-edit class="bg-accent text-white" v-slot="scope">
+            <q-popup-edit
+              class="bg-accent text-white"
+              v-slot="scope"
+              v-model="credit"
+            >
               <q-input
                 label="Amount to credit account"
                 v-model="scope.value"
