@@ -167,8 +167,8 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
 
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
-        if "lnurl_balance_check" in g().data:
-            save_balance_check(g().wallet.id, data.lnurl_balance_check)
+        if "lnurl_balance_check" in data:
+            save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
             try:
@@ -179,7 +179,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                         "balanceNotify": url_for(
                             f"/withdraw/notify/{urlparse(data.lnurl_callback).netloc}",
                             external=True,
-                            wal=g().wallet.id,
+                            wal=wallet.id,
                         ),
                     },
                     timeout=10,
