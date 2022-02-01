@@ -48,7 +48,7 @@ class FakeWallet(Wallet):
         self.timestamp = datetime.now().timestamp()
         if description_hash:
             self.tags_set = {"h"}
-            self.description_hashed = description_hash
+            self.description_hashed = description_hash.hex()
         else:
             self.tags_set = {"d"}
             self.memo = memo
