@@ -134,8 +134,8 @@ def encode(options):
 
     if options.description:
         addr.tags.append(("d", options.description))
-    if options.description_hashed:
-        addr.tags.append(("h", options.description_hashed))
+    if options.description_hash:
+        addr.tags.append(("h", options.description_hash))
     if options.expires:
         addr.tags.append(("x", options.expires))
 

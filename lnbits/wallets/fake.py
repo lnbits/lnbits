@@ -25,7 +25,7 @@ class FakeWallet(Wallet):
         self.paymenthash = ""
         self.privkey = getenv("FAKE_WALLET_KEY")
         self.memo = ""
-        self.description_hashed = ""
+        self.description_hash = ""
         self.description = ""
         self.fallback = None
         self.expires = None
@@ -48,7 +48,7 @@ class FakeWallet(Wallet):
         self.timestamp = datetime.now().timestamp()
         if description_hash:
             self.tags_set = {"h"}
-            self.description_hashed = description_hash.hex()
+            self.description_hash = description_hash.hex()
         else:
             self.tags_set = {"d"}
             self.memo = memo
