@@ -34,6 +34,7 @@ LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
 )
 
 LNBITS_SITE_TITLE = env.str("LNBITS_SITE_TITLE", default="LNbits")
+LNBITS_DENOMINATION = env.str("LNBITS_DENOMINATION", default="sats")
 LNBITS_SITE_TAGLINE = env.str(
     "LNBITS_SITE_TAGLINE", default="free and open-source lightning wallet"
 )

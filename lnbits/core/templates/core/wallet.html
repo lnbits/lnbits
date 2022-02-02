@@ -15,8 +15,8 @@
     <q-card>
       <q-card-section>
         <h3 class="q-my-none">
-          <strong>{% raw %}{{ formattedBalance }}{% endraw %} </strong>
-          sat
+          <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
+          {{LNBITS_DENOMINATION}}
           <q-btn
             v-if="'{{user.admin}}' == 'True'"
             flat
@@ -365,7 +365,18 @@
       <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
         <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
       </p>
-
+      {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
+      <q-input
+        filled
+        dense
+        v-model.number="receive.data.amount"
+        type="number"
+        :label="`Amount ({{LNBITS_DENOMINATION}}) *`"
+        :min="receive.minMax[0]"
+        :max="receive.minMax[1]"
+        :readonly="receive.lnurl && receive.lnurl.fixed"
+      ></q-input
+      >{% else %}
       <q-select
         filled
         dense
@@ -385,6 +396,8 @@
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
       ></q-input>
+      {% endif %} {% raw %}
+
       <q-input
         filled
         dense
@@ -439,7 +452,9 @@
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <div v-if="parse.invoice">
       {% raw %}
-      <h6 class="q-my-none">{{ parse.invoice.fsat }} sat</h6>
+      <h6 class="q-my-none">
+        {{ parse.invoice.fsat }} {{LNBITS_DENOMINATION}}
+      </h6>
       <q-separator class="q-my-sm"></q-separator>
       <p class="text-wrap">
         <strong>Description:</strong> {{ parse.invoice.description }}<br />
@@ -489,7 +504,7 @@
       <q-form @submit="payLnurl" class="q-gutter-md">
         <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
           <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
-          parse.lnurlpay.maxSendable | msatoshiFormat }} sat
+          parse.lnurlpay.maxSendable | msatoshiFormat }} {{LNBITS_DENOMINATION}}
           <span v-if="parse.lnurlpay.commentAllowed > 0">
             <br />
             and a {{parse.lnurlpay.commentAllowed}}-char comment
@@ -499,7 +514,8 @@
           <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is
           requesting <br />
           between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
-          <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b> sat
+          <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
+          {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
           <span v-if="parse.lnurlpay.commentAllowed > 0">
             <br />
             and a {{parse.lnurlpay.commentAllowed}}-char comment
@@ -521,7 +537,7 @@
               dense
               v-model.number="parse.data.amount"
               type="number"
-              label="Amount (sat) *"
+              label="Amount ({{LNBITS_DENOMINATION}}) *"
               :min="parse.lnurlpay.minSendable / 1000"
               :max="parse.lnurlpay.maxSendable / 1000"
               :readonly="parse.lnurlpay.fixed"
@@ -539,7 +555,9 @@
           </div>
         </div>
         <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit">Send satoshis</q-btn>
+          <q-btn unelevated color="primary" type="submit"
+            >Send {{LNBITS_DENOMINATION}}</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
