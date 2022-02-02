@@ -1,15 +1,11 @@
 import asyncio
 import hashlib
-import json
 import random
-import string
-from datetime import datetime, timedelta
+from datetime import datetime
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
-import httpx
-
-from lnbits.helpers import urlsafe_short_hash
+import lnbits.settings
 
 from ..bolt11 import decode, encode
 from .base import (
@@ -60,17 +56,17 @@ class FakeWallet(Wallet):
         ).hexdigest()
         data["paymenthash"] = randomHash
         payment_request = encode(data)
-        checking_id = f"fake_{randomHash}"
+        checking_id = f"{lnbits.settings.CLOSE_WALLET_TOKEN_ID}_{randomHash}"
         
         return InvoiceResponse(True, checking_id, payment_request)
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         invoice = decode(bolt11)        
-        if hasattr(invoice, 'checking_id') and invoice.checking_id.split('_')[0] == 'fake':
+        if hasattr(invoice, 'checking_id') and invoice.checking_id.rsplit("_", 1)[0] == f"{lnbits.settings.CLOSE_WALLET_TOKEN_ID}":
             return PaymentResponse(True, invoice.payment_hash, 0)
         else:
-            print("Only fake wallet invoices can be used!")
-            return PaymentResponse(ok = False, error_message="Only fake wallet invoices can be used!")
+            print("Only internal wallet invoices can be used!")
+            return PaymentResponse(ok = False, error_message="Only internal wallet invoices can be used!")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return PaymentStatus(False)
