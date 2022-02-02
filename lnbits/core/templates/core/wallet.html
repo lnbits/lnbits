@@ -35,7 +35,9 @@
                 v-model="scope.value"
                 dense
                 autofocus
-                type="number"
+                mask="#.##"
+                fill-mask="0"
+                reverse-fill-mask
                 @keyup.enter="updateBalance(scope.value)"
               >
                 <template v-slot:append>
@@ -169,7 +171,17 @@
                 <q-tooltip>{{ props.row.date }}</q-tooltip>
                 {{ props.row.dateFrom }}
               </q-td>
-              <q-td auto-width key="sat" :props="props">
+              {% endraw %}
+              <q-td
+                auto-width
+                key="sat"
+                v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
+                :props="props"
+                >{% raw %} {{ parseFloat(String(props.row.fsat).replaceAll(",",
+                "")) / 100 }}
+              </q-td>
+
+              <q-td auto-width key="sat" v-else :props="props">
                 {{ props.row.fsat }}
               </q-td>
               <q-td auto-width key="fee" :props="props">
@@ -251,7 +263,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-mt-none q-mb-sm">
-          {{ SITE_TITLE }} wallet: <strong><em>{{ wallet.name }}</em></strong>
+          {{ SITE_TITLE }} Wallet: <strong><em>{{ wallet.name }}</em></strong>
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -370,13 +382,15 @@
         filled
         dense
         v-model.number="receive.data.amount"
-        type="number"
-        :label="`Amount ({{LNBITS_DENOMINATION}}) *`"
+        label="Amount ({{LNBITS_DENOMINATION}}) *"
+        mask="#.##"
+        fill-mask="0"
+        reverse-fill-mask
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
-      ></q-input
-      >{% else %}
+      ></q-input>
+      {% else %}
       <q-select
         filled
         dense
@@ -390,24 +404,24 @@
         dense
         v-model.number="receive.data.amount"
         type="number"
-        :label="`Amount (${receive.unit}) *`"
+        label="Amount ({{LNBITS_DENOMINATION}}) *"
         :step="receive.unit != 'sat' ? '0.001' : '1'"
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
       ></q-input>
-      {% endif %} {% raw %}
+      {% endif %}
 
       <q-input
         filled
         dense
         v-model.trim="receive.data.memo"
-        label="Memo *"
-        placeholder="LNbits invoice"
+        label="Memo"
       ></q-input>
+      {% raw %}
       <div v-if="receive.status == 'pending'" class="row q-mt-lg">
         <q-btn
-          unelevated
+          unelevatedamountamount
           color="primary"
           :disable="receive.data.memo == null || receive.data.amount == null || receive.data.amount <= 0"
           type="submit"
@@ -451,9 +465,12 @@
 <q-dialog v-model="parse.show" @hide="closeParseDialog">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <div v-if="parse.invoice">
-      {% raw %}
-      <h6 class="q-my-none">
-        {{ parse.invoice.fsat }} {{LNBITS_DENOMINATION}}
+      <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
+        {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",", ""))
+        / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+      </h6>
+      <h6 v-else class="q-my-none">
+        {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
       </h6>
       <q-separator class="q-my-sm"></q-separator>
       <p class="text-wrap">
@@ -532,6 +549,7 @@
         </div>
         <div class="row">
           <div class="col">
+            {% endraw %}
             <q-input
               filled
               dense
@@ -542,6 +560,7 @@
               :max="parse.lnurlpay.maxSendable / 1000"
               :readonly="parse.lnurlpay.fixed"
             ></q-input>
+            {% raw %}
           </div>
           <div class="col-8 q-pl-md" v-if="parse.lnurlpay.commentAllowed > 0">
             <q-input
