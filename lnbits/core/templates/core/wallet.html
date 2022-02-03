@@ -31,6 +31,7 @@
               v-model="credit"
             >
               <q-input
+                v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
                 label="Amount to credit account"
                 v-model="scope.value"
                 dense
@@ -38,6 +39,19 @@
                 mask="#.##"
                 fill-mask="0"
                 reverse-fill-mask
+                @keyup.enter="updateBalance(scope.value)"
+              >
+                <template v-slot:append>
+                  <q-icon name="edit" />
+                </template>
+              </q-input>
+              <q-input
+                v-else
+                type="number"
+                label="Amount to credit account"
+                v-model="scope.value"
+                dense
+                autofocus
                 @keyup.enter="updateBalance(scope.value)"
               >
                 <template v-slot:append>
