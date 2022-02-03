@@ -594,34 +594,37 @@
     </q-card>
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">Messages (example)</h6>
+        <h6 class="text-subtitle1 q-my-none">Messages</h6>
       </q-card-section>
       <q-card-section class="q-pa-none" >
         <q-separator></q-separator>
 
-        <div class="row q-pa-md">
-          <div class="col-4">
-            <q-btn outline color="primary" size="md" style="height: 90px; width:90%"
-              >OrderID:87h87h<br/>KJBIBYBUYBUF90898....</q-btn
-            >
-            <q-btn outline color="primary" size="md" style="height: 90px; width:90%"
-              >OrderID:NIUHB7<br/>79867KJGJHGVFYFV....</q-btn
-            >
+        <div class="column q-ma-md q-pb-lg" 
+         style="height: 350px">
+          <div class="col q-pb-md">
+            <q-select v-model="customerKey" style="width: 80%;"
+        :options="customerKeys" label="Customers" @input="getMessages(customerKey)"></q-select>
           </div>
-          <div class="col-8">
-            <div style="height: 350px">
-            <q-chat-message
-              :text="['I have not received my Welsh Cakes']"
-              sent
-            ></q-chat-message>
-            <q-chat-message
-              :text="['Yep, its Brexit. They are stuck in customs. We will have to wait it out. I can offer a full refund?']"
-            ></q-chat-message>
+          <div class="col-8 q-px-md">
+            <div v-for="message in customerMessages">
+              <q-chat-message
+                v-if="message[0] == 'out'"
+                :text="[message[1]]"
+                sent
+              ></q-chat-message>
+              <q-chat-message
+                v-else
+                :text="[message[1]]"
+              ></q-chat-message>
           </div>
-            <q-input ><template v-slot:after>
-              <q-btn round dense flat icon="send" />
-            </template></q-input>
-            
+          </div>
+          <div class="col on-right	" style="width: 90%">
+            <q-input >
+              <template v-slot:after>
+                <q-btn round dense flat icon="send" />
+              </template>
+            </q-input>
+          </div>
         </div>
       </q-card-section>
     </q-card>

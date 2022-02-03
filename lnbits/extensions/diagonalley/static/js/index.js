@@ -2,7 +2,24 @@
 
 Vue.component(VueQrcode.name, VueQrcode)
 
-const pica = window.pica()
+//const pica = window.pica()
+
+var mapStalls = obj => {
+  obj._data = _.clone(obj)
+  return obj
+}
+var mapProducts = obj => {
+  obj._data = _.clone(obj)
+  return obj
+}
+var mapZone = obj => {
+  obj._data = _.clone(obj)
+  return obj
+}
+var mapOrders = obj => {
+  obj._data = _.clone(obj)
+  return obj
+}
 
 new Vue({
   el: '#vue',
@@ -13,6 +30,9 @@ new Vue({
       orders: [],
       stalls: [],
       zones: [],
+      customerKeys: [],
+      customerKey: '',
+      customerMessages: {},
       shippedModel: false,
       shippingZoneOptions: [
         'Australia',
@@ -64,7 +84,8 @@ new Vue({
         'Groceries (Food and Drink)',
         'Technology (Phones and Computers)',
         'Home (furniture and accessories)',
-        'Gifts (flowers, cards, etc)'
+        'Gifts (flowers, cards, etc)',
+        'Adult'
       ],
       relayOptions: [
         'wss://nostr-relay.herokuapp.com/ws',
@@ -245,6 +266,17 @@ new Vue({
   },
   methods: {
     ////////////////////////////////////////
+    ///////////SUPPORT MESSAGES/////////////
+    ////////////////////////////////////////
+    getMessages: function (customerKey) {
+      var self = this
+      console.log('fuck')
+      messages = []
+      messages.push(['in', 'blah blah'])
+      messages.push(['out', 'blah blah'])
+      self.customerMessages = messages
+    },
+    ////////////////////////////////////////
     ////////////////STALLS//////////////////
     ////////////////////////////////////////
     getStalls: function () {
@@ -256,10 +288,7 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
-          self.stalls = response.data.map(function (obj) {
-            console.log(obj)
-            return mapDiagonAlley(obj)
-          })
+          self.stalls.push(mapStalls(response.data))
         })
     },
     openStallUpdateDialog: function (linkId) {
@@ -302,7 +331,7 @@ new Vue({
           self.stalls = _.reject(self.stalls, function (obj) {
             return obj.id == data.id
           })
-          self.stalls.push(mapDiagonAlley(response.data))
+          self.stalls.push(mapStalls(response.data))
           self.stallDialog.show = false
           self.stallDialog.data = {}
           data = {}
@@ -323,7 +352,7 @@ new Vue({
           data
         )
         .then(function (response) {
-          self.stalls.push(mapDiagonAlley(response.data))
+          self.stalls.push(mapStalls(response.data))
           self.stallDialog.show = false
           self.stallDialog.data = {}
           data = {}
@@ -371,9 +400,7 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
-          self.products = response.data.map(function (obj) {
-            return mapDiagonAlley(obj)
-          })
+          self.products.push(mapProducts(response.data))
         })
     },
     openProductUpdateDialog: function (linkId) {
@@ -450,7 +477,7 @@ new Vue({
           self.products = _.reject(self.products, function (obj) {
             return obj.id == data.id
           })
-          self.products.push(mapDiagonAlley(response.data))
+          self.products.push(mapProducts(response.data))
           self.productDialog.show = false
           self.productDialog.data = {}
         })
@@ -470,7 +497,7 @@ new Vue({
           data
         )
         .then(function (response) {
-          self.products.push(mapDiagonAlley(response.data))
+          self.products.push(mapProducts(response.data))
           self.productDialog.show = false
           self.productDialog.data = {}
         })
@@ -517,9 +544,7 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
-          self.zones = response.data.map(function (obj) {
-            return mapDiagonAlley(obj)
-          })
+          self.zones.push(mapZone(response.data))
         })
     },
     openZoneUpdateDialog: function (linkId) {
@@ -559,7 +584,7 @@ new Vue({
           self.zones = _.reject(self.zones, function (obj) {
             return obj.id == data.id
           })
-          self.zones.push(mapDiagonAlley(response.data))
+          self.zones.push(mapZone(response.data))
           self.zoneDialog.show = false
           self.zoneDialog.data = {}
           data = {}
@@ -580,7 +605,7 @@ new Vue({
           data
         )
         .then(function (response) {
-          self.zones.push(mapDiagonAlley(response.data))
+          self.zones.push(mapZone(response.data))
           self.zoneDialog.show = false
           self.zoneDialog.data = {}
           data = {}
@@ -628,9 +653,7 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
-          self.shops = response.data.map(function (obj) {
-            return mapDiagonAlley(obj)
-          })
+          self.shops.push(mapShops(response.data))
         })
     },
     openShopUpdateDialog: function (linkId) {
@@ -670,7 +693,7 @@ new Vue({
           self.shops = _.reject(self.shops, function (obj) {
             return obj.id == data.id
           })
-          self.shops.push(mapDiagonAlley(response.data))
+          self.shops.push(mapShops(response.data))
           self.shopDialog.show = false
           self.shopDialog.data = {}
           data = {}
@@ -692,7 +715,7 @@ new Vue({
           data
         )
         .then(function (response) {
-          self.shops.push(mapDiagonAlley(response.data))
+          self.shops.push(mapShops(response.data))
           self.shopDialog.show = false
           self.shopDialog.data = {}
           data = {}
@@ -740,9 +763,7 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
-          self.orders = response.data.map(function (obj) {
-            return mapDiagonAlley(obj)
-          })
+          self.orders.push(mapOrders(response.data))
         })
     },
     createOrder: function () {
@@ -763,7 +784,7 @@ new Vue({
           data
         )
         .then(function (response) {
-          self.orders.push(mapDiagonAlley(response.data))
+          self.orders.push(mapOrders(response.data))
           self.orderDialog.show = false
           self.orderDialog.data = {}
         })
@@ -804,9 +825,7 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
-          self.orders = response.data.map(function (obj) {
-            return mapDiagonAlley(obj)
-          })
+          self.orders.push(mapOrders(response.data))
         })
     },
     exportOrdersCSV: function () {
@@ -819,6 +838,10 @@ new Vue({
       this.getProducts()
       this.getZones()
       this.getOrders()
+      this.customerKeys = [
+        'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
+        'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'
+      ]
     }
   }
 })
