@@ -300,13 +300,20 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" @click="productDialog.show = true"
+        <q-btn unelevated v-if="stalls.length === 0" color="primary" @click="productDialog.show = true"
+          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
+        >
+        <q-btn unelevated v-else color="primary" @click="errorMessage('First set shipping zone(s), then create a stall.')"
           >+ Product <q-tooltip> List a product </q-tooltip></q-btn
         >
         <q-btn unelevated color="primary" @click="zoneDialog.show = true"
           >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
         >
-        <q-btn unelevated color="primary" @click="stallDialog.show = true"
+        <q-btn unelevated v-if="zones.length === 0" color="primary" @click="stallDialog.show = true"
+          >+ Stall
+          <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
+        >
+        <q-btn unelevated v-else color="primary" @click="errorMessage('First set shipping zone(s).')"
           >+ Stall
           <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
         >
@@ -618,7 +625,7 @@
               ></q-chat-message>
           </div>
           </div>
-          <div class="col on-right	" style="width: 90%">
+          <div class="col on-right" style="width: 90%">
             <q-input >
               <template v-slot:after>
                 <q-btn round dense flat icon="send" />

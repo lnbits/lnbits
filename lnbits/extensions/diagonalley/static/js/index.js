@@ -265,6 +265,12 @@ new Vue({
     }
   },
   methods: {
+    errorMessage: function (error) {
+      this.$q.notify({
+        color: 'primary',
+        message: error
+      })
+    },
     ////////////////////////////////////////
     ///////////SUPPORT MESSAGES/////////////
     ////////////////////////////////////////
