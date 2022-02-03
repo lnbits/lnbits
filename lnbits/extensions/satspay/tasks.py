@@ -28,4 +28,3 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     await payment.set_pending(False)
     await check_address_balance(charge_id=charge.id)
-    

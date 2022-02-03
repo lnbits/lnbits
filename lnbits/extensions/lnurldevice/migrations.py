@@ -2,6 +2,7 @@ from lnbits.db import Database
 
 db2 = Database("ext_lnurlpos")
 
+
 async def m001_initial(db):
     """
     Initial lnurldevice table.
@@ -39,38 +40,42 @@ async def m002_redux(db):
     """
     Moves everything from lnurlpos to lnurldevices
     """
-    for row in [
-        list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlposs")
-    ]:
-        await db.execute(
-            """
-            INSERT INTO lnurldevice.lnurldevices (
-                id,
-                key,
-                title,
-                wallet,
-                currency,
-                device,
-                profit
+    try:
+        for row in [
+            list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlposs")
+        ]:
+            await db.execute(
+                """
+                INSERT INTO lnurldevice.lnurldevices (
+                    id,
+                    key,
+                    title,
+                    wallet,
+                    currency,
+                    device,
+                    profit
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (row[0], row[1], row[2], row[3], row[4], "pos", 0),
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (row[0], row[1], row[2], row[3], row[4], "pos", 0),
-        )
-    for row in [
-        list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlpospayment")
-    ]:
-        await db.execute(
-            """
-            INSERT INTO lnurldevice.lnurldevicepayment (
-                id,
-                deviceid,
-                payhash,
-                payload,
-                pin,
-                sats
+        for row in [
+            list(row)
+            for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlpospayment")
+        ]:
+            await db.execute(
+                """
+                INSERT INTO lnurldevice.lnurldevicepayment (
+                    id,
+                    deviceid,
+                    payhash,
+                    payload,
+                    pin,
+                    sats
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (row[0], row[1], row[3], row[4], row[5], row[6]),
             )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (row[0], row[1], row[3], row[4], row[5], row[6]),
-        )
+    except:
+        return

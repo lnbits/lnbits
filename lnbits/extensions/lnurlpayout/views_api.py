@@ -10,9 +10,16 @@ from lnbits.core.views.api import api_payment, api_payments_decode
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import lnurlpayout_ext
-from .crud import create_lnurlpayout, delete_lnurlpayout, get_lnurlpayout, get_lnurlpayouts, get_lnurlpayout_from_wallet
+from .crud import (
+    create_lnurlpayout,
+    delete_lnurlpayout,
+    get_lnurlpayout,
+    get_lnurlpayouts,
+    get_lnurlpayout_from_wallet,
+)
 from .models import lnurlpayout, CreateLnurlPayoutData
 from .tasks import on_invoice_paid
+
 
 @lnurlpayout_ext.get("/api/v1/lnurlpayouts", status_code=HTTPStatus.OK)
 async def api_lnurlpayouts(
@@ -28,22 +35,32 @@ async def api_lnurlpayouts(
 @lnurlpayout_ext.post("/api/v1/lnurlpayouts", status_code=HTTPStatus.CREATED)
 async def api_lnurlpayout_create(
     data: CreateLnurlPayoutData, wallet: WalletTypeInfo = Depends(get_key_type)
-):  
+):
     if await get_lnurlpayout_from_wallet(wallet.wallet.id):
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Wallet already has lnurlpayout set")
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Wallet already has lnurlpayout set",
+        )
         return
     url = await api_payments_decode({"data": data.lnurlpay})
     if "domain" not in url:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="LNURL could not be decoded")
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="LNURL could not be decoded"
+        )
         return
     if str(url["domain"])[0:4] != "http":
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not valid LNURL")
         return
-    lnurlpayout = await create_lnurlpayout(wallet_id=wallet.wallet.id, admin_key=wallet.wallet.adminkey, data=data)
+    lnurlpayout = await create_lnurlpayout(
+        wallet_id=wallet.wallet.id, admin_key=wallet.wallet.adminkey, data=data
+    )
     if not lnurlpayout:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout")
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Failed to save LNURLPayout"
+        )
         return
     return lnurlpayout.dict()
+
 
 @lnurlpayout_ext.delete("/api/v1/lnurlpayouts/{lnurlpayout_id}")
 async def api_lnurlpayout_delete(
@@ -57,26 +74,34 @@ async def api_lnurlpayout_delete(
         )
 
     if lnurlpayout.wallet != wallet.wallet.id:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your lnurlpayout.")
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Not your lnurlpayout."
+        )
 
     await delete_lnurlpayout(lnurlpayout_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
+
 @lnurlpayout_ext.get("/api/v1/lnurlpayouts/{lnurlpayout_id}", status_code=HTTPStatus.OK)
 async def api_lnurlpayout_check(
     lnurlpayout_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):  
+):
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
     payments = await get_payments(
-        wallet_id=lnurlpayout.wallet, complete=True, pending=False, outgoing=True, incoming=True
+        wallet_id=lnurlpayout.wallet,
+        complete=True,
+        pending=False,
+        outgoing=True,
+        incoming=True,
     )
     result = await on_invoice_paid(payments[0])
     return
 
- #   get payouts func
- #   lnurlpayouts = await get_lnurlpayouts(wallet_ids)
- #   for lnurlpayout in lnurlpayouts:
- #       payments = await get_payments(
- #           wallet_id=lnurlpayout.wallet, complete=True, pending=False, outgoing=True, incoming=True
- #       )
- #       await on_invoice_paid(payments[0])
+
+#   get payouts func
+#   lnurlpayouts = await get_lnurlpayouts(wallet_ids)
+#   for lnurlpayout in lnurlpayouts:
+#       payments = await get_payments(
+#           wallet_id=lnurlpayout.wallet, complete=True, pending=False, outgoing=True, incoming=True
+#       )
+#       await on_invoice_paid(payments[0])

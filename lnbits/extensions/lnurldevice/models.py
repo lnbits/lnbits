@@ -33,11 +33,14 @@ class lnurldevices(BaseModel):
         return cls(**dict(row))
 
     def lnurl(self, req: Request) -> Lnurl:
-        url = req.url_for("lnurldevice.lnurl_response", device_id=self.id, _external=True)
+        url = req.url_for(
+            "lnurldevice.lnurl_response", device_id=self.id, _external=True
+        )
         return lnurl_encode(url)
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
+
 
 class lnurldevicepayment(BaseModel):
     id: str

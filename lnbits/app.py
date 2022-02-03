@@ -48,10 +48,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     origins = ["*"]
 
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"]
     )
 
     g().config = lnbits.settings

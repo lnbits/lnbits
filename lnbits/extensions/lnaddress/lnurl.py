@@ -52,7 +52,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
     amount_received = amount
 
     domain = await get_domain(address.domain)
-    
+
     base_url = (
         address.wallet_endpoint[:-1]
         if address.wallet_endpoint.endswith("/")
@@ -71,7 +71,9 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "description_hash": hashlib.sha256(
-                        (await address.lnurlpay_metadata(domain=domain.domain)).encode("utf-8")
+                        (await address.lnurlpay_metadata(domain=domain.domain)).encode(
+                            "utf-8"
+                        )
                     ).hexdigest(),
                     "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },

@@ -13,7 +13,7 @@ from starlette.requests import Request
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
 from lnbits.requestvars import g
-from lnbits.settings import LNBITS_ALLOWED_USERS
+from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_ADMIN_USERS
 
 
 class KeyChecker(SecurityBase):
@@ -171,6 +171,7 @@ async def require_admin_key(
     else:
         return wallet
 
+
 async def require_invoice_key(
     r: Request,
     api_key_header: str = Security(api_key_header),
@@ -184,7 +185,8 @@ async def require_invoice_key(
         # If wallet type is not invoice then return the unauthorized status
         # This also covers when the user passes an invalid key type
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invoice (or Admin) key required."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invoice (or Admin) key required.",
         )
     else:
         return wallet
@@ -201,5 +203,8 @@ async def check_user_exists(usr: UUID4) -> User:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
+
+    if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
+        g().user.admin = True
 
     return g().user

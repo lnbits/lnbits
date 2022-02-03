@@ -11,7 +11,6 @@ from lnbits.settings import DEFAULT_WALLET_NAME
 from . import db
 from .models import User, Wallet, Payment, BalanceCheck
 
-
 # accounts
 # --------
 
@@ -30,8 +29,7 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (
-            user_id,)
+        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,)
     )
 
     return User(**row) if row else None
@@ -185,7 +183,7 @@ async def get_standalone_payment(
         """
         SELECT *
         FROM apipayments
-        WHERE (checking_id = ? OR hash = ?) AND amount > 0 -- only the incoming payment
+        WHERE checking_id = ? OR hash = ?
         LIMIT 1
         """,
         (checking_id_or_hash, checking_id_or_hash),
@@ -279,7 +277,9 @@ async def get_payments(
     return [Payment.from_row(row) for row in rows]
 
 
-async def delete_expired_invoices(conn: Optional[Connection] = None,) -> None:
+async def delete_expired_invoices(
+    conn: Optional[Connection] = None,
+) -> None:
     # first we delete all invoices older than one month
     await (conn or db).execute(
         f"""
@@ -305,8 +305,7 @@ async def delete_expired_invoices(conn: Optional[Connection] = None,) -> None:
         except:
             continue
 
-        expiration_date = datetime.datetime.fromtimestamp(
-            invoice.date + invoice.expiry)
+        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
 

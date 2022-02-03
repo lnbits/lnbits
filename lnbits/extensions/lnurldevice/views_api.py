@@ -48,7 +48,9 @@ async def api_lnurldevice_create_or_update(
 async def api_lnurldevices_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
     try:
-        return [{**lnurldevice.dict()} for lnurldevice in await get_lnurldevices(wallet_ids)]
+        return [
+            {**lnurldevice.dict()} for lnurldevice in await get_lnurldevices(wallet_ids)
+        ]
     except:
         return ""
 
@@ -71,7 +73,8 @@ async def api_lnurldevice_retrieve(
 
 @lnurldevice_ext.delete("/api/v1/lnurlpos/{lnurldevice_id}")
 async def api_lnurldevice_delete(
-    wallet: WalletTypeInfo = Depends(require_admin_key), lnurldevice_id: str = Query(None)
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    lnurldevice_id: str = Query(None),
 ):
     lnurldevice = await get_lnurldevice(lnurldevice_id)
 

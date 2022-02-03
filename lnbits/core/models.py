@@ -57,6 +57,7 @@ class User(BaseModel):
     extensions: List[str] = []
     wallets: List[Wallet] = []
     password: Optional[str] = None
+    admin: bool = False
 
     @property
     def wallet_ids(self) -> List[str]:
