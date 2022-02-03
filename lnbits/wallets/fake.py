@@ -31,11 +31,12 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
+        secret = getenv("FAKE_WALLET_SECRET")
         data: Dict = {
             "out": False,
             "amount": amount,
             "currency": "bc",
-            "privkey": getenv("FAKE_WALLET_KEY"),
+            "privkey": hashlib.pbkdf2_hmac('sha256', secret.encode("utf-8"), ("FakeWallet").encode("utf-8"), 2048, 32).hex(),
             "memo": None,
             "description_hash": None,
             "description": "",
@@ -52,9 +53,9 @@ class FakeWallet(Wallet):
             data["tags_set"] = ["d"]
             data["memo"] = memo
             data["description"] = memo
-        randomHash = hashlib.sha256(
+        randomHash = data["privkey"][:6] + hashlib.sha256(
             str(random.getrandbits(256)).encode("utf-8")
-        ).hexdigest()
+        ).hexdigest()[6:]
         data["paymenthash"] = randomHash
         payment_request = encode(data)
         checking_id = randomHash
@@ -62,8 +63,12 @@ class FakeWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request)
 
     async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        invoice = decode(bolt11)
-        return PaymentResponse(True, invoice.payment_hash, 0)
+        invoice = decode(bolt11)        
+        if hasattr(invoice, 'checking_id') and invoice.checking_id[6:] == data["privkey"][:6]:
+            return PaymentResponse(True, invoice.payment_hash, 0)
+        else:
+            return PaymentResponse(ok = False, error_message="Only internal invoices can be used!")
+
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         return PaymentStatus(False)
