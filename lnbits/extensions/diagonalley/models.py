@@ -1,57 +1,83 @@
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
-from starlette.requests import Request
+import json
+from lib2to3.pytree import Base
+from sqlite3 import Row
+from typing import Dict, Optional
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+
 from fastapi.param_functions import Query
-from typing import Optional, Dict
-from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
-import json
-from sqlite3 import Row
+from starlette.requests import Request
+
+from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 
 
 class Stalls(BaseModel):
-    id: str = Query(None)
-    wallet: str = Query(None)
-    name: str = Query(None)
-    publickey: str = Query(None)
-    privatekey: str = Query(None)
-    relays: str = Query(None)
+    id: str
+    wallet: str
+    name: str
+    publickey: str
+    privatekey: str
+    relays: str
+    shippingzones: str
 
 class createStalls(BaseModel):
-    wallet: str = Query(None)
-    name: str = Query(None)
-    publickey: str = Query(None)
-    privatekey: str = Query(None)
-    relays: str = Query(None)
-    shippingzones: str = Query(None)
+    wallet: str = Query(...)
+    name: str = Query(...)
+    publickey: str = Query(...)
+    privatekey: str = Query(...)
+    relays: str = Query(...)
+    shippingzones: str = Query(...)
 
-class Products(BaseModel):
-    id: str = Query(None)
+class createProduct(BaseModel):
     stall: str = Query(None)
     product: str = Query(None)
     categories: str = Query(None)
     description: str = Query(None)
     image: str = Query(None)
-    price: int = Query(0)
-    quantity: int = Query(0)
+    price: int = Query(0, ge=0)
+    quantity: int = Query(0, ge=0)
 
+class Products(BaseModel):
+    id: str
+    stall: str
+    product: str
+    categories: str
+    description: str
+    image: str
+    price: int
+    quantity: int
 
-class Zones(BaseModel):
-    id: str = Query(None)
-    wallet: str = Query(None)
+class createZones(BaseModel):
     cost: str = Query(None)
     countries: str = Query(None)
 
+class Zones(BaseModel):
+    id: str
+    wallet: str
+    cost: str
+    countries: str
+
+
+class createOrder(BaseModel):
+    productid: str = Query(...)
+    stall: str = Query(...)
+    product: str = Query(...)
+    quantity: int = Query(..., ge=1)
+    shippingzone: int = Query(...)
+    address: str = Query(...)
+    email: str = Query(...)
+    invoiceid: str = Query(...)
 
 class Orders(BaseModel):
-    id: str = Query(None)
-    productid: str = Query(None)
-    stall: str = Query(None)
-    product: str = Query(None)
-    quantity: int = Query(0)
-    shippingzone: int = Query(0)
-    address: str = Query(None)
-    email: str = Query(None)
-    invoiceid: str = Query(None)
+    id: str
+    productid: str
+    stall: str
+    product: str
+    quantity: int
+    shippingzone: int
+    address: str
+    email: str
+    invoiceid: str
     paid: bool
     shipped: bool
