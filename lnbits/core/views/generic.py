@@ -15,8 +15,8 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import (
-    LNBITS_ALLOWED_USERS,
     LNBITS_ADMIN_USERS,
+    LNBITS_ALLOWED_USERS,
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
 )
@@ -136,7 +136,6 @@ async def wallet(
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
-
     return template_renderer().TemplateResponse(
         "core/wallet.html",
         {

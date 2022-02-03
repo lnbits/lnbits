@@ -111,7 +111,7 @@ window.LNbits = {
         '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName
     },
     updateWallet: function (walletName, userId, walletId) {
-     window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`  
+      window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`
     },
     deleteWallet: function (walletId, userId) {
       window.location.href = '/deletewallet?usr=' + userId + '&wal=' + walletId
@@ -123,6 +123,7 @@ window.LNbits = {
         [
           'code',
           'isValid',
+          'isAdminOnly',
           'name',
           'shortDescription',
           'icon',
@@ -135,7 +136,12 @@ window.LNbits = {
       return obj
     },
     user: function (data) {
-      var obj = {id: data.id, email: data.email, extensions: data.extensions, wallets: data.wallets}
+      var obj = {
+        id: data.id,
+        email: data.email,
+        extensions: data.extensions,
+        wallets: data.wallets
+      }
       var mapWallet = this.wallet
       obj.wallets = obj.wallets
         .map(function (obj) {
@@ -153,16 +159,23 @@ window.LNbits = {
       return obj
     },
     wallet: function (data) {
-      newWallet = {id: data.id, name: data.name, adminkey: data.adminkey, inkey: data.inkey} 
+      newWallet = {
+        id: data.id,
+        name: data.name,
+        adminkey: data.adminkey,
+        inkey: data.inkey
+      }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.round(data.balance_msat / 1000)
-      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(newWallet.sat)
+      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
+        newWallet.sat
+      )
       newWallet.url = ['/wallet?usr=', data.user, '&wal=', data.id].join('')
       return newWallet
     },
     payment: function (data) {
       obj = {
-        checking_id:data.id,
+        checking_id: data.id,
         pending: data.pending,
         amount: data.amount,
         fee: data.fee,
@@ -174,8 +187,8 @@ window.LNbits = {
         extra: data.extra,
         wallet_id: data.wallet_id,
         webhook: data.webhook,
-        webhook_status: data.webhook_status,
-      } 
+        webhook_status: data.webhook_status
+      }
 
       obj.date = Quasar.utils.date.formatDate(
         new Date(obj.time * 1000),
@@ -225,7 +238,8 @@ window.LNbits = {
       Quasar.plugins.Notify.create({
         timeout: 5000,
         type: types[error.response.status] || 'warning',
-        message: error.response.data.message || error.response.data.detail || null,
+        message:
+          error.response.data.message || error.response.data.detail || null,
         caption:
           [error.response.status, ' ', error.response.statusText]
             .join('')
@@ -366,6 +380,10 @@ window.windowMixin = {
             return window.LNbits.map.extension(data)
           })
           .filter(function (obj) {
+            if (window.user.admin) return obj
+            return !obj.isAdminOnly
+          })
+          .filter(function (obj) {
             return !obj.hidden
           })
           .map(function (obj) {
@@ -380,6 +398,7 @@ window.windowMixin = {
             return a.name > b.name
           })
       )
+      console.log(this.g.extensions)
     }
   }
 }
