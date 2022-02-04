@@ -49,13 +49,13 @@ class Products(BaseModel):
     quantity: int
 
 class createZones(BaseModel):
-    cost: str = Query(None)
+    cost: int = Query(0, ge=0)
     countries: str = Query(None)
 
 class Zones(BaseModel):
     id: str
-    wallet: str
-    cost: str
+    user: str
+    cost: int
     countries: str
 
 
@@ -73,6 +73,7 @@ class Orders(BaseModel):
     id: str
     productid: str
     stall: str
+    pubkey: str
     product: str
     quantity: int
     shippingzone: int

@@ -121,35 +121,31 @@ async def api_diagonalley_products_delete(product_id, wallet: WalletTypeInfo = D
 
 
 @diagonalley_ext.get("/api/v1/zones")
-async def api_diagonalley_zones(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
-    wallet_ids = [wallet.wallet.id]
+async def api_diagonalley_zones(wallet: WalletTypeInfo = Depends(get_key_type)):
 
-    if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
-
-    return ([zone.dict() for zone in await get_diagonalley_zones(wallet_ids)])
+    return await get_diagonalley_zones(wallet.wallet.user)
 
 @diagonalley_ext.post("/api/v1/zones")
-@diagonalley_ext.put("/api/v1/zones/{zone_id}")
 async def api_diagonalley_zone_create(
     data: createZones, 
-    zone_id: str = Query(None),  
     wallet: WalletTypeInfo = Depends(get_key_type)
     ):
-    if zone_id:
-        zone = await get_diagonalley_zone(zone_id)
-
-        if not zone:
-            return ({"message": "Zone does not exist."})
-
-        if zone.wallet != wallet.wallet.id:
-            return ({"message": "Not your record."})
-
-        zone = await update_diagonalley_zone(zone_id, **data.dict())
-    else:
-        zone = await create_diagonalley_zone(wallet=wallet.wallet.id, data=data)
-
+    zone = await create_diagonalley_zone(user=wallet.wallet.user, data=data)
     return zone.dict()
+
+@diagonalley_ext.post("/api/v1/zones/{zone_id}")
+async def api_diagonalley_zone_update(
+    data: createZones, 
+    zone_id: str = Query(None),  
+    wallet: WalletTypeInfo = Depends(require_admin_key)
+    ):
+    zone = await get_diagonalley_zone(zone_id)
+    if not zone:
+        return ({"message": "Zone does not exist."})
+    if zone.user != wallet.wallet.user:
+        return ({"message": "Not your record."})
+    zone = await update_diagonalley_zone(zone_id, **data.dict())
+    return zone
 
 
 @diagonalley_ext.delete("/api/v1/zones/{zone_id}")
@@ -159,7 +155,7 @@ async def api_diagonalley_zone_delete(zone_id, wallet: WalletTypeInfo = Depends(
     if not zone:
         return ({"message": "zone does not exist."})
 
-    if zone.wallet != wallet.wallet.id:
+    if zone.user != wallet.wallet.user:
         return ({"message": "Not your zone."})
 
     await delete_diagonalley_zone(zone_id)
