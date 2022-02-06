@@ -244,7 +244,7 @@
           label="Private Key"
         ></q-input>
         <q-select
-          :options="shippingZoneOptions"
+          :options="zoneOptions"
           filled
           dense
           multiple
@@ -262,7 +262,7 @@
         <q-input
           filled
           dense
-          v-model.trim="stallDialog.data.name"
+          v-model.trim="stallDialog.data.crelays"
           label="Custom relays (seperate by comma)"
         ></q-input>
         
@@ -270,7 +270,7 @@
           filled
           dense
           v-model.trim="stallDialog.data.nostrShops"
-          label="Stall public keys (seperate by comma)"
+          label="Nostr shop public keys (seperate by comma)"
         ></q-input>
         <div class="row q-mt-lg">
           <q-btn
@@ -301,8 +301,8 @@
     <q-card>
       <q-card-section>
       
-        <q-btn unelevated v-if="stalls.length === 1" color="primary" @click="productDialog.show = true"
-          >+ Product <q-tooltip> List a produc </q-tooltip></q-btn
+        <q-btn unelevated v-if="stalls.length > 1" color="primary" @click="productDialog.show = true"
+          >+ Product <q-tooltip> List a product </q-tooltip></q-btn
         >
         <q-btn unelevated v-else color="primary" @click="errorMessage('First set shipping zone(s), then create a stall.')"
           >+ Product <q-tooltip> List a product </q-tooltip></q-btn
@@ -310,7 +310,7 @@
         <q-btn unelevated color="primary" @click="zoneDialog.show = true"
           >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
         >
-        <q-btn unelevated v-if="zones.length === 1" color="primary" @click="stallDialog.show = true"
+        <q-btn unelevated v-if="zones.length > 1" color="primary" @click="openStallDialog()"
           >+ Stall
           <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
         >
@@ -675,6 +675,7 @@ new Vue({
       orders: [],
       stalls: [],
       zones: [],
+      zoneOptions: [],
       customerKeys: [],
       customerKey: '',
       customerMessages: {},
@@ -949,10 +950,19 @@ new Vue({
             LNbits.utils.notifyApiError(error)
           })
     },
+    openStallDialog: function () {
+      console.log(this.zones[0]['id'])
+      for(let i = 0; i < this.zones.length; i ++){
+        this.zoneOptions.push(this.zones[i]['id'])
+      }
+      this.stallDialog.show = true
+    },
     openStallUpdateDialog: function (linkId) {
       var self = this
       var link = _.findWhere(self.stalls, {id: linkId})
-
+      for(let i = 0; i < this.zones.length; i ++){
+        this.zoneOptions.push(this.stalls[i][0])
+      }
       this.stallDialog.data = _.clone(link._data)
       this.stallDialog.show = true
     },
@@ -1210,6 +1220,7 @@ new Vue({
           if (response.data) {
             console.log(response)
             self.zones = response.data.map(mapZone)
+            
           }
         })
         .catch(function (error) {
