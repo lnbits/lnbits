@@ -24,7 +24,7 @@ async def m001_initial(db):
             kind INT NOT NULL,
             tags TEXT NOT NULL,
             content TEXT NOT NULL,
-            sig TEXT NOT NULL,
+            sig TEXT NOT NULL
         );
     """
     )
