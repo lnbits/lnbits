@@ -15,6 +15,7 @@ import lnbits.settings as settings
 class Extension(NamedTuple):
     code: str
     is_valid: bool
+    is_admin_only: bool
     name: Optional[str] = None
     short_description: Optional[str] = None
     icon: Optional[str] = None
@@ -25,6 +26,7 @@ class Extension(NamedTuple):
 class ExtensionManager:
     def __init__(self):
         self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
+        self._admin_only: List[str] = [x.strip(' ') for x in settings.LNBITS_ADMIN_EXTENSIONS]
         self._extension_folders: List[str] = [
             x[1] for x in os.walk(os.path.join(settings.LNBITS_PATH, "extensions"))
         ][0]
@@ -47,14 +49,17 @@ class ExtensionManager:
                 ) as json_file:
                     config = json.load(json_file)
                 is_valid = True
+                is_admin_only = True if extension in self._admin_only else False
             except Exception:
                 config = {}
                 is_valid = False
+                is_admin_only = False
 
             output.append(
                 Extension(
                     extension,
                     is_valid,
+                    is_admin_only,
                     config.get("name"),
                     config.get("short_description"),
                     config.get("icon"),
