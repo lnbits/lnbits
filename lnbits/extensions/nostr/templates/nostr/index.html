@@ -1,0 +1,159 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Nostr</h5>
+          </div>
+
+          <div class="col-auto">
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+            <q-btn flat color="grey" @click="exportlnurldeviceCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          flat
+          dense
+          :data="lnurldeviceLinks"
+          row-key="id"
+          :columns="nostrTable.columns"
+          :pagination.sync="nostrTable.pagination"
+          :filter="filter"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
+
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.label }}</div>
+              </q-th>
+              <!-- <q-th auto-width></q-th> -->
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.value }}</div>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Nostr Extension</h6>
+
+        <q-card-section>Okay </q-card-section>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  var maplnurldevice = obj => {
+    obj._data = _.clone(obj)
+    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
+    obj.time = obj.time + 'mins'
+
+    if (obj.time_elapsed) {
+      obj.date = 'Time elapsed'
+    } else {
+      obj.date = Quasar.utils.date.formatDate(
+        new Date((obj.theTime - 3600) * 1000),
+        'HH:mm:ss'
+      )
+    }
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        nostrTable: {
+          columns: [
+            {
+              name: 'relay',
+              align: 'left',
+              label: 'relay',
+              field: 'relay'
+            },
+            {
+              name: 'connected',
+              align: 'left',
+              label: 'connected',
+              field: 'connected'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        }
+      }
+    },
+    methods: {
+      getrelays: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/nostr/api/v1/relays',
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.lnurldeviceLinks = response.data.map(maplnurldevice)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      }
+    },
+    created: function () {
+      var self = this
+      var getrelays = this.getrelays
+      getrelays()
+    }
+  })
+</script>
+{% endblock %}

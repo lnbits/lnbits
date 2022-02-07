@@ -1,33 +1,31 @@
 from typing import List, Optional, Union
 
 from lnbits.helpers import urlsafe_short_hash
-
+import shortuuid
 from . import db
-from .models import nostrKeys, nostrNotes, nostrRelays, nostrConnections
+from .models import nostrKeys, nostrNotes, nostrCreateRelays, nostrRelays, nostrConnections, nostrCreateConnections
 
 ###############KEYS##################
 
 async def create_nostrkeys(
     data: nostrKeys
 ) -> nostrKeys:
-    nostrkey_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO nostr.keys (
-            id,
             pubkey,
             privkey
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?)
         """,
-        (nostrkey_id, data.pubkey, data.privkey),
+        (data.pubkey, data.privkey),
     )
     return await get_nostrkeys(nostrkey_id)
 
-async def get_nostrkeys(nostrkey_id: str) -> nostrKeys:
+async def get_nostrkeys(pubkey: str) -> nostrKeys:
     row = await db.fetchone(
-        "SELECT * FROM nostr.keys WHERE id = ?",
-        (lnurldevicepayment_id,),
+        "SELECT * FROM nostr.keys WHERE pubkey = ?",
+        (pubkey,),
     )
     return nostrKeys(**row) if row else None
 
@@ -64,9 +62,12 @@ async def get_nostrnotes(nostrnote_id: str) -> nostrNotes:
 ###############RELAYS##################
 
 async def create_nostrrelays(
-    relay: str
-) -> nostrRelays:
-    nostrrelay_id = urlsafe_short_hash()
+    data: nostrCreateRelays
+) -> nostrCreateRelays:
+    nostrrelay_id = shortuuid.uuid(name=relay)
+    
+    if await get_nostrrelays(nostrrelay_id):
+        return "error"
     await db.execute(
         """
         INSERT INTO nostr.relays (
@@ -75,7 +76,7 @@ async def create_nostrrelays(
         )
         VALUES (?, ?)
         """,
-        (nostrrelay_id, relay),
+        (nostrrelay_id, data.relay),
     )
     return await get_nostrnotes(nostrrelay_id)
 
@@ -90,45 +91,25 @@ async def get_nostrrelays(nostrrelay_id: str) -> nostrRelays:
 ###############CONNECTIONS##################
 
 async def create_nostrconnections(
-    data: nostrNotes
-) -> nostrNotes:
-    nostrkey_id = urlsafe_short_hash()
+    data: nostrCreateConnections
+) -> nostrCreateConnections:
+    nostrrelay_id = shortuuid.uuid(name=data.relayid + data.pubkey)
     await db.execute(
         """
-        INSERT INTO nostr.notes (
+        INSERT INTO nostr.connections (
             id,
             pubkey,
-            created_at,
-            kind,
-            tags,
-            content,
-            sig
+            relayid
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?)
         """,
-        (data.id, data.pubkey, data.created_at, data.kind, data.tags, data.content, data.sig),
+        (data.id, data.pubkey, data.relayid),
     )
-    return await get_nostrnotes(data.id)
+    return await get_nostrconnections(data.id)
 
-async def get_nostrnotes(nostrnote_id: str) -> nostrNotes:
+async def get_nostrconnections(nostrconnections_id: str) -> nostrConnections:
     row = await db.fetchone(
-        "SELECT * FROM nostr.notes WHERE id = ?",
-        (nostrnote_id,),
+        "SELECT * FROM nostr.connections WHERE id = ?",
+        (nostrconnections_id,),
     )
-    return nostrNotes(**row) if row else None
-
-
-
-async def update_lnurldevicepayment(
-    lnurldevicepayment_id: str, **kwargs
-) -> Optional[lnurldevicepayment]:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(
-        f"UPDATE lnurldevice.lnurldevicepayment SET {q} WHERE id = ?",
-        (*kwargs.values(), lnurldevicepayment_id),
-    )
-    row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?",
-        (lnurldevicepayment_id,),
-    )
-    return lnurldevicepayment(**row) if row else None
+    return nostrConnections(**row) if row else None

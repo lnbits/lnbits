@@ -3,15 +3,10 @@ from sqlite3 import Row
 from typing import Optional
 
 from fastapi import Request
-from lnurl import Lnurl
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
 from pydantic.main import BaseModel
 
 class nostrKeys(BaseModel):
-    id: str
     pubkey: str
     privkey: str
 
@@ -23,6 +18,13 @@ class nostrNotes(BaseModel):
     tags: str
     content: str
     sig: str
+
+class nostrCreateRelays(BaseModel):
+    relay: str
+
+class nostrCreateConnections(BaseModel):
+    pubkey: str
+    relayid: str
 
 class nostrRelays(BaseModel):
     id: str
