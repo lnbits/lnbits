@@ -53,6 +53,7 @@ class ExtensionManager:
             except Exception:
                 config = {}
                 is_valid = False
+                is_admin_only = False
 
             output.append(
                 Extension(
