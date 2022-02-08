@@ -5,7 +5,7 @@ from lnbits.helpers import template_renderer
 
 db = Database("ext_nostradmin")
 
-nostr_ext: APIRouter = APIRouter(prefix="/nostradmin", tags=["nostradmin"])
+nostradmin_ext: APIRouter = APIRouter(prefix="/nostradmin", tags=["nostradmin"])
 
 
 def nostr_renderer():
