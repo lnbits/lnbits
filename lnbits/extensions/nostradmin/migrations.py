@@ -1,11 +1,8 @@
 from lnbits.db import Database
 
-db2 = Database("ext_nostr")
-
-
 async def m001_initial(db):
     """
-    Initial nostr table.
+    Initial nostradmin table.
     """
     await db.execute(
         f"""
@@ -40,30 +37,38 @@ async def m001_initial(db):
         f"""
         CREATE TABLE nostradmin.relaylists (
             id TEXT NOT NULL PRIMARY KEY DEFAULT 1,
-            allowlist TEXT NOT NULL,
-            denylist TEXT NOT NULL
+            allowlist TEXT,
+            denylist TEXT
         );
     """
     )
-    try:
-        await db.execute(
-            """
-            INSERT INTO nostradmin.relaylist (
-                id,
-                denylist
-            )
-            VALUES (?, ?,)
-            """,
-            (1, "\n".join(["wss://zucks-meta-relay.com", "wss://nostradmin.cia.gov"])),
+
+    await db.execute(
+        """
+        INSERT INTO nostradmin.relaylists (
+            id,
+            denylist
         )
-    except:
-        return
+        VALUES (?, ?)
+        """,
+        ("1", "wss://zucks-meta-relay.com\nwss://nostr.cia.gov",),
+    )
+
     await db.execute(
         f"""
         CREATE TABLE nostradmin.connections (
             id TEXT NOT NULL PRIMARY KEY,
             publickey TEXT NOT NULL,
             relayid TEXT NOT NULL
+        );
+    """
+    )
+    await db.execute(
+        f"""
+        CREATE TABLE nostradmin.subscribed (
+            id TEXT NOT NULL PRIMARY KEY,
+            userPubkey TEXT NOT NULL,
+            subscribedPubkey TEXT NOT NULL
         );
     """
     )

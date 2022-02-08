@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import Request
 from pydantic import BaseModel
 from pydantic.main import BaseModel
-
+from fastapi.param_functions import Query
 
 class nostrKeys(BaseModel):
     pubkey: str
@@ -21,28 +21,31 @@ class nostrNotes(BaseModel):
     sig: str
 
 class nostrCreateRelays(BaseModel):
-    relay: str
+    relay: str = Query(None)
 
 class nostrCreateConnections(BaseModel):
-    pubkey: str
-    relayid: str
+    pubkey: str = Query(None)
+    relayid: str = Query(None)
 
 class nostrRelays(BaseModel):
-    id: str
-    relay: str
+    id: Optional[str]
+    relay: Optional[str]
 
 class nostrRelayList(BaseModel):
     id: str
-    allowlist: str
-    denylist: str
+    allowlist: Optional[str]
+    denylist: Optional[str]
 
-class nostrRelayDenyList(BaseModel):
-    denylist: str
-
-class nostrRelayAllowList(BaseModel):
-    allowlist: str
+class nostrRelaySetList(BaseModel):
+    allowlist: Optional[str]
+    denylist: Optional[str] 
 
 class nostrConnections(BaseModel):
     id: str
-    pubkey: str
-    relayid: str
+    pubkey: Optional[str]
+    relayid: Optional[str]
+
+class nostrSubscriptions(BaseModel):
+    id: str
+    userPubkey: Optional[str]
+    subscribedPubkey: Optional[str]

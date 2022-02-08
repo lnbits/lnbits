@@ -6,7 +6,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Nostr</h5>
+            <h5 class="text-subtitle1 q-my-none">NOSTR RELAYS ONLINE</h5>
           </div>
 
           <div class="col-auto">
@@ -29,7 +29,7 @@
         <q-table
           flat
           dense
-          :data="lnurldeviceLinks"
+          :data="nostrLinks"
           row-key="id"
           :columns="nostrTable.columns"
           :pagination.sync="nostrTable.pagination"
@@ -81,21 +81,24 @@
         align="justify"
         narrow-indicator
       >
-        <q-tab name="denylist" label="Deny List" />
-        <q-tab name="allowlist" label="Allow List" />
+        <q-tab name="denylist" label="Deny List"></q-tab>
+        <q-tab name="allowlist" label="Allow List"></q-tab>
       </q-tabs>
 
-      <q-separator />
+      <q-separator></q-separator>
 
-      <q-tab-panels v-model="tab" animated>
+      <q-tab-panels v-model="listSelection" animated>
         <q-tab-panel name="denylist">
-          <div class="text-h6">
-            Deny List (denys use of relays in this list)
-          </div>
-          <q-form class="q-gutter-md q-y-md" @submit="setDenyList">
+          <div class="text-h6">Relays in this list will NOT be used</div>
+          <q-form class="q-gutter-md q-y-md" @submit="setRelayList">
             <div class="row">
               <div class="col q-mx-lg">
-                <q-input v-model="denyList" dense filled autogrow />
+                <q-input
+                  v-model="setList.denylist"
+                  dense
+                  filled
+                  autogrow
+                ></q-input>
               </div>
               <div
                 class="col q-mx-lg items-align flex items-center justify-center"
@@ -103,22 +106,22 @@
                 <q-btn unelevated color="primary" type="submit">
                   Update Deny List
                 </q-btn>
-                <q-btn @click="loadShop" flat color="grey" class="q-ml-auto"
-                  >Reset</q-btn
-                >
               </div>
             </div>
           </q-form>
         </q-tab-panel>
 
         <q-tab-panel name="allowlist">
-          <div class="text-h6">
-            Allow List (denys any relays not in this list)
-          </div>
-          <q-form class="q-gutter-md q-y-md" @submit="setAllowList">
+          <div class="text-h6">ONLY relays in this list will be used</div>
+          <q-form class="q-gutter-md q-y-md" @submit="setRelayList">
             <div class="row">
               <div class="col q-mx-lg">
-                <q-input v-model="allowList" dense filled autogrow />
+                <q-input
+                  v-model="setList.allowlist"
+                  dense
+                  filled
+                  autogrow
+                ></q-input>
               </div>
               <div
                 class="col q-mx-lg items-align flex items-center justify-center"
@@ -126,9 +129,6 @@
                 <q-btn unelevated color="primary" type="submit">
                   Update Allow List
                 </q-btn>
-                <q-btn @click="loadShop" flat color="grey" class="q-ml-auto"
-                  >Reset</q-btn
-                >
               </div>
             </div>
           </q-form>
@@ -175,8 +175,12 @@
     data: function () {
       return {
         listSelection: 'denylist',
-        allowList: [],
-        denyList: [],
+        setList: {
+          allowlist: '',
+          denylist: ''
+        },
+        nostrLinks: [],
+        filter: '',
         nostrTable: {
           columns: [
             {
@@ -234,18 +238,20 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      setDenyList: function () {
+      setRelayList: function () {
         var self = this
+        console.log(self.setList)
         LNbits.api
           .request(
             'POST',
-            '/nostradmin/api/v1/denylist',
+            '/nostradmin/api/v1/setlist',
             self.g.user.wallets[0].adminkey,
-            self.allowList
+            self.setList
           )
           .then(function (response) {
             if (response.data) {
-              self.denyList = response.data
+              console.log(response.data)
+              // self.denyList = response.data
             }
           })
           .catch(function (error) {
@@ -262,13 +268,18 @@
           )
           .then(function (response) {
             if (response.data) {
-              self.denyList = response.data.denylist
-              self.allowList = response.data.allowlist
+              console.log(response.data)
+              self.setList.denylist = response.data.denylist
+              self.setList.allowlist = response.data.allowlist
             }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
+      },
+      exportlnurldeviceCSV: function () {
+        var self = this
+        LNbits.utils.exportCSV(self.nostrTable.columns, this.nostrLinks)
       }
     },
     created: function () {

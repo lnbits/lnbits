@@ -7,11 +7,10 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.extensions.nostr import nostr_ext
 from lnbits.utils.exchange_rates import currencies
 
-from . import nostr_ext
 from lnbits.settings import LNBITS_ADMIN_USERS
+from . import nostradmin_ext
 from .crud import (
     create_nostrkeys,
     get_nostrkeys,
@@ -20,13 +19,11 @@ from .crud import (
     create_nostrrelays,
     get_nostrrelays,
     get_nostrrelaylist,
-    update_nostrrelayallowlist,
-    update_nostrrelaydenylist,
+    update_nostrrelaysetlist,
     create_nostrconnections,
     get_nostrconnections,
 )
-from .models import nostrKeys, nostrCreateRelays, nostrRelayAllowList, nostrRelayDenyList
-
+from .models import nostrKeys, nostrCreateRelays, nostrRelaySetList
 
 # while True:
 async def nostr_subscribe():
@@ -41,13 +38,7 @@ async def nostr_subscribe():
 websocket_queue = asyncio.Queue(1000)
 
 
-async def internal_invoice_listener():
-    while True:
-        checking_id = await internal_invoice_queue.get()
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
-
-
-@nostr_ext.get("/api/v1/relays")
+@nostradmin_ext.get("/api/v1/relays")
 async def api_relays_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
 
     relays = await get_nostrrelays()
@@ -62,7 +53,7 @@ async def api_relays_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
     except:
         None
 
-@nostr_ext.get("/api/v1/relaylist")
+@nostradmin_ext.get("/api/v1/relaylist")
 async def api_relaylist(wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
@@ -70,18 +61,10 @@ async def api_relaylist(wallet: WalletTypeInfo = Depends(get_key_type)):
         )
     return await get_nostrrelaylist()
 
-@nostr_ext.post("/api/v1/allowlist")
-async def api_relaysallowed(data: nostrRelayAllowList, wallet: WalletTypeInfo = Depends(get_key_type)):
+@nostradmin_ext.post("/api/v1/setlist")
+async def api_relayssetlist(data: nostrRelaySetList, wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
-    return await update_nostrrelayallowlist(data)
-
-@nostr_ext.post("/api/v1/denylist")
-async def api_relaysdenyed(data: nostrRelayDenyList, wallet: WalletTypeInfo = Depends(get_key_type)):
-    if wallet.wallet.user not in LNBITS_ADMIN_USERS:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
-        )
-    return await update_nostrrelaydenylist(data)
+    return await update_nostrrelaysetlist(data)

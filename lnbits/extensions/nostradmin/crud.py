@@ -12,6 +12,7 @@ from .models import (
     nostrCreateConnections,
     nostrRelayList,
 )
+from .models import nostrKeys, nostrCreateRelays, nostrRelaySetList
 
 ###############KEYS##################
 
@@ -100,31 +101,20 @@ async def get_nostrrelay(nostrrelay_id: str) -> nostrRelays:
     row = await db.fetchone("SELECT * FROM nostradmin.relays WHERE id = ?", (nostrrelay_id,))
     return nostrRelays(**row) if row else None
 
-
-async def update_nostrrelayallowlist(allowlist: str) -> nostrRelayList:
+async def update_nostrrelaysetlist(data: nostrRelaySetList) -> nostrRelayList:
     await db.execute(
         """
-        UPDATE nostradmin.relaylist SET
+        UPDATE nostradmin.relaylists SET
+          denylist = ?,
           allowlist = ?
         WHERE id = ?
         """,
-        (allowlist, 1),
-    )
-    return await get_nostrrelaylist()
-
-async def update_nostrrelaydenylist(denylist: str) -> nostrRelayList:
-    await db.execute(
-        """
-        UPDATE nostradmin.relaylist SET
-          denylist = ?
-        WHERE id = ?
-        """,
-        (denylist, 1),
+        (data.denylist, data.allowlist, 1),
     )
     return await get_nostrrelaylist()
 
 async def get_nostrrelaylist() -> nostrRelayList:
-    row = await db.fetchone("SELECT * FROM nostradmin.relaylist WHERE id = ?", (1,))
+    row = await db.fetchone("SELECT * FROM nostradmin.relaylists WHERE id = ?", (1,))
     return nostrRelayList(**row) if row else None
 
 
