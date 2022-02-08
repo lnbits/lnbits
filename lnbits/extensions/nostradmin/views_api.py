@@ -25,18 +25,6 @@ from .crud import (
 )
 from .models import nostrKeys, nostrCreateRelays, nostrRelaySetList
 
-# while True:
-async def nostr_subscribe():
-    return
-    # for the relays:
-    # async with websockets.connect("ws://localhost:8765") as websocket:
-    # for the public keys:
-    # await websocket.send("subscribe to events")
-    # await websocket.recv()
-
-
-websocket_queue = asyncio.Queue(1000)
-
 
 @nostradmin_ext.get("/api/v1/relays")
 async def api_relays_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
