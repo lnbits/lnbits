@@ -71,12 +71,77 @@
         </q-table>
       </q-card-section>
     </q-card>
+    <q-card>
+      <q-tabs
+        v-model="listSelection"
+        dense
+        class="text-grey"
+        active-color="primary"
+        indicator-color="primary"
+        align="justify"
+        narrow-indicator
+      >
+        <q-tab name="denylist" label="Deny List" />
+        <q-tab name="allowlist" label="Allow List" />
+      </q-tabs>
+
+      <q-separator />
+
+      <q-tab-panels v-model="tab" animated>
+        <q-tab-panel name="denylist">
+          <div class="text-h6">
+            Deny List (denys use of relays in this list)
+          </div>
+          <q-form class="q-gutter-md q-y-md" @submit="setDenyList">
+            <div class="row">
+              <div class="col q-mx-lg">
+                <q-input v-model="denyList" dense filled autogrow />
+              </div>
+              <div
+                class="col q-mx-lg items-align flex items-center justify-center"
+              >
+                <q-btn unelevated color="primary" type="submit">
+                  Update Deny List
+                </q-btn>
+                <q-btn @click="loadShop" flat color="grey" class="q-ml-auto"
+                  >Reset</q-btn
+                >
+              </div>
+            </div>
+          </q-form>
+        </q-tab-panel>
+
+        <q-tab-panel name="allowlist">
+          <div class="text-h6">
+            Allow List (denys any relays not in this list)
+          </div>
+          <q-form class="q-gutter-md q-y-md" @submit="setAllowList">
+            <div class="row">
+              <div class="col q-mx-lg">
+                <q-input v-model="allowList" dense filled autogrow />
+              </div>
+              <div
+                class="col q-mx-lg items-align flex items-center justify-center"
+              >
+                <q-btn unelevated color="primary" type="submit">
+                  Update Allow List
+                </q-btn>
+                <q-btn @click="loadShop" flat color="grey" class="q-ml-auto"
+                  >Reset</q-btn
+                >
+              </div>
+            </div>
+          </q-form>
+        </q-tab-panel>
+      </q-tab-panels>
+    </q-card>
   </div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Nostr Extension</h6>
+        <p>Only Admin users can manage this extension</p>
 
         <q-card-section>Okay </q-card-section>
       </q-card-section>
@@ -109,6 +174,9 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        listSelection: 'denylist',
+        allowList: [],
+        denyList: [],
         nostrTable: {
           columns: [
             {
@@ -136,12 +204,66 @@
         LNbits.api
           .request(
             'GET',
-            '/nostr/api/v1/relays',
+            '/nostradmin/api/v1/relays',
             self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             if (response.data) {
-              self.lnurldeviceLinks = response.data.map(maplnurldevice)
+              self.nostrrelayLinks = response.data.map(maprelays)
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      setAllowList: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/nostradmin/api/v1/allowlist',
+            self.g.user.wallets[0].adminkey,
+            self.allowList
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.allowList = response.data
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      setDenyList: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'POST',
+            '/nostradmin/api/v1/denylist',
+            self.g.user.wallets[0].adminkey,
+            self.allowList
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.denyList = response.data
+            }
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      getLists: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/nostradmin/api/v1/relaylist',
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            if (response.data) {
+              self.denyList = response.data.denylist
+              self.allowList = response.data.allowlist
             }
           })
           .catch(function (error) {
@@ -151,8 +273,8 @@
     },
     created: function () {
       var self = this
-      var getrelays = this.getrelays
-      getrelays()
+      this.getrelays()
+      this.getLists()
     }
   })
 </script>

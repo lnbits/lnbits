@@ -20,5 +20,5 @@ templates = Jinja2Templates(directory="templates")
 @nostr_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return nostr_renderer().TemplateResponse(
-        "nostr/index.html", {"request": request, "user": user.dict()}
+        "nostradmin/index.html", {"request": request, "user": user.dict()}
     )
