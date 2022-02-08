@@ -6,6 +6,7 @@ from fastapi import Request
 from pydantic import BaseModel
 from pydantic.main import BaseModel
 
+
 class nostrKeys(BaseModel):
     pubkey: str
     privkey: str
@@ -29,6 +30,17 @@ class nostrCreateConnections(BaseModel):
 class nostrRelays(BaseModel):
     id: str
     relay: str
+
+class nostrRelayList(BaseModel):
+    id: str
+    allowlist: str
+    denylist: str
+
+class nostrRelayDenyList(BaseModel):
+    denylist: str
+
+class nostrRelayAllowList(BaseModel):
+    allowlist: str
 
 class nostrConnections(BaseModel):
     id: str
