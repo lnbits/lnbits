@@ -1,15 +1,15 @@
-import json
 import datetime
-from uuid import uuid4
-from typing import List, Optional, Dict, Any
+import json
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from lnbits import bolt11
-from lnbits.db import Connection, POSTGRES, COCKROACH
-from lnbits.settings import DEFAULT_WALLET_NAME
+from lnbits.db import COCKROACH, POSTGRES, Connection
+from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
 
 from . import db
-from .models import User, Wallet, Payment, BalanceCheck
+from .models import BalanceCheck, Payment, User, Wallet
 
 # accounts
 # --------
@@ -53,6 +53,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
             """,
             (user_id,),
         )
+
     else:
         return None
 
@@ -61,6 +62,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
+        admin=LNBITS_ADMIN_USERS and user["id"] in LNBITS_ADMIN_USERS
     )
 
 
