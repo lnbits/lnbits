@@ -29,7 +29,7 @@
         <q-table
           flat
           dense
-          :data="nostrLinks"
+          :data="nostrrelayLinks"
           row-key="id"
           :columns="nostrTable.columns"
           :pagination.sync="nostrTable.pagination"
@@ -38,9 +38,6 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th style="width: 5%"></q-th>
-              <q-th style="width: 5%"></q-th>
-
               <q-th
                 v-for="col in props.cols"
                 :key="col.name"
@@ -63,7 +60,12 @@
                 auto-width
               >
                 <div v-if="col.name == 'id'"></div>
-                <div v-else>{{ col.value }}</div>
+                <div v-else>
+                  <div v-if="col.value == true" style="background-color: green">
+                    {{ col.value }}
+                  </div>
+                  <div v-else>{{ col.value }}</div>
+                </div>
               </q-td>
             </q-tr>
           </template>
@@ -143,7 +145,7 @@
         <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Nostr Extension</h6>
         <p>Only Admin users can manage this extension</p>
 
-        <q-card-section>Okay </q-card-section>
+        <q-card-section></q-card-section>
       </q-card-section>
     </q-card>
   </div>
@@ -153,7 +155,7 @@
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
-  var maplnurldevice = obj => {
+  var maplrelays = obj => {
     obj._data = _.clone(obj)
     obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
     obj.time = obj.time + 'mins'
@@ -179,10 +181,16 @@
           allowlist: '',
           denylist: ''
         },
-        nostrLinks: [],
+        nostrrelayLinks: [],
         filter: '',
         nostrTable: {
           columns: [
+            {
+              name: 'wah',
+              align: 'left',
+              label: 'id',
+              field: 'id'
+            },
             {
               name: 'relay',
               align: 'left',
@@ -190,10 +198,10 @@
               field: 'relay'
             },
             {
-              name: 'connected',
+              name: 'status',
               align: 'left',
-              label: 'connected',
-              field: 'connected'
+              label: 'status',
+              field: 'status'
             }
           ],
           pagination: {
@@ -203,7 +211,7 @@
       }
     },
     methods: {
-      getrelays: function () {
+      getRelays: function () {
         var self = this
         LNbits.api
           .request(
@@ -213,7 +221,10 @@
           )
           .then(function (response) {
             if (response.data) {
-              self.nostrrelayLinks = response.data.map(maprelays)
+              console.log(response.data)
+              response.data.map(maplrelays)
+              self.nostrrelayLinks = response.data
+              console.log(self.nostrrelayLinks)
             }
           })
           .catch(function (error) {
@@ -284,7 +295,7 @@
     },
     created: function () {
       var self = this
-      this.getrelays()
+      this.getRelays()
       this.getLists()
     }
   })

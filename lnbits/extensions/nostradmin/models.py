@@ -30,6 +30,7 @@ class nostrCreateConnections(BaseModel):
 class nostrRelays(BaseModel):
     id: Optional[str]
     relay: Optional[str]
+    status: Optional[bool] = False
 
 class nostrRelayList(BaseModel):
     id: str
