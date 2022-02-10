@@ -24,11 +24,10 @@ from .crud import (
     get_nostrconnections,
 )
 from .models import nostrKeys, nostrCreateRelays, nostrRelaySetList
-
+from .views import relay_check
 
 @nostradmin_ext.get("/api/v1/relays")
 async def api_relays_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
-
     relays = await get_nostrrelays()
     if not relays:
         await create_nostrrelays(nostrCreateRelays(relay="wss://relayer.fiatjaf.com"))
@@ -36,10 +35,16 @@ async def api_relays_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
             nostrCreateRelays(relay="wss://nostr-pub.wellorder.net")
         )
         relays = await get_nostrrelays()
-    try:
-        return [{**relays.dict()} for relays in await relays]
-    except:
-        None
+    if not relays:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+        )
+    else:
+        for relay in relays:
+            relay.status = await relay_check(relay.relay)
+        return relays
+
+
 
 @nostradmin_ext.get("/api/v1/relaylist")
 async def api_relaylist(wallet: WalletTypeInfo = Depends(get_key_type)):

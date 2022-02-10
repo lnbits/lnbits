@@ -1,6 +1,5 @@
 from http import HTTPStatus
 import asyncio
-import asyncio
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
@@ -8,14 +7,17 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 from . import nostradmin_ext, nostr_renderer
+# FastAPI good for incoming
 from fastapi import Request, WebSocket, WebSocketDisconnect
+# Websockets needed for outgoing 
+import websockets
 
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists
 
-from .crud import get_nostrkeys
+from .crud import get_nostrkeys, get_nostrrelay
 
 templates = Jinja2Templates(directory="templates")
 
@@ -74,8 +76,8 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@nostradmin_ext.websocket("/nostradmin/ws/{nostr_id}", name="nostr_id.websocket_by_id")
-async def websocket_endpoint(websocket: WebSocket, copilot_id: str):
+@nostradmin_ext.websocket("/nostradmin/ws/relayevents/{nostr_id}", name="nostr_id.websocket_by_id")
+async def websocket_endpoint(websocket: WebSocket, nostr_id: str):
     await manager.connect(websocket, nostr_id)
     try:
         while True:
@@ -89,3 +91,12 @@ async def updater(nostr_id, message):
     if not copilot:
         return
     await manager.send_personal_message(f"{message}", nostr_id)
+
+
+async def relay_check(relay: str):
+    async with websockets.connect(relay) as websocket:
+            if str(websocket.state) == "State.OPEN":
+                print(str(websocket.state))
+                return True
+            else:
+                return False
