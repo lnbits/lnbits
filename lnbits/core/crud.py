@@ -57,12 +57,13 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
     else:
         return None
 
+    print("IS_ADMIN", user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS] if LNBITS_ADMIN_USERS else False)
     return User(
         id=user["id"],
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=LNBITS_ADMIN_USERS and user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
+        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS] if LNBITS_ADMIN_USERS else False
     )
 
 
