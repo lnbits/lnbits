@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from lnbits import bolt11
 from lnbits.db import Connection, POSTGRES, COCKROACH
-from lnbits.settings import DEFAULT_WALLET_NAME
+from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
 
 from . import db
 from .models import User, Wallet, Payment, BalanceCheck
@@ -61,6 +61,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
+        admin=LNBITS_ADMIN_USERS and user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
     )
 
 
