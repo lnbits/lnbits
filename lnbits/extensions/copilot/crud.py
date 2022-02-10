@@ -1,8 +1,9 @@
 from typing import List, Optional, Union
 
+from lnbits.helpers import urlsafe_short_hash
+
 from . import db
 from .models import Copilots, CreateCopilotData
-from lnbits.helpers import urlsafe_short_hash
 
 ###############COPILOTS##########################
 
@@ -15,7 +16,7 @@ async def create_copilot(
         """
         INSERT INTO copilot.newer_copilots (
             id,
-            user,
+            "user",
             lnurl_toggle,
             wallet,
             title,

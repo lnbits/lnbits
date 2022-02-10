@@ -160,7 +160,7 @@ async def set_address_renewed(address_id: str, duration: int):
 
 
 async def check_address_available(username: str, domain: str):
-    row, = await db.fetchone(
+    (row,) = await db.fetchone(
         "SELECT COUNT(username) FROM lnaddress.address WHERE username = ? AND domain = ?",
         (username, domain),
     )

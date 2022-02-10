@@ -50,7 +50,7 @@ async def dispatch_invoice_listener(payment: Payment):
 
 async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient() as client:
-        data = payment._asdict()
+        data = payment.dict()
         try:
             r = await client.post(payment.webhook, json=data, timeout=40)
             await mark_webhook_sent(payment, r.status_code)

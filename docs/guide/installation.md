@@ -6,6 +6,7 @@ nav_order: 2
 
 # Basic installation
 Install Postgres and setup a database for LNbits:
+
 ```sh
 # on debian/ubuntu 'sudo apt-get -y install postgresql'
 # or follow instructions at https://www.postgresql.org/download/linux/
@@ -25,14 +26,14 @@ Download this repo and install the dependencies:
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits/
+cd lnbits-legend/
 # ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv' should work
 # for now you'll need to `git checkout FastAPI`
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
-# postgres://<user>:<password>@<host>/<database> - alter line bellow with your user, password and db name
+# postgres://<user>:<myPassword>@<host>/<lnbits> - alter line bellow with your user, password and db name
 LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 # save and exit
 ./venv/bin/uvicorn lnbits.__main__:app --port 5000
@@ -50,6 +51,7 @@ You might also need to install additional packages or perform additional setup s
 If you already have LNbits installed and running, on an SQLite database, we **HIGHLY** recommend you migrate to postgres!
 
 There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user, check the guide above.
+
 ```sh
 # STOP LNbits
 # on the LNBits folder, locate and edit 'conv.py' with the relevant credentials
@@ -66,6 +68,39 @@ Hopefully, everything works and get migrated... Launch LNbits again and check if
 
 
 # Additional guides
+
+### LNbits as a systemd service
+
+Systemd is great for taking care of your LNbits instance. It will start it on boot and restart it in case it crashes. If you want to run LNbits as a systemd service on your Debian/Ubuntu/Raspbian server, create a file at `/etc/systemd/system/lnbits.service` with the following content:
+
+```
+# Systemd unit for lnbits
+# /etc/systemd/system/lnbits.service
+
+[Unit]
+Description=LNbits
+#Wants=lnd.service # you can uncomment these lines if you know what you're doing
+#After=lnd.service # it will make sure that lnbits starts after lnd (replace with your own backend service)
+
+[Service]
+WorkingDirectory=/home/bitcoin/lnbits # replace with the absolute path of your lnbits installation
+ExecStart=/home/bitcoin/lnbits/venv/bin/uvicorn lnbits.__main__:app --port 5000 # same here
+User=bitcoin # replace with the user that you're running lnbits on
+Restart=always
+TimeoutSec=120
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1 # this makes sure that you receive logs in real time
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Save the file and run the following commands:
+
+```sh
+sudo systemctl enable lnbits.service
+sudo systemctl start lnbits.service
+```
 
 ### LNbits running on Umbrel behind Tor
 

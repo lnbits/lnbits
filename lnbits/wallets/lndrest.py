@@ -23,8 +23,7 @@ class LndRestWallet(Wallet):
         endpoint = getenv("LND_REST_ENDPOINT")
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
-            "https://" +
-            endpoint if not endpoint.startswith("http") else endpoint
+            "https://" + endpoint if not endpoint.startswith("http") else endpoint
         )
         self.endpoint = endpoint
 
@@ -103,10 +102,7 @@ class LndRestWallet(Wallet):
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
-                json={
-                    "payment_request": bolt11,
-                    "fee_limit": lnrpcFeeLimit,
-                },
+                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
                 timeout=180,
             )
 
@@ -183,8 +179,7 @@ class LndRestWallet(Wallet):
                             except:
                                 continue
 
-                            payment_hash = base64.b64decode(
-                                inv["r_hash"]).hex()
+                            payment_hash = base64.b64decode(inv["r_hash"]).hex()
                             yield payment_hash
             except (OSError, httpx.ConnectError, httpx.ReadError):
                 pass

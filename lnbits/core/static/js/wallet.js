@@ -161,14 +161,14 @@ new Vue({
           {
             name: 'sat',
             align: 'right',
-            label: 'Amount (sat)',
+            label: 'Amount (' + LNBITS_DENOMINATION + ')',
             field: 'sat',
             sortable: true
           },
           {
             name: 'fee',
             align: 'right',
-            label: 'Fee (msat)',
+            label: 'Fee (m' + LNBITS_DENOMINATION + ')',
             field: 'fee'
           }
         ],
@@ -185,12 +185,17 @@ new Vue({
         location: window.location
       },
       balance: 0,
+      credit: 0,
       newName: ''
     }
   },
   computed: {
     formattedBalance: function () {
-      return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+      if (LNBITS_DENOMINATION != 'sats') {
+        return this.balance / 100
+      } else {
+        return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+      }
     },
     filteredPayments: function () {
       var q = this.paymentsTable.filter
@@ -249,6 +254,28 @@ new Vue({
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
+    updateBalance: function (credit) {
+      if (LNBITS_DENOMINATION != 'sats') {
+        credit = credit * 100
+      }
+      LNbits.api
+        .request('PUT', '/api/v1/wallet/balance/' + credit, this.g.wallet.inkey)
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+        .then(response => {
+          let data = response.data
+          if (data.status === 'ERROR') {
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: `Failed to update.`
+            })
+            return
+          }
+          this.balance = this.balance + data.balance
+        })
+    },
     closeReceiveDialog: function () {
       setTimeout(() => {
         clearInterval(this.receive.paymentChecker)
@@ -271,7 +298,9 @@ new Vue({
     },
     createInvoice: function () {
       this.receive.status = 'loading'
-
+      if (LNBITS_DENOMINATION != 'sats') {
+        this.receive.data.amount = this.receive.data.amount * 100
+      }
       LNbits.api
         .createInvoice(
           this.g.wallet,

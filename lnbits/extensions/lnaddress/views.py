@@ -36,7 +36,7 @@ async def display(domain_id, request: Request):
 
     wallet = await get_wallet(domain.wallet)
     url = urlparse(str(request.url))
-    
+
     return lnaddress_renderer().TemplateResponse(
         "lnaddress/display.html",
         {
@@ -45,6 +45,6 @@ async def display(domain_id, request: Request):
             "domain_domain": domain.domain,
             "domain_cost": domain.cost,
             "domain_wallet_inkey": wallet.inkey,
-            "root_url": f"{url.scheme}://{url.netloc}"
+            "root_url": f"{url.scheme}://{url.netloc}",
         },
     )
