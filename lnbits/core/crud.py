@@ -61,7 +61,6 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=LNBITS_ADMIN_USERS and user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
     )
 
 
