@@ -4,7 +4,8 @@ from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from lnbits.core.crud import get_user, get_payments
+from lnbits.core.crud import get_payments, get_user
+from lnbits.core.models import Payment
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment, api_payments_decode
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
@@ -14,10 +15,10 @@ from .crud import (
     create_lnurlpayout,
     delete_lnurlpayout,
     get_lnurlpayout,
-    get_lnurlpayouts,
     get_lnurlpayout_from_wallet,
+    get_lnurlpayouts,
 )
-from .models import lnurlpayout, CreateLnurlPayoutData
+from .models import CreateLnurlPayoutData, lnurlpayout
 from .tasks import on_invoice_paid
 
 
@@ -87,14 +88,24 @@ async def api_lnurlpayout_check(
     lnurlpayout_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     lnurlpayout = await get_lnurlpayout(lnurlpayout_id)
-    payments = await get_payments(
-        wallet_id=lnurlpayout.wallet,
-        complete=True,
+    ## THIS
+    mock_payment = Payment(
+        checking_id="mock",
         pending=False,
-        outgoing=True,
-        incoming=True,
+        amount=1,
+        fee=1,
+        time=0000,
+        bolt11="mock",
+        preimage="mock",
+        payment_hash="mock",
+        wallet_id=lnurlpayout.wallet,
     )
-    result = await on_invoice_paid(payments[0])
+    ## INSTEAD OF THIS
+    # payments = await get_payments(
+    #     wallet_id=lnurlpayout.wallet, complete=True, pending=False, outgoing=True, incoming=True
+    # )
+
+    result = await on_invoice_paid(mock_payment)
     return
 
 
