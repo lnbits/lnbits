@@ -223,10 +223,10 @@
         </q-select>
         <div class="row">
           <div class="col-5">
-            <q-btn unelevated color="primary">Generate keys</q-btn>
+            <q-btn unelevated @onclick="generateKeys" color="primary">Generate keys</q-btn>
           </div>
           <div class="col-5">
-            <q-btn unelevated color="primary">Restore keys</q-btn>
+            <q-btn unelevated @onclick="restoreKeys" color="primary">Restore keys</q-btn>
           </div>
         </div>
         <q-input
@@ -301,7 +301,7 @@
     <q-card>
       <q-card-section>
       
-        <q-btn unelevated v-if="stalls.length > 1" color="primary" @click="productDialog.show = true"
+        <q-btn unelevated v-if="stalls.length > 0" color="primary" @click="productDialog.show = true"
           >+ Product <q-tooltip> List a product </q-tooltip></q-btn
         >
         <q-btn unelevated v-else color="primary" @click="errorMessage('First set shipping zone(s), then create a stall.')"
@@ -310,7 +310,7 @@
         <q-btn unelevated color="primary" @click="zoneDialog.show = true"
           >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
         >
-        <q-btn unelevated v-if="zones.length > 1" color="primary" @click="openStallDialog()"
+        <q-btn unelevated v-if="zones.length > 0" color="primary" @click="openStallDialog()"
           >+ Stall
           <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
         >
@@ -665,6 +665,10 @@ var mapOrders = obj => {
   obj._data = _.clone(obj)
   return obj
 }
+var mapKeys = obj => {
+  obj._data = _.clone(obj)
+  return obj
+}
 
 new Vue({
   el: '#vue',
@@ -911,6 +915,26 @@ new Vue({
     }
   },
   methods: {
+    generateKeys: function(){
+      var self = this
+      LNbits.api
+        .request(
+          'GET',
+          '/diagonalley/api/v1/keys',
+          self.g.user.wallets[0].adminkey
+        )
+        .then(function (response) {
+          if (response.data) {
+            self.keys = response.data.map(mapKeys)
+          }
+        })
+        .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+    },
+    restoreKeys: function(){
+      
+    },
     capitalizeFirstLetter: function (string) {
       return string.charAt(0).toUpperCase() + string.slice(1);
     },
