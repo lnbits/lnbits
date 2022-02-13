@@ -30,6 +30,7 @@
             type="submit"
             >Add a new wallet</q-btn
           >
+          {% if LNBITS_ADMIN_LOGIN_ENABLED == 'True' %}
           <q-checkbox
             v-model="isOwner"
             label="I have an admin password"
@@ -42,6 +43,7 @@
             type="password"
             label="Your admin password *"
           ></q-input>
+          {% endif %}
         </q-form>
         {% endif %}
       </q-card-section>

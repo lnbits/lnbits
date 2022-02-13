@@ -166,6 +166,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["SITE_DESCRIPTION"] = settings.LNBITS_SITE_DESCRIPTION
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
     t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
+    t.env.globals["LNBITS_ADMIN_LOGIN_ENABLED"] = str(settings.LNBITS_ADMIN_LOGIN_KEY != "")
     t.env.globals["EXTENSIONS"] = get_valid_extensions()
 
     if settings.DEBUG:
