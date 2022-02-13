@@ -9,12 +9,12 @@ new Vue({
       },
       walletName: '',
       isOwner: false,
-      adminPassword: "",
+      adminPassword: ''
     }
   },
   methods: {
     createWallet: function () {
-      LNbits.href.createWallet(this.walletName, undefined, this.adminPassword);
+      LNbits.href.createWallet(this.walletName, undefined, this.adminPassword)
     },
     processing: function () {
       this.$q.notify({

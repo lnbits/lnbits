@@ -108,7 +108,11 @@ window.LNbits = {
   href: {
     createWallet: function (walletName, userId, adminKey) {
       window.location.href =
-        '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName + (adminKey ? '&adm=' + adminKey : '')
+        '/wallet?' +
+        (userId ? 'usr=' + userId + '&' : '') +
+        'nme=' +
+        walletName +
+        (adminKey ? '&adm=' + adminKey : '')
     },
     updateWallet: function (walletName, userId, walletId) {
       window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`
