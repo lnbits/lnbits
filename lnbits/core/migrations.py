@@ -189,8 +189,9 @@ async def m005_balance_check_balance_notify(db):
     """
     )
 
+
 async def m006_add_is_admin_info(db):
-    '''
-    
-    '''
+    """
+    Add a new column which defines if an user is admin.
+    """
     await db.execute("ALTER TABLE accounts ADD COLUMN admin BOOLEAN")
