@@ -15,9 +15,9 @@ from .models import User, Wallet, Payment, BalanceCheck
 # --------
 
 
-async def create_account(conn: Optional[Connection] = None) -> User:
+async def create_account(*, is_admin: Optional[bool] = False, conn: Optional[Connection] = None) -> User:
     user_id = uuid4().hex
-    await (conn or db).execute("INSERT INTO accounts (id) VALUES (?)", (user_id,))
+    await (conn or db).execute("INSERT INTO accounts (id, admin) VALUES (?, ?)", (user_id,is_admin,))
 
     new_account = await get_account(user_id=user_id, conn=conn)
     assert new_account, "Newly created account couldn't be retrieved"
@@ -34,10 +34,21 @@ async def get_account(
 
     return User(**row) if row else None
 
+async def make_admin(
+    user_id: str, conn: Optional[Connection] = None
+) -> Optional[Wallet]:
+    await (conn or db).execute(
+        """
+        UPDATE accounts SET
+            admin = ?
+        WHERE id = ?
+        """,
+        (True, user_id),
+    )
 
 async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[User]:
     user = await (conn or db).fetchone(
-        "SELECT id, email FROM accounts WHERE id = ?", (user_id,)
+        "SELECT id, email, admin FROM accounts WHERE id = ?", (user_id,)
     )
 
     if user:
@@ -61,7 +72,7 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS] if LNBITS_ADMIN_USERS else False
+        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS] if LNBITS_ADMIN_USERS else user["admin"]
     )
 
 

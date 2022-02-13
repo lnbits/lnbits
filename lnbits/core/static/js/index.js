@@ -7,12 +7,14 @@ new Vue({
         show: false,
         data: {}
       },
-      walletName: ''
+      walletName: '',
+      isOwner: false,
+      adminPassword: "",
     }
   },
   methods: {
     createWallet: function () {
-      LNbits.href.createWallet(this.walletName)
+      LNbits.href.createWallet(this.walletName, undefined, this.adminPassword);
     },
     processing: function () {
       this.$q.notify({

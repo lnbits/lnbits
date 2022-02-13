@@ -26,10 +26,21 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="walletName == ''"
+            :disable="walletName == '' && !(isOwner && adminPassword == '')"
             type="submit"
             >Add a new wallet</q-btn
           >
+          <q-checkbox
+            v-model="isOwner"
+            label="I have an admin password"
+          ></q-checkbox>
+          <q-input
+            filled
+            dense
+            v-model="adminPassword"
+            v-if="isOwner"
+            label="Your admin password *"
+          ></q-input>
         </q-form>
         {% endif %}
       </q-card-section>

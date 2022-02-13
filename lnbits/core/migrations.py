@@ -188,3 +188,9 @@ async def m005_balance_check_balance_notify(db):
         );
     """
     )
+
+async def m006_add_is_admin_info(db):
+    '''
+    
+    '''
+    await db.execute("ALTER TABLE accounts ADD COLUMN admin BOOLEAN")

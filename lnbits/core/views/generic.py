@@ -15,6 +15,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import (
+    LNBITS_ADMIN_LOGIN_KEY,
     LNBITS_ALLOWED_USERS,
     LNBITS_ADMIN_USERS,
     LNBITS_SITE_TITLE,
@@ -29,6 +30,7 @@ from ..crud import (
     get_user,
     save_balance_notify,
     update_user_extension,
+    make_admin
 )
 from ..services import pay_invoice, redeem_lnurl_withdraw
 
@@ -92,6 +94,7 @@ just **wallet_name**: create a new user, then create a new wallet for user with 
 just **user_id**: return the first user wallet or create one if none found (with default wallet_name)<br>
 **user_id** and **wallet_name**: create a new wallet for user with wallet_name<br>
 **user_id** and **wallet_id**: return that wallet if user is the owner<br>
+**user_id** and **admin_key**: make the user an admin if that admin key is corect<br>
 nothing: create everything<br>
 """,
 )
@@ -100,14 +103,17 @@ async def wallet(
     nme: Optional[str] = Query(None),
     usr: Optional[UUID4] = Query(None),
     wal: Optional[UUID4] = Query(None),
+    adm: Optional[str] = Query(None),
 ):
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
     wallet_name = nme
+    admin_key = adm
     service_fee = int(SERVICE_FEE) if int(SERVICE_FEE) == SERVICE_FEE else SERVICE_FEE
 
+    is_admin: bool = LNBITS_ADMIN_LOGIN_KEY != "" and admin_key == LNBITS_ADMIN_LOGIN_KEY
     if not user_id:
-        user = await get_user((await create_account()).id)
+        user = await get_user((await create_account(is_admin=is_admin)).id)
     else:
         user = await get_user(user_id)
         if not user:
@@ -118,7 +124,8 @@ async def wallet(
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User not authorized."}
             )
-        if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
+        if (LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS) or is_admin:
+            make_admin(user_id)
             user.admin = True
     if not wallet_id:
         if user.wallets and not wallet_name:
