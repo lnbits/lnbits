@@ -94,7 +94,7 @@ class LndWallet(Wallet):
         )
         
         
-        encrypted_macaroon = getenv("LND_REST_MACAROON_ENCRYPTED")
+        encrypted_macaroon = getenv("LND_GRPC_MACAROON_ENCRYPTED")
         if encrypted_macaroon:
             macaroon = AESCipher(description="macaroon decryption").decrypt(encrypted_macaroon)    
         self.macaroon = load_macaroon(macaroon)
