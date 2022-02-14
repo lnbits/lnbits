@@ -213,7 +213,4 @@ async def check_user_exists(usr: UUID4) -> User:
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
 
-    if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
-        g().user.admin = True
-
     return g().user
