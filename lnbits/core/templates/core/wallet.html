@@ -62,7 +62,7 @@
           </q-btn>
         </h3>
       </q-card-section>
-      <div class="row q-pb-md q-px-md q-col-gutter-md">
+      <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
         <div class="col">
           <q-btn
             unelevated
@@ -662,7 +662,23 @@
     </q-card-section>
   </q-card>
 </q-dialog>
+<q-tabs
+  class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
+  active-class="px-0"
+  indicator-color="transparent"
+>
+  <q-tab
+    icon="account_balance_wallet"
+    label="Wallets"
+    @click="g.visibleDrawer = !g.visibleDrawer"
+  >
+  </q-tab>
+  <q-tab icon="content_paste" label="Paste" @click="showParseDialog"> </q-tab>
+  <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
+  </q-tab>
 
+  <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+</q-tabs>
 {% if service_fee > 0 %}
 <div ref="disclaimer"></div>
 <q-dialog v-model="disclaimerDialog.show">
