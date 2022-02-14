@@ -97,7 +97,7 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
     response = await client.get(f"/bleskomat/u?k1={secret}&pr={pr}")
     assert response.status_code == 200
     assert response.json()["status"] == "ERROR"
-    assert "Insufficient balance" in response.json()["reason"]
+    assert ("Insufficient balance" in response.json()["reason"]) or ("fee" in response.json()["reason"])
     wallet = await get_wallet(bleskomat.wallet)
     assert wallet.balance_msat == 0
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
