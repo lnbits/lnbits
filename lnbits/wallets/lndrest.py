@@ -1,4 +1,5 @@
 import asyncio
+from pydoc import describe
 import httpx
 import json
 import base64
@@ -6,6 +7,7 @@ from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
 from lnbits import bolt11 as lnbits_bolt11
+from .macaroon import load_macaroon, AESCipher
 
 from .base import (
     StatusResponse,
@@ -34,7 +36,13 @@ class LndRestWallet(Wallet):
             or getenv("LND_INVOICE_MACAROON")
             or getenv("LND_REST_INVOICE_MACAROON")
         )
-        self.auth = {"Grpc-Metadata-macaroon": macaroon}
+
+        encrypted_macaroon = getenv("LND_REST_MACAROON_ENCRYPTED")
+        if encrypted_macaroon:
+            macaroon = AESCipher(description="macaroon decryption").decrypt(encrypted_macaroon)    
+        self.macaroon = load_macaroon(macaroon)
+        
+        self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
         self.cert = getenv("LND_REST_CERT")
 
     async def status(self) -> StatusResponse:

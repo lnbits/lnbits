@@ -25,6 +25,7 @@ markupsafe==2.0.1
 marshmallow==3.13.0
 outcome==1.1.0
 psycopg2-binary==2.9.1
+pycryptodomex==3.14.1
 pydantic==1.8.2
 pypng==0.0.21
 pyqrcode==1.2.1
