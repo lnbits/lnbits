@@ -1,7 +1,6 @@
 LNbits
 ======
 
-[![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
 
