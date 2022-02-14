@@ -70,7 +70,8 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 @core_app.put("/api/v1/wallet/balance/{amount}")
 async def api_update_balance(
     amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
-):if not user.admin:
+):
+    if not user.admin:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
         )
