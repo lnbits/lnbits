@@ -71,6 +71,7 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 async def api_update_balance(
     amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    user = await get_user(wallet.wallet.user)
     if not user.admin:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
