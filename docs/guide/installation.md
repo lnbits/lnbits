@@ -28,7 +28,6 @@ Download this repo and install the dependencies:
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 # ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv' should work
-# for now you'll need to `git checkout FastAPI`
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 cp .env.example .env
