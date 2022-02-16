@@ -13,9 +13,9 @@ LNbits uses [Pipenv][pipenv] to manage Python packages.
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 pipenv shell
-# pipenv --python 3.8 shell (if you wish to use a version of Python higher than 3.7)
+# pipenv --python 3.9 shell (if you wish to use a version of Python higher than 3.7)
 pipenv install --dev
-# pipenv --python 3.8 install --dev (if you wish to use a version of Python higher than 3.7)
+# pipenv --python 3.9 install --dev (if you wish to use a version of Python higher than 3.7)
 
 # If any of the modules fails to install, try checking and upgrading your setupTool module
 # pip install -U setuptools
