@@ -387,9 +387,7 @@
           this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log(response)
             self.tickets = response.data.map(function (obj) {
-              console.log(obj)
               return mapEvents(obj)
             })
           })
@@ -464,7 +462,6 @@
       },
       updateformDialog: function (formId) {
         var link = _.findWhere(this.events, {id: formId})
-        console.log(link.id)
         this.formDialog.data.id = link.id
         this.formDialog.data.wallet = link.wallet
         this.formDialog.data.name = link.name
@@ -478,7 +475,6 @@
       },
       updateEvent: function (wallet, data) {
         var self = this
-        console.log(data)
 
         LNbits.api
           .request(
