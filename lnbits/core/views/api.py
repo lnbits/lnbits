@@ -123,7 +123,7 @@ async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
-    amount: int = Query(None, ge=1)
+    amount: int = Query(None, ge=0)
     memo: str = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
