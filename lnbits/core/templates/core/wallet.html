@@ -418,7 +418,7 @@
         dense
         v-model.number="receive.data.amount"
         type="number"
-        label="Amount ({{LNBITS_DENOMINATION}}) *"
+        :label="'Amount (' + receive.unit + ') *'"
         :step="receive.unit != 'sat' ? '0.001' : '1'"
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
