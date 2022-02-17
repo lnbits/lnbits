@@ -119,6 +119,7 @@ async def lndhub_balance(
 async def lndhub_gettxs(
     wallet: WalletTypeInfo = Depends(check_wallet),
     limit: int = Query(20, ge=1, le=20),
+    offset: int = Query(0, ge=0),
 ):
     for payment in await get_payments(
         wallet_id=wallet.wallet.id,
@@ -127,6 +128,7 @@ async def lndhub_gettxs(
         outgoing=True,
         incoming=False,
         limit=limit,
+        offset=offset,
         exclude_uncheckable=True,
     ):
         await payment.set_pending(
@@ -154,6 +156,7 @@ async def lndhub_gettxs(
                     outgoing=True,
                     incoming=False,
                     limit=limit,
+                    offset=offset,
                 )
             )
         )
@@ -164,6 +167,7 @@ async def lndhub_gettxs(
 async def lndhub_getuserinvoices(
     wallet: WalletTypeInfo = Depends(check_wallet),
     limit: int = Query(20, ge=1, le=20),
+    offset: int = Query(0, ge=0),
 ):
     for invoice in await get_payments(
         wallet_id=wallet.wallet.id,
@@ -172,6 +176,7 @@ async def lndhub_getuserinvoices(
         outgoing=False,
         incoming=True,
         limit=limit,
+        offset=offset,
         exclude_uncheckable=True,
     ):
         await invoice.set_pending(
@@ -201,6 +206,7 @@ async def lndhub_getuserinvoices(
                     incoming=True,
                     outgoing=False,
                     limit=limit,
+                    offset=offset,
                 )
             )
         )
