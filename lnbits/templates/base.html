@@ -20,7 +20,7 @@
     {% block head_scripts %}{% endblock %}
   </head>
 
-  <body data-theme="classic">
+  <body data-theme="bitcoin">
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
       <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
@@ -67,8 +67,19 @@
                 icon="format_color_fill"
                 color="deep-purple"
                 size="md"
-                ><q-tooltip>classic</q-tooltip> </q-btn
-              ><q-btn
+                ><q-tooltip>classic</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('bitcoin')"
+                dense
+                flat
+                @click="changeColor('bitcoin')"
+                icon="format_color_fill"
+                color="orange"
+                size="md"
+                ><q-tooltip>bitcoin</q-tooltip>
+              </q-btn>
+              <q-btn
                 v-if="g.allowedThemes.includes('mint')"
                 dense
                 flat
