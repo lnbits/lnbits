@@ -60,6 +60,16 @@
           >
             <div class="row no-wrap q-pa-md">
               <q-btn
+                v-if="g.allowedThemes.includes('classic')"
+                dense
+                flat
+                @click="changeColor('classic')"
+                icon="format_color_fill"
+                color="deep-purple"
+                size="md"
+                ><q-tooltip>classic</q-tooltip>
+              </q-btn>
+              <q-btn
                 v-if="g.allowedThemes.includes('bitcoin')"
                 dense
                 flat
@@ -70,15 +80,6 @@
                 ><q-tooltip>bitcoin</q-tooltip>
               </q-btn>
               <q-btn
-                v-if="g.allowedThemes.includes('classic')"
-                dense
-                flat
-                @click="changeColor('classic')"
-                icon="format_color_fill"
-                color="deep-purple"
-                size="md"
-                ><q-tooltip>classic</q-tooltip> </q-btn
-              ><q-btn
                 v-if="g.allowedThemes.includes('mint')"
                 dense
                 flat
