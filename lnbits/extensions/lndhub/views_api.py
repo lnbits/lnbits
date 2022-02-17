@@ -1,4 +1,6 @@
 import time
+import asyncio
+
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
 
@@ -62,7 +64,6 @@ async def lndhub_addinvoice(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Failed to create invoice"
         )
-
     invoice = bolt11.decode(pr)
     return {
         "pay_req": pr,
@@ -88,8 +89,7 @@ async def lndhub_payinvoice(
             extra={"tag": "lndhub"},
         )
     except:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND,
-                            detail="Payment failed")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Payment failed")
 
     invoice: bolt11.Invoice = bolt11.decode(r_invoice.invoice)
 
@@ -117,7 +117,8 @@ async def lndhub_balance(
 
 @lndhub_ext.get("/ext/gettxs")
 async def lndhub_gettxs(
-    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=20)
+    wallet: WalletTypeInfo = Depends(check_wallet),
+    limit: int = Query(20, ge=1, le=20),
 ):
     for payment in await get_payments(
         wallet_id=wallet.wallet.id,
@@ -131,6 +132,8 @@ async def lndhub_gettxs(
         await payment.set_pending(
             (await WALLET.get_payment_status(payment.checking_id)).pending
         )
+        await asyncio.sleep(0.1)
+
     return [
         {
             "payment_preimage": payment.preimage,
@@ -159,7 +162,8 @@ async def lndhub_gettxs(
 
 @lndhub_ext.get("/ext/getuserinvoices")
 async def lndhub_getuserinvoices(
-    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=20)
+    wallet: WalletTypeInfo = Depends(check_wallet),
+    limit: int = Query(20, ge=1, le=20),
 ):
     for invoice in await get_payments(
         wallet_id=wallet.wallet.id,
@@ -173,6 +177,7 @@ async def lndhub_getuserinvoices(
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
+        await asyncio.sleep(0.1)
 
     return [
         {
