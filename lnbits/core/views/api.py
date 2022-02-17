@@ -31,6 +31,7 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
+from lnbits.settings import LNBITS_SITE_TITLE
 
 from .. import core_app, db
 from ..crud import (
@@ -140,7 +141,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         memo = ""
     else:
         description_hash = b""
-        memo = data.memo if data.memo is not None else "LNbits"
+        memo = data.memo or LNBITS_SITE_TITLE
     if data.unit == "sat":
         amount = int(data.amount)
     else:
