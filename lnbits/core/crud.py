@@ -61,7 +61,9 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
-        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS] if LNBITS_ADMIN_USERS else False
+        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
+        if LNBITS_ADMIN_USERS
+        else False,
     )
 
 
@@ -217,6 +219,8 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """
@@ -261,6 +265,15 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
+    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
+    offset_clause = f"OFFSET {offset}" if type(offset) == int and offset > 0 else ""
+    # combine limit and offset clauses
+    limit_offset_clause = (
+        f"{limit_clause} {offset_clause}"
+        if limit_clause and offset_clause
+        else limit_clause or offset_clause
+    )
+
     where = ""
     if clause:
         where = f"WHERE {' AND '.join(clause)}"
@@ -271,10 +284,10 @@ async def get_payments(
         FROM apipayments
         {where}
         ORDER BY time DESC
+        {limit_offset_clause}
         """,
         tuple(args),
     )
-
     return [Payment.from_row(row) for row in rows]
 
 

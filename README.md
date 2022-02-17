@@ -1,9 +1,6 @@
 LNbits
 ======
 
-[![github-tests-badge]][github-tests]
-[![github-mypy-badge]][github-mypy]
-[![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
 
