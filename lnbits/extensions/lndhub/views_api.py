@@ -1,4 +1,6 @@
 import time
+import asyncio
+
 from base64 import urlsafe_b64encode
 from http import HTTPStatus
 
@@ -11,7 +13,7 @@ from lnbits import bolt11
 from lnbits.core.crud import delete_expired_invoices, get_payments
 from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.decorators import WalletTypeInfo
-from lnbits.settings import WALLET
+from lnbits.settings import WALLET, LNBITS_SITE_TITLE
 
 from . import lndhub_ext
 from .decorators import check_wallet, require_admin_key
@@ -55,14 +57,13 @@ async def lndhub_addinvoice(
         _, pr = await create_invoice(
             wallet_id=wallet.wallet.id,
             amount=int(data.amt),
-            memo=data.memo or "received sats",
+            memo=data.memo or LNBITS_SITE_TITLE,
             extra={"tag": "lndhub"},
         )
     except:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Failed to create invoice"
         )
-
     invoice = bolt11.decode(pr)
     return {
         "pay_req": pr,
@@ -116,7 +117,9 @@ async def lndhub_balance(
 
 @lndhub_ext.get("/ext/gettxs")
 async def lndhub_gettxs(
-    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
+    wallet: WalletTypeInfo = Depends(check_wallet),
+    limit: int = Query(20, ge=1, le=20),
+    offset: int = Query(0, ge=0),
 ):
     for payment in await get_payments(
         wallet_id=wallet.wallet.id,
@@ -124,11 +127,15 @@ async def lndhub_gettxs(
         pending=True,
         outgoing=True,
         incoming=False,
+        limit=limit,
+        offset=offset,
         exclude_uncheckable=True,
     ):
         await payment.set_pending(
             (await WALLET.get_payment_status(payment.checking_id)).pending
         )
+        await asyncio.sleep(0.1)
+
     return [
         {
             "payment_preimage": payment.preimage,
@@ -148,28 +155,34 @@ async def lndhub_gettxs(
                     complete=True,
                     outgoing=True,
                     incoming=False,
+                    limit=limit,
+                    offset=offset,
                 )
-            )[:limit]
+            )
         )
     ]
 
 
 @lndhub_ext.get("/ext/getuserinvoices")
 async def lndhub_getuserinvoices(
-    wallet: WalletTypeInfo = Depends(check_wallet), limit: int = Query(0, ge=0, lt=200)
+    wallet: WalletTypeInfo = Depends(check_wallet),
+    limit: int = Query(20, ge=1, le=20),
+    offset: int = Query(0, ge=0),
 ):
-    await delete_expired_invoices()
     for invoice in await get_payments(
         wallet_id=wallet.wallet.id,
         complete=False,
         pending=True,
         outgoing=False,
         incoming=True,
+        limit=limit,
+        offset=offset,
         exclude_uncheckable=True,
     ):
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
+        await asyncio.sleep(0.1)
 
     return [
         {
@@ -192,8 +205,10 @@ async def lndhub_getuserinvoices(
                     complete=True,
                     incoming=True,
                     outgoing=False,
+                    limit=limit,
+                    offset=offset,
                 )
-            )[:limit]
+            )
         )
     ]
 
