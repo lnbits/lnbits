@@ -18,6 +18,7 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists
 
 from .crud import get_nostrkeys, get_nostrrelay
+from .relay_manager import RelayManager, Relay
 
 templates = Jinja2Templates(directory="templates")
 
@@ -38,15 +39,17 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 websocket_queue = asyncio.Queue(1000)
 
-# while True:
-async def nostr_subscribe():
-    return
-    # for the relays:
-    # async with websockets.connect("ws://localhost:8765") as websocket:
-    # for the public keys:
-    # await websocket.send("subscribe to events")
-    # await websocket.recv()
 
+mgr: RelayManager = RelayManager(enable_ws_debugger=False)
+
+# listen for events coming from relays
+
+
+async def connectToNostr():
+    while True:
+        e = await mgr.msg_channel.get()
+        print(e)
+connectToNostr
 #####################################################################
 ################### LNBITS WEBSOCKET ROUTES #########################
 #### HERE IS WHERE LNBITS FRONTEND CAN RECEIVE AND SEND MESSAGES ####
@@ -97,7 +100,11 @@ async def updater(nostr_id, message):
 async def relay_check(relay: str):
     async with websockets.connect(relay) as websocket:
             if str(websocket.state) == "State.OPEN":
-                print(str(websocket.state))
+                r = Relay(url=relay, read=True, write=True, active=True)
+                try:
+                    await mgr.add_relay(r)
+                except:
+                    None
                 return True
             else:
                 return False
