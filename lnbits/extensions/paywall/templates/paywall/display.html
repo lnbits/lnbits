@@ -77,8 +77,8 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        userAmount: {{ paywall.amount }},
-        paywallAmount: {{ paywall.amount }},
+        userAmount: '{{ paywall.amount }}',
+        paywallAmount: '{{ paywall.amount }}',
         paymentReq: null,
         redirectUrl: null,
         paymentDialog: {
@@ -89,7 +89,9 @@
     },
     computed: {
       amount: function () {
-        return (this.paywallAmount > this.userAmount) ? this.paywallAmount : this.userAmount
+        return this.paywallAmount > this.userAmount
+          ? this.paywallAmount
+          : this.userAmount
       }
     },
     methods: {
@@ -102,48 +104,55 @@
       },
       createInvoice: function () {
         var self = this
-        console.log(this.amount)
-        axios
-          .post(
-            '/paywall/api/v1/paywalls/{{ paywall.id }}/invoice',
-            {amount: self.amount}
+        LNbits.api
+          .request(
+            'POST',
+            '/paywall/api/v1/paywalls/invoice/{{ paywall.id }}',
+            'filler',
+            {
+              amount: self.amount
+            }
           )
           .then(function (response) {
-            self.paymentReq = response.data.payment_request.toUpperCase()
+            if (response.data) {
+              self.paymentReq = response.data.payment_request.toUpperCase()
+              self.paymentDialog.dismissMsg = self.$q.notify({
+                timeout: 0,
+                message: 'Waiting for payment...'
+              })
 
-            self.paymentDialog.dismissMsg = self.$q.notify({
-              timeout: 0,
-              message: 'Waiting for payment...'
-            })
-
-            self.paymentDialog.checker = setInterval(function () {
-              axios
-                .post(
-                  '/paywall/api/v1/paywalls/{{ paywall.id }}/check_invoice',
-                  {payment_hash: response.data.payment_hash}
-                )
-                .then(function (res) {
-                  if (res.data.paid) {
-                    self.cancelPayment()
-                    self.redirectUrl = res.data.url
-                    if (res.data.remembers) {
-                      self.$q.localStorage.set(
-                        'lnbits.paywall.{{ paywall.id }}',
-                        res.data.url
-                      )
+              self.paymentDialog.checker = setInterval(function () {
+                LNbits.api
+                  .request(
+                    'POST',
+                    '/paywall/api/v1/paywalls/check_invoice/{{ paywall.id }}',
+                    'filler',
+                    {payment_hash: response.data.payment_hash}
+                  )
+                  .then(function (response) {
+                    if (response.data) {
+                      if (response.data.paid) {
+                        self.cancelPayment()
+                        self.redirectUrl = response.data.url
+                        if (response.data.remembers) {
+                          self.$q.localStorage.set(
+                            'lnbits.paywall.{{ paywall.id }}',
+                            response.data.url
+                          )
+                        }
+                        self.$q.notify({
+                          type: 'positive',
+                          message: 'Payment received!',
+                          icon: null
+                        })
+                      }
                     }
-
-                    self.$q.notify({
-                      type: 'positive',
-                      message: 'Payment received!',
-                      icon: null
-                    })
-                  }
-                })
-                .catch(function (error) {
-                  LNbits.utils.notifyApiError(error)
-                })
-            }, 2000)
+                  })
+                  .catch(function (error) {
+                    LNbits.utils.notifyApiError(error)
+                  })
+              }, 2000)
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
