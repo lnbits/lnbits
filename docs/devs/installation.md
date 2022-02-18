@@ -43,5 +43,5 @@ Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Ne
 
 **Notes**: 
 
-* We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy, if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
+* We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
 * <a href="https://linuxize.com/post/how-to-use-linux-screen/#starting-linux-screen">Screen</a> works well if you want LNbits to continue running when you close your terminal session.
