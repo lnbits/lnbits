@@ -15,9 +15,8 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import (
-    LNBITS_ADMIN_LOGIN_KEY,
-    LNBITS_ALLOWED_USERS,
     LNBITS_ADMIN_USERS,
+    LNBITS_ALLOWED_USERS,
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
 )
@@ -233,7 +232,7 @@ async def lnurl_balance_notify(request: Request, service: str):
         redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_html_routes.get("/lnurlwallet", response_class=RedirectResponse)
+@core_html_routes.get("/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet")
 async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)

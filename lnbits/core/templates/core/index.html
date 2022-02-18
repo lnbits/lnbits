@@ -11,7 +11,7 @@
           color="primary"
           @click="processing"
           type="a"
-          href="{{ url_for('core.lnurlwallet', lightning=lnurl) }}"
+          href="{{ url_for('core.lnurlwallet') }}?lightning={{ lnurl }}"
         >
           Press to claim bitcoin
         </q-btn>

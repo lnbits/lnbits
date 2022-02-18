@@ -349,17 +349,25 @@ window.windowMixin = {
     }
   },
   created: function () {
-    this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
-    this.g.allowedThemes = window.allowedThemes ?? ['classic']
+    
+    if(this.$q.localStorage.getItem('lnbits.darkMode') == true || this.$q.localStorage.getItem('lnbits.darkMode') == false){
+      this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
+    }
+    else{
+      this.$q.dark.set(true)
+    }
+    this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
     // failsafe if admin changes themes halfway
+    if (!this.$q.localStorage.getItem('lnbits.theme')){
+      this.changeColor(this.g.allowedThemes[0])
+    }
     if (
       this.$q.localStorage.getItem('lnbits.theme') &&
       !this.g.allowedThemes.includes(
         this.$q.localStorage.getItem('lnbits.theme')
       )
     ) {
-      console.log('allowedThemes changed by Admin', this.g.allowedThemes[0])
       this.changeColor(this.g.allowedThemes[0])
     }
 
