@@ -417,9 +417,11 @@
         filled
         dense
         v-model.number="receive.data.amount"
-        type="number"
         :label="'Amount (' + receive.unit + ') *'"
-        :step="receive.unit != 'sat' ? '0.001' : '1'"
+        :mask="receive.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="receive.unit != 'sat' ? '0.01' : '1'"
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
