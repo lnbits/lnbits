@@ -12,6 +12,8 @@ LNbits uses [Pipenv][pipenv] to manage Python packages.
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
+
+sudo apt-get install -y python3-venv
 pipenv shell
 # pipenv --python 3.9 shell (if you wish to use a version of Python higher than 3.7)
 pipenv install --dev
@@ -19,6 +21,9 @@ pipenv install --dev
 
 # If any of the modules fails to install, try checking and upgrading your setupTool module
 # pip install -U setuptools
+
+# install libffi/libpq in case "pipenv install" fails
+# sudo apt-get install -y libffi-dev libpq-dev
 ``` 
 ## Running the server
 
