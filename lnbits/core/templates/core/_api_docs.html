@@ -61,7 +61,7 @@
         <code
           >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": false,
           "amount": &lt;int&gt;, "memo": &lt;string&gt;, "webhook":
-          &lt;url:string&gt;}' -H "X-Api-Key: <i>{{ wallet.inkey }}</i>" -H
+          &lt;url:string&gt;, "unit": &lt;string&gt;}' -H "X-Api-Key: <i>{{ wallet.inkey }}</i>" -H
           "Content-type: application/json"</code
         >
       </q-card-section>
