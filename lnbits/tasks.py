@@ -60,7 +60,6 @@ def register_invoice_listener(send_chan: asyncio.Queue):
 
 
 async def webhook_handler():
-    handler = getattr(WALLET, "webhook_listener", None)
     if handler:
         return await handler()
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -75,6 +74,7 @@ async def internal_invoice_listener():
         asyncio.create_task(invoice_callback_dispatcher(checking_id))
 
 
+            handler = getattr(WALLET, "webhook_listener", None)
 async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
         print("> got a payment notification", checking_id)
@@ -82,8 +82,6 @@ async def invoice_listener():
 
 
 async def check_pending_payments():
-    await delete_expired_invoices()
-
     outgoing = True
     incoming = True
 
@@ -97,6 +95,8 @@ async def check_pending_payments():
             exclude_uncheckable=True,
         ):
             await payment.check_pending()
+            
+        await delete_expired_invoices()
 
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
