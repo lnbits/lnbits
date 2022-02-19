@@ -31,6 +31,7 @@ from lnbits.utils.exchange_rates import (
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
+from lnbits.settings import LNBITS_SITE_TITLE
 
 from .. import core_app, db
 from ..crud import (
@@ -125,7 +126,7 @@ async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
-    amount: int = Query(None, ge=1)
+    amount: float = Query(None, ge=0)
     memo: str = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
@@ -142,9 +143,9 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         memo = ""
     else:
         description_hash = b""
-        memo = data.memo
+        memo = data.memo or LNBITS_SITE_TITLE
     if data.unit == "sat":
-        amount = data.amount
+        amount = int(data.amount)
     else:
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
@@ -294,11 +295,11 @@ async def api_payments_pay_lnurl(
             detail=f"{domain} returned an invalid invoice. Expected {data.amount} msat, got {invoice.amount_msat}.",
         )
 
-  #  if invoice.description_hash != data.description_hash:
-  #      raise HTTPException(
-  #          status_code=HTTPStatus.BAD_REQUEST,
-  #          detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
-  #      )
+    #  if invoice.description_hash != data.description_hash:
+    #      raise HTTPException(
+    #          status_code=HTTPStatus.BAD_REQUEST,
+    #          detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
+    #      )
 
     extra = {}
 

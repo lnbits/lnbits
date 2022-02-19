@@ -417,9 +417,11 @@
         filled
         dense
         v-model.number="receive.data.amount"
-        type="number"
-        label="Amount ({{LNBITS_DENOMINATION}}) *"
-        :step="receive.unit != 'sat' ? '0.001' : '1'"
+        :label="'Amount (' + receive.unit + ') *'"
+        :mask="receive.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="receive.unit != 'sat' ? '0.01' : '1'"
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
@@ -437,7 +439,7 @@
         <q-btn
           unelevated
           color="primary"
-          :disable="receive.data.memo == null || receive.data.amount == null || receive.data.amount <= 0"
+          :disable="receive.data.amount == null || receive.data.amount <= 0"
           type="submit"
         >
           <span v-if="receive.lnurl">
