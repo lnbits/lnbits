@@ -15,6 +15,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import (
+    LNBITS_ADMIN_LOGIN_KEY,
     LNBITS_ADMIN_USERS,
     LNBITS_ALLOWED_USERS,
     LNBITS_SITE_TITLE,
