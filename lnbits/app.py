@@ -84,8 +84,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
     async def check_wallet_status():
-        success = False
-        while not success:
+        while True:
             error_message, balance = await WALLET.status()
             if not error_message:
                 break
