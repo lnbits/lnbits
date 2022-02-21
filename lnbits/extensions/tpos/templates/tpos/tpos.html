@@ -138,8 +138,7 @@
       <q-icon
         name="check"
         transition-show="fade"
-        class="text-light-green"
-        style="font-size: 40em"
+        class="text-light-green complete"
       ></q-icon
     ></q-dialog>
   </q-page>
@@ -159,6 +158,22 @@
   .btn-confirm {
     grid-row: auto/span 2;
   }
+  .complete {
+    font-size: 15rem;
+    height: 100%;
+    display: flex;
+    filter: drop-shadow(0 0 0.75rem rgba(64, 157, 19, 0.75));
+    transform: translateY(100%);
+  }
+
+  .complete::before{
+    content: '';
+    background: #fff;
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+  }
+
 </style>
 {% endblock %} {% block scripts %}
 <script>
