@@ -364,12 +364,12 @@ new Vue({
     },
     decodeRequest: function () {
       this.parse.show = true
-
+      let req = this.parse.data.request.toLowerCase()
       if (this.parse.data.request.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
       } else if (this.parse.data.request.startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
-      } else if (this.parse.data.request.indexOf('lightning=lnurl1') !== -1) {
+      } else if (req.indexOf('lightning=lnurl1') !== -1) {
         this.parse.data.request = this.parse.data.request
           .split('lightning=')[1]
           .split('&')[0]
