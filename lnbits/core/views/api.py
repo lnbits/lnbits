@@ -24,24 +24,24 @@ from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
 )
-from lnbits.helpers import url_for
+from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
+from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE
 from lnbits.utils.exchange_rates import (
     currencies,
     fiat_amount_as_satoshis,
     satoshis_amount_as_fiat,
 )
-from lnbits.settings import LNBITS_SITE_TITLE
 
 from .. import core_app, db
 from ..crud import (
+    create_payment,
     get_payments,
     get_standalone_payment,
-    save_balance_check,
-    update_wallet,
-    create_payment,
     get_wallet,
+    save_balance_check,
     update_payment_status,
+    update_wallet,
 )
 from ..services import (
     InvoiceFailure,
@@ -52,8 +52,6 @@ from ..services import (
     perform_lnurlauth,
 )
 from ..tasks import api_invoice_listeners
-from lnbits.settings import LNBITS_ADMIN_USERS
-from lnbits.helpers import urlsafe_short_hash
 
 
 @core_app.get("/api/v1/wallet")
@@ -503,12 +501,13 @@ async def api_lnurlscan(code: str):
 
 @core_app.post("/api/v1/payments/decode")
 async def api_payments_decode(data: str = Query(None)):
+    print(data)
     try:
-        if data["data"][:5] == "LNURL":
-            url = lnurl.decode(data["data"])
+        if data[:5] == "LNURL":
+            url = lnurl.decode(data)
             return {"domain": url}
         else:
-            invoice = bolt11.decode(data["data"])
+            invoice = bolt11.decode(data)
             return {
                 "payment_hash": invoice.payment_hash,
                 "amount_msat": invoice.amount_msat,
