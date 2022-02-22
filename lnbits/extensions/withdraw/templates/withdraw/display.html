@@ -10,7 +10,7 @@
           <a href="lightning:{{ lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
-                value="{{ lnurl }}"
+                :value="this.here + '/?lightning={{lnurl }}'"
                 :options="{width: 800}"
                 class="rounded-borders"
               ></qrcode>
