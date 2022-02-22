@@ -37,6 +37,9 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /app
 COPY --chown=1000:1000 lnbits /app/lnbits
 
+ENV LNBITS_PORT="5000"
+ENV LNBITS_HOST="0.0.0.0"
+
 EXPOSE 5000
 
-CMD ["uvicorn", "lnbits.__main__:app", "--port", "5000", "--host", "0.0.0.0"]
+CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $LNBITS_PORT --host $LNBITS_HOST"]
