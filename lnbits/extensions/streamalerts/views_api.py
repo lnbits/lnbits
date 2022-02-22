@@ -125,7 +125,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
         description=description,
         **charge_details
     )
-    charge = await create_charge(user=charge_details["user"], data=data)
+    charge = await create_charge(user=charge_details["user"], data=create_charge_data)
     await create_donation(
         id=charge.id,
         wallet=service.wallet,
