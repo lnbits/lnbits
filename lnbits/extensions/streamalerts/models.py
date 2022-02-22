@@ -60,7 +60,7 @@ class Service(BaseModel):
     onchain: Optional[str]
     servicename: str  # Currently, this will just always be "Streamlabs"
     authenticated: bool  # Whether a token (see below) has been acquired yet
-    token: Optional[int]  # The token with which to authenticate requests
+    token: Optional[str]  # The token with which to authenticate requests
 
     @classmethod
     def from_row(cls, row: Row) -> "Service":
