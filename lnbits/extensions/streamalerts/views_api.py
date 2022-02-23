@@ -114,7 +114,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
     service_id = data.service
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
-    name = data.name
+    name = data.name if data.name else "Anonymous"
 
     description = f"{sats} sats donation from {name} to {service.twitchuser}"
     create_charge_data = CreateCharge(
