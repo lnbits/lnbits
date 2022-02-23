@@ -273,7 +273,11 @@
       </q-card-section>
     </q-card>
   </div>
-  <div class="col-12 col-md-5 q-gutter-y-md">
+
+  {% if HIDE_API %}
+  <div class="col-12 col-md-4 q-gutter-y-md">
+    {% else %}
+    <div class="col-12 col-md-5 q-gutter-y-md"></div>
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-mt-none q-mb-sm">
@@ -378,6 +382,8 @@
         </q-list>
       </q-card-section>
     </q-card>
+    {% endif %} {% if AD_SPACE %} {% for AD in AD_SPACE %}
+    <img width="100%" src="{{ AD }}" /> {% endfor %} {% endif %}
   </div>
 </div>
 
