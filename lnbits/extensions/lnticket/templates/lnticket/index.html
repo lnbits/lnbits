@@ -421,12 +421,13 @@
       },
       updateformDialog: function (formId) {
         var link = _.findWhere(this.forms, {id: formId})
+        console.log("LINK", link)
 
         this.formDialog.data.id = link.id
         this.formDialog.data.wallet = link.wallet
         this.formDialog.data.name = link.name
         this.formDialog.data.description = link.description
-        this.formDialog.data.flatrate = link.flatrate
+        this.formDialog.data.flatrate = Boolean(link.flatrate)
         this.formDialog.data.amount = link.amount
         this.formDialog.show = true
       },
