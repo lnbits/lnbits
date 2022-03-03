@@ -335,6 +335,9 @@
   Vue.component(VueQrcode.name, VueQrcode)
 
   const mapSwapOuts = obj => {
+    if('fee' in obj) {
+      obj.fee = obj.fee / 1000 > 1 ? obj.fee / 1000 : 1
+    }
     obj.date = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
@@ -531,7 +534,8 @@
         let wallet = _.findWhere(this.g.user.wallets, {
           id: this.swapOutDialog.data.wallet
         })
-        let data = this.swapOutDialog.data
+        let data = {...this.swapOutDialog.data}
+        data.fee = data.fee * 1000
 
         if(data.onchain && data.onchainwallet){
           data.onchainaddress = ''
