@@ -253,6 +253,7 @@ async def btc_price(currency: str) -> float:
                 await send_channel.put(rate)
         except (
             TypeError,  # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
+            KeyError,  # Kraken's response dictionary doesn't include keys we look up for
             httpx.ConnectTimeout,
             httpx.ConnectError,
             httpx.ReadTimeout,
@@ -278,8 +279,12 @@ async def btc_price(currency: str) -> float:
 
 
 async def get_fiat_rate_satoshis(currency: str) -> float:
-    return int(100_000_000 / (await btc_price(currency)))
+    return float(100_000_000 / (await btc_price(currency)))
 
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
     return int(amount * (await get_fiat_rate_satoshis(currency)))
+
+
+async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
+    return float(amount / (await get_fiat_rate_satoshis(currency)))

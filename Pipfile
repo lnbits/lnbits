@@ -29,6 +29,8 @@ uvicorn = {extras = ["standard"], version = "*"}
 sse-starlette = "*"
 jinja2 = "3.0.1"
 pyngrok = "*"
+secp256k1 = "*"
+pycryptodomex = "*"
 
 [dev-packages]
 black = "==20.8b1"

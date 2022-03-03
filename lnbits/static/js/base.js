@@ -111,7 +111,7 @@ window.LNbits = {
         '/wallet?' + (userId ? 'usr=' + userId + '&' : '') + 'nme=' + walletName
     },
     updateWallet: function (walletName, userId, walletId) {
-     window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`  
+      window.location.href = `/wallet?usr=${userId}&wal=${walletId}&nme=${walletName}`
     },
     deleteWallet: function (walletId, userId) {
       window.location.href = '/deletewallet?usr=' + userId + '&wal=' + walletId
@@ -123,6 +123,7 @@ window.LNbits = {
         [
           'code',
           'isValid',
+          'isAdminOnly',
           'name',
           'shortDescription',
           'icon',
@@ -135,7 +136,12 @@ window.LNbits = {
       return obj
     },
     user: function (data) {
-      var obj = {id: data.id, email: data.email, extensions: data.extensions, wallets: data.wallets}
+      var obj = {
+        id: data.id,
+        email: data.email,
+        extensions: data.extensions,
+        wallets: data.wallets
+      }
       var mapWallet = this.wallet
       obj.wallets = obj.wallets
         .map(function (obj) {
@@ -153,16 +159,23 @@ window.LNbits = {
       return obj
     },
     wallet: function (data) {
-      newWallet = {id: data.id, name: data.name, adminkey: data.adminkey, inkey: data.inkey} 
+      newWallet = {
+        id: data.id,
+        name: data.name,
+        adminkey: data.adminkey,
+        inkey: data.inkey
+      }
       newWallet.msat = data.balance_msat
       newWallet.sat = Math.round(data.balance_msat / 1000)
-      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(newWallet.sat)
+      newWallet.fsat = new Intl.NumberFormat(window.LOCALE).format(
+        newWallet.sat
+      )
       newWallet.url = ['/wallet?usr=', data.user, '&wal=', data.id].join('')
       return newWallet
     },
     payment: function (data) {
       obj = {
-        checking_id:data.id,
+        checking_id: data.id,
         pending: data.pending,
         amount: data.amount,
         fee: data.fee,
@@ -174,8 +187,8 @@ window.LNbits = {
         extra: data.extra,
         wallet_id: data.wallet_id,
         webhook: data.webhook,
-        webhook_status: data.webhook_status,
-      } 
+        webhook_status: data.webhook_status
+      }
 
       obj.date = Quasar.utils.date.formatDate(
         new Date(obj.time * 1000),
@@ -331,17 +344,25 @@ window.windowMixin = {
     }
   },
   created: function () {
-    this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
-    this.g.allowedThemes = window.allowedThemes ?? ['classic']
+    
+    if(this.$q.localStorage.getItem('lnbits.darkMode') == true || this.$q.localStorage.getItem('lnbits.darkMode') == false){
+      this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
+    }
+    else{
+      this.$q.dark.set(true)
+    }
+    this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
     // failsafe if admin changes themes halfway
+    if (!this.$q.localStorage.getItem('lnbits.theme')){
+      this.changeColor(this.g.allowedThemes[0])
+    }
     if (
       this.$q.localStorage.getItem('lnbits.theme') &&
       !this.g.allowedThemes.includes(
         this.$q.localStorage.getItem('lnbits.theme')
       )
     ) {
-      console.log('allowedThemes changed by Admin', this.g.allowedThemes[0])
       this.changeColor(this.g.allowedThemes[0])
     }
 
@@ -367,6 +388,10 @@ window.windowMixin = {
           })
           .filter(function (obj) {
             return !obj.hidden
+          })
+          .filter(function (obj) {
+            if (window.user.admin) return obj
+            return !obj.isAdminOnly
           })
           .map(function (obj) {
             if (user) {

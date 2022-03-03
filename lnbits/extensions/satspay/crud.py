@@ -25,7 +25,10 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
         onchainaddress = None
     if data.lnbitswallet:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=data.lnbitswallet, amount=data.amount, memo=charge_id
+            wallet_id=data.lnbitswallet,
+            amount=data.amount,
+            memo=charge_id,
+            extra={"tag": "charge"},
         )
     else:
         payment_hash = None

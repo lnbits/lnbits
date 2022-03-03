@@ -160,7 +160,7 @@ async def set_address_renewed(address_id: str, duration: int):
 
 
 async def check_address_available(username: str, domain: str):
-    row, = await db.fetchone(
+    (row,) = await db.fetchone(
         "SELECT COUNT(username) FROM lnaddress.address WHERE username = ? AND domain = ?",
         (username, domain),
     )
@@ -176,7 +176,7 @@ async def purge_addresses(domain_id: str):
     now = datetime.now().timestamp()
 
     for row in rows:
-        r = Addresses(**row)._asdict()
+        r = Addresses(**row).dict()
 
         start = datetime.fromtimestamp(r["time"])
         paid = r["paid"]

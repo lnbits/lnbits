@@ -15,10 +15,54 @@
     <q-card>
       <q-card-section>
         <h3 class="q-my-none">
-          <strong>{% raw %}{{ formattedBalance }}{% endraw %}</strong> sat
+          <strong>{% raw %}{{ formattedBalance }} {% endraw %}</strong>
+          {{LNBITS_DENOMINATION}}
+          <q-btn
+            v-if="'{{user.admin}}' == 'True'"
+            flat
+            round
+            color="primary"
+            icon="add"
+            size="md"
+          >
+            <q-popup-edit
+              class="bg-accent text-white"
+              v-slot="scope"
+              v-model="credit"
+            >
+              <q-input
+                v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
+                label="Amount to credit account"
+                v-model="scope.value"
+                dense
+                autofocus
+                mask="#.##"
+                fill-mask="0"
+                reverse-fill-mask
+                @keyup.enter="updateBalance(scope.value)"
+              >
+                <template v-slot:append>
+                  <q-icon name="edit" />
+                </template>
+              </q-input>
+              <q-input
+                v-else
+                type="number"
+                label="Amount to credit account"
+                v-model="scope.value"
+                dense
+                autofocus
+                @keyup.enter="updateBalance(scope.value)"
+              >
+                <template v-slot:append>
+                  <q-icon name="edit" />
+                </template>
+              </q-input>
+            </q-popup-edit>
+          </q-btn>
         </h3>
       </q-card-section>
-      <div class="row q-pb-md q-px-md q-col-gutter-md">
+      <div class="row q-pb-md q-px-md q-col-gutter-md gt-sm">
         <div class="col">
           <q-btn
             unelevated
@@ -141,7 +185,17 @@
                 <q-tooltip>{{ props.row.date }}</q-tooltip>
                 {{ props.row.dateFrom }}
               </q-td>
-              <q-td auto-width key="sat" :props="props">
+              {% endraw %}
+              <q-td
+                auto-width
+                key="sat"
+                v-if="'{{LNBITS_DENOMINATION}}' != 'sats'"
+                :props="props"
+                >{% raw %} {{ parseFloat(String(props.row.fsat).replaceAll(",",
+                "")) / 100 }}
+              </q-td>
+
+              <q-td auto-width key="sat" v-else :props="props">
                 {{ props.row.fsat }}
               </q-td>
               <q-td auto-width key="fee" :props="props">
@@ -223,7 +277,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-mt-none q-mb-sm">
-          {{ SITE_TITLE }} wallet: <strong><em>{{ wallet.name }}</em></strong>
+          {{ SITE_TITLE }} Wallet: <strong><em>{{ wallet.name }}</em></strong>
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -337,7 +391,20 @@
       <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
         <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
       </p>
-
+      {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
+      <q-input
+        filled
+        dense
+        v-model.number="receive.data.amount"
+        label="Amount ({{LNBITS_DENOMINATION}}) *"
+        mask="#.##"
+        fill-mask="0"
+        reverse-fill-mask
+        :min="receive.minMax[0]"
+        :max="receive.minMax[1]"
+        :readonly="receive.lnurl && receive.lnurl.fixed"
+      ></q-input>
+      {% else %}
       <q-select
         filled
         dense
@@ -350,25 +417,29 @@
         filled
         dense
         v-model.number="receive.data.amount"
-        type="number"
-        :label="`Amount (${receive.unit}) *`"
-        :step="receive.unit != 'sat' ? '0.001' : '1'"
+        :label="'Amount (' + receive.unit + ') *'"
+        :mask="receive.unit != 'sat' ? '#.##' : '#'"
+        fill-mask="0"
+        reverse-fill-mask
+        :step="receive.unit != 'sat' ? '0.01' : '1'"
         :min="receive.minMax[0]"
         :max="receive.minMax[1]"
         :readonly="receive.lnurl && receive.lnurl.fixed"
       ></q-input>
+      {% endif %}
+
       <q-input
         filled
         dense
         v-model.trim="receive.data.memo"
-        label="Memo *"
-        placeholder="LNbits invoice"
+        label="Memo"
       ></q-input>
+      {% raw %}
       <div v-if="receive.status == 'pending'" class="row q-mt-lg">
         <q-btn
           unelevated
           color="primary"
-          :disable="receive.data.memo == null || receive.data.amount == null || receive.data.amount <= 0"
+          :disable="receive.data.amount == null || receive.data.amount <= 0"
           type="submit"
         >
           <span v-if="receive.lnurl">
@@ -410,8 +481,13 @@
 <q-dialog v-model="parse.show" @hide="closeParseDialog">
   <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
     <div v-if="parse.invoice">
-      {% raw %}
-      <h6 class="q-my-none">{{ parse.invoice.fsat }} sat</h6>
+      <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
+        {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",", ""))
+        / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+      </h6>
+      <h6 v-else class="q-my-none">
+        {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+      </h6>
       <q-separator class="q-my-sm"></q-separator>
       <p class="text-wrap">
         <strong>Description:</strong> {{ parse.invoice.description }}<br />
@@ -461,7 +537,7 @@
       <q-form @submit="payLnurl" class="q-gutter-md">
         <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
           <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
-          parse.lnurlpay.maxSendable | msatoshiFormat }} sat
+          parse.lnurlpay.maxSendable | msatoshiFormat }} {{LNBITS_DENOMINATION}}
           <span v-if="parse.lnurlpay.commentAllowed > 0">
             <br />
             and a {{parse.lnurlpay.commentAllowed}}-char comment
@@ -471,7 +547,8 @@
           <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is
           requesting <br />
           between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
-          <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b> sat
+          <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
+          {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
           <span v-if="parse.lnurlpay.commentAllowed > 0">
             <br />
             and a {{parse.lnurlpay.commentAllowed}}-char comment
@@ -488,16 +565,18 @@
         </div>
         <div class="row">
           <div class="col">
+            {% endraw %}
             <q-input
               filled
               dense
               v-model.number="parse.data.amount"
               type="number"
-              label="Amount (sat) *"
+              label="Amount ({{LNBITS_DENOMINATION}}) *"
               :min="parse.lnurlpay.minSendable / 1000"
               :max="parse.lnurlpay.maxSendable / 1000"
               :readonly="parse.lnurlpay.fixed"
             ></q-input>
+            {% raw %}
           </div>
           <div class="col-8 q-pl-md" v-if="parse.lnurlpay.commentAllowed > 0">
             <q-input
@@ -511,7 +590,9 @@
           </div>
         </div>
         <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit">Send satoshis</q-btn>
+          <q-btn unelevated color="primary" type="submit"
+            >Send {{LNBITS_DENOMINATION}}</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -583,7 +664,23 @@
     </q-card-section>
   </q-card>
 </q-dialog>
+<q-tabs
+  class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
+  active-class="px-0"
+  indicator-color="transparent"
+>
+  <q-tab
+    icon="account_balance_wallet"
+    label="Wallets"
+    @click="g.visibleDrawer = !g.visibleDrawer"
+  >
+  </q-tab>
+  <q-tab icon="content_paste" label="Paste" @click="showParseDialog"> </q-tab>
+  <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
+  </q-tab>
 
+  <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+</q-tabs>
 {% if service_fee > 0 %}
 <div ref="disclaimer"></div>
 <q-dialog v-model="disclaimerDialog.show">

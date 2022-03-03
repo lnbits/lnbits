@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi.params import Query
 from lnurl.types import LnurlPayMetadata
-from pydantic.main import BaseModel  # type: ignore
+from pydantic.main import BaseModel
 
 
 class CreateDomain(BaseModel):
@@ -49,8 +49,9 @@ class Addresses(BaseModel):
     paid: bool
     time: int
 
-    async def lnurlpay_metadata(self) -> LnurlPayMetadata:
+    async def lnurlpay_metadata(self, domain) -> LnurlPayMetadata:
         text = f"Payment to {self.username}"
-        metadata = [["text/plain", text]]
+        identifier = f"{self.username}@{domain}"
+        metadata = [["text/plain", text], ["text/identifier", identifier]]
 
         return LnurlPayMetadata(json.dumps(metadata))

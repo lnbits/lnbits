@@ -186,10 +186,14 @@
         <q-input
           filled
           dense
+          bottom-slots
           v-model.trim="domainDialog.data.cf_token"
           type="text"
           label="Cloudflare API token"
         >
+        <template v-slot:hint>
+          Check extension <a href="https://github.com/lnbits/lnbits-legend/tree/master/lnbits/extensions/lnaddress">documentation!</a>
+        </template>
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
             >Your API key in cloudflare</q-tooltip
           >
@@ -489,18 +493,6 @@
         this.getDomains()
         this.getAddresses()
       }
-      // var self = this
-      //
-      // // axios is available for making requests
-      // axios({
-      //   method: 'GET',
-      //   url: '/example/api/v1/tools',
-      //   headers: {
-      //     'X-example-header': 'not-used'
-      //   }
-      // }).then(function (response) {
-      //   self.tools = response.data
-      // })
     }
   })
 </script>

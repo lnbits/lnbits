@@ -1,4 +1,5 @@
 import hashlib
+import json
 from datetime import datetime, timedelta
 
 import httpx
@@ -9,6 +10,7 @@ from lnurl import (  # type: ignore
     LnurlPayResponse,
 )
 from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from . import lnaddress_ext
 from .crud import get_address, get_address_by_username, get_domain
@@ -28,20 +30,22 @@ async def lnurl_response(username: str, domain: str, request: Request):
     if now > expiration:
         return LnurlErrorResponse(reason="Address has expired.").dict()
 
-    resp = LnurlPayResponse(
-        callback=request.url_for("lnaddress.lnurl_callback", address_id=address.id),
-        min_sendable=1000,
-        max_sendable=1000000000,
-        metadata=await address.lnurlpay_metadata(),
-    )
+    resp = {
+        "tag": "payRequest",
+        "callback": request.url_for("lnaddress.lnurl_callback", address_id=address.id),
+        "metadata": await address.lnurlpay_metadata(domain=domain),
+        "minSendable": 1000,
+        "maxSendable": 1000000000,
+    }
 
-    return resp.dict()
+    print("RESP", resp)
+    return resp
 
 
 @lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback")
 async def lnurl_callback(address_id, amount: int = Query(...)):
+    print("PING")
     address = await get_address(address_id)
-
     if not address:
         return LnurlErrorResponse(reason=f"Address not found").dict()
 
@@ -67,7 +71,9 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
                     "out": False,
                     "amount": int(amount_received / 1000),
                     "description_hash": hashlib.sha256(
-                        (await address.lnurlpay_metadata()).encode("utf-8")
+                        (await address.lnurlpay_metadata(domain=domain.domain)).encode(
+                            "utf-8"
+                        )
                     ).hexdigest(),
                     "extra": {"tag": f"Payment to {address.username}@{domain.domain}"},
                 },
@@ -78,6 +84,7 @@ async def lnurl_callback(address_id, amount: int = Query(...)):
         except AssertionError as e:
             return LnurlErrorResponse(reason="ERROR")
 
-    resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])
+    # resp = LnurlPayActionResponse(pr=r["payment_request"], routes=[])
+    resp = {"pr": r["payment_request"], "routes": []}
 
-    return resp.dict()
+    return resp

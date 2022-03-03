@@ -47,7 +47,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
         await payment.set_pending(False)
         await set_address_paid(payment_hash=payment.payment_hash)
-        await call_webhook_on_paid(payment.payment_hash)
+        await call_webhook_on_paid(payment_hash=payment.payment_hash)
 
     elif "renew lnaddress" == payment.extra.get("tag"):
 
@@ -55,7 +55,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         await set_address_renewed(
             address_id=payment.extra["id"], duration=payment.extra["duration"]
         )
-        await call_webhook_on_paid(payment.payment_hash)
+        await call_webhook_on_paid(payment_hash=payment.payment_hash)
 
     else:
         return

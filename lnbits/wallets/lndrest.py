@@ -1,4 +1,5 @@
 import asyncio
+from pydoc import describe
 import httpx
 import json
 import base64
@@ -6,6 +7,7 @@ from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
 from lnbits import bolt11 as lnbits_bolt11
+from .macaroon import load_macaroon, AESCipher
 
 from .base import (
     StatusResponse,
@@ -23,8 +25,7 @@ class LndRestWallet(Wallet):
         endpoint = getenv("LND_REST_ENDPOINT")
         endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
         endpoint = (
-            "https://" +
-            endpoint if not endpoint.startswith("http") else endpoint
+            "https://" + endpoint if not endpoint.startswith("http") else endpoint
         )
         self.endpoint = endpoint
 
@@ -35,8 +36,14 @@ class LndRestWallet(Wallet):
             or getenv("LND_INVOICE_MACAROON")
             or getenv("LND_REST_INVOICE_MACAROON")
         )
-        self.auth = {"Grpc-Metadata-macaroon": macaroon}
-        self.cert = getenv("LND_REST_CERT")
+
+        encrypted_macaroon = getenv("LND_REST_MACAROON_ENCRYPTED")
+        if encrypted_macaroon:
+            macaroon = AESCipher(description="macaroon decryption").decrypt(encrypted_macaroon)    
+        self.macaroon = load_macaroon(macaroon)
+        
+        self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
+        self.cert = getenv("LND_REST_CERT", True)
 
     async def status(self) -> StatusResponse:
         try:
@@ -103,10 +110,7 @@ class LndRestWallet(Wallet):
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
-                json={
-                    "payment_request": bolt11,
-                    "fee_limit": lnrpcFeeLimit,
-                },
+                json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
                 timeout=180,
             )
 
@@ -117,8 +121,9 @@ class LndRestWallet(Wallet):
         data = r.json()
         payment_hash = data["payment_hash"]
         checking_id = payment_hash
+        fee_msat = int(data["payment_route"]["total_fees_msat"])
         preimage = base64.b64decode(data["payment_preimage"]).hex()
-        return PaymentResponse(True, checking_id, 0, preimage, None)
+        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
@@ -182,8 +187,7 @@ class LndRestWallet(Wallet):
                             except:
                                 continue
 
-                            payment_hash = base64.b64decode(
-                                inv["r_hash"]).hex()
+                            payment_hash = base64.b64decode(inv["r_hash"]).hex()
                             yield payment_hash
             except (OSError, httpx.ConnectError, httpx.ReadError):
                 pass

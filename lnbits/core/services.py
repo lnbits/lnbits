@@ -98,6 +98,8 @@ async def pay_invoice(
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
 
+        wallet = await get_wallet(wallet_id, conn=conn)
+
         # put all parameters that don't change here
         PaymentKwargs = TypedDict(
             "PaymentKwargs",
@@ -140,11 +142,21 @@ async def pay_invoice(
                 **payment_kwargs,
             )
 
-        # do the balance check
-        wallet = await get_wallet(wallet_id, conn=conn)
-        assert wallet
-        if wallet.balance_msat < 0:
-            raise PermissionError("Insufficient balance.")
+        # do the balance check if internal payment
+        if internal_checking_id:
+            wallet = await get_wallet(wallet_id, conn=conn)
+            assert wallet
+            if wallet.balance_msat < 0:
+                raise PermissionError("Insufficient balance.")
+
+        # do the balance check if external payment
+        else:
+            if invoice.amount_msat > wallet.balance_msat - (
+                wallet.balance_msat / 100 * 2
+            ):
+                raise PermissionError(
+                    "LNbits requires you keep at least 2% reserve to cover potential routing fees."
+                )
 
     if internal_checking_id:
         # mark the invoice from the other side as not pending anymore
@@ -318,8 +330,7 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        print(
-            f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
         await payment.delete()
     elif not status.pending:
         print(

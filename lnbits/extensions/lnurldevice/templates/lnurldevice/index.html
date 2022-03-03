@@ -8,8 +8,8 @@
         <q-btn
           unelevated
           color="primary"
-          @click="formDialoglnurlpos.show = true"
-          >New LNURLPoS instance
+          @click="formDialoglnurldevice.show = true"
+          >New LNURLDevice instance
         </q-btn>
       </q-card-section>
     </q-card>
@@ -18,7 +18,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">lNURLPoS</h5>
+            <h5 class="text-subtitle1 q-my-none">lNURLdevice</h5>
           </div>
 
           <div class="col-auto">
@@ -33,7 +33,7 @@
                 <q-icon name="search"></q-icon>
               </template>
             </q-input>
-            <q-btn flat color="grey" @click="exportlnurlposCSV"
+            <q-btn flat color="grey" @click="exportlnurldeviceCSV"
               >Export to CSV</q-btn
             >
           </div>
@@ -41,10 +41,10 @@
         <q-table
           flat
           dense
-          :data="lnurlposLinks"
+          :data="lnurldeviceLinks"
           row-key="id"
-          :columns="lnurlpossTable.columns"
-          :pagination.sync="lnurlpossTable.pagination"
+          :columns="lnurldevicesTable.columns"
+          :pagination.sync="lnurldevicesTable.pagination"
           :filter="filter"
         >
           <template v-slot:header="props">
@@ -72,11 +72,11 @@
                   flat
                   dense
                   size="xs"
-                  @click="deletelnurlposLink(props.row.id)"
+                  @click="deletelnurldeviceLink(props.row.id)"
                   icon="cancel"
                   color="pink"
                 >
-                  <q-tooltip> Delete LNURLPoS </q-tooltip>
+                  <q-tooltip> Delete LNURLDevice </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td>
@@ -84,11 +84,11 @@
                   flat
                   dense
                   size="xs"
-                  @click="openlnurlposSettings(props.row.id)"
+                  @click="openlnurldeviceSettings(props.row.id)"
                   icon="perm_data_setting"
                   color="primary"
                 >
-                  <q-tooltip> LNURLPoS Settings </q-tooltip>
+                  <q-tooltip> LNURLDevice Settings </q-tooltip>
                 </q-btn>
               </q-td>
               <q-td
@@ -112,43 +112,57 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} LNURLPoS Extension
+          {{SITE_TITLE}} LNURLDevice Extension
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "lnurlpos/_api_docs.html" %} </q-list>
+        <q-list> {% include "lnurldevice/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
 
   <q-dialog
     v-model="settingsDialog.show"
-    position="top"
+    deviceition="top"
     @hide="closeFormDialog"
   >
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <div class="text-h6">Copy to LNURLPoS device</div>
+    <q-card
+      style="width: 700px; max-width: 80vw"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+      <div class="text-h6">LNURLDevice device string</div>
+      <q-btn
+        dense
+        outline
+        unelevated
+        color="primary"
+        size="md"
+        @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' +
+      settingsDialog.data.key + ',' + settingsDialog.data.currency, 'Link copied to clipboard!')"
+        >{% raw
+        %}{{location}}/lnurldevice/api/v1/lnurl/{{settingsDialog.data.id}},
+        {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{% endraw
+        %}<q-tooltip> Click to copy URL </q-tooltip>
+      </q-btn>
+
       <div class="text-subtitle2">
-        {% raw %} String server = "{{location}}";<br />
-        String posId = "{{settingsDialog.data.id}}";<br />
-        String key = "{{settingsDialog.data.key}}";<br />
-        String currency = "{{settingsDialog.data.currency}}";{% endraw %}
+        <small> </small>
       </div>
     </q-card>
   </q-dialog>
 
   <q-dialog
-    v-model="formDialoglnurlpos.show"
-    position="top"
+    v-model="formDialoglnurldevice.show"
+    deviceition="top"
     @hide="closeFormDialog"
   >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormDatalnurlpos" class="q-gutter-md">
+      <q-form @submit="sendFormDatalnurldevice" class="q-gutter-md">
         <q-input
           filled
           dense
-          v-model.trim="formDialoglnurlpos.data.title"
+          v-model.trim="formDialoglnurldevice.data.title"
           type="text"
           label="Title"
         ></q-input>
@@ -157,7 +171,7 @@
           filled
           dense
           emit-value
-          v-model="formDialoglnurlpos.data.wallet"
+          v-model="formDialoglnurldevice.data.wallet"
           :options="g.user.walletOptions"
           label="Wallet *"
         ></q-select>
@@ -165,32 +179,46 @@
         <q-select
           filled
           dense
-          v-model.trim="formDialoglnurlpos.data.currency"
+          v-model.trim="formDialoglnurldevice.data.currency"
           type="text"
-          label="Fiat currency for PoS"
+          label="Fiat currency for device"
           :options="currency"
         ></q-select>
+        <q-option-group
+          v-model.trim="formDialoglnurldevice.data.device"
+          :options="devices"
+          color="primary"
+          label="Type of device"
+        ></q-option-group>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialoglnurldevice.data.profit"
+          type="number"
+          max="90"
+          label="Profit margin (% added to invoices/deducted from faucets)"
+        ></q-input>
 
         <div class="row q-mt-lg">
           <q-btn
-            v-if="formDialoglnurlpos.data.id"
+            v-if="formDialoglnurldevice.data.id"
             unelevated
             color="primary"
             :disable="
-                formDialoglnurlpos.data.title == ''"
+                formDialoglnurldevice.data.title == ''"
             type="submit"
-            >Update lnurlpos</q-btn
+            >Update lnurldevice</q-btn
           >
           <q-btn
             v-else
             unelevated
             color="primary"
             :disable="
-                formDialoglnurlpos.data.title == ''"
+                formDialoglnurldevice.data.title == ''"
             type="submit"
-            >Create lnurlpos</q-btn
+            >Create lnurldevice</q-btn
           >
-          <q-btn @click="cancellnurlpos" flat color="grey" class="q-ml-auto"
+          <q-btn @click="cancellnurldevice" flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
         </div>
@@ -203,7 +231,7 @@
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
-  var maplnurlpos = obj => {
+  var maplnurldevice = obj => {
     obj._data = _.clone(obj)
     obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
     obj.time = obj.time + 'mins'
@@ -227,9 +255,19 @@
         location: window.location.hostname,
         filter: '',
         currency: 'USD',
-        lnurlposLinks: [],
-        lnurlposLinksObj: [],
-        lnurlpossTable: {
+        lnurldeviceLinks: [],
+        lnurldeviceLinksObj: [],
+        devices: [
+          {
+            label: 'PoS',
+            value: 'pos'
+          },
+          {
+            label: 'ATM',
+            value: 'atm'
+          }
+        ],
+        lnurldevicesTable: {
           columns: [
             {
               name: 'title',
@@ -256,6 +294,18 @@
               field: 'wallet'
             },
             {
+              name: 'device',
+              align: 'left',
+              label: 'device',
+              field: 'device'
+            },
+            {
+              name: 'profit',
+              align: 'left',
+              label: 'profit',
+              field: 'profit'
+            },
+            {
               name: 'currency',
               align: 'left',
               label: 'currency',
@@ -266,7 +316,7 @@
             rowsPerPage: 10
           }
         },
-        passedlnurlpos: {},
+        passedlnurldevice: {},
         settingsDialog: {
           show: false,
           data: {}
@@ -275,13 +325,15 @@
           show: false,
           data: {}
         },
-        formDialoglnurlpos: {
+        formDialoglnurldevice: {
           show: false,
           data: {
             lnurl_toggle: false,
             show_message: false,
             show_ack: false,
             show_price: 'None',
+            device: 'pos',
+            profit: 2,
             title: ''
           }
         },
@@ -292,33 +344,33 @@
       }
     },
     methods: {
-      cancellnurlpos: function (data) {
+      cancellnurldevice: function (data) {
         var self = this
-        self.formDialoglnurlpos.show = false
-        self.clearFormDialoglnurlpos()
+        self.formDialoglnurldevice.show = false
+        self.clearFormDialoglnurldevice()
       },
       closeFormDialog: function () {
-        this.clearFormDialoglnurlpos()
+        this.clearFormDialoglnurldevice()
         this.formDialog.data = {
           is_unique: false
         }
       },
-      sendFormDatalnurlpos: function () {
+      sendFormDatalnurldevice: function () {
         var self = this
-        if (self.formDialoglnurlpos.data.id) {
-          this.updatelnurlpos(
+        if (self.formDialoglnurldevice.data.id) {
+          this.updatelnurldevice(
             self.g.user.wallets[0].adminkey,
-            self.formDialoglnurlpos.data
+            self.formDialoglnurldevice.data
           )
         } else {
-          this.createlnurlpos(
+          this.createlnurldevice(
             self.g.user.wallets[0].adminkey,
-            self.formDialoglnurlpos.data
+            self.formDialoglnurldevice.data
           )
         }
       },
 
-      createlnurlpos: function (wallet, data) {
+      createlnurldevice: function (wallet, data) {
         var self = this
         var updatedData = {}
         for (const property in data) {
@@ -327,86 +379,91 @@
           }
         }
         LNbits.api
-          .request('POST', '/lnurlpos/api/v1/lnurlpos', wallet, updatedData)
+          .request('POST', '/lnurldevice/api/v1/lnurlpos', wallet, updatedData)
           .then(function (response) {
-            self.lnurlposLinks.push(maplnurlpos(response.data))
-            self.formDialoglnurlpos.show = false
-            self.clearFormDialoglnurlpos()
+            self.lnurldeviceLinks.push(maplnurldevice(response.data))
+            self.formDialoglnurldevice.show = false
+            self.clearFormDialoglnurldevice()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      getlnurlposs: function () {
+      getlnurldevices: function () {
         var self = this
         LNbits.api
           .request(
             'GET',
-            '/lnurlpos/api/v1/lnurlpos',
+            '/lnurldevice/api/v1/lnurlpos',
             self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             if (response.data) {
-              self.lnurlposLinks = response.data.map(maplnurlpos)
+              self.lnurldeviceLinks = response.data.map(maplnurldevice)
             }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      getlnurlpos: function (lnurlpos_id) {
+      getlnurldevice: function (lnurldevice_id) {
         var self = this
         LNbits.api
           .request(
             'GET',
-            '/lnurlpos/api/v1/lnurlpos/' + lnurlpos_id,
+            '/lnurldevice/api/v1/lnurlpos/' + lnurldevice_id,
             self.g.user.wallets[0].adminkey
           )
           .then(function (response) {
-            localStorage.setItem('lnurlpos', JSON.stringify(response.data))
+            localStorage.setItem('lnurldevice', JSON.stringify(response.data))
             localStorage.setItem('inkey', self.g.user.wallets[0].inkey)
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      deletelnurlposLink: function (lnurlposId) {
+      deletelnurldeviceLink: function (lnurldeviceId) {
         var self = this
-        var link = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
+        var link = _.findWhere(this.lnurldeviceLinks, {id: lnurldeviceId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(function () {
             LNbits.api
               .request(
                 'DELETE',
-                '/lnurlpos/api/v1/lnurlpos/' + lnurlposId,
+                '/lnurldevice/api/v1/lnurlpos/' + lnurldeviceId,
                 self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
-                self.lnurlposLinks = _.reject(self.lnurlposLinks, function (
-                  obj
-                ) {
-                  return obj.id === lnurlposId
-                })
+                self.lnurldeviceLinks = _.reject(
+                  self.lnurldeviceLinks,
+                  function (obj) {
+                    return obj.id === lnurldeviceId
+                  }
+                )
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
               })
           })
       },
-      openUpdatelnurlposLink: function (lnurlposId) {
+      openUpdatelnurldeviceLink: function (lnurldeviceId) {
         var self = this
-        var lnurlpos = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
-        self.formDialoglnurlpos.data = _.clone(lnurlpos._data)
-        self.formDialoglnurlpos.show = true
+        var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
+          id: lnurldeviceId
+        })
+        self.formDialoglnurldevice.data = _.clone(lnurldevice._data)
+        self.formDialoglnurldevice.show = true
       },
-      openlnurlposSettings: function (lnurlposId) {
+      openlnurldeviceSettings: function (lnurldeviceId) {
         var self = this
-        var lnurlpos = _.findWhere(this.lnurlposLinks, {id: lnurlposId})
-        self.settingsDialog.data = _.clone(lnurlpos._data)
+        var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
+          id: lnurldeviceId
+        })
+        self.settingsDialog.data = _.clone(lnurldevice._data)
         self.settingsDialog.show = true
       },
-      updatelnurlpos: function (wallet, data) {
+      updatelnurldevice: function (wallet, data) {
         var self = this
         var updatedData = {}
         for (const property in data) {
@@ -418,24 +475,27 @@
         LNbits.api
           .request(
             'PUT',
-            '/lnurlpos/api/v1/lnurlpos/' + updatedData.id,
+            '/lnurldevice/api/v1/lnurlpos/' + updatedData.id,
             wallet,
             updatedData
           )
           .then(function (response) {
-            self.lnurlposLinks = _.reject(self.lnurlposLinks, function (obj) {
-              return obj.id === updatedData.id
-            })
-            self.lnurlposLinks.push(maplnurlpos(response.data))
-            self.formDialoglnurlpos.show = false
-            self.clearFormDialoglnurlpos()
+            self.lnurldeviceLinks = _.reject(
+              self.lnurldeviceLinks,
+              function (obj) {
+                return obj.id === updatedData.id
+              }
+            )
+            self.lnurldeviceLinks.push(maplnurldevice(response.data))
+            self.formDialoglnurldevice.show = false
+            self.clearFormDialoglnurldevice()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      clearFormDialoglnurlpos() {
-        this.formDialoglnurlpos.data = {
+      clearFormDialoglnurldevice() {
+        this.formDialoglnurldevice.data = {
           lnurl_toggle: false,
           show_message: false,
           show_ack: false,
@@ -443,15 +503,18 @@
           title: ''
         }
       },
-      exportlnurlposCSV: function () {
+      exportlnurldeviceCSV: function () {
         var self = this
-        LNbits.utils.exportCSV(self.lnurlpossTable.columns, this.lnurlposLinks)
+        LNbits.utils.exportCSV(
+          self.lnurldevicesTable.columns,
+          this.lnurldeviceLinks
+        )
       }
     },
     created: function () {
       var self = this
-      var getlnurlposs = this.getlnurlposs
-      getlnurlposs()
+      var getlnurldevices = this.getlnurldevices
+      getlnurldevices()
       self.location = [
         window.location.protocol,
         '//',
