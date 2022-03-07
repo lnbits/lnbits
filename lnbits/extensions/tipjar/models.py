@@ -1,5 +1,5 @@
 from sqlite3 import Row
-from typing import NamedTuple, Optional
+from typing import Optional
 
 from fastapi.param_functions import Query
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ class createTip(BaseModel):
     message: str = ""
 
 
-class Tip(NamedTuple):
+class Tip(BaseModel):
     """A Tip represents a single donation"""
 
     id: str  # This ID always corresponds to a satspay charge ID
@@ -55,7 +55,7 @@ class createTips(BaseModel):
     message: str
 
 
-class TipJar(NamedTuple):
+class TipJar(BaseModel):
     """A TipJar represents a user's tip jar"""
 
     id: int
