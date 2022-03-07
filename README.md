@@ -11,6 +11,8 @@ LNbits
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
 
+(LNbits is beta, for responsible disclosure of any concerns please contact lnbits@pm.me)
+
 Use [lnbits.com](https://lnbits.com), or run your own LNbits server!
 
 LNbits is a very simple Python server that sits on top of any funding source, and can be used as:
