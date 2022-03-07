@@ -1,0 +1,6 @@
+{
+	"name": "Admin",
+	"short_description": "Manage your LNbits install",
+	"icon": "build",
+	"contributors": ["benarc"]
+}

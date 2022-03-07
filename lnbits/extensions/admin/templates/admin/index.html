@@ -1,0 +1,565 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<h3 class="q-my-none">Admin</h3>
+<p></p>
+<!--
+  Forked from:
+  https://quasar.dev/vue-components/form#Example--Basic
+-->
+<div class="row">
+  <div class="col-8">
+    <q-card class="q-mr-md">
+      <q-form @submit="UpdateLNbits" class="q-px-md q-py-md">
+        <h6 class="q-my-md">Settings</h6>
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              v-model="data.admin.site_title"
+              label="Site title"
+              class="q-pr-md"
+              hint="To replace the default 'LNbits' name and tagline"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-input
+              filled
+              v-model="data.admin.tagline"
+              label="Tagline"
+            ></q-input>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              class="q-pr-md"
+              type="text"
+              v-model="data.admin.description"
+              label="Description"
+              hint="Short blurb about your lnbits"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-select
+              filled
+              v-model="data.admin.disabled_ext"
+              multiple
+              hint="Disable extensions *amilk disabled by default as resource heavy"
+              :options="options"
+              label="Disable extensions"
+            ></q-select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              class="q-pr-md"
+              type="number"
+              v-model="data.admin.service_fee"
+              label="Sevice fee"
+              hint="What percentage to charge per transaction *default 0"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-input
+              filled
+              v-model="data.admin.default_wallet_name"
+              label="Default wallet name"
+              hint="Default name for wallets generated without being named"
+            ></q-input>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              class="q-pr-md"
+              v-model="data.admin.data_folder"
+              label="Data folder"
+              hint="Where your databases will be saved"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-input
+              filled
+              class="q-pr-md"
+              v-model="data.admin.admin_user"
+              label="Admin user"
+              hint=""
+            ></q-input>
+          </div>
+        </div>
+        <br />
+
+        <q-list bordered class="rounded-borders">
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.CLightningWallet.backend_wallet"
+            @click="data.admin.funding.CLightningWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <q-input
+                  filled
+                  v-model="data.admin.funding.CLightningWallet.endpoint"
+                  label="GRPC Endpoint"
+                  class="q-pr-md"
+                  hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
+                ></q-input>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.SparkWallet.backend_wallet"
+            @click="data.admin.funding.SparkWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.SparkWallet.endpoint"
+                      label="LND REST Endpoint"
+                      class="q-pr-md"
+                      hint="ie http://localhost:9737/rpc"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.SparkWallet.admin_key"
+                      label="Access token"
+                      class="q-pr-md"
+                      hint="Your access token"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.LndRestWallet.backend_wallet"
+            @click="data.admin.funding.LndRestWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndRestWallet.endpoint"
+                      label="LND REST Endpoint"
+                      class="q-pr-md"
+                      hint="default 127.0.0.1"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndRestWallet.cert"
+                      label="LND self-signed cert"
+                      class="q-pr-md"
+                      hint="Location of your ssl cert"
+                    ></q-input>
+                  </div>
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndRestWallet.admin_key"
+                      label="LND admin macaroon"
+                      class="q-pr-md"
+                      hint="Your admin macaroon as hex or location"
+                    ></q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.LndWallet.backend_wallet"
+            @click="data.admin.funding.LndWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndWallet.endpoint"
+                      label="LND GRPC Endpoint"
+                      class="q-pr-md"
+                      hint="default 127.0.0.1"
+                    ></q-input>
+                  </div>
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndWallet.port"
+                      label="LND GRPC port"
+                      class="q-pr-md"
+                      hint="Deafault 11009"
+                    ></q-input>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndWallet.cert"
+                      label="LND self-signed cert"
+                      class="q-pr-md"
+                      hint="Location of your ssl cert"
+                    ></q-input>
+                  </div>
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LndWallet.admin_key"
+                      label="LND admin macaroon"
+                      class="q-pr-md"
+                      hint="Your admin macaroon as hex or location"
+                    ></q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.LntxbotWallet.backend_wallet"
+            @click="data.admin.funding.LntxbotWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LntxbotWallet.admin_key"
+                      label="Admin key"
+                      class="q-pr-md"
+                      hint="use /api in LNTXBOT"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.LNPayWallet.backend_wallet"
+            @click="data.admin.funding.LNPayWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LNPayWallet.cert"
+                      label="API key"
+                      class="q-pr-md"
+                    ></q-input>
+                  </div>
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LNPayWallet.admin_key"
+                      label="Admin key"
+                      class="q-pr-md q-pb-md"
+                    ></q-input>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.LnbitsWallet.backend_wallet"
+            @click="data.admin.funding.LnbitsWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LnbitsWallet.endpoint"
+                      label="LNbits endpoint"
+                      class="q-pr-md"
+                      hint="ie https://lnbits.com, default 127.0.0.1"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.LnbitsWallet.admin_key"
+                      label="Admin key"
+                      class="q-pr-md q-pb-md"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="payments"
+            :label="data.admin.funding.OpenNodeWallet.backend_wallet"
+            @click="data.admin.funding.OpenNodeWallet[7] = 1"
+          >
+            <q-card>
+              <q-card-section>
+                <div class="row">
+                  <div class="col">
+                    <q-input
+                      filled
+                      v-model="data.admin.funding.OpenNodeWallet.admin_key"
+                      label="Admin key"
+                      class="q-pr-md"
+                    ></q-input>
+                  </div>
+                  <div class="col"></div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item> </q-list
+        ><br />
+        <q-select
+          outlined
+          v-model="data.admin.funding_source_primary"
+          style="max-width: 300px"
+          class="q-pr-md"
+          label="Select main funding source"
+          :options="data.funding_source"
+          label="Outlined"
+        ></q-select
+        ><br />
+        <div>
+          <q-btn label="Update" type="submit" color="primary"></q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </div>
+
+  <div class="col-4">
+    <q-card class="q-mr-md">
+      <q-form class="q-px-md q-py-md" @submit="topupWallet">
+        <div class="text-h6" class="q-px-md">Wallet topup</div>
+        <div class="row">
+          <div class="col-8">
+            <q-input
+              type="text"
+              filled
+              v-model="wallet.data.id"
+              label="Wallet ID"
+              class="q-pr-md"
+              hint="Use the wallet ID to topup any wallet"
+            ></q-input>
+          </div>
+          <div class="col-4">
+            <q-input
+              type="number"
+              filled
+              v-model="wallet.data.amount"
+              label="Topup amount"
+            ></q-input>
+          </div>
+        </div>
+        <div>
+          <q-btn
+            class="q-mt-md"
+            label="Topup"
+            type="submit"
+            color="primary"
+          ></q-btn>
+        </div>
+      </q-form>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  const queryString = window.location.search
+  const urlParams = new URLSearchParams(queryString)
+  const usr = urlParams.get('usr')
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        wallet: {data: {}},
+        cancel: {},
+        data: {
+          funding_source: [
+            'CLightningWallet',
+            'LndRestWallet',
+            'LndWallet',
+            'LntxbotWallet',
+            'LNPayWallet',
+            'LnbitsWallet',
+            'OpenNodeWallet'
+          ],
+
+          admin: {
+            user: '{{ user.id }}',
+            site_title: '{{admin.site_title}}',
+            tagline: '{{admin.site_tagline}}',
+            description: '{{admin.site_description}}',
+            admin_user: '{{admin.admin_user}}',
+            service_fee: parseInt('{{admin.service_fee}}'),
+            default_wallet_name: '{{admin.default_wallet_name}}',
+            data_folder: '{{admin.data_folder}}',
+            funding_source_primary: '{{admin.funding_source}}',
+            disabled_ext: '{{admin.disabled_ext}}'.split(','),
+            edited: [],
+            senddata: {}
+          }
+        },
+
+        options: [
+          'bleskomat',
+          'captcha',
+          'events',
+          'example',
+          'livestream',
+          'lndhub',
+          'lnurlp',
+          'offlineshop',
+          'paywall',
+          'splitpayments',
+          'subdomains',
+          'tpos',
+          'usermanager',
+          'watchonly',
+          'withdraw',
+          'copilot',
+          'hivemind',
+          'jukebox',
+          'lnticket',
+          'ngrok',
+          'amilk'
+        ]
+      }
+    },
+    created: function () {
+      var self = this
+      if (usr != null) {
+        self.cancel.on = true
+      }
+      funding = JSON.parse(String('{{ funding  | tojson|safe }}'))
+      var i
+      for (i = 0; i < funding.length; i++) {
+        self.data.admin.funding[funding[i].backend_wallet] = funding[i]
+      }
+      console.log(self.data.admin)
+    },
+    methods: {
+      topupWallet: function () {
+        var self = this
+        LNbits.api
+          .request(
+            'GET',
+            '/admin/api/v1/admin/' +
+              self.wallet.id +
+              '/' +
+              self.wallet.data.amount,
+            self.g.user.wallets[0].adminkey
+          )
+          .then(function (response) {
+            self.$q.notify({
+              type: 'positive',
+              message:
+                'Success! Added ' +
+                self.wallet.amount +
+                ' to ' +
+                self.wallet.id,
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+
+      createWallet: function () {
+        LNbits.href.createWallet(this.walletName)
+      },
+      addSource: function (source) {
+        var self = this
+        self.data.admin.edited.push(source)
+        console.log(self.data.admin.edited)
+      },
+      UpdateLNbits: function () {
+        var self = this
+        console.log(self.data.admin)
+        LNbits.api
+          .request(
+            'POST',
+            '/admin/api/v1/admin/',
+            self.g.user.wallets[0].adminkey,
+            self.data.admin
+          )
+          .then(function (response) {
+            self.$q.notify({
+              type: 'positive',
+              message:
+                'Success! Added ' +
+                self.wallet.amount +
+                ' to ' +
+                self.wallet.id,
+              icon: null
+            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+
+      processing: function () {
+        this.$q.notify({
+          timeout: 0,
+          message: 'Processing...',
+          icon: null
+        })
+      }
+    }
+  })
+</script>
+{% endblock %}
