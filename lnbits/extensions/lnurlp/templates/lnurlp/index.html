@@ -275,8 +275,8 @@
           fiatRates[qrCodeDialog.data.currency] + ' sat' : 'Loading...' }}<br
         /></span>
         <strong>Accepts comments:</strong> {{ qrCodeDialog.data.comments }}<br />
-        <strong>Dispatches webhook to:</strong> {{ qrCodeDialog.data.webhook
-        }}<br />
+        <strong>Dispatches LUD22 webhook to:</strong> {{
+        qrCodeDialog.data.webhook }}<br />
         <strong>On success:</strong> {{ qrCodeDialog.data.success }}<br />
       </p>
       {% endraw %}
