@@ -118,8 +118,9 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
+                {{ col.label }}                
               </q-th>
             </q-tr>
           </template>
@@ -136,9 +137,19 @@
                   :href="'mailto:' + props.row.email"
                 ></q-btn>
               </q-td>
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="launch"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="ticketCard(props)"
+                ><q-tooltip> Click to show ticket </q-tooltip></q-btn>
+              </q-td>
 
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
+                {{ col.label == "Ticket" ? col.value.length > 20 ? `${col.value.substring(0, 20)}...` : col.value : col.value }}
               </q-td>
 
               <q-td auto-width>
@@ -249,6 +260,29 @@
       </q-form>
     </q-card>
   </q-dialog>
+  <!-- Read Ticket Dialog -->
+  <q-dialog v-model="ticketDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      {% raw %}
+      <q-card-section>
+        <h4 class="text-subtitle1 q-my-none">
+          <i>{{this.ticketDialog.data.name}}</i> sent a ticket
+        </h4>
+        <div v-if="this.ticketDialog.data.email">
+          <small>{{this.ticketDialog.data.email}}</small>
+        </div>
+        <small>{{this.ticketDialog.data.date}}</small>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <p>{{this.ticketDialog.data.content}}</p>
+      </q-card-section>
+      {% endraw %}
+      <q-card-actions align="right">
+        <q-btn flat label="CLOSE" color="primary" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -318,6 +352,10 @@
         formDialog: {
           show: false,
           data: {flatrate: false}
+        },
+        ticketDialog: {
+          show: false,
+          data: {}
         }
       }
     },
@@ -372,6 +410,16 @@
               })
           })
       },
+      ticketCard(ticket){
+        this.ticketDialog.show = true
+        let {date, email, ltext, name} = ticket.row
+        this.ticketDialog.data = {
+          date,
+          email,
+          content: ltext,
+          name
+        }
+      },
       exportticketsCSV: function () {
         LNbits.utils.exportCSV(this.ticketsTable.columns, this.tickets)
       },
@@ -421,12 +469,13 @@
       },
       updateformDialog: function (formId) {
         var link = _.findWhere(this.forms, {id: formId})
+        console.log("LINK", link)
 
         this.formDialog.data.id = link.id
         this.formDialog.data.wallet = link.wallet
         this.formDialog.data.name = link.name
         this.formDialog.data.description = link.description
-        this.formDialog.data.flatrate = link.flatrate
+        this.formDialog.data.flatrate = Boolean(link.flatrate)
         this.formDialog.data.amount = link.amount
         this.formDialog.show = true
       },
