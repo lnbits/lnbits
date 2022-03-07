@@ -146,9 +146,8 @@ class LndWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        resp = await self.rpc.SendPayment(
-            lnrpc.SendPayment(payment_request=bolt11, fee_limit=fee_limit_fixed)
-        )
+        req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)
+        resp = self.rpc.SendPaymentSync(req)
 
         if resp.payment_error:
             return PaymentResponse(False, "", 0, None, resp.payment_error)

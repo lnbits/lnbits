@@ -25,7 +25,7 @@ class VoidWallet(Wallet):
         )
         return StatusResponse(None, 0)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         raise Unsupported("")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:

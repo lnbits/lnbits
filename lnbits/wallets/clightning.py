@@ -31,7 +31,7 @@ def async_wrap(func):
     return run
 
 
-def _pay_invoice(ln, bolt11):
+def _pay_invoice(ln, bolt11, fee_limit_msat):
     return ln.pay(bolt11)
 
 
@@ -102,7 +102,7 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
             wrapped = async_wrap(_pay_invoice)
             r = await wrapped(self.ln, bolt11)
