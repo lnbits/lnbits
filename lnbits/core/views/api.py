@@ -364,6 +364,7 @@ async def api_payments_sse(
 
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
+    wallet = None
     if X_Api_Key:
         wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(payment_hash)
