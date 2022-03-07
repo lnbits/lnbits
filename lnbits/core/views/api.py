@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-from fastapi import Query, Request
+from fastapi import Query, Request, Header
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
@@ -39,6 +39,7 @@ from ..crud import (
     get_payments,
     get_standalone_payment,
     get_wallet,
+    get_wallet_for_key,
     save_balance_check,
     update_payment_status,
     update_wallet,
@@ -362,7 +363,9 @@ async def api_payments_sse(
 
 
 @core_app.get("/api/v1/payments/{payment_hash}")
-async def api_payment(payment_hash):
+async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
+    if X_Api_Key:
+        wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(payment_hash)
     await check_invoice_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(payment_hash)
@@ -371,13 +374,19 @@ async def api_payment(payment_hash):
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
     elif not payment.pending:
+        if wallet and wallet.id == payment.wallet_id:
+            return {"paid": True, "preimage": payment.preimage, "details": payment}
         return {"paid": True, "preimage": payment.preimage}
 
     try:
         await payment.check_pending()
     except Exception:
+        if wallet and wallet.id == payment.wallet_id:
+            return {"paid": False, "details": payment}
         return {"paid": False}
 
+    if wallet and wallet.id == payment.wallet_id:
+            return {"paid": not payment.pending, "preimage": payment.preimage, "details": payment}
     return {"paid": not payment.pending, "preimage": payment.preimage}
 
 
