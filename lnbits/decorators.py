@@ -168,7 +168,6 @@ async def require_admin_key(
     token = api_key_header if api_key_header else api_key_query
 
     wallet = await get_key_type(r, token)
-    print(wallet.__dict__)
 
     if wallet.wallet_type != 0:
         # If wallet type is not admin then return the unauthorized status
