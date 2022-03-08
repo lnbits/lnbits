@@ -23,6 +23,7 @@ from lnbits.decorators import (
     WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
+    require_admin_key
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -230,7 +231,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
     invoiceData: CreateInvoiceData = Body(...),
 ):
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
