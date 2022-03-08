@@ -231,7 +231,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-    wallet: WalletTypeInfo = Depends(require_admin_key),
+    wallet: WalletTypeInfo = Depends(get_key_type),
     invoiceData: CreateInvoiceData = Body(...),
 ):
     if wallet.wallet_type < 0 or wallet.wallet_type > 2:
