@@ -1,16 +1,20 @@
 import asyncio
-import warnings
-import click
 import importlib
-import re
 import os
+import re
+import warnings
+from typing import Optional
 
-from .db import SQLITE, POSTGRES, COCKROACH
-from .core import db as core_db, migrations as core_migrations
+import click
+from genericpath import exists
+
+from .core import db as core_db
+from .core import migrations as core_migrations
+from .db import COCKROACH, POSTGRES, SQLITE
 from .helpers import (
-    get_valid_extensions,
     get_css_vendored,
     get_js_vendored,
+    get_valid_extensions,
     url_for_vendored,
 )
 from .settings import LNBITS_PATH
@@ -49,6 +53,25 @@ def bundle_vendored():
         with open(outputpath, "w") as f:
             f.write(output)
 
+async def get_admin_settings():
+    from lnbits.extensions.admin.models import Admin
+
+    async with core_db.connect() as conn:
+        
+        if conn.type == SQLITE:
+            exists = await conn.fetchone(
+                "SELECT * FROM sqlite_master WHERE type='table' AND name='admin'"
+            )
+        elif conn.type in {POSTGRES, COCKROACH}:
+            exists = await conn.fetchone(
+                "SELECT * FROM information_schema.tables WHERE table_name = 'admin'"
+            )
+        if not exists:
+            return False
+
+        row = await conn.fetchone("SELECT * from admin")
+    
+    return Admin(**row) if row else None
 
 async def migrate_databases():
     """Creates the necessary databases if they don't exist already; or migrates them."""
