@@ -75,7 +75,6 @@ async def api_check_credentials_check(
     juke_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     jukebox = await get_jukebox(juke_id)
-
     return jukebox
 
 
@@ -442,7 +441,7 @@ async def api_get_jukebox_currently(
                 token = await api_get_token(juke_id)
                 if token == False:
                     raise HTTPException(
-                        status_code=HTTPStatus.FORBIDDEN, detail="INvoice not paid"
+                        status_code=HTTPStatus.FORBIDDEN, detail="Invoice not paid"
                     )
                 elif retry:
                     raise HTTPException(
@@ -456,5 +455,5 @@ async def api_get_jukebox_currently(
                 )
         except:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="Something went wrong"
+                status_code=HTTPStatus.NOT_FOUND, detail="Something went wrong, or no song is playing yet"
             )

@@ -84,18 +84,19 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
     async def check_wallet_status():
-        error_message, balance = await WALLET.status()
-        if error_message:
+        while True:
+            error_message, balance = await WALLET.status()
+            if not error_message:
+                break
             warnings.warn(
                 f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                 RuntimeWarning,
             )
-
-            sys.exit(4)
-        else:
-            print(
-                f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
-            )
+            print("Retrying connection to backend in 5 seconds...")
+            await asyncio.sleep(5)
+        print(
+            f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
+        )
 
 
 def register_routes(app: FastAPI) -> None:

@@ -12,7 +12,7 @@ async def create_jukebox(
     juke_id = urlsafe_short_hash()
     result = await db.execute(
         """
-        INSERT INTO jukebox.jukebox (id, user, title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit)
+        INSERT INTO jukebox.jukebox (id, "user", title, wallet, sp_user, sp_secret, sp_access_token, sp_refresh_token, sp_device, sp_playlists, price, profit)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -41,6 +41,7 @@ async def update_jukebox(
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
     items.append(juke_id)
+    q = q.replace("user", '"user"', 1) # hack to make user be "user"!
     await db.execute(f"UPDATE jukebox.jukebox SET {q} WHERE id = ?", (items))
     row = await db.fetchone("SELECT * FROM jukebox.jukebox WHERE id = ?", (juke_id,))
     return Jukebox(**row) if row else None
@@ -57,11 +58,11 @@ async def get_jukebox_by_user(user: str) -> Optional[Jukebox]:
 
 
 async def get_jukeboxs(user: str) -> List[Jukebox]:
-    rows = await db.fetchall("SELECT * FROM jukebox.jukebox WHERE user = ?", (user,))
+    rows = await db.fetchall('SELECT * FROM jukebox.jukebox WHERE "user" = ?', (user,))
     for row in rows:
         if row.sp_playlists == None:
             await delete_jukebox(row.id)
-    rows = await db.fetchall("SELECT * FROM jukebox.jukebox WHERE user = ?", (user,))
+    rows = await db.fetchall('SELECT * FROM jukebox.jukebox WHERE "user" = ?', (user,))
 
     return [Jukebox(**row) for row in rows]
 

@@ -273,444 +273,470 @@
       </q-card-section>
     </q-card>
   </div>
-  <div class="col-12 col-md-5 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        <h6 class="text-subtitle1 q-mt-none q-mb-sm">
-          {{ SITE_TITLE }} Wallet: <strong><em>{{ wallet.name }}</em></strong>
-        </h6>
-      </q-card-section>
-      <q-card-section class="q-pa-none">
-        <q-separator></q-separator>
 
-        <q-list>
-          {% include "core/_api_docs.html" %}
+  {% if HIDE_API %}
+  <div class="col-12 col-md-4 q-gutter-y-md">
+    {% else %}
+    <div class="col-12 col-md-5 q-gutter-y-md">
+      <q-card>
+        <q-card-section>
+          <h6 class="text-subtitle1 q-mt-none q-mb-sm">
+            {{ SITE_TITLE }} Wallet: <strong><em>{{ wallet.name }}</em></strong>
+          </h6>
+        </q-card-section>
+        <q-card-section class="q-pa-none">
           <q-separator></q-separator>
 
-          {% if wallet.lnurlwithdraw_full %}
-          <q-expansion-item group="extras" icon="crop_free" label="Drain Funds">
-            <q-card>
-              <q-card-section class="text-center">
-                <p>
-                  This is an LNURL-withdraw QR code for slurping everything from
-                  this wallet. Do not share with anyone.
-                </p>
-                <a href="lightning:{{wallet.lnurlwithdraw_full}}">
+          <q-list>
+            {% include "core/_api_docs.html" %}
+            <q-separator></q-separator>
+
+            {% if wallet.lnurlwithdraw_full %}
+            <q-expansion-item
+              group="extras"
+              icon="crop_free"
+              label="Drain Funds"
+            >
+              <q-card>
+                <q-card-section class="text-center">
+                  <p>
+                    This is an LNURL-withdraw QR code for slurping everything
+                    from this wallet. Do not share with anyone.
+                  </p>
+                  <a href="lightning:{{wallet.lnurlwithdraw_full}}">
+                    <qrcode
+                      value="{{wallet.lnurlwithdraw_full}}"
+                      :options="{width:240}"
+                    ></qrcode>
+                  </a>
+                  <p>
+                    It is compatible with <code>balanceCheck</code> and
+                    <code>balanceNotify</code> so your wallet may keep pulling
+                    the funds continuously from here after the first withdraw.
+                  </p>
+                </q-card-section>
+              </q-card>
+            </q-expansion-item>
+            <q-separator></q-separator>
+            {% endif %}
+
+            <q-expansion-item
+              group="extras"
+              icon="settings_cell"
+              label="Export to Phone with QR Code"
+            >
+              <q-card>
+                <q-card-section class="text-center">
+                  <p>
+                    This QR code contains your wallet URL with full access. You
+                    can scan it from your phone to open your wallet from there.
+                  </p>
                   <qrcode
-                    value="{{wallet.lnurlwithdraw_full}}"
+                    :value="'{{request.base_url}}' +'wallet?usr={{user.id}}&wal={{wallet.id}}'"
                     :options="{width:240}"
                   ></qrcode>
-                </a>
-                <p>
-                  It is compatible with <code>balanceCheck</code> and
-                  <code>balanceNotify</code> so your wallet may keep pulling the
-                  funds continuously from here after the first withdraw.
-                </p>
-              </q-card-section>
-            </q-card>
-          </q-expansion-item>
-          <q-separator></q-separator>
-          {% endif %}
-
-          <q-expansion-item
-            group="extras"
-            icon="settings_cell"
-            label="Export to Phone with QR Code"
-          >
-            <q-card>
-              <q-card-section class="text-center">
-                <p>
-                  This QR code contains your wallet URL with full access. You
-                  can scan it from your phone to open your wallet from there.
-                </p>
-                <qrcode
-                  :value="'{{request.base_url}}' +'wallet?usr={{user.id}}&wal={{wallet.id}}'"
-                  :options="{width:240}"
-                ></qrcode>
-              </q-card-section>
-            </q-card>
-          </q-expansion-item>
-          <q-separator></q-separator>
-          <q-expansion-item group="extras" icon="edit" label="Rename wallet">
-            <q-card>
-              <q-card-section>
-                <div class="" style="max-width: 320px">
-                  <q-input
-                    filled
-                    v-model.trim="newName"
-                    label="Label"
-                    dense="dense"
-                    @update:model-value="(e) => console.log(e)"
-                  />
-                </div>
-                <q-btn
-                  :disable="!newName.length"
-                  unelevated
-                  class="q-mt-sm"
-                  color="primary"
-                  @click="updateWalletName()"
-                  >Update name</q-btn
-                >
-              </q-card-section>
-            </q-card>
-          </q-expansion-item>
-          <q-separator></q-separator>
-          <q-expansion-item
-            group="extras"
-            icon="remove_circle"
-            label="Delete wallet"
-          >
-            <q-card>
-              <q-card-section>
-                <p>
-                  This whole wallet will be deleted, the funds will be
-                  <strong>UNRECOVERABLE</strong>.
-                </p>
-                <q-btn
-                  unelevated
-                  color="red-10"
-                  @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
-                  >Delete wallet</q-btn
-                >
-              </q-card-section>
-            </q-card>
-          </q-expansion-item>
-        </q-list>
-      </q-card-section>
-    </q-card>
+                </q-card-section>
+              </q-card>
+            </q-expansion-item>
+            <q-separator></q-separator>
+            <q-expansion-item group="extras" icon="edit" label="Rename wallet">
+              <q-card>
+                <q-card-section>
+                  <div class="" style="max-width: 320px">
+                    <q-input
+                      filled
+                      v-model.trim="newName"
+                      label="Label"
+                      dense="dense"
+                      @update:model-value="(e) => console.log(e)"
+                    />
+                  </div>
+                  <q-btn
+                    :disable="!newName.length"
+                    unelevated
+                    class="q-mt-sm"
+                    color="primary"
+                    @click="updateWalletName()"
+                    >Update name</q-btn
+                  >
+                </q-card-section>
+              </q-card>
+            </q-expansion-item>
+            <q-separator></q-separator>
+            <q-expansion-item
+              group="extras"
+              icon="remove_circle"
+              label="Delete wallet"
+            >
+              <q-card>
+                <q-card-section>
+                  <p>
+                    This whole wallet will be deleted, the funds will be
+                    <strong>UNRECOVERABLE</strong>.
+                  </p>
+                  <q-btn
+                    unelevated
+                    color="red-10"
+                    @click="deleteWallet('{{ wallet.id }}', '{{ user.id }}')"
+                    >Delete wallet</q-btn
+                  >
+                </q-card-section>
+              </q-card>
+            </q-expansion-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+      {% endif %} {% if AD_SPACE %} {% for ADS in AD_SPACE %} {% set AD =
+      ADS.split(';') %}
+      <q-card>
+        <a href="{{ AD[0] }}"
+          ><img width="100%" src="{{ AD[1] }}"
+        /></a> </q-card
+      >{% endfor %} {% endif %}
+    </div>
   </div>
-</div>
 
-<q-dialog v-model="receive.show" @hide="closeReceiveDialog">
-  {% raw %}
-  <q-card
-    v-if="!receive.paymentReq"
-    class="q-pa-lg q-pt-xl lnbits__dialog-card"
-  >
-    <q-form @submit="createInvoice" class="q-gutter-md">
-      <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
-        <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
-      </p>
-      {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
-      <q-input
-        filled
-        dense
-        v-model.number="receive.data.amount"
-        label="Amount ({{LNBITS_DENOMINATION}}) *"
-        mask="#.##"
-        fill-mask="0"
-        reverse-fill-mask
-        :min="receive.minMax[0]"
-        :max="receive.minMax[1]"
-        :readonly="receive.lnurl && receive.lnurl.fixed"
-      ></q-input>
-      {% else %}
-      <q-select
-        filled
-        dense
-        v-model="receive.unit"
-        type="text"
-        label="Unit"
-        :options="receive.units"
-      ></q-select>
-      <q-input
-        filled
-        dense
-        v-model.number="receive.data.amount"
-        :label="'Amount (' + receive.unit + ') *'"
-        :mask="receive.unit != 'sat' ? '#.##' : '#'"
-        fill-mask="0"
-        reverse-fill-mask
-        :step="receive.unit != 'sat' ? '0.01' : '1'"
-        :min="receive.minMax[0]"
-        :max="receive.minMax[1]"
-        :readonly="receive.lnurl && receive.lnurl.fixed"
-      ></q-input>
-      {% endif %}
-
-      <q-input
-        filled
-        dense
-        v-model.trim="receive.data.memo"
-        label="Memo"
-      ></q-input>
-      {% raw %}
-      <div v-if="receive.status == 'pending'" class="row q-mt-lg">
-        <q-btn
-          unelevated
-          color="primary"
-          :disable="receive.data.amount == null || receive.data.amount <= 0"
-          type="submit"
-        >
-          <span v-if="receive.lnurl">
-            Withdraw from {{receive.lnurl.domain}}
-          </span>
-          <span v-else> Create invoice </span>
-        </q-btn>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </div>
-      <q-spinner
-        v-if="receive.status == 'loading'"
-        color="primary"
-        size="2.55em"
-      ></q-spinner>
-    </q-form>
-  </q-card>
-  <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-    <div class="text-center q-mb-lg">
-      <a :href="'lightning:' + receive.paymentReq">
-        <q-responsive :ratio="1" class="q-mx-xl">
-          <qrcode
-            :value="receive.paymentReq"
-            :options="{width: 340}"
-            class="rounded-borders"
-          ></qrcode>
-        </q-responsive>
-      </a>
-    </div>
-    <div class="row q-mt-lg">
-      <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
-        >Copy invoice</q-btn
-      >
-      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-    </div>
-  </q-card>
-  {% endraw %}
-</q-dialog>
-
-<q-dialog v-model="parse.show" @hide="closeParseDialog">
-  <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-    <div v-if="parse.invoice">
-      <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
-        {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",", ""))
-        / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-      </h6>
-      <h6 v-else class="q-my-none">
-        {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-      </h6>
-      <q-separator class="q-my-sm"></q-separator>
-      <p class="text-wrap">
-        <strong>Description:</strong> {{ parse.invoice.description }}<br />
-        <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
-        <strong>Hash:</strong> {{ parse.invoice.hash }}
-      </p>
-      {% endraw %}
-      <div v-if="canPay" class="row q-mt-lg">
-        <q-btn unelevated color="primary" @click="payInvoice">Pay</q-btn>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </div>
-      <div v-else class="row q-mt-lg">
-        <q-btn unelevated disabled color="yellow" text-color="black"
-          >Not enough funds!</q-btn
-        >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-      </div>
-    </div>
-    <div v-else-if="parse.lnurlauth">
-      {% raw %}
-      <q-form @submit="authLnurl" class="q-gutter-md">
-        <p class="q-my-none text-h6">
-          Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
+  <q-dialog v-model="receive.show" @hide="closeReceiveDialog">
+    {% raw %}
+    <q-card
+      v-if="!receive.paymentReq"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+      <q-form @submit="createInvoice" class="q-gutter-md">
+        <p v-if="receive.lnurl" class="text-h6 text-center q-my-none">
+          <b>{{receive.lnurl.domain}}</b> is requesting an invoice:
         </p>
-        <q-separator class="q-my-sm"></q-separator>
-        <p>
-          For every website and for every LNbits wallet, a new keypair will be
-          deterministically generated so your identity can't be tied to your
-          LNbits wallet or linked across websites. No other data will be shared
-          with {{ parse.lnurlauth.domain }}.
-        </p>
-        <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
-        <p class="q-mx-xl">
-          <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
-        </p>
-        <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit">Login</q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-      {% endraw %}
-    </div>
-    <div v-else-if="parse.lnurlpay">
-      {% raw %}
-      <q-form @submit="payLnurl" class="q-gutter-md">
-        <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
-          <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
-          parse.lnurlpay.maxSendable | msatoshiFormat }} {{LNBITS_DENOMINATION}}
-          <span v-if="parse.lnurlpay.commentAllowed > 0">
-            <br />
-            and a {{parse.lnurlpay.commentAllowed}}-char comment
-          </span>
-        </p>
-        <p v-else class="q-my-none text-h6 text-center">
-          <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is
-          requesting <br />
-          between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
-          <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
-          {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
-          <span v-if="parse.lnurlpay.commentAllowed > 0">
-            <br />
-            and a {{parse.lnurlpay.commentAllowed}}-char comment
-          </span>
-        </p>
-        <q-separator class="q-my-sm"></q-separator>
-        <div class="row">
-          <p class="col text-justify text-italic">
-            {{ parse.lnurlpay.description }}
-          </p>
-          <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
-            <q-img :src="parse.lnurlpay.image" />
-          </p>
-        </div>
-        <div class="row">
-          <div class="col">
-            {% endraw %}
-            <q-input
-              filled
-              dense
-              v-model.number="parse.data.amount"
-              type="number"
-              label="Amount ({{LNBITS_DENOMINATION}}) *"
-              :min="parse.lnurlpay.minSendable / 1000"
-              :max="parse.lnurlpay.maxSendable / 1000"
-              :readonly="parse.lnurlpay.fixed"
-            ></q-input>
-            {% raw %}
-          </div>
-          <div class="col-8 q-pl-md" v-if="parse.lnurlpay.commentAllowed > 0">
-            <q-input
-              filled
-              dense
-              v-model="parse.data.comment"
-              :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
-              label="Comment (optional)"
-              :maxlength="parse.lnurlpay.commentAllowed"
-            ></q-input>
-          </div>
-        </div>
-        <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit"
-            >Send {{LNBITS_DENOMINATION}}</q-btn
-          >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-      {% endraw %}
-    </div>
-    <div v-else>
-      <q-form
-        v-if="!parse.camera.show"
-        @submit="decodeRequest"
-        class="q-gutter-md"
-      >
+        {% endraw %} {% if LNBITS_DENOMINATION != 'sats' %}
         <q-input
           filled
           dense
-          v-model.trim="parse.data.request"
-          type="textarea"
-          label="Paste an invoice, payment request or lnurl code *"
-        >
-        </q-input>
-        <div class="row q-mt-lg">
+          v-model.number="receive.data.amount"
+          label="Amount ({{LNBITS_DENOMINATION}}) *"
+          mask="#.##"
+          fill-mask="0"
+          reverse-fill-mask
+          :min="receive.minMax[0]"
+          :max="receive.minMax[1]"
+          :readonly="receive.lnurl && receive.lnurl.fixed"
+        ></q-input>
+        {% else %}
+        <q-select
+          filled
+          dense
+          v-model="receive.unit"
+          type="text"
+          label="Unit"
+          :options="receive.units"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.number="receive.data.amount"
+          :label="'Amount (' + receive.unit + ') *'"
+          :mask="receive.unit != 'sat' ? '#.##' : '#'"
+          fill-mask="0"
+          reverse-fill-mask
+          :step="receive.unit != 'sat' ? '0.01' : '1'"
+          :min="receive.minMax[0]"
+          :max="receive.minMax[1]"
+          :readonly="receive.lnurl && receive.lnurl.fixed"
+        ></q-input>
+        {% endif %}
+
+        <q-input
+          filled
+          dense
+          v-model.trim="receive.data.memo"
+          label="Memo"
+        ></q-input>
+        {% raw %}
+        <div v-if="receive.status == 'pending'" class="row q-mt-lg">
           <q-btn
             unelevated
             color="primary"
-            :disable="parse.data.request == ''"
+            :disable="receive.data.amount == null || receive.data.amount <= 0"
             type="submit"
-            >Read</q-btn
+          >
+            <span v-if="receive.lnurl">
+              Withdraw from {{receive.lnurl.domain}}
+            </span>
+            <span v-else> Create invoice </span>
+          </q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+        <q-spinner
+          v-if="receive.status == 'loading'"
+          color="primary"
+          size="2.55em"
+        ></q-spinner>
+      </q-form>
+    </q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="'lightning:' + receive.paymentReq">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="receive.paymentReq"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+          >Copy invoice</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+    {% endraw %}
+  </q-dialog>
+
+  <q-dialog v-model="parse.show" @hide="closeParseDialog">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div v-if="parse.invoice">
+        <h6 v-if="'{{LNBITS_DENOMINATION}}' != 'sats'" class="q-my-none">
+          {% raw %} {{ parseFloat(String(parse.invoice.fsat).replaceAll(",",
+          "")) / 100 }} {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+        </h6>
+        <h6 v-else class="q-my-none">
+          {{ parse.invoice.fsat }}{% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+        </h6>
+        <q-separator class="q-my-sm"></q-separator>
+        <p class="text-wrap">
+          <strong>Description:</strong> {{ parse.invoice.description }}<br />
+          <strong>Expire date:</strong> {{ parse.invoice.expireDate }}<br />
+          <strong>Hash:</strong> {{ parse.invoice.hash }}
+        </p>
+        {% endraw %}
+        <div v-if="canPay" class="row q-mt-lg">
+          <q-btn unelevated color="primary" @click="payInvoice">Pay</q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+        <div v-else class="row q-mt-lg">
+          <q-btn unelevated disabled color="yellow" text-color="black"
+            >Not enough funds!</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
         </div>
-      </q-form>
+      </div>
+      <div v-else-if="parse.lnurlauth">
+        {% raw %}
+        <q-form @submit="authLnurl" class="q-gutter-md">
+          <p class="q-my-none text-h6">
+            Authenticate with <b>{{ parse.lnurlauth.domain }}</b>?
+          </p>
+          <q-separator class="q-my-sm"></q-separator>
+          <p>
+            For every website and for every LNbits wallet, a new keypair will be
+            deterministically generated so your identity can't be tied to your
+            LNbits wallet or linked across websites. No other data will be
+            shared with {{ parse.lnurlauth.domain }}.
+          </p>
+          <p>Your public key for <b>{{ parse.lnurlauth.domain }}</b> is:</p>
+          <p class="q-mx-xl">
+            <code class="text-wrap"> {{ parse.lnurlauth.pubkey }} </code>
+          </p>
+          <div class="row q-mt-lg">
+            <q-btn unelevated color="primary" type="submit">Login</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-form>
+        {% endraw %}
+      </div>
+      <div v-else-if="parse.lnurlpay">
+        {% raw %}
+        <q-form @submit="payLnurl" class="q-gutter-md">
+          <p v-if="parse.lnurlpay.fixed" class="q-my-none text-h6">
+            <b>{{ parse.lnurlpay.domain }}</b> is requesting {{
+            parse.lnurlpay.maxSendable | msatoshiFormat }}
+            {{LNBITS_DENOMINATION}}
+            <span v-if="parse.lnurlpay.commentAllowed > 0">
+              <br />
+              and a {{parse.lnurlpay.commentAllowed}}-char comment
+            </span>
+          </p>
+          <p v-else class="q-my-none text-h6 text-center">
+            <b>{{ parse.lnurlpay.targetUser || parse.lnurlpay.domain }}</b> is
+            requesting <br />
+            between <b>{{ parse.lnurlpay.minSendable | msatoshiFormat }}</b> and
+            <b>{{ parse.lnurlpay.maxSendable | msatoshiFormat }}</b>
+            {% endraw %} {{LNBITS_DENOMINATION}} {% raw %}
+            <span v-if="parse.lnurlpay.commentAllowed > 0">
+              <br />
+              and a {{parse.lnurlpay.commentAllowed}}-char comment
+            </span>
+          </p>
+          <q-separator class="q-my-sm"></q-separator>
+          <div class="row">
+            <p class="col text-justify text-italic">
+              {{ parse.lnurlpay.description }}
+            </p>
+            <p class="col-4 q-pl-md" v-if="parse.lnurlpay.image">
+              <q-img :src="parse.lnurlpay.image" />
+            </p>
+          </div>
+          <div class="row">
+            <div class="col">
+              {% endraw %}
+              <q-input
+                filled
+                dense
+                v-model.number="parse.data.amount"
+                type="number"
+                label="Amount ({{LNBITS_DENOMINATION}}) *"
+                :min="parse.lnurlpay.minSendable / 1000"
+                :max="parse.lnurlpay.maxSendable / 1000"
+                :readonly="parse.lnurlpay.fixed"
+              ></q-input>
+              {% raw %}
+            </div>
+            <div class="col-8 q-pl-md" v-if="parse.lnurlpay.commentAllowed > 0">
+              <q-input
+                filled
+                dense
+                v-model="parse.data.comment"
+                :type="parse.lnurlpay.commentAllowed > 64 ? 'textarea' : 'text'"
+                label="Comment (optional)"
+                :maxlength="parse.lnurlpay.commentAllowed"
+              ></q-input>
+            </div>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn unelevated color="primary" type="submit"
+              >Send {{LNBITS_DENOMINATION}}</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-form>
+        {% endraw %}
+      </div>
       <div v-else>
-        <q-responsive :ratio="1">
-          <qrcode-stream
-            @decode="decodeQR"
-            class="rounded-borders"
-          ></qrcode-stream>
-        </q-responsive>
-        <div class="row q-mt-lg">
-          <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
-            Cancel
-          </q-btn>
+        <q-form
+          v-if="!parse.camera.show"
+          @submit="decodeRequest"
+          class="q-gutter-md"
+        >
+          <q-input
+            filled
+            dense
+            v-model.trim="parse.data.request"
+            type="textarea"
+            label="Paste an invoice, payment request or lnurl code *"
+          >
+          </q-input>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              :disable="parse.data.request == ''"
+              type="submit"
+              >Read</q-btn
+            >
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
+          </div>
+        </q-form>
+        <div v-else>
+          <q-responsive :ratio="1">
+            <qrcode-stream
+              @decode="decodeQR"
+              class="rounded-borders"
+            ></qrcode-stream>
+          </q-responsive>
+          <div class="row q-mt-lg">
+            <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">
+              Cancel
+            </q-btn>
+          </div>
         </div>
       </div>
-    </div>
-  </q-card>
-</q-dialog>
+    </q-card>
+  </q-dialog>
 
-<q-dialog v-model="parse.camera.show">
-  <q-card class="q-pa-lg q-pt-xl">
-    <div class="text-center q-mb-lg">
-      <qrcode-stream @decode="decodeQR" class="rounded-borders"></qrcode-stream>
-    </div>
-    <div class="row q-mt-lg">
-      <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
-        >Cancel</q-btn
-      >
-    </div>
-  </q-card>
-</q-dialog>
+  <q-dialog v-model="parse.camera.show">
+    <q-card class="q-pa-lg q-pt-xl">
+      <div class="text-center q-mb-lg">
+        <qrcode-stream
+          @decode="decodeQR"
+          class="rounded-borders"
+        ></qrcode-stream>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto"
+          >Cancel</q-btn
+        >
+      </div>
+    </q-card>
+  </q-dialog>
 
-<q-dialog v-model="paymentsChart.show">
-  <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
-    <q-card-section>
-      <canvas ref="canvas" width="600" height="400"></canvas>
-    </q-card-section>
-  </q-card>
-</q-dialog>
-<q-tabs
-  class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
-  active-class="px-0"
-  indicator-color="transparent"
->
-  <q-tab
-    icon="account_balance_wallet"
-    label="Wallets"
-    @click="g.visibleDrawer = !g.visibleDrawer"
+  <q-dialog v-model="paymentsChart.show">
+    <q-card class="q-pa-sm" style="width: 800px; max-width: unset">
+      <q-card-section>
+        <canvas ref="canvas" width="600" height="400"></canvas>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+  <q-tabs
+    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
+    active-class="px-0"
+    indicator-color="transparent"
   >
-  </q-tab>
-  <q-tab icon="content_paste" label="Paste" @click="showParseDialog"> </q-tab>
-  <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
-  </q-tab>
+    <q-tab
+      icon="account_balance_wallet"
+      label="Wallets"
+      @click="g.visibleDrawer = !g.visibleDrawer"
+    >
+    </q-tab>
+    <q-tab icon="content_paste" label="Paste" @click="showParseDialog"> </q-tab>
+    <q-tab icon="file_download" label="Receive" @click="showReceiveDialog">
+    </q-tab>
 
-  <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
-</q-tabs>
-{% if service_fee > 0 %}
-<div ref="disclaimer"></div>
-<q-dialog v-model="disclaimerDialog.show">
-  <q-card class="q-pa-lg">
-    <h6 class="q-my-md text-deep-purple">Warning</h6>
-    <p>
-      Login functionality to be released in v0.2, for now,
-      <strong
-        >make sure you bookmark this page for future access to your
-        wallet</strong
-      >!
-    </p>
-    <p>
-      This service is in BETA, and we hold no responsibility for people losing
-      access to funds. To encourage you to run your own LNbits installation, any
-      balance on {% raw %}{{ disclaimerDialog.location.host }}{% endraw %} will
-      incur a charge of <strong>{{ service_fee }}% service fee</strong> per
-      week.
-    </p>
-    <div class="row q-mt-lg">
-      <q-btn
-        outline
-        color="grey"
-        @click="copyText(disclaimerDialog.location.href)"
-        >Copy wallet URL</q-btn
-      >
-      <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-        >I understand</q-btn
-      >
-    </div>
-  </q-card>
-</q-dialog>
-{% endif %} {% endblock %}
+    <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
+  </q-tabs>
+  {% if service_fee > 0 %}
+  <div ref="disclaimer"></div>
+  <q-dialog v-model="disclaimerDialog.show">
+    <q-card class="q-pa-lg">
+      <h6 class="q-my-md text-deep-purple">Warning</h6>
+      <p>
+        Login functionality to be released in v0.2, for now,
+        <strong
+          >make sure you bookmark this page for future access to your
+          wallet</strong
+        >!
+      </p>
+      <p>
+        This service is in BETA, and we hold no responsibility for people losing
+        access to funds. To encourage you to run your own LNbits installation,
+        any balance on {% raw %}{{ disclaimerDialog.location.host }}{% endraw %}
+        will incur a charge of
+        <strong>{{ service_fee }}% service fee</strong> per week.
+      </p>
+      <div class="row q-mt-lg">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(disclaimerDialog.location.href)"
+          >Copy wallet URL</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+          >I understand</q-btn
+        >
+      </div>
+    </q-card>
+  </q-dialog>
+  {% endif %} {% endblock %}
+</div>

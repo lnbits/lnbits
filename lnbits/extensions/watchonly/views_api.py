@@ -112,7 +112,7 @@ async def api_get_addresses(wallet_id, w: WalletTypeInfo = Depends(get_key_type)
 async def api_update_mempool(
     endpoint: str = Query(...), w: WalletTypeInfo = Depends(require_admin_key)
 ):
-    mempool = await update_mempool(endpoint, user=w.wallet.user)
+    mempool = await update_mempool(**{"endpoint": endpoint}, user=w.wallet.user)
     return mempool.dict()
 
 
