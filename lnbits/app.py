@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
 
-from .commands import db_migrate, handle_assets
+from .commands import db_migrate, get_admin_settings, handle_assets
 from .core import core_app
 from .core.views.generic import core_html_routes
 from .helpers import (
@@ -40,6 +40,10 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     :param config_object: The configuration object to use.
     """
     app = FastAPI()
+    
+    if lnbits.settings.LNBITS_ADMIN_UI:
+        check_settings(app)
+
     app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
     app.mount(
         "/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static"
@@ -50,7 +54,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"]
     )
-
     g().config = lnbits.settings
     g().base_url = f"http://{lnbits.settings.HOST}:{lnbits.settings.PORT}"
 
@@ -80,6 +83,18 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 
     return app
 
+
+def check_settings(app: FastAPI):
+    @app.on_event("startup")
+    async def check_settings_admin():
+        while True:
+            admin_set = await get_admin_settings()
+            if admin_set :
+                break
+            print("ERROR:", admin_set)
+            await asyncio.sleep(5)
+        # admin_set = await get_admin_settings()
+        g().admin_conf = admin_set
 
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
