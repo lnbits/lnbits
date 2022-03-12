@@ -26,13 +26,13 @@ async def get_swapouts(wallet_ids: Union[str, List[str]]) -> List[SwapOut]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM swap.out WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM swap.swpout WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
     return [SwapOut(**row) for row in rows]
 
 async def get_swapout(swap_id) -> SwapOut:
-    row = await db.fetchone("SELECT * FROM swap.out WHERE id = ?", (swap_id,))
+    row = await db.fetchone("SELECT * FROM swap.swpout WHERE id = ?", (swap_id,))
     return SwapOut(**row) if row else None
 
 async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
@@ -59,7 +59,7 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
     swap_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO swap.out (
+        INSERT INTO swap.swpout (
             id,
             wallet,
             onchainwallet,
@@ -84,7 +84,7 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
 
 
 async def delete_swapout(swap_id):
-    await db.execute("DELETE FROM swap.out WHERE id = ?", (swap_id,))
+    await db.execute("DELETE FROM swap.swpout WHERE id = ?", (swap_id,))
 
 ## RECURRENT SWAP OUT
 
@@ -170,14 +170,14 @@ async def get_swapins(wallet_ids: Union[str, List[str]]) -> List[SwapIn]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM swap.in WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM swap.swpin WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
     return [SwapIn(**row) for row in rows]
 
 async def get_swap_in(swap_id) -> Optional[SwapIn]:
     row = await db.fetchone(
-        "SELECT * from swap.in WHERE id = ?",
+        "SELECT * from swap.swpin WHERE id = ?",
         (swap_id,),
     )
     return SwapIn(**row) if row else None
@@ -186,7 +186,7 @@ async def create_swap_in(data: CreateSwapIn):
     swap_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO swap.in (
+        INSERT INTO swap.swpin (
             id,
             wallet,
             session_id,
@@ -209,9 +209,9 @@ async def create_swap_in(data: CreateSwapIn):
 async def update_swap_in(swap_id: str, **kwargs) -> SwapIn:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE swap.in SET {q} WHERE id = ?", (*kwargs.values(), swap_id)
+        f"UPDATE swap.swpin SET {q} WHERE id = ?", (*kwargs.values(), swap_id)
     )
-    row = await db.fetchone("SELECT * FROM swap.in WHERE id = ?", (swap_id,))
+    row = await db.fetchone("SELECT * FROM swap.swpin WHERE id = ?", (swap_id,))
     assert row, "Updated swap in couldn't be retrieved"
     print("ROW", SwapIn(**row))
     return SwapIn(**row)

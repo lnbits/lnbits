@@ -1,7 +1,7 @@
 async def m001_initial(db):
     await db.execute(
         """
-        CREATE TABLE swap.out (
+        CREATE TABLE swap.swpout (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             onchainwallet TEXT,
@@ -36,7 +36,7 @@ async def m002_add_recurrent(db):
 async def m003_add_swap_in(db):
     await db.execute(
         """
-        CREATE TABLE swap.in (
+        CREATE TABLE swap.swpin (
             id TEXT PRIMARY KEY, 
             wallet TEXT NOT NULL,
             session_id TEXT NOT NULL,
