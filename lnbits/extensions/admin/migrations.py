@@ -1,5 +1,7 @@
-from sqlalchemy.exc import OperationalError  # type: ignore
 from os import getenv
+
+from sqlalchemy.exc import OperationalError  # type: ignore
+
 from lnbits.helpers import urlsafe_short_hash
 
 
@@ -9,7 +11,7 @@ async def m001_create_admin_table(db):
     site_tagline = None
     site_description = None
     allowed_users = None
-    admin_user = None
+    admin_users = None
     default_wallet_name = None
     data_folder = None
     disabled_ext = None
@@ -29,8 +31,9 @@ async def m001_create_admin_table(db):
     if getenv("LNBITS_ALLOWED_USERS"):
         allowed_users = getenv("LNBITS_ALLOWED_USERS")
 
-    if getenv("LNBITS_ADMIN_USER"):
-        admin_user = getenv("LNBITS_ADMIN_USER")
+    if getenv("LNBITS_ADMIN_USERS"):
+        admin_users = "".join(getenv("LNBITS_ADMIN_USERS").split())
+        user = admin_users.split(',')[0]
 
     if getenv("LNBITS_DEFAULT_WALLET_NAME"):
         default_wallet_name = getenv("LNBITS_DEFAULT_WALLET_NAME")
@@ -53,32 +56,32 @@ async def m001_create_admin_table(db):
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS admin (
-            user TEXT,
+            "user" TEXT,
             site_title TEXT,
             site_tagline TEXT,
             site_description TEXT,
-            admin_user TEXT,
+            admin_users TEXT,
             allowed_users TEXT,
             default_wallet_name TEXT,
             data_folder TEXT,
             disabled_ext TEXT,
             force_https BOOLEAN,
-            service_fee INT,
+            service_fee REAL,
             funding_source TEXT
         );
     """
     )
     await db.execute(
         """
-        INSERT INTO admin (user, site_title, site_tagline, site_description, admin_user, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
+        INSERT INTO admin ("user", site_title, site_tagline, site_description, admin_users, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            user,
+            user.strip(),
             site_title,
             site_tagline,
             site_description,
-            admin_user,
+            admin_users[1:],
             allowed_users,
             default_wallet_name,
             data_folder,

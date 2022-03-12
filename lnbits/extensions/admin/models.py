@@ -1,18 +1,35 @@
-from typing import NamedTuple
 from sqlite3 import Row
+from typing import List, Optional
 
-class Admin(NamedTuple):
+from fastapi import Query
+from pydantic import BaseModel
+
+
+class UpdateAdminSettings(BaseModel):
+    site_title: Optional[str]
+    site_tagline: Optional[str]
+    site_description: Optional[str]
+    allowed_users: Optional[str]
+    admin_users: Optional[str]
+    default_wallet_name: Optional[str]
+    data_folder: Optional[str]
+    disabled_ext: Optional[str]
+    force_https: Optional[bool]
+    service_fee: Optional[float]
+    funding_source: Optional[str]
+
+class Admin(BaseModel):
     user: str
-    site_title: str
-    site_tagline: str
-    site_description:str
-    allowed_users: str
-    admin_user: str
+    site_title: Optional[str]
+    site_tagline: Optional[str]
+    site_description: Optional[str]
+    allowed_users: Optional[str]
+    admin_users: str
     default_wallet_name: str
     data_folder: str
     disabled_ext: str
-    force_https: str
-    service_fee: str
+    force_https: Optional[bool] = Query(True)
+    service_fee: float
     funding_source: str
 
     @classmethod
@@ -20,16 +37,16 @@ class Admin(NamedTuple):
         data = dict(row)
         return cls(**data)
 
-class Funding(NamedTuple):
+class Funding(BaseModel):
     id: str
     backend_wallet: str
-    endpoint: str
-    port: str
-    read_key: str
-    invoice_key: str
-    admin_key: str
-    cert: str
-    balance: int
+    endpoint: str = Query(None)
+    port: str = Query(None)
+    read_key: str = Query(None)
+    invoice_key: str = Query(None)
+    admin_key: str = Query(None)
+    cert: str = Query(None)
+    balance: int = Query(None)
     selected: int
 
     @classmethod

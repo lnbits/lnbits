@@ -1,20 +1,33 @@
-from quart import g, render_template, request, jsonify
-import json
+from email.policy import default
+from os import getenv
 
-from lnbits.decorators import check_user_exists, validate_uuids
+from fastapi import Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse
+
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
 from lnbits.extensions.admin import admin_ext
-from lnbits.core.crud import get_user, create_account
+from lnbits.requestvars import g
+
+from . import admin_ext, admin_renderer
 from .crud import get_admin, get_funding
-from lnbits.settings import WALLET
 
+templates = Jinja2Templates(directory="templates")
 
-@admin_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    user_id = g.user
+@admin_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
     admin = await get_admin()
+    print(g())
+    funding = [f.dict() for f in await get_funding()]
     
-    funding = [{**funding._asdict()} for funding in await get_funding()]
-
-    return await render_template("admin/index.html", user=g.user, admin=admin, funding=funding)
+    print("ADMIN", admin.dict())
+    return admin_renderer().TemplateResponse(
+        "admin/index.html", {
+            "request": request,
+            "user": user.dict(),
+            "admin": admin.dict(),
+            "funding": funding
+        }
+    )
