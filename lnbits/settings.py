@@ -1,5 +1,6 @@
 import importlib
 import subprocess
+from email.policy import default
 from os import path
 from typing import List
 
@@ -27,6 +28,7 @@ LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 LNBITS_ALLOWED_USERS: List[str] = [
     x.strip(" ") for x in env.list("LNBITS_ALLOWED_USERS", default=[], subcast=str)
 ]
+LNBITS_ADMIN_UI = env.bool("LNBITS_ADMIN_UI", default=False)
 LNBITS_ADMIN_USERS: List[str] = [
     x.strip(" ") for x in env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
 ]
