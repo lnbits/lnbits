@@ -1,41 +1,42 @@
-from quart import jsonify, g, request
 from http import HTTPStatus
-from .crud import update_wallet_balance
-from lnbits.extensions.admin import admin_ext
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
-from lnbits.core.crud import get_wallet
-from .crud import get_admin,update_admin
-import json
 
-@admin_ext.route("/api/v1/admin/<wallet_id>/<topup_amount>", methods=["GET"])
-@api_check_wallet_key("admin")
-async def api_update_balance(wallet_id, topup_amount):
-    print(g.data.wallet)
+from fastapi import Body, Depends, Request
+from starlette.exceptions import HTTPException
+
+from lnbits.core.crud import get_wallet
+from lnbits.decorators import WalletTypeInfo, require_admin_key
+from lnbits.extensions.admin import admin_ext
+from lnbits.extensions.admin.models import Admin, UpdateAdminSettings
+
+from .crud import get_admin, update_admin, update_wallet_balance
+
+
+@admin_ext.get("/api/v1/admin/{wallet_id}/{topup_amount}", status_code=HTTPStatus.OK)
+async def api_update_balance(wallet_id, topup_amount, g: WalletTypeInfo = Depends(require_admin_key)):
+    print(g.wallet)
     try:
         wallet = await get_wallet(wallet_id)
     except:
-        return (
-            jsonify({"error": "Not allowed: not an admin"}),
-            HTTPStatus.FORBIDDEN,
-        )
+        raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not allowed: not an admin"
+            )
     print(wallet)
     print(topup_amount)
-    return jsonify({"status": "Success"}), HTTPStatus.OK
+    return {"status": "Success"}
 
 
-@admin_ext.route("/api/v1/admin/", methods=["POST"])
-@api_check_wallet_key("admin")
-@api_validate_post_request(schema={})
-async def api_update_admin():
-    body = await request.get_json()
+@admin_ext.post("/api/v1/admin/", status_code=HTTPStatus.OK)
+async def api_update_admin(
+    request: Request,
+    data: UpdateAdminSettings = Body(...),
+    g: WalletTypeInfo = Depends(require_admin_key)
+    ):
     admin = await get_admin()
-    print(g.wallet[2])
-    print(body["admin_user"])
-    if not admin.admin_user == g.wallet[2] and admin.admin_user != None:
-        return (
-            jsonify({"error": "Not allowed: not an admin"}),
-            HTTPStatus.FORBIDDEN,
-        )
-    updated = await update_admin(body)
+    print(data)
+    if not admin.user == g.wallet.user:
+        raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not allowed: not an admin"
+            )
+    updated = await update_admin(user=g.wallet.user, **data.dict())
     print(updated)
-    return jsonify({"status": "Success"}), HTTPStatus.OK
+    return {"status": "Success"}

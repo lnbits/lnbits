@@ -87,7 +87,7 @@
             <q-input
               filled
               class="q-pr-md"
-              v-model="data.admin.admin_user"
+              v-model="data.admin.admin_users"
               label="Admin user"
               hint=""
             ></q-input>
@@ -442,13 +442,14 @@
             site_title: '{{admin.site_title}}',
             tagline: '{{admin.site_tagline}}',
             description: '{{admin.site_description}}',
-            admin_user: '{{admin.admin_user}}',
-            service_fee: parseInt('{{admin.service_fee}}'),
+            admin_users: '{{admin.admin_users}}',
+            service_fee: parseFloat('{{admin.service_fee}}'),
             default_wallet_name: '{{admin.default_wallet_name}}',
             data_folder: '{{admin.data_folder}}',
             funding_source_primary: '{{admin.funding_source}}',
             disabled_ext: '{{admin.disabled_ext}}'.split(','),
             edited: [],
+            funding: {},
             senddata: {}
           }
         },
@@ -528,15 +529,27 @@
       },
       UpdateLNbits: function () {
         var self = this
-        console.log(self.data.admin)
+        let {site_title, admin_users, default_wallet_name, data_folder, disabled_ext, service_fee, funding_source_primary} = this.data.admin
+        let data = {
+          site_title, 
+          site_tagline: this.data.admin.tagline, 
+          site_description: this.data.admin.description, 
+          admin_users: admin_users.toString(), 
+          default_wallet_name, 
+          data_folder, 
+          disabled_ext: disabled_ext.toString(),
+          service_fee, 
+          funding_source: funding_source_primary}
+        console.log(data)
         LNbits.api
           .request(
             'POST',
             '/admin/api/v1/admin/',
             self.g.user.wallets[0].adminkey,
-            self.data.admin
+            data
           )
           .then(function (response) {
+            console.log(response.data)
             self.$q.notify({
               type: 'positive',
               message:
