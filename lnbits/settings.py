@@ -1,14 +1,14 @@
-import subprocess
 import importlib
-
-from environs import Env  # type: ignore
+import subprocess
+from email.policy import default
 from os import path
 from typing import List
 
+from environs import Env  # type: ignore
 
 env = Env()
 env.read_env()
-
+  
 wallets_module = importlib.import_module("lnbits.wallets")
 wallet_class = getattr(
     wallets_module, env.str("LNBITS_BACKEND_WALLET_CLASS", default="VoidWallet")
@@ -28,6 +28,7 @@ LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 LNBITS_ALLOWED_USERS: List[str] = env.list(
     "LNBITS_ALLOWED_USERS", default=[], subcast=str
 )
+LNBITS_ADMIN_UI = env.bool("LNBITS_ADMIN_UI", default=False)
 LNBITS_ADMIN_USERS: List[str] = env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
 LNBITS_ADMIN_EXTENSIONS: List[str] = env.list("LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str)
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
