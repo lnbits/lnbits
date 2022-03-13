@@ -160,6 +160,7 @@ class LndRestWallet(Wallet):
 
         # for some reason our checking_ids are in base64 but the payment hashes
         # returned here are in hex, lnd is weird
+        checking_id = checking_id.replace("_", "/")
         checking_id = base64.b64decode(checking_id).hex()
 
         for p in r.json()["payments"]:
