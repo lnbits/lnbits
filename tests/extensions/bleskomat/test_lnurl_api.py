@@ -123,4 +123,4 @@ async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     assert wallet.balance_msat == 50000
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
     assert bleskomat_lnurl.has_uses_remaining() == False
-    WALLET.pay_invoice.assert_called_once_with(pr)
+    WALLET.pay_invoice.assert_called_once_with(pr, 0)
