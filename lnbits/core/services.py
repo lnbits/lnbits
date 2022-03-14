@@ -142,7 +142,7 @@ async def pay_invoice(
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet
         if wallet.balance_msat < 0:
-            if wallet.balance_msat > -fee_reserve_msat:
+            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
                     f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
