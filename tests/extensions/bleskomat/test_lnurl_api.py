@@ -3,7 +3,10 @@ import secrets
 from lnbits.core.crud import get_wallet
 from lnbits.settings import HOST, PORT
 from lnbits.extensions.bleskomat.crud import get_bleskomat_lnurl
-from lnbits.extensions.bleskomat.helpers import generate_bleskomat_lnurl_signature, query_to_signing_payload
+from lnbits.extensions.bleskomat.helpers import (
+    generate_bleskomat_lnurl_signature,
+    query_to_signing_payload,
+)
 from tests.conftest import client
 from tests.helpers import credit_wallet
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
@@ -73,7 +76,9 @@ async def test_bleskomat_lnurl_api_valid_signature(client, bleskomat):
     }
     payload = query_to_signing_payload(query)
     signature = generate_bleskomat_lnurl_signature(
-        payload=payload, api_key_secret=bleskomat.api_key_secret, api_key_encoding=bleskomat.api_key_encoding
+        payload=payload,
+        api_key_secret=bleskomat.api_key_secret,
+        api_key_encoding=bleskomat.api_key_encoding,
     )
     response = await client.get(f"/bleskomat/u?{payload}&signature={signature}")
     assert response.status_code == 200
@@ -97,7 +102,9 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
     response = await client.get(f"/bleskomat/u?k1={secret}&pr={pr}")
     assert response.status_code == 200
     assert response.json()["status"] == "ERROR"
-    assert ("Insufficient balance" in response.json()["reason"]) or ("fee" in response.json()["reason"])
+    assert ("Insufficient balance" in response.json()["reason"]) or (
+        "fee" in response.json()["reason"]
+    )
     wallet = await get_wallet(bleskomat.wallet)
     assert wallet.balance_msat == 0
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
@@ -123,4 +130,4 @@ async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     assert wallet.balance_msat == 50000
     bleskomat_lnurl = await get_bleskomat_lnurl(secret)
     assert bleskomat_lnurl.has_uses_remaining() == False
-    WALLET.pay_invoice.assert_called_once_with(pr)
+    WALLET.pay_invoice.assert_called_once_with(pr, 2000)
