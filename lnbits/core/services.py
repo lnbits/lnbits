@@ -319,7 +319,7 @@ async def check_invoice_status(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
-    if not payment:
+    if not payment or payment.is_uncheckable:
         return PaymentStatus(None)
     status = await WALLET.get_invoice_status(payment.checking_id)
     if not payment.pending:

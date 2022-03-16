@@ -23,7 +23,7 @@ from lnbits.decorators import (
     WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
-    require_admin_key
+    require_admin_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -372,6 +372,10 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     except:
         wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(payment_hash)
+    if payment.is_uncheckable:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Payment is uncheckable"
+        )
     await check_invoice_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(payment_hash)
     if not payment:
@@ -391,7 +395,11 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
         return {"paid": False}
 
     if wallet and wallet.id == payment.wallet_id:
-            return {"paid": not payment.pending, "preimage": payment.preimage, "details": payment}
+        return {
+            "paid": not payment.pending,
+            "preimage": payment.preimage,
+            "details": payment,
+        }
     return {"paid": not payment.pending, "preimage": payment.preimage}
 
 
