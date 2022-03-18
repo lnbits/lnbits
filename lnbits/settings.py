@@ -4,7 +4,7 @@ from email.policy import default
 from os import path
 from typing import List
 
-from environs import Env  # type: ignore
+from environs import Env
 
 env = Env()
 env.read_env()

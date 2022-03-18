@@ -2,7 +2,7 @@ from sqlite3 import Row
 from typing import List, Optional
 
 from fastapi import Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UpdateAdminSettings(BaseModel):
@@ -19,18 +19,27 @@ class UpdateAdminSettings(BaseModel):
     funding_source: Optional[str]
 
 class Admin(BaseModel):
+    # users
     user: str
+    admin_users: Optional[str]
+    allowed_users: Optional[str]
+    admin_ext: Optional[str]
+    disabled_ext: Optional[str]
+    funding_source: Optional[str]
+    # ops
+    data_folder: Optional[str]
+    database_url: Optional[str]
+    force_https: bool = Field(default=True)
+    service_fee: float = Field(default=0)
+    hide_api: bool = Field(default=False)
+    # Change theme
     site_title: Optional[str]
     site_tagline: Optional[str]
     site_description: Optional[str]
-    allowed_users: Optional[str]
-    admin_users: str
-    default_wallet_name: str
-    data_folder: str
-    disabled_ext: str
-    force_https: Optional[bool] = Query(True)
-    service_fee: float
-    funding_source: str
+    default_wallet_name: Optional[str]
+    denomination: str = Field(default="sats")
+    theme: Optional[str]
+    ad_space: Optional[str]
 
     @classmethod
     def from_row(cls, row: Row) -> "Admin":

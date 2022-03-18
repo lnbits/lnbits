@@ -40,7 +40,7 @@ async def update_admin(user: str, **kwargs) -> Admin:
 #     new_settings = await get_admin()
 #     return new_settings
 
-async def get_admin() -> List[Admin]:
+async def get_admin() -> Admin:
     row = await db.fetchone("SELECT * FROM admin")
     return Admin(**row) if row else None
 
