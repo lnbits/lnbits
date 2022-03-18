@@ -19,6 +19,7 @@ import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
 
 from .commands import get_admin_settings
+from .config import WALLET, conf
 from .core import core_app
 from .core.views.generic import core_html_routes
 from .helpers import (
@@ -29,7 +30,8 @@ from .helpers import (
     url_for_vendored,
 )
 from .requestvars import g
-from .settings import WALLET
+
+# from .settings import WALLET
 from .tasks import (
     catch_everything_and_restart,
     check_pending_payments,
@@ -43,7 +45,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
-<<<<<<< HEAD
     configure_logger()
 
     app = FastAPI(
@@ -55,19 +56,17 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         },
     )
     app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
-=======
-    app = FastAPI()
-    
-    if lnbits.settings.LNBITS_ADMIN_UI:
-        check_settings(app)
-
-    app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
->>>>>>> e3a1b3ae (get admin settings at startup)
     app.mount(
         "/core/static",
         StaticFiles(packages=[("lnbits.core", "static")]),
         name="core_static",
     )
+
+    if lnbits.settings.LNBITS_ADMIN_UI:
+        g().admin_conf = conf
+        check_settings(app)
+
+    g().WALLET = WALLET
 
     origins = ["*"]
 
@@ -109,18 +108,27 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 
     return app
 
-
 def check_settings(app: FastAPI):
     @app.on_event("startup")
     async def check_settings_admin():
+
+        def removeEmptyString(arr):
+            return list(filter(None, arr))
+
         while True:
             admin_set = await get_admin_settings()
             if admin_set :
                 break
             print("ERROR:", admin_set)
             await asyncio.sleep(5)
-        # admin_set = await get_admin_settings()
-        g().admin_conf = admin_set
+            
+        admin_set.admin_users = removeEmptyString(admin_set.admin_users.split(','))
+        admin_set.allowed_users = removeEmptyString(admin_set.allowed_users.split(','))
+        admin_set.admin_ext = removeEmptyString(admin_set.admin_ext.split(','))
+        admin_set.disabled_ext = removeEmptyString(admin_set.disabled_ext.split(','))
+        admin_set.theme = removeEmptyString(admin_set.theme.split(','))
+        admin_set.ad_space = removeEmptyString(admin_set.ad_space.split(','))
+        g().admin_conf = conf.copy(update=admin_set.dict())
 
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")

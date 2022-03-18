@@ -2,93 +2,151 @@ from os import getenv
 
 from sqlalchemy.exc import OperationalError  # type: ignore
 
+from lnbits.config import conf
 from lnbits.helpers import urlsafe_short_hash
 
 
 async def m001_create_admin_table(db):
-    user = None
-    site_title = None
-    site_tagline = None
-    site_description = None
-    allowed_users = None
-    admin_users = None
-    default_wallet_name = None
-    data_folder = None
-    disabled_ext = None
-    force_https = True
-    service_fee = 0
-    funding_source = ""
+    # users/server
+    user = conf.admin_users[0]
+    admin_users = ",".join(conf.admin_users)
+    allowed_users = ",".join(conf.allowed_users)
+    admin_ext = ",".join(conf.admin_ext)
+    disabled_ext = ",".join(conf.disabled_ext)
+    funding_source = conf.funding_source
+    #operational
+    data_folder = conf.data_folder
+    database_url = conf.database_url
+    force_https = conf.force_https
+    service_fee = conf.service_fee
+    hide_api = conf.hide_api
+    denomination = conf.denomination
+    # Theme'ing
+    site_title = conf.site_title
+    site_tagline = conf.site_tagline
+    site_description = conf.site_description
+    default_wallet_name = conf.default_wallet_name
+    theme = ",".join(conf.theme)
+    ad_space = ",".join(conf.ad_space)
 
-    if getenv("LNBITS_SITE_TITLE"):
-        site_title = getenv("LNBITS_SITE_TITLE")
+    # if getenv("LNBITS_ADMIN_EXTENSIONS"):
+    #     admin_ext = getenv("LNBITS_ADMIN_EXTENSIONS")
 
-    if getenv("LNBITS_SITE_TAGLINE"):
-        site_tagline = getenv("LNBITS_SITE_TAGLINE")
+    # if getenv("LNBITS_DATABASE_URL"):
+    #     database_url = getenv("LNBITS_DATABASE_URL")
 
-    if getenv("LNBITS_SITE_DESCRIPTION"):
-        site_description = getenv("LNBITS_SITE_DESCRIPTION")
+    # if getenv("LNBITS_HIDE_API"):
+    #     hide_api = getenv("LNBITS_HIDE_API")
 
-    if getenv("LNBITS_ALLOWED_USERS"):
-        allowed_users = getenv("LNBITS_ALLOWED_USERS")
+    # if getenv("LNBITS_THEME_OPTIONS"):
+    #     theme = getenv("LNBITS_THEME_OPTIONS")
 
-    if getenv("LNBITS_ADMIN_USERS"):
-        admin_users = "".join(getenv("LNBITS_ADMIN_USERS").split())
-        user = admin_users.split(',')[0]
+    # if getenv("LNBITS_AD_SPACE"):
+    #     ad_space = getenv("LNBITS_AD_SPACE")
 
-    if getenv("LNBITS_DEFAULT_WALLET_NAME"):
-        default_wallet_name = getenv("LNBITS_DEFAULT_WALLET_NAME")
+    # if getenv("LNBITS_SITE_TITLE"):
+    #     site_title = getenv("LNBITS_SITE_TITLE")
 
-    if getenv("LNBITS_DATA_FOLDER"):
-        data_folder = getenv("LNBITS_DATA_FOLDER")
+    # if getenv("LNBITS_SITE_TAGLINE"):
+    #     site_tagline = getenv("LNBITS_SITE_TAGLINE")
 
-    if getenv("LNBITS_DISABLED_EXTENSIONS"):
-        disabled_ext = getenv("LNBITS_DISABLED_EXTENSIONS")
+    # if getenv("LNBITS_SITE_DESCRIPTION"):
+    #     site_description = getenv("LNBITS_SITE_DESCRIPTION")
 
-    if getenv("LNBITS_FORCE_HTTPS"):
-        force_https = getenv("LNBITS_FORCE_HTTPS")
+    # if getenv("LNBITS_ALLOWED_USERS"):
+    #     allowed_users = getenv("LNBITS_ALLOWED_USERS")
 
-    if getenv("LNBITS_SERVICE_FEE"):
-        service_fee = getenv("LNBITS_SERVICE_FEE")
+    # if getenv("LNBITS_ADMIN_USERS"):
+    #     admin_users = "".join(getenv("LNBITS_ADMIN_USERS").split())
+    #     user = admin_users.split(',')[0]
+        
+    # if getenv("LNBITS_DEFAULT_WALLET_NAME"):
+    #     default_wallet_name = getenv("LNBITS_DEFAULT_WALLET_NAME")
 
-    if getenv("LNBITS_BACKEND_WALLET_CLASS"):
-        funding_source = getenv("LNBITS_BACKEND_WALLET_CLASS")
+    # if getenv("LNBITS_DATA_FOLDER"):
+    #     data_folder = getenv("LNBITS_DATA_FOLDER")
+
+    # if getenv("LNBITS_DISABLED_EXTENSIONS"):
+    #     disabled_ext = getenv("LNBITS_DISABLED_EXTENSIONS")
+
+    # if getenv("LNBITS_FORCE_HTTPS"):
+    #     force_https = getenv("LNBITS_FORCE_HTTPS")
+
+    # if getenv("LNBITS_SERVICE_FEE"):
+    #     service_fee = getenv("LNBITS_SERVICE_FEE")
+
+    # if getenv("LNBITS_DENOMINATION"):
+    #     denomination = getenv("LNBITS_DENOMINATION", "sats")
+
+    # if getenv("LNBITS_BACKEND_WALLET_CLASS"):
+    #     funding_source = getenv("LNBITS_BACKEND_WALLET_CLASS")
 
     await db.execute(
         """
         CREATE TABLE IF NOT EXISTS admin (
-            "user" TEXT,
+            "user" TEXT PRIMARY KEY,
+            admin_users TEXT,
+            allowed_users TEXT,
+            admin_ext TEXT,
+            disabled_ext TEXT,
+            funding_source TEXT,
+            data_folder TEXT,
+            database_url TEXT,
+            force_https BOOLEAN,
+            service_fee REAL,
+            hide_api BOOLEAN,
+            denomination TEXT,
             site_title TEXT,
             site_tagline TEXT,
             site_description TEXT,
-            admin_users TEXT,
-            allowed_users TEXT,
             default_wallet_name TEXT,
-            data_folder TEXT,
-            disabled_ext TEXT,
-            force_https BOOLEAN,
-            service_fee REAL,
-            funding_source TEXT
+            theme TEXT,
+            ad_space TEXT
         );
     """
     )
     await db.execute(
         """
-        INSERT INTO admin ("user", site_title, site_tagline, site_description, admin_users, allowed_users, default_wallet_name, data_folder, disabled_ext, force_https, service_fee, funding_source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            user.strip(),
+        INSERT INTO admin (
+            "user", 
+            admin_users,
+            allowed_users,
+            admin_ext,
+            disabled_ext,
+            funding_source,
+            data_folder,
+            database_url,
+            force_https,
+            service_fee,
+            hide_api,
+            denomination,
             site_title,
             site_tagline,
             site_description,
-            admin_users[1:],
-            allowed_users,
             default_wallet_name,
-            data_folder,
+            theme,
+            ad_space)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user,
+            admin_users,
+            allowed_users,
+            admin_ext,
             disabled_ext,
+            funding_source,
+            data_folder,
+            database_url,
             force_https,
             service_fee,
-            funding_source,
+            hide_api,
+            denomination,
+            site_title,
+            site_tagline,
+            site_description,
+            default_wallet_name,
+            theme,
+            ad_space,
         ),
     )
 
