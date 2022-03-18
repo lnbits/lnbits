@@ -1,6 +1,670 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col q-gutter-y-md">
+    <q-card>
+      <div class="q-pa-md">
+        <div class="q-gutter-y-md">
+          <q-tabs v-model="tab" active-color="primary" align="justify">
+            <q-tab
+              name="funding"
+              label="Funding"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="users"
+              label="Users"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="server"
+              label="Server"
+              @update="val => tab = val.name"
+            ></q-tab>
+            <q-tab
+              name="theme"
+              label="Theme"
+              @update="val => tab = val.name"
+            ></q-tab>
+          </q-tabs>
+        </div>
+      </div>
 
+      <q-form @submit="">
+      <q-tab-panels v-model="tab" animated>
+        <q-tab-panel name="funding">
+          <q-card-section class="q-pa-none">
+            <h6 class="q-my-none">Wallets Management</h6>
+            <br />
+              <div>
+                <div class="row">
+                  <div class="col">
+                    <p>Funding Source Info</p>
+                    <ul>
+                      {%raw%}
+                      <li>Funding Source: {{data.admin.funding_source}}</li>
+                      <li>Balance: {{data.admin.balance / 1000}} sats</li>
+                      {%endraw%}
+                    </ul>
+                    <br />
+                  </div>
+                </div>
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-6">
+                    <p>Active Funding</p>
+                    <q-select
+                      filled
+                      v-model="data.admin.funding_source"
+                      hint="Select the active funding wallet"
+                      :options="data.funding_source"
+                    ></q-select>
+                    <br />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <q-form @submit="topupWallet">
+                      <p>TopUp a wallet</p>
+                      <div class="row">
+                        <div class="col-12">
+                          <q-input
+                            dense
+                            type="text"
+                            filled
+                            v-model="wallet.data.id"
+                            label="Wallet ID"
+                            hint="Use the wallet ID to topup any wallet"
+                          ></q-input>
+                          <br />
+                        </div>
+                        <div class="col-12">
+                          <q-input
+                            dense
+                            type="number"
+                            filled
+                            v-model="wallet.data.amount"
+                            label="Topup amount"
+                          ></q-input>
+                        </div>
+                      </div>
+                      <div>
+                        <q-btn
+                          class="q-mt-md"
+                          label="Topup"
+                          type="submit"
+                          color="primary"
+                        ></q-btn>
+                      </div>
+                    </q-form>
+                    <br />
+                  </div>
+                </div>
+                <p>Funding Sources</p>
+                <q-list bordered class="rounded-borders">
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.CLightningWallet.backend_wallet"
+                    @click="data.admin.funding.CLightningWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <q-input
+                          filled
+                          v-model="data.admin.funding.CLightningWallet.endpoint"
+                          label="GRPC Endpoint"
+                          class="q-pr-md"
+                          hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
+                        ></q-input>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.SparkWallet.backend_wallet"
+                    @click="data.admin.funding.SparkWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.SparkWallet.endpoint"
+                              label="LND REST Endpoint"
+                              class="q-pr-md"
+                              hint="ie http://localhost:9737/rpc"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.SparkWallet.admin_key"
+                              label="Access token"
+                              class="q-pr-md"
+                              hint="Your access token"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.LndRestWallet.backend_wallet"
+                    @click="data.admin.funding.LndRestWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndRestWallet.endpoint"
+                              label="LND REST Endpoint"
+                              class="q-pr-md"
+                              hint="default 127.0.0.1"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndRestWallet.cert"
+                              label="LND self-signed cert"
+                              class="q-pr-md"
+                              hint="Location of your ssl cert"
+                            ></q-input>
+                          </div>
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndRestWallet.admin_key"
+                              label="LND admin macaroon"
+                              class="q-pr-md"
+                              hint="Your admin macaroon as hex or location"
+                            ></q-input>
+                          </div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.LndWallet.backend_wallet"
+                    @click="data.admin.funding.LndWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndWallet.endpoint"
+                              label="LND GRPC Endpoint"
+                              class="q-pr-md"
+                              hint="default 127.0.0.1"
+                            ></q-input>
+                          </div>
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndWallet.port"
+                              label="LND GRPC port"
+                              class="q-pr-md"
+                              hint="Deafault 11009"
+                            ></q-input>
+                          </div>
+                        </div>
+        
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndWallet.cert"
+                              label="LND self-signed cert"
+                              class="q-pr-md"
+                              hint="Location of your ssl cert"
+                            ></q-input>
+                          </div>
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LndWallet.admin_key"
+                              label="LND admin macaroon"
+                              class="q-pr-md"
+                              hint="Your admin macaroon as hex or location"
+                            ></q-input>
+                          </div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.LntxbotWallet.backend_wallet"
+                    @click="data.admin.funding.LntxbotWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LntxbotWallet.admin_key"
+                              label="Admin key"
+                              class="q-pr-md"
+                              hint="use /api in LNTXBOT"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.LNPayWallet.backend_wallet"
+                    @click="data.admin.funding.LNPayWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LNPayWallet.cert"
+                              label="API key"
+                              class="q-pr-md"
+                            ></q-input>
+                          </div>
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LNPayWallet.admin_key"
+                              label="Admin key"
+                              class="q-pr-md q-pb-md"
+                            ></q-input>
+                          </div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.LnbitsWallet.backend_wallet"
+                    @click="data.admin.funding.LnbitsWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LnbitsWallet.endpoint"
+                              label="LNbits endpoint"
+                              class="q-pr-md"
+                              hint="ie https://lnbits.com, default 127.0.0.1"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.LnbitsWallet.admin_key"
+                              label="Admin key"
+                              class="q-pr-md q-pb-md"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+        
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="data.admin.funding.OpenNodeWallet.backend_wallet"
+                    @click="data.admin.funding.OpenNodeWallet[7] = 1"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <div class="row">
+                          <div class="col">
+                            <q-input
+                              filled
+                              v-model="data.admin.funding.OpenNodeWallet.admin_key"
+                              label="Admin key"
+                              class="q-pr-md"
+                            ></q-input>
+                          </div>
+                          <div class="col"></div>
+                        </div>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item> </q-list
+                >
+            </div>
+            
+            <div class="row q-mt-lg">
+              <q-btn
+                unelevated
+                color="primary"
+                type="submit"
+                >Save</q-btn
+              >
+            </div>
+          </q-card-section>
+        </q-tab-panel>
+        <q-tab-panel name="users">
+          <q-card-section class="q-pa-none">
+            <h6 class="q-my-none">User Management</h6>
+            <br />
+            <p class="q-my-none">
+              Super Admin: {% raw
+              %}{{this.data.admin.user}}{% endraw %}
+            </p>
+            <br />
+              <div>
+                <p>Admin Users</p>
+                <q-input
+                  filled
+                  v-model="data.admin_users_add"
+                  @keydown.enter="addAdminUser"
+                  type="text"
+                  label="User ID"
+                  hint="Users with admin privileges">
+                  <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
+                </q-input>
+                <div>
+                  {% raw %}
+                  <q-chip v-for="user in data.admin.admin_users.slice(1)"
+                    removable
+                    @remove="removeAdminUser(user)"
+                    color="primary"
+                    text-color="white"
+                  >
+                    {{ user }}
+                  </q-chip>
+                  {% endraw %}
+                </div>
+                <br />
+            </div>
+            <div>
+              <p>Allowed Users</p>
+              <q-input
+                filled
+                v-model="data.allowed_users_add"
+                @keydown.enter="addAllowedUser"
+                type="text"
+                label="User ID"
+                hint="Only these users can use LNbits">
+                <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+              </q-input>
+              <div>
+                {% raw %}
+                <q-chip v-for="user in data.admin.allowed_users"
+                  removable
+                  @remove="removeAllowedUser(user)"
+                  color="primary"
+                  text-color="white"
+                >
+                  {{ user }}
+                </q-chip>
+                {% endraw %}
+              </div>
+              <br />
+            </div>
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-6">
+                <p>Admin Extensions</p>
+                <q-select
+                  filled
+                  v-model="data.admin.admin_ext"
+                  multiple
+                  hint="Extensions only user with admin privileges can use"
+                  :options="options"
+                  label="Admin extensions"
+                ></q-select>
+                <br />
+              </div>
+              <div class="col-12 col-md-6">
+                <p>Disabled Extensions</p>
+                <q-select
+                  filled
+                  v-model="data.admin.disabled_ext"
+                  multiple
+                  hint="Disable extensions *amilk disabled by default as resource heavy"
+                  :options="options"
+                  label="Disable extensions"
+                ></q-select>
+                <br />
+              </div>
+            </div>
+            <div class="row q-mt-lg">
+              <q-btn
+                unelevated
+                color="primary"
+                type="submit"
+                >Save</q-btn
+              >
+            </div>
+          </q-card-section>
+        </q-tab-panel>
+        <q-tab-panel name="server">
+          <q-card-section class="q-pa-none">
+            <h6 class="q-my-none">Server Management</h6>
+            <br />
+              <div>
+                <div class="row">
+                  <div class="col">
+                    <p>Server Info</p>
+                    <ul>
+                      {%raw%}
+                      <li v-if="data.admin.data_folder">SQlite: {{data.admin.data_folder}}</li>
+                      <li v-if="data.admin.database_url">Postgres: {{data.admin.database_url}}</li>
+                      {%endraw%}
+                    </ul>
+                    <br />
+                  </div>
+                </div>
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-6">
+                    <p>Service Fee</p>
+                    <q-input
+                      filled
+                      type="number"
+                      v-model.number="data.admin.service_fee"
+                      label="Service fee (%)"
+                      step="0.1"
+                      hint="Fee charged per tx (%)"
+                    ></q-input>
+                    <br />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <p>Miscelaneous</p>
+                    <q-item tag="label" v-ripple>
+                      <q-item-section>
+                        <q-item-label>Force HTTPS</q-item-label>
+                        <q-item-label caption>Prefer secure URLs</q-item-label>
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-toggle
+                          size="md"
+                          v-model="data.admin.force_https"
+                          checked-icon="check"
+                          color="green"
+                          unchecked-icon="clear"
+                        />
+                      </q-item-section>
+                    </q-item>
+                    <q-item tag="label" v-ripple>
+                      <q-item-section>
+                        <q-item-label>Hide API</q-item-label>
+                        <q-item-label caption>Hides wallet api, extensions can choose to honor</q-item-label>
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-toggle
+                          size="md"
+                          v-model="data.admin.hide_api"
+                          checked-icon="check"
+                          color="green"
+                          unchecked-icon="clear"
+                        />
+                      </q-item-section>
+                    </q-item>
+                    <br />
+                  </div>
+                </div>
+            </div>
+            
+            <div class="row q-mt-lg">
+              <q-btn
+                unelevated
+                color="primary"
+                type="submit"
+                >Save</q-btn
+              >
+            </div>
+          </q-card-section>
+        </q-tab-panel>
+        <q-tab-panel name="theme">
+          <q-card-section class="q-pa-none">
+            <h6 class="q-my-none">UI Management</h6>
+            <br />
+              <div>
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-6">
+                    <p>Site Title</p>
+                    <q-input
+                      filled
+                      type="text"
+                      v-model="data.admin.site_title"
+                      label="Site title"
+                    ></q-input>
+                    <br />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <p>Site Tagline</p>
+                    <q-input
+                      filled
+                      type="text"
+                      v-model="data.admin.site_tagline"
+                      label="Site tagline"
+                    ></q-input>
+                    <br />
+                  </div>
+                </div>
+                <div>
+                    <p>Site Description</p>
+                    <q-input
+                      v-model="text"
+                      v-model="data.admin.site_description"
+                      filled
+                      type="textarea"
+                      hint="Use plain text or raw HTML"
+                    />
+                  </div>
+                  <br />
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-6">
+                    <p>Default Wallet Name</p>
+                    <q-input
+                      filled
+                      type="text"
+                      v-model="data.admin.default_wallet_name"
+                      label="LNbits wallet"
+                    ></q-input>
+                    <br />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <p>Denomination</p>
+                    <q-input
+                      filled
+                      type="text"
+                      v-model="data.admin.denomination"
+                      label="sats"
+                      hint="The name for the FakeWallet token"
+                    ></q-input>
+                    <br />
+                  </div>
+                </div>
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-6">
+                    <p>Themes</p>
+                    <q-select
+                      filled
+                      v-model="data.admin.theme"
+                      multiple
+                      hint="Choose themes available for users"
+                      :options="themes"
+                      label="Themes"
+                    ></q-select>
+                    <br />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <p>Advertisement Slots</p>
+                    <q-input
+                      filled
+                      v-model="data.ad_space_add"
+                      @keydown.enter="addAdSpace"
+                      type="text"
+                      label="Ad image URL"
+                      hint="Ad image filepaths or urls, extensions can choose to honor">
+                      <q-btn @click="addAdSpace" dense flat icon="add"></q-btn>
+                    </q-input>
+                    <div>
+                      {% raw %}
+                      <q-chip v-for="space in data.admin.ad_space"
+                        removable
+                        @remove="removeAdSpace(space)"
+                        color="primary"
+                        text-color="white"
+                      >
+                        {{ space.slice(0, 8) + " ... " + space.slice(-8) }}
+                      </q-chip>
+                      {% endraw %}
+                    </div>
+                    <br />
+                  </div>
+                </div>
+            </div>
+            
+            <div class="row q-mt-lg">
+              <q-btn
+                unelevated
+                color="primary"
+                type="submit"
+                >Save</q-btn
+              >
+            </div>
+          </q-card-section>
+        </q-tab-panel>
+      </q-tab-panels>
+    </q-form>
+    </q-card>
+  </div>
+  </div>
+  <!-- END TABS -->
 <h3 class="q-my-none">Admin</h3>
 <p></p>
 <!--
@@ -8,7 +672,7 @@
   https://quasar.dev/vue-components/form#Example--Basic
 -->
 <div class="row">
-  <div class="col-8">
+  <!-- <div class="col-8">
     <q-card class="q-mr-md">
       <q-form @submit="UpdateLNbits" class="q-px-md q-py-md">
         <h6 class="q-my-md">Settings</h6>
@@ -375,7 +1039,7 @@
         </div>
       </q-form>
     </q-card>
-  </div>
+  </div> -->
 
   <div class="col-4">
     <q-card class="q-mr-md">
@@ -426,6 +1090,7 @@
       return {
         wallet: {data: {}},
         cancel: {},
+        tab: 'funding',
         data: {
           funding_source: [
             'CLightningWallet',
@@ -436,24 +1101,14 @@
             'LnbitsWallet',
             'OpenNodeWallet'
           ],
-
+          
           admin: {
-            user: '{{ user.id }}',
-            site_title: '{{admin.site_title}}',
-            tagline: '{{admin.site_tagline}}',
-            description: '{{admin.site_description}}',
-            admin_users: '{{admin.admin_users}}',
-            service_fee: parseFloat('{{admin.service_fee}}'),
-            default_wallet_name: '{{admin.default_wallet_name}}',
-            data_folder: '{{admin.data_folder}}',
-            funding_source_primary: '{{admin.funding_source}}',
-            disabled_ext: '{{admin.disabled_ext}}'.split(','),
             edited: [],
             funding: {},
             senddata: {}
           }
         },
-
+        themes: ['classic', 'bitcoin', 'flamingo', 'mint', 'autumn', 'monochrome', 'salvador'],
         options: [
           'bleskomat',
           'captcha',
@@ -489,9 +1144,51 @@
       for (i = 0; i < funding.length; i++) {
         self.data.admin.funding[funding[i].backend_wallet] = funding[i]
       }
-      console.log(self.data.admin)
+      let settings = JSON.parse('{{ settings | tojson|safe }}')
+      settings.balance = '{{ balance }}'
+      this.data.admin = {...this.data.admin, ...settings}
+      console.log(this.g.user)
     },
     methods: {
+      addAdminUser(){
+        let addUser = this.data.admin_users_add
+        let admin_users = this.data.admin.admin_users
+        if(addUser.length && !admin_users.includes(addUser)){
+          admin_users.push(addUser)
+          this.data.admin.admin_users = admin_users
+          this.data.admin_users_add = ""
+        }
+      },
+      removeAdminUser(user){
+        let admin_users = this.data.admin.admin_users
+        this.data.admin.admin_users = admin_users.filter(u => u !== user)
+      },
+      addAllowedUser(){
+        let addUser = this.data.allowed_users_add
+        let allowed_users = this.data.admin.allowed_users
+        if(addUser.length && !allowed_users.includes(addUser)){
+          allowed_users.push(addUser)
+          this.data.admin.allowed_users = allowed_users
+          this.data.allowed_users_add = ""
+        }
+      },
+      removeAllowedUser(user){
+        let allowed_users = this.data.admin.allowed_users
+        this.data.admin.allowed_users = allowed_users.filter(u => u !== user)
+      },
+      addAdSpace(){
+        let adSpace = this.data.ad_space_add
+        let spaces = this.data.admin.ad_space
+        if(adSpace.length && !spaces.includes(adSpace)){
+          spaces.push(adSpace)
+          this.data.admin.ad_space = spaces
+          this.data.ad_space_add = ""
+        }
+      },
+      removeAdSpace(ad){
+        let spaces = this.data.admin.ad_space
+        this.data.admin.ad_space = spaces.filter(s => s !== ad)
+      },
       topupWallet: function () {
         var self = this
         LNbits.api
