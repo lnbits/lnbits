@@ -261,7 +261,8 @@ async def api_payments_create(
         return await api_payments_create_invoice(invoiceData, wallet.wallet)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Key type is invalid"
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invoice (or Admin) key required.",
         )
 
 
