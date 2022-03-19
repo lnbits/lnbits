@@ -37,7 +37,11 @@ async def test_core_create_invoice(client, inkey_headers):
 # check POST /api/v1/payments: make payment
 # check GET /api/v1/payments/<hash>: payment status
 @pytest.mark.asyncio
-async def test_core_pay_invoice(client, user_wallet, invoice, adminkey_headers):
+async def test_core_pay_invoice(
+    client, user_wallet, invoice, adminkey_headers, inkey_headers
+):
+    user, wallet = user_wallet
+    print(wallet.id)
     data = {"out": True, "bolt11": invoice["payment_request"]}
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers
@@ -48,7 +52,7 @@ async def test_core_pay_invoice(client, user_wallet, invoice, adminkey_headers):
 
     # check the payment status
     response = await client.get(
-        f"/api/v1/payments/{response.json()['payment_hash']}", headers=adminkey_headers
+        f"/api/v1/payments/{response.json()['payment_hash']}", headers=inkey_headers
     )
     assert "details" in response.json()
     assert response.status_code < 300
