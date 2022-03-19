@@ -45,6 +45,13 @@ async def test_core_pay_invoice(client, user_wallet, invoice, adminkey_headers):
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers
     )
+    assert len(response.json()["payment_hash"]) == 64
+    assert len(response.json()["checking_id"]) > 0
+
+    response = await client.get(
+        f"/api/v1/payments/{response.json()['payment_hash']}", headers=adminkey_headers
+    )
+    assert response.json()["paid"] == True
     wal = await get_wallet(wallet.id)
     print(wal)
     assert response.status_code < 300
