@@ -23,7 +23,8 @@ from lnbits.decorators import (
     WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
-    require_admin_key
+    require_admin_key,
+    require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -231,12 +232,9 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
     invoiceData: CreateInvoiceData = Body(...),
 ):
-    if wallet.wallet_type < 0 or wallet.wallet_type > 2:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
-
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
             raise HTTPException(
@@ -246,8 +244,13 @@ async def api_payments_create(
         return await api_payments_pay_invoice(
             invoiceData.bolt11, wallet.wallet
         )  # admin key
-    # invoice key
-    return await api_payments_create_invoice(invoiceData, wallet.wallet)
+    elif not invoiceData.out:
+        # invoice key
+        return await api_payments_create_invoice(invoiceData, wallet.wallet)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Key type is invalid"
+        )
 
 
 class CreateLNURLData(BaseModel):
@@ -391,7 +394,11 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
         return {"paid": False}
 
     if wallet and wallet.id == payment.wallet_id:
-            return {"paid": not payment.pending, "preimage": payment.preimage, "details": payment}
+        return {
+            "paid": not payment.pending,
+            "preimage": payment.preimage,
+            "details": payment,
+        }
     return {"paid": not payment.pending, "preimage": payment.preimage}
 
 
