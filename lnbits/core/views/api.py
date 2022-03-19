@@ -110,15 +110,29 @@ async def api_update_wallet(
 
 
 @core_app.get("/api/v1/payments")
-async def api_payments(limit: Optional[int]=None, offset: Optional[int]=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_payments(
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     pendingPayments = await get_payments(
-        wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True, limit=limit, offset=offset
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        exclude_uncheckable=True,
+        limit=limit,
+        offset=offset,
     )
     for payment in pendingPayments:
         await check_invoice_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
-    return await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True, limit=limit, offset=offset)
+    return await get_payments(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        complete=True,
+        limit=limit,
+        offset=offset,
+    )
 
 
 class CreateInvoiceData(BaseModel):
@@ -230,12 +244,9 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
     invoiceData: CreateInvoiceData = Body(...),
 ):
-    if wallet.wallet_type < 0 or wallet.wallet_type > 2:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
-
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
             raise HTTPException(
@@ -245,8 +256,13 @@ async def api_payments_create(
         return await api_payments_pay_invoice(
             invoiceData.bolt11, wallet.wallet
         )  # admin key
-    # invoice key
-    return await api_payments_create_invoice(invoiceData, wallet.wallet)
+    elif not invoiceData.out:
+        # invoice key
+        return await api_payments_create_invoice(invoiceData, wallet.wallet)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Key type is invalid"
+        )
 
 
 class CreateLNURLData(BaseModel):
