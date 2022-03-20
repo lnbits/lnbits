@@ -9,7 +9,7 @@ import tests.mocks
 from lnbits.core.crud import create_account, create_wallet, get_wallet
 from tests.helpers import credit_wallet
 
-from tests.core.views.test_generic import test_core_create_invoice
+from tests.core.views.test_api import test_core_create_invoice
 from lnbits.db import Database
 
 

@@ -1,11 +1,7 @@
 import pytest
 from lnbits.core.crud import get_wallet
 
-<<<<<<< HEAD
-
-=======
 # check if the client is working
->>>>>>> 76eed47c (more tests)
 @pytest.mark.asyncio
 async def test_core_views_generic(client):
     response = await client.get("/")
