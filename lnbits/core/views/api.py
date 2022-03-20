@@ -158,6 +158,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.unit == "sat":
         amount = int(data.amount)
     else:
+        assert data.unit is not None, "unit not set"
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
 
@@ -182,6 +183,9 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
         if "lnurl_balance_check" in data:
+            assert (
+                data.lnurl_balance_check is not None
+            ), "lnurl_balance_check is required"
             save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
@@ -321,7 +325,7 @@ async def api_payments_pay_lnurl(
         extra["success_action"] = params["successAction"]
     if data.comment:
         extra["comment"] = data.comment
-
+    assert data.description is not None, "description is required"
     payment_hash = await pay_invoice(
         wallet_id=wallet.wallet.id,
         payment_request=params["pr"],
@@ -340,12 +344,12 @@ async def api_payments_pay_lnurl(
 async def subscribe(request: Request, wallet: Wallet):
     this_wallet_id = wallet.id
 
-    payment_queue = asyncio.Queue(0)
+    payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
     print("adding sse listener", payment_queue)
     api_invoice_listeners.append(payment_queue)
 
-    send_queue = asyncio.Queue(0)
+    send_queue: asyncio.Queue[tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
