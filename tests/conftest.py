@@ -28,7 +28,6 @@ def app(event_loop):
     # loop = asyncio.get_event_loop()
     loop = event_loop
     loop.run_until_complete(migrate_databases())
-    print("Creating app")
     yield app
     # # get the current event loop and gracefully stop any running tasks
     # loop = event_loop
@@ -39,20 +38,17 @@ def app(event_loop):
 @pytest.fixture(scope="session")
 async def client(app):
     client = AsyncClient(app=app, base_url=f"http://{HOST}:{PORT}")
-    print("Creating client")
     yield client
     await client.aclose()
 
 
 @pytest.fixture(scope="session")
 async def db():
-    db = Database("database")
     yield db
 
 
 @pytest.fixture(scope="session")
 async def conn(db):
-    print("try connect")
     yield db.connect()
 
 
@@ -60,7 +56,7 @@ async def conn(db):
 async def user_wallet(db):
     user = await create_account()
     wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet")
-    print("new wallet:", wallet.id)
+    # print("new wallet:", wallet.id)
     await credit_wallet(
         wallet_id=wallet.id,
         amount=100000,

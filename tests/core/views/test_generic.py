@@ -92,44 +92,13 @@ async def test_core_pay_invoice_adminkey(client, invoice, adminkey_headers):
     assert response.status_code < 300  # should pass
 
 
-# check POST /api/v1/payments/decode: admin key [should pass]
+# check POST /api/v1/payments/decode
 @pytest.mark.asyncio
-async def test_core_decode_invoice(client, invoice, adminkey_headers):
+async def test_core_decode_invoice(client, invoice):
     data = {"data": invoice["payment_request"]}
     response = await client.post(
-        "/api/v1/payments/decode", json=data, headers=adminkey_headers
+        "/api/v1/payments/decode",
+        json=data,
     )
-    print(response.json())
     assert response.status_code < 300
-    # assert response.json()["invoice"] == invoice["payment_request"]
-
-
-# check POST /api/v1/payments/decode: invoice key [should pass]
-@pytest.mark.asyncio
-async def test_core_decode_invoice_invoicekey(
-    client, invoice, adminkey_headers, inkey_headers
-):
-    data = {"data": invoice["payment_request"]}
-    # try decoding with invoice key
-    response = await client.post(
-        "/api/v1/payments/decode", json=data, headers=inkey_headers
-    )
-    print(response.json())
-    assert response.status_code < 300  # should pass
-
-
-# check POST /api/v1/payments/decode: wrong key type [should fail?]
-@pytest.mark.asyncio
-async def test_core_decode_invoice_wrongkey(
-    client, invoice, adminkey_headers, inkey_headers
-):
-    data = {"data": invoice["payment_request"]}
-    # try decoding with wrong key
-    wrong_adminkey_headers = adminkey_headers.copy()
-    wrong_adminkey_headers["X-Api-Key"] = "wrong_key"
-    response = await client.post(
-        "/api/v1/payments/decode", json=data, headers=wrong_adminkey_headers
-    )
-    print(response.json())
-    assert response.status_code < 300  # should fail, but doesn't
-    # assert response.status_code >= 300
+    assert response.json()["payment_hash"] == invoice["payment_hash"]
