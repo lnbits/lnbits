@@ -1,9 +1,7 @@
-import json
-from typing import List, Optional
+from typing import List
 
 from lnbits.core.crud import create_payment
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import *
 from lnbits.tasks import internal_invoice_queue
 
 from . import db
@@ -36,14 +34,6 @@ async def update_admin(user: str, **kwargs) -> Admin:
     row = await db.fetchone('SELECT * FROM admin WHERE "user" = ?', (user,))
     assert row, "Newly updated settings couldn't be retrieved"
     return Admin(**row) if row else None
-
-# async def update_admin(user: str, **kwargs) -> Optional[Admin]:
-#     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-#     await db.execute(
-#         f"UPDATE admin SET {q} WHERE user = ?", (*kwargs.values(), user)
-#     )
-#     new_settings = await get_admin()
-#     return new_settings
 
 async def get_admin() -> Admin:
     row = await db.fetchone("SELECT * FROM admin")
