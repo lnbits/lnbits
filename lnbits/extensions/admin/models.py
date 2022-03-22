@@ -17,11 +17,11 @@ class UpdateAdminSettings(BaseModel):
     service_fee: float = Query(None, ge=0)
     hide_api: bool = Query(None)
     # Change theme
-    site_title: str = Query(None)
-    site_tagline: str = Query(None)
+    site_title: str = Query("LNbits")
+    site_tagline: str = Query("free and open-source lightning wallet")
     site_description: str = Query(None)
-    default_wallet_name: str = Query(None)
-    denomination: str = Query(None)
+    default_wallet_name: str = Query("LNbits wallet")
+    denomination: str = Query("sats")
     theme: str = Query(None)
     ad_space: str = Query(None)
 
