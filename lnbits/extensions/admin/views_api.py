@@ -12,16 +12,16 @@ from .crud import get_admin, update_admin, update_wallet_balance
 
 
 @admin_ext.get("/api/v1/admin/{wallet_id}/{topup_amount}", status_code=HTTPStatus.OK)
-async def api_update_balance(wallet_id, topup_amount, g: WalletTypeInfo = Depends(require_admin_key)):
-    print(g.wallet)
+async def api_update_balance(wallet_id, topup_amount: int, g: WalletTypeInfo = Depends(require_admin_key)):
     try:
         wallet = await get_wallet(wallet_id)
     except:
         raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not allowed: not an admin"
             )
-    print(wallet)
-    print(topup_amount)
+            
+    await update_wallet_balance(wallet_id=wallet_id, amount=int(topup_amount))
+    
     return {"status": "Success"}
 
 
