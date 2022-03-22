@@ -6,17 +6,24 @@ from pydantic import BaseModel, Field
 
 
 class UpdateAdminSettings(BaseModel):
-    site_title: Optional[str]
-    site_tagline: Optional[str]
-    site_description: Optional[str]
-    allowed_users: Optional[str]
-    admin_users: Optional[str]
-    default_wallet_name: Optional[str]
-    data_folder: Optional[str]
-    disabled_ext: Optional[str]
-    force_https: Optional[bool]
-    service_fee: Optional[float]
-    funding_source: Optional[str]
+    # users
+    admin_users: str = Query(None)
+    allowed_users: str = Query(None)
+    admin_ext: str = Query(None)
+    disabled_ext: str = Query(None)
+    funding_source: str = Query(None)
+    # ops
+    force_https: bool = Query(None)
+    service_fee: float = Query(None, ge=0)
+    hide_api: bool = Query(None)
+    # Change theme
+    site_title: str = Query(None)
+    site_tagline: str = Query(None)
+    site_description: str = Query(None)
+    default_wallet_name: str = Query(None)
+    denomination: str = Query(None)
+    theme: str = Query(None)
+    ad_space: str = Query(None)
 
 class Admin(BaseModel):
     # users
