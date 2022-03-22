@@ -30,7 +30,7 @@
         </div>
       </div>
 
-      <q-form @submit="">
+      <q-form @submit="UpdateLNbits">
       <q-tab-panels v-model="tab" animated>
         <q-tab-panel name="funding">
           <q-card-section class="q-pa-none">
@@ -61,7 +61,7 @@
                     <br />
                   </div>
                   <div class="col-12 col-md-6">
-                    <q-form @submit="topupWallet">
+                    <!-- <q-form @submit="topupWallet"> -->
                       <p>TopUp a wallet</p>
                       <div class="row">
                         <div class="col-12">
@@ -87,13 +87,13 @@
                       </div>
                       <div>
                         <q-btn
-                          class="q-mt-md"
+                          class="q-mt-md float-right"
                           label="Topup"
-                          type="submit"
                           color="primary"
+                          @click="topupWallet"
                         ></q-btn>
                       </div>
-                    </q-form>
+                    <!-- </q-form> -->
                     <br />
                   </div>
                 </div>
@@ -577,7 +577,6 @@
                 <div>
                     <p>Site Description</p>
                     <q-input
-                      v-model="text"
                       v-model="data.admin.site_description"
                       filled
                       type="textarea"
@@ -1147,7 +1146,8 @@
       let settings = JSON.parse('{{ settings | tojson|safe }}')
       settings.balance = '{{ balance }}'
       this.data.admin = {...this.data.admin, ...settings}
-      console.log(this.g.user)
+      console.log(this.data.admin)
+      console.log(settings)
     },
     methods: {
       addAdminUser(){
@@ -1189,27 +1189,27 @@
         let spaces = this.data.admin.ad_space
         this.data.admin.ad_space = spaces.filter(s => s !== ad)
       },
-      topupWallet: function () {
-        var self = this
+      topupWallet() {
         LNbits.api
           .request(
             'GET',
             '/admin/api/v1/admin/' +
-              self.wallet.id +
+              this.wallet.data.id +
               '/' +
-              self.wallet.data.amount,
-            self.g.user.wallets[0].adminkey
+              this.wallet.data.amount,
+            this.g.user.wallets[0].adminkey
           )
-          .then(function (response) {
-            self.$q.notify({
+          .then((response) => {
+            this.$q.notify({
               type: 'positive',
               message:
-                'Success! Added ' +
-                self.wallet.amount +
-                ' to ' +
-                self.wallet.id,
+              'Success! Added ' +
+              this.wallet.data.amount +
+              ' to ' +
+              this.wallet.data.id,
               icon: null
             })
+            this.wallet.data = {}
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -1224,36 +1224,59 @@
         self.data.admin.edited.push(source)
         console.log(self.data.admin.edited)
       },
-      UpdateLNbits: function () {
-        var self = this
-        let {site_title, admin_users, default_wallet_name, data_folder, disabled_ext, service_fee, funding_source_primary} = this.data.admin
+      UpdateLNbits() {
+        let {
+          admin_users,
+          allowed_users,
+          admin_ext,
+          disabled_ext,
+          funding_source,
+          force_https,
+          service_fee,
+          hide_api,
+          site_title,
+          site_tagline,
+          site_description,
+          default_wallet_name,
+          denomination,
+          theme,
+          ad_space
+        } = this.data.admin
+        //console.log("this", this.data.admin)
         let data = {
-          site_title, 
-          site_tagline: this.data.admin.tagline, 
-          site_description: this.data.admin.description, 
-          admin_users: admin_users.toString(), 
-          default_wallet_name, 
-          data_folder, 
+          admin_users: admin_users.toString(),
+          allowed_users: allowed_users.toString(),
+          admin_ext: admin_ext.toString(),
           disabled_ext: disabled_ext.toString(),
-          service_fee, 
-          funding_source: funding_source_primary}
+          funding_source,
+          force_https,
+          service_fee,
+          hide_api,
+          site_title,
+          site_tagline,
+          site_description,
+          default_wallet_name,
+          denomination,
+          theme: theme.toString(),
+          ad_space: ad_space.toString()
+        }
         console.log(data)
         LNbits.api
           .request(
             'POST',
             '/admin/api/v1/admin/',
-            self.g.user.wallets[0].adminkey,
+            this.g.user.wallets[0].adminkey,
             data
           )
-          .then(function (response) {
+          .then(response => {
             console.log(response.data)
-            self.$q.notify({
+            this.$q.notify({
               type: 'positive',
               message:
                 'Success! Added ' +
-                self.wallet.amount +
+                this.wallet.amount +
                 ' to ' +
-                self.wallet.id,
+                this.wallet.id,
               icon: null
             })
           })
