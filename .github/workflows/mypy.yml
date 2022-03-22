@@ -9,4 +9,5 @@ jobs:
       - uses: actions/checkout@v1
       - uses: jpetrucciani/mypy-check@master
         with:
+          mypy_flags: '--install-types --non-interactive'
           path: lnbits

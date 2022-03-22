@@ -71,6 +71,11 @@ async def api_link_create_or_update(
     link_id: str = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
+    if data.min_withdrawable < 1:
+        raise HTTPException(
+            detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
+        )
+
     if data.max_withdrawable < data.min_withdrawable:
         raise HTTPException(
             detail="`max_withdrawable` needs to be at least `min_withdrawable`.",

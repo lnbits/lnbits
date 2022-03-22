@@ -74,7 +74,7 @@ class LntxbotWallet(Wallet):
         data = r.json()
         return InvoiceResponse(True, data["payment_hash"], data["pay_req"], None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{self.endpoint}/payinvoice",

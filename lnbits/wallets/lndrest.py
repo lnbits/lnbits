@@ -39,9 +39,11 @@ class LndRestWallet(Wallet):
 
         encrypted_macaroon = getenv("LND_REST_MACAROON_ENCRYPTED")
         if encrypted_macaroon:
-            macaroon = AESCipher(description="macaroon decryption").decrypt(encrypted_macaroon)    
+            macaroon = AESCipher(description="macaroon decryption").decrypt(
+                encrypted_macaroon
+            )
         self.macaroon = load_macaroon(macaroon)
-        
+
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
         self.cert = getenv("LND_REST_CERT", True)
 
@@ -97,15 +99,11 @@ class LndRestWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient(verify=self.cert) as client:
             # set the fee limit for the payment
-            invoice = lnbits_bolt11.decode(bolt11)
             lnrpcFeeLimit = dict()
-            if invoice.amount_msat > 1000_000:
-                lnrpcFeeLimit["percent"] = "1"  # in percent
-            else:
-                lnrpcFeeLimit["fixed"] = "10"  # in sat
+            lnrpcFeeLimit["fixed_msat"] = "{}".format(fee_limit_msat)
 
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
@@ -162,6 +160,7 @@ class LndRestWallet(Wallet):
 
         # for some reason our checking_ids are in base64 but the payment hashes
         # returned here are in hex, lnd is weird
+        checking_id = checking_id.replace("_", "/")
         checking_id = base64.b64decode(checking_id).hex()
 
         for p in r.json()["payments"]:
