@@ -21,6 +21,7 @@ from .helpers import (
     get_css_vendored,
     get_js_vendored,
     get_valid_extensions,
+    removeEmptyString,
     template_renderer,
     url_for_vendored,
 )
@@ -89,9 +90,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 def check_settings(app: FastAPI):
     @app.on_event("startup")
     async def check_settings_admin():
-
-        def removeEmptyString(arr):
-            return list(filter(None, arr))
 
         while True:
             admin_set = await get_admin_settings()
