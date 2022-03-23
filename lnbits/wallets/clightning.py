@@ -18,6 +18,7 @@ from .base import (
     Unsupported,
     Wallet,
 )
+from lnbits import bolt11 as lnbits_bolt11
 
 
 def async_wrap(func):
@@ -31,8 +32,8 @@ def async_wrap(func):
     return run
 
 
-def _pay_invoice(ln, bolt11):
-    return ln.pay(bolt11)
+def _pay_invoice(ln, payload):
+    return ln.call("pay", payload)
 
 
 def _paid_invoices_stream(ln, last_pay_index):
@@ -102,10 +103,18 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        invoice = lnbits_bolt11.decode(bolt11)
+        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
+
+        payload = {
+            "bolt11": bolt11,
+            "maxfeepercent": "{:.11}".format(fee_limit_percent),
+            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee under 5000 millisatoshi (which is default value of exemptfee)
+        }
         try:
             wrapped = async_wrap(_pay_invoice)
-            r = await wrapped(self.ln, bolt11)
+            r = await wrapped(self.ln, payload)
         except RpcError as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
