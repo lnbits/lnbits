@@ -1,8 +1,9 @@
 from typing import List, Optional, Union
 
+from lnbits.helpers import urlsafe_short_hash
+
 from . import db
 from .models import Copilots, CreateCopilotData
-from lnbits.helpers import urlsafe_short_hash
 
 ###############COPILOTS##########################
 
@@ -15,7 +16,7 @@ async def create_copilot(
         """
         INSERT INTO copilot.newer_copilots (
             id,
-            user,
+            "user",
             lnurl_toggle,
             wallet,
             title,
@@ -87,7 +88,7 @@ async def get_copilot(copilot_id: str) -> Copilots:
 
 async def get_copilots(user: str) -> List[Copilots]:
     rows = await db.fetchall(
-        "SELECT * FROM copilot.newer_copilots WHERE user = ?", (user,)
+        'SELECT * FROM copilot.newer_copilots WHERE "user" = ?', (user,)
     )
     return [Copilots(**row) for row in rows]
 

@@ -13,7 +13,7 @@ from starlette.requests import Request
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
 from lnbits.requestvars import g
-from lnbits.settings import LNBITS_ALLOWED_USERS
+from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_ADMIN_USERS, LNBITS_ADMIN_EXTENSIONS
 
 
 class KeyChecker(SecurityBase):
@@ -122,6 +122,7 @@ async def get_key_type(
     # 0: admin
     # 1: invoice
     # 2: invalid
+    pathname = r['path'].split('/')[1]
 
     if not api_key_header and not api_key_query:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
@@ -131,7 +132,10 @@ async def get_key_type(
     try:
         checker = WalletAdminKeyChecker(api_key=token)
         await checker.__call__(r)
-        return WalletTypeInfo(0, checker.wallet)
+        wallet = WalletTypeInfo(0, checker.wallet)
+        if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS):
+            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized.")
+        return wallet
     except HTTPException as e:
         if e.status_code == HTTPStatus.BAD_REQUEST:
             raise
@@ -143,7 +147,10 @@ async def get_key_type(
     try:
         checker = WalletInvoiceKeyChecker(api_key=token)
         await checker.__call__(r)
-        return WalletTypeInfo(1, checker.wallet)
+        wallet = WalletTypeInfo(1, checker.wallet)
+        if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS):
+           raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized.")
+        return wallet
     except HTTPException as e:
         if e.status_code == HTTPStatus.BAD_REQUEST:
             raise
@@ -171,6 +178,7 @@ async def require_admin_key(
     else:
         return wallet
 
+
 async def require_invoice_key(
     r: Request,
     api_key_header: str = Security(api_key_header),
@@ -184,7 +192,8 @@ async def require_invoice_key(
         # If wallet type is not invoice then return the unauthorized status
         # This also covers when the user passes an invalid key type
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invoice (or Admin) key required."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invoice (or Admin) key required.",
         )
     else:
         return wallet
@@ -201,5 +210,8 @@ async def check_user_exists(usr: UUID4) -> User:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
         )
+
+    if LNBITS_ADMIN_USERS and g().user.id in LNBITS_ADMIN_USERS:
+        g().user.admin = True
 
     return g().user

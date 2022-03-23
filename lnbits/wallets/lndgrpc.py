@@ -11,6 +11,7 @@ import base64
 import hashlib
 from os import environ, error, getenv
 from typing import Optional, Dict, AsyncGenerator
+from .macaroon import load_macaroon, AESCipher
 
 if imports_ok:
     import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
@@ -58,12 +59,6 @@ def get_ssl_context(cert_path: str):
     return context
 
 
-def load_macaroon(macaroon_path: str):
-    with open(macaroon_path, "rb") as f:
-        macaroon_bytes = f.read()
-        return macaroon_bytes.hex()
-
-
 def parse_checking_id(checking_id: str) -> bytes:
     return base64.b64decode(checking_id.replace("_", "/"))
 
@@ -90,7 +85,7 @@ class LndWallet(Wallet):
         self.port = int(getenv("LND_GRPC_PORT"))
         self.cert_path = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
 
-        macaroon_path = (
+        macaroon = (
             getenv("LND_GRPC_MACAROON")
             or getenv("LND_GRPC_ADMIN_MACAROON")
             or getenv("LND_ADMIN_MACAROON")
@@ -98,10 +93,12 @@ class LndWallet(Wallet):
             or getenv("LND_INVOICE_MACAROON")
         )
 
-        if macaroon_path.split(".")[-1] == "macaroon":
-            self.macaroon = load_macaroon(macaroon_path)
-        else:
-            self.macaroon = macaroon_path
+        encrypted_macaroon = getenv("LND_GRPC_MACAROON_ENCRYPTED")
+        if encrypted_macaroon:
+            macaroon = AESCipher(description="macaroon decryption").decrypt(
+                encrypted_macaroon
+            )
+        self.macaroon = load_macaroon(macaroon)
 
         cert = open(self.cert_path, "rb").read()
         creds = grpc.ssl_channel_credentials(cert)
@@ -147,10 +144,10 @@ class LndWallet(Wallet):
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        resp = await self.rpc.SendPayment(
-            lnrpc.SendPaymentRequest(payment_request=bolt11)
-        )
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
+        req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)
+        resp = await self.rpc.SendPaymentSync(req)
 
         if resp.payment_error:
             return PaymentResponse(False, "", 0, None, resp.payment_error)

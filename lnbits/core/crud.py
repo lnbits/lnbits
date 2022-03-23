@@ -6,11 +6,10 @@ from urllib.parse import urlparse
 
 from lnbits import bolt11
 from lnbits.db import Connection, POSTGRES, COCKROACH
-from lnbits.settings import DEFAULT_WALLET_NAME
+from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
 
 from . import db
 from .models import User, Wallet, Payment, BalanceCheck
-
 
 # accounts
 # --------
@@ -30,8 +29,7 @@ async def get_account(
     user_id: str, conn: Optional[Connection] = None
 ) -> Optional[User]:
     row = await (conn or db).fetchone(
-        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (
-            user_id,)
+        "SELECT id, email, pass as password FROM accounts WHERE id = ?", (user_id,)
     )
 
     return User(**row) if row else None
@@ -63,6 +61,9 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
         email=user["email"],
         extensions=[e[0] for e in extensions],
         wallets=[Wallet(**w) for w in wallets],
+        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
+        if LNBITS_ADMIN_USERS
+        else False,
     )
 
 
@@ -185,7 +186,7 @@ async def get_standalone_payment(
         """
         SELECT *
         FROM apipayments
-        WHERE (checking_id = ? OR hash = ?) AND amount > 0 -- only the incoming payment
+        WHERE checking_id = ? OR hash = ?
         LIMIT 1
         """,
         (checking_id_or_hash, checking_id_or_hash),
@@ -218,6 +219,8 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """
@@ -262,6 +265,15 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
+    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
+    offset_clause = f"OFFSET {offset}" if type(offset) == int and offset > 0 else ""
+    # combine limit and offset clauses
+    limit_offset_clause = (
+        f"{limit_clause} {offset_clause}"
+        if limit_clause and offset_clause
+        else limit_clause or offset_clause
+    )
+
     where = ""
     if clause:
         where = f"WHERE {' AND '.join(clause)}"
@@ -272,14 +284,16 @@ async def get_payments(
         FROM apipayments
         {where}
         ORDER BY time DESC
+        {limit_offset_clause}
         """,
         tuple(args),
     )
-
     return [Payment.from_row(row) for row in rows]
 
 
-async def delete_expired_invoices(conn: Optional[Connection] = None,) -> None:
+async def delete_expired_invoices(
+    conn: Optional[Connection] = None,
+) -> None:
     # first we delete all invoices older than one month
     await (conn or db).execute(
         f"""
@@ -305,8 +319,7 @@ async def delete_expired_invoices(conn: Optional[Connection] = None,) -> None:
         except:
             continue
 
-        expiration_date = datetime.datetime.fromtimestamp(
-            invoice.date + invoice.expiry)
+        expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
 

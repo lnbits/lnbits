@@ -1,9 +1,6 @@
 LNbits
 ======
 
-[![github-tests-badge]][github-tests]
-[![github-mypy-badge]][github-mypy]
-[![codecov-badge]][codecov]
 [![license-badge]](LICENSE)
 [![docs-badge]][docs]
 
@@ -13,6 +10,8 @@ LNbits
 # LNbits v0.3 BETA, free and open-source lightning-network wallet/accounts system
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
+
+(LNbits is beta, for responsible disclosure of any concerns please contact lnbits@pm.me)
 
 Use [lnbits.com](https://lnbits.com), or run your own LNbits server!
 
@@ -34,11 +33,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](docs/guide/installation.md) for details on installation and setup.
-
-### Contributing to LNbits
-
-There's a [slightly different setup](docs/devs/installation.md) if you want to contribute to LNbits, but if your changes don't require adding or removing any package dependencies you don't have to bother with that, just follow the [normal installation](docs/guide/installation.md) steps.
+See the [install guide](docs/devs/installation.md) for details on installation and setup.
 
 ## LNbits as an account system
 

@@ -13,9 +13,11 @@ lnurlpayout_ext: APIRouter = APIRouter(prefix="/lnurlpayout", tags=["lnurlpayout
 def lnurlpayout_renderer():
     return template_renderer(["lnbits/extensions/lnurlpayout/templates"])
 
+
 from .tasks import wait_for_paid_invoices
 from .views import *  # noqa
 from .views_api import *  # noqa
+
 
 def lnurlpayout_start():
     loop = asyncio.get_event_loop()

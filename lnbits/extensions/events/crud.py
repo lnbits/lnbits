@@ -76,7 +76,7 @@ async def delete_ticket(payment_hash: str) -> None:
 
 
 async def delete_event_tickets(event_id: str) -> None:
-    await db.execute("DELETE FROM events.tickets WHERE event = ?", (event_id,))
+    await db.execute("DELETE FROM events.ticket WHERE event = ?", (event_id,))
 
 
 # EVENTS

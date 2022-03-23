@@ -20,7 +20,7 @@
     {% block head_scripts %}{% endblock %}
   </head>
 
-  <body data-theme="classic">
+  <body data-theme="bitcoin">
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
       <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
@@ -67,8 +67,19 @@
                 icon="format_color_fill"
                 color="deep-purple"
                 size="md"
-                ><q-tooltip>classic</q-tooltip> </q-btn
-              ><q-btn
+                ><q-tooltip>classic</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('bitcoin')"
+                dense
+                flat
+                @click="changeColor('bitcoin')"
+                icon="format_color_fill"
+                color="orange"
+                size="md"
+                ><q-tooltip>bitcoin</q-tooltip>
+              </q-btn>
+              <q-btn
                 v-if="g.allowedThemes.includes('mint')"
                 dense
                 flat
@@ -151,11 +162,12 @@
         </q-page>
       </q-page-container>
       {% endblock %} {% block footer %}
+
       <q-footer
         class="bg-transparent q-px-lg q-py-md"
         :class="{'text-dark': !$q.dark.isActive}"
       >
-        <q-toolbar>
+        <q-toolbar class="gt-sm">
           <q-toolbar-title class="text-caption">
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
@@ -179,6 +191,7 @@
           </q-btn>
         </q-toolbar>
       </q-footer>
+
       {% endblock %}
     </q-layout>
 
@@ -192,6 +205,8 @@
     <script src="/static/js/components.js"></script>
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
+      console.log(LNBITS_DENOMINATION)
       if(themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }

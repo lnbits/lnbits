@@ -14,7 +14,12 @@ from lnbits.core import db
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_SITE_TITLE, SERVICE_FEE
+from lnbits.settings import (
+    LNBITS_ADMIN_USERS,
+    LNBITS_ALLOWED_USERS,
+    LNBITS_SITE_TITLE,
+    SERVICE_FEE,
+)
 
 from ..crud import (
     create_account,
@@ -43,9 +48,7 @@ async def home(request: Request, lightning: str = None):
 
 
 @core_html_routes.get(
-    "/extensions",
-    name="core.extensions",
-    response_class=HTMLResponse,
+    "/extensions", name="core.extensions", response_class=HTMLResponse
 )
 async def extensions(
     request: Request,
@@ -115,6 +118,8 @@ async def wallet(
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User not authorized."}
             )
+        if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
+            user.admin = True
     if not wallet_id:
         if user.wallets and not wallet_name:
             wallet = user.wallets[0]
@@ -221,7 +226,7 @@ async def lnurl_balance_notify(request: Request, service: str):
         redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_html_routes.get("/lnurlwallet", response_class=RedirectResponse)
+@core_html_routes.get("/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet")
 async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)

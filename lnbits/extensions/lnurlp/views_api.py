@@ -76,6 +76,11 @@ async def api_link_create_or_update(
     link_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
+    if data.min < 1:
+        raise HTTPException(
+            detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
+        )
+
     if data.min > data.max:
         raise HTTPException(
             detail="Min is greater than max.", status_code=HTTPStatus.BAD_REQUEST

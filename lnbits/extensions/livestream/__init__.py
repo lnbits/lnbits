@@ -30,6 +30,6 @@ from .views import *  # noqa
 from .views_api import *  # noqa
 
 
-def lnticket_start():
+def livestream_start():
     loop = asyncio.get_event_loop()
     loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))

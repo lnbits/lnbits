@@ -103,6 +103,10 @@ async def api_ticket_make_ticket(data: CreateTicketData, form_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"LNTicket does not exist."
         )
+    if data.sats < 1:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"0 invoices not allowed."
+        )
 
     nwords = len(re.split(r"\s+", data.ltext))
 
