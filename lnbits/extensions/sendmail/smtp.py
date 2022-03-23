@@ -50,14 +50,17 @@ async def send_mail(emailaddress, email):
     try:
         conn = SMTP(host=emailaddress.smtp_server, port=emailaddress.smtp_port, timeout=10)
         # conn.set_debuglevel(True)
-    except socket.error as e:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=f'error connecting to smtp server: {str(e)}.')
-    try:
-        conn.login(emailaddress.smtp_user, emailaddress.smtp_password)
-    except socket.error as e:
+    except:
         raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
-                detail=f'error login into smtp {emailaddress.smtp_user}:{emailaddress.smtp_password}. {str(e)}'
+                detail=f'error connecting to smtp server: {emailaddress.smtp_server}:{emailaddress.smtp_port}.'
+                )
+    try:
+        conn.login(emailaddress.smtp_user, emailaddress.smtp_password)
+    except:
+        raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f'error login into smtp {emailaddress.smtp_user}.'
                 )
     try:
         conn.sendmail(emailaddress.email, email.receiver, msg.as_string())
