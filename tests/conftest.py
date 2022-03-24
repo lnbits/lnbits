@@ -4,7 +4,6 @@ from httpx import AsyncClient
 from lnbits.app import create_app
 from lnbits.commands import migrate_databases
 from lnbits.settings import HOST, PORT
-import tests.mocks
 
 from lnbits.core.crud import create_account, create_wallet, get_wallet
 from tests.helpers import credit_wallet
