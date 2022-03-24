@@ -338,7 +338,7 @@ async def api_payments_pay_lnurl(
 
 
 async def subscribe(request: Request, wallet: Wallet):
-    this_wallet_id = wallet.wallet.id
+    this_wallet_id = wallet.id
 
     payment_queue = asyncio.Queue(0)
 
@@ -375,14 +375,19 @@ async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     return EventSourceResponse(
-        subscribe(request, wallet), ping=20, media_type="text/event-stream"
+        subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
     )
 
 
 @core_app.get("/api/v1/payments/{payment_hash}")
-async def api_payment(payment_hash, wal: WalletTypeInfo = Depends(require_invoice_key)):
-    wallet = wal.wallet
+async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
+    # We use X_Api_Key here because we want this call to work with and without keys
+    wallet = await get_wallet_for_key(X_Api_Key) if X_Api_Key is not None else None
     payment = await get_standalone_payment(payment_hash)
+    if payment is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
+        )
     await check_invoice_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(payment_hash)
     if not payment:
