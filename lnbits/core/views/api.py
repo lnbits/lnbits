@@ -125,7 +125,7 @@ async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
 class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
     amount: float = Query(None, ge=0)
-    memo: str = None
+    memo: Optional[str] = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     lnurl_callback: Optional[str] = None
@@ -513,15 +513,19 @@ async def api_lnurlscan(code: str):
     return params
 
 
+class DecodePayment(BaseModel):
+    data: str
+
+
 @core_app.post("/api/v1/payments/decode")
-async def api_payments_decode(data: str = Query(None)):
-    print(data)
+async def api_payments_decode(data: DecodePayment):
+    payment_str = data.data
     try:
-        if data[:5] == "LNURL":
-            url = lnurl.decode(data)
+        if payment_str[:5] == "LNURL":
+            url = lnurl.decode(payment_str)
             return {"domain": url}
         else:
-            invoice = bolt11.decode(data)
+            invoice = bolt11.decode(payment_str)
             return {
                 "payment_hash": invoice.payment_hash,
                 "amount_msat": invoice.amount_msat,
