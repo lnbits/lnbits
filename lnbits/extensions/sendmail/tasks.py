@@ -20,7 +20,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if "lnsendmail" != payment.extra.get("tag"):
+    if "sendmail" != payment.extra.get("tag"):
         # not an lnurlp invoice
         return
 
@@ -33,7 +33,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     if not emailaddress:
         print("this should never happen", payment)
         return
-
 
     await payment.set_pending(False)
     await send_mail(emailaddress, email)

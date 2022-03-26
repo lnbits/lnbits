@@ -245,7 +245,7 @@
             v-else
             unelevated
             color="primary"
-            :disable="emailaddressDialog.data.cost == null || emailaddressDialog.data.cost < 0 || emailaddressDialog.data.email == null"
+            :disable="enableButton()"
             type="submit"
             >Create Emailaddress</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
@@ -263,7 +263,6 @@
       'YYYY-MM-DD HH:mm'
     )
     obj.displayUrl = ['/sendmail/', obj.id].join('')
-    console.log(obj)
     return obj
   }
 
@@ -351,6 +350,17 @@
       }
     },
     methods: {
+      enableButton: function() {
+        return this.emailaddressDialog.data.cost == null
+          || this.emailaddressDialog.data.cost < 0
+          || this.emailaddressDialog.data.testemail == null
+          || this.emailaddressDialog.data.smtp_user == null
+          || this.emailaddressDialog.data.smtp_password == null
+          || this.emailaddressDialog.data.smtp_server == null
+          || this.emailaddressDialog.data.smtp_port == null
+          || this.emailaddressDialog.data.email == null
+          || this.emailaddressDialog.data.description == null;
+      },
       getEmails: function () {
         var self = this
 
@@ -436,13 +446,11 @@
       },
       updateEmailaddressDialog: function (formId) {
         var link = _.findWhere(this.emailaddresses, {id: formId})
-        console.log(link.id)
         this.emailaddressDialog.data = _.clone(link)
         this.emailaddressDialog.show = true
       },
       updateEmailaddress: function (wallet, data) {
         var self = this
-        console.log(data)
 
         LNbits.api
           .request(
