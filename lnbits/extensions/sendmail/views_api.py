@@ -74,7 +74,7 @@ async def api_sendmail_make_email(emailaddress_id, data: CreateEmail):
             wallet_id=emailaddress.wallet,
             amount=emailaddress.cost,
             memo=memo,
-            extra={"tag": "lnsendmail"},
+            extra={"tag": "sendmail"},
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
