@@ -399,6 +399,8 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
     elif not payment.pending:
+        if wallet:
+            print(wallet.id, payment.wallet_id)
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": True, "preimage": payment.preimage, "details": payment}
         return {"paid": True, "preimage": payment.preimage}

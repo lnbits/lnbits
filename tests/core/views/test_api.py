@@ -31,11 +31,8 @@ async def test_core_create_invoice(client, inkey_headers):
 
 
 # check POST /api/v1/payments: make payment
-# check GET /api/v1/payments/<hash>: payment status
 @pytest.mark.asyncio
-async def test_core_pay_invoice(
-    client, user_wallet, invoice, adminkey_headers, inkey_headers
-):
+async def test_core_pay_invoice(client, invoice, adminkey_headers):
     data = {"out": True, "bolt11": invoice["payment_request"]}
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers
@@ -44,15 +41,31 @@ async def test_core_pay_invoice(
     assert len(response.json()["payment_hash"]) == 64
     assert len(response.json()["checking_id"]) > 0
 
+
+# check GET /api/v1/payments/<hash>: payment status
+@pytest.mark.asyncio
+async def test_core_check_payment_without_key(client, invoice):
     # check the payment status
-    response = await client.get(
-        f"/api/v1/payments/{response.json()['payment_hash']}", headers=inkey_headers
-    )
-    # doesn't work. why?
-    # assert "details" in response.json()
+    response = await client.get(f"/api/v1/payments/{invoice['payment_hash']}")
     assert response.status_code < 300
     assert response.json()["paid"] == True
     assert invoice
+    # not key, that's why no "details"
+    assert "details" not in response.json()
+
+
+# check GET /api/v1/payments/<hash>: payment status
+@pytest.mark.asyncio
+async def test_core_check_payment_with_key(client, invoice):
+    # check the payment status
+    response = await client.get(
+        f"/api/v1/payments/{invoice['payment_hash']}", headers=invoice["inkey"]
+    )
+    assert response.status_code < 300
+    assert response.json()["paid"] == True
+    assert invoice
+    # with key, that's why with "details"
+    assert "details" in response.json()
 
 
 # check POST /api/v1/payments: payment with wrong key type
