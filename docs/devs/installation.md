@@ -42,11 +42,11 @@ For production, use:
     pipenv run python -m uvicorn lnbits.__main__:app --host 0.0.0.0
 
 You might also need to install additional packages, depending on the [backend wallet](../guide/wallets.md) you use.
-E.g. when you want to use LND you have to `pipenv run pip install lndgrpc` and `pipenv run pip install purerpc`.
+E.g. when you want to use LND you have to `pipenv run pip install grpcio protobuf`. Observe the linked wallet documentation for more information.
 
 Take a look at [Polar][polar] for an excellent way of spinning up a Lightning Network dev environment.
 
 **Notes**: 
 
-* We reccomend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
+* We recommend using <a href="https://caddyserver.com/docs/install#debian-ubuntu-raspbian">Caddy</a> for a reverse-proxy if you want to serve your install through a domain, alternatively you can use [ngrok](https://ngrok.com/).
 * <a href="https://linuxize.com/post/how-to-use-linux-screen/#starting-linux-screen">Screen</a> works well if you want LNbits to continue running when you close your terminal session.
