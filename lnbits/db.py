@@ -130,9 +130,15 @@ class Database(Compat):
                 )
             )
         else:
-            self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
-            database_uri = f"sqlite:///{self.path}"
-            self.type = SQLITE
+            if os.path.isdir(LNBITS_DATA_FOLDER):
+                self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
+                database_uri = f"sqlite:///{self.path}"
+                self.type = SQLITE
+            else:
+                raise NotADirectoryError(
+                    f"LNBITS_DATA_FOLDER named {LNBITS_DATA_FOLDER} was not created"
+                    f" - please 'mkdir {LNBITS_DATA_FOLDER}' and try again"
+                )
 
         self.schema = self.name
         if self.name.startswith("ext_"):
