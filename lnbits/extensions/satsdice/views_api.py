@@ -86,7 +86,7 @@ async def api_link_create_or_update(
             )
 
         data.wallet = wallet.wallet.id
-        link = await update_satsdice_pay(link_id, **data.dict())
+        link = await update_satsdice_pay(link_id, data=data)
     else:
         link = await create_satsdice_pay(wallet_id=wallet.wallet.id, data=data)
 
