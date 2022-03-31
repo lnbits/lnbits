@@ -112,7 +112,7 @@ async def api_link_create_or_update(
                 detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
             )
 
-        link = await update_pay_link(**data.dict(), link_id=link_id)
+        link = await update_pay_link(data=data, link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
     return {**link.dict(), "lnurl": link.lnurl}
