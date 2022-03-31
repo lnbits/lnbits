@@ -59,7 +59,7 @@ async def api_event_create(
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail=f"Not your event."
             )
-        event = await update_event(event_id, **data.dict())
+        event = await update_event(event_id, data=data)
     else:
         event = await create_event(data=data)
 

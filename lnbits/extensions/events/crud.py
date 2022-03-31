@@ -107,8 +107,8 @@ async def create_event(data: CreateEvent) -> Events:
     assert event, "Newly created event couldn't be retrieved"
     return event
 
-
-async def update_event(event_id: str, **kwargs) -> Events:
+async def update_event(event_id: str, data: CreateEvent) -> Events:
+    kwargs = data.dict()
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE events.events SET {q} WHERE id = ?", (*kwargs.values(), event_id)
