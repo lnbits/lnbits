@@ -1,7 +1,6 @@
 from typing import Optional
 
 from lnbits.db import SQLITE
-from lnbits.extensions.tipjar.views import tip
 
 from ..satspay.crud import delete_charge  # type: ignore
 from . import db
