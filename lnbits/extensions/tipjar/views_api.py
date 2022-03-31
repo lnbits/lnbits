@@ -108,7 +108,7 @@ async def api_get_tips(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @tipjar_ext.put("/api/v1/tips/{tip_id}")
 async def api_update_tip(
-    wallet: WalletTypeInfo = Depends(get_key_type), tip_id: str = Query(None)
+    data: createTips, wallet: WalletTypeInfo = Depends(get_key_type), tip_id: str = Query(None)
 ):
     """Update a tip with the data given in the request"""
     if tip_id:
@@ -125,7 +125,7 @@ async def api_update_tip(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not your tip."
             )
 
-        tip = await update_tip(tip_id, **g.data)
+        tip = await update_tip(tip_id, data=data)
     else:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="No tip ID specified"
@@ -135,7 +135,9 @@ async def api_update_tip(
 
 @tipjar_ext.put("/api/v1/tipjars/{tipjar_id}")
 async def api_update_tipjar(
-    wallet: WalletTypeInfo = Depends(get_key_type), tipjar_id: str = Query(None)
+    data: createTipJar,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    tipjar_id: str = Query(None),
 ):
     """Update a tipjar with the data given in the request"""
     if tipjar_id:
@@ -151,7 +153,7 @@ async def api_update_tipjar(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not your tipjar."
             )
 
-        tipjar = await update_tipjar(tipjar_id, **data)
+        tipjar = await update_tipjar(tipjar_id, data=data)
     else:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="No tipjar ID specified"
