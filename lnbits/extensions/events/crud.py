@@ -110,8 +110,9 @@ async def create_event(data: CreateEvent) -> Events:
 async def update_event(event_id: str, data: CreateEvent) -> Events:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
+    values.append(event_id)
     await db.execute(
-        f"UPDATE events.events SET {q} WHERE id = ?", (values, event_id)
+        f"UPDATE events.events SET {q} WHERE id = ?", (values,)
     )
     event = await get_event(event_id)
     assert event, "Newly updated event couldn't be retrieved"

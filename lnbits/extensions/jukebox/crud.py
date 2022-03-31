@@ -93,7 +93,7 @@ async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
 
 
 async def update_jukebox_payment(
-    payment_hash: str, paid
+    payment_hash: str, paid: bool
 ) -> Optional[JukeboxPayment]:
     await db.execute(
         f"UPDATE jukebox.jukebox_payment SET paid = ? WHERE payment_hash = ?",
