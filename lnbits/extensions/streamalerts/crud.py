@@ -9,7 +9,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 from ..satspay.crud import delete_charge  # type: ignore
 from . import db
-from .models import CreateService, Donation, Service
+from .models import CreateDonation, CreateService, Donation, Service
 
 
 async def get_service_redirect_uri(request, service_id):
@@ -245,12 +245,14 @@ async def delete_donation(donation_id: str) -> None:
     await delete_charge(donation_id)
 
 
-async def update_donation(donation_id: str, **kwargs) -> Donation:
+async def update_donation(donation_id: str, data: CreateDonation) -> Donation:
     """Update a Donation"""
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    q = ", ".join([f"{field[0]} = ?" for field in data])
+    values = [f"{field[1]}" for field in data]
+    values.append(donation_id)
     await db.execute(
         f"UPDATE streamalerts.Donations SET {q} WHERE id = ?",
-        (*kwargs.values(), donation_id),
+        (values,),
     )
     row = await db.fetchone(
         "SELECT * FROM streamalerts.Donations WHERE id = ?", (donation_id,)
@@ -259,12 +261,14 @@ async def update_donation(donation_id: str, **kwargs) -> Donation:
     return Donation(**row)
 
 
-async def update_service(service_id: str, **kwargs) -> Service:
+async def update_service(service_id: str, data=CreateService) -> Service:
     """Update a service"""
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    q = ", ".join([f"{field[0]} = ?" for field in data])
+    values = [f"{field[1]}" for field in data]
+    values.append(service_id)
     await db.execute(
         f"UPDATE streamalerts.Services SET {q} WHERE id = ?",
-        (*kwargs.values(), service_id),
+        (values,),
     )
     row = await db.fetchone(
         "SELECT * FROM streamalerts.Services WHERE id = ?", (service_id,)

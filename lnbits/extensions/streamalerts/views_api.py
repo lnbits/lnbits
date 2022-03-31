@@ -196,7 +196,7 @@ async def api_update_donation(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not your donation."
             )
 
-        donation = await update_donation(donation_id, **data.dict())
+        donation = await update_donation(donation_id, data=data)
     else:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="No donation ID specified"
@@ -223,7 +223,7 @@ async def api_update_service(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not your service."
             )
 
-        service = await update_service(service_id, **data.dict())
+        service = await update_service(service_id, data=data)
     else:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="No service ID specified"
