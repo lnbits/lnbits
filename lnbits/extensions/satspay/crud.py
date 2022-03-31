@@ -73,10 +73,12 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
     return await get_charge(charge_id)
 
 
-async def update_charge(charge_id: str, **kwargs) -> Optional[Charges]:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+async def update_charge(charge_id: str, data: CreateCharge) -> Optional[Charges]:
+    q = ", ".join([f"{field[0]} = ?" for field in data])
+    values = [f"{field[1]}" for field in data]
+    values.append(charge_id)
     await db.execute(
-        f"UPDATE satspay.charges SET {q} WHERE id = ?", (*kwargs.values(), charge_id)
+        f"UPDATE satspay.charges SET {q} WHERE id = ?", (values,)
     )
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None
