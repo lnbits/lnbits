@@ -93,12 +93,11 @@ async def create_jukebox_payment(data: CreateJukeboxPayment) -> JukeboxPayment:
 
 
 async def update_jukebox_payment(
-    payment_hash: str, **kwargs
+    payment_hash: str, paid
 ) -> Optional[JukeboxPayment]:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE jukebox.jukebox_payment SET {q} WHERE payment_hash = ?",
-        (*kwargs.values(), payment_hash),
+        f"UPDATE jukebox.jukebox_payment SET paid = ? WHERE payment_hash = ?",
+        (paid, payment_hash),
     )
     return await get_jukebox_payment(payment_hash)
 
