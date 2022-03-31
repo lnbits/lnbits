@@ -56,7 +56,7 @@ async def api_domain_create(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not your domain."
             )
 
-        domain = await update_domain(domain_id, **data.dict())
+        domain = await update_domain(domain_id, data=data)
     else:
         domain = await create_domain(data=data)
     return domain.dict()
