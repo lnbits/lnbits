@@ -58,7 +58,7 @@ async def api_form_create(
                 status_code=HTTPStatus.FORBIDDEN, detail=f"Not your form."
             )
 
-        form = await update_form(form_id, **data.dict())
+        form = await update_form(form_id, data=data)
     else:
         form = await create_form(data, wallet.wallet)
     return form.dict()

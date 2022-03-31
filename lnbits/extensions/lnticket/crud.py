@@ -1,11 +1,12 @@
-from lnbits.core.models import Wallet
 from typing import List, Optional, Union
 
+import httpx
+
+from lnbits.core.models import Wallet
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateFormData, CreateTicketData, Tickets, Forms
-import httpx
+from .models import CreateFormData, CreateTicketData, Forms, Tickets
 
 
 async def create_ticket(
@@ -130,10 +131,12 @@ async def create_form(data: CreateFormData, wallet: Wallet) -> Forms:
     return form
 
 
-async def update_form(form_id: str, **kwargs) -> Forms:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+async def update_form(form_id: str, data: CreateFormData) -> Forms:
+    q = ", ".join([f"{field[0]} = ?" for field in data])
+    values = [f"{field[1]}" for field in data]
+    values.append(form_id)
     await db.execute(
-        f"UPDATE lnticket.form2 SET {q} WHERE id = ?", (*kwargs.values(), form_id)
+        f"UPDATE lnticket.form2 SET {q} WHERE id = ?", (values,)
     )
     row = await db.fetchone("SELECT * FROM lnticket.form2 WHERE id = ?", (form_id,))
     assert row, "Newly updated form couldn't be retrieved"
