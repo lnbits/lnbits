@@ -74,7 +74,7 @@ async def api_bleskomat_create_or_update(
                 detail="Bleskomat configuration not found.",
             )
 
-        bleskomat = await update_bleskomat(bleskomat_id, **data.dict())
+        bleskomat = await update_bleskomat(bleskomat_id, data=data)
     else:
         bleskomat = await create_bleskomat(wallet_id=wallet.wallet.id, data=data)
 
