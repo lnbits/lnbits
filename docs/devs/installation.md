@@ -13,7 +13,7 @@ LNbits uses [Pipenv][pipenv] to manage Python packages.
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
-sudo apt-get install -y python3-venv
+sudo apt-get install pipenv
 pipenv shell
 # pipenv --python 3.9 shell (if you wish to use a version of Python higher than 3.7)
 pipenv install --dev
