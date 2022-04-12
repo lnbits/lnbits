@@ -152,9 +152,11 @@ class SparkWallet(Wallet):
 
         if not r or not r.get("invoices"):
             return PaymentStatus(None)
-        if r["invoices"][0]["status"] == "unpaid":
+
+        if r["invoices"][0]["status"] == "paid":
+            return PaymentStatus(True)
+        else:
             return PaymentStatus(False)
-        return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex
