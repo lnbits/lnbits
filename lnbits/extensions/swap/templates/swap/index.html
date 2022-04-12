@@ -4,12 +4,22 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn label="Create Swap Out" unelevated color="primary" @click="swapOutDialog.show = true">
+        <q-btn
+          label="Create Swap Out"
+          unelevated
+          color="primary"
+          @click="() => {swapOutDialog.show = true; endSwapInCard();}"
+        >
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
             Send offchain funds to onchain address (LN -> BTC)
           </q-tooltip>
         </q-btn>
-        <q-btn label="Create Swap In" unelevated color="primary" @click="() => startSwapIn()">
+        <q-btn
+          label="Create Swap In"
+          unelevated
+          color="primary"
+          @click="() => startSwapIn()"
+        >
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
             Send onchain funds offchain (BTC - LN)
           </q-tooltip>
@@ -48,8 +58,14 @@
             <q-tr :props="props">
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
-                <q-tooltip v-if="col.label == 'Onchain Address'" class="bg-grey-8" anchor="bottom left" self="top left">
-                  Addresses will be pulled from watch-only extension at the time of the swap out
+                <q-tooltip
+                  v-if="col.label == 'Onchain Address'"
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                >
+                  Addresses will be pulled from watch-only extension at the time
+                  of the swap out
                 </q-tooltip>
               </q-td>
               <q-td auto-width>
@@ -112,7 +128,7 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-icon
-                  v-if=props.row.recurrent
+                  v-if="props.row.recurrent"
                   name="autorenew"
                   size="xs"
                   color="green-3"
@@ -121,14 +137,15 @@
                 >
                   <q-tooltip>Recurrent Swap</q-tooltip>
                 </q-icon>
-                
+
                 <q-icon
                   v-else
                   name="touch_app"
                   size="xs"
                   color="grey-5"
                   unelevated
-                  dense>
+                  dense
+                >
                   <q-tooltip>Manual Swap</q-tooltip>
                 </q-icon>
               </q-td>
@@ -174,7 +191,7 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-icon
-                  v-if=props.row.done
+                  v-if="props.row.done"
                   name="check"
                   size="xs"
                   color="green-3"
@@ -192,7 +209,7 @@
                   icon="edit"
                   color="light-blue"
                 >
-                <q-tooltip>Enter TXID</q-tooltip>
+                  <q-tooltip>Enter TXID</q-tooltip>
                 </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
@@ -208,9 +225,7 @@
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} Swap extension
-        </h6>
+        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Swap extension</h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -231,7 +246,7 @@
           :disable="swapOutDialog.data.id ? true : false"
         >
         </q-select>
-        
+
         <q-input
           filled
           dense
@@ -240,8 +255,7 @@
           type="number"
           label="Amount "
           :hint="balance"
-          ></q-input
-        >
+        ></q-input>
         <q-input
           filled
           dense
@@ -249,8 +263,7 @@
           v-model.trim="swapOutDialog.data.fee"
           type="number"
           label="Fee "
-          ></q-input
-        >
+        ></q-input>
         <div>
           <div v-if="swapOutDialog.data.onchain">
             <q-select
@@ -269,7 +282,8 @@
               emit-value
               v-model.trim="swapOutDialog.data.onchainaddress"
               type="text"
-              label="Address ">
+              label="Address "
+            >
             </q-input>
           </div>
         </div>
@@ -282,7 +296,11 @@
               />
             </div>
             <div v-else>
-              <q-checkbox :value="false" label="Use Watch-Only Address" disabled>
+              <q-checkbox
+                :value="false"
+                label="Use Watch-Only Address"
+                disabled
+              >
                 <q-tooltip>
                   Watch-Only extension MUST be activated and have a wallet
                 </q-tooltip>
@@ -291,17 +309,18 @@
           </div>
           <div class="col">
             <q-toggle
-                v-model="swapOutDialog.data.recurrent"
-                label="Make this recurrent"
-                color="primary"
-                :disable="swapOutDialog.data.id ? true : false">
-                <q-tooltip>
-                  By enabling this, every time the balance reaches this amount, it will trigger a Swap Out
-                  <br>
-                  It won't trigger a Swap now!
-                </q-tooltip>
-              </q-toggle>
-              
+              v-model="swapOutDialog.data.recurrent"
+              label="Make this recurrent"
+              color="primary"
+              :disable="swapOutDialog.data.id ? true : false"
+            >
+              <q-tooltip>
+                By enabling this, every time the balance reaches this amount, it
+                will trigger a Swap Out
+                <br />
+                It won't trigger a Swap now!
+              </q-tooltip>
+            </q-toggle>
           </div>
         </div>
         <div class="row q-mt-lg">
@@ -311,8 +330,7 @@
             color="primary"
             type="submit"
             :label="swapOutDialog.data.recurrent ? 'Update Recurrent Swap' : 'Update Swap'"
-            ></q-btn
-          >
+          ></q-btn>
           <q-btn
             v-else
             unelevated
@@ -320,9 +338,13 @@
             :disable="(swapOutDialog.data.onchainaddress == null && swapOutDialog.data.onchainwallet == null) || swapOutDialog.data.amount < 1 || swapOutDialog.data.fee < 1"
             type="submit"
             :label="swapOutDialog.data.recurrent ? 'Create Recurrent Swap' : 'Create Swap'"
-            ></q-btn
-          >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="resetSwapOutDialog"
+          ></q-btn>
+          <q-btn
+            v-close-popup
+            flat
+            color="grey"
+            class="q-ml-auto"
+            @click="resetSwapOutDialog"
             >Cancel</q-btn
           >
         </div>
@@ -335,7 +357,7 @@
   Vue.component(VueQrcode.name, VueQrcode)
 
   const mapSwapOuts = obj => {
-    if('fee' in obj) {
+    if ('fee' in obj) {
       obj.fee = obj.fee / 1000 > 1 ? obj.fee / 1000 : 1
     }
     obj.date = Quasar.utils.date.formatDate(
@@ -452,9 +474,15 @@
         visibleColumns: ['wallet', 'threshold', 'address', 'fee'],
         offersTable: {
           columns: [
-            {name: "address", align: "left", label: "Address", field: "addr"},
-            {name: "fee", align: "left", label: "Fee (sat)", field: "fee_msat", format: val => parseInt(val / 1000)},
-            {name: "sat", align: "left", label: "Amount (sat)", field: "sat"},
+            {name: 'address', align: 'left', label: 'Address', field: 'addr'},
+            {
+              name: 'fee',
+              align: 'left',
+              label: 'Fee (sat)',
+              field: 'fee_msat',
+              format: val => parseInt(val / 1000)
+            },
+            {name: 'sat', align: 'left', label: 'Amount (sat)', field: 'sat'}
           ],
           rows: this.offers,
           pagination: {
@@ -464,7 +492,8 @@
         selected: [],
         swapInCard: {
           show: false,
-          data: {}
+          data: {},
+          step: 1
         },
         etl: {},
         receive: {
@@ -477,13 +506,13 @@
     },
     computed: {
       balance() {
-        if(!this.swapOutDialog.data.wallet) return
+        if (!this.swapOutDialog.data.wallet) return
         let walId = this.swapOutDialog.data.wallet
         let wallet = this.getWallet(walId)
-        
-        return `Max: ${wallet.sat}`     
+
+        return `Max: ${wallet.sat}`
       },
-      batchAddresses(){
+      batchAddresses() {
         this.selected.map(obj => {
           return 'Hello'
         })
@@ -509,7 +538,7 @@
           })
       },
       //SWAP OUT
-      resetSwapOutDialog(){
+      resetSwapOutDialog() {
         this.swapOutDialog = {
           show: false,
           data: {
@@ -537,17 +566,17 @@
         let data = {...this.swapOutDialog.data}
         data.fee = data.fee * 1000
 
-        if(data.onchain && data.onchainwallet){
+        if (data.onchain && data.onchainwallet) {
           data.onchainaddress = ''
         } else {
           data.onchainwallet = null
         }
-        
-        if(data.recurrent) {
+
+        if (data.recurrent) {
           data.threshold = data.amount
           delete data.amount
           delete data.recurrent
-          if(data.id) {
+          if (data.id) {
             this.updateRecurrent(wallet, data)
           } else {
             this.createRecurrent(wallet, data)
@@ -563,9 +592,14 @@
       exportSwapOutsCSV() {
         LNbits.utils.exportCSV(this.swapOutsTable.columns, this.swapOuts)
       },
-      createSwapOut(wallet, data){
+      createSwapOut(wallet, data) {
         LNbits.api
-          .request('POST', '/swap/api/v1/out', this.g.user.wallets[0].adminkey, data)
+          .request(
+            'POST',
+            '/swap/api/v1/out',
+            this.g.user.wallets[0].adminkey,
+            data
+          )
           .then(res => {
             this.swapOuts.push(mapSwapOuts(res.data))
             this.resetSwapOutDialog()
@@ -575,7 +609,7 @@
           })
       },
       // RECURRENT
-      getRecurrents(){
+      getRecurrents() {
         LNbits.api
           .request(
             'GET',
@@ -589,41 +623,51 @@
             console.log(this.recurrent)
           })
       },
-      createRecurrent(wallet, data){
+      createRecurrent(wallet, data) {
         LNbits.api
-        .request('POST', '/swap/api/v1/recurrent', this.g.user.wallets[0].adminkey, data)
-        .then(res => {
-          this.recurrent.push(mapSwapOuts(res.data))
-          this.resetSwapOutDialog()
-        })
-        .catch(error => {
-          LNbits.utils.notifyApiError(error)
-        })
+          .request(
+            'POST',
+            '/swap/api/v1/recurrent',
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(res => {
+            this.recurrent.push(mapSwapOuts(res.data))
+            this.resetSwapOutDialog()
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
       },
-      updateRecurrentDialog(swap_id){
+      updateRecurrentDialog(swap_id) {
         let swap = _.findWhere(this.recurrent, {id: swap_id})
         data = _.clone(swap)
         data.amount = data.threshold
         delete data.threshold
         data.recurrent = true
-        if(data.onchainwallet){
-          data.onchain = true 
+        if (data.onchainwallet) {
+          data.onchain = true
           data.onchainaddress = ''
         }
         this.swapOutDialog = {data, show: true}
       },
-      updateRecurrent(wallet, data){
+      updateRecurrent(wallet, data) {
         LNbits.api
-        .request('PUT', '/swap/api/v1/recurrent/' + data.id, this.g.user.wallets[0].adminkey, data)
-        .then(res => {
-          this.getRecurrents()
-          this.resetSwapOutDialog()
-        })
-        .catch(error => {
-          LNbits.utils.notifyApiError(error)
-        })
+          .request(
+            'PUT',
+            '/swap/api/v1/recurrent/' + data.id,
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(res => {
+            this.getRecurrents()
+            this.resetSwapOutDialog()
+          })
+          .catch(error => {
+            LNbits.utils.notifyApiError(error)
+          })
       },
-      deleteRecurrent(swap_id){
+      deleteRecurrent(swap_id) {
         let swap = _.findWhere(this.recurrent, {id: swap_id})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this domain link?')
@@ -631,10 +675,11 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/swap/api/v1/recurrent/' + swap.id, this.g.user.wallets[0].adminkey
+                '/swap/api/v1/recurrent/' + swap.id,
+                this.g.user.wallets[0].adminkey
               )
-              .then((response) => {
-                this.recurrent = _.reject(this.recurrent, (obj) => {
+              .then(response => {
+                this.recurrent = _.reject(this.recurrent, obj => {
                   return obj.id == swap_id
                 })
               })
@@ -644,7 +689,7 @@
           })
       },
       // SWAP IN
-      getSwapIns(){
+      getSwapIns() {
         LNbits.api
           .request(
             'GET',
@@ -660,15 +705,15 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      startSwapIn(){
-        this.getBlockchainTip()
-          .then(() => {
-            this.swapInCard.show = true
-            this.startEventSource()
-            this.getEtlOffers()
-          })
-        },
-      endSwapInCard(){
+      startSwapIn() {
+        this.swapInCard.step = 1
+        this.getBlockchainTip().then(() => {
+          this.swapInCard.show = true
+          this.startEventSource()
+          this.getEtlOffers()
+        })
+      },
+      endSwapInCard() {
         this.selected = []
         this.swapInCard.data = {}
         this.swapInCard.show = false
@@ -683,7 +728,7 @@
           this.swapInCard.data.lnurlAuth = data.auth
           this.swapInCard.data.lnurlW = data.withdraw
           this.etl.lnurls = {...data}
-          if(auto) {
+          if (auto) {
             this.lnurlAuth()
           }
         })
@@ -692,8 +737,8 @@
           this.etl.account = {...data}
           this.swapInCard.data.account = data.account
           this.swapInCard.data.session_id = data.session
-          
-          if(data.balance > 100 * 1000){
+
+          if (data.balance > 100 * 1000) {
             console.log('has balance')
             this.swapInCard.data.balance = data.balance
           }
@@ -704,15 +749,15 @@
         })
         this.es = es
       },
-      lnurlAuth(){
+      lnurlAuth() {
         let auth = this.swapInCard.data.lnurlAuth
-        let selectedWallet = this.g.user.wallets.find(wal => wal.id == this.swapInCard.data.wallet)
+        let selectedWallet = this.g.user.wallets.find(
+          wal => wal.id == this.swapInCard.data.wallet
+        )
+        console.log(auth)
         LNbits.api
-          .request(
-            'GET',
-            `/swap/api/v1/auth/${auth}`,
-            selectedWallet.adminkey
-          ) 
+          .request('GET', `/swap/api/v1/auth/${auth}`, selectedWallet.adminkey)
+          //.then(() => (this.swapInCard.step = 2))
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
@@ -727,7 +772,8 @@
               .map(addr => ({...offers[addr], addr}))
               .map(offer => ({
                 ...offer,
-                reserved: offer.reserved && offer.reserved.to ? offer.reserved.to : null
+                reserved:
+                  offer.reserved && offer.reserved.to ? offer.reserved.to : null
               }))
               .filter(c => !c.reserved)
               .sort((a, b) => a.fee_msat - b.fee_msat)
@@ -736,12 +782,12 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      reserveOffers(){
+      reserveOffers() {
         console.log(this.selected)
         this.swapInCard.data.addresses = this.selected
         let data = {}
         data.addresses = this.selected.filter(addr => {
-          return addr["addr"]
+          return addr['addr']
         })
         data.fees = data.addresses.length * 100
 
@@ -750,7 +796,7 @@
             'POST',
             '/swap/api/v1/reserve/' + this.swapInCard.data.session_id,
             this.g.user.wallets[0].adminkey,
-            data  
+            data
           )
           .then(res => {
             this.swapInCard.data.reserve_id = res.data.id
@@ -769,83 +815,78 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      createSwapIn(){
+      createSwapIn() {
         LNbits.api
-        .request(
-          'POST',
-          '/swap/api/v1/in',
-          this.g.user.wallets[0].adminkey,
-          {
+          .request('POST', '/swap/api/v1/in', this.g.user.wallets[0].adminkey, {
             wallet: this.swapInCard.data.wallet,
             session_id: this.swapInCard.data.account,
             reserve_id: this.swapInCard.data.reserve_id,
             amount: this.selected.reduce((acc, cur) => acc + cur.sat, 0)
-          }
-        )
-        .then(res => {
-          this.swapIns.push(mapSwapOuts(res.data))
-          this.swapInCard.data.id = res.data.id
-          //this.closeReceiveDialog()
-          //this.callStream.close()
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+          })
+          .then(res => {
+            this.swapIns.push(mapSwapOuts(res.data))
+            this.swapInCard.data.id = res.data.id
+            //this.closeReceiveDialog()
+            //this.callStream.close()
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
       async updateSwapIn(swap_id) {
         let swap = _.findWhere(this.swapIns, {id: swap_id})
         this.swapInCard.data = swap
         await this.getEtlOffers()
-        await this.getCallInfo(swap.reserve_id)          
+        await this.getCallInfo(swap.reserve_id)
         this.startEventSource(true)
         this.swapInCard.show = true
+        this.swapInCard.step = 3
         this.scrollToElement('swapin')
-        console.log(this.swapInCard.data)
-     
+        console.log(this.swapInCard)
       },
-      updateSwapInTx(){
+      updateSwapInTx() {
         this.closeReceiveDialog()
         this.callStream.close()
         LNbits.api
-        .request(
-          'PUT',
-          '/swap/api/v1/in/' + this.swapInCard.data.id,
-          this.g.user.wallets[0].adminkey,
-          {
-            txid: this.swapInCard.data.txid
-          }
-        )
-        .then(res => {
-          let wallet = this.swapInCard.data.wallet
-          let lnurl_w = this.swapInCard.data.lnurlW
-          let swap_id = this.swapInCard.data.id
-          this.endSwapInCard()
-          this.callStream.close()
-          this.getSwapIns()
-          this.checkBalance(wallet, lnurl_w, swap_id)
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+          .request(
+            'PUT',
+            '/swap/api/v1/in/' + this.swapInCard.data.id,
+            this.g.user.wallets[0].adminkey,
+            {
+              txid: this.swapInCard.data.txid
+            }
+          )
+          .then(res => {
+            let wallet = this.swapInCard.data.wallet
+            let lnurl_w = this.swapInCard.data.lnurlW
+            let swap_id = this.swapInCard.data.id
+            this.endSwapInCard()
+            this.callStream.close()
+            this.getSwapIns()
+            this.checkBalance(wallet, lnurl_w, swap_id)
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
-      checkBalance(wallet, lnurl_w, swap_id){
+      checkBalance(wallet, lnurl_w, swap_id) {
         let _wallet = this.g.user.wallets.find(wal => wal.id == wallet)
         LNbits.api
-        .request(
-          'GET',
-          `/swap/api/v1/checkbalance/${lnurl_w}?id=${swap_id}`,
-          _wallet.inkey
-        )
-        .then(_ => {
-          this.endSwapInCard()
-          this.es.close()
-          this.getSwapIns()
-        })
-        .catch(function (error) {
-          LNbits.utils.notifyApiError(error)
-        })
+          .request(
+            'GET',
+            `/swap/api/v1/checkbalance/${lnurl_w}?id=${swap_id}`,
+            _wallet.inkey
+          )
+          .then(_ => {
+            this.endSwapInCard()
+            this.es.close()
+            this.getSwapIns()
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
-      callTxSent(swap_id, txid){
+      callTxSent(swap_id, txid) {
         LNbits.api
           .request(
             'GET',
@@ -866,28 +907,24 @@
           })
       },
       getCallInfo(callId) {
-        const contractId = "c8w0c13v75"
-          axios
-            .get(`https://etleneum.com/~/contract/${contractId}/call/${callId}`, {
-              headers: {"Content-Type": "application/json"}
+        const contractId = 'c8w0c13v75'
+        axios
+          .get(`https://etleneum.com/~/contract/${contractId}/call/${callId}`, {
+            headers: {'Content-Type': 'application/json'}
+          })
+          .then(resp => {
+            this.selected = resp.data.value.payload.addresses.map(a => {
+              console.log(this.rawOffers[a])
+              return {addr: a, ...this.rawOffers[a]}
             })
-            .then(resp => {
-              this.selected = resp.data.value.payload.addresses.map(a => {
-                console.log(this.rawOffers[a])
-                return {addr: a, ...this.rawOffers[a]}
-              })
-            })
-            .catch(function (error) {
-              LNbits.utils.notifyApiError(error)
-            })
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
       },
-      callBump(){
+      callBump() {
         LNbits.api
-          .request(
-            'GET',
-            `/swap/api/v1/bump`,
-            this.g.user.wallets[0].inkey
-          )
+          .request('GET', `/swap/api/v1/bump`, this.g.user.wallets[0].inkey)
           .then(res => {
             this.receive.paymentReq = res.data.invoice
             this.receive.show = true
@@ -905,53 +942,59 @@
         this.callStream.close()
       },
       getSelectedString() {
-        return this.selected.length === 0 ? '' :
-        `${this.selected.length} offer${this.selected.length > 1 ? 's' : ''} selected of ${this.offers.length}`
+        return this.selected.length === 0
+          ? ''
+          : `${this.selected.length} offer${
+              this.selected.length > 1 ? 's' : ''
+            } selected of ${this.offers.length}`
       },
       startCallStream(callId, method) {
-        const contractId = "c8w0c13v75"
-        const es = new EventSource(`https://etleneum.com/~~~/contract/${contractId}`);
+        const contractId = 'c8w0c13v75'
+        const es = new EventSource(
+          `https://etleneum.com/~~~/contract/${contractId}`
+        )
 
-        es.addEventListener("call-made", (e) => {
-          let data = JSON.parse(e.data);
-          if(data.id === callId){
+        es.addEventListener('call-made', e => {
+          let data = JSON.parse(e.data)
+          if (data.id === callId) {
             this.$q.notify({
               type: 'positive',
               message: 'Sent, thank you!',
               icon: 'thumb_up'
             })
-            switch(method) {
+            switch (method) {
               case 'reserve':
                 this.createSwapIn()
-                break;
+                this.swapInCard.step = 3
+                break
               case 'txsent':
                 this.updateSwapInTx()
-                break;
+                break
               case 'bump':
                 let {wallet, lnurlW, id} = this.swapInCard.data
                 this.checkBalance(wallet, lnurlW, id)
                 this.getSwapIns()
-                break;
+                break
               default:
                 // code block
                 return
-            } 
+            }
             this.closeReceiveDialog()
           }
-        });
+        })
 
-        es.addEventListener("call-error", (e) => {
-          let data = JSON.parse(e.data);
-          if (data.kind === "internal") {
+        es.addEventListener('call-error', e => {
+          let data = JSON.parse(e.data)
+          if (data.kind === 'internal') {
             this.$q.notify({
               message: `internal error, please notify: ${data.message}`
             })
-          } else if (data.kind === "runtime") {
+          } else if (data.kind === 'runtime') {
             this.$q.notify({
               message: `runtime error: ${data.message}`
             })
           }
-        });
+        })
 
         this.callStream = es
       },
@@ -974,16 +1017,16 @@
           status: 'complete',
           paymentReq: null
         }
-        if (this.callStream){
+        if (this.callStream) {
           this.callStream.close()
         }
       },
       scrollToElement(id) {
         const el = document.getElementById(id)
-        if(el) {
-          el.scrollIntoView({ behavior: "smooth" });
+        if (el) {
+          el.scrollIntoView({behavior: 'smooth'})
         }
-      },
+      }
     },
     created: function () {
       this.getRecurrents()

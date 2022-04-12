@@ -1,149 +1,336 @@
 <q-card id="swapin">
-    <q-card-section v-if="swapInCard.show">
-      <div class="row items-center no-wrap q-mb-md">
-        <div class="col">
-          <h5 class="text-subtitle1 q-my-none">Create Swap In</h5>
-        </div>
-      </div>        
-      <q-form @submit="sendSwapOutFormData" class="q-gutter-md">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="swapInCard.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-          hint="Select LNbits wallet to receive funds"
-          :disable="(swapInCard.data.session_id ? true : false) || !!swapInCard.data.id"
+  <q-card-section v-if="swapInCard.show">
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Create Swap In</h5>
+      </div>
+    </div>
+    <q-form @submit="sendSwapOutFormData" class="q-gutter-md">
+      <q-stepper
+        v-model="swapInCard.step"
+        vertical
+        done-color="green-3"
+        active-color="primary"
+        inactive-color="grey-5"
+        animated
+      >
+        <q-step
+          :name="1"
+          title="Select wallet and authenticate"
+          icon="input"
+          :done="swapInCard.step > 1"
         >
-        </q-select>
-        <div class="row q-mt-lg">
-          <q-btn 
-            v-if="!swapInCard.data.session_id"
-            :disable="swapInCard.data.wallet ? false : true"
-            label="LNURL Auth"
-            flat
-            class="q-ml-auto"
-            color="primary"
-            @click="lnurlAuth()">
-            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-              Perform an LNURL Auth on etleneum with the selected wallet
-            </q-tooltip>
-          </q-btn>
-        </div>
-        <div v-if="!swapInCard.data.id">
-          <q-table            
-            style="height: 400px"
-            title="Choose offers"
-            :data="offers"
-            :columns="offersTable.columns"
-            row-key="addr"
-            :selected-rows-label="getSelectedString"
-            :selected.sync="selected"
-            selection="multiple"
-            virtual-scroll
-            :pagination.sync="offersTable.pagination"
-          ></q-table>
+          <p>
+            Choose the wallet to receive the funds to and click LNURL AUTH
+            button, to authenticate.
+          </p>
+          <q-select
+            filled
+            dense
+            emit-value
+            v-model="swapInCard.data.wallet"
+            :options="g.user.walletOptions"
+            label="Wallet *"
+            hint="Select LNbits wallet to receive funds"
+            :disable="(swapInCard.data.session_id ? true : false) || !!swapInCard.data.id"
+          >
+          </q-select>
           <div class="row q-mt-lg">
-            {%raw%}
-            {{ `Total amount: ${selected.reduce((acc, cur) => acc + cur.sat, 0)}` }}
-            {%endraw%}
-            <q-btn 
-              :disable="!swapInCard.data.session_id || selected.length == 0 || !!swapInCard.data.id"
-              label="Reserve"
+            <q-btn
+              v-if="!swapInCard.data.session_id"
+              :disable="swapInCard.data.wallet ? false : true"
+              label="LNURL Auth"
+              flat
               class="q-ml-auto"
               color="primary"
-              @click="reserveOffers">
+              @click="() => {lnurlAuth(); swapInCard.step = 2}"
+            >
               <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Reserve selected offers
-              </q-tooltip>
-            </q-btn>
-          </div>          
-        </div>
-        <q-list dense>
-          <q-item-label header>Create a batch transaction with the following addresses and amounts</q-item-label>
-          <q-item v-for="row in selected" :key="row.addr">
-            <q-item-section>
-              <q-item-label>
-                {%raw%}<small>{{ row.addr }}, {{ row.sat }}</small>{%endraw%}
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>          
-        <q-input
-          filled
-          dense
-          emit-value
-          label="Enter the transaction ID to complete de Swap"
-          v-model.trim="swapInCard.data.txid"
-          type="text"
-        ></q-input>          
-        <div class="row q-mt-lg">
-          <q-btn 
-            label="close"
-            flat
-            color="primary"
-            @click="endSwapInCard">
-          </q-btn>
-          <div class="q-ml-auto">
-            <q-btn 
-              v-if="swapInCard.data.balance"
-              label="withdraw"
-              class="q-ml-auto"
-              color="primary"
-              @click="checkBalance(swapInCard.data.wallet, swapInCard.data.lnurlW, swapInCard.data.id)">
-              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Withdraw balance to wallet
-              </q-tooltip>
-            </q-btn>
-            <q-btn 
-              v-else-if="swapInCard.data.txid && !swapInCard.data.balance"
-              label="bump"
-              class="q-ml-auto"
-              color="primary"
-              @click="callBump">
-              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Check if transaction is confirmed and if funds are available
-              </q-tooltip>
-            </q-btn>
-            <q-btn 
-              :disable="!!swapInCard.data.id ? false : (selected.length == 0 || !swapInCard.data.wallet)"
-              label="Send TXid"
-              color="primary"
-              @click="callTxSent(swapInCard.data.id, swapInCard.data.txid)">
-              <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-                Send TXID
+                Perform an LNURL Auth on etleneum with the selected wallet
               </q-tooltip>
             </q-btn>
           </div>
-        </div>
-      </q-form>
-    </q-card-section>
-  </q-card>
-
-  <q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
-    <q-card
-      v-if="!receive.paymentReq"
-      class="q-pa-lg q-pt-xl lnbits__dialog-card"
-    >
-    </q-card>
-    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <div class="text-center q-mb-lg">
-        <a :href="'lightning:' + receive.paymentReq">
-          <q-responsive :ratio="1" class="q-mx-xl">
-            <qrcode
-              :value="receive.paymentReq"
-              :options="{width: 340}"
-              class="rounded-borders"
-            ></qrcode>
-          </q-responsive>
-        </a>
-      </div>
-      <div class="row q-mt-lg">
-        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
-          >Copy invoice</q-btn
+        </q-step>
+        <q-step
+          :name="2"
+          title="Select offers"
+          icon="rule"
+          :done="swapInCard.step > 2"
         >
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+          <p>Select wich offers you want</p>
+          <div v-if="!swapInCard.data.id">
+            <q-table
+              style="height: 400px"
+              title="Choose offers"
+              :data="offers"
+              :columns="offersTable.columns"
+              row-key="addr"
+              :selected-rows-label="getSelectedString"
+              :selected.sync="selected"
+              selection="multiple"
+              virtual-scroll
+              :pagination.sync="offersTable.pagination"
+            ></q-table>
+            <div class="row q-mt-lg">
+              {%raw%} {{ `Total amount: ${selected.reduce((acc, cur) => acc +
+              cur.sat, 0)}` }} {%endraw%}
+              <q-btn
+                :disable="!swapInCard.data.session_id || selected.length == 0 || !!swapInCard.data.id"
+                label="Reserve"
+                class="q-ml-auto"
+                color="primary"
+                @click="reserveOffers"
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                >
+                  Reserve selected offers
+                </q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+        </q-step>
+        <q-step
+          :name="3"
+          title="Make the onchain tx"
+          icon="receipt_long"
+          :done="swapInCard.step > 3"
+        >
+          <p>
+            Create the onchain transaction and paste the transaction ID bellow
+          </p>
+          <q-list dense>
+            <q-item-label header
+              >Create a batch transaction with the following addresses and
+              amounts</q-item-label
+            >
+            <q-item v-for="row in selected" :key="row.addr">
+              <q-item-section>
+                <q-item-label>
+                  {%raw%}<small>{{ row.addr }}, {{ row.sat }}</small>{%endraw%}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+          <q-input
+            filled
+            dense
+            emit-value
+            label="Enter the transaction ID to complete de Swap"
+            v-model.trim="swapInCard.data.txid"
+            type="text"
+          ></q-input>
+          <div class="row q-mt-lg">
+            <div class="q-ml-auto">
+              <q-btn
+                v-if="swapInCard.data.balance"
+                label="withdraw"
+                class="q-ml-auto"
+                color="primary"
+                @click="checkBalance(swapInCard.data.wallet, swapInCard.data.lnurlW, swapInCard.data.id)"
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                >
+                  Withdraw balance to wallet
+                </q-tooltip>
+              </q-btn>
+              <q-btn
+                v-else-if="swapInCard.data.id && swapInCard.data.txid && !swapInCard.data.balance"
+                label="bump"
+                class="q-ml-auto"
+                color="primary"
+                @click="callBump"
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                >
+                  Check if transaction is confirmed and if funds are available
+                </q-tooltip>
+              </q-btn>
+              <q-btn
+                :disable="!!swapInCard.data.id ? false : (selected.length == 0 || !swapInCard.data.wallet)"
+                label="Send TXid"
+                color="primary"
+                @click="callTxSent(swapInCard.data.id, swapInCard.data.txid)"
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                >
+                  Send TXID
+                </q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+        </q-step>
+      </q-stepper>
+    </q-form>
+    <div class="row q-mt-lg">
+      <q-btn label="close" flat color="primary" @click="endSwapInCard"> </q-btn>
+    </div>
+  </q-card-section>
+</q-card>
+
+<!-- LET THIS COMMENTED OUT FOR NOW!! -->
+
+<!-- <q-card id="swapin">
+  <q-card-section v-if="swapInCard.show">
+    <div class="row items-center no-wrap q-mb-md">
+      <div class="col">
+        <h5 class="text-subtitle1 q-my-none">Create Swap In</h5>
       </div>
-    </q-card>
-  </q-dialog>
+    </div>
+    <q-form @submit="sendSwapOutFormData" class="q-gutter-md">
+      <q-select
+        filled
+        dense
+        emit-value
+        v-model="swapInCard.data.wallet"
+        :options="g.user.walletOptions"
+        label="Wallet *"
+        hint="Select LNbits wallet to receive funds"
+        :disable="(swapInCard.data.session_id ? true : false) || !!swapInCard.data.id"
+      >
+      </q-select>
+      <div class="row q-mt-lg">
+        <q-btn
+          v-if="!swapInCard.data.session_id"
+          :disable="swapInCard.data.wallet ? false : true"
+          label="LNURL Auth"
+          flat
+          class="q-ml-auto"
+          color="primary"
+          @click="lnurlAuth()"
+        >
+          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+            Perform an LNURL Auth on etleneum with the selected wallet
+          </q-tooltip>
+        </q-btn>
+      </div>
+      <div v-if="!swapInCard.data.id">
+        <q-table
+          style="height: 400px"
+          title="Choose offers"
+          :data="offers"
+          :columns="offersTable.columns"
+          row-key="addr"
+          :selected-rows-label="getSelectedString"
+          :selected.sync="selected"
+          selection="multiple"
+          virtual-scroll
+          :pagination.sync="offersTable.pagination"
+        ></q-table>
+        <div class="row q-mt-lg">
+          {%raw%} {{ `Total amount: ${selected.reduce((acc, cur) => acc +
+          cur.sat, 0)}` }} {%endraw%}
+          <q-btn
+            :disable="!swapInCard.data.session_id || selected.length == 0 || !!swapInCard.data.id"
+            label="Reserve"
+            class="q-ml-auto"
+            color="primary"
+            @click="reserveOffers"
+          >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+              Reserve selected offers
+            </q-tooltip>
+          </q-btn>
+        </div>
+      </div>
+      <q-list dense>
+        <q-item-label header
+          >Create a batch transaction with the following addresses and
+          amounts</q-item-label
+        >
+        <q-item v-for="row in selected" :key="row.addr">
+          <q-item-section>
+            <q-item-label>
+              {%raw%}<small>{{ row.addr }}, {{ row.sat }}</small>{%endraw%}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+      <q-input
+        filled
+        dense
+        emit-value
+        label="Enter the transaction ID to complete de Swap"
+        v-model.trim="swapInCard.data.txid"
+        type="text"
+      ></q-input>
+      <div class="row q-mt-lg"></div>
+      <div class="row q-mt-lg">
+        <q-btn label="close" flat color="primary" @click="endSwapInCard">
+        </q-btn>
+        <div class="q-ml-auto">
+          <q-btn
+            v-if="swapInCard.data.balance"
+            label="withdraw"
+            class="q-ml-auto"
+            color="primary"
+            @click="checkBalance(swapInCard.data.wallet, swapInCard.data.lnurlW, swapInCard.data.id)"
+          >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+              Withdraw balance to wallet
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            v-else-if="swapInCard.data.txid && !swapInCard.data.balance"
+            label="bump"
+            class="q-ml-auto"
+            color="primary"
+            @click="callBump"
+          >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+              Check if transaction is confirmed and if funds are available
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            :disable="!!swapInCard.data.id ? false : (selected.length == 0 || !swapInCard.data.wallet)"
+            label="Send TXid"
+            color="primary"
+            @click="callTxSent(swapInCard.data.id, swapInCard.data.txid)"
+          >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
+              Send TXID
+            </q-tooltip>
+          </q-btn>
+        </div>
+      </div>
+    </q-form>
+  </q-card-section>
+</q-card> -->
+
+<q-dialog v-model="receive.show" position="top" @hide="closeReceiveDialog">
+  <q-card
+    v-if="!receive.paymentReq"
+    class="q-pa-lg q-pt-xl lnbits__dialog-card"
+  >
+  </q-card>
+  <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+    <div class="text-center q-mb-lg">
+      <a :href="'lightning:' + receive.paymentReq">
+        <q-responsive :ratio="1" class="q-mx-xl">
+          <qrcode
+            :value="receive.paymentReq"
+            :options="{width: 340}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+      </a>
+    </div>
+    <div class="row q-mt-lg">
+      <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+        >Copy invoice</q-btn
+      >
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+    </div>
+  </q-card>
+</q-dialog>
