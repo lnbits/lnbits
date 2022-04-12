@@ -71,6 +71,7 @@ currencies = {
     "IMP": "Isle of Man Pound",
     "INR": "Indian Rupee",
     "IQD": "Iraqi Dinar",
+    "IRT": "Iranian Toman",
     "ISK": "Icelandic Króna",
     "JEP": "Jersey Pound",
     "JMD": "Jamaican Dollar",
@@ -179,6 +180,12 @@ class Provider(NamedTuple):
 
 
 exchange_rate_providers = {
+    "exir": Provider(
+        "Exir",
+        "exir.io",
+        "https://api.exir.io/v1/ticker?symbol={from}-{to}",
+        lambda data, replacements: data["last"],
+    ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
