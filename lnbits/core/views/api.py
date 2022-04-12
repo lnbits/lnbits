@@ -99,7 +99,8 @@ async def api_update_balance(
 
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(
-    new_name: str, wallet: WalletTypeInfo = Depends(get_key_type)):
+    new_name: str, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
+):
     await update_wallet(wallet.wallet.id, new_name)
     return {
         "id": wallet.wallet.id,
