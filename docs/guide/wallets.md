@@ -47,7 +47,7 @@ To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroo
 ### LND (REST)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndRestWallet**
-- `LND_REST_ENDPOINT`: ip_address
+- `LND_REST_ENDPOINT`: http://10.147.17.230:8080/
 - `LND_REST_CERT`: /file/path/tls.cert
 - `LND_REST_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
 
