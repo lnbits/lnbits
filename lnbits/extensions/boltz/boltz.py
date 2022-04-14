@@ -79,7 +79,7 @@ def get_mempool_blockheight() -> int:
     return value
 
 async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
-    """ explaination taken from electrum
+    """ explanation taken from electrum
     send on Lightning, receive on-chain
     - User generates preimage, RHASH. Sends RHASH to server.
     - Server creates an LN invoice for RHASH.
