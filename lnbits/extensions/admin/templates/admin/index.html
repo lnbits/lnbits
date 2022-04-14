@@ -31,11 +31,11 @@
       </div>
 
       <q-form @submit="UpdateLNbits">
-      <q-tab-panels v-model="tab" animated>
-        <q-tab-panel name="funding">
-          <q-card-section class="q-pa-none">
-            <h6 class="q-my-none">Wallets Management</h6>
-            <br />
+        <q-tab-panels v-model="tab" animated>
+          <q-tab-panel name="funding">
+            <q-card-section class="q-pa-none">
+              <h6 class="q-my-none">Wallets Management</h6>
+              <br />
               <div>
                 <div class="row">
                   <div class="col">
@@ -62,43 +62,96 @@
                   </div>
                   <div class="col-12 col-md-6">
                     <!-- <q-form @submit="topupWallet"> -->
-                      <p>TopUp a wallet</p>
-                      <div class="row">
-                        <div class="col-12">
-                          <q-input
-                            dense
-                            type="text"
-                            filled
-                            v-model="wallet.data.id"
-                            label="Wallet ID"
-                            hint="Use the wallet ID to topup any wallet"
-                          ></q-input>
-                          <br />
-                        </div>
-                        <div class="col-12">
-                          <q-input
-                            dense
-                            type="number"
-                            filled
-                            v-model="wallet.data.amount"
-                            label="Topup amount"
-                          ></q-input>
-                        </div>
+                    <p>TopUp a wallet</p>
+                    <div class="row">
+                      <div class="col-12">
+                        <q-input
+                          dense
+                          type="text"
+                          filled
+                          v-model="wallet.data.id"
+                          label="Wallet ID"
+                          hint="Use the wallet ID to topup any wallet"
+                        ></q-input>
+                        <br />
                       </div>
-                      <div>
-                        <q-btn
-                          class="q-mt-md float-right"
-                          label="Topup"
-                          color="primary"
-                          @click="topupWallet"
-                        ></q-btn>
+                      <div class="col-12">
+                        <q-input
+                          dense
+                          type="number"
+                          filled
+                          v-model="wallet.data.amount"
+                          label="Topup amount"
+                        ></q-input>
                       </div>
+                    </div>
+                    <div>
+                      <q-btn
+                        class="q-mt-md float-right"
+                        label="Topup"
+                        color="primary"
+                        @click="topupWallet"
+                      ></q-btn>
+                    </div>
                     <!-- </q-form> -->
                     <br />
                   </div>
                 </div>
                 <p>Funding Sources</p>
-                <q-list bordered class="rounded-borders">
+                {% raw %}
+                <q-list v-for="fund in data.admin.funding" :key="fund.id">
+                  <q-expansion-item
+                    expand-separator
+                    icon="payments"
+                    :label="fund.backend_wallet"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <q-input
+                          v-if="fund.endpoint"
+                          filled
+                          type="text"
+                          v-model="fund.endpoint"
+                          label="Endpoint"
+                          class="q-pr-md"
+                        ></q-input>
+                        <q-input
+                          v-if="fund.port"
+                          filled
+                          type="text"
+                          v-model="fund.port"
+                          label="Port"
+                          class="q-pr-md"
+                        ></q-input>
+                        <q-input
+                          v-if="fund.admin_key"
+                          filled
+                          type="text"
+                          v-model="fund.admin_key"
+                          label="Admin Key"
+                          class="q-pr-md"
+                        ></q-input>
+                        <q-input
+                          v-if="fund.cert"
+                          filled
+                          type="text"
+                          v-model="fund.cert"
+                          label="Location of your ssl cert"
+                          class="q-pr-md"
+                        ></q-input>
+                        <q-btn
+                          class="q-mt-md"
+                          label="Save"
+                          flat
+                          color="primary"
+                          @click="updateFunding(fund.backend_wallet)"
+                        ></q-btn>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                </q-list>
+                {% endraw %}
+                <!-- <q-list bordered class="rounded-borders">
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -109,15 +162,23 @@
                       <q-card-section>
                         <q-input
                           filled
+                          type="text"
                           v-model="data.admin.funding.CLightningWallet.endpoint"
                           label="GRPC Endpoint"
                           class="q-pr-md"
                           hint="ie /home/bob/.lightning/bitcoin/lightning-rpc"
                         ></q-input>
+                        <q-btn
+                          class="q-mt-md"
+                          label="Save"
+                          flat
+                          color="primary"
+                          @click="updateFunding(data.admin.funding.CLightningWallet.backend_wallet)"
+                        ></q-btn>
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -153,7 +214,7 @@
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -197,7 +258,7 @@
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -226,7 +287,7 @@
                             ></q-input>
                           </div>
                         </div>
-        
+
                         <div class="row">
                           <div class="col">
                             <q-input
@@ -250,7 +311,7 @@
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -274,7 +335,7 @@
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -304,7 +365,7 @@
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -339,7 +400,7 @@
                       </q-card-section>
                     </q-card>
                   </q-expansion-item>
-        
+
                   <q-expansion-item
                     expand-separator
                     icon="payments"
@@ -361,29 +422,19 @@
                         </div>
                       </q-card-section>
                     </q-card>
-                  </q-expansion-item> </q-list
-                >
-            </div>
-            
-            <div class="row q-mt-lg">
-              <q-btn
-                unelevated
-                color="primary"
-                type="submit"
-                >Save</q-btn
-              >
-            </div>
-          </q-card-section>
-        </q-tab-panel>
-        <q-tab-panel name="users">
-          <q-card-section class="q-pa-none">
-            <h6 class="q-my-none">User Management</h6>
-            <br />
-            <p class="q-my-none">
-              Super Admin: {% raw
-              %}{{this.data.admin.user}}{% endraw %}
-            </p>
-            <br />
+                  </q-expansion-item>
+                </q-list> -->
+              </div>
+            </q-card-section>
+          </q-tab-panel>
+          <q-tab-panel name="users">
+            <q-card-section class="q-pa-none">
+              <h6 class="q-my-none">User Management</h6>
+              <br />
+              <p class="q-my-none">
+                Super Admin: {% raw %}{{this.data.admin.user}}{% endraw %}
+              </p>
+              <br />
               <div>
                 <p>Admin Users</p>
                 <q-input
@@ -392,12 +443,15 @@
                   @keydown.enter="addAdminUser"
                   type="text"
                   label="User ID"
-                  hint="Users with admin privileges">
+                  hint="Users with admin privileges"
+                >
                   <q-btn @click="addAdminUser" dense flat icon="add"></q-btn>
                 </q-input>
                 <div>
                   {% raw %}
-                  <q-chip v-for="user in data.admin.admin_users.slice(1)"
+                  <q-chip
+                    v-for="user in data.admin.admin_users.slice(1)"
+                    :key="user"
                     removable
                     @remove="removeAdminUser(user)"
                     color="primary"
@@ -408,80 +462,82 @@
                   {% endraw %}
                 </div>
                 <br />
-            </div>
-            <div>
-              <p>Allowed Users</p>
-              <q-input
-                filled
-                v-model="data.allowed_users_add"
-                @keydown.enter="addAllowedUser"
-                type="text"
-                label="User ID"
-                hint="Only these users can use LNbits">
-                <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
-              </q-input>
+              </div>
               <div>
-                {% raw %}
-                <q-chip v-for="user in data.admin.allowed_users"
-                  removable
-                  @remove="removeAllowedUser(user)"
-                  color="primary"
-                  text-color="white"
+                <p>Allowed Users</p>
+                <q-input
+                  filled
+                  v-model="data.allowed_users_add"
+                  @keydown.enter="addAllowedUser"
+                  type="text"
+                  label="User ID"
+                  hint="Only these users can use LNbits"
                 >
-                  {{ user }}
-                </q-chip>
-                {% endraw %}
+                  <q-btn @click="addAllowedUser" dense flat icon="add"></q-btn>
+                </q-input>
+                <div>
+                  {% raw %}
+                  <q-chip
+                    v-for="user in data.admin.allowed_users"
+                    :key="user"
+                    removable
+                    @remove="removeAllowedUser(user)"
+                    color="primary"
+                    text-color="white"
+                  >
+                    {{ user }}
+                  </q-chip>
+                  {% endraw %}
+                </div>
+                <br />
               </div>
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-6">
+                  <p>Admin Extensions</p>
+                  <q-select
+                    filled
+                    v-model="data.admin.admin_ext"
+                    multiple
+                    hint="Extensions only user with admin privileges can use"
+                    :options="options"
+                    label="Admin extensions"
+                  ></q-select>
+                  <br />
+                </div>
+                <div class="col-12 col-md-6">
+                  <p>Disabled Extensions</p>
+                  <q-select
+                    filled
+                    v-model="data.admin.disabled_ext"
+                    multiple
+                    hint="Disable extensions *amilk disabled by default as resource heavy"
+                    :options="options"
+                    label="Disable extensions"
+                  ></q-select>
+                  <br />
+                </div>
+              </div>
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit">Save</q-btn>
+              </div>
+            </q-card-section>
+          </q-tab-panel>
+          <q-tab-panel name="server">
+            <q-card-section class="q-pa-none">
+              <h6 class="q-my-none">Server Management</h6>
               <br />
-            </div>
-            <div class="row q-col-gutter-md">
-              <div class="col-12 col-md-6">
-                <p>Admin Extensions</p>
-                <q-select
-                  filled
-                  v-model="data.admin.admin_ext"
-                  multiple
-                  hint="Extensions only user with admin privileges can use"
-                  :options="options"
-                  label="Admin extensions"
-                ></q-select>
-                <br />
-              </div>
-              <div class="col-12 col-md-6">
-                <p>Disabled Extensions</p>
-                <q-select
-                  filled
-                  v-model="data.admin.disabled_ext"
-                  multiple
-                  hint="Disable extensions *amilk disabled by default as resource heavy"
-                  :options="options"
-                  label="Disable extensions"
-                ></q-select>
-                <br />
-              </div>
-            </div>
-            <div class="row q-mt-lg">
-              <q-btn
-                unelevated
-                color="primary"
-                type="submit"
-                >Save</q-btn
-              >
-            </div>
-          </q-card-section>
-        </q-tab-panel>
-        <q-tab-panel name="server">
-          <q-card-section class="q-pa-none">
-            <h6 class="q-my-none">Server Management</h6>
-            <br />
               <div>
                 <div class="row">
                   <div class="col">
                     <p>Server Info</p>
                     <ul>
                       {%raw%}
-                      <li v-if="data.admin.data_folder">SQlite: {{data.admin.data_folder}}</li>
-                      <li v-if="data.admin.database_url">Postgres: {{data.admin.database_url}}</li>
+                      <li v-if="data.admin.data_folder">
+                        SQlite: {{data.admin.data_folder}}
+                      </li>
+                      <li v-if="data.admin.database_url">
+                        Postgres: {{data.admin.database_url}}
+                      </li>
                       {%endraw%}
                     </ul>
                     <br />
@@ -520,7 +576,10 @@
                     <q-item tag="label" v-ripple>
                       <q-item-section>
                         <q-item-label>Hide API</q-item-label>
-                        <q-item-label caption>Hides wallet api, extensions can choose to honor</q-item-label>
+                        <q-item-label caption
+                          >Hides wallet api, extensions can choose to
+                          honor</q-item-label
+                        >
                       </q-item-section>
                       <q-item-section avatar>
                         <q-toggle
@@ -535,22 +594,17 @@
                     <br />
                   </div>
                 </div>
-            </div>
-            
-            <div class="row q-mt-lg">
-              <q-btn
-                unelevated
-                color="primary"
-                type="submit"
-                >Save</q-btn
-              >
-            </div>
-          </q-card-section>
-        </q-tab-panel>
-        <q-tab-panel name="theme">
-          <q-card-section class="q-pa-none">
-            <h6 class="q-my-none">UI Management</h6>
-            <br />
+              </div>
+
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit">Save</q-btn>
+              </div>
+            </q-card-section>
+          </q-tab-panel>
+          <q-tab-panel name="theme">
+            <q-card-section class="q-pa-none">
+              <h6 class="q-my-none">UI Management</h6>
+              <br />
               <div>
                 <div class="row q-col-gutter-md">
                   <div class="col-12 col-md-6">
@@ -575,15 +629,15 @@
                   </div>
                 </div>
                 <div>
-                    <p>Site Description</p>
-                    <q-input
-                      v-model="data.admin.site_description"
-                      filled
-                      type="textarea"
-                      hint="Use plain text or raw HTML"
-                    />
-                  </div>
-                  <br />
+                  <p>Site Description</p>
+                  <q-input
+                    v-model="data.admin.site_description"
+                    filled
+                    type="textarea"
+                    hint="Use plain text or raw HTML"
+                  />
+                </div>
+                <br />
                 <div class="row q-col-gutter-md">
                   <div class="col-12 col-md-6">
                     <p>Default Wallet Name</p>
@@ -628,12 +682,15 @@
                       @keydown.enter="addAdSpace"
                       type="text"
                       label="Ad image URL"
-                      hint="Ad image filepaths or urls, extensions can choose to honor">
+                      hint="Ad image filepaths or urls, extensions can choose to honor"
+                    >
                       <q-btn @click="addAdSpace" dense flat icon="add"></q-btn>
                     </q-input>
                     <div>
                       {% raw %}
-                      <q-chip v-for="space in data.admin.ad_space"
+                      <q-chip
+                        v-for="space in data.admin.ad_space"
+                        :key="space"
                         removable
                         @remove="removeAdSpace(space)"
                         color="primary"
@@ -646,26 +703,19 @@
                     <br />
                   </div>
                 </div>
-            </div>
-            
-            <div class="row q-mt-lg">
-              <q-btn
-                unelevated
-                color="primary"
-                type="submit"
-                >Save</q-btn
-              >
-            </div>
-          </q-card-section>
-        </q-tab-panel>
-      </q-tab-panels>
-    </q-form>
+              </div>
+
+              <div class="row q-mt-lg">
+                <q-btn unelevated color="primary" type="submit">Save</q-btn>
+              </div>
+            </q-card-section>
+          </q-tab-panel>
+        </q-tab-panels>
+      </q-form>
     </q-card>
   </div>
-  </div>
-  <!-- END TABS -->
-<h3 class="q-my-none">Admin</h3>
-<p></p>
+</div>
+<!-- END TABS -->
 <!--
   Forked from:
   https://quasar.dev/vue-components/form#Example--Basic
@@ -1039,42 +1089,6 @@
       </q-form>
     </q-card>
   </div> -->
-
-  <div class="col-4">
-    <q-card class="q-mr-md">
-      <q-form class="q-px-md q-py-md" @submit="topupWallet">
-        <div class="text-h6" class="q-px-md">Wallet topup</div>
-        <div class="row">
-          <div class="col-8">
-            <q-input
-              type="text"
-              filled
-              v-model="wallet.data.id"
-              label="Wallet ID"
-              class="q-pr-md"
-              hint="Use the wallet ID to topup any wallet"
-            ></q-input>
-          </div>
-          <div class="col-4">
-            <q-input
-              type="number"
-              filled
-              v-model="wallet.data.amount"
-              label="Topup amount"
-            ></q-input>
-          </div>
-        </div>
-        <div>
-          <q-btn
-            class="q-mt-md"
-            label="Topup"
-            type="submit"
-            color="primary"
-          ></q-btn>
-        </div>
-      </q-form>
-    </q-card>
-  </div>
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
@@ -1100,14 +1114,22 @@
             'LnbitsWallet',
             'OpenNodeWallet'
           ],
-          
+
           admin: {
             edited: [],
-            funding: {},
+            funding: [],
             senddata: {}
           }
         },
-        themes: ['classic', 'bitcoin', 'flamingo', 'mint', 'autumn', 'monochrome', 'salvador'],
+        themes: [
+          'classic',
+          'bitcoin',
+          'flamingo',
+          'mint',
+          'autumn',
+          'monochrome',
+          'salvador'
+        ],
         options: [
           'bleskomat',
           'captcha',
@@ -1139,10 +1161,13 @@
         self.cancel.on = true
       }
       funding = JSON.parse(String('{{ funding  | tojson|safe }}'))
-      var i
+      funding.map(f => {
+        this.data.admin.funding.push(f)
+      })
+      /*var i
       for (i = 0; i < funding.length; i++) {
         self.data.admin.funding[funding[i].backend_wallet] = funding[i]
-      }
+      }*/
       let settings = JSON.parse('{{ settings | tojson|safe }}')
       settings.balance = '{{ balance }}'
       this.data.admin = {...this.data.admin, ...settings}
@@ -1150,42 +1175,42 @@
       console.log(settings)
     },
     methods: {
-      addAdminUser(){
+      addAdminUser() {
         let addUser = this.data.admin_users_add
         let admin_users = this.data.admin.admin_users
-        if(addUser.length && !admin_users.includes(addUser)){
+        if (addUser.length && !admin_users.includes(addUser)) {
           admin_users.push(addUser)
           this.data.admin.admin_users = admin_users
-          this.data.admin_users_add = ""
+          this.data.admin_users_add = ''
         }
       },
-      removeAdminUser(user){
+      removeAdminUser(user) {
         let admin_users = this.data.admin.admin_users
         this.data.admin.admin_users = admin_users.filter(u => u !== user)
       },
-      addAllowedUser(){
+      addAllowedUser() {
         let addUser = this.data.allowed_users_add
         let allowed_users = this.data.admin.allowed_users
-        if(addUser.length && !allowed_users.includes(addUser)){
+        if (addUser.length && !allowed_users.includes(addUser)) {
           allowed_users.push(addUser)
           this.data.admin.allowed_users = allowed_users
-          this.data.allowed_users_add = ""
+          this.data.allowed_users_add = ''
         }
       },
-      removeAllowedUser(user){
+      removeAllowedUser(user) {
         let allowed_users = this.data.admin.allowed_users
         this.data.admin.allowed_users = allowed_users.filter(u => u !== user)
       },
-      addAdSpace(){
+      addAdSpace() {
         let adSpace = this.data.ad_space_add
         let spaces = this.data.admin.ad_space
-        if(adSpace.length && !spaces.includes(adSpace)){
+        if (adSpace.length && !spaces.includes(adSpace)) {
           spaces.push(adSpace)
           this.data.admin.ad_space = spaces
-          this.data.ad_space_add = ""
+          this.data.ad_space_add = ''
         }
       },
-      removeAdSpace(ad){
+      removeAdSpace(ad) {
         let spaces = this.data.admin.ad_space
         this.data.admin.ad_space = spaces.filter(s => s !== ad)
       },
@@ -1199,14 +1224,14 @@
               this.wallet.data.amount,
             this.g.user.wallets[0].adminkey
           )
-          .then((response) => {
+          .then(response => {
             this.$q.notify({
               type: 'positive',
               message:
-              'Success! Added ' +
-              this.wallet.data.amount +
-              ' to ' +
-              this.wallet.data.id,
+                'Success! Added ' +
+                this.wallet.data.amount +
+                ' to ' +
+                this.wallet.data.id,
               icon: null
             })
             this.wallet.data = {}
@@ -1223,6 +1248,29 @@
         var self = this
         self.data.admin.edited.push(source)
         console.log(self.data.admin.edited)
+      },
+      updateFunding(fund) {
+        let data = this.data.admin.funding.find(v => v.backend_wallet == fund)
+
+        LNbits.api
+          .request(
+            'POST',
+            '/admin/api/v1/admin/funding',
+            this.g.user.wallets[0].adminkey,
+            data
+          )
+          .then(response => {
+            //let wallet = response.data.backend_wallet
+            //this.data.admin.funding[wallet] = response.data
+            //this.data.admin.funding[wallet].endpoint = response.data.endpoint
+            //console.log(this.data.admin.funding)
+            //console.log(this.data.admin)
+            this.$q.notify({
+              type: 'positive',
+              message: `Success! ${response.data.backend_wallet} changed!`,
+              icon: null
+            })
+          })
       },
       UpdateLNbits() {
         let {
@@ -1272,8 +1320,7 @@
             console.log(response.data)
             this.$q.notify({
               type: 'positive',
-              message:
-                'Success! Settings changed!',
+              message: 'Success! Settings changed!',
               icon: null
             })
           })

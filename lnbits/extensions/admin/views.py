@@ -21,8 +21,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     admin = await get_admin()
     funding = [f.dict() for f in await get_funding()]
     error, balance = await g().WALLET.status()
-    print("ADMIN", admin.dict())
-    print(g().admin_conf)
+    
     return admin_renderer().TemplateResponse(
         "admin/index.html", {
             "request": request,
