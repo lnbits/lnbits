@@ -7,11 +7,11 @@ from starlette.exceptions import HTTPException
 from lnbits.core.crud import get_wallet
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.extensions.admin import admin_ext
-from lnbits.extensions.admin.models import Admin, UpdateAdminSettings
+from lnbits.extensions.admin.models import Admin, Funding, UpdateAdminSettings
 from lnbits.helpers import removeEmptyString
 from lnbits.requestvars import g
 
-from .crud import get_admin, update_admin, update_wallet_balance
+from .crud import get_admin, update_admin, update_funding, update_wallet_balance
 
 
 @admin_ext.get("/api/v1/admin/{wallet_id}/{topup_amount}", status_code=HTTPStatus.OK)
@@ -53,3 +53,18 @@ async def api_update_admin(
     
     print(g().admin_conf)
     return {"status": "Success"}
+
+@admin_ext.post("/api/v1/admin/funding/", status_code=HTTPStatus.OK)
+async def api_update_funding(
+    request: Request,
+    data: Funding = Body(...),
+    w: WalletTypeInfo = Depends(require_admin_key)
+    ):
+    admin = await get_admin()
+
+    if not admin.user == w.wallet.user:
+        raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not allowed: not an admin"
+            )
+    funding = await update_funding(data=data)
+    return funding

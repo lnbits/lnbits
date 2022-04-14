@@ -39,6 +39,18 @@ async def get_admin() -> Admin:
     row = await db.fetchone("SELECT * FROM admin")
     return Admin(**row) if row else None
 
+async def update_funding(data: Funding) -> Funding:
+    await db.execute(
+        """
+        UPDATE funding
+        SET backend_wallet = ?, endpoint = ?, port = ?, read_key = ?, invoice_key = ?, admin_key = ?, cert = ?, balance = ?, selected = ?
+        WHERE id = ?
+        """, 
+        (data.backend_wallet, data.endpoint, data.port, data.read_key, data.invoice_key, data.admin_key, data.cert, data.balance, data.selected, data.id,),
+    )
+    row = await db.fetchone('SELECT * FROM funding WHERE "id" = ?', (data.id,))
+    assert row, "Newly updated settings couldn't be retrieved"
+    return Funding(**row) if row else None
 
 async def get_funding() -> List[Funding]:
     rows = await db.fetchall("SELECT * FROM funding")
