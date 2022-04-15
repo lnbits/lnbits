@@ -110,16 +110,15 @@ async def api_update_wallet(
 
 
 @core_app.get("/api/v1/payments")
-async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
-    await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
+async def api_payments(limit: Optional[int]=None, offset: Optional[int]=None, wallet: WalletTypeInfo = Depends(get_key_type)):
     pendingPayments = await get_payments(
-        wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True
+        wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True, limit=limit, offset=offset
     )
     for payment in pendingPayments:
         await check_invoice_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
-    return await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True)
+    return await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True, limit=limit, offset=offset)
 
 
 class CreateInvoiceData(BaseModel):
