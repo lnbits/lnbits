@@ -621,7 +621,7 @@ new Vue({
       if (!newName || !newName.length) return
       // let data = {name: newName}
       LNbits.api
-        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.inkey, {})
+        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.adminkey, {})
         .then(res => {
           this.newName = ''
           this.$q.notify({
