@@ -582,7 +582,7 @@ async def api_fiat_as_sats(data: ConversionData):
         output["BTC"] = output["sats"] / 100000000
         return output
 
-@withdraw_ext.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
+@core_app.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
 async def img(request: Request, data):
     qr = pyqrcode.create(data)
     stream = BytesIO()
