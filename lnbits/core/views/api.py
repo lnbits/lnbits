@@ -8,6 +8,7 @@ from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
 import pyqrcode
+from io import BytesIO
 from starlette.responses import HTMLResponse, StreamingResponse
 from fastapi import Query, Request, Header
 from fastapi.exceptions import HTTPException
