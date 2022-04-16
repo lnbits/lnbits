@@ -1,0 +1,33 @@
+{% extends "print.html" %} {% block page %}
+
+<div class="row">
+    <div class="" id="vue">
+        {% for page in link %}
+        <page size="A4" id="pdfprint">
+            <table style="width: 100%">
+                {% for threes in page %}
+                <tr style="height: 59.4mm">
+                    {% for one in threes %}
+                    <td style="width: 105mm">{{ theurl }}/?lightning={{one}},</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </page>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+    Vue.component(VueQrcode.name, VueQrcode)
+
+    new Vue({
+        el: '#vue',
+        data: function() {
+            return {
+                theurl: location.protocol + '//' + location.host
+            }
+        }
+    })
+</script>
+{% endblock %}
