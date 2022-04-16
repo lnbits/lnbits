@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
+import pyqrcode
 from fastapi import Query, Request, Header
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
@@ -580,3 +581,23 @@ async def api_fiat_as_sats(data: ConversionData):
         output["sats"] = await fiat_amount_as_satoshis(data.amount, data.from_)
         output["BTC"] = output["sats"] / 100000000
         return output
+
+@withdraw_ext.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
+async def img(request: Request, data):
+    qr = pyqrcode.create(data)
+    stream = BytesIO()
+    qr.svg(stream, scale=3)
+    stream.seek(0)
+
+    async def _generator(stream: BytesIO):
+        yield stream.getvalue()
+
+    return StreamingResponse(
+        _generator(stream),
+        headers={
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
