@@ -24,6 +24,9 @@ class Extension(NamedTuple):
 
 class ExtensionManager:
     def __init__(self):
+        if settings.LNBITS_ADMIN_UI:
+            settings.LNBITS_DISABLED_EXTENSIONS = g().admin_conf.disabled_ext
+            settings.LNBITS_ADMIN_EXTENSIONS = g().admin_conf.admin_ext
         self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
         self._admin_only: List[str] = [x.strip(' ') for x in settings.LNBITS_ADMIN_EXTENSIONS]
         self._extension_folders: List[str] = [
