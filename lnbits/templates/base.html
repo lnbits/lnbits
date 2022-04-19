@@ -1,49 +1,33 @@
 <!DOCTYPE html>
 
 <html lang="en">
-  <head>
-    {% for url in VENDORED_CSS %}
-    <link rel="stylesheet" type="text/css" href="{{ url }}" />
-    {% endfor %}
-    <!---->
-    <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
 
-    {% block styles %}{% endblock %}
+<head>
+    {% for url in VENDORED_CSS %}
+    <link rel="stylesheet" type="text/css" href="{{ url }}" /> {% endfor %}
+    <!---->
+    <link rel="stylesheet" type="text/css" href="/static/css/base.css" /> {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    {% block head_scripts %}{% endblock %}
-  </head>
+    <meta name="apple-mobile-web-app-capable" content="yes" /> {% block head_scripts %}{% endblock %}
+</head>
 
-  <body data-theme="bitcoin">
+<body data-theme="bitcoin">
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
-      <q-header bordered class="bg-marginal-bg">
-        <q-toolbar>
-          {% block drawer_toggle %}
-          <q-btn
-            dense
-            flat
-            round
-            icon="menu"
-            @click="g.visibleDrawer = !g.visibleDrawer"
-          ></q-btn>
-          {% endblock %}
-          <q-toolbar-title>
-            <q-btn flat no-caps dense size="lg" type="a" href="/">
-              {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
-              SITE_TITLE }} {% else %} <strong>LN</strong>bits {% endif %} {%
-              endblock %}</q-btn
-            >
-          </q-toolbar-title>
-          {% block beta %}
-          <q-badge color="yellow" text-color="black" class="q-mr-md">
-            <span
-              ><span v-show="$q.screen.gt.sm"
+        <q-header bordered class="bg-marginal-bg">
+            <q-toolbar>
+                {% block drawer_toggle %}
+                <q-btn dense flat round icon="menu" @click="g.visibleDrawer = !g.visibleDrawer"></q-btn>
+                {% endblock %}
+                <q-toolbar-title>
+                    <q-btn flat no-caps dense size="lg" type="a" href="/">
+                        {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else %} <strong>LN</strong>bits {% endif %} {% endblock %}</q-btn>
+                </q-toolbar-title>
+                {% block beta %}
+                <q-badge color="yellow" text-color="black" class="q-mr-md">
+                    <span><span v-show="$q.screen.gt.sm"
                 >USE WITH CAUTION - {{SITE_TITLE}} wallet is still in </span
               >BETA</span
             >
@@ -117,6 +101,16 @@
                 color="blue-10"
                 size="md"
                 ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('freedom')"
+                dense
+                flat
+                @click="changeColor('freedom')"
+                icon="format_color_fill"
+                color="pink-1"
+                size="md"
+                ><q-tooltip>Freedom</q-tooltip>
               </q-btn>
               <q-btn
                 v-if="g.allowedThemes.includes('flamingo')"
