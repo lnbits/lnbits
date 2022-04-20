@@ -7,7 +7,6 @@
     {% endfor %}
     <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
-
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -117,6 +116,16 @@
                 color="blue-10"
                 size="md"
                 ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('freedom')"
+                dense
+                flat
+                @click="changeColor('freedom')"
+                icon="format_color_fill"
+                color="pink-13"
+                size="md"
+                ><q-tooltip>Freedom</q-tooltip>
               </q-btn>
               <q-btn
                 v-if="g.allowedThemes.includes('flamingo')"

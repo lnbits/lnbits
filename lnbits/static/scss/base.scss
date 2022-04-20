@@ -1,186 +1,143 @@
-$themes: (
-  'classic': (
-    primary: #673ab7,
-    secondary: #9c27b0,
-    dark: #1f2234,
-    info: #333646,
-    marginal-bg: #1f2234,
-    marginal-text: #fff
-  ),
-  'bitcoin': (
-    primary: #ff9853,
-    secondary: #ff7353,
-    dark: #2d293b,
-    info: #333646,
-    marginal-bg: #2d293b,
-    marginal-text: #fff
-  ),
-  'mint': (
-    primary: #3ab77d,
-    secondary: #27b065,
-    dark: #1f342b,
-    info: #334642,
-    marginal-bg: #1f342b,
-    marginal-text: #fff
-  ),
-  'autumn': (
-    primary: #b7763a,
-    secondary: #b07927,
-    dark: #34291f,
-    info: #463f33,
-    marginal-bg: #342a1f,
-    marginal-text: rgb(255, 255, 255)
-  ),
-  'flamingo': (
-    primary: #d11d53,
-    secondary: #db3e6d,
-    dark: #803a45,
-    info: #ec7599,
-    marginal-bg: #803a45,
-    marginal-text: rgb(255, 255, 255)
-  ),
-  'monochrome': (
-    primary: #494949,
-    secondary: #6b6b6b,
-    dark: #000,
-    info: rgb(39, 39, 39),
-    marginal-bg: #000,
-    marginal-text: rgb(255, 255, 255)
-  )
-);
-
-@each $theme, $colors in $themes {
-  @each $name, $color in $colors {
-    @if $name == 'dark' {
-      [data-theme='#{$theme}'] .q-drawer--dark,
-      body[data-theme='#{$theme}'].body--dark,
-      [data-theme='#{$theme}'] .q-menu--dark {
-        background: $color !important;
-      }
-
-      /* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
+$themes: ( 'classic': ( primary: #673ab7, secondary: #9c27b0, dark: #1f2234, info: #333646, marginal-bg: #1f2234, marginal-text: #fff), 'bitcoin': ( primary: #ff9853, secondary: #ff7353, dark: #2d293b, info: #333646, marginal-bg: #2d293b, marginal-text: #fff), 'freedom': ( primary: #e22156, secondary: #b91a45, dark: #0a0a0a, info: #1b1b1b, marginal-bg: #2d293b, marginal-text: #fff), 'mint': ( primary: #3ab77d, secondary: #27b065, dark: #1f342b, info: #334642, marginal-bg: #1f342b, marginal-text: #fff), 'autumn': ( primary: #b7763a, secondary: #b07927, dark: #34291f, info: #463f33, marginal-bg: #342a1f, marginal-text: rgb(255, 255, 255)), 'flamingo': ( primary: #d11d53, secondary: #db3e6d, dark: #803a45, info: #ec7599, marginal-bg: #803a45, marginal-text: rgb(255, 255, 255)), 'monochrome': ( primary: #494949, secondary: #6b6b6b, dark: #000, info: rgb(39, 39, 39), marginal-bg: #000, marginal-text: rgb(255, 255, 255)));
+@each $theme,
+$colors in $themes {
+    @each $name,
+    $color in $colors {
+        @if $name=='dark' {
+            [data-theme='#{$theme}'] .q-drawer--dark,
+            body[data-theme='#{$theme}'].body--dark,
+            [data-theme='#{$theme}'] .q-menu--dark {
+                background: $color !important;
+            }
+            /* IF WANTING TO SET A DARKER BG COLOR IN THE FUTURE
       // set a darker body bg for all themes, when in "dark mode"
       body[data-theme='#{$theme}'].body--dark {
         background: scale-color($color, $lightness: -60%);
       }
       */
+        }
+        @if $name=='info' {
+            [data-theme='#{$theme}'] .q-card--dark,
+            [data-theme='#{$theme}'] .q-stepper--dark {
+                background: $color !important;
+            }
+        }
     }
-    @if $name == 'info' {
-      [data-theme='#{$theme}'] .q-card--dark,
-      [data-theme='#{$theme}'] .q-stepper--dark {
-        background: $color !important;
-      }
+    [data-theme='#{$theme}'] {
+        @each $name,
+        $color in $colors {
+            .bg-#{$name} {
+                background: $color !important;
+            }
+            .text-#{$name} {
+                color: $color !important;
+            }
+        }
     }
-  }
-  [data-theme='#{$theme}'] {
-    @each $name, $color in $colors {
-      .bg-#{$name} {
-        background: $color !important;
-      }
-      .text-#{$name} {
-        color: $color !important;
-      }
-    }
-  }
 }
+
+[data-theme='freedom'] .q-drawer--dark {
+    background: #0a0a0a !important;
+}
+
+[data-theme='freedom'] .q-header {
+    background: #0a0a0a !important;
+}
+
 [data-theme='salvador'] .q-drawer--dark {
-  background: #242424 !important;
+    background: #242424 !important;
 }
 
 [data-theme='salvador'] .q-header {
-  background: #0f47af !important;
+    background: #0f47af !important;
 }
 
 [data-theme='flamingo'] .q-drawer--dark {
-  background: #e75480 !important;
+    background: #e75480 !important;
 }
 
 [data-theme='flamingo'] .q-header {
-  background: #e75480 !important;
+    background: #e75480 !important;
 }
 
 [v-cloak] {
-  display: none;
+    display: none;
 }
 
 body.body--dark .q-table--dark {
-  background: transparent;
+    background: transparent;
 }
 
 body.body--dark .q-field--error {
-  .text-negative,
-  .q-field__messages {
-    color: yellow !important;
-  }
+    .text-negative,
+    .q-field__messages {
+        color: yellow !important;
+    }
 }
 
 .lnbits-drawer__q-list .q-item {
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px;
-
-  &.q-item--active {
-    color: inherit;
-    font-weight: bold;
-  }
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    &.q-item--active {
+        color: inherit;
+        font-weight: bold;
+    }
 }
 
 .lnbits__dialog-card {
-  width: 500px;
+    width: 500px;
 }
 
 .q-table--dense {
-  th:first-child,
-  td:first-child,
-  .q-table__bottom {
-    padding-left: 6px !important;
-  }
-
-  th:last-child,
-  td:last-child,
-  .q-table__bottom {
-    padding-right: 6px !important;
-  }
+    th:first-child,
+    td:first-child,
+    .q-table__bottom {
+        padding-left: 6px !important;
+    }
+    th:last-child,
+    td:last-child,
+    .q-table__bottom {
+        padding-right: 6px !important;
+    }
 }
 
 a.inherit {
-  color: inherit;
-  text-decoration: none;
+    color: inherit;
+    text-decoration: none;
 }
 
 // QR video
-
 video {
-  border-radius: 3px;
+    border-radius: 3px;
 }
 
 // Material icons font
-
 @font-face {
-  font-family: 'Material Icons';
-  font-style: normal;
-  font-weight: 400;
-  src: url(../fonts/material-icons-v50.woff2) format('woff2');
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    src: url(../fonts/material-icons-v50.woff2) format('woff2');
 }
 
 .material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -moz-font-feature-settings: 'liga';
-  -moz-osx-font-smoothing: grayscale;
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -moz-font-feature-settings: 'liga';
+    -moz-osx-font-smoothing: grayscale;
 }
 
 // text-wrap
 .text-wrap {
-  word-break: break-word;
+    word-break: break-word;
 }
