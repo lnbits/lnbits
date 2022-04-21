@@ -27,7 +27,7 @@ async def update_wallet_balance(wallet_id: str, amount: int) -> str:
 
 async def update_admin(user: str, **kwargs) -> Admin:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    print("UPDATE", q)
+    # print("UPDATE", q)
     await db.execute(
         f'UPDATE admin SET {q} WHERE "user" = ?', (*kwargs.values(), user)
     )
