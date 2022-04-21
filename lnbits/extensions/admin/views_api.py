@@ -35,7 +35,7 @@ async def api_update_admin(
     w: WalletTypeInfo = Depends(require_admin_key)
     ):
     admin = await get_admin()
-    print(data)
+    # print(data)
     if not admin.user == w.wallet.user:
         raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not allowed: not an admin"
@@ -51,7 +51,7 @@ async def api_update_admin(
 
     g().admin_conf = g().admin_conf.copy(update=updated.dict())
     
-    print(g().admin_conf)
+    # print(g().admin_conf)
     return {"status": "Success"}
 
 @admin_ext.post("/api/v1/admin/funding/", status_code=HTTPStatus.OK)

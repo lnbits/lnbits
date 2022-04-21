@@ -1310,7 +1310,7 @@
           theme: theme.toString(),
           ad_space: ad_space.toString()
         }
-        console.log(data)
+        //console.log(data)
         LNbits.api
           .request(
             'POST',
@@ -1319,7 +1319,7 @@
             data
           )
           .then(response => {
-            console.log(response.data)
+            //console.log(response.data)
             this.$q.notify({
               type: 'positive',
               message: 'Success! Settings changed!',
