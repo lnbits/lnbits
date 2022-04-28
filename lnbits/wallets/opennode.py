@@ -1,10 +1,12 @@
-import trio
+import asyncio
+
+from fastapi.exceptions import HTTPException
+from lnbits.helpers import url_for
 import hmac
 import httpx
 from http import HTTPStatus
 from os import getenv
 from typing import Optional, AsyncGenerator
-from quart import request, url_for
 
 from .base import (
     StatusResponse,
@@ -34,9 +36,7 @@ class OpenNodeWallet(Wallet):
         try:
             async with httpx.AsyncClient() as client:
                 r = await client.get(
-                    f"{self.endpoint}/v1/account/balance",
-                    headers=self.auth,
-                    timeout=40,
+                    f"{self.endpoint}/v1/account/balance", headers=self.auth, timeout=40
                 )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to '{self.endpoint}'", 0)
@@ -63,7 +63,7 @@ class OpenNodeWallet(Wallet):
                 json={
                     "amount": amount,
                     "description": memo or "",
-                    "callback_url": url_for("webhook_listener", _external=True),
+                    "callback_url": url_for("/webhook_listener", _external=True),
                 },
                 timeout=40,
             )
@@ -77,7 +77,7 @@ class OpenNodeWallet(Wallet):
         payment_request = data["lightning_invoice"]["payreq"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{self.endpoint}/v2/withdrawals",
@@ -125,21 +125,22 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.send, receive = trio.open_memory_channel(0)
-        async for value in receive:
+        self.queue = asyncio.Queue(0)
+        while True:
+            value = await self.queue.get()
             yield value
 
     async def webhook_listener(self):
         data = await request.form
         if "status" not in data or data["status"] != "paid":
-            return "", HTTPStatus.NO_CONTENT
+            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         charge_id = data["id"]
         x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
         x.update(charge_id.encode("ascii"))
         if x.hexdigest() != data["hashed_order"]:
             print("invalid webhook, not from opennode")
-            return "", HTTPStatus.NO_CONTENT
+            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-        await self.send.send(charge_id)
-        return "", HTTPStatus.NO_CONTENT
+        await self.queue.put(charge_id)
+        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

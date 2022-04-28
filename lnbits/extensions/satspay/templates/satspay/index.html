@@ -5,10 +5,7 @@
     <q-card>
       <q-card-section>
         {% raw %}
-        <q-btn
-          unelevated
-          color="deep-purple"
-          @click="formDialogCharge.show = true"
+        <q-btn unelevated color="primary" @click="formDialogCharge.show = true"
           >New charge
         </q-btn>
       </q-card-section>
@@ -148,7 +145,9 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits satspay Extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} satspay Extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -265,7 +264,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="
                 formDialogCharge.data.time == null ||
                 formDialogCharge.data.amount == null"
@@ -281,7 +280,8 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<!-- lnbits/static/vendor
+<script src="/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script> -->
 <style></style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -475,7 +475,7 @@
       },
       sendFormDataCharge: function () {
         var self = this
-        var wallet = this.g.user.wallets[0].adminkey
+        var wallet = this.g.user.wallets[0].inkey
         var data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
@@ -509,6 +509,13 @@
           .then(function (response) {
             self.ChargeLinks.push(mapCharge(response.data))
             self.formDialogCharge.show = false
+            self.formDialogCharge.data = {
+              onchain: false,
+              lnbits: false,
+              description: '',
+              time: null,
+              amount: null
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -543,6 +550,7 @@
       }
     },
     created: function () {
+      console.log(this.g.user)
       var self = this
       var getCharges = this.getCharges
       getCharges()

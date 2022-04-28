@@ -1,22 +1,37 @@
-from quart import g, abort, render_template, jsonify
 from http import HTTPStatus
 
-from lnbits.decorators import check_user_exists, validate_uuids
+from fastapi.param_functions import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
-from . import satspay_ext
+from lnbits.core.crud import get_wallet
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
+from . import satspay_ext, satspay_renderer
 from .crud import get_charge
 
-
-@satspay_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    return await render_template("satspay/index.html", user=g.user)
+templates = Jinja2Templates(directory="templates")
 
 
-@satspay_ext.route("/<charge_id>")
-async def display(charge_id):
-    charge = await get_charge(charge_id) or abort(
-        HTTPStatus.NOT_FOUND, "Charge link does not exist."
+@satspay_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
+    return satspay_renderer().TemplateResponse(
+        "satspay/index.html", {"request": request, "user": user.dict()}
     )
-    return await render_template("satspay/display.html", charge=charge)
+
+
+@satspay_ext.get("/{charge_id}", response_class=HTMLResponse)
+async def display(request: Request, charge_id):
+    charge = await get_charge(charge_id)
+    if not charge:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
+        )
+    wallet = await get_wallet(charge.lnbitswallet)
+    return satspay_renderer().TemplateResponse(
+        "satspay/display.html",
+        {"request": request, "charge": charge, "wallet_key": wallet.inkey},
+    )

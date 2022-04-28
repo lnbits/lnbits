@@ -1,0 +1,53 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h5 class="text-subtitle1 q-mt-none q-mb-md">
+          Access this lnbits instance at the following url
+        </h5>
+        <q-separator class="q-my-lg"></q-separator>
+        <p><a href="{{ ngrok }}" target="_blank">{{ ngrok }}</a></p>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">Ngrok extension</h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-card>
+          <q-card-section>
+            <p>
+              Note that if you restart your device, your device will generate a
+              new url. If anyone is using your old one for wallets, lnurls,
+              etc., whatever they are doing will stop working.
+            </p>
+            <small
+              >Created by
+              <a href="https://github.com/supertestnet" target="_blank"
+                >Supertestnet</a
+              >.</small
+            >
+          </q-card-section>
+        </q-card>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %}{% block scripts %} {{ window_vars(user) }}
+<script>
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {}
+    }
+  })
+</script>
+{% endblock %}

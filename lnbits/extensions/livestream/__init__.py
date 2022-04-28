@@ -1,19 +1,35 @@
-from quart import Blueprint
+import asyncio
+
+from fastapi import APIRouter
+from fastapi.staticfiles import StaticFiles
 
 from lnbits.db import Database
+from lnbits.helpers import template_renderer
+from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_livestream")
 
-livestream_ext: Blueprint = Blueprint(
-    "livestream", __name__, static_folder="static", template_folder="templates"
-)
+livestream_static_files = [
+    {
+        "path": "/livestream/static",
+        "app": StaticFiles(directory="lnbits/extensions/livestream/static"),
+        "name": "livestream_static",
+    }
+]
+
+livestream_ext: APIRouter = APIRouter(prefix="/livestream", tags=["livestream"])
 
 
-from .views_api import *  # noqa
-from .views import *  # noqa
+def livestream_renderer():
+    return template_renderer(["lnbits/extensions/livestream/templates"])
+
+
 from .lnurl import *  # noqa
-from .tasks import register_listeners
+from .tasks import wait_for_paid_invoices
+from .views import *  # noqa
+from .views_api import *  # noqa
 
-from lnbits.tasks import record_async
 
-livestream_ext.record(record_async(register_listeners))
+def livestream_start():
+    loop = asyncio.get_event_loop()
+    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))

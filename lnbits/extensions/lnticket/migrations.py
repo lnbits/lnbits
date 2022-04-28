@@ -2,21 +2,23 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS forms (
+        CREATE TABLE lnticket.forms (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
             description TEXT NOT NULL,
             costpword INTEGER NOT NULL,
             amountmade INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS tickets (
+        CREATE TABLE lnticket.tickets (
             id TEXT PRIMARY KEY,
             form TEXT NOT NULL,
             email TEXT NOT NULL,
@@ -24,7 +26,9 @@ async def m001_initial(db):
             name TEXT NOT NULL,
             wallet TEXT NOT NULL,
             sats INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
@@ -34,7 +38,7 @@ async def m002_changed(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS ticket (
+        CREATE TABLE lnticket.ticket (
             id TEXT PRIMARY KEY,
             form TEXT NOT NULL,
             email TEXT NOT NULL,
@@ -43,12 +47,16 @@ async def m002_changed(db):
             wallet TEXT NOT NULL,
             sats INTEGER NOT NULL,
             paid BOOLEAN NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
 
-    for row in [list(row) for row in await db.fetchall("SELECT * FROM tickets")]:
+    for row in [
+        list(row) for row in await db.fetchall("SELECT * FROM lnticket.tickets")
+    ]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -59,7 +67,7 @@ async def m002_changed(db):
         usescsv = usescsv[1:]
         await db.execute(
             """
-            INSERT INTO ticket (
+            INSERT INTO lnticket.ticket (
                 id,
                 form,
                 email,
@@ -71,25 +79,16 @@ async def m002_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                row[0],
-                row[1],
-                row[2],
-                row[3],
-                row[4],
-                row[5],
-                row[6],
-                True,
-            ),
+            (row[0], row[1], row[2], row[3], row[4], row[5], row[6], True),
         )
-    await db.execute("DROP TABLE tickets")
+    await db.execute("DROP TABLE lnticket.tickets")
 
 
 async def m003_changed(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS form (
+        CREATE TABLE IF NOT EXISTS lnticket.form (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -97,12 +96,14 @@ async def m003_changed(db):
             description TEXT NOT NULL,
             costpword INTEGER NOT NULL,
             amountmade INTEGER NOT NULL,
-            time TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
 
-    for row in [list(row) for row in await db.fetchall("SELECT * FROM forms")]:
+    for row in [list(row) for row in await db.fetchall("SELECT * FROM lnticket.forms")]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -113,7 +114,7 @@ async def m003_changed(db):
         usescsv = usescsv[1:]
         await db.execute(
             """
-            INSERT INTO form (
+            INSERT INTO lnticket.form (
                 id,
                 wallet,
                 name,
@@ -124,14 +125,53 @@ async def m003_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                row[0],
-                row[1],
-                row[2],
-                row[3],
-                row[4],
-                row[5],
-                row[6],
-            ),
+            (row[0], row[1], row[2], row[3], row[4], row[5], row[6]),
         )
-    await db.execute("DROP TABLE forms")
+    await db.execute("DROP TABLE lnticket.forms")
+
+
+async def m004_changed(db):
+
+    await db.execute(
+        """
+        CREATE TABLE lnticket.form2 (
+            id TEXT PRIMARY KEY,
+            wallet TEXT NOT NULL,
+            name TEXT NOT NULL,
+            webhook TEXT,
+            description TEXT NOT NULL,
+            flatrate INTEGER DEFAULT 0,
+            amount INTEGER NOT NULL,
+            amountmade INTEGER NOT NULL,
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
+        );
+    """
+    )
+
+    for row in [list(row) for row in await db.fetchall("SELECT * FROM lnticket.form")]:
+        usescsv = ""
+
+        for i in range(row[5]):
+            if row[7]:
+                usescsv += "," + str(i + 1)
+            else:
+                usescsv += "," + str(1)
+        usescsv = usescsv[1:]
+        await db.execute(
+            """
+            INSERT INTO lnticket.form2 (
+                id,
+                wallet,
+                name,
+                webhook,
+                description,
+                amount,
+                amountmade
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (row[0], row[1], row[2], row[3], row[4], row[5], row[6]),
+        )
+    await db.execute("DROP TABLE lnticket.form")

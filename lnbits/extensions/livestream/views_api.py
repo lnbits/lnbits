@@ -1,61 +1,56 @@
-from quart import g, jsonify
 from http import HTTPStatus
-from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from fastapi.param_functions import Depends
+from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
+from starlette.exceptions import HTTPException
+from starlette.requests import Request  # type: ignore
+
+from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.extensions.livestream.models import CreateTrack
 
 from . import livestream_ext
 from .crud import (
-    get_or_create_livestream_by_wallet,
-    add_track,
-    get_tracks,
-    update_track,
     add_producer,
+    add_track,
+    delete_track_from_livestream,
+    get_or_create_livestream_by_wallet,
     get_producers,
+    get_tracks,
     update_current_track,
     update_livestream_fee,
-    delete_track_from_livestream,
+    update_track,
 )
 
 
-@livestream_ext.route("/api/v1/livestream", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_livestream_from_wallet():
+@livestream_ext.get("/api/v1/livestream")
+async def api_livestream_from_wallet(
+    req: Request, g: WalletTypeInfo = Depends(get_key_type)
+):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     tracks = await get_tracks(ls.id)
     producers = await get_producers(ls.id)
 
     try:
-        return (
-            jsonify(
-                {
-                    **ls._asdict(),
-                    **{
-                        "lnurl": ls.lnurl,
-                        "tracks": [
-                            dict(lnurl=track.lnurl, **track._asdict())
-                            for track in tracks
-                        ],
-                        "producers": [producer._asdict() for producer in producers],
-                    },
-                }
-            ),
-            HTTPStatus.OK,
-        )
+        return {
+            **ls.dict(),
+            **{
+                "lnurl": ls.lnurl(request=req),
+                "tracks": [
+                    dict(lnurl=track.lnurl(request=req), **track.dict())
+                    for track in tracks
+                ],
+                "producers": [producer.dict() for producer in producers],
+            },
+        }
     except LnurlInvalidUrl:
-        return (
-            jsonify(
-                {
-                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
-                }
-            ),
-            HTTPStatus.UPGRADE_REQUIRED,
+        raise HTTPException(
+            status_code=HTTPStatus.UPGRADE_REQUIRED,
+            detail="LNURLs need to be delivered over a publically accessible `https` domain or Tor.",
         )
 
 
-@livestream_ext.route("/api/v1/livestream/track/<track_id>", methods=["PUT"])
-@api_check_wallet_key("invoice")
-async def api_update_track(track_id):
+@livestream_ext.put("/api/v1/livestream/track/{track_id}")
+async def api_update_track(track_id, g: WalletTypeInfo = Depends(get_key_type)):
     try:
         id = int(track_id)
     except ValueError:
@@ -65,71 +60,41 @@ async def api_update_track(track_id):
 
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     await update_current_track(ls.id, id)
-    return "", HTTPStatus.NO_CONTENT
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-@livestream_ext.route("/api/v1/livestream/fee/<fee_pct>", methods=["PUT"])
-@api_check_wallet_key("invoice")
-async def api_update_fee(fee_pct):
+@livestream_ext.put("/api/v1/livestream/fee/{fee_pct}")
+async def api_update_fee(fee_pct, g: WalletTypeInfo = Depends(get_key_type)):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     await update_livestream_fee(ls.id, int(fee_pct))
-    return "", HTTPStatus.NO_CONTENT
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-@livestream_ext.route("/api/v1/livestream/tracks", methods=["POST"])
-@livestream_ext.route("/api/v1/livestream/tracks/<id>", methods=["PUT"])
-@api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "name": {"type": "string", "empty": False, "required": True},
-        "download_url": {"type": "string", "empty": False, "required": False},
-        "price_msat": {"type": "number", "min": 0, "required": False},
-        "producer_id": {
-            "type": "number",
-            "required": True,
-            "excludes": "producer_name",
-        },
-        "producer_name": {
-            "type": "string",
-            "required": True,
-            "excludes": "producer_id",
-        },
-    }
-)
-async def api_add_track(id=None):
+@livestream_ext.post("/api/v1/livestream/tracks")
+@livestream_ext.put("/api/v1/livestream/tracks/{id}")
+async def api_add_track(
+    data: CreateTrack, id=None, g: WalletTypeInfo = Depends(get_key_type)
+):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
 
-    if "producer_id" in g.data:
-        p_id = g.data["producer_id"]
-    elif "producer_name" in g.data:
-        p_id = await add_producer(ls.id, g.data["producer_name"])
+    if data.producer_id:
+        p_id = data.producer_id
+    elif data.producer_name:
+        p_id = await add_producer(ls.id, data.producer_name)
     else:
         raise TypeError("need either producer_id or producer_name arguments")
 
     if id:
         await update_track(
-            ls.id,
-            id,
-            g.data["name"],
-            g.data.get("download_url"),
-            g.data.get("price_msat", 0),
-            p_id,
+            ls.id, id, data.name, data.download_url, data.price_msat or 0, p_id
         )
-        return "", HTTPStatus.OK
     else:
-        await add_track(
-            ls.id,
-            g.data["name"],
-            g.data.get("download_url"),
-            g.data.get("price_msat", 0),
-            p_id,
-        )
-        return "", HTTPStatus.CREATED
+        await add_track(ls.id, data.name, data.download_url, data.price_msat or 0, p_id)
+    return
 
 
-@livestream_ext.route("/api/v1/livestream/tracks/<track_id>", methods=["DELETE"])
-@api_check_wallet_key("invoice")
-async def api_delete_track(track_id):
+@livestream_ext.route("/api/v1/livestream/tracks/{track_id}")
+async def api_delete_track(track_id, g: WalletTypeInfo = Depends(get_key_type)):
     ls = await get_or_create_livestream_by_wallet(g.wallet.id)
     await delete_track_from_livestream(ls.id, track_id)
-    return "", HTTPStatus.NO_CONTENT
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)

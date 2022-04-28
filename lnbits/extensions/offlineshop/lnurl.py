@@ -1,22 +1,29 @@
 import hashlib
-from quart import jsonify, url_for, request
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+
+from fastapi.params import Query
+from lnurl import (  # type: ignore
+    LnurlErrorResponse,
+    LnurlPayActionResponse,
+    LnurlPayResponse,
+)
+from starlette.requests import Request
 
 from lnbits.core.services import create_invoice
+from lnbits.extensions.offlineshop.models import Item
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import offlineshop_ext
-from .crud import get_shop, get_item
+from .crud import get_item, get_shop
 
 
-@offlineshop_ext.route("/lnurl/<item_id>", methods=["GET"])
-async def lnurl_response(item_id):
-    item = await get_item(item_id)
+@offlineshop_ext.get("/lnurl/{item_id}", name="offlineshop.lnurl_response")
+async def lnurl_response(req: Request, item_id: int = Query(...)):
+    item = await get_item(item_id)  # type: Item
     if not item:
-        return jsonify({"status": "ERROR", "reason": "Item not found."})
+        return {"status": "ERROR", "reason": "Item not found."}
 
     if not item.enabled:
-        return jsonify({"status": "ERROR", "reason": "Item disabled."})
+        return {"status": "ERROR", "reason": "Item disabled."}
 
     price_msat = (
         await fiat_amount_as_satoshis(item.price, item.unit)
@@ -25,20 +32,20 @@ async def lnurl_response(item_id):
     ) * 1000
 
     resp = LnurlPayResponse(
-        callback=url_for("offlineshop.lnurl_callback", item_id=item.id, _external=True),
+        callback=req.url_for("offlineshop.lnurl_callback", item_id=item.id),
         min_sendable=price_msat,
         max_sendable=price_msat,
         metadata=await item.lnurlpay_metadata(),
     )
 
-    return jsonify(resp.dict())
+    return resp.dict()
 
 
-@offlineshop_ext.route("/lnurl/cb/<item_id>", methods=["GET"])
-async def lnurl_callback(item_id):
-    item = await get_item(item_id)
+@offlineshop_ext.get("/lnurl/cb/{item_id}", name="offlineshop.lnurl_callback")
+async def lnurl_callback(request: Request, item_id: int):
+    item = await get_item(item_id)  # type: Item
     if not item:
-        return jsonify({"status": "ERROR", "reason": "Couldn't find item."})
+        return {"status": "ERROR", "reason": "Couldn't find item."}
 
     if item.unit == "sat":
         min = item.price * 1000
@@ -49,19 +56,15 @@ async def lnurl_callback(item_id):
         min = price * 995
         max = price * 1010
 
-    amount_received = int(request.args.get("amount") or 0)
+    amount_received = int(request.query_params.get("amount") or 0)
     if amount_received < min:
-        return jsonify(
-            LnurlErrorResponse(
-                reason=f"Amount {amount_received} is smaller than minimum {min}."
-            ).dict()
-        )
+        return LnurlErrorResponse(
+            reason=f"Amount {amount_received} is smaller than minimum {min}."
+        ).dict()
     elif amount_received > max:
-        return jsonify(
-            LnurlErrorResponse(
-                reason=f"Amount {amount_received} is greater than maximum {max}."
-            ).dict()
-        )
+        return LnurlErrorResponse(
+            reason=f"Amount {amount_received} is greater than maximum {max}."
+        ).dict()
 
     shop = await get_shop(item.shop)
 
@@ -76,12 +79,14 @@ async def lnurl_callback(item_id):
             extra={"tag": "offlineshop", "item": item.id},
         )
     except Exception as exc:
-        return jsonify(LnurlErrorResponse(reason=exc.message).dict())
+        return LnurlErrorResponse(reason=exc.message).dict()
 
     resp = LnurlPayActionResponse(
         pr=payment_request,
-        success_action=item.success_action(shop, payment_hash) if shop.method else None,
+        success_action=item.success_action(shop, payment_hash, request)
+        if shop.method
+        else None,
         routes=[],
     )
 
-    return jsonify(resp.dict())
+    return resp.dict()

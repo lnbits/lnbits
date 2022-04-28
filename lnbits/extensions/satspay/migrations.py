@@ -5,9 +5,9 @@ async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS charges (
+        CREATE TABLE satspay.charges (
             id TEXT NOT NULL PRIMARY KEY,
-            user TEXT,
+            "user" TEXT,
             description TEXT,
             onchainwallet TEXT,
             onchainaddress TEXT,
@@ -20,7 +20,9 @@ async def m001_initial(db):
             time INTEGER,
             amount INTEGER,
             balance INTEGER DEFAULT 0,
-            timestamp TIMESTAMP NOT NULL DEFAULT (strftime('%s', 'now'))
+            timestamp TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )

@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >New Form</q-btn
         >
       </q-card-section>
@@ -118,8 +118,9 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
+                {{ col.label }}                
               </q-th>
             </q-tr>
           </template>
@@ -136,9 +137,19 @@
                   :href="'mailto:' + props.row.email"
                 ></q-btn>
               </q-td>
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="launch"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="ticketCard(props)"
+                ><q-tooltip> Click to show ticket </q-tooltip></q-btn>
+              </q-td>
 
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
+                {{ col.label == "Ticket" ? col.value.length > 20 ? `${col.value.substring(0, 20)}...` : col.value : col.value }}
               </q-td>
 
               <q-td auto-width>
@@ -162,7 +173,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          LNbits Support Tickets extension
+          {{SITE_TITLE}} Support Tickets extension
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -206,18 +217,30 @@
           type="textarea"
           label="Description "
         ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.number="formDialog.data.costpword"
-          type="number"
-          label="Amount per word"
-        ></q-input>
+        <div class="row">
+          <div class="col-5">
+            <q-toggle
+              :label="`${flatRate}`"
+              color="primary"
+              v-model="formDialog.data.flatrate"
+            ></q-toggle>
+          </div>
+          <div class="col-7">
+            <q-input
+              filled
+              dense
+              v-model.number="formDialog.data.amount"
+              type="number"
+              label="Amount"
+            ></q-input>
+          </div>
+        </div>
+
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialog.data.id"
             unelevated
-            color="deep-purple"
+            color="primary"
             type="submit"
             >Update Form</q-btn
           >
@@ -225,8 +248,8 @@
           <q-btn
             v-else
             unelevated
-            color="deep-purple"
-            :disable="formDialog.data.costpword == null || formDialog.data.costpword < 0 || formDialog.data.name == null"
+            color="primary"
+            :disable="formDialog.data.amount == null || formDialog.data.amount < 0 || formDialog.data.name == null"
             type="submit"
             >Create Form</q-btn
           >
@@ -235,6 +258,29 @@
           >
         </div>
       </q-form>
+    </q-card>
+  </q-dialog>
+  <!-- Read Ticket Dialog -->
+  <q-dialog v-model="ticketDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      {% raw %}
+      <q-card-section>
+        <h4 class="text-subtitle1 q-my-none">
+          <i>{{this.ticketDialog.data.name}}</i> sent a ticket
+        </h4>
+        <div v-if="this.ticketDialog.data.email">
+          <small>{{this.ticketDialog.data.email}}</small>
+        </div>
+        <small>{{this.ticketDialog.data.date}}</small>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <p>{{this.ticketDialog.data.content}}</p>
+      </q-card-section>
+      {% endraw %}
+      <q-card-actions align="right">
+        <q-btn flat label="CLOSE" color="primary" v-close-popup />
+      </q-card-actions>
     </q-card>
   </q-dialog>
 </div>
@@ -275,10 +321,16 @@
               field: 'description'
             },
             {
-              name: 'costpword',
+              name: 'flatrate',
               align: 'left',
-              label: 'Cost Per Word',
-              field: 'costpword'
+              label: 'Flat Rate',
+              field: 'flatrate'
+            },
+            {
+              name: 'amount',
+              align: 'left',
+              label: 'Amount',
+              field: 'amount'
             }
           ],
           pagination: {
@@ -299,9 +351,21 @@
         },
         formDialog: {
           show: false,
-          data: {}
+          data: {flatrate: false}
         },
-        cancelListener: () => {}
+        ticketDialog: {
+          show: false,
+          data: {}
+        }
+      }
+    },
+    computed: {
+      flatRate: function () {
+        if (this.formDialog.data.flatrate) {
+          return 'Charge flat rate'
+        } else {
+          return 'Charge per word'
+        }
       }
     },
     methods: {
@@ -311,7 +375,7 @@
         LNbits.api
           .request(
             'GET',
-            '/lnticket/api/v1/tickets?all_wallets',
+            '/lnticket/api/v1/tickets?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -346,6 +410,16 @@
               })
           })
       },
+      ticketCard(ticket){
+        this.ticketDialog.show = true
+        let {date, email, ltext, name} = ticket.row
+        this.ticketDialog.data = {
+          date,
+          email,
+          content: ltext,
+          name
+        }
+      },
       exportticketsCSV: function () {
         LNbits.utils.exportCSV(this.ticketsTable.columns, this.tickets)
       },
@@ -356,7 +430,7 @@
         LNbits.api
           .request(
             'GET',
-            '/lnticket/api/v1/forms?all_wallets',
+            '/lnticket/api/v1/forms?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -395,12 +469,14 @@
       },
       updateformDialog: function (formId) {
         var link = _.findWhere(this.forms, {id: formId})
+        console.log("LINK", link)
 
         this.formDialog.data.id = link.id
         this.formDialog.data.wallet = link.wallet
         this.formDialog.data.name = link.name
         this.formDialog.data.description = link.description
-        this.formDialog.data.costpword = link.costpword
+        this.formDialog.data.flatrate = Boolean(link.flatrate)
+        this.formDialog.data.amount = link.amount
         this.formDialog.show = true
       },
       updateForm: function (wallet, data) {
@@ -450,30 +526,12 @@
       },
       exportformsCSV: function () {
         LNbits.utils.exportCSV(this.formsTable.columns, this.forms)
-      },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.g.user.wallets[0],
-          payment => {
-            this.getTickets()
-
-            this.$q.notify({
-              type: 'positive',
-              message: 'New ticket arrived!',
-              icon: 'textsms'
-            })
-          }
-        )
       }
     },
-
     created: function () {
       if (this.g.user.wallets.length) {
         this.getTickets()
         this.getForms()
-        this.startPaymentNotifier()
       }
     }
   })

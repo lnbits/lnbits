@@ -3,17 +3,17 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import TPoS
+from .models import CreateTposData, TPoS
 
 
-async def create_tpos(*, wallet_id: str, name: str, currency: str) -> TPoS:
+async def create_tpos(wallet_id: str, data: CreateTposData) -> TPoS:
     tpos_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO tposs (id, wallet, name, currency)
+        INSERT INTO tpos.tposs (id, wallet, name, currency)
         VALUES (?, ?, ?, ?)
         """,
-        (tpos_id, wallet_id, name, currency),
+        (tpos_id, wallet_id, data.name, data.currency),
     )
 
     tpos = await get_tpos(tpos_id)
@@ -22,7 +22,7 @@ async def create_tpos(*, wallet_id: str, name: str, currency: str) -> TPoS:
 
 
 async def get_tpos(tpos_id: str) -> Optional[TPoS]:
-    row = await db.fetchone("SELECT * FROM tposs WHERE id = ?", (tpos_id,))
+    row = await db.fetchone("SELECT * FROM tpos.tposs WHERE id = ?", (tpos_id,))
     return TPoS.from_row(row) if row else None
 
 
@@ -32,11 +32,11 @@ async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM tposs WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM tpos.tposs WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
     return [TPoS.from_row(row) for row in rows]
 
 
 async def delete_tpos(tpos_id: str) -> None:
-    await db.execute("DELETE FROM tposs WHERE id = ?", (tpos_id,))
+    await db.execute("DELETE FROM tpos.tposs WHERE id = ?", (tpos_id,))

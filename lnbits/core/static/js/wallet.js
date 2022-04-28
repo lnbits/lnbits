@@ -161,14 +161,14 @@ new Vue({
           {
             name: 'sat',
             align: 'right',
-            label: 'Amount (sat)',
+            label: 'Amount (' + LNBITS_DENOMINATION + ')',
             field: 'sat',
             sortable: true
           },
           {
             name: 'fee',
             align: 'right',
-            label: 'Fee (msat)',
+            label: 'Fee (m' + LNBITS_DENOMINATION + ')',
             field: 'fee'
           }
         ],
@@ -184,12 +184,18 @@ new Vue({
         show: false,
         location: window.location
       },
-      balance: 0
+      balance: 0,
+      credit: 0,
+      newName: ''
     }
   },
   computed: {
     formattedBalance: function () {
-      return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+      if (LNBITS_DENOMINATION != 'sats') {
+        return this.balance / 100
+      } else {
+        return LNbits.utils.formatSat(this.balance || this.g.wallet.sat)
+      }
     },
     filteredPayments: function () {
       var q = this.paymentsTable.filter
@@ -202,9 +208,7 @@ new Vue({
       return this.parse.invoice.sat <= this.balance
     },
     pendingPaymentsExist: function () {
-      return this.payments
-        ? _.where(this.payments, {pending: 1}).length > 0
-        : false
+      return this.payments.findIndex(payment => payment.pending) !== -1
     }
   },
   filters: {
@@ -250,6 +254,28 @@ new Vue({
       this.parse.data.paymentChecker = null
       this.parse.camera.show = false
     },
+    updateBalance: function (credit) {
+      if (LNBITS_DENOMINATION != 'sats') {
+        credit = credit * 100
+      }
+      LNbits.api
+        .request('PUT', '/api/v1/wallet/balance/' + credit, this.g.wallet.inkey)
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+        .then(response => {
+          let data = response.data
+          if (data.status === 'ERROR') {
+            this.$q.notify({
+              timeout: 5000,
+              type: 'warning',
+              message: `Failed to update.`
+            })
+            return
+          }
+          this.balance = this.balance + data.balance
+        })
+    },
     closeReceiveDialog: function () {
       setTimeout(() => {
         clearInterval(this.receive.paymentChecker)
@@ -272,7 +298,9 @@ new Vue({
     },
     createInvoice: function () {
       this.receive.status = 'loading'
-
+      if (LNBITS_DENOMINATION != 'sats') {
+        this.receive.data.amount = this.receive.data.amount * 100
+      }
       LNbits.api
         .createInvoice(
           this.g.wallet,
@@ -336,18 +364,21 @@ new Vue({
     },
     decodeRequest: function () {
       this.parse.show = true
-
+      let req = this.parse.data.request.toLowerCase()
       if (this.parse.data.request.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
       } else if (this.parse.data.request.startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
-      } else if (this.parse.data.request.indexOf('lightning=lnurl1') !== -1) {
+      } else if (req.indexOf('lightning=lnurl1') !== -1) {
         this.parse.data.request = this.parse.data.request
           .split('lightning=')[1]
           .split('&')[0]
       }
 
-      if (this.parse.data.request.toLowerCase().startsWith('lnurl1')) {
+      if (
+        this.parse.data.request.toLowerCase().startsWith('lnurl1') ||
+        this.parse.data.request.match(/[\w.+-~_]+@[\w.+-~_]/)
+      ) {
         LNbits.api
           .request(
             'GET',
@@ -583,6 +614,30 @@ new Vue({
           } else {
             LNbits.utils.notifyApiError(err)
           }
+        })
+    },
+    updateWalletName: function () {
+      let newName = this.newName
+      if (!newName || !newName.length) return
+      // let data = {name: newName}
+      LNbits.api
+        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.adminkey, {})
+        .then(res => {
+          this.newName = ''
+          this.$q.notify({
+            message: `Wallet named updated.`,
+            type: 'positive',
+            timeout: 3500
+          })
+          LNbits.href.updateWallet(
+            res.data.name,
+            this.user.id,
+            this.g.wallet.id
+          )
+        })
+        .catch(err => {
+          this.newName = ''
+          LNbits.utils.notifyApiError(err)
         })
     },
     deleteWallet: function (walletId, user) {

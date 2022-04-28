@@ -6,6 +6,7 @@ __pycache__
 *$py.class
 .mypy_cache
 .vscode
+*-lock.json
 
 *.egg
 *.egg-info
@@ -14,6 +15,7 @@ __pycache__
 .webassets-cache
 htmlcov
 test-reports
+tests/data
 
 *.swo
 *.swp

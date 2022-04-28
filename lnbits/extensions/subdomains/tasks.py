@@ -1,24 +1,20 @@
-from http import HTTPStatus
-from quart.json import jsonify
-import trio
+import asyncio
+
 import httpx
 
-from .crud import get_domain, set_subdomain_paid
-from lnbits.core.crud import get_user, get_wallet
-from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
+
 from .cloudflare import cloudflare_create_subdomain
+from .crud import get_domain, set_subdomain_paid
 
 
-async def register_listeners():
-    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
-    register_invoice_listener(invoice_paid_chan_send)
-    await wait_for_paid_invoices(invoice_paid_chan_recv)
+async def wait_for_paid_invoices():
+    invoice_queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue)
 
-
-async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
-    async for payment in invoice_paid_chan:
+    while True:
+        payment = await invoice_queue.get()
         await on_invoice_paid(payment)
 
 
@@ -32,7 +28,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     domain = await get_domain(subdomain.domain)
 
     ### Create subdomain
-    cf_response = cloudflare_create_subdomain(
+    cf_response = await cloudflare_create_subdomain(
         domain=domain,
         subdomain=subdomain.subdomain,
         record_type=subdomain.record_type,

@@ -1,54 +1,125 @@
-import shortuuid  # type: ignore
-from http import HTTPStatus
+import json
 from datetime import datetime
-from quart import jsonify, request
+from http import HTTPStatus
+
+import shortuuid  # type: ignore
+from fastapi import HTTPException
+from fastapi.param_functions import Query
+from starlette.requests import Request
+from starlette.responses import HTMLResponse  # type: ignore
 
 from lnbits.core.services import pay_invoice
 
 from . import withdraw_ext
 from .crud import get_withdraw_link_by_hash, update_withdraw_link
 
-
 # FOR LNURLs WHICH ARE NOT UNIQUE
 
 
-@withdraw_ext.route("/api/v1/lnurl/<unique_hash>", methods=["GET"])
-async def api_lnurl_response(unique_hash):
+@withdraw_ext.get(
+    "/api/v1/lnurl/{unique_hash}",
+    response_class=HTMLResponse,
+    name="withdraw.api_lnurl_response",
+)
+async def api_lnurl_response(request: Request, unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        return (
-            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
         )
 
     if link.is_spent:
-        return (
-            jsonify({"status": "ERROR", "reason": "Withdraw is spent."}),
-            HTTPStatus.OK,
+        raise HTTPException(detail="Withdraw is spent.")
+    url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
+    withdrawResponse = {
+        "tag": "withdrawRequest",
+        "callback": url,
+        "k1": link.k1,
+        "minWithdrawable": link.min_withdrawable * 1000,
+        "maxWithdrawable": link.max_withdrawable * 1000,
+        "defaultDescription": link.title,
+    }
+    return json.dumps(withdrawResponse)
+
+
+# CALLBACK
+
+
+@withdraw_ext.get("/api/v1/lnurl/cb/{unique_hash}", name="withdraw.api_lnurl_callback")
+async def api_lnurl_callback(
+    unique_hash, request: Request, k1: str = Query(...), pr: str = Query(...)
+):
+    link = await get_withdraw_link_by_hash(unique_hash)
+    now = int(datetime.now().timestamp())
+    if not link:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="LNURL-withdraw not found"
         )
 
-    return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
+    if link.is_spent:
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
+
+    if link.k1 != k1:
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Bad request.")
+
+    if now < link.open_time:
+        return {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
+
+    try:
+        usescsv = ""
+        for x in range(1, link.uses - link.used):
+            usecv = link.usescsv.split(",")
+            usescsv += "," + str(usecv[x])
+        usecsvback = usescsv
+        usescsv = usescsv[1:]
+
+        changesback = {
+            "open_time": link.wait_time,
+            "used": link.used,
+            "usescsv": usecsvback,
+        }
+
+        changes = {
+            "open_time": link.wait_time + now,
+            "used": link.used + 1,
+            "usescsv": usescsv,
+        }
+        await update_withdraw_link(link.id, **changes)
+
+        payment_request = pr
+
+        await pay_invoice(
+            wallet_id=link.wallet,
+            payment_request=payment_request,
+            max_sat=link.max_withdrawable,
+            extra={"tag": "withdraw"},
+        )
+        return {"status": "OK"}
+
+    except Exception as e:
+        await update_withdraw_link(link.id, **changesback)
+        return {"status": "ERROR", "reason": "Link not working"}
 
 
 # FOR LNURLs WHICH ARE UNIQUE
 
 
-@withdraw_ext.route("/api/v1/lnurl/<unique_hash>/<id_unique_hash>", methods=["GET"])
-async def api_lnurl_multi_response(unique_hash, id_unique_hash):
+@withdraw_ext.get(
+    "/api/v1/lnurl/{unique_hash}/{id_unique_hash}",
+    response_class=HTMLResponse,
+    name="withdraw.api_lnurl_multi_response",
+)
+async def api_lnurl_multi_response(request: Request, unique_hash, id_unique_hash):
     link = await get_withdraw_link_by_hash(unique_hash)
 
     if not link:
-        return (
-            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
         )
 
     if link.is_spent:
-        return (
-            jsonify({"status": "ERROR", "reason": "Withdraw is spent."}),
-            HTTPStatus.OK,
-        )
+        raise HTTPException(status_code=HTTPStatus.OK, detail="Withdraw is spent.")
 
     useslist = link.usescsv.split(",")
     found = False
@@ -57,72 +128,17 @@ async def api_lnurl_multi_response(unique_hash, id_unique_hash):
         if id_unique_hash == shortuuid.uuid(name=tohash):
             found = True
     if not found:
-        return (
-            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
-            HTTPStatus.OK,
+        raise HTTPException(
+            status_code=HTTPStatus.OK, detail="LNURL-withdraw not found."
         )
 
-    return jsonify(link.lnurl_response.dict()), HTTPStatus.OK
-
-
-# CALLBACK
-
-
-@withdraw_ext.route("/api/v1/lnurl/cb/<unique_hash>", methods=["GET"])
-async def api_lnurl_callback(unique_hash):
-    link = await get_withdraw_link_by_hash(unique_hash)
-    k1 = request.args.get("k1", type=str)
-    payment_request = request.args.get("pr", type=str)
-    now = int(datetime.now().timestamp())
-
-    if not link:
-        return (
-            jsonify({"status": "ERROR", "reason": "LNURL-withdraw not found."}),
-            HTTPStatus.OK,
-        )
-
-    if link.is_spent:
-        return (
-            jsonify({"status": "ERROR", "reason": "Withdraw is spent."}),
-            HTTPStatus.OK,
-        )
-
-    if link.k1 != k1:
-        return jsonify({"status": "ERROR", "reason": "Bad request."}), HTTPStatus.OK
-
-    if now < link.open_time:
-        return (
-            jsonify(
-                {"status": "ERROR", "reason": f"Wait {link.open_time - now} seconds."}
-            ),
-            HTTPStatus.OK,
-        )
-
-    try:
-        await pay_invoice(
-            wallet_id=link.wallet,
-            payment_request=payment_request,
-            max_sat=link.max_withdrawable,
-            extra={"tag": "withdraw"},
-        )
-
-        usescsv = ""
-        for x in range(1, link.uses - link.used):
-            usecv = link.usescsv.split(",")
-            usescsv += "," + str(usecv[x])
-        usescsv = usescsv[1:]
-        changes = {
-            "open_time": link.wait_time + now,
-            "used": link.used + 1,
-            "usescsv": usescsv,
-        }
-
-        await update_withdraw_link(link.id, **changes)
-    except ValueError as e:
-        return jsonify({"status": "ERROR", "reason": str(e)})
-    except PermissionError:
-        return jsonify({"status": "ERROR", "reason": "Withdraw link is empty."})
-    except Exception as e:
-        return jsonify({"status": "ERROR", "reason": str(e)})
-
-    return jsonify({"status": "OK"}), HTTPStatus.OK
+    url = request.url_for("withdraw.api_lnurl_callback", unique_hash=link.unique_hash)
+    withdrawResponse = {
+        "tag": "withdrawRequest",
+        "callback": url,
+        "k1": link.k1,
+        "minWithdrawable": link.min_withdrawable * 1000,
+        "maxWithdrawable": link.max_withdrawable * 1000,
+        "defaultDescription": link.title,
+    }
+    return json.dumps(withdrawResponse)

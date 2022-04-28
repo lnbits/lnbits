@@ -1,0 +1,10 @@
+{% extends "print.html" %} {% block page %} {% for page in link %} {% for threes in page %} {% for one in threes %} {{one}}, {% endfor %} {% endfor %} {% endfor %} {% endblock %} {% block scripts %}
+<script>
+    new Vue({
+        el: '#vue',
+        data: function() {
+            return {}
+        }
+    })
+</script>
+{% endblock %}

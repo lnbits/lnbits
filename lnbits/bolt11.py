@@ -2,10 +2,14 @@ import bitstring  # type: ignore
 import re
 import hashlib
 from typing import List, NamedTuple, Optional
-from bech32 import bech32_decode, CHARSET  # type: ignore
+from bech32 import bech32_encode, bech32_decode, CHARSET
 from ecdsa import SECP256k1, VerifyingKey  # type: ignore
 from ecdsa.util import sigdecode_string  # type: ignore
 from binascii import unhexlify
+import time
+from decimal import Decimal
+import embit
+import secp256k1
 
 
 class Route(NamedTuple):
@@ -116,6 +120,166 @@ def decode(pr: str) -> Invoice:
     return invoice
 
 
+def encode(options):
+    """Convert options into LnAddr and pass it to the encoder"""
+    addr = LnAddr()
+    addr.currency = options["currency"]
+    addr.fallback = options["fallback"] if options["fallback"] else None
+    if options["amount"]:
+        addr.amount = options["amount"]
+    if options["timestamp"]:
+        addr.date = int(options["timestamp"])
+
+    addr.paymenthash = unhexlify(options["paymenthash"])
+
+    if options["description"]:
+        addr.tags.append(("d", options["description"]))
+    if options["description_hash"]:
+        addr.tags.append(("h", options["description_hash"]))
+    if options["expires"]:
+        addr.tags.append(("x", options["expires"]))
+
+    if options["fallback"]:
+        addr.tags.append(("f", options["fallback"]))
+    if options["route"]:
+        for r in options["route"]:
+            splits = r.split("/")
+            route = []
+            while len(splits) >= 5:
+                route.append(
+                    (
+                        unhexlify(splits[0]),
+                        unhexlify(splits[1]),
+                        int(splits[2]),
+                        int(splits[3]),
+                        int(splits[4]),
+                    )
+                )
+                splits = splits[5:]
+            assert len(splits) == 0
+            addr.tags.append(("r", route))
+    return lnencode(addr, options["privkey"])
+
+
+def lnencode(addr, privkey):
+    if addr.amount:
+        amount = Decimal(str(addr.amount))
+        # We can only send down to millisatoshi.
+        if amount * 10 ** 12 % 10:
+            raise ValueError(
+                "Cannot encode {}: too many decimal places".format(addr.amount)
+            )
+
+        amount = addr.currency + shorten_amount(amount)
+    else:
+        amount = addr.currency if addr.currency else ""
+
+    hrp = "ln" + amount + "0n"
+
+    # Start with the timestamp
+    data = bitstring.pack("uint:35", addr.date)
+
+    # Payment hash
+    data += tagged_bytes("p", addr.paymenthash)
+    tags_set = set()
+
+    for k, v in addr.tags:
+
+        # BOLT #11:
+        #
+        # A writer MUST NOT include more than one `d`, `h`, `n` or `x` fields,
+        if k in ("d", "h", "n", "x"):
+            if k in tags_set:
+                raise ValueError("Duplicate '{}' tag".format(k))
+
+        if k == "r":
+            route = bitstring.BitArray()
+            for step in v:
+                pubkey, channel, feebase, feerate, cltv = step
+                route.append(
+                    bitstring.BitArray(pubkey)
+                    + bitstring.BitArray(channel)
+                    + bitstring.pack("intbe:32", feebase)
+                    + bitstring.pack("intbe:32", feerate)
+                    + bitstring.pack("intbe:16", cltv)
+                )
+            data += tagged("r", route)
+        elif k == "f":
+            data += encode_fallback(v, addr.currency)
+        elif k == "d":
+            data += tagged_bytes("d", v.encode())
+        elif k == "x":
+            # Get minimal length by trimming leading 5 bits at a time.
+            expirybits = bitstring.pack("intbe:64", v)[4:64]
+            while expirybits.startswith("0b00000"):
+                expirybits = expirybits[5:]
+            data += tagged("x", expirybits)
+        elif k == "h":
+            data += tagged_bytes("h", hashlib.sha256(v.encode("utf-8")).digest())
+        elif k == "n":
+            data += tagged_bytes("n", v)
+        else:
+            # FIXME: Support unknown tags?
+            raise ValueError("Unknown tag {}".format(k))
+
+        tags_set.add(k)
+
+    # BOLT #11:
+    #
+    # A writer MUST include either a `d` or `h` field, and MUST NOT include
+    # both.
+    if "d" in tags_set and "h" in tags_set:
+        raise ValueError("Cannot include both 'd' and 'h'")
+    if not "d" in tags_set and not "h" in tags_set:
+        raise ValueError("Must include either 'd' or 'h'")
+
+    # We actually sign the hrp, then data (padded to 8 bits with zeroes).
+    privkey = secp256k1.PrivateKey(bytes(unhexlify(privkey)))
+    sig = privkey.ecdsa_sign_recoverable(
+        bytearray([ord(c) for c in hrp]) + data.tobytes()
+    )
+    # This doesn't actually serialize, but returns a pair of values :(
+    sig, recid = privkey.ecdsa_recoverable_serialize(sig)
+    data += bytes(sig) + bytes([recid])
+
+    return bech32_encode(hrp, bitarray_to_u5(data))
+
+
+class LnAddr(object):
+    def __init__(
+        self, paymenthash=None, amount=None, currency="bc", tags=None, date=None
+    ):
+        self.date = int(time.time()) if not date else int(date)
+        self.tags = [] if not tags else tags
+        self.unknown_tags = []
+        self.paymenthash = paymenthash
+        self.signature = None
+        self.pubkey = None
+        self.currency = currency
+        self.amount = amount
+
+    def __str__(self):
+        return "LnAddr[{}, amount={}{} tags=[{}]]".format(
+            hexlify(self.pubkey.serialize()).decode("utf-8"),
+            self.amount,
+            self.currency,
+            ", ".join([k + "=" + str(v) for k, v in self.tags]),
+        )
+
+
+def shorten_amount(amount):
+    """Given an amount in bitcoin, shorten it"""
+    # Convert to pico initially
+    amount = int(amount * 10 ** 12)
+    units = ["p", "n", "u", "m", ""]
+    for unit in units:
+        if amount % 1000 == 0:
+            amount //= 1000
+        else:
+            break
+    return str(amount) + unit
+
+
 def _unshorten_amount(amount: str) -> int:
     """Given a shortened amount, return millisatoshis"""
     # BOLT #11:
@@ -125,12 +289,7 @@ def _unshorten_amount(amount: str) -> int:
     # * `u` (micro): multiply by 0.000001
     # * `n` (nano): multiply by 0.000000001
     # * `p` (pico): multiply by 0.000000000001
-    units = {
-        "p": 10 ** 12,
-        "n": 10 ** 9,
-        "u": 10 ** 6,
-        "m": 10 ** 3,
-    }
+    units = {"p": 10 ** 12, "n": 10 ** 9, "u": 10 ** 6, "m": 10 ** 3}
     unit = str(amount)[-1]
 
     # BOLT #11:
@@ -151,6 +310,34 @@ def _pull_tagged(stream):
     return (CHARSET[tag], stream.read(length * 5), stream)
 
 
+def is_p2pkh(currency, prefix):
+    return prefix == base58_prefix_map[currency][0]
+
+
+def is_p2sh(currency, prefix):
+    return prefix == base58_prefix_map[currency][1]
+
+
+# Tagged field containing BitArray
+def tagged(char, l):
+    # Tagged fields need to be zero-padded to 5 bits.
+    while l.len % 5 != 0:
+        l.append("0b0")
+    return (
+        bitstring.pack(
+            "uint:5, uint:5, uint:5",
+            CHARSET.find(char),
+            (l.len / 5) / 32,
+            (l.len / 5) % 32,
+        )
+        + l
+    )
+
+
+def tagged_bytes(char, l):
+    return tagged(char, bitstring.BitArray(l))
+
+
 def _trim_to_bytes(barr):
     # Adds a byte if necessary.
     b = barr.tobytes()
@@ -161,9 +348,9 @@ def _trim_to_bytes(barr):
 
 def _readable_scid(short_channel_id: int) -> str:
     return "{blockheight}x{transactionindex}x{outputindex}".format(
-        blockheight=((short_channel_id >> 40) & 0xFFFFFF),
-        transactionindex=((short_channel_id >> 16) & 0xFFFFFF),
-        outputindex=(short_channel_id & 0xFFFF),
+        blockheight=((short_channel_id >> 40) & 0xffffff),
+        transactionindex=((short_channel_id >> 16) & 0xffffff),
+        outputindex=(short_channel_id & 0xffff),
     )
 
 
@@ -171,4 +358,13 @@ def _u5_to_bitarray(arr: List[int]) -> bitstring.BitArray:
     ret = bitstring.BitArray()
     for a in arr:
         ret += bitstring.pack("uint:5", a)
+    return ret
+
+
+def bitarray_to_u5(barr):
+    assert barr.len % 5 == 0
+    ret = []
+    s = bitstring.ConstBitStream(barr)
+    while s.pos != s.len:
+        ret.append(s.read(5).uint)
     return ret

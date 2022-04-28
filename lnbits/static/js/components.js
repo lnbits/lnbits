@@ -22,7 +22,8 @@ Vue.component('lnbits-wallet-list', {
       activeWallet: null,
       activeBalance: [],
       showForm: false,
-      walletName: ''
+      walletName: '',
+      LNBITS_DENOMINATION: LNBITS_DENOMINATION
     }
   },
   template: `
@@ -35,7 +36,7 @@ Vue.component('lnbits-wallet-list', {
         <q-item-section side>
           <q-avatar size="md"
             :color="(activeWallet && activeWallet.id === wallet.id)
-              ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
+              ? (($q.dark.isActive) ? 'primary' : 'primary')
               : 'grey-5'">
             <q-icon name="flash_on" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
@@ -43,7 +44,8 @@ Vue.component('lnbits-wallet-list', {
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1">{{ wallet.name }}</q-item-label>
-          <q-item-label caption>{{ wallet.live_fsat }} sat</q-item-label>
+          <q-item-label v-if="LNBITS_DENOMINATION != 'sats'" caption>{{ parseFloat(String(wallet.live_fsat).replaceAll(",", "")) / 100  }} {{ LNBITS_DENOMINATION }}</q-item-label>
+          <q-item-label v-else caption>{{ wallet.live_fsat }} {{ LNBITS_DENOMINATION }}</q-item-label>
         </q-item-section>
         <q-item-section side v-show="activeWallet && activeWallet.id === wallet.id">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
@@ -118,7 +120,7 @@ Vue.component('lnbits-extension-list', {
         <q-item-section side>
           <q-avatar size="md"
             :color="(extension.isActive)
-              ? (($q.dark.isActive) ? 'deep-purple-5' : 'deep-purple')
+              ? (($q.dark.isActive) ? 'primary' : 'primary')
               : 'grey-5'">
             <q-icon :name="extension.icon" :size="($q.dark.isActive) ? '21px' : '20px'"
               :color="($q.dark.isActive) ? 'blue-grey-10' : 'grey-3'"></q-icon>
@@ -194,11 +196,11 @@ Vue.component('lnbits-payment-details', {
       </div>
       <div class="row">
         <div class="col-3"><b>Amount</b>:</div>
-        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} sat</div>
+        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
       </div>
       <div class="row">
         <div class="col-3"><b>Fee</b>:</div>
-        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} sat</div>
+        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
       </div>
       <div class="row">
         <div class="col-3"><b>Payment hash</b>:</div>
@@ -219,7 +221,7 @@ Vue.component('lnbits-payment-details', {
       </div>
       <div class="row" v-for="entry in extras">
         <div class="col-3">
-          <q-badge v-if="hasTag" color="purple" text-color="white">
+          <q-badge v-if="hasTag" color="secondary" text-color="white">
             extra
           </q-badge>
           <b>{{ entry.key }}</b>:

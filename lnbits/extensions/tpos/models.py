@@ -1,8 +1,14 @@
 from sqlite3 import Row
-from typing import NamedTuple
+
+from pydantic import BaseModel
 
 
-class TPoS(NamedTuple):
+class CreateTposData(BaseModel):
+    name: str
+    currency: str
+
+
+class TPoS(BaseModel):
     id: str
     wallet: str
     name: str

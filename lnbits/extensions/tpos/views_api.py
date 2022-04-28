@@ -1,101 +1,90 @@
-from quart import g, jsonify, request
 from http import HTTPStatus
 
-from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import create_invoice, check_invoice_status
-from lnbits.decorators import api_check_wallet_key, api_validate_post_request
+from fastapi import Query
+from fastapi.params import Depends
+from starlette.exceptions import HTTPException
+
+from lnbits.core.crud import get_user
+from lnbits.core.services import create_invoice
+from lnbits.core.views.api import api_payment
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import tpos_ext
-from .crud import create_tpos, get_tpos, get_tposs, delete_tpos
+from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
+from .models import CreateTposData
 
 
-@tpos_ext.route("/api/v1/tposs", methods=["GET"])
-@api_check_wallet_key("invoice")
-async def api_tposs():
-    wallet_ids = [g.wallet.id]
-    if "all_wallets" in request.args:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+@tpos_ext.get("/api/v1/tposs", status_code=HTTPStatus.OK)
+async def api_tposs(
+    all_wallets: bool = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    wallet_ids = [wallet.wallet.id]
+    if all_wallets:
+        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return (
-        jsonify([tpos._asdict() for tpos in await get_tposs(wallet_ids)]),
-        HTTPStatus.OK,
-    )
+    return [tpos.dict() for tpos in await get_tposs(wallet_ids)]
 
 
-@tpos_ext.route("/api/v1/tposs", methods=["POST"])
-@api_check_wallet_key("invoice")
-@api_validate_post_request(
-    schema={
-        "name": {"type": "string", "empty": False, "required": True},
-        "currency": {"type": "string", "empty": False, "required": True},
-    }
-)
-async def api_tpos_create():
-    tpos = await create_tpos(wallet_id=g.wallet.id, **g.data)
-    return jsonify(tpos._asdict()), HTTPStatus.CREATED
+@tpos_ext.post("/api/v1/tposs", status_code=HTTPStatus.CREATED)
+async def api_tpos_create(
+    data: CreateTposData, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    tpos = await create_tpos(wallet_id=wallet.wallet.id, data=data)
+    return tpos.dict()
 
 
-@tpos_ext.route("/api/v1/tposs/<tpos_id>", methods=["DELETE"])
-@api_check_wallet_key("admin")
-async def api_tpos_delete(tpos_id):
+@tpos_ext.delete("/api/v1/tposs/{tpos_id}")
+async def api_tpos_delete(
+    tpos_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
-        return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+        )
 
-    if tpos.wallet != g.wallet.id:
-        return jsonify({"message": "Not your TPoS."}), HTTPStatus.FORBIDDEN
+    if tpos.wallet != wallet.wallet.id:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your TPoS.")
 
     await delete_tpos(tpos_id)
+    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
-    return "", HTTPStatus.NO_CONTENT
 
-
-@tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/", methods=["POST"])
-@api_validate_post_request(
-    schema={"amount": {"type": "integer", "min": 1, "required": True}}
-)
-async def api_tpos_create_invoice(tpos_id):
+@tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
+async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tpos_id: str = None):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
-        return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+        )
 
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=tpos.wallet,
-            amount=g.data["amount"],
+            amount=amount,
             memo=f"{tpos.name}",
             extra={"tag": "tpos"},
         )
     except Exception as e:
-        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-    return (
-        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
-        HTTPStatus.CREATED,
-    )
+    return {"payment_hash": payment_hash, "payment_request": payment_request}
 
 
-@tpos_ext.route("/api/v1/tposs/<tpos_id>/invoices/<payment_hash>", methods=["GET"])
-async def api_tpos_check_invoice(tpos_id, payment_hash):
+@tpos_ext.get(
+    "/api/v1/tposs/{tpos_id}/invoices/{payment_hash}", status_code=HTTPStatus.OK
+)
+async def api_tpos_check_invoice(tpos_id: str, payment_hash: str):
     tpos = await get_tpos(tpos_id)
-
     if not tpos:
-        return jsonify({"message": "TPoS does not exist."}), HTTPStatus.NOT_FOUND
-
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+        )
     try:
-        status = await check_invoice_status(tpos.wallet, payment_hash)
-        is_paid = not status.pending
+        status = await api_payment(payment_hash)
     except Exception as exc:
         print(exc)
-        return jsonify({"paid": False}), HTTPStatus.OK
-
-    if is_paid:
-        wallet = await get_wallet(tpos.wallet)
-        payment = await wallet.get_payment(payment_hash)
-        await payment.set_pending(False)
-
-        return jsonify({"paid": True}), HTTPStatus.OK
-
-    return jsonify({"paid": False}), HTTPStatus.OK
+        return {"paid": False}
+    return status

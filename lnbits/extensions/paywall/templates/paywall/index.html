@@ -4,7 +4,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="deep-purple" @click="formDialog.show = true"
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
           >New paywall</q-btn
         >
       </q-card-section>
@@ -86,7 +86,9 @@
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits paywall extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} paywall extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -141,7 +143,7 @@
             <q-item-section avatar>
               <q-checkbox
                 v-model="formDialog.data.remembers"
-                color="deep-purple"
+                color="primary"
               ></q-checkbox>
             </q-item-section>
             <q-item-section>
@@ -157,7 +159,7 @@
         <div class="row q-mt-lg">
           <q-btn
             unelevated
-            color="deep-purple"
+            color="primary"
             :disable="formDialog.data.amount == null || formDialog.data.amount < 0 || formDialog.data.url == null || formDialog.data.memo == null"
             type="submit"
             >Create paywall</q-btn
@@ -235,7 +237,7 @@
         LNbits.api
           .request(
             'GET',
-            '/paywall/api/v1/paywalls?all_wallets',
+            '/paywall/api/v1/paywalls?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {

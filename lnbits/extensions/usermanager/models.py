@@ -1,16 +1,33 @@
-from typing import NamedTuple
 from sqlite3 import Row
 
+from fastapi.param_functions import Query
+from pydantic import BaseModel
+from typing import Optional
 
-class Users(NamedTuple):
+
+class CreateUserData(BaseModel):
+    user_name: str = Query(...)
+    wallet_name: str = Query(...)
+    admin_id: str = Query(...)
+    email: str = Query("")
+    password: str = Query("")
+
+
+class CreateUserWallet(BaseModel):
+    user_id: str = Query(...)
+    wallet_name: str = Query(...)
+    admin_id: str = Query(...)
+
+
+class Users(BaseModel):
     id: str
     name: str
     admin: str
-    email: str
-    password: str
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 
-class Wallets(NamedTuple):
+class Wallets(BaseModel):
     id: str
     admin: str
     name: str

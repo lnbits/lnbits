@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS withdraw_links (
+        CREATE TABLE withdraw.withdraw_links (
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
@@ -29,7 +29,7 @@ async def m002_change_withdraw_table(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS withdraw_link (
+        CREATE TABLE withdraw.withdraw_link (
             id TEXT PRIMARY KEY,
             wallet TEXT,
             title TEXT,
@@ -46,12 +46,10 @@ async def m002_change_withdraw_table(db):
         );
         """
     )
-    await db.execute("CREATE INDEX IF NOT EXISTS wallet_idx ON withdraw_link (wallet)")
-    await db.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS unique_hash_idx ON withdraw_link (unique_hash)"
-    )
 
-    for row in [list(row) for row in await db.fetchall("SELECT * FROM withdraw_links")]:
+    for row in [
+        list(row) for row in await db.fetchall("SELECT * FROM withdraw.withdraw_links")
+    ]:
         usescsv = ""
 
         for i in range(row[5]):
@@ -62,7 +60,7 @@ async def m002_change_withdraw_table(db):
         usescsv = usescsv[1:]
         await db.execute(
             """
-            INSERT INTO withdraw_link (
+            INSERT INTO withdraw.withdraw_link (
                 id,
                 wallet,
                 title,
@@ -95,7 +93,7 @@ async def m002_change_withdraw_table(db):
                 usescsv,
             ),
         )
-    await db.execute("DROP TABLE withdraw_links")
+    await db.execute("DROP TABLE withdraw.withdraw_links")
 
 
 async def m003_make_hash_check(db):
@@ -104,7 +102,7 @@ async def m003_make_hash_check(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS hash_check (
+        CREATE TABLE withdraw.hash_check (
             id TEXT PRIMARY KEY,
             lnurl_id TEXT
         );

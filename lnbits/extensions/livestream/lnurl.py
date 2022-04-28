@@ -1,7 +1,12 @@
 import hashlib
 import math
-from quart import jsonify, url_for, request
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+from http import HTTPStatus
+from os import name
+
+from fastapi.exceptions import HTTPException
+from fastapi.params import Query
+from lnurl import LnurlErrorResponse, LnurlPayActionResponse, LnurlPayResponse
+from starlette.requests import Request  # type: ignore
 
 from lnbits.core.services import create_invoice
 
@@ -9,20 +14,22 @@ from . import livestream_ext
 from .crud import get_livestream, get_livestream_by_track, get_track
 
 
-@livestream_ext.route("/lnurl/<ls_id>", methods=["GET"])
-async def lnurl_livestream(ls_id):
+@livestream_ext.get("/lnurl/{ls_id}", name="livestream.lnurl_livestream")
+async def lnurl_livestream(ls_id, request: Request):
     ls = await get_livestream(ls_id)
     if not ls:
-        return jsonify({"status": "ERROR", "reason": "Livestream not found."})
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Livestream not found."
+        )
 
     track = await get_track(ls.current_track)
     if not track:
-        return jsonify({"status": "ERROR", "reason": "This livestream is offline."})
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="This livestream is offline."
+        )
 
     resp = LnurlPayResponse(
-        callback=url_for(
-            "livestream.lnurl_callback", track_id=track.id, _external=True
-        ),
+        callback=request.url_for("livestream.lnurl_callback", track_id=track.id),
         min_sendable=track.min_sendable,
         max_sendable=track.max_sendable,
         metadata=await track.lnurlpay_metadata(),
@@ -31,19 +38,17 @@ async def lnurl_livestream(ls_id):
     params = resp.dict()
     params["commentAllowed"] = 300
 
-    return jsonify(params)
+    return params
 
 
-@livestream_ext.route("/lnurl/t/<track_id>", methods=["GET"])
-async def lnurl_track(track_id):
+@livestream_ext.get("/lnurl/t/{track_id}", name="livestream.lnurl_track")
+async def lnurl_track(track_id, request: Request):
     track = await get_track(track_id)
     if not track:
-        return jsonify({"status": "ERROR", "reason": "Track not found."})
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Track not found.")
 
     resp = LnurlPayResponse(
-        callback=url_for(
-            "livestream.lnurl_callback", track_id=track.id, _external=True
-        ),
+        callback=request.url_for("livestream.lnurl_callback", track_id=track.id),
         min_sendable=track.min_sendable,
         max_sendable=track.max_sendable,
         metadata=await track.lnurlpay_metadata(),
@@ -52,41 +57,32 @@ async def lnurl_track(track_id):
     params = resp.dict()
     params["commentAllowed"] = 300
 
-    return jsonify(params)
+    return params
 
 
-@livestream_ext.route("/lnurl/cb/<track_id>", methods=["GET"])
-async def lnurl_callback(track_id):
+@livestream_ext.get("/lnurl/cb/{track_id}", name="livestream.lnurl_callback")
+async def lnurl_callback(
+    track_id, request: Request, amount: int = Query(...), comment: str = Query("")
+):
     track = await get_track(track_id)
     if not track:
-        return jsonify({"status": "ERROR", "reason": "Couldn't find track."})
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Track not found.")
 
-    amount_received = int(request.args.get("amount") or 0)
+    amount_received = int(amount or 0)
 
     if amount_received < track.min_sendable:
-        return (
-            jsonify(
-                LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum {math.floor(track.min_sendable)}."
-                ).dict()
-            ),
-        )
+        return LnurlErrorResponse(
+            reason=f"Amount {round(amount_received / 1000)} is smaller than minimum {math.floor(track.min_sendable)}."
+        ).dict()
     elif track.max_sendable < amount_received:
-        return (
-            jsonify(
-                LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum {math.floor(track.max_sendable)}."
-                ).dict()
-            ),
-        )
+        return LnurlErrorResponse(
+            reason=f"Amount {round(amount_received / 1000)} is greater than maximum {math.floor(track.max_sendable)}."
+        ).dict()
 
-    comment = request.args.get("comment")
     if len(comment or "") > 300:
-        return jsonify(
-            LnurlErrorResponse(
-                reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
-            ).dict()
-        )
+        return LnurlErrorResponse(
+            reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
+        ).dict()
 
     ls = await get_livestream_by_track(track_id)
 
@@ -103,12 +99,10 @@ async def lnurl_callback(track_id):
     if amount_received < track.price_msat:
         success_action = None
     else:
-        success_action = track.success_action(payment_hash)
+        success_action = track.success_action(payment_hash, request=request)
 
     resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=success_action,
-        routes=[],
+        pr=payment_request, success_action=success_action, routes=[]
     )
 
-    return jsonify(resp.dict())
+    return resp.dict()

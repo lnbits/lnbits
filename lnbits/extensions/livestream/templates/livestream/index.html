@@ -26,7 +26,7 @@
           </div>
           <div class="col">
             {% raw %}
-            <q-btn unelevated color="deep-purple" type="submit">
+            <q-btn unelevated color="primary" type="submit">
               {{ nextCurrentTrack && nextCurrentTrack ===
               livestream.current_track ? 'Stop' : 'Set' }} current track
             </q-btn>
@@ -46,7 +46,7 @@
             ></q-input>
           </div>
           <div class="col">
-            <q-btn unelevated color="deep-purple" type="submit"
+            <q-btn unelevated color="primary" type="submit"
               >Set percent rate</q-btn
             >
           </div>
@@ -61,7 +61,7 @@
             <h5 class="text-subtitle1 q-my-none">Tracks</h5>
           </div>
           <div class="col q-ml-lg">
-            <q-btn unelevated color="deep-purple" @click="openAddTrackDialog"
+            <q-btn unelevated color="primary" @click="openAddTrackDialog"
               >Add new track</q-btn
             >
           </div>
@@ -215,7 +215,9 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">LNbits Livestream extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Livestream extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
@@ -296,7 +298,7 @@
             <div class="col q-ml-lg">
               <q-btn
                 unelevated
-                color="deep-purple"
+                color="primary"
                 :disable="disabledAddTrackButton()"
                 type="submit"
               >
