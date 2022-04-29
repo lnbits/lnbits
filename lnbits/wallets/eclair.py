@@ -1,20 +1,23 @@
-import trio
-import json
-import httpx
-import random
+import asyncio
 import base64
+import json
+import random
 import urllib.parse
 from os import getenv
-from typing import Optional, AsyncGenerator
-from trio_websocket import open_websocket_url
+from typing import AsyncGenerator, Optional
+
+import httpx
+from websockets import connect
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
+    Unsupported,
     Wallet,
 )
+
 
 class EclairError(Exception):
     pass
@@ -154,11 +157,11 @@ class EclairWallet(Wallet):
 
         while True:
             try:
-                async with open_websocket_url(ws_url, extra_headers=[('Authorization', self.auth["Authorization"])]) as ws:
-                    message = await ws.get_message()
+                async with connect(ws_url, extra_headers=[('Authorization', self.auth["Authorization"])]) as ws:
+                    message = await ws.recv()
                     print('Received message: %s' % message)
 
-                    if "payment-received" in message["type"]:
+                    if "type" in message and "payment-received" in message.type:
                         yield message["paymentHash"]
 
             except OSError as ose:
@@ -166,4 +169,4 @@ class EclairWallet(Wallet):
                 pass
 
             print("lost connection to eclair's websocket, retrying in 5 seconds")
-            await trio.sleep(5)
+            await asyncio.sleep(5)
