@@ -179,7 +179,8 @@ new Vue({
             'max_withdrawable',
             'uses',
             'wait_time',
-            'is_unique'
+            'is_unique',
+            'webhook_url'
           )
         )
         .then(function (response) {
