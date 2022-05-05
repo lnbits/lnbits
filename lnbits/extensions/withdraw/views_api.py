@@ -60,7 +60,7 @@ async def api_link_retrieve(
         raise HTTPException(
             detail="Not your withdraw link.", status_code=HTTPStatus.FORBIDDEN
         )
-    return {**link, **{"lnurl": link.lnurl(request)}}
+    return {**link.dict(), **{"lnurl": link.lnurl(request)}}
 
 
 @withdraw_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
