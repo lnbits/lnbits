@@ -135,7 +135,7 @@ class EclairWallet(Wallet):
             except:
                 error_message = r.text
                 pass
-            return PaymentResponse(False, None, 0, None, error_message)        
+            return PaymentResponse(True, checking_id, 0, preimage, error_message) ## ?? is this ok ??
 
         data = r.json()
         fees = [i["status"] for i in data]
