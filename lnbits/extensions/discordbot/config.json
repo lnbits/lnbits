@@ -1,0 +1,6 @@
+{
+    "name": "Discord Bot",
+    "short_description": "Generate users and wallets",
+    "icon": "person_add",
+    "contributors": ["bitcoingamer21"]
+}
