@@ -299,7 +299,7 @@
           .request(
             'GET',
             '/usermanager/api/v1/users',
-            this.g.user.wallets[0].inkey
+            this.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             self.users = response.data.map(function (obj) {
@@ -362,7 +362,7 @@
               .request(
                 'DELETE',
                 '/usermanager/api/v1/users/' + userId,
-                self.g.user.wallets[0].inkey
+                self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
                 self.users = _.reject(self.users, function (obj) {
@@ -389,7 +389,7 @@
           .request(
             'GET',
             '/usermanager/api/v1/wallets',
-            this.g.user.wallets[0].inkey
+            this.g.user.wallets[0].adminkey
           )
           .then(function (response) {
             self.wallets = response.data.map(function (obj) {
@@ -447,7 +447,7 @@
               .request(
                 'DELETE',
                 '/usermanager/api/v1/wallets/' + userId,
-                self.g.user.wallets[0].inkey
+                self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
                 self.wallets = _.reject(self.wallets, function (obj) {
