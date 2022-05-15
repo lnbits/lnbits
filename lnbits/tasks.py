@@ -75,13 +75,13 @@ def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     invoice_listeners[name_unique] = send_chan
 
 
-async def webhook_handler():
+async def webhook_handler(request):
     """
     Returns the webhook_handler for the selected wallet if present. Used by API.
     """
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
-        return await handler()
+        return await handler(request)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 

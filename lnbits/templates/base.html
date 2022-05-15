@@ -150,6 +150,16 @@
                 size="md"
                 ><q-tooltip>flamingo</q-tooltip>
               </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('strike')"
+                dense
+                flat
+                @click="changeColor('strike')"
+                icon="format_color_fill"
+                color="lime-13"
+                size="md"
+                ><q-tooltip>Strike</q-tooltip>
+              </q-btn>
             </div>
           </q-btn-dropdown>
 

@@ -1,0 +1,469 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="configDialog.show = true">
+          Configure Forwarding
+        </q-btn>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">
+              <strong>Configurations</strong>
+            </h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportConfigurationsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="configurations"
+          row-key="id"
+          :columns="configTable.columns"
+          :pagination.sync="configTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <!-- <q-th auto-width></q-th> -->
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                <strong>{{ col.label }}</strong>
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <!-- <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="send"
+                  :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+              </q-td> -->
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteConfig(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">
+              <strong>Forwarded invoices</strong>
+            </h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportForwardsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="forwards"
+          :columns="forwardsTable.columns"
+          :pagination.sync="forwardsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                <strong>{{ col.label }}</strong>
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+
+              <q-td auto-width>
+                <q-btn
+                  v-if="props.row.status == 'fail'"
+                  unelevated
+                  flat
+                  dense
+                  size="xs"
+                  icon="error"
+                  :color="($q.dark.isActive) ? 'red' : 'red'"
+                >
+                  <q-tooltip> Failed </q-tooltip>
+                </q-btn>
+
+                <q-btn
+                  v-else-if="props.row.status == 'success'"
+                  unelevated
+                  flat
+                  dense
+                  size="xs"
+                  icon="check"
+                  :color="($q.dark.isActive) ? 'green' : 'green'"
+                >
+                  <q-tooltip> Forwarded </q-tooltip>
+                </q-btn>
+
+                <q-btn
+                  v-else
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="cached"
+                  flat
+                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
+                >
+                  <q-tooltip> Processing </q-tooltip>
+                </q-btn>
+              </q-td>
+
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <!-- <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteForward(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn> -->
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <img :src="($q.dark.isActive) ? 'https://api.strike.me/img/logo.png' : 'https://api.strike.me/img/logo_black.png'">
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Strike extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "strike/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="configDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendConfigData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="configDialog.data.lnbits_wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="configDialog.data.handle"
+          type="text"
+          label="Strike handle/username *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="configDialog.data.description"
+          type="text"
+          label="Config description"
+        ></q-input>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="configDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit">
+            Update Configuration
+          </q-btn>
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="configDialog.data.handle == null"
+            type="submit">
+            Forward
+            </q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  var mapResponse = function (obj, user) {
+    obj.timestamp_formatted = Quasar.utils.date.formatDate(
+      new Date(obj.timestamp * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+    obj.lnbits_wallet_name = _.findWhere(user.wallets, {id: obj.lnbits_wallet}).name
+    obj.amount_formatted = obj?.amount + ' ' + obj?.currency
+    obj.spread_formatted = (obj?.spread ?? 0) + '%'
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        configurations: [],
+        forwards: [],
+        configTable: {
+          columns: [
+            // {
+            //   name: 'id',
+            //   align: 'left',
+            //   label: 'ID',
+            //   field: 'id'
+            // },
+            {
+              name: 'handle',
+              align: 'left',
+              label: 'Handle',
+              field: 'handle'
+            },
+            {
+              name: 'lnbits_wallet_name',
+              align: 'left',
+              label: 'Wallet',
+              field: 'lnbits_wallet_name'
+            },
+            {
+              name: 'currency',
+              align: 'left',
+              label: 'Currency',
+              field: 'currency'
+            },
+            {
+              name: 'description',
+              align: 'left',
+              label: 'Description',
+              field: 'description'
+            },
+            {
+              name: 'timestamp_formatted',
+              align: 'left',
+              label: 'Created',
+              field: 'timestamp_formatted'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        },
+        forwardsTable: {
+          columns: [
+            {
+              name: 'timestamp_formatted',
+              align: 'left',
+              label: 'Timestamp',
+              field: 'timestamp_formatted',
+              sortable: true
+            },
+            {name: 'sats_original', align: 'right', label: 'Sats Orig', field: 'sats_original', sortable: true},
+            {name: 'sats_forwarded', align: 'right', label: 'Sats Forwarded', field: 'sats_forwarded', sortable: true},
+            // {name: 'msats_fee', align: 'right', label: 'Fee', field: 'msats_fee', sortable: true},
+            {name: 'amount_formatted', align: 'right', label: 'Amount', field: 'amount_formatted', sortable: true},
+            {
+              name: 'message',
+              align: 'left',
+              label: 'Message',
+              field: 'message'
+            },
+            {name: 'spread_formatted', align: 'right', label: 'Spread', field: 'spread_formatted', sortable: true},
+            {
+              name: 'handle',
+              align: 'left',
+              label: 'Handle',
+              field: 'handle',
+              sortable: true
+            },
+            {
+              name: 'lnbits_wallet_name',
+              align: 'left',
+              label: 'Wallet',
+              field: 'lnbits_wallet_name',
+              sortable: true
+            },
+            {name: 'status_info', align: 'left', label: 'Info', field: 'status_info'}
+          ],
+          pagination: {
+            rowsPerPage: 50
+          }
+        },
+        configDialog: {
+          show: false,
+          chain: false,
+          data: {}
+        }
+      }
+    },
+    methods: {
+      getForwards: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/strike/api/v1/forwards',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.forwards = response.data.map(function (obj) {
+              return mapResponse(obj, self.g.user)
+            })
+          })
+      },
+      deleteForward: function (id) {
+        var self = this
+        var forwards = _.findWhere(this.forwards, {id: id})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this forwarded invoice?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/strike/api/v1/forwards/' + id,
+                _.findWhere(self.g.user.wallets, {id: forwards.wallet}).inkey
+              )
+              .then(function (response) {
+                self.forwards = _.reject(self.forwards, function (obj) {
+                  return obj.id == ticketId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportForwardsCSV: function () {
+        LNbits.utils.exportCSV(this.forwardsTable.columns, this.forwards)
+      },
+
+      getConfigs: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/strike/api/v1/configurations',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.configurations = response.data.map(function (obj) {
+              return mapResponse(obj, self.g.user)
+            })
+          })
+      },
+      sendConfigData: function () {
+        var wallet = _.findWhere(this.g.user.wallets, {
+          id: this.configDialog.data.lnbits_wallet
+        })
+        var data = this.configDialog.data
+
+        this.createConfig(wallet, data)
+      },
+
+      createConfig: function (wallet, data) {
+        var self = this
+        LNbits.api
+          .request('POST', '/strike/api/v1/configurations', wallet.inkey, data)
+          .then(function (response) {
+            self.configurations.push(mapResponse(response.data, self.g.user))
+            self.configDialog.show = false
+            self.configDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteConfig: function (id) {
+        var self = this
+        var configs = _.findWhere(this.configurations, {id: id})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this configuration?')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/strike/api/v1/configurations/' + id,
+                _.findWhere(self.g.user.wallets, {id: configs.lnbits_wallet}).inkey
+              )
+              .then(function (response) {
+                self.configurations = _.reject(self.configurations, function (obj) {
+                  return obj.id == id
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportConfigurationsCSV: function () {
+        LNbits.utils.exportCSV(this.configTable.columns, this.configurations)
+      },
+      reloadTimer: function () {
+        self = this
+        var refreshIntervalId = setInterval(function () {
+          self.getForwards()
+        }, 3000)
+      },
+    },
+
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getConfigs()
+        this.getForwards()
+        var reloadTimer = this.reloadTimer
+        reloadTimer()
+      }
+    }
+  })
+</script>
+{% endblock %}

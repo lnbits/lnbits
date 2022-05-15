@@ -132,10 +132,9 @@ class LNPayWallet(Wallet):
             value = await self.queue.get()
             yield value
 
-    async def webhook_listener(self):
-        text: str = await request.get_data()
+    async def webhook_listener(self, request):
         try:
-            data = json.loads(text)
+            data = await request.json()
         except json.decoder.JSONDecodeError:
             logger.error(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
             data = None

@@ -1,0 +1,8 @@
+{
+  "name": "Strike",
+  "short_description": "Forward all received payments to your Strike account",
+  "icon": "flash_auto",
+  "contributors": [
+    "marfusios"
+  ]
+}
