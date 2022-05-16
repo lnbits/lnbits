@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-from fastapi import Query, Request, Header
+from fastapi import Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
@@ -23,7 +23,7 @@ from lnbits.decorators import (
     WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
-    require_admin_key
+    require_admin_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -99,7 +99,7 @@ async def api_update_balance(
 
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(
-    new_name: str, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
+    new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     await update_wallet(wallet.wallet.id, new_name)
     return {
