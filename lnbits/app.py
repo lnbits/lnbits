@@ -90,13 +90,11 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 def check_settings(app: FastAPI):
     @app.on_event("startup")
     async def check_settings_admin():
-
         while True:
             admin_set = await get_admin_settings()
             if admin_set :
-                print(f"Access admin user account at: http://{lnbits.settings.HOST}:{lnbits.settings.PORT}/wallet?usr={admin_set.user}")
                 break
-            print("ERROR:", admin_set)
+            print("Waiting for admin settings... retrying in 5 seconds!")
             await asyncio.sleep(5)
             
         admin_set.admin_users = removeEmptyString(admin_set.admin_users.split(','))
@@ -106,6 +104,7 @@ def check_settings(app: FastAPI):
         admin_set.theme = removeEmptyString(admin_set.theme.split(','))
         admin_set.ad_space = removeEmptyString(admin_set.ad_space.split(','))
         g().admin_conf = conf.copy(update=admin_set.dict())
+        print(f"  ✔️ Access admin user account at: http://{lnbits.settings.HOST}:{lnbits.settings.PORT}/wallet?usr={admin_set.user}")
 
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
