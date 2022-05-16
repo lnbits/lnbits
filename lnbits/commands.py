@@ -71,7 +71,7 @@ async def get_admin_settings():
             exists = await conn.fetchone(
                 "SELECT * FROM information_schema.tables WHERE table_name = 'admin'"
             )
-        print("EXISTS", exists)
+        
         if not exists:
             return False
 

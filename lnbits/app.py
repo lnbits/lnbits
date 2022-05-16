@@ -94,6 +94,7 @@ def check_settings(app: FastAPI):
         while True:
             admin_set = await get_admin_settings()
             if admin_set :
+                print(f"Access admin user account at: http://{lnbits.settings.HOST}:{lnbits.settings.PORT}/wallet?usr={admin_set.user}")
                 break
             print("ERROR:", admin_set)
             await asyncio.sleep(5)
