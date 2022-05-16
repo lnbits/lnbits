@@ -45,7 +45,23 @@ def get_boltz_status(boltzid):
       "id": boltzid,
     })
 
-def get_mempool_blockheight():
+def get_mempool_fees() -> int:
+    res = httpx.get(
+        MEMPOOL_SPACE_URL + "/api/v1/fees/recommended",
+        headers={"Content-Type": "text/plain"},
+        timeout=40,
+    )
+    handle_request_errors(res)
+    data = json.loads(res)
+    try:
+        value = int(data.hourFee)
+    except ValueError:
+        msg = 'get_mempool_fees: ' + data.hourFee + ' value is not an integer'
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
+
+    return value
+
+def get_mempool_blockheight() -> int:
     res = httpx.get(
         MEMPOOL_SPACE_URL + "/api/blocks/tip/height",
         headers={"Content-Type": "text/plain"},
@@ -55,7 +71,7 @@ def get_mempool_blockheight():
     try:
         value = int(res.text)
     except ValueError:
-        msg = res.text + ' value is not an integer'
+        msg = 'get_mempool_blockheight: ' + res.text + ' value is not an integer'
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
     return value
 
@@ -171,6 +187,8 @@ def get_mempool_tx(address):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="vout_cnt not found")
     return tx, txid, vout_cnt, vout_amount
 
+
+
 async def send_onchain_tx(tx: Transaction):
     res = httpx.post(
         MEMPOOL_SPACE_URL+"/api/tx",
@@ -219,10 +237,10 @@ async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
     )
 
 def get_fee_estimation() -> int:
-    # TODO: estimate fees from mempool and compare it with boltz fee estimation
-    return 1000
-
-
+    # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
+    tx_size_vbyte = 150
+    mempool_fees = get_mempool_fees()
+    return mempool_fees * tx_size_vbyte
 
 # claim tx for reverse swaps
 # refund tx for normal swaps

@@ -64,6 +64,14 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openStatusDialog(props.row.id)"
                 ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="flip_to_front"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openMempool(props.row.id)"
+                ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -113,6 +121,14 @@
                   icon="info"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openStatusDialog(props.row.id, true)"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="flip_to_front"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openMempool(props.row.id)"
                 ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
@@ -430,6 +446,17 @@
             console.log("error", error);
             LNbits.utils.notifyApiError(error)
           });
+      },
+      openMempool(swap_id) {
+        var swap = _.findWhere(this.submarineSwaps, {id: swap_id})
+        if (swap === undefined) {
+          var swap = _.findWhere(this.reverseSubmarineSwaps, {id: swap_id})
+          var address = swap.onchain_address;
+        }
+        else {
+          var address = swap.address;
+        }
+        window.open("http://localhost/address/"+address, "_blank");
       },
       openStatusDialog(swap_id, reverse) {
         let url = '/boltz/api/v1/swap-status/'+swap_id
