@@ -96,7 +96,7 @@ async def m001_create_admin_table(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS admin (
+        CREATE TABLE IF NOT EXISTS admin.admin (
             "user" TEXT PRIMARY KEY,
             admin_users TEXT,
             allowed_users TEXT,
@@ -120,7 +120,7 @@ async def m001_create_admin_table(db):
     )
     await db.execute(
         """
-        INSERT INTO admin (
+        INSERT INTO admin.admin (
             "user", 
             admin_users,
             allowed_users,
@@ -171,7 +171,7 @@ async def m001_create_funding_table(db):
     # Make the funding table,  if it does not already exist
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS funding (
+        CREATE TABLE IF NOT EXISTS admin.funding (
             id TEXT PRIMARY KEY,
             backend_wallet TEXT,
             endpoint TEXT,
@@ -188,7 +188,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, selected)
         VALUES (?, ?, ?, ?)
         """,
         (
@@ -200,7 +200,7 @@ async def m001_create_funding_table(db):
     )
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, selected)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -214,7 +214,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, selected)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -228,7 +228,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, port, admin_key, cert, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, port, admin_key, cert, selected)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -244,7 +244,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, cert, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, cert, selected)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
@@ -259,7 +259,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, cert, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, cert, selected)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
@@ -274,7 +274,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, selected)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -288,7 +288,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, selected)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -302,7 +302,7 @@ async def m001_create_funding_table(db):
 
     await db.execute(
         """
-        INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+        INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, selected)
         VALUES (?, ?, ?, ?, ?)
         """,
         (
@@ -317,7 +317,7 @@ async def m001_create_funding_table(db):
     ## PLACEHOLDER FOR ECLAIR WALLET
     # await db.execute(
     #     """
-    #     INSERT INTO funding (id, backend_wallet, endpoint, admin_key, selected)
+    #     INSERT INTO admin.funding (id, backend_wallet, endpoint, admin_key, selected)
     #     VALUES (?, ?, ?, ?, ?)
     #     """,
     #     (
