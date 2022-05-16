@@ -15,6 +15,7 @@ async def get_admin_user():
     user = account.id
     assert user, "Newly created user couldn't be retrieved"
     print(f"Your newly created account/user id is: {user}. This will be the Super Admin user.")
+    conf.admin_users.insert(0, user)
     return user
 
 
