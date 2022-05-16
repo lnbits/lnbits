@@ -617,11 +617,12 @@ new Vue({
         })
     },
     updateWalletName: function () {
+      console.log(this.newName, this.g)
       let newName = this.newName
+      let adminkey = this.g.wallet.adminkey
       if (!newName || !newName.length) return
-      // let data = {name: newName}
       LNbits.api
-        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.adminkey, {})
+        .request('PUT', '/api/v1/wallet/' + newName, adminkey, {})
         .then(res => {
           this.newName = ''
           this.$q.notify({
