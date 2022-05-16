@@ -102,3 +102,37 @@ async def print_qr(request: Request, link_id):
     return withdraw_renderer().TemplateResponse(
         "withdraw/print_qr.html", {"request": request, "link": linked, "unique": True}
     )
+
+@withdraw_ext.get("/csv/{link_id}", response_class=HTMLResponse)
+async def print_qr(request: Request, link_id):
+    link = await get_withdraw_link(link_id)
+    if not link:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
+        )
+        # response.status_code = HTTPStatus.NOT_FOUND
+        # return "Withdraw link does not exist."
+
+    if link.uses == 0:
+
+        return withdraw_renderer().TemplateResponse(
+            "withdraw/csv.html",
+            {"request": request, "link": link.dict(), "unique": False},
+        )
+    links = []
+    count = 0
+
+    for x in link.usescsv.split(","):
+        linkk = await get_withdraw_link(link_id, count)
+        if not linkk:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Withdraw link does not exist."
+            )
+        links.append(str(linkk.lnurl(request)))
+        count = count + 1
+    page_link = list(chunks(links, 2))
+    linked = list(chunks(page_link, 5))
+
+    return withdraw_renderer().TemplateResponse(
+        "withdraw/csv.html", {"request": request, "link": linked, "unique": True}
+    )

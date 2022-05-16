@@ -129,7 +129,9 @@ class SparkWallet(Wallet):
                 if pay["status"] == "failed":
                     return PaymentResponse(False, None, 0, None, str(exc))
                 elif pay["status"] == "pending":
-                    return PaymentResponse(None, payment_hash, 0, None, None)
+                    return PaymentResponse(
+                        None, payment_hash, fee_limit_msat, None, None
+                    )
                 elif pay["status"] == "complete":
                     r = pay
                     r["payment_preimage"] = pay["preimage"]
@@ -152,9 +154,11 @@ class SparkWallet(Wallet):
 
         if not r or not r.get("invoices"):
             return PaymentStatus(None)
-        if r["invoices"][0]["status"] == "unpaid":
+
+        if r["invoices"][0]["status"] == "paid":
+            return PaymentStatus(True)
+        else:
             return PaymentStatus(False)
-        return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         # check if it's 32 bytes hex

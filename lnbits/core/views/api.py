@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-from fastapi import Query, Request, Header
+from fastapi import Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
@@ -23,7 +23,7 @@ from lnbits.decorators import (
     WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
-    require_admin_key
+    require_admin_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -99,7 +99,7 @@ async def api_update_balance(
 
 @core_app.put("/api/v1/wallet/{new_name}")
 async def api_update_wallet(
-    new_name: str, wallet: WalletTypeInfo = Depends(WalletAdminKeyChecker())
+    new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     await update_wallet(wallet.wallet.id, new_name)
     return {
@@ -125,7 +125,7 @@ async def api_payments(wallet: WalletTypeInfo = Depends(get_key_type)):
 class CreateInvoiceData(BaseModel):
     out: Optional[bool] = True
     amount: float = Query(None, ge=0)
-    memo: str = None
+    memo: Optional[str] = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
     lnurl_callback: Optional[str] = None
@@ -514,15 +514,19 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(require_admi
     return params
 
 
+class DecodePayment(BaseModel):
+    data: str
+
+
 @core_app.post("/api/v1/payments/decode")
-async def api_payments_decode(data: str = Query(None)):
-    print(data)
+async def api_payments_decode(data: DecodePayment):
+    payment_str = data.data
     try:
-        if data[:5] == "LNURL":
-            url = lnurl.decode(data)
+        if payment_str[:5] == "LNURL":
+            url = lnurl.decode(payment_str)
             return {"domain": url}
         else:
-            invoice = bolt11.decode(data)
+            invoice = bolt11.decode(payment_str)
             return {
                 "payment_hash": invoice.payment_hash,
                 "amount_msat": invoice.amount_msat,

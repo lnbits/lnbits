@@ -7,16 +7,15 @@
   <q-card>
     <q-card-section>
       <h5 class="text-subtitle1 q-my-none">
-        User Manager: Make and manager users/wallets
+        Discord Bot: Connect Discord users to LNbits.
       </h5>
       <p>
-        To help developers use LNbits to manage their users, the User Manager
-        extension allows the creation and management of users and wallets.
-        <br />For example, a games developer may be developing a game that needs
-        each user to have their own wallet, LNbits can be included in the
-        developers stack as the user and wallet manager.<br />
+        Connect your LNbits instance to a <a href="https://github.com/chrislennon/lnbits-discord-bot">Discord Bot</a> leveraging LNbits as a community based lightning node.<br />
         <small>
-          Created by, <a href="https://github.com/benarc">Ben Arc</a></small
+          Created by, <a href="https://github.com/chrislennon">Chris Lennon</a></small
+        > <br />
+        <small>
+          Based on User Manager, by <a href="https://github.com/benarc">Ben Arc</a></small
         >
       </p>
     </q-card-section>
@@ -33,7 +32,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /usermanager/api/v1/users</code
+          /discordbot/api/v1/users</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -42,7 +41,7 @@
         <code>JSON list of users</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}usermanager/api/v1/users -H
+          >curl -X GET {{ request.base_url }}discordbot/api/v1/users -H
           "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -53,7 +52,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /usermanager/api/v1/users/&lt;user_id&gt;</code
+          /discordbot/api/v1/users/&lt;user_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -63,7 +62,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}usermanager/api/v1/users/&lt;user_id&gt; -H "X-Api-Key: {{
+          }}discordbot/api/v1/users/&lt;user_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -74,7 +73,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /usermanager/api/v1/wallets/&lt;user_id&gt;</code
+          /discordbot/api/v1/wallets/&lt;user_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
@@ -86,7 +85,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}usermanager/api/v1/wallets/&lt;user_id&gt; -H "X-Api-Key: {{
+          }}discordbot/api/v1/wallets/&lt;user_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -97,7 +96,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /usermanager/api/v1/wallets&lt;wallet_id&gt;</code
+          /discordbot/api/v1/wallets&lt;wallet_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
@@ -109,7 +108,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}usermanager/api/v1/wallets&lt;wallet_id&gt; -H "X-Api-Key: {{
+          }}discordbot/api/v1/wallets&lt;wallet_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -125,7 +124,7 @@
       <q-card-section>
         <code
           ><span class="text-light-green">POST</span>
-          /usermanager/api/v1/users</code
+          /discordbot/api/v1/users</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code
@@ -137,23 +136,20 @@
         </h5>
         <code
           >{"admin_id": &lt;string&gt;, "user_name": &lt;string&gt;,
-          "wallet_name": &lt;string&gt;,"email": &lt;Optional string&gt;
-          ,"password": &lt;Optional string&gt;}</code
+          "wallet_name": &lt;string&gt;,"discord_id": &lt;string&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
         </h5>
         <code
           >{"id": &lt;string&gt;, "name": &lt;string&gt;, "admin":
-          &lt;string&gt;, "email": &lt;string&gt;, "password":
-          &lt;string&gt;}</code
+          &lt;string&gt;, "discord_id": &lt;string&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}usermanager/api/v1/users -d
+          >curl -X POST {{ request.base_url }}discordbot/api/v1/users -d
           '{"admin_id": "{{ user.id }}", "wallet_name": &lt;string&gt;,
-          "user_name": &lt;string&gt;, "email": &lt;Optional string&gt;,
-          "password": &lt; Optional string&gt;}' -H "X-Api-Key: {{
+          "user_name": &lt;string&gt;, "discord_id": &lt;string&gt;}' -H "X-Api-Key: {{
           user.wallets[0].inkey }}" -H "Content-type: application/json"
         </code>
       </q-card-section>
@@ -164,7 +160,7 @@
       <q-card-section>
         <code
           ><span class="text-light-green">POST</span>
-          /usermanager/api/v1/wallets</code
+          /discordbot/api/v1/wallets</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code
@@ -188,7 +184,7 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}usermanager/api/v1/wallets -d
+          >curl -X POST {{ request.base_url }}discordbot/api/v1/wallets -d
           '{"user_id": &lt;string&gt;, "wallet_name": &lt;string&gt;,
           "admin_id": "{{ user.id }}"}' -H "X-Api-Key: {{ user.wallets[0].inkey
           }}" -H "Content-type: application/json"
@@ -206,14 +202,14 @@
       <q-card-section>
         <code
           ><span class="text-red">DELETE</span>
-          /usermanager/api/v1/users/&lt;user_id&gt;</code
+          /discordbot/api/v1/users/&lt;user_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.base_url
-          }}usermanager/api/v1/users/&lt;user_id&gt; -H "X-Api-Key: {{
+          }}discordbot/api/v1/users/&lt;user_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -224,14 +220,14 @@
       <q-card-section>
         <code
           ><span class="text-red">DELETE</span>
-          /usermanager/api/v1/wallets/&lt;wallet_id&gt;</code
+          /discordbot/api/v1/wallets/&lt;wallet_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.base_url
-          }}usermanager/api/v1/wallets/&lt;wallet_id&gt; -H "X-Api-Key: {{
+          }}discordbot/api/v1/wallets/&lt;wallet_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -247,13 +243,13 @@
       <q-card-section>
         <code
           ><span class="text-green">POST</span>
-          /usermanager/api/v1/extensions</code
+          /discordbot/api/v1/extensions</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}usermanager/api/v1/extensions -d
+          >curl -X POST {{ request.base_url }}discordbot/api/v1/extensions -d
           '{"userid": &lt;string&gt;, "extension": &lt;string&gt;, "active":
           &lt;integer&gt;}' -H "X-Api-Key: {{ user.wallets[0].inkey }}" -H
           "Content-type: application/json"
