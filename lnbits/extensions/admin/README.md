@@ -1,11 +1,12 @@
-<h1>Example Extension</h1>
-<h2>*tagline*</h2>
-This is an example extension to help you organise and build you own.
+# Admin Extension
 
-Try to include an image
-<img src="https://i.imgur.com/9i4xcQB.png">
+## Dashboard to manage LNbits from the UI
 
+With AdminUI you can manage your LNbits from the UI
 
-<h2>If your extension has API endpoints, include useful ones here</h2>
+![AdminUI](https://i.imgur.com/BIyLkyG.png)
 
-<code>curl -H "Content-type: application/json" -X POST https://YOUR-LNBITS/YOUR-EXTENSION/api/v1/EXAMPLE -d '{"amount":"100","memo":"example"}' -H "X-Api-Key: YOUR_WALLET-ADMIN/INVOICE-KEY"</code>
+## Before you start
+
+**This extension doesn't discard the need for the `.env` file!**
+In the .env file, set the `LNBITS_ADMIN_USERS` variable to include at least your user id.
