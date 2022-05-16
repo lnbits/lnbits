@@ -8,7 +8,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install build deps
 RUN apt-get update
-RUN apt-get install -y --no-install-recommends build-essential pkg-config
+# RUN apt-get install -y --no-install-recommends build-essential pkg-config
 RUN python -m pip install --upgrade pip
 RUN pip install wheel
 
