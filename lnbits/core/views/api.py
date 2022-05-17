@@ -365,14 +365,13 @@ async def api_payments_sse(
 
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
-    wallet = None
-    try:
-        if X_Api_Key.extra:
-            print("No key")
-    except:
+    if X_Api_Key is not None:
         wallet = await get_wallet_for_key(X_Api_Key)
+    else:
+        wallet = None
     payment = await get_standalone_payment(payment_hash)
-    await check_invoice_status(payment.wallet_id, payment_hash)
+    if payment:
+        await check_invoice_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(payment_hash)
     if not payment:
         raise HTTPException(
