@@ -34,10 +34,16 @@
           {% endblock %}
           <q-toolbar-title>
             <q-btn flat no-caps dense size="lg" type="a" href="/">
-              {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
-              SITE_TITLE }} {% else %} <strong>LN</strong>bits {% endif %} {%
-              endblock %}</q-btn
-            >
+              {% block toolbar_title %} {% if USE_CUSTOM_LOGO %}
+              <img
+                height="30px"
+                alt="Company logo"
+                src="static/images/custom/logo.png"
+              />
+              {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
+              %}
+              <strong>LN</strong>bits {% endif %} {%endif%} {% endblock %}
+            </q-btn>
           </q-toolbar-title>
           {% block beta %}
           <q-badge color="yellow" text-color="black" class="q-mr-md">

@@ -6,10 +6,9 @@ from typing import Any, List, NamedTuple, Optional
 import jinja2
 import shortuuid  # type: ignore
 
+import lnbits.settings as settings
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
-
-import lnbits.settings as settings
 
 
 class Extension(NamedTuple):
@@ -160,6 +159,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
             ["lnbits/templates", "lnbits/core/templates", *additional_folders]
         )
     )
+        
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
     t.env.globals["HIDE_API"] = settings.LNBITS_HIDE_API
@@ -170,6 +170,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
     t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
     t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    t.env.globals["USE_CUSTOM_LOGO"] = os.path.isfile(f"{settings.LNBITS_PATH}/static/images/custom/logo.png")
 
     if settings.DEBUG:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
