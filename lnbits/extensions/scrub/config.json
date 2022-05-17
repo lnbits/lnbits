@@ -1,0 +1,8 @@
+{
+  "name": "scrub",
+  "short_description": "Pass payments to LNURLp/LNaddress",
+  "icon": "send",
+  "contributors": [
+    "arcbtc"
+  ]
+}
