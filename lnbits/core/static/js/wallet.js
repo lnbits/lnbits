@@ -691,10 +691,7 @@ new Vue({
   },
   mounted: function () {
     // show disclaimer
-    if (
-      this.$refs.disclaimer &&
-      !this.$q.localStorage.getItem('lnbits.disclaimerShown')
-    ) {
+    if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }
