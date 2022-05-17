@@ -37,6 +37,11 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 WORKDIR /app
 COPY --chown=1000:1000 lnbits /app/lnbits
 
+# Copy in config files
+WORKDIR /config
+COPY --chown=1000:1000 config /config
+
+
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
 
