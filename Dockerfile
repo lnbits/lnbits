@@ -20,7 +20,8 @@ RUN pip install -r /tmp/requirements.txt
 RUN pip install pylightning
 
 # Install LND specific deps
-RUN pip install lndgrpc
+RUN pip install lndgrpc grpcio protobuf
+
 
 # Production image
 FROM python:3.7-slim as lnbits
