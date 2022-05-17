@@ -12,7 +12,7 @@ class CreateWithdrawData(BaseModel):
     title: str = Query(...)
     min_withdrawable: int = Query(..., ge=1)
     max_withdrawable: int = Query(..., ge=1)
-    uses: int = Query(..., ge=1, le=250)
+    uses: int = Query(..., ge=1)
     wait_time: int = Query(..., ge=1)
     is_unique: bool
 
