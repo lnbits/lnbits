@@ -38,8 +38,8 @@ WORKDIR /app
 COPY --chown=1000:1000 lnbits /app/lnbits
 
 # Copy in config files
-WORKDIR /config
-COPY --chown=1000:1000 config /config
+# WORKDIR /config
+COPY --chown=1000:1000 config /app/config
 
 
 ENV LNBITS_PORT="5000"
