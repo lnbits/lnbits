@@ -42,4 +42,6 @@ ENV LNBITS_HOST="0.0.0.0"
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $LNBITS_PORT --host $LNBITS_HOST"]
+# CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $LNBITS_PORT --host $LNBITS_HOST"]
+# CMD ["sh", "-c", "uvicorn lnbits.__main__:app " ]
+CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $PORT --host $LNBITS_HOST"]
