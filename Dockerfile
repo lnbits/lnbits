@@ -8,7 +8,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install build deps
 RUN apt-get update
-# RUN apt-get install -y --no-install-recommends build-essential pkg-config
+# Causes error during docker build so commented this line out: RUN apt-get install -y --no-install-recommends build-essential pkg-config
 RUN python -m pip install --upgrade pip
 RUN pip install wheel
 
@@ -19,7 +19,7 @@ RUN pip install -r /tmp/requirements.txt
 # Install c-lightning specific deps
 RUN pip install pylightning
 
-# Install LND specific deps
+# Install LND specific deps - added grpcio protuf for heroku-docker build
 RUN pip install lndgrpc grpcio protobuf
 
 
@@ -50,4 +50,5 @@ EXPOSE 5000
 
 # CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $LNBITS_PORT --host $LNBITS_HOST"]
 # CMD ["sh", "-c", "uvicorn lnbits.__main__:app " ]
+# modifed CMD command so runs as docker container using $PORT variable
 CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $PORT --host $LNBITS_HOST"]

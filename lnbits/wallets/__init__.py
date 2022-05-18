@@ -9,4 +9,4 @@ from .lnbits import LNbitsWallet
 from .lndrest import LndRestWallet
 from .spark import SparkWallet
 from .fake import FakeWallet
-from .lndgrpc import LndWallet
+from .lndgrpc import LndWallet # added this line back in

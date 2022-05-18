@@ -1,3 +1,4 @@
+# Docker build that works with Heroku
 build:
   docker:
     web: Dockerfile
