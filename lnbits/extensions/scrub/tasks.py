@@ -28,23 +28,7 @@ async def on_invoice_paid(payment: Scrubment) -> None:
         return
 
     pay_link = await get_pay_link(payment.extra.get("link", -1))
-    if pay_link and pay_link.webhook_url:
-        async with httpx.AsyncClient() as client:
-            try:
-                r = await client.post(
-                    pay_link.webhook_url,
-                    json={
-                        "payment_hash": payment.payment_hash,
-                        "payment_request": payment.bolt11,
-                        "amount": payment.amount,
-                        "comment": payment.extra.get("comment"),
-                        "scrub": pay_link.id,
-                    },
-                    timeout=40,
-                )
-                await mark_webhook_sent(payment, r.status_code)
-            except (httpx.ConnectError, httpx.RequestError):
-                await mark_webhook_sent(payment, -1)
+    # PAY LNURLP AND LNADDRESS
 
 
 async def mark_webhook_sent(payment: Scrubment, status: int) -> None:

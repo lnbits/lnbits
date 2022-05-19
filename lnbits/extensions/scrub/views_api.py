@@ -12,11 +12,11 @@ from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import scrub_ext
 from .crud import (
-    create_pay_link,
-    delete_pay_link,
-    get_pay_link,
-    get_pay_links,
-    update_pay_link,
+    create_scrub_link,
+    delete_scrub_link,
+    get_scrub_link,
+    get_scrub_links,
+    update_scrub_link,
 )
 from .models import CreateScrubLinkData
 
@@ -39,14 +39,14 @@ async def api_links(
 
     try:
         return [
-            {**link.dict(), "lnurl": link.lnurl(req)}
+            {**link.dict()}
             for link in await get_pay_links(wallet_ids)
         ]
 
-    except LnurlInvalidUrl:
+    except:
         raise HTTPException(
-            status_code=HTTPStatus.UPGRADE_REQUIRED,
-            detail="LNURLs need to be delivered over a publically accessible `https` domain or Tor.",
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="No links available",
         )
 
 

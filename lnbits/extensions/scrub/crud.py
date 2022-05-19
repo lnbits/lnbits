@@ -5,87 +5,62 @@ from . import db
 from .models import ScrubLink, CreateScrubLinkData
 
 
-async def create_pay_link(data: CreateScrubLinkData, wallet_id: str) -> ScrubLink:
-
-    returning = "" if db.type == SQLITE else "RETURNING ID"
-    method = db.execute if db.type == SQLITE else db.fetchone
-    result = await (method)(
-        f"""
-        INSERT INTO scrub.pay_links (
+async def create_scrub_link(wallet_id: str, data: CreateSatsDiceLink) -> satsdiceLink:
+    satsdice_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO scrub.scrub_links (
+            id,
             wallet,
             description,
-            min,
-            max,
-            served_meta,
-            served_pr,
-            webhook_url,
-            success_text,
-            success_url,
-            comment_chars,
-            currency
+            payoraddress,
         )
-        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
-        {returning}
+        VALUES (?, ?, ?)
         """,
         (
-            wallet_id,
-            data.description,
-            data.min,
-            data.max,
-            data.webhook_url,
-            data.success_text,
-            data.success_url,
-            data.comment_chars,
-            data.currency,
+            satsdice_id,
+            wallet,
+            description,
+            payoraddress,
         ),
     )
-    if db.type == SQLITE:
-        link_id = result._result_proxy.lastrowid
-    else:
-        link_id = result[0]
-
-    link = await get_pay_link(link_id)
+    link = await get_satsdice_pay(satsdice_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
 
-async def get_pay_link(link_id: int) -> Optional[ScrubLink]:
-    row = await db.fetchone("SELECT * FROM scrub.pay_links WHERE id = ?", (link_id,))
-    return ScrubLink.from_row(row) if row else None
+async def get_scrub_link(link_id: str) -> Optional[satsdiceLink]:
+    row = await db.fetchone(
+        "SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,)
+    )
+    return satsdiceLink(**row) if row else None
 
 
-async def get_pay_links(wallet_ids: Union[str, List[str]]) -> List[ScrubLink]:
+async def get_scrub_links(wallet_ids: Union[str, List[str]]) -> List[satsdiceLink]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
-        SELECT * FROM scrub.pay_links WHERE wallet IN ({q})
-        ORDER BY Id
+        SELECT * FROM scrub.scrub_links WHERE wallet IN ({q})
+        ORDER BY id
         """,
         (*wallet_ids,),
     )
-    return [ScrubLink.from_row(row) for row in rows]
+    return [satsdiceLink(**row) for row in rows]
 
 
-async def update_pay_link(link_id: int, **kwargs) -> Optional[ScrubLink]:
+async def update_scrub_link(link_id: int, **kwargs) -> Optional[satsdiceLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE scrub.pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+        f"UPDATE scrub.scrub_links SET {q} WHERE id = ?",
+        (*kwargs.values(), link_id),
     )
-    row = await db.fetchone("SELECT * FROM scrub.pay_links WHERE id = ?", (link_id,))
-    return ScrubLink.from_row(row) if row else None
-
-
-async def increment_pay_link(link_id: int, **kwargs) -> Optional[ScrubLink]:
-    q = ", ".join([f"{field[0]} = {field[0]} + ?" for field in kwargs.items()])
-    await db.execute(
-        f"UPDATE scrub.pay_links SET {q} WHERE id = ?", (*kwargs.values(), link_id)
+    row = await db.fetchone(
+        "SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,)
     )
-    row = await db.fetchone("SELECT * FROM scrub.pay_links WHERE id = ?", (link_id,))
-    return ScrubLink.from_row(row) if row else None
+    return satsdiceLink(**row) if row else None
 
-
-async def delete_pay_link(link_id: int) -> None:
-    await db.execute("DELETE FROM scrub.pay_links WHERE id = ?", (link_id,))
+async def delete_scrub_link(link_id: int) -> None:
+    await db.execute("DELETE FROM scrub.scrub_links WHERE id = ?", (link_id,))
