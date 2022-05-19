@@ -13,7 +13,7 @@ from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import WALLET
+from lnbits.settings import RESERVE_FEE, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -144,7 +144,7 @@ async def pay_invoice(
         if wallet.balance_msat < 0:
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
-                    f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
@@ -340,4 +340,4 @@ async def check_invoice_status(
 
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(2000, int(amount_msat * 0.01))
+    return max(int(RESERVE_FEE), int(amount_msat * 0.01))

@@ -1,10 +1,10 @@
-import subprocess
 import importlib
-
-from environs import Env  # type: ignore
+import subprocess
+from email.policy import default
 from os import path
 from typing import List
 
+from environs import Env  # type: ignore
 
 env = Env()
 env.read_env()
@@ -52,6 +52,7 @@ WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 
+RESERVE_FEE = env.int("LNBITS_RESERVE_FEE", default=4000)
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
 try:
