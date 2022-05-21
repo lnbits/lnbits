@@ -51,7 +51,7 @@ class WithdrawLink(BaseModel):
             url = req.url_for(
                 "withdraw.api_lnurl_response", unique_hash=self.unique_hash
             )
-
+        url=url.replace("http", "https")
         return lnurl_encode(url)
 
     def lnurl_response(self, req: Request) -> LnurlWithdrawResponse:
