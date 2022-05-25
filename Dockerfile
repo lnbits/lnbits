@@ -1,15 +1,17 @@
 # Build image
-FROM python:3.7-slim as builder
+FROM postgres:latest as builder
 
+RUN apt-get update
+RUN apt-get install -y python3 python3-venv
 # Setup virtualenv
-ENV VIRTUAL_ENV=/opt/venv
-RUN python -m venv $VIRTUAL_ENV
+ENV VIRTUAL_ENV /opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install build deps
 RUN apt-get update
-RUN apt-get install -y --no-install-recommends build-essential pkg-config
-RUN python -m pip install --upgrade pip
+RUN apt-get install -y --no-install-recommends build-essential pkg-config python3
+RUN python3 -m pip install --upgrade pip
 RUN pip install wheel
 
 # Install runtime deps
@@ -23,23 +25,26 @@ RUN pip install pylightning
 RUN pip install lndgrpc
 
 # Production image
-FROM python:3.7-slim as lnbits
+# FROM postgres:latest as lnbits
 
 # Run as non-root
 USER 1000:1000
 
 # Copy over virtualenv
-ENV VIRTUAL_ENV="/opt/venv"
-COPY --from=builder --chown=1000:1000 $VIRTUAL_ENV $VIRTUAL_ENV
+ENV VIRTUAL_ENV /opt/venv
+# COPY --from=builder --chown=1000:1000 $VIRTUAL_ENV /opt/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Copy in app source
 WORKDIR /app
-COPY --chown=1000:1000 lnbits /app/lnbits
+
+RUN mkdir -p /app/lnbits/data
+
+COPY --chown=1000:1000 . /app/lnbits
 
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $LNBITS_PORT --host $LNBITS_HOST"]
+CMD ["sh", "-c", "uvicorn --app-dir lnbits --port $LNBITS_PORT --host $LNBITS_HOST"]

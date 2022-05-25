@@ -35,3 +35,14 @@ test:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	./venv/bin/pytest -s
+
+host:
+	python3 -m venv venv
+	bash -c "sudo apt-get -y install postgresql || brew install postgresql || echo 'install postsgresql!'"
+	bash -c "sudo -i -u postgres"
+
+build:
+	docker build --no-cache --tag lnbits .
+
+run:
+	docker run -it lnbits
