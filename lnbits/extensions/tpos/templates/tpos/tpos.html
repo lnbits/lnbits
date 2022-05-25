@@ -330,9 +330,10 @@
       },
       getRates: function () {
         var self = this
-        axios.get('https://api.opennode.co/v1/rates').then(function (response) {
-          self.exchangeRate =
-            response.data.data['BTC' + self.currency][self.currency]
+        LNbits.api
+        .request('GET', '/tpos/api/v1/rate/' + self.currency, null)
+        .then(response => {
+          self.exchangeRate = 100000000 / response.data.rate
         })
       }
     },
