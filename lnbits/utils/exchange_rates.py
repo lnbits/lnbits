@@ -186,6 +186,12 @@ exchange_rate_providers = {
         "https://api.exir.io/v1/ticker?symbol={from}-{to}",
         lambda data, replacements: data["last"],
     ),
+    "nobitex": Provider(
+        "Nobitex",
+        "nobitex.ir",
+        "https://api.nobitex.ir/market/stats?srcCurrency={from}&dstCurrency={to}",
+        lambda data, replacements: data["stats"][f'{replacements["from"]}-{replacements["to"]}']['latest'][:-1]
+    ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
