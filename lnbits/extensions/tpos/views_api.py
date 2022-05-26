@@ -8,7 +8,6 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
@@ -89,12 +88,3 @@ async def api_tpos_check_invoice(tpos_id: str, payment_hash: str):
         print(exc)
         return {"paid": False}
     return status
-
-@tpos_ext.get("/api/v1/rate/{currency}", status_code=HTTPStatus.OK)
-async def api_check_fiat_rate(currency):
-    try:
-        rate = await get_fiat_rate_satoshis(currency)
-    except AssertionError:
-        rate = None
-
-    return {"rate": rate}
