@@ -330,10 +330,10 @@
       },
       getRates: function () {
         var self = this
-        axios.get('https://api.opennode.co/v1/rates').then(function (response) {
-          self.exchangeRate =
-            response.data.data['BTC' + self.currency][self.currency]
-        })
+        axios.get('https://legend.lnbits.com/api/v1/conversion?from=BTC&amount=1&to=' + this.currency)
+          .then(function (response) {
+            self.exchangeRate = response.data[self.currency]
+          })
       }
     },
     created: function () {

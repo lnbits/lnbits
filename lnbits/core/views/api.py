@@ -564,19 +564,30 @@ class ConversionData(BaseModel):
     to: str = Query("usd")
 
 
-@core_app.post("/api/v1/conversion")
-async def api_fiat_as_sats(data: ConversionData):
+@core_app.get("/api/v1/conversion")
+async def api_fiat_as_sats(amount: float, from_: str = Field("sat", alias="from"), to: str = Query("usd")):
     output = {}
-    if data.from_ == "sat":
-        output["sats"] = int(data.amount)
-        output["BTC"] = data.amount / 100000000
-        for currency in data.to.split(","):
+    available_currencies = list(currencies.keys()) + ["SAT", "BTC"]
+
+    if from_.upper() not in available_currencies or to.upper() not in available_currencies:
+        output = {"error": "invalid currency", "available": available_currencies}
+    elif from_.upper() == "SAT":
+        output["sats"] = int(amount)
+        output["BTC"] = amount / 100_000_000
+        for currency in to.split(","):
             output[currency.strip().upper()] = await satoshis_amount_as_fiat(
-                data.amount, currency.strip()
+                amount, currency.strip()
             )
-        return output
+    elif from_.upper() == "BTC":
+        output["sats"] = int(amount * 100_000_000)
+        output["BTC"] = amount
+        for currency in to.split(","):
+            output[currency.strip().upper()] = await satoshis_amount_as_fiat(
+                output["sats"], currency.strip()
+            )
     else:
-        output[data.from_.upper()] = data.amount
-        output["sats"] = await fiat_amount_as_satoshis(data.amount, data.from_)
-        output["BTC"] = output["sats"] / 100000000
-        return output
+        output[from_.upper()] = amount
+        output["sats"] = await fiat_amount_as_satoshis(amount, from_)
+        output["BTC"] = output["sats"] / 100_000_000
+    
+    return output

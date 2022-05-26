@@ -195,16 +195,16 @@ new Vue({
         })
     },
     updateFiatRate(currency) {
-      LNbits.api
-        .request('GET', '/lnurlp/api/v1/rate/' + currency, null)
-        .then(response => {
-          let rates = _.clone(this.fiatRates)
-          rates[currency] = response.data.rate
-          this.fiatRates = rates
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
+        LNbits.api
+          .request('GET', '/api/v1/conversion/?to=BTC&amount=1&from=' + currency, null)
+          .then(response => {
+            let rates = _.clone(this.fiatRates)
+            rates[currency] = response.data.sats
+            this.fiatRates = rates
+          })
+          .catch(err => {
+            LNbits.utils.notifyApiError(err)
+          })
     }
   },
   created() {
