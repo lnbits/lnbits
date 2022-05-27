@@ -565,7 +565,7 @@ class ConversionData(BaseModel):
 
 
 @core_app.get("/api/v1/conversion")
-async def api_fiat_as_sats(amount: float, from_: str = Field("sat", alias="from"), to: str = Query("usd")):
+async def api_fiat_as_sats(amount: float, from_: str = Query("sat", alias="from"), to: str = Query("usd")):
     output = {}
     available_currencies = list(currencies.keys()) + ["SAT", "BTC"]
 
