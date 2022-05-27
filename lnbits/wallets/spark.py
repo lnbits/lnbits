@@ -109,7 +109,10 @@ class SparkWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            r = await self.pay(bolt11)
+            r = await self.pay(
+                bolt11=bolt11,
+                maxfee=fee_limit_msat,
+            )
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if listpays:
