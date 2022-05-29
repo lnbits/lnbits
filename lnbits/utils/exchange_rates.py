@@ -192,6 +192,12 @@ exchange_rate_providers = {
         "https://api.nobitex.ir/market/stats?srcCurrency={from}&dstCurrency={to}",
         lambda data, replacements: data["stats"][f'{replacements["from"]}-{replacements["to"]}']['latest'][:-1]
     ),
+    "bitpin": Provider(
+        "Bitpin",
+        "bitpin.ir",
+        "https://api.bitpin.ir/tp/v1/mkt/markets/",
+        lambda data, replacements: list(filter(lambda x: x['code'] == f"{replacements['FROM']}_{replacements['TO']}", data['results']))[0]["price"]
+    ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
