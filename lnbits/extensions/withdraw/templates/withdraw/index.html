@@ -132,7 +132,7 @@
                 <q-input filled dense v-model.trim="formDialog.data.title" type="text" label="Link title *"></q-input>
                 <q-input filled dense v-model.number="formDialog.data.min_withdrawable" type="number" min="10" label="Min withdrawable (sat, at least 10) *"></q-input>
                 <q-input filled dense v-model.number="formDialog.data.max_withdrawable" type="number" min="10" label="Max withdrawable (sat, at least 10) *"></q-input>
-                <q-input filled dense v-model.number="formDialog.data.uses" type="number" :default="1" label="Amount of uses *"></q-input>
+                <q-input filled dense v-model.number="formDialog.data.uses" type="number" max="250"  :default="1" label="Amount of uses *"></q-input>
                 <div class="row q-col-gutter-none">
                     <div class="col-8">
                         <q-input filled dense v-model.number="formDialog.data.wait_time" type="number" :default="1" label="Time between withdrawals *">
@@ -180,7 +180,7 @@
                 <q-select filled dense emit-value v-model="simpleformDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
                 </q-select>
                 <q-input filled dense v-model.number="simpleformDialog.data.max_withdrawable" type="number" min="10" label="Withdraw amount per voucher (sat, at least 10)"></q-input>
-                <q-input filled dense v-model.number="simpleformDialog.data.uses" type="number" :default="1" label="Number of vouchers"></q-input>
+                <q-input filled dense v-model.number="simpleformDialog.data.uses" type="number" max="250" :default="1" label="Number of vouchers"></q-input>
 
                 <div class="row q-mt-lg">
                     <q-btn unelevated color="primary" :disable="

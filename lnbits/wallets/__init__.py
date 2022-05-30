@@ -1,11 +1,12 @@
 # flake8: noqa
 
-from .void import VoidWallet
 from .clightning import CLightningWallet
-from .lntxbot import LntxbotWallet
-from .opennode import OpenNodeWallet
-from .lnpay import LNPayWallet
+from .eclair import EclairWallet
+from .fake import FakeWallet
 from .lnbits import LNbitsWallet
 from .lndrest import LndRestWallet
+from .lnpay import LNPayWallet
+from .lntxbot import LntxbotWallet
+from .opennode import OpenNodeWallet
 from .spark import SparkWallet
-from .fake import FakeWallet
+from .void import VoidWallet
