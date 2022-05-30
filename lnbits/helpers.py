@@ -170,7 +170,8 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
     t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
     t.env.globals["EXTENSIONS"] = get_valid_extensions()
-    t.env.globals["USE_CUSTOM_LOGO"] = os.path.isfile(f"{settings.LNBITS_PATH}/static/images/custom/logo.png")
+    if settings.LNBITS_CUSTOM_LOGO:
+        t.env.globals["USE_CUSTOM_LOGO"] = settings.LNBITS_CUSTOM_LOGO
 
     if settings.DEBUG:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())

@@ -1,10 +1,10 @@
-import subprocess
 import importlib
-
-from environs import Env  # type: ignore
+import subprocess
+from email.policy import default
 from os import path
 from typing import List
 
+from environs import Env  # type: ignore
 
 env = Env()
 env.read_env()
@@ -47,6 +47,7 @@ LNBITS_THEME_OPTIONS: List[str] = env.list(
     default="classic, flamingo, mint, salvador, monochrome, autumn",
     subcast=str,
 )
+LNBITS_CUSTOM_LOGO = env.str("LNBITS_CUSTOM_LOGO", default="")
 
 WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
