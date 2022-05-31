@@ -1,35 +1,18 @@
-import asyncio
-
-from fastapi import APIRouter
-from fastapi.staticfiles import StaticFiles
+from quart import Blueprint
 
 from lnbits.db import Database
-from lnbits.helpers import template_renderer
-from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_splitpayments")
 
-splitpayments_static_files = [
-    {
-        "path": "/splitpayments/static",
-        "app": StaticFiles(directory="lnbits/extensions/splitpayments/static"),
-        "name": "splitpayments_static",
-    }
-]
-splitpayments_ext: APIRouter = APIRouter(
-    prefix="/splitpayments", tags=["splitpayments"]
+splitpayments_ext: Blueprint = Blueprint(
+    "splitpayments", __name__, static_folder="static", template_folder="templates"
 )
 
 
-def splitpayments_renderer():
-    return template_renderer(["lnbits/extensions/splitpayments/templates"])
-
-
-from .tasks import wait_for_paid_invoices
-from .views import *  # noqa
 from .views_api import *  # noqa
+from .views import *  # noqa
+from .tasks import register_listeners
 
+from lnbits.tasks import record_async
 
-def splitpayments_start():
-    loop = asyncio.get_event_loop()
-    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
+splitpayments_ext.record(record_async(register_listeners))

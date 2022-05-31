@@ -1,4 +1,4 @@
-import asyncio
+import trio
 import json
 import httpx
 
@@ -9,12 +9,14 @@ from lnbits.tasks import register_invoice_listener
 from .crud import get_pay_link
 
 
-async def wait_for_paid_invoices():
-    invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+async def register_listeners():
+    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
+    register_invoice_listener(invoice_paid_chan_send)
+    await wait_for_paid_invoices(invoice_paid_chan_recv)
 
-    while True:
-        payment = await invoice_queue.get()
+
+async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
+    async for payment in invoice_paid_chan:
         await on_invoice_paid(payment)
 
 

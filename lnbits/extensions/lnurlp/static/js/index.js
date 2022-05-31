@@ -51,7 +51,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/lnurlp/api/v1/links?all_wallets=true',
+          '/lnurlp/api/v1/links?all_wallets',
           this.g.user.wallets[0].inkey
         )
         .then(response => {
@@ -166,7 +166,7 @@ new Vue({
       LNbits.api
         .request('POST', '/lnurlp/api/v1/links', wallet.adminkey, data)
         .then(response => {
-          this.getPayLinks()
+          this.payLinks.push(mapPayLink(response.data))
           this.formDialog.show = false
           this.resetFormData()
         })

@@ -1,4 +1,4 @@
-import asyncio
+import trio
 import httpx
 from typing import List
 
@@ -8,19 +8,17 @@ from . import db
 from .crud import get_balance_notify
 from .models import Payment
 
-api_invoice_listeners: List[asyncio.Queue] = []
+api_invoice_listeners: List[trio.MemorySendChannel] = []
 
 
-async def register_task_listeners():
-    invoice_paid_queue = asyncio.Queue(5)
-    register_invoice_listener(invoice_paid_queue)
-    asyncio.create_task(wait_for_paid_invoices(invoice_paid_queue))
+async def register_listeners():
+    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(5)
+    register_invoice_listener(invoice_paid_chan_send)
+    await wait_for_paid_invoices(invoice_paid_chan_recv)
 
 
-async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
-    while True:
-        payment = await invoice_paid_queue.get()
-
+async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
+    async for payment in invoice_paid_chan:
         # send information to sse channel
         await dispatch_invoice_listener(payment)
 
@@ -33,7 +31,10 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
         if url:
             async with httpx.AsyncClient() as client:
                 try:
-                    r = await client.post(url, timeout=4)
+                    r = await client.post(
+                        url,
+                        timeout=4,
+                    )
                     await mark_webhook_sent(payment, r.status_code)
                 except (httpx.ConnectError, httpx.RequestError):
                     pass
@@ -42,17 +43,21 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
 async def dispatch_invoice_listener(payment: Payment):
     for send_channel in api_invoice_listeners:
         try:
-            send_channel.put_nowait(payment)
-        except asyncio.QueueFull:
+            send_channel.send_nowait(payment)
+        except trio.WouldBlock:
             print("removing sse listener", send_channel)
             api_invoice_listeners.remove(send_channel)
 
 
 async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient() as client:
-        data = payment.dict()
+        data = payment._asdict()
         try:
-            r = await client.post(payment.webhook, json=data, timeout=40)
+            r = await client.post(
+                payment.webhook,
+                json=data,
+                timeout=40,
+            )
             await mark_webhook_sent(payment, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
             await mark_webhook_sent(payment, -1)

@@ -222,7 +222,6 @@
           'INR',
           'IQD',
           'IRR',
-          'IRT',
           'ISK',
           'JEP',
           'JMD',
@@ -355,7 +354,7 @@
         LNbits.api
           .request(
             'GET',
-            '/tpos/api/v1/tposs?all_wallets=true',
+            '/tpos/api/v1/tposs?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {

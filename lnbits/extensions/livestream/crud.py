@@ -2,9 +2,8 @@ from typing import List, Optional
 
 from lnbits.core.crud import create_account, create_wallet
 from lnbits.db import SQLITE
-
 from . import db
-from .models import Livestream, Producer, Track
+from .models import Livestream, Track, Producer
 
 
 async def create_livestream(*, wallet_id: str) -> int:
@@ -36,8 +35,8 @@ async def get_livestream(ls_id: int) -> Optional[Livestream]:
 async def get_livestream_by_track(track_id: int) -> Optional[Livestream]:
     row = await db.fetchone(
         """
-        SELECT livestreams.* AS livestreams FROM livestream.livestreams
-        INNER JOIN livestream.tracks AS tracks ON tracks.livestream = livestreams.id
+        SELECT livestreams.* FROM livestream.livestreams
+        INNER JOIN tracks ON tracks.livestream = livestreams.id
         WHERE tracks.id = ?
         """,
         (track_id,),
@@ -67,7 +66,8 @@ async def update_current_track(ls_id: int, track_id: Optional[int]):
 
 async def update_livestream_fee(ls_id: int, fee_pct: int):
     await db.execute(
-        "UPDATE livestream.livestreams SET fee_pct = ? WHERE id = ?", (fee_pct, ls_id)
+        "UPDATE livestream.livestreams SET fee_pct = ? WHERE id = ?",
+        (fee_pct, ls_id),
     )
 
 

@@ -1,0 +1,6 @@
+{
+    "name": "Diagon Alley",
+    "short_description": "Movable anonymous market stand",
+    "icon": "add_shopping_cart",
+    "contributors": ["benarc"]
+}

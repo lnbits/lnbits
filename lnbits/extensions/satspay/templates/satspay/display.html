@@ -64,7 +64,7 @@
               label="lightning⚡"
             >
               <q-tooltip>
-                bitcoin lightning payment method not available
+                bitcoin onchain payment method not available
               </q-tooltip>
             </q-btn>
             <q-btn
@@ -86,7 +86,7 @@
               label="onchain⛓️"
             >
               <q-tooltip>
-                bitcoin onchain payment method not available
+                bitcoin lightning payment method not available
               </q-tooltip>
             </q-btn>
             <q-btn
@@ -132,7 +132,7 @@
                 lightning-network invoice</span
               >
             </center>
-            <a href="lightning:{{ charge.payment_request }}">
+            <a href="lightning://{{ charge.payment_request }}">
               <q-responsive :ratio="1" class="q-mx-md">
                 <qrcode
                   :value="'{{ charge.payment_request }}'"
@@ -182,7 +182,7 @@
                 to this onchain address</span
               >
             </center>
-            <a href="bitcoin:{{ charge.onchainaddress }}">
+            <a href="bitcoin://{{ charge.onchainaddress }}">
               <q-responsive :ratio="1" class="q-mx-md">
                 <qrcode
                   :value="'{{ charge.onchainaddress }}'"
@@ -207,7 +207,7 @@
 </div>
 
 {% endblock %} {% block scripts %}
-
+<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <style>
   .theCard {
     width: 360px;
@@ -235,24 +235,10 @@
         charge_time_elapsed: '{{charge.time_elapsed}}',
         charge_amount: '{{charge.amount}}',
         charge_balance: '{{charge.balance}}',
-        charge_paid: '{{charge.paid}}',
-        wallet: {
-          inkey: ''
-        },
-        cancelListener: () => {}
+        charge_paid: '{{charge.paid}}'
       }
     },
     methods: {
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.event.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.checkBalance()
-          }
-        )
-      },
       checkBalance: function () {
         var self = this
         LNbits.api
@@ -316,19 +302,16 @@
       }
     },
     created: function () {
-      console.log('{{ charge.onchainaddress }}' == 'None')
       if ('{{ charge.lnbitswallet }}' == 'None') {
         this.lnbtc = false
         this.onbtc = true
       }
-      this.wallet.inkey = '{{ wallet_inkey }}'
       this.getTheTime()
       this.getThePercentage()
       var timerCount = this.timerCount
       if ('{{ charge.paid }}' == 'False') {
         timerCount()
       }
-      this.startPaymentNotifier()
     }
   })
 </script>

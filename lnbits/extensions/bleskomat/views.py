@@ -1,26 +1,22 @@
-from fastapi import Request
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-from starlette.responses import HTMLResponse
+from quart import g, render_template
 
-from lnbits.core.models import User
-from lnbits.decorators import check_user_exists
+from lnbits.decorators import check_user_exists, validate_uuids
 
-from . import bleskomat_ext, bleskomat_renderer
+from . import bleskomat_ext
+
 from .exchange_rates import exchange_rate_providers_serializable, fiat_currencies
 from .helpers import get_callback_url
 
-templates = Jinja2Templates(directory="templates")
 
-
-@bleskomat_ext.get("/", response_class=HTMLResponse)
-async def index(req: Request, user: User = Depends(check_user_exists)):
+@bleskomat_ext.route("/")
+@validate_uuids(["usr"], required=True)
+@check_user_exists()
+async def index():
     bleskomat_vars = {
-        "callback_url": get_callback_url(req),
+        "callback_url": get_callback_url(),
         "exchange_rate_providers": exchange_rate_providers_serializable,
         "fiat_currencies": fiat_currencies,
     }
-    return bleskomat_renderer().TemplateResponse(
-        "bleskomat/index.html",
-        {"request": req, "user": user.dict(), "bleskomat_vars": bleskomat_vars},
+    return await render_template(
+        "bleskomat/index.html", user=g.user, bleskomat_vars=bleskomat_vars
     )

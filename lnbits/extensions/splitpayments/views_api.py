@@ -1,65 +1,70 @@
+from quart import g, jsonify
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
-from starlette.exceptions import HTTPException
-
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.core.crud import get_wallet, get_wallet_for_key
-from lnbits.decorators import WalletTypeInfo, require_admin_key
 
 from . import splitpayments_ext
 from .crud import get_targets, set_targets
-from .models import Target, TargetPut
+from .models import Target
 
 
-@splitpayments_ext.get("/api/v1/targets")
-async def api_targets_get(wallet: WalletTypeInfo = Depends(require_admin_key)):
-    targets = await get_targets(wallet.wallet.id)
-    return [target.dict() for target in targets] or []
+@splitpayments_ext.route("/api/v1/targets", methods=["GET"])
+@api_check_wallet_key("admin")
+async def api_targets_get():
+    targets = await get_targets(g.wallet.id)
+    return jsonify([target._asdict() for target in targets] or [])
 
 
-@splitpayments_ext.put("/api/v1/targets")
-async def api_targets_set(
-    req: Request, wal: WalletTypeInfo = Depends(require_admin_key)
-):
-    body = await req.json()
+@splitpayments_ext.route("/api/v1/targets", methods=["PUT"])
+@api_check_wallet_key("admin")
+@api_validate_post_request(
+    schema={
+        "targets": {
+            "type": "list",
+            "schema": {
+                "type": "dict",
+                "schema": {
+                    "wallet": {"type": "string"},
+                    "alias": {"type": "string"},
+                    "percent": {"type": "integer"},
+                },
+            },
+        }
+    }
+)
+async def api_targets_set():
     targets = []
-    data = TargetPut.parse_obj(body["targets"])
-    for entry in data.__root__:
-        wallet = await get_wallet(entry.wallet)
+
+    for entry in g.data["targets"]:
+        wallet = await get_wallet(entry["wallet"])
         if not wallet:
-            wallet = await get_wallet_for_key(entry.wallet, "invoice")
+            wallet = await get_wallet_for_key(entry["wallet"], "invoice")
             if not wallet:
-                raise HTTPException(
-                    status_code=HTTPStatus.BAD_REQUEST,
-                    detail=f"Invalid wallet '{entry.wallet}'.",
+                return (
+                    jsonify({"message": f"Invalid wallet '{entry['wallet']}'."}),
+                    HTTPStatus.BAD_REQUEST,
                 )
 
-        if wallet.id == wal.wallet.id:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="Can't split to itself."
+        if wallet.id == g.wallet.id:
+            return (
+                jsonify({"message": "Can't split to itself."}),
+                HTTPStatus.BAD_REQUEST,
             )
 
-        if entry.percent < 0:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail=f"Invalid percent '{entry.percent}'.",
+        if entry["percent"] < 0:
+            return (
+                jsonify({"message": f"Invalid percent '{entry['percent']}'."}),
+                HTTPStatus.BAD_REQUEST,
             )
 
         targets.append(
-            Target(
-                wallet=wallet.id,
-                source=wal.wallet.id,
-                percent=entry.percent,
-                alias=entry.alias,
-            )
+            Target(wallet.id, g.wallet.id, entry["percent"], entry["alias"] or "")
         )
 
     percent_sum = sum([target.percent for target in targets])
     if percent_sum > 100:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Splitting over 100%."
-        )
+        return jsonify({"message": "Splitting over 100%."}), HTTPStatus.BAD_REQUEST
 
-    await set_targets(wal.wallet.id, targets)
-    return ""
+    await set_targets(g.wallet.id, targets)
+    return "", HTTPStatus.OK

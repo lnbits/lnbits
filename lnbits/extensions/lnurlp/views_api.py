@@ -1,146 +1,142 @@
+from quart import g, jsonify, request
 from http import HTTPStatus
-
-from fastapi import Request
-from fastapi.param_functions import Query
-from fastapi.params import Depends
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
-from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import lnurlp_ext
 from .crud import (
     create_pay_link,
-    delete_pay_link,
     get_pay_link,
     get_pay_links,
     update_pay_link,
+    delete_pay_link,
 )
-from .models import CreatePayLinkData
 
 
-@lnurlp_ext.get("/api/v1/currencies")
+@lnurlp_ext.route("/api/v1/currencies", methods=["GET"])
 async def api_list_currencies_available():
-    return list(currencies.keys())
+    return jsonify(list(currencies.keys()))
 
 
-@lnurlp_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
-async def api_links(
-    req: Request,
-    wallet: WalletTypeInfo = Depends(get_key_type),
-    all_wallets: bool = Query(False),
-):
-    wallet_ids = [wallet.wallet.id]
+@lnurlp_ext.route("/api/v1/links", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_links():
+    wallet_ids = [g.wallet.id]
 
-    if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+    if "all_wallets" in request.args:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
     try:
-        return [
-            {**link.dict(), "lnurl": link.lnurl(req)}
-            for link in await get_pay_links(wallet_ids)
-        ]
-
+        return (
+            jsonify(
+                [
+                    {**link._asdict(), **{"lnurl": link.lnurl}}
+                    for link in await get_pay_links(wallet_ids)
+                ]
+            ),
+            HTTPStatus.OK,
+        )
     except LnurlInvalidUrl:
-        raise HTTPException(
-            status_code=HTTPStatus.UPGRADE_REQUIRED,
-            detail="LNURLs need to be delivered over a publically accessible `https` domain or Tor.",
+        return (
+            jsonify(
+                {
+                    "message": "LNURLs need to be delivered over a publically accessible `https` domain or Tor."
+                }
+            ),
+            HTTPStatus.UPGRADE_REQUIRED,
         )
 
 
-@lnurlp_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_retrieve(
-    r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@lnurlp_ext.route("/api/v1/links/<link_id>", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_link_retrieve(link_id):
     link = await get_pay_link(link_id)
 
     if not link:
-        raise HTTPException(
-            detail="Pay link does not exist.", status_code=HTTPStatus.NOT_FOUND
-        )
+        return jsonify({"message": "Pay link does not exist."}), HTTPStatus.NOT_FOUND
 
-    if link.wallet != wallet.wallet.id:
-        raise HTTPException(
-            detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
-        )
+    if link.wallet != g.wallet.id:
+        return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
 
-    return {**link.dict(), **{"lnurl": link.lnurl(r)}}
+    return jsonify({**link._asdict(), **{"lnurl": link.lnurl}}), HTTPStatus.OK
 
 
-@lnurlp_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
-@lnurlp_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_create_or_update(
-    data: CreatePayLinkData,
-    link_id=None,
-    wallet: WalletTypeInfo = Depends(get_key_type),
-):
-    if data.min < 1:
-        raise HTTPException(
-            detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
-        )
+@lnurlp_ext.route("/api/v1/links", methods=["POST"])
+@lnurlp_ext.route("/api/v1/links/<link_id>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+@api_validate_post_request(
+    schema={
+        "description": {"type": "string", "empty": False, "required": True},
+        "min": {"type": "number", "min": 0.01, "required": True},
+        "max": {"type": "number", "min": 0.01, "required": True},
+        "currency": {"type": "string", "nullable": True, "required": False},
+        "comment_chars": {"type": "integer", "required": True, "min": 0, "max": 800},
+        "webhook_url": {"type": "string", "required": False},
+        "success_text": {"type": "string", "required": False},
+        "success_url": {"type": "string", "required": False},
+    }
+)
+async def api_link_create_or_update(link_id=None):
+    if g.data["min"] > g.data["max"]:
+        return jsonify({"message": "Min is greater than max."}), HTTPStatus.BAD_REQUEST
 
-    if data.min > data.max:
-        raise HTTPException(
-            detail="Min is greater than max.", status_code=HTTPStatus.BAD_REQUEST
-        )
-
-    if data.currency == None and (
-        round(data.min) != data.min or round(data.max) != data.max
+    if g.data.get("currency") == None and (
+        round(g.data["min"]) != g.data["min"] or round(g.data["max"]) != g.data["max"]
     ):
-        raise HTTPException(
-            detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
-        )
+        return jsonify({"message": "Must use full satoshis."}), HTTPStatus.BAD_REQUEST
 
-    if "success_url" in data and data.success_url[:8] != "https://":
-        raise HTTPException(
-            detail="Success URL must be secure https://...",
-            status_code=HTTPStatus.BAD_REQUEST,
+    if "success_url" in g.data and g.data["success_url"][:8] != "https://":
+        return (
+            jsonify({"message": "Success URL must be secure https://..."}),
+            HTTPStatus.BAD_REQUEST,
         )
 
     if link_id:
         link = await get_pay_link(link_id)
 
         if not link:
-            raise HTTPException(
-                detail="Pay link does not exist.", status_code=HTTPStatus.NOT_FOUND
+            return (
+                jsonify({"message": "Pay link does not exist."}),
+                HTTPStatus.NOT_FOUND,
             )
 
-        if link.wallet != wallet.wallet.id:
-            raise HTTPException(
-                detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
-            )
+        if link.wallet != g.wallet.id:
+            return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
 
-        link = await update_pay_link(**data.dict(), link_id=link_id)
+        link = await update_pay_link(link_id, **g.data)
     else:
-        link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-    return {**link.dict(), "lnurl": link.lnurl}
+        link = await create_pay_link(wallet_id=g.wallet.id, **g.data)
+
+    return (
+        jsonify({**link._asdict(), **{"lnurl": link.lnurl}}),
+        HTTPStatus.OK if link_id else HTTPStatus.CREATED,
+    )
 
 
-@lnurlp_ext.delete("/api/v1/links/{link_id}")
-async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+@lnurlp_ext.route("/api/v1/links/<link_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_link_delete(link_id):
     link = await get_pay_link(link_id)
 
     if not link:
-        raise HTTPException(
-            detail="Pay link does not exist.", status_code=HTTPStatus.NOT_FOUND
-        )
+        return jsonify({"message": "Pay link does not exist."}), HTTPStatus.NOT_FOUND
 
-    if link.wallet != wallet.wallet.id:
-        raise HTTPException(
-            detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
-        )
+    if link.wallet != g.wallet.id:
+        return jsonify({"message": "Not your pay link."}), HTTPStatus.FORBIDDEN
 
     await delete_pay_link(link_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+    return "", HTTPStatus.NO_CONTENT
 
 
-@lnurlp_ext.get("/api/v1/rate/{currency}", status_code=HTTPStatus.OK)
+@lnurlp_ext.route("/api/v1/rate/<currency>", methods=["GET"])
 async def api_check_fiat_rate(currency):
     try:
         rate = await get_fiat_rate_satoshis(currency)
     except AssertionError:
         rate = None
 
-    return {"rate": rate}
+    return jsonify({"rate": rate}), HTTPStatus.OK

@@ -16,95 +16,39 @@
       <div class="row justify-center full-width">
         <div class="col-12 col-sm-8 col-md-6 col-lg-4">
           <div class="keypad q-pa-sm">
-            <q-btn
-              unelevated
-              @click="stack.push(1)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(1)" size="xl" color="grey-8"
               >1</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(2)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(2)" size="xl" color="grey-8"
               >2</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(3)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(3)" size="xl" color="grey-8"
               >3</q-btn
             >
             <q-btn
               unelevated
               @click="stack = []"
               size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+              color="pink"
               class="btn-cancel"
               >C</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(4)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(4)" size="xl" color="grey-8"
               >4</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(5)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(5)" size="xl" color="grey-8"
               >5</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(6)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(6)" size="xl" color="grey-8"
               >6</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(7)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(7)" size="xl" color="grey-8"
               >7</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(8)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(8)" size="xl" color="grey-8"
               >8</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(9)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(9)" size="xl" color="grey-8"
               >9</q-btn
             >
             <q-btn
@@ -112,9 +56,7 @@
               :disabled="amount == 0"
               @click="showInvoice()"
               size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+              color="green"
               class="btn-confirm"
               >OK</q-btn
             >
@@ -122,27 +64,17 @@
               unelevated
               @click="stack.splice(-1, 1)"
               size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+              color="grey-7"
               >DEL</q-btn
             >
-            <q-btn
-              unelevated
-              @click="stack.push(0)"
-              size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+            <q-btn unelevated @click="stack.push(0)" size="xl" color="grey-8"
               >0</q-btn
             >
             <q-btn
               unelevated
               @click="urlDialog.show = true"
               size="xl"
-              :outline="!($q.dark.isActive)"
-              rounded
-              color="primary"
+              color="grey-7"
               >#</q-btn
             >
           </div>
@@ -201,15 +133,6 @@
         </div>
       </q-card>
     </q-dialog>
-
-    <q-dialog v-model="complete.show" position="top">
-      <q-icon
-        name="check"
-        transition-show="fade"
-        class="text-light-green"
-        style="font-size: 40em"
-      ></q-icon>
-    </q-dialog>
   </q-page>
 </q-page-container>
 {% endblock %} {% block styles %}
@@ -220,11 +143,9 @@
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
   }
-
   .keypad .btn {
     height: 100%;
   }
-
   .btn-cancel,
   .btn-confirm {
     grid-row: auto/span 2;
@@ -251,9 +172,6 @@
         },
         urlDialog: {
           show: false
-        },
-        complete: {
-          show: false
         }
       }
     },
@@ -270,7 +188,6 @@
         return Math.ceil((this.amount / this.exchangeRate) * 100000000)
       },
       fsat: function () {
-        console.log('sat', this.sat, LNbits.utils.formatSat(this.sat))
         return LNbits.utils.formatSat(this.sat)
       }
     },
@@ -286,12 +203,10 @@
       showInvoice: function () {
         var self = this
         var dialog = this.invoiceDialog
-        console.log(this.sat, this.tposId)
+
         axios
-          .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
-            params: {
-              amount: this.sat
-            }
+          .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices/', {
+            amount: this.sat
           })
           .then(function (response) {
             dialog.data = response.data
@@ -316,10 +231,11 @@
                     dialog.dismissMsg()
                     dialog.show = false
 
-                    self.complete.show = true
-                    setTimeout(function () {
-                      self.complete.show = false
-                    }, 5000)
+                    self.$q.notify({
+                      type: 'positive',
+                      message: self.fsat + ' sat received!',
+                      icon: null
+                    })
                   }
                 })
             }, 3000)

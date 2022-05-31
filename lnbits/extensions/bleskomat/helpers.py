@@ -1,12 +1,11 @@
 import base64
 import hashlib
 import hmac
-import urllib
-from binascii import unhexlify
 from http import HTTPStatus
+from binascii import unhexlify
 from typing import Dict
-
-from starlette.requests import Request
+from quart import url_for
+import urllib
 
 
 def generate_bleskomat_lnurl_hash(secret: str):
@@ -35,8 +34,8 @@ def generate_bleskomat_lnurl_secret(api_key_id: str, signature: str):
     return m.hexdigest()
 
 
-def get_callback_url(req: Request):
-    return req.url_for("bleskomat.api_bleskomat_lnurl")
+def get_callback_url():
+    return url_for("bleskomat.api_bleskomat_lnurl", _external=True)
 
 
 def is_supported_lnurl_subprotocol(tag: str) -> bool:

@@ -1,21 +1,15 @@
-from os import getenv
+from quart import g, render_template
 
-from fastapi import Request
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
+from lnbits.decorators import check_user_exists, validate_uuids
+
 from pyngrok import conf, ngrok
-
-from lnbits.core.models import User
-from lnbits.decorators import check_user_exists
-
-from . import ngrok_ext, ngrok_renderer
-
-templates = Jinja2Templates(directory="templates")
+from . import ngrok_ext
+from os import getenv
 
 
 def log_event_callback(log):
     string = str(log)
-    string2 = string[string.find('url="https') : string.find('url="https') + 80]
+    string2 = string[string.find('url="https') : string.find('url="https') + 40]
     if string2:
         string3 = string2
         string4 = string3[4:]
@@ -25,16 +19,12 @@ def log_event_callback(log):
 
 conf.get_default().log_event_callback = log_event_callback
 
-ngrok_authtoken = getenv("NGROK_AUTHTOKEN")
-if ngrok_authtoken is not None:
-    ngrok.set_auth_token(ngrok_authtoken)
-
 port = getenv("PORT")
 ngrok_tunnel = ngrok.connect(port)
 
 
-@ngrok_ext.get("/")
-async def index(request: Request, user: User = Depends(check_user_exists)):
-    return ngrok_renderer().TemplateResponse(
-        "ngrok/index.html", {"request": request, "ngrok": string5, "user": user.dict()}
-    )
+@ngrok_ext.route("/")
+@validate_uuids(["usr"], required=True)
+@check_user_exists()
+async def index():
+    return await render_template("ngrok/index.html", ngrok=string5, user=g.user)

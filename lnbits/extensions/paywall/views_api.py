@@ -1,70 +1,77 @@
+from quart import g, jsonify, request
 from http import HTTPStatus
 
-from fastapi import Depends, Query
-from starlette.exceptions import HTTPException
-
 from lnbits.core.crud import get_user, get_wallet
-from lnbits.core.services import check_invoice_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.core.services import create_invoice, check_invoice_status
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import paywall_ext
-from .crud import create_paywall, delete_paywall, get_paywall, get_paywalls
-from .models import CheckPaywallInvoice, CreatePaywall, CreatePaywallInvoice
+from .crud import create_paywall, get_paywall, get_paywalls, delete_paywall
+from typing import Optional
+from pydantic import BaseModel
+from fastapi import FastAPI, Query
+
+@paywall_ext.route("/api/v1/paywalls", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_paywalls():
+    wallet_ids = [g.wallet.id]
+
+    if "all_wallets" in request.args:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
+    return (
+        jsonify([paywall._asdict() for paywall in await get_paywalls(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
-@paywall_ext.get("/api/v1/paywalls")
-async def api_paywalls(
-    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
-):
-    wallet_ids = [wallet.wallet.id]
+class CreateData(BaseModel):
+    url:  Optional[str] = Query(...),
+    memo:  Optional[str] = Query(...),
+    description:  str = Query(None),
+    amount:  int = Query(None),
+    remembers:  bool = Query(None) 
 
-    if all_wallets:
-        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
-
-    return [paywall.dict() for paywall in await get_paywalls(wallet_ids)]
-
-
-@paywall_ext.post("/api/v1/paywalls")
-async def api_paywall_create(
-    data: CreatePaywall, wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    paywall = await create_paywall(wallet_id=wallet.wallet.id, data=data)
-    return paywall.dict()
+@paywall_ext.route("/api/v1/paywalls", methods=["POST"])
+@api_check_wallet_key("invoice")
+async def api_paywall_create(data: CreateData):
+    paywall = await create_paywall(wallet_id=g.wallet.id, **data)
+    return paywall, HTTPStatus.CREATED
 
 
-@paywall_ext.delete("/api/v1/paywalls/{paywall_id}")
-async def api_paywall_delete(
-    paywall_id, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_paywall_delete(paywall_id):
     paywall = await get_paywall(paywall_id)
 
     if not paywall:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
-        )
+        return jsonify({"message": "Paywall does not exist."}), HTTPStatus.NOT_FOUND
 
-    if paywall.wallet != wallet.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your paywall."
-        )
+    if paywall.wallet != g.wallet.id:
+        return jsonify({"message": "Not your paywall."}), HTTPStatus.FORBIDDEN
 
     await delete_paywall(paywall_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+    return "", HTTPStatus.NO_CONTENT
 
 
-@paywall_ext.post("/api/v1/paywalls/invoice/{paywall_id}")
-async def api_paywall_create_invoice(
-    data: CreatePaywallInvoice,
-    paywall_id: str = Query(None)
-):
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>/invoice", methods=["POST"])
+@api_validate_post_request(
+    schema={"amount": {"type": "integer", "min": 1, "required": True}}
+)
+async def api_paywall_create_invoice(paywall_id):
     paywall = await get_paywall(paywall_id)
-    if data.amount < paywall.amount:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"Minimum amount is {paywall.amount} sat.",
+
+    if g.data["amount"] < paywall.amount:
+        return (
+            jsonify({"message": f"Minimum amount is {paywall.amount} sat."}),
+            HTTPStatus.BAD_REQUEST,
         )
+
     try:
-        amount = data.amount if data.amount > paywall.amount else paywall.amount
+        amount = (
+            g.data["amount"] if g.data["amount"] > paywall.amount else paywall.amount
+        )
         payment_hash, payment_request = await create_invoice(
             wallet_id=paywall.wallet,
             amount=amount,
@@ -72,29 +79,38 @@ async def api_paywall_create_invoice(
             extra={"tag": "paywall"},
         )
     except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return {"payment_hash": payment_hash, "payment_request": payment_request}
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.CREATED,
+    )
 
 
-@paywall_ext.post("/api/v1/paywalls/check_invoice/{paywall_id}")
-async def api_paywal_check_invoice(data: CheckPaywallInvoice, paywall_id: str = Query(None)):
+@paywall_ext.route("/api/v1/paywalls/<paywall_id>/check_invoice", methods=["POST"])
+@api_validate_post_request(
+    schema={"payment_hash": {"type": "string", "empty": False, "required": True}}
+)
+async def api_paywal_check_invoice(paywall_id):
     paywall = await get_paywall(paywall_id)
-    payment_hash = data.payment_hash
+
     if not paywall:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
-        )
+        return jsonify({"message": "Paywall does not exist."}), HTTPStatus.NOT_FOUND
+
     try:
-        status = await check_invoice_status(paywall.wallet, payment_hash)
+        status = await check_invoice_status(paywall.wallet, g.data["payment_hash"])
         is_paid = not status.pending
     except Exception:
-        return {"paid": False}
+        return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
         wallet = await get_wallet(paywall.wallet)
-        payment = await wallet.get_payment(payment_hash)
+        payment = await wallet.get_payment(g.data["payment_hash"])
         await payment.set_pending(False)
 
-        return {"paid": True, "url": paywall.url, "remembers": paywall.remembers}
-    return {"paid": False}
+        return (
+            jsonify({"paid": True, "url": paywall.url, "remembers": paywall.remembers}),
+            HTTPStatus.OK,
+        )
+
+    return jsonify({"paid": False}), HTTPStatus.OK

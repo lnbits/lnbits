@@ -1,28 +1,23 @@
-import asyncio
+import trio
 
-import uvloop
-from starlette.requests import Request
+from .commands import migrate_databases, transpile_scss, bundle_vendored
 
-from .commands import bundle_vendored, migrate_databases, transpile_scss
-from .settings import (
-    DEBUG,
-    LNBITS_COMMIT,
-    LNBITS_DATA_FOLDER,
-    LNBITS_SITE_TITLE,
-    PORT,
-    SERVICE_FEE,
-    WALLET,
-)
-
-uvloop.install()
-
-asyncio.create_task(migrate_databases())
+trio.run(migrate_databases)
 transpile_scss()
 bundle_vendored()
 
 from .app import create_app
 
 app = create_app()
+
+from .settings import (
+    LNBITS_SITE_TITLE,
+    SERVICE_FEE,
+    DEBUG,
+    LNBITS_DATA_FOLDER,
+    WALLET,
+    LNBITS_COMMIT,
+)
 
 print(
     f"""Starting LNbits with
@@ -34,3 +29,5 @@ print(
   - service fee: {SERVICE_FEE}
 """
 )
+
+app.run(host=app.config["HOST"], port=app.config["PORT"])

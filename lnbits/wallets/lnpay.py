@@ -1,10 +1,10 @@
 import json
-import asyncio
-from fastapi.exceptions import HTTPException
+import trio
 import httpx
 from os import getenv
 from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
+from quart import request
 
 from .base import (
     StatusResponse,
@@ -76,7 +76,7 @@ class LNPayWallet(Wallet):
 
         return InvoiceResponse(ok, checking_id, payment_request, error_message)
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
@@ -117,9 +117,8 @@ class LNPayWallet(Wallet):
         return PaymentStatus(statuses[r.json()["settled"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
+        self.send, receive = trio.open_memory_channel(0)
+        async for value in receive:
             yield value
 
     async def webhook_listener(self):
@@ -134,15 +133,16 @@ class LNPayWallet(Wallet):
             or "event" not in data
             or data["event"].get("name") != "wallet_receive"
         ):
-            raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+            return "", HTTPStatus.NO_CONTENT
 
         lntx_id = data["data"]["wtx"]["lnTx"]["id"]
         async with httpx.AsyncClient() as client:
             r = await client.get(
-                f"{self.endpoint}/lntx/{lntx_id}?fields=settled", headers=self.auth
+                f"{self.endpoint}/lntx/{lntx_id}?fields=settled",
+                headers=self.auth,
             )
             data = r.json()
             if data["settled"]:
-                await self.queue.put(lntx_id)
+                await self.send.send(lntx_id)
 
-        raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+        return "", HTTPStatus.NO_CONTENT

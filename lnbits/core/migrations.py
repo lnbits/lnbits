@@ -4,7 +4,7 @@ from sqlalchemy.exc import OperationalError  # type: ignore
 async def m000_create_migrations_table(db):
     await db.execute(
         """
-    CREATE TABLE IF NOT EXISTS dbversions (
+    CREATE TABLE dbversions (
         db TEXT PRIMARY KEY,
         version INT NOT NULL
     )
@@ -18,7 +18,7 @@ async def m001_initial(db):
     """
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS accounts (
+        CREATE TABLE accounts (
             id TEXT PRIMARY KEY,
             email TEXT,
             pass TEXT
@@ -27,7 +27,7 @@ async def m001_initial(db):
     )
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS extensions (
+        CREATE TABLE extensions (
             "user" TEXT NOT NULL,
             extension TEXT NOT NULL,
             active BOOLEAN DEFAULT false,
@@ -38,7 +38,7 @@ async def m001_initial(db):
     )
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS wallets (
+        CREATE TABLE wallets (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             "user" TEXT NOT NULL,
@@ -49,7 +49,7 @@ async def m001_initial(db):
     )
     await db.execute(
         f"""
-        CREATE TABLE IF NOT EXISTS apipayments (
+        CREATE TABLE apipayments (
             payhash TEXT NOT NULL,
             amount INTEGER NOT NULL,
             fee INTEGER NOT NULL DEFAULT 0,
@@ -168,7 +168,7 @@ async def m005_balance_check_balance_notify(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS balance_check (
+        CREATE TABLE balance_check (
           wallet TEXT NOT NULL REFERENCES wallets (id),
           service TEXT NOT NULL,
           url TEXT NOT NULL,
@@ -180,7 +180,7 @@ async def m005_balance_check_balance_notify(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS balance_notify (
+        CREATE TABLE balance_notify (
           wallet TEXT NOT NULL REFERENCES wallets (id),
           url TEXT NOT NULL,
 

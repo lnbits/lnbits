@@ -1,12 +1,5 @@
 from sqlite3 import Row
-
-from fastapi.param_functions import Query
 from pydantic import BaseModel
-
-
-class CreateWallet(BaseModel):
-    masterpub: str = Query("")
-    title: str = Query("")
 
 
 class Wallets(BaseModel):

@@ -398,7 +398,7 @@
         LNbits.api
           .request(
             'GET',
-            '/subdomains/api/v1/subdomains?all_wallets=true',
+            '/subdomains/api/v1/subdomains?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
@@ -417,7 +417,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/subdomains/api/v1/subdomains/' + subdomainId,
+                '/subdomain/api/v1/subdomains/' + subdomainId,
                 _.findWhere(self.g.user.wallets, {id: subdomains.wallet}).inkey
               )
               .then(function (response) {
@@ -440,7 +440,7 @@
         LNbits.api
           .request(
             'GET',
-            '/subdomains/api/v1/domains?all_wallets=true',
+            '/subdomains/api/v1/domains?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {

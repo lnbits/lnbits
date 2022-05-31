@@ -1,10 +1,9 @@
 import time
-import asyncio
+import trio
 import traceback
 from http import HTTPStatus
+from quart import current_app
 from typing import List, Callable
-
-from fastapi.exceptions import HTTPException
 
 from lnbits.settings import WALLET
 from lnbits.core.crud import (
@@ -26,21 +25,21 @@ def record_async(func: Callable) -> Callable:
     return recorder
 
 
-async def run_deferred_async():
+def run_deferred_async():
     for func in deferred_async:
-        asyncio.create_task(catch_everything_and_restart(func))
+        current_app.nursery.start_soon(catch_everything_and_restart, func)
 
 
 async def catch_everything_and_restart(func):
     try:
         await func()
-    except asyncio.CancelledError:
+    except trio.Cancelled:
         raise  # because we must pass this up
     except Exception as exc:
         print("caught exception in background task:", exc)
         print(traceback.format_exc())
         print("will restart the task in 5 seconds.")
-        await asyncio.sleep(5)
+        await trio.sleep(5)
         await catch_everything_and_restart(func)
 
 
@@ -48,10 +47,10 @@ async def send_push_promise(a, b) -> None:
     pass
 
 
-invoice_listeners: List[asyncio.Queue] = []
+invoice_listeners: List[trio.MemorySendChannel] = []
 
 
-def register_invoice_listener(send_chan: asyncio.Queue):
+def register_invoice_listener(send_chan: trio.MemorySendChannel):
     """
     A method intended for extensions to call when they want to be notified about
     new invoice payments incoming.
@@ -63,22 +62,21 @@ async def webhook_handler():
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
         return await handler()
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
-internal_invoice_queue = asyncio.Queue(0)
+internal_invoice_paid, internal_invoice_received = trio.open_memory_channel(0)
 
 
 async def internal_invoice_listener():
-    while True:
-        checking_id = await internal_invoice_queue.get()
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+    async for checking_id in internal_invoice_received:
+        current_app.nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
 async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
         print("> got a payment notification", checking_id)
-        asyncio.create_task(invoice_callback_dispatcher(checking_id))
+        current_app.nursery.start_soon(invoice_callback_dispatcher, checking_id)
 
 
 async def check_pending_payments():
@@ -102,7 +100,7 @@ async def check_pending_payments():
         # that will be handled by the global invoice listeners, hopefully
         incoming = False
 
-        await asyncio.sleep(60 * 30)  # every 30 minutes
+        await trio.sleep(60 * 30)  # every 30 minutes
 
 
 async def perform_balance_checks():
@@ -110,7 +108,7 @@ async def perform_balance_checks():
         for bc in await get_balance_checks():
             redeem_lnurl_withdraw(bc.wallet, bc.url)
 
-        await asyncio.sleep(60 * 60 * 6)  # every 6 hours
+        await trio.sleep(60 * 60 * 6)  # every 6 hours
 
 
 async def invoice_callback_dispatcher(checking_id: str):
@@ -118,4 +116,4 @@ async def invoice_callback_dispatcher(checking_id: str):
     if payment and payment.is_in:
         await payment.set_pending(False)
         for send_chan in invoice_listeners:
-            await send_chan.put(payment)
+            await send_chan.send(payment)

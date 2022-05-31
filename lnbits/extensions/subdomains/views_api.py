@@ -1,190 +1,222 @@
+from quart import g, jsonify, request
 from http import HTTPStatus
 
-from fastapi import Query
-from fastapi.params import Depends
-from starlette.exceptions import HTTPException
-
 from lnbits.core.crud import get_user
-from lnbits.core.services import check_invoice_status, create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type
-from lnbits.extensions.subdomains.models import CreateDomain, CreateSubdomain
+from lnbits.core.services import create_invoice, check_invoice_status
+from lnbits.decorators import api_check_wallet_key, api_validate_post_request
 
 from . import subdomains_ext
-from .cloudflare import cloudflare_create_subdomain, cloudflare_deletesubdomain
 from .crud import (
-    create_domain,
     create_subdomain,
-    delete_domain,
+    get_subdomain,
+    get_subdomains,
     delete_subdomain,
+    create_domain,
+    update_domain,
     get_domain,
     get_domains,
-    get_subdomain,
+    delete_domain,
     get_subdomainBySubdomain,
-    get_subdomains,
-    update_domain,
 )
+from .cloudflare import cloudflare_create_subdomain, cloudflare_deletesubdomain
+
 
 # domainS
 
 
-@subdomains_ext.get("/api/v1/domains")
-async def api_domains(
-    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
-):
+@subdomains_ext.route("/api/v1/domains", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_domains():
     wallet_ids = [g.wallet.id]
 
-    if all_wallets:
+    if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return [domain.dict() for domain in await get_domains(wallet_ids)]
+    return (
+        jsonify([domain._asdict() for domain in await get_domains(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
-@subdomains_ext.post("/api/v1/domains")
-@subdomains_ext.put("/api/v1/domains/{domain_id}")
-async def api_domain_create(
-    data: CreateDomain, domain_id=None, g: WalletTypeInfo = Depends(get_key_type)
-):
+@subdomains_ext.route("/api/v1/domains", methods=["POST"])
+@subdomains_ext.route("/api/v1/domains/<domain_id>", methods=["PUT"])
+@api_check_wallet_key("invoice")
+@api_validate_post_request(
+    schema={
+        "wallet": {"type": "string", "empty": False, "required": True},
+        "domain": {"type": "string", "empty": False, "required": True},
+        "cf_token": {"type": "string", "empty": False, "required": True},
+        "cf_zone_id": {"type": "string", "empty": False, "required": True},
+        "webhook": {"type": "string", "empty": False, "required": False},
+        "description": {"type": "string", "min": 0, "required": True},
+        "cost": {"type": "integer", "min": 0, "required": True},
+        "allowed_record_types": {"type": "string", "required": True},
+    }
+)
+async def api_domain_create(domain_id=None):
     if domain_id:
         domain = await get_domain(domain_id)
 
         if not domain:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
-            )
+            return jsonify({"message": "domain does not exist."}), HTTPStatus.NOT_FOUND
+
         if domain.wallet != g.wallet.id:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Not your domain."
-            )
+            return jsonify({"message": "Not your domain."}), HTTPStatus.FORBIDDEN
 
-        domain = await update_domain(domain_id, **data.dict())
+        domain = await update_domain(domain_id, **g.data)
     else:
-        domain = await create_domain(data=data)
-    return domain.dict()
+        domain = await create_domain(**g.data)
+    return jsonify(domain._asdict()), HTTPStatus.CREATED
 
 
-@subdomains_ext.delete("/api/v1/domains/{domain_id}")
-async def api_domain_delete(domain_id, g: WalletTypeInfo = Depends(get_key_type)):
+@subdomains_ext.route("/api/v1/domains/<domain_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_domain_delete(domain_id):
     domain = await get_domain(domain_id)
 
     if not domain:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Domain does not exist."
-        )
+        return jsonify({"message": "domain does not exist."}), HTTPStatus.NOT_FOUND
+
     if domain.wallet != g.wallet.id:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your domain.")
+        return jsonify({"message": "Not your domain."}), HTTPStatus.FORBIDDEN
 
     await delete_domain(domain_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+    return "", HTTPStatus.NO_CONTENT
 
 
 #########subdomains##########
 
 
-@subdomains_ext.get("/api/v1/subdomains")
-async def api_subdomains(
-    all_wallets: bool = Query(False), g: WalletTypeInfo = Depends(get_key_type)
-):
+@subdomains_ext.route("/api/v1/subdomains", methods=["GET"])
+@api_check_wallet_key("invoice")
+async def api_subdomains():
     wallet_ids = [g.wallet.id]
 
-    if all_wallets:
+    if "all_wallets" in request.args:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
 
-    return [domain.dict() for domain in await get_subdomains(wallet_ids)]
+    return (
+        jsonify([domain._asdict() for domain in await get_subdomains(wallet_ids)]),
+        HTTPStatus.OK,
+    )
 
 
-@subdomains_ext.post("/api/v1/subdomains/{domain_id}")
-async def api_subdomain_make_subdomain(domain_id, data: CreateSubdomain):
+@subdomains_ext.route("/api/v1/subdomains/<domain_id>", methods=["POST"])
+@api_validate_post_request(
+    schema={
+        "domain": {"type": "string", "empty": False, "required": True},
+        "subdomain": {"type": "string", "empty": False, "required": True},
+        "email": {"type": "string", "empty": True, "required": True},
+        "ip": {"type": "string", "empty": False, "required": True},
+        "sats": {"type": "integer", "min": 0, "required": True},
+        "duration": {"type": "integer", "empty": False, "required": True},
+        "record_type": {"type": "string", "empty": False, "required": True},
+    }
+)
+async def api_subdomain_make_subdomain(domain_id):
     domain = await get_domain(domain_id)
 
     # If the request is coming for the non-existant domain
     if not domain:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNsubdomain does not exist."
-        )
+        return jsonify({"message": "LNsubdomain does not exist."}), HTTPStatus.NOT_FOUND
+
     ## If record_type is not one of the allowed ones reject the request
-    if data.record_type not in domain.allowed_record_types:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{data.record_type} not a valid record.",
+    if g.data["record_type"] not in domain.allowed_record_types:
+        return (
+            jsonify({"message": g.data["record_type"] + "Not a valid record"}),
+            HTTPStatus.BAD_REQUEST,
         )
 
     ## If domain already exist in our database reject it
-    if await get_subdomainBySubdomain(data.subdomain) is not None:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{data.subdomain}.{domain.domain} domain already taken.",
+    if await get_subdomainBySubdomain(g.data["subdomain"]) is not None:
+        return (
+            jsonify(
+                {
+                    "message": g.data["subdomain"]
+                    + "."
+                    + domain.domain
+                    + " domain already taken"
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
         )
 
     ## Dry run cloudflare... (create and if create is sucessful delete it)
     cf_response = await cloudflare_create_subdomain(
         domain=domain,
-        subdomain=data.subdomain,
-        record_type=data.record_type,
-        ip=data.ip,
+        subdomain=g.data["subdomain"],
+        record_type=g.data["record_type"],
+        ip=g.data["ip"],
     )
     if cf_response["success"] == True:
-        await cloudflare_deletesubdomain(
-            domain=domain, domain_id=cf_response["result"]["id"]
-        )
+        cloudflare_deletesubdomain(domain=domain, domain_id=cf_response["result"]["id"])
     else:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f'Problem with cloudflare: {cf_response["errors"][0]["message"]}',
+        return (
+            jsonify(
+                {
+                    "message": "Problem with cloudflare: "
+                    + cf_response["errors"][0]["message"]
+                }
+            ),
+            HTTPStatus.BAD_REQUEST,
         )
 
     ## ALL OK - create an invoice and return it to the user
-    sats = data.sats
+    sats = g.data["sats"]
 
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=domain.wallet,
             amount=sats,
-            memo=f"subdomain {data.subdomain}.{domain.domain} for {sats} sats for {data.duration} days",
+            memo=f"subdomain {g.data['subdomain']}.{domain.domain} for {sats} sats for {g.data['duration']} days",
             extra={"tag": "lnsubdomain"},
         )
     except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+        return jsonify({"message": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
 
     subdomain = await create_subdomain(
-        payment_hash=payment_hash, wallet=domain.wallet, data=data
+        payment_hash=payment_hash, wallet=domain.wallet, **g.data
     )
 
     if not subdomain:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNsubdomain could not be fetched."
+        return (
+            jsonify({"message": "LNsubdomain could not be fetched."}),
+            HTTPStatus.NOT_FOUND,
         )
 
-    return {"payment_hash": payment_hash, "payment_request": payment_request}
+    return (
+        jsonify({"payment_hash": payment_hash, "payment_request": payment_request}),
+        HTTPStatus.OK,
+    )
 
 
-@subdomains_ext.get("/api/v1/subdomains/{payment_hash}")
+@subdomains_ext.route("/api/v1/subdomains/<payment_hash>", methods=["GET"])
 async def api_subdomain_send_subdomain(payment_hash):
     subdomain = await get_subdomain(payment_hash)
     try:
         status = await check_invoice_status(subdomain.wallet, payment_hash)
         is_paid = not status.pending
     except Exception:
-        return {"paid": False}
+        return jsonify({"paid": False}), HTTPStatus.OK
 
     if is_paid:
-        return {"paid": True}
+        return jsonify({"paid": True}), HTTPStatus.OK
 
-    return {"paid": False}
+    return jsonify({"paid": False}), HTTPStatus.OK
 
 
-@subdomains_ext.delete("/api/v1/subdomains/{subdomain_id}")
-async def api_subdomain_delete(subdomain_id, g: WalletTypeInfo = Depends(get_key_type)):
+@subdomains_ext.route("/api/v1/subdomains/<subdomain_id>", methods=["DELETE"])
+@api_check_wallet_key("invoice")
+async def api_subdomain_delete(subdomain_id):
     subdomain = await get_subdomain(subdomain_id)
 
     if not subdomain:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNsubdomain does not exist."
-        )
+        return jsonify({"message": "Paywall does not exist."}), HTTPStatus.NOT_FOUND
 
     if subdomain.wallet != g.wallet.id:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="Not your subdomain."
-        )
+        return jsonify({"message": "Not your subdomain."}), HTTPStatus.FORBIDDEN
 
     await delete_subdomain(subdomain_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+
+    return "", HTTPStatus.NO_CONTENT

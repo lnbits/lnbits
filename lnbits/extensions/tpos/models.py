@@ -1,11 +1,6 @@
 from sqlite3 import Row
-
 from pydantic import BaseModel
-
-
-class CreateTposData(BaseModel):
-    name: str
-    currency: str
+#from typing import NamedTuple
 
 
 class TPoS(BaseModel):

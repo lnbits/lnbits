@@ -3,17 +3,17 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateTposData, TPoS
+from .models import TPoS
 
 
-async def create_tpos(wallet_id: str, data: CreateTposData) -> TPoS:
+async def create_tpos(*, wallet_id: str, name: str, currency: str) -> TPoS:
     tpos_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO tpos.tposs (id, wallet, name, currency)
         VALUES (?, ?, ?, ?)
         """,
-        (tpos_id, wallet_id, data.name, data.currency),
+        (tpos_id, wallet_id, name, currency),
     )
 
     tpos = await get_tpos(tpos_id)

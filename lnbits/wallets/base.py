@@ -60,9 +60,7 @@ class Wallet(ABC):
         pass
 
     @abstractmethod
-    def pay_invoice(
-        self, bolt11: str, fee_limit_msat: int
-    ) -> Coroutine[None, None, PaymentResponse]:
+    def pay_invoice(self, bolt11: str) -> Coroutine[None, None, PaymentResponse]:
         pass
 
     @abstractmethod

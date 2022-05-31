@@ -7,10 +7,10 @@
           {% if link.is_spent %}
           <q-badge color="red" class="q-mb-md">Withdraw is spent.</q-badge>
           {% endif %}
-          <a href="lightning:{{ lnurl }}">
+          <a href="lightning://{{ link.lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
               <qrcode
-                :value="this.here + '/?lightning={{lnurl }}'"
+                :value="this.here + '/?lightning={{link.lnurl }}'"
                 :options="{width: 800}"
                 class="rounded-borders"
               ></qrcode>
@@ -18,7 +18,7 @@
           </a>
         </div>
         <div class="row q-mt-lg">
-          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
+          <q-btn outline color="grey" @click="copyText('{{ link.lnurl }}')"
             >Copy LNURL</q-btn
           >
         </div>

@@ -1,30 +1,13 @@
 from sqlite3 import Row
-
-from fastapi.param_functions import Query
 from pydantic import BaseModel
-from typing import Optional
-
-
-class CreateUserData(BaseModel):
-    user_name: str = Query(...)
-    wallet_name: str = Query(...)
-    admin_id: str = Query(...)
-    email: str = Query("")
-    password: str = Query("")
-
-
-class CreateUserWallet(BaseModel):
-    user_id: str = Query(...)
-    wallet_name: str = Query(...)
-    admin_id: str = Query(...)
 
 
 class Users(BaseModel):
     id: str
     name: str
     admin: str
-    email: Optional[str] = None
-    password: Optional[str] = None
+    email: str
+    password: str
 
 
 class Wallets(BaseModel):

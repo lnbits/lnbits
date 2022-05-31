@@ -1,21 +1,23 @@
-import asyncio
 import json
+import trio
 
-from lnbits.core import db as core_db
-from lnbits.core.crud import create_payment
 from lnbits.core.models import Payment
+from lnbits.core.crud import create_payment
+from lnbits.core import db as core_db
+from lnbits.tasks import register_invoice_listener, internal_invoice_paid
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import get_targets
 
 
-async def wait_for_paid_invoices():
-    invoice_queue = asyncio.Queue()
-    register_invoice_listener(invoice_queue)
+async def register_listeners():
+    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
+    register_invoice_listener(invoice_paid_chan_send)
+    await wait_for_paid_invoices(invoice_paid_chan_recv)
 
-    while True:
-        payment = await invoice_queue.get()
+
+async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
+    async for payment in invoice_paid_chan:
         await on_invoice_paid(payment)
 
 
@@ -72,5 +74,4 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
 
         # manually send this for now
-    await internal_invoice_queue.put(internal_checking_id)
-    return
+        await internal_invoice_paid.send(internal_checking_id)

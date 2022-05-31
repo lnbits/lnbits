@@ -1,11 +1,7 @@
-import asyncio
+import trio
 import datetime
 from http import HTTPStatus
-from urllib.parse import urlparse
-
-from fastapi import HTTPException
-from starlette.requests import Request
-from starlette.responses import HTMLResponse
+from quart import jsonify
 
 from lnbits import bolt11
 
@@ -14,57 +10,46 @@ from ..crud import get_standalone_payment
 from ..tasks import api_invoice_listeners
 
 
-@core_app.get("/.well-known/lnurlp/{username}")
-async def lnaddress(username: str, request: Request):
-    from lnbits.extensions.lnaddress.lnurl import lnurl_response
-
-    domain = urlparse(str(request.url)).netloc
-    return await lnurl_response(username, domain, request)
-
-
-@core_app.get("/public/v1/payment/{payment_hash}")
+@core_app.route("/public/v1/payment/<payment_hash>", methods=["GET"])
 async def api_public_payment_longpolling(payment_hash):
     payment = await get_standalone_payment(payment_hash)
 
     if not payment:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
-        )
+        return jsonify({"message": "Payment does not exist."}), HTTPStatus.NOT_FOUND
     elif not payment.pending:
-        return {"status": "paid"}
+        return jsonify({"status": "paid"}), HTTPStatus.OK
 
     try:
         invoice = bolt11.decode(payment.bolt11)
         expiration = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration < datetime.datetime.now():
-            return {"status": "expired"}
+            return jsonify({"status": "expired"}), HTTPStatus.OK
     except:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid bolt11 invoice."
-        )
+        return jsonify({"message": "Invalid bolt11 invoice."}), HTTPStatus.BAD_REQUEST
 
-    payment_queue = asyncio.Queue(0)
+    send_payment, receive_payment = trio.open_memory_channel(0)
 
-    print("adding standalone invoice listener", payment_hash, payment_queue)
-    api_invoice_listeners.append(payment_queue)
+    print("adding standalone invoice listener", payment_hash, send_payment)
+    api_invoice_listeners.append(send_payment)
 
     response = None
 
     async def payment_info_receiver(cancel_scope):
-        async for payment in payment_queue.get():
+        async for payment in receive_payment:
             if payment.payment_hash == payment_hash:
                 nonlocal response
-                response = {"status": "paid"}
+                response = (jsonify({"status": "paid"}), HTTPStatus.OK)
                 cancel_scope.cancel()
 
     async def timeouter(cancel_scope):
-        await asyncio.sleep(45)
+        await trio.sleep(45)
         cancel_scope.cancel()
 
-    asyncio.create_task(payment_info_receiver())
-    asyncio.create_task(timeouter())
+    async with trio.open_nursery() as nursery:
+        nursery.start_soon(payment_info_receiver, nursery.cancel_scope)
+        nursery.start_soon(timeouter, nursery.cancel_scope)
 
     if response:
         return response
     else:
-        raise HTTPException(status_code=HTTPStatus.REQUEST_TIMEOUT, detail="timeout")
+        return jsonify({"message": "timeout"}), HTTPStatus.REQUEST_TIMEOUT

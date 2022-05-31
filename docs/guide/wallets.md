@@ -17,7 +17,6 @@ A backend wallet can be configured using the following LNbits environment variab
 ### CLightning
 
 Using this wallet requires the installation of the `pylightning` Python package.
-If you want to use LNURLp you should use SparkWallet because of an issue with description_hash and CLightning.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **CLightningWallet**
 - `CLIGHTNING_RPC`: /file/path/lightning-rpc
@@ -30,30 +29,22 @@ If you want to use LNURLp you should use SparkWallet because of an issue with de
 
 ### LND (gRPC)
 
-Using this wallet requires the installation of the `grpcio` and `protobuf` Python packages.
+Using this wallet requires the installation of the `lndgrpc` and `purerpc` Python packages.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndWallet**
 - `LND_GRPC_ENDPOINT`: ip_address
 - `LND_GRPC_PORT`: port
 - `LND_GRPC_CERT`: /file/path/tls.cert
-- `LND_GRPC_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
+- `LND_GRPC_MACAROON`: /file/path/admin.macaroon
 
-You can also use an AES-encrypted macaroon (more info) instead by using
-
-- `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
-
-To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroon.py`.
 
 ### LND (REST)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndRestWallet**
-- `LND_REST_ENDPOINT`: http://10.147.17.230:8080/
+- `LND_REST_ENDPOINT`: ip_address
 - `LND_REST_CERT`: /file/path/tls.cert
-- `LND_REST_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
+- `LND_GRPC_MACAROON`: /file/path/admin.macaroon
 
-or
-
-- `LND_REST_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
 ### LNbits
 
@@ -74,7 +65,7 @@ For the invoice listener to work you have a publicly accessible URL in your LNbi
 ### lntxbot
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LntxbotWallet**
-- `LNTXBOT_API_ENDPOINT`: https://lntxbot.com/
+- `LNTXBOT_API_ENDPOINT`: https://lntxbot.bigsun.xyz/
 - `LNTXBOT_KEY`: lntxbotAdminApiKey
 
 

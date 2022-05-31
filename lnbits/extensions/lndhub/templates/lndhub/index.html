@@ -76,7 +76,7 @@
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
-      var wallets = JSON.parse('{{ user.wallets | tojson }}')
+      var wallets = JSON.parse('{{ g.user.wallets | tojson }}')
         .map(LNbits.map.wallet)
         .map(wallet => ({
           label: wallet.name,

@@ -1,14 +1,21 @@
 from datetime import datetime
 from typing import List, Optional, Union
-
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateWithdrawData, HashCheck, WithdrawLink
+from .models import WithdrawLink, HashCheck
 
 
 async def create_withdraw_link(
-    data: CreateWithdrawData, wallet_id: str, usescsv: str
+    *,
+    wallet_id: str,
+    title: str,
+    min_withdrawable: int,
+    max_withdrawable: int,
+    uses: int,
+    wait_time: int,
+    is_unique: bool,
+    usescsv: str,
 ) -> WithdrawLink:
     link_id = urlsafe_short_hash()
     await db.execute(
@@ -32,15 +39,15 @@ async def create_withdraw_link(
         (
             link_id,
             wallet_id,
-            data.title,
-            data.min_withdrawable,
-            data.max_withdrawable,
-            data.uses,
-            data.wait_time,
-            int(data.is_unique),
+            title,
+            min_withdrawable,
+            max_withdrawable,
+            uses,
+            wait_time,
+            int(is_unique),
             urlsafe_short_hash(),
             urlsafe_short_hash(),
-            int(datetime.now().timestamp()) + data.wait_time,
+            int(datetime.now().timestamp()) + wait_time,
             usescsv,
         ),
     )
@@ -56,10 +63,11 @@ async def get_withdraw_link(link_id: str, num=0) -> Optional[WithdrawLink]:
     if not row:
         return None
 
-    link = dict(**row)
-    link["number"] = num
-
-    return WithdrawLink.parse_obj(link)
+    link = []
+    for item in row:
+        link.append(item)
+    link.append(num)
+    return WithdrawLink._make(link)
 
 
 async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[WithdrawLink]:
@@ -69,10 +77,11 @@ async def get_withdraw_link_by_hash(unique_hash: str, num=0) -> Optional[Withdra
     if not row:
         return None
 
-    link = dict(**row)
-    link["number"] = num
-
-    return WithdrawLink.parse_obj(link)
+    link = []
+    for item in row:
+        link.append(item)
+    link.append(num)
+    return WithdrawLink._make(link)
 
 
 async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[WithdrawLink]:
@@ -83,12 +92,14 @@ async def get_withdraw_links(wallet_ids: Union[str, List[str]]) -> List[Withdraw
     rows = await db.fetchall(
         f"SELECT * FROM withdraw.withdraw_link WHERE wallet IN ({q})", (*wallet_ids,)
     )
-    return [WithdrawLink(**row) for row in rows]
+
+    return [WithdrawLink.from_row(row) for row in rows]
 
 
 async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]:
     if "is_unique" in kwargs:
         kwargs["is_unique"] = int(kwargs["is_unique"])
+
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE withdraw.withdraw_link SET {q} WHERE id = ?",
@@ -97,7 +108,7 @@ async def update_withdraw_link(link_id: str, **kwargs) -> Optional[WithdrawLink]
     row = await db.fetchone(
         "SELECT * FROM withdraw.withdraw_link WHERE id = ?", (link_id,)
     )
-    return WithdrawLink(**row) if row else None
+    return WithdrawLink.from_row(row) if row else None
 
 
 async def delete_withdraw_link(link_id: str) -> None:
@@ -109,7 +120,10 @@ def chunks(lst, n):
         yield lst[i : i + n]
 
 
-async def create_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
+async def create_hash_check(
+    the_hash: str,
+    lnurl_id: str,
+) -> HashCheck:
     await db.execute(
         """
         INSERT INTO withdraw.hash_check (
@@ -118,7 +132,10 @@ async def create_hash_check(the_hash: str, lnurl_id: str) -> HashCheck:
         )
         VALUES (?, ?)
         """,
-        (the_hash, lnurl_id),
+        (
+            the_hash,
+            lnurl_id,
+        ),
     )
     hashCheck = await get_hash_check(the_hash, lnurl_id)
     return hashCheck

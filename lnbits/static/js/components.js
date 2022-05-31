@@ -22,8 +22,7 @@ Vue.component('lnbits-wallet-list', {
       activeWallet: null,
       activeBalance: [],
       showForm: false,
-      walletName: '',
-      LNBITS_DENOMINATION: LNBITS_DENOMINATION
+      walletName: ''
     }
   },
   template: `
@@ -44,8 +43,7 @@ Vue.component('lnbits-wallet-list', {
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1">{{ wallet.name }}</q-item-label>
-          <q-item-label v-if="LNBITS_DENOMINATION != 'sats'" caption>{{ parseFloat(String(wallet.live_fsat).replaceAll(",", "")) / 100  }} {{ LNBITS_DENOMINATION }}</q-item-label>
-          <q-item-label v-else caption>{{ wallet.live_fsat }} {{ LNBITS_DENOMINATION }}</q-item-label>
+          <q-item-label caption>{{ wallet.live_fsat }} sat</q-item-label>
         </q-item-section>
         <q-item-section side v-show="activeWallet && activeWallet.id === wallet.id">
           <q-icon name="chevron_right" color="grey-5" size="md"></q-icon>
@@ -196,11 +194,11 @@ Vue.component('lnbits-payment-details', {
       </div>
       <div class="row">
         <div class="col-3"><b>Amount</b>:</div>
-        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
+        <div class="col-9">{{ (payment.amount / 1000).toFixed(3) }} sat</div>
       </div>
       <div class="row">
         <div class="col-3"><b>Fee</b>:</div>
-        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} {{LNBITS_DENOMINATION}}</div>
+        <div class="col-9">{{ (payment.fee / 1000).toFixed(3) }} sat</div>
       </div>
       <div class="row">
         <div class="col-3"><b>Payment hash</b>:</div>

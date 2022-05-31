@@ -1,34 +1,41 @@
-from typing import List, Optional
-
-import httpx
-
-from lnbits.core.services import create_invoice
-from lnbits.core.views.api import api_payment
-from lnbits.helpers import urlsafe_short_hash
-
-from ..watchonly.crud import get_fresh_address, get_mempool, get_watch_wallet
+from typing import List, Optional, Union
 
 # from lnbits.db import open_ext_db
 from . import db
-from .models import Charges, CreateCharge
+from .models import Charges
+
+from lnbits.helpers import urlsafe_short_hash
+
+from quart import jsonify
+import httpx
+from lnbits.core.services import create_invoice, check_invoice_status
+from ..watchonly.crud import get_watch_wallet, get_fresh_address, get_mempool
+
 
 ###############CHARGES##########################
 
 
-async def create_charge(user: str, data: CreateCharge) -> Charges:
+async def create_charge(
+    user: str,
+    description: str = None,
+    onchainwallet: Optional[str] = None,
+    lnbitswallet: Optional[str] = None,
+    webhook: Optional[str] = None,
+    completelink: Optional[str] = None,
+    completelinktext: Optional[str] = "Back to Merchant",
+    time: Optional[int] = None,
+    amount: Optional[int] = None,
+) -> Charges:
     charge_id = urlsafe_short_hash()
-    if data.onchainwallet:
-        wallet = await get_watch_wallet(data.onchainwallet)
-        onchain = await get_fresh_address(data.onchainwallet)
+    if onchainwallet:
+        wallet = await get_watch_wallet(onchainwallet)
+        onchain = await get_fresh_address(onchainwallet)
         onchainaddress = onchain.address
     else:
         onchainaddress = None
-    if data.lnbitswallet:
+    if lnbitswallet:
         payment_hash, payment_request = await create_invoice(
-            wallet_id=data.lnbitswallet,
-            amount=data.amount,
-            memo=charge_id,
-            extra={"tag": "charge"},
+            wallet_id=lnbitswallet, amount=amount, memo=charge_id
         )
     else:
         payment_hash = None
@@ -56,17 +63,17 @@ async def create_charge(user: str, data: CreateCharge) -> Charges:
         (
             charge_id,
             user,
-            data.description,
-            data.onchainwallet,
+            description,
+            onchainwallet,
             onchainaddress,
-            data.lnbitswallet,
+            lnbitswallet,
             payment_request,
             payment_hash,
-            data.webhook,
-            data.completelink,
-            data.completelinktext,
-            data.time,
-            data.amount,
+            webhook,
+            completelink,
+            completelinktext,
+            time,
+            amount,
             0,
         ),
     )
@@ -114,9 +121,10 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
             except Exception:
                 pass
         if charge.lnbitswallet:
-            invoice_status = await api_payment(charge.payment_hash)
-
-            if invoice_status["paid"]:
+            invoice_status = await check_invoice_status(
+                charge.lnbitswallet, charge.payment_hash
+            )
+            if invoice_status.paid:
                 return await update_charge(charge_id=charge_id, balance=charge.amount)
     row = await db.fetchone("SELECT * FROM satspay.charges WHERE id = ?", (charge_id,))
     return Charges.from_row(row) if row else None

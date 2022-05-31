@@ -237,7 +237,7 @@
         LNbits.api
           .request(
             'GET',
-            '/paywall/api/v1/paywalls?all_wallets=true',
+            '/paywall/api/v1/paywalls?all_wallets',
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {

@@ -1,6 +1,0 @@
-{
-  "name": "LNURLPayout",
-  "short_description": "Autodump wallet funds to LNURLpay",
-  "icon": "exit_to_app",
-  "contributors": ["arcbtc"]
-}

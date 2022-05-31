@@ -299,7 +299,7 @@
           .request(
             'GET',
             '/usermanager/api/v1/users',
-            this.g.user.wallets[0].adminkey
+            this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.users = response.data.map(function (obj) {
@@ -362,13 +362,12 @@
               .request(
                 'DELETE',
                 '/usermanager/api/v1/users/' + userId,
-                self.g.user.wallets[0].adminkey
+                self.g.user.wallets[0].inkey
               )
               .then(function (response) {
                 self.users = _.reject(self.users, function (obj) {
                   return obj.id == userId
                 })
-                self.getWallets()
               })
               .catch(function (error) {
                 LNbits.utils.notifyApiError(error)
@@ -389,7 +388,7 @@
           .request(
             'GET',
             '/usermanager/api/v1/wallets',
-            this.g.user.wallets[0].adminkey
+            this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.wallets = response.data.map(function (obj) {
@@ -447,7 +446,7 @@
               .request(
                 'DELETE',
                 '/usermanager/api/v1/wallets/' + userId,
-                self.g.user.wallets[0].adminkey
+                self.g.user.wallets[0].inkey
               )
               .then(function (response) {
                 self.wallets = _.reject(self.wallets, function (obj) {

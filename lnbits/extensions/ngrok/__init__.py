@@ -1,15 +1,8 @@
-from fastapi import APIRouter
-
+from quart import Blueprint
 from lnbits.db import Database
-from lnbits.helpers import template_renderer
 
 db = Database("ext_ngrok")
 
-ngrok_ext: APIRouter = APIRouter(prefix="/ngrok", tags=["ngrok"])
+ngrok_ext: Blueprint = Blueprint("ngrok", __name__, template_folder="templates")
 
-
-def ngrok_renderer():
-    return template_renderer(["lnbits/extensions/ngrok/templates"])
-
-
-from .views import *
+from .views import *  # noqa

@@ -1,24 +1,7 @@
-from fastapi.param_functions import Query
-from pydantic import BaseModel
+from typing import NamedTuple
 
 
-class CreateEvent(BaseModel):
-    wallet: str
-    name: str
-    info: str
-    closing_date: str
-    event_start_date: str
-    event_end_date: str
-    amount_tickets: int = Query(..., ge=0)
-    price_per_ticket: int = Query(..., ge=0)
-
-
-class CreateTicket(BaseModel):
-    name: str
-    email: str
-
-
-class Events(BaseModel):
+class Events(NamedTuple):
     id: str
     wallet: str
     name: str
@@ -32,7 +15,7 @@ class Events(BaseModel):
     time: int
 
 
-class Tickets(BaseModel):
+class Tickets(NamedTuple):
     id: str
     wallet: str
     event: str

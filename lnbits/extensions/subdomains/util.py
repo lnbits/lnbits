@@ -1,6 +1,10 @@
+from lnbits.extensions.subdomains.models import Subdomains
+
+# Python3 program to validate
+# domain name
+# using regular expression
 import re
 import socket
-
 
 # Function to validate domain name.
 def isValidDomain(str):

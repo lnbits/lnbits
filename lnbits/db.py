@@ -1,13 +1,12 @@
-import asyncio
-import datetime
 import os
+import trio
 import time
-from contextlib import asynccontextmanager
+import datetime
 from typing import Optional
-
-from sqlalchemy import create_engine
-from sqlalchemy_aio.base import AsyncConnection
-from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore
+from contextlib import asynccontextmanager
+from sqlalchemy import create_engine  # type: ignore
+from sqlalchemy_aio import TRIO_STRATEGY  # type: ignore
+from sqlalchemy_aio.base import AsyncConnection  # type: ignore
 
 from .settings import LNBITS_DATA_FOLDER, LNBITS_DATABASE_URL
 
@@ -94,12 +93,6 @@ class Database(Compat):
 
             import psycopg2  # type: ignore
 
-            def _parse_timestamp(value, _):
-                f = "%Y-%m-%d %H:%M:%S.%f"
-                if not "." in value:
-                    f = "%Y-%m-%d %H:%M:%S"
-                return time.mktime(datetime.datetime.strptime(value, f).timetuple())
-
             psycopg2.extensions.register_type(
                 psycopg2.extensions.new_type(
                     psycopg2.extensions.DECIMAL.values,
@@ -121,24 +114,17 @@ class Database(Compat):
                 psycopg2.extensions.new_type(
                     (1184, 1114),
                     "TIMESTAMP2INT",
-                    _parse_timestamp
-                    # lambda value, curs: time.mktime(
-                    #     datetime.datetime.strptime(
-                    #         value, "%Y-%m-%d %H:%M:%S.%f"
-                    #     ).timetuple()
-                    # ),
+                    lambda value, curs: time.mktime(
+                        datetime.datetime.strptime(
+                            value, "%Y-%m-%d %H:%M:%S.%f"
+                        ).timetuple()
+                    ),
                 )
             )
         else:
-            if os.path.isdir(LNBITS_DATA_FOLDER):
-                self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
-                database_uri = f"sqlite:///{self.path}"
-                self.type = SQLITE
-            else:
-                raise NotADirectoryError(
-                    f"LNBITS_DATA_FOLDER named {LNBITS_DATA_FOLDER} was not created"
-                    f" - please 'mkdir {LNBITS_DATA_FOLDER}' and try again"
-                )
+            self.path = os.path.join(LNBITS_DATA_FOLDER, f"{self.name}.sqlite3")
+            database_uri = f"sqlite:///{self.path}"
+            self.type = SQLITE
 
         self.schema = self.name
         if self.name.startswith("ext_"):
@@ -146,8 +132,8 @@ class Database(Compat):
         else:
             self.schema = None
 
-        self.engine = create_engine(database_uri, strategy=ASYNCIO_STRATEGY)
-        self.lock = asyncio.Lock()
+        self.engine = create_engine(database_uri, strategy=TRIO_STRATEGY)
+        self.lock = trio.StrictFIFOLock()
 
     @asynccontextmanager
     async def connect(self):

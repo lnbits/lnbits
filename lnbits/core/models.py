@@ -1,16 +1,32 @@
 import json
 import hmac
 import hashlib
-from lnbits.helpers import url_for
+from quart import url_for
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
 from typing import List, NamedTuple, Optional, Dict
 from sqlite3 import Row
-from pydantic import BaseModel
+
 from lnbits.settings import WALLET
 
 
-class Wallet(BaseModel):
+class User(NamedTuple):
+    id: str
+    email: str
+    extensions: List[str] = []
+    wallets: List["Wallet"] = []
+    password: Optional[str] = None
+
+    @property
+    def wallet_ids(self) -> List[str]:
+        return [wallet.id for wallet in self.wallets]
+
+    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
+        w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
+        return w[0] if w else None
+
+
+class Wallet(NamedTuple):
     id: str
     name: str
     user: str
@@ -30,8 +46,12 @@ class Wallet(BaseModel):
 
     @property
     def lnurlwithdraw_full(self) -> str:
-
-        url = url_for("/withdraw", external=True, usr=self.user, wal=self.id)
+        url = url_for(
+            "core.lnurl_full_withdraw",
+            usr=self.user,
+            wal=self.id,
+            _external=True,
+        )
         try:
             return lnurl_encode(url)
         except:
@@ -42,46 +62,31 @@ class Wallet(BaseModel):
         linking_key = hmac.digest(hashing_key, domain.encode("utf-8"), "sha256")
 
         return SigningKey.from_string(
-            linking_key, curve=SECP256k1, hashfunc=hashlib.sha256
+            linking_key,
+            curve=SECP256k1,
+            hashfunc=hashlib.sha256,
         )
 
     async def get_payment(self, payment_hash: str) -> Optional["Payment"]:
-        from .crud import get_standalone_payment
+        from .crud import get_wallet_payment
 
-        return await get_standalone_payment(payment_hash)
-
-
-class User(BaseModel):
-    id: str
-    email: Optional[str] = None
-    extensions: List[str] = []
-    wallets: List[Wallet] = []
-    password: Optional[str] = None
-    admin: bool = False
-
-    @property
-    def wallet_ids(self) -> List[str]:
-        return [wallet.id for wallet in self.wallets]
-
-    def get_wallet(self, wallet_id: str) -> Optional["Wallet"]:
-        w = [wallet for wallet in self.wallets if wallet.id == wallet_id]
-        return w[0] if w else None
+        return await get_wallet_payment(self.id, payment_hash)
 
 
-class Payment(BaseModel):
+class Payment(NamedTuple):
     checking_id: str
     pending: bool
     amount: int
     fee: int
-    memo: Optional[str]
+    memo: str
     time: int
     bolt11: str
     preimage: str
     payment_hash: str
-    extra: Optional[Dict] = {}
+    extra: Dict
     wallet_id: str
-    webhook: Optional[str]
-    webhook_status: Optional[int]
+    webhook: str
+    webhook_status: int
 
     @classmethod
     def from_row(cls, row: Row):
@@ -156,7 +161,7 @@ class Payment(BaseModel):
         await delete_payment(self.checking_id)
 
 
-class BalanceCheck(BaseModel):
+class BalanceCheck(NamedTuple):
     wallet: str
     service: str
     url: str

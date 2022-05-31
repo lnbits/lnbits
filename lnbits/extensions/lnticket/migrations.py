@@ -79,7 +79,16 @@ async def m002_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (row[0], row[1], row[2], row[3], row[4], row[5], row[6], True),
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                row[6],
+                True,
+            ),
         )
     await db.execute("DROP TABLE lnticket.tickets")
 
@@ -88,7 +97,7 @@ async def m003_changed(db):
 
     await db.execute(
         """
-        CREATE TABLE IF NOT EXISTS lnticket.form (
+        CREATE TABLE lnticket.form (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -125,7 +134,15 @@ async def m003_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (row[0], row[1], row[2], row[3], row[4], row[5], row[6]),
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                row[6],
+            ),
         )
     await db.execute("DROP TABLE lnticket.forms")
 
@@ -172,6 +189,14 @@ async def m004_changed(db):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (row[0], row[1], row[2], row[3], row[4], row[5], row[6]),
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                row[6],
+            ),
         )
     await db.execute("DROP TABLE lnticket.form")

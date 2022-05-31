@@ -65,16 +65,15 @@ async def fetch_fiat_exchange_rate(currency: str, provider: str):
     }
 
     url = exchange_rate_providers[provider]["api_url"]
-    if url:
-        for key in replacements.keys():
-            url = url.replace("{" + key + "}", replacements[key])
-        async with httpx.AsyncClient() as client:
-            r = await client.get(url)
-            r.raise_for_status()
-            data = r.json()
-    else:
-        data = {}
+    for key in replacements.keys():
+        url = url.replace("{" + key + "}", replacements[key])
 
     getter = exchange_rate_providers[provider]["getter"]
-    rate = float(getter(data, replacements))
+
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url)
+        r.raise_for_status()
+        data = r.json()
+        rate = float(getter(data, replacements))
+
     return rate

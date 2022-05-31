@@ -1,37 +1,28 @@
+from quart import g, abort, render_template
+
+from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
 
-from fastapi.param_functions import Depends
-from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
-from starlette.responses import HTMLResponse
-
-from lnbits.core.models import User
-from lnbits.decorators import check_user_exists
-
-from . import streamalerts_ext, streamalerts_renderer
+from . import streamalerts_ext
 from .crud import get_service
 
-templates = Jinja2Templates(directory="templates")
 
-
-@streamalerts_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+@streamalerts_ext.route("/")
+@validate_uuids(["usr"], required=True)
+@check_user_exists()
+async def index():
     """Return the extension's settings page"""
-    return streamalerts_renderer().TemplateResponse(
-        "streamalerts/index.html", {"request": request, "user": user.dict()}
-    )
+    return await render_template("streamalerts/index.html", user=g.user)
 
 
-@streamalerts_ext.get("/{state}")
-async def donation(state, request: Request):
+@streamalerts_ext.route("/<state>")
+async def donation(state):
     """Return the donation form for the Service corresponding to state"""
     service = await get_service(0, by_state=state)
     if not service:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Service does not exist."
-        )
-    return streamalerts_renderer().TemplateResponse(
+        abort(HTTPStatus.NOT_FOUND, "Service does not exist.")
+    return await render_template(
         "streamalerts/display.html",
-        {"request": request, "twitchuser": service.twitchuser, "service": service.id},
+        twitchuser=service.twitchuser,
+        service=service.id
     )

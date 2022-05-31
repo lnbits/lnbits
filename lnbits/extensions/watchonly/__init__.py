@@ -1,17 +1,13 @@
-from fastapi import APIRouter
-
+from quart import Blueprint
 from lnbits.db import Database
-from lnbits.helpers import template_renderer
 
 db = Database("ext_watchonly")
 
 
-watchonly_ext: APIRouter = APIRouter(prefix="/watchonly", tags=["watchonly"])
+watchonly_ext: Blueprint = Blueprint(
+    "watchonly", __name__, static_folder="static", template_folder="templates"
+)
 
 
-def watchonly_renderer():
-    return template_renderer(["lnbits/extensions/watchonly/templates"])
-
-
-from .views import *  # noqa
 from .views_api import *  # noqa
+from .views import *  # noqa

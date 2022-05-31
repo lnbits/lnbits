@@ -1,4 +1,4 @@
-import asyncio
+import trio
 import json
 import httpx
 from os import getenv
@@ -30,7 +30,9 @@ class LntxbotWallet(Wallet):
     async def status(self) -> StatusResponse:
         async with httpx.AsyncClient() as client:
             r = await client.get(
-                f"{self.endpoint}/balance", headers=self.auth, timeout=40
+                f"{self.endpoint}/balance",
+                headers=self.auth,
+                timeout=40,
             )
         try:
             data = r.json()
@@ -58,7 +60,10 @@ class LntxbotWallet(Wallet):
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                f"{self.endpoint}/addinvoice", headers=self.auth, json=data, timeout=40
+                f"{self.endpoint}/addinvoice",
+                headers=self.auth,
+                json=data,
+                timeout=40,
             )
 
         if r.is_error:
@@ -74,16 +79,16 @@ class LntxbotWallet(Wallet):
         data = r.json()
         return InvoiceResponse(True, data["payment_hash"], data["pay_req"], None)
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{self.endpoint}/payinvoice",
                 headers=self.auth,
                 json={"invoice": bolt11},
-                timeout=100,
+                timeout=40,
             )
 
-        if "error" in r.json():
+        if r.is_error:
             try:
                 data = r.json()
                 error_message = data["message"]
@@ -118,7 +123,8 @@ class LntxbotWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                url=f"{self.endpoint}/paymentstatus/{checking_id}", headers=self.auth
+                url=f"{self.endpoint}/paymentstatus/{checking_id}",
+                headers=self.auth,
             )
 
         data = r.json()
@@ -144,4 +150,4 @@ class LntxbotWallet(Wallet):
                 pass
 
             print("lost connection to lntxbot /payments/stream, retrying in 5 seconds")
-            await asyncio.sleep(5)
+            await trio.sleep(5)

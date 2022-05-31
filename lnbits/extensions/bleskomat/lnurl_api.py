@@ -1,9 +1,8 @@
 import json
 import math
-import traceback
+from quart import jsonify, request
 from http import HTTPStatus
-
-from starlette.requests import Request
+import traceback
 
 from . import bleskomat_ext
 from .crud import (
@@ -11,12 +10,16 @@ from .crud import (
     get_bleskomat_by_api_key_id,
     get_bleskomat_lnurl,
 )
-from .exchange_rates import fetch_fiat_exchange_rate
+
+from .exchange_rates import (
+    fetch_fiat_exchange_rate,
+)
+
 from .helpers import (
+    generate_bleskomat_lnurl_signature,
+    generate_bleskomat_lnurl_secret,
     LnurlHttpError,
     LnurlValidationError,
-    generate_bleskomat_lnurl_secret,
-    generate_bleskomat_lnurl_signature,
     prepare_lnurl_params,
     query_to_signing_payload,
     unshorten_lnurl_query,
@@ -24,10 +27,10 @@ from .helpers import (
 
 
 # Handles signed URL from Bleskomat ATMs and "action" callback of auto-generated LNURLs.
-@bleskomat_ext.get("/u", name="bleskomat.api_bleskomat_lnurl")
-async def api_bleskomat_lnurl(req: Request):
+@bleskomat_ext.route("/u", methods=["GET"])
+async def api_bleskomat_lnurl():
     try:
-        query = req.query_params
+        query = request.args.to_dict()
 
         # Unshorten query if "s" is used instead of "signature".
         if "s" in query:
@@ -96,7 +99,7 @@ async def api_bleskomat_lnurl(req: Request):
                 )
 
             # Reply with LNURL response object.
-            return lnurl.get_info_response_object(secret, req)
+            return jsonify(lnurl.get_info_response_object(secret)), HTTPStatus.OK
 
         # No signature provided.
         # Treat as "action" callback.
@@ -120,9 +123,12 @@ async def api_bleskomat_lnurl(req: Request):
             raise LnurlHttpError(str(e), HTTPStatus.BAD_REQUEST)
 
     except LnurlHttpError as e:
-        return {"status": "ERROR", "reason": str(e)}
-    except Exception as e:
-        print(str(e))
-        return {"status": "ERROR", "reason": "Unexpected error"}
+        return jsonify({"status": "ERROR", "reason": str(e)}), e.http_status
+    except Exception:
+        traceback.print_exc()
+        return (
+            jsonify({"status": "ERROR", "reason": "Unexpected error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
-    return {"status": "OK"}
+    return jsonify({"status": "OK"}), HTTPStatus.OK

@@ -3,41 +3,21 @@ try:
 except ImportError:  # pragma: nocover
     LightningRpc = None
 
-import asyncio
+import trio
 import random
-from functools import partial, wraps
+import json
+
 from os import getenv
-from typing import AsyncGenerator, Optional
-import time
+from typing import Optional, AsyncGenerator
 
 from .base import (
+    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
-    StatusResponse,
-    Unsupported,
     Wallet,
+    Unsupported,
 )
-from lnbits import bolt11 as lnbits_bolt11
-
-
-def async_wrap(func):
-    @wraps(func)
-    async def run(*args, loop=None, executor=None, **kwargs):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-        partial_func = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(executor, partial_func)
-
-    return run
-
-
-def _pay_invoice(ln, payload):
-    return ln.call("pay", payload)
-
-
-def _paid_invoices_stream(ln, last_pay_index):
-    return ln.waitanyinvoice(last_pay_index)
 
 
 class CLightningWallet(Wallet):
@@ -55,7 +35,7 @@ class CLightningWallet(Wallet):
         try:
             answer = self.ln.help("invoicewithdescriptionhash")
             if answer["help"][0]["command"].startswith(
-                "invoicewithdescriptionhash msatoshi label description_hash"
+                "invoicewithdescriptionhash msatoshi label description_hash",
             ):
                 self.supports_description_hash = True
         except:
@@ -73,7 +53,8 @@ class CLightningWallet(Wallet):
         try:
             funds = self.ln.listfunds()
             return StatusResponse(
-                None, sum([ch["channel_sat"] * 1000 for ch in funds["channels"]])
+                None,
+                sum([ch["channel_sat"] * 1000 for ch in funds["channels"]]),
             )
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
@@ -103,18 +84,9 @@ class CLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
 
-    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        invoice = lnbits_bolt11.decode(bolt11)
-        fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
-
-        payload = {
-            "bolt11": bolt11,
-            "maxfeepercent": "{:.11}".format(fee_limit_percent),
-            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee under 5000 millisatoshi (which is default value of exemptfee)
-        }
+    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
         try:
-            wrapped = async_wrap(_pay_invoice)
-            r = await wrapped(self.ln, payload)
+            r = self.ln.pay(bolt11)
         except RpcError as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
@@ -144,8 +116,25 @@ class CLightningWallet(Wallet):
         raise KeyError("supplied an invalid checking_id")
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        stream = await trio.open_unix_socket(self.rpc)
+
+        i = 0
         while True:
-            wrapped = async_wrap(_paid_invoices_stream)
-            paid = await wrapped(self.ln, self.last_pay_index)
+            call = json.dumps(
+                {
+                    "method": "waitanyinvoice",
+                    "id": 0,
+                    "params": [self.last_pay_index],
+                }
+            )
+
+            await stream.send_all(call.encode("utf-8"))
+
+            data = await stream.receive_some()
+            paid = json.loads(data.decode("ascii"))
+
+            paid = self.ln.waitanyinvoice(self.last_pay_index)
             self.last_pay_index = paid["pay_index"]
             yield paid["label"]
+
+            i += 1

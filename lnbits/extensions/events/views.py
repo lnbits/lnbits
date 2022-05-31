@@ -1,107 +1,76 @@
+from quart import g, abort, render_template
 from datetime import date, datetime
 from http import HTTPStatus
 
-from fastapi import Request
-from fastapi.params import Depends
-from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
+from lnbits.decorators import check_user_exists, validate_uuids
 
-from lnbits.core.models import User
-from lnbits.decorators import check_user_exists
-
-from . import events_ext, events_renderer
-from .crud import get_event, get_ticket
-
-templates = Jinja2Templates(directory="templates")
+from . import events_ext
+from .crud import get_ticket, get_event
 
 
-@events_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
-    return events_renderer().TemplateResponse(
-        "events/index.html", {"request": request, "user": user.dict()}
-    )
+@events_ext.route("/")
+@validate_uuids(["usr"], required=True)
+@check_user_exists()
+async def index():
+    return await render_template("events/index.html", user=g.user)
 
 
-@events_ext.get("/{event_id}", response_class=HTMLResponse)
-async def display(request: Request, event_id):
+@events_ext.route("/<event_id>")
+async def display(event_id):
     event = await get_event(event_id)
     if not event:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
-        )
+        abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
 
     if event.amount_tickets < 1:
-        return events_renderer().TemplateResponse(
+        return await render_template(
             "events/error.html",
-            {
-                "request": request,
-                "event_name": event.name,
-                "event_error": "Sorry, tickets are sold out :(",
-            },
+            event_name=event.name,
+            event_error="Sorry, tickets are sold out :(",
         )
     datetime_object = datetime.strptime(event.closing_date, "%Y-%m-%d").date()
     if date.today() > datetime_object:
-        return events_renderer().TemplateResponse(
+        return await render_template(
             "events/error.html",
-            {
-                "request": request,
-                "event_name": event.name,
-                "event_error": "Sorry, ticket closing date has passed :(",
-            },
+            event_name=event.name,
+            event_error="Sorry, ticket closing date has passed :(",
         )
 
-    return events_renderer().TemplateResponse(
+    return await render_template(
         "events/display.html",
-        {
-            "request": request,
-            "event_id": event_id,
-            "event_name": event.name,
-            "event_info": event.info,
-            "event_price": event.price_per_ticket,
-        },
+        event_id=event_id,
+        event_name=event.name,
+        event_info=event.info,
+        event_price=event.price_per_ticket,
     )
 
 
-@events_ext.get("/ticket/{ticket_id}", response_class=HTMLResponse)
-async def ticket(request: Request, ticket_id):
+@events_ext.route("/ticket/<ticket_id>")
+async def ticket(ticket_id):
     ticket = await get_ticket(ticket_id)
     if not ticket:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Ticket does not exist."
-        )
+        abort(HTTPStatus.NOT_FOUND, "Ticket does not exist.")
 
     event = await get_event(ticket.event)
     if not event:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
-        )
+        abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
 
-    return events_renderer().TemplateResponse(
+    return await render_template(
         "events/ticket.html",
-        {
-            "request": request,
-            "ticket_id": ticket_id,
-            "ticket_name": event.name,
-            "ticket_info": event.info,
-        },
+        ticket_id=ticket_id,
+        ticket_name=event.name,
+        ticket_info=event.info,
     )
 
 
-@events_ext.get("/register/{event_id}", response_class=HTMLResponse)
-async def register(request: Request, event_id):
+@events_ext.route("/register/<event_id>")
+async def register(event_id):
     event = await get_event(event_id)
     if not event:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
-        )
+        abort(HTTPStatus.NOT_FOUND, "Event does not exist.")
 
-    return events_renderer().TemplateResponse(
+    return await render_template(
         "events/register.html",
-        {
-            "request": request,
-            "event_id": event_id,
-            "event_name": event.name,
-            "wallet_id": event.wallet,
-        },
+        event_id=event_id,
+        event_name=event.name,
+        wallet_id=event.wallet,
     )
