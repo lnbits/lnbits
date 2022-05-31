@@ -1,5 +1,6 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
+
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
@@ -384,13 +385,12 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
-<style></style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
   var mapCopilot = obj => {
     obj._data = _.clone(obj)
+
     obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
     obj.time = obj.time + 'mins'
 
@@ -489,6 +489,8 @@
             self.formDialogCopilot.data
           )
         } else {
+          console.log(self.g.user.wallets[0].adminkey)
+          console.log(self.formDialogCopilot.data)
           this.createCopilot(
             self.g.user.wallets[0].adminkey,
             self.formDialogCopilot.data
@@ -533,7 +535,7 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            if(response.data){
+            if (response.data) {
               self.CopilotLinks = response.data.map(mapCopilot)
             }
           })
@@ -634,14 +636,14 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      clearFormDialogCopilot(){
+      clearFormDialogCopilot() {
         this.formDialogCopilot.data = {
-            lnurl_toggle: false,
-            show_message: false,
-            show_ack: false,
-            show_price: 'None',
-            title: ''
-          }
+          lnurl_toggle: false,
+          show_message: false,
+          show_ack: false,
+          show_price: 'None',
+          title: ''
+        }
       },
       exportcopilotCSV: function () {
         var self = this

@@ -1,34 +1,48 @@
-from quart import g, abort, render_template
-
-from lnbits.core.crud import get_wallet
-from lnbits.decorators import check_user_exists, validate_uuids
 from http import HTTPStatus
 
-from . import lnticket_ext
+from fastapi import Request
+from fastapi.param_functions import Depends
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse
+
+from lnbits.core.crud import get_wallet
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
+from . import lnticket_ext, lnticket_renderer
 from .crud import get_form
 
-
-@lnticket_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    return await render_template("lnticket/index.html", user=g.user)
+templates = Jinja2Templates(directory="templates")
 
 
-@lnticket_ext.route("/<form_id>")
-async def display(form_id):
+@lnticket_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
+    return lnticket_renderer().TemplateResponse(
+        "lnticket/index.html", {"request": request, "user": user.dict()}
+    )
+
+
+@lnticket_ext.get("/{form_id}")
+async def display(request: Request, form_id):
     form = await get_form(form_id)
     if not form:
-        abort(HTTPStatus.NOT_FOUND, "LNTicket does not exist.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="LNTicket does not exist."
+        )
 
     wallet = await get_wallet(form.wallet)
 
-    return await render_template(
+    return lnticket_renderer().TemplateResponse(
         "lnticket/display.html",
-        form_id=form.id,
-        form_name=form.name,
-        form_desc=form.description,
-        form_amount=form.amount,
-        form_flatrate=form.flatrate,
-        form_wallet=wallet.inkey,
+        {
+            "request": request,
+            "form_id": form.id,
+            "form_name": form.name,
+            "form_desc": form.description,
+            "form_amount": form.amount,
+            "form_flatrate": form.flatrate,
+            "form_wallet": wallet.inkey,
+        },
     )

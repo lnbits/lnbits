@@ -6,11 +6,10 @@ from urllib.parse import urlparse
 
 from lnbits import bolt11
 from lnbits.db import Connection, POSTGRES, COCKROACH
-from lnbits.settings import DEFAULT_WALLET_NAME
+from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
 
 from . import db
 from .models import User, Wallet, Payment, BalanceCheck
-
 
 # accounts
 # --------
@@ -54,19 +53,17 @@ async def get_user(user_id: str, conn: Optional[Connection] = None) -> Optional[
             """,
             (user_id,),
         )
+    else:
+        return None
 
-    return (
-        User(
-            **{
-                **user,
-                **{
-                    "extensions": [e[0] for e in extensions],
-                    "wallets": [Wallet(**w) for w in wallets],
-                },
-            }
-        )
-        if user
-        else None
+    return User(
+        id=user["id"],
+        email=user["email"],
+        extensions=[e[0] for e in extensions],
+        wallets=[Wallet(**w) for w in wallets],
+        admin=user["id"] in [x.strip() for x in LNBITS_ADMIN_USERS]
+        if LNBITS_ADMIN_USERS
+        else False,
     )
 
 
@@ -112,6 +109,7 @@ async def create_wallet(
 
     return new_wallet
 
+
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
@@ -121,7 +119,7 @@ async def update_wallet(
             name = ?
         WHERE id = ?
         """,
-        (new_name, wallet_id)
+        (new_name, wallet_id),
     )
 
 
@@ -221,6 +219,8 @@ async def get_payments(
     incoming: bool = False,
     since: Optional[int] = None,
     exclude_uncheckable: bool = False,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
     conn: Optional[Connection] = None,
 ) -> List[Payment]:
     """
@@ -265,6 +265,15 @@ async def get_payments(
         clause.append("checking_id NOT LIKE 'temp_%'")
         clause.append("checking_id NOT LIKE 'internal_%'")
 
+    limit_clause = f"LIMIT {limit}" if type(limit) == int and limit > 0 else ""
+    offset_clause = f"OFFSET {offset}" if type(offset) == int and offset > 0 else ""
+    # combine limit and offset clauses
+    limit_offset_clause = (
+        f"{limit_clause} {offset_clause}"
+        if limit_clause and offset_clause
+        else limit_clause or offset_clause
+    )
+
     where = ""
     if clause:
         where = f"WHERE {' AND '.join(clause)}"
@@ -275,10 +284,10 @@ async def get_payments(
         FROM apipayments
         {where}
         ORDER BY time DESC
+        {limit_offset_clause}
         """,
         tuple(args),
     )
-
     return [Payment.from_row(row) for row in rows]
 
 
@@ -373,31 +382,22 @@ async def create_payment(
 
 
 async def update_payment_status(
-    checking_id: str,
-    pending: bool,
-    conn: Optional[Connection] = None,
+    checking_id: str, pending: bool, conn: Optional[Connection] = None
 ) -> None:
     await (conn or db).execute(
         "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
-        (
-            pending,
-            checking_id,
-        ),
+        (pending, checking_id),
     )
 
 
-async def delete_payment(
-    checking_id: str,
-    conn: Optional[Connection] = None,
-) -> None:
+async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
     await (conn or db).execute(
         "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)
     )
 
 
 async def check_internal(
-    payment_hash: str,
-    conn: Optional[Connection] = None,
+    payment_hash: str, conn: Optional[Connection] = None
 ) -> Optional[str]:
     row = await (conn or db).fetchone(
         """
@@ -417,9 +417,7 @@ async def check_internal(
 
 
 async def save_balance_check(
-    wallet_id: str,
-    url: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, url: str, conn: Optional[Connection] = None
 ):
     domain = urlparse(url).netloc
 
@@ -433,9 +431,7 @@ async def save_balance_check(
 
 
 async def get_balance_check(
-    wallet_id: str,
-    domain: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, domain: str, conn: Optional[Connection] = None
 ) -> Optional[BalanceCheck]:
     row = await (conn or db).fetchone(
         """
@@ -458,9 +454,7 @@ async def get_balance_checks(conn: Optional[Connection] = None) -> List[BalanceC
 
 
 async def save_balance_notify(
-    wallet_id: str,
-    url: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, url: str, conn: Optional[Connection] = None
 ):
     await (conn or db).execute(
         """
@@ -472,8 +466,7 @@ async def save_balance_notify(
 
 
 async def get_balance_notify(
-    wallet_id: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, conn: Optional[Connection] = None
 ) -> Optional[str]:
     row = await (conn or db).fetchone(
         """

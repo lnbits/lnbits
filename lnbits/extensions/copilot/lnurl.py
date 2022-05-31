@@ -1,72 +1,75 @@
-import json
 import hashlib
-import math
-from quart import jsonify, url_for, request
-from lnurl import LnurlPayResponse, LnurlPayActionResponse, LnurlErrorResponse  # type: ignore
+import json
+from http import HTTPStatus
+
+from fastapi import Request
+from fastapi.param_functions import Query
 from lnurl.types import LnurlPayMetadata
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse  # type: ignore
+
 from lnbits.core.services import create_invoice
 
 from . import copilot_ext
 from .crud import get_copilot
 
 
-@copilot_ext.route("/lnurl/<cp_id>", methods=["GET"])
-async def lnurl_response(cp_id):
+@copilot_ext.get(
+    "/lnurl/{cp_id}", response_class=HTMLResponse, name="copilot.lnurl_response"
+)
+async def lnurl_response(req: Request, cp_id: str = Query(None)):
     cp = await get_copilot(cp_id)
     if not cp:
-        return jsonify({"status": "ERROR", "reason": "Copilot not found."})
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
+        )
 
-    resp = LnurlPayResponse(
-        callback=url_for("copilot.lnurl_callback", cp_id=cp_id, _external=True),
-        min_sendable=10000,
-        max_sendable=50000000,
-        metadata=LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]])),
-    )
+    payResponse = {
+        "tag": "payRequest",
+        "callback": req.url_for("copilot.lnurl_callback", cp_id=cp_id),
+        "metadata": LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]])),
+        "maxSendable": 50000000,
+        "minSendable": 10000,
+    }
 
-    params = resp.dict()
     if cp.show_message:
-        params["commentAllowed"] = 300
+        payResponse["commentAllowed"] = 300
+    return json.dumps(payResponse)
 
-    return jsonify(params)
 
-
-@copilot_ext.route("/lnurl/cb/<cp_id>", methods=["GET"])
-async def lnurl_callback(cp_id):
+@copilot_ext.get(
+    "/lnurl/cb/{cp_id}", response_class=HTMLResponse, name="copilot.lnurl_callback"
+)
+async def lnurl_callback(
+    cp_id: str = Query(None), amount: str = Query(None), comment: str = Query(None)
+):
     cp = await get_copilot(cp_id)
     if not cp:
-        return jsonify({"status": "ERROR", "reason": "Copilot not found."})
-
-    amount_received = int(request.args.get("amount"))
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
+        )
+    amount_received = int(amount)
 
     if amount_received < 10000:
-        return (
-            jsonify(
-                LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is smaller than minimum 10 sats."
-                ).dict()
-            ),
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Amount {round(amount_received / 1000)} is smaller than minimum 10 sats.",
         )
     elif amount_received / 1000 > 10000000:
-        return (
-            jsonify(
-                LnurlErrorResponse(
-                    reason=f"Amount {round(amount_received / 1000)} is greater than maximum 50000."
-                ).dict()
-            ),
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Amount {round(amount_received / 1000)} is greater than maximum 50000.",
         )
     comment = ""
-    if request.args.get("comment"):
-        comment = request.args.get("comment")
+    if comment:
         if len(comment or "") > 300:
-            return jsonify(
-                LnurlErrorResponse(
-                    reason=f"Got a comment with {len(comment)} characters, but can only accept 300"
-                ).dict()
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                detail="Got a comment with {len(comment)} characters, but can only accept 300",
             )
         if len(comment) < 1:
             comment = "none"
-
-    payment_hash, payment_request = await create_invoice(
+    _, payment_request = await create_invoice(
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
         memo=cp.lnurl_title,
@@ -75,12 +78,7 @@ async def lnurl_callback(cp_id):
                 LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
             ).encode("utf-8")
         ).digest(),
-        extra={"tag": "copilot", "copilot": cp.id, "comment": comment},
+        extra={"tag": "copilot", "copilotid": cp.id, "comment": comment},
     )
-    resp = LnurlPayActionResponse(
-        pr=payment_request,
-        success_action=None,
-        disposable=False,
-        routes=[],
-    )
-    return jsonify(resp.dict())
+    payResponse = {"pr": payment_request, "routes": []}
+    return json.dumps(payResponse)

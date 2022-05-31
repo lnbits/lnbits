@@ -1,11 +1,16 @@
-from quart import Blueprint
+from fastapi import APIRouter
+
 from lnbits.db import Database
+from lnbits.helpers import template_renderer
 
 db = Database("ext_streamalerts")
 
-streamalerts_ext: Blueprint = Blueprint(
-    "streamalerts", __name__, static_folder="static", template_folder="templates"
-)
+streamalerts_ext: APIRouter = APIRouter(prefix="/streamalerts", tags=["streamalerts"])
 
-from .views_api import *  # noqa
+
+def streamalerts_renderer():
+    return template_renderer(["lnbits/extensions/streamalerts/templates"])
+
+
 from .views import *  # noqa
+from .views_api import *  # noqa

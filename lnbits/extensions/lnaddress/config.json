@@ -1,0 +1,6 @@
+{
+  "name": "Lightning Address",
+  "short_description": "Sell LN addresses for your domain",
+  "icon": "alternate_email",
+  "contributors": ["talvasconcelos"]
+}

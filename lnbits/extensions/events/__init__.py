@@ -1,13 +1,17 @@
-from quart import Blueprint
+from fastapi import APIRouter
+
 from lnbits.db import Database
+from lnbits.helpers import template_renderer
 
 db = Database("ext_events")
 
 
-events_ext: Blueprint = Blueprint(
-    "events", __name__, static_folder="static", template_folder="templates"
-)
+events_ext: APIRouter = APIRouter(prefix="/events", tags=["Events"])
 
 
-from .views_api import *  # noqa
+def events_renderer():
+    return template_renderer(["lnbits/extensions/events/templates"])
+
+
 from .views import *  # noqa
+from .views_api import *  # noqa

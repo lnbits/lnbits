@@ -1,33 +1,35 @@
-import trio
+import asyncio
 import json
-import httpx
-from io import BytesIO
 from binascii import unhexlify
-from typing import Optional, Tuple, Dict
-from urllib.parse import urlparse, parse_qs
-from quart import g, url_for
-from lnurl import LnurlErrorResponse, decode as decode_lnurl  # type: ignore
+from io import BytesIO
+from typing import Dict, Optional, Tuple
+from urllib.parse import parse_qs, urlparse
+
+import httpx
+from lnurl import LnurlErrorResponse
+from lnurl import decode as decode_lnurl  # type: ignore
+
+from lnbits import bolt11
+from lnbits.db import Connection
+from lnbits.helpers import url_for, urlsafe_short_hash
+from lnbits.requestvars import g
+from lnbits.settings import WALLET
+from lnbits.wallets.base import PaymentResponse, PaymentStatus
+
+from . import db
+from .crud import (
+    check_internal,
+    create_payment,
+    delete_payment,
+    get_wallet,
+    get_wallet_payment,
+    update_payment_status,
+)
 
 try:
     from typing import TypedDict  # type: ignore
 except ImportError:  # pragma: nocover
     from typing_extensions import TypedDict
-
-from lnbits import bolt11
-from lnbits.db import Connection
-from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import WALLET
-from lnbits.wallets.base import PaymentStatus, PaymentResponse
-
-from . import db
-from .crud import (
-    get_wallet,
-    create_payment,
-    delete_payment,
-    check_internal,
-    update_payment_status,
-    get_wallet_payment,
-)
 
 
 class PaymentFailure(Exception):
@@ -49,7 +51,6 @@ async def create_invoice(
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
-    storeable_memo = memo
 
     ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
@@ -66,7 +67,7 @@ async def create_invoice(
         payment_request=payment_request,
         payment_hash=invoice.payment_hash,
         amount=amount_msat,
-        memo=storeable_memo,
+        memo=memo,
         extra=extra,
         webhook=webhook,
         conn=conn,
@@ -84,11 +85,12 @@ async def pay_invoice(
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
+    invoice = bolt11.decode(payment_request)
+    fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
         temp_id = f"temp_{urlsafe_short_hash()}"
         internal_id = f"internal_{urlsafe_short_hash()}"
 
-        invoice = bolt11.decode(payment_request)
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
         if max_sat and invoice.amount_msat > max_sat * 1000:
@@ -131,7 +133,7 @@ async def pay_invoice(
             # the balance is enough in the next step
             await create_payment(
                 checking_id=temp_id,
-                fee=-fee_reserve(invoice.amount_msat),
+                fee=-fee_reserve_msat,
                 conn=conn,
                 **payment_kwargs,
             )
@@ -140,26 +142,33 @@ async def pay_invoice(
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet
         if wallet.balance_msat < 0:
+            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
+                raise PaymentFailure(
+                    f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                )
             raise PermissionError("Insufficient balance.")
 
-        if internal_checking_id:
-            # mark the invoice from the other side as not pending anymore
-            # so the other side only has access to his new money when we are sure
-            # the payer has enough to deduct from
+    if internal_checking_id:
+        # mark the invoice from the other side as not pending anymore
+        # so the other side only has access to his new money when we are sure
+        # the payer has enough to deduct from
+        async with db.connect() as conn:
             await update_payment_status(
-                checking_id=internal_checking_id,
-                pending=False,
-                conn=conn,
+                checking_id=internal_checking_id, pending=False, conn=conn
             )
 
-            # notify receiver asynchronously
-            from lnbits.tasks import internal_invoice_paid
+        # notify receiver asynchronously
 
-            await internal_invoice_paid.send(internal_checking_id)
-        else:
-            # actually pay the external invoice
-            payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
-            if payment.checking_id:
+        from lnbits.tasks import internal_invoice_queue
+
+        await internal_invoice_queue.put(internal_checking_id)
+    else:
+        # actually pay the external invoice
+        payment: PaymentResponse = await WALLET.pay_invoice(
+            payment_request, fee_reserve_msat
+        )
+        if payment.checking_id:
+            async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
                     fee=payment.fee_msat,
@@ -169,13 +178,15 @@ async def pay_invoice(
                     **payment_kwargs,
                 )
                 await delete_payment(temp_id, conn=conn)
-            else:
-                raise PaymentFailure(
-                    payment.error_message
-                    or "Payment failed, but backend didn't give us an error message."
-                )
+        else:
+            async with db.connect() as conn:
+                await delete_payment(temp_id, conn=conn)
+            raise PaymentFailure(
+                payment.error_message
+                or "Payment failed, but backend didn't give us an error message."
+            )
 
-        return invoice.payment_hash
+    return invoice.payment_hash
 
 
 async def redeem_lnurl_withdraw(
@@ -211,19 +222,15 @@ async def redeem_lnurl_withdraw(
         return None
 
     if wait_seconds:
-        await trio.sleep(wait_seconds)
+        await asyncio.sleep(wait_seconds)
 
-    params = {
-        "k1": res["k1"],
-        "pr": payment_request,
-    }
+    params = {"k1": res["k1"], "pr": payment_request}
 
     try:
         params["balanceNotify"] = url_for(
-            "core.lnurl_balance_notify",
-            service=urlparse(lnurl_request).netloc,
+            f"/withdraw/notify/{urlparse(lnurl_request).netloc}",
+            external=True,
             wal=wallet_id,
-            _external=True,
         )
     except Exception:
         pass
@@ -236,13 +243,12 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str,
-    conn: Optional[Connection] = None,
+    callback: str, conn: Optional[Connection] = None
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
-    key = g.wallet.lnurlauth_key(cb.netloc)
+    key = g().wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""
@@ -275,12 +281,12 @@ async def perform_lnurlauth(
         sign_len = 6 + r_len + s_len
 
         signature = BytesIO()
-        signature.write(0x30 .to_bytes(1, "big", signed=False))
+        signature.write(0x30.to_bytes(1, "big", signed=False))
         signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(0x02.to_bytes(1, "big", signed=False))
         signature.write(r_len.to_bytes(1, "big", signed=False))
         signature.write(r)
-        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(0x02.to_bytes(1, "big", signed=False))
         signature.write(s_len.to_bytes(1, "big", signed=False))
         signature.write(s)
 
@@ -305,21 +311,30 @@ async def perform_lnurlauth(
             return LnurlErrorResponse(reason=resp["reason"])
         except (KeyError, json.decoder.JSONDecodeError):
             return LnurlErrorResponse(
-                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text,
+                reason=r.text[:200] + "..." if len(r.text) > 200 else r.text
             )
 
 
 async def check_invoice_status(
-    wallet_id: str,
-    payment_hash: str,
-    conn: Optional[Connection] = None,
+    wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:
         return PaymentStatus(None)
+    status = await WALLET.get_invoice_status(payment.checking_id)
+    if not payment.pending:
+        return status
+    if payment.is_out and status.failed:
+        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        await payment.delete()
+    elif not status.pending:
+        print(
+            f" - marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
+        )
+        await payment.set_pending(status.pending)
+    return status
 
-    return await WALLET.get_invoice_status(payment.checking_id)
 
-
+# WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(1000, int(amount_msat * 0.01))
+    return max(2000, int(amount_msat * 0.01))

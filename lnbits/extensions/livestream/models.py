@@ -1,11 +1,22 @@
 import json
-from quart import url_for
 from typing import Optional
-from lnurl import Lnurl, encode as lnurl_encode  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
+
+from fastapi.params import Query
+from lnurl import Lnurl
+from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
-from sqlite3 import Row
-from pydantic import BaseModel
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from pydantic.main import BaseModel
+from starlette.requests import Request
+
+
+class CreateTrack(BaseModel):
+    name: str = Query(...)
+    download_url: str = Query(None)
+    price_msat: int = Query(None, ge=0)
+    producer_id: str = Query(None)
+    producer_name: str = Query(None)
+
 
 class Livestream(BaseModel):
     id: int
@@ -13,16 +24,15 @@ class Livestream(BaseModel):
     fee_pct: int
     current_track: Optional[int]
 
-    @property
-    def lnurl(self) -> Lnurl:
-        url = url_for("livestream.lnurl_livestream", ls_id=self.id, _external=True)
+    def lnurl(self, request: Request) -> Lnurl:
+        url = request.url_for("livestream.lnurl_livestream", ls_id=self.id)
         return lnurl_encode(url)
 
 
 class Track(BaseModel):
     id: int
-    download_url: str
-    price_msat: int
+    download_url: Optional[str]
+    price_msat: Optional[int]
     name: str
     producer: int
 
@@ -34,9 +44,8 @@ class Track(BaseModel):
     def max_sendable(self) -> int:
         return max(50_000_000, self.price_msat * 5)
 
-    @property
-    def lnurl(self) -> Lnurl:
-        url = url_for("livestream.lnurl_track", track_id=self.id, _external=True)
+    def lnurl(self, request: Request) -> Lnurl:
+        url = request.url_for("livestream.lnurl_track", track_id=self.id)
         return lnurl_encode(url)
 
     async def fullname(self) -> str:
@@ -60,18 +69,17 @@ class Track(BaseModel):
 
         return LnurlPayMetadata(json.dumps([["text/plain", description]]))
 
-    def success_action(self, payment_hash: str) -> Optional[LnurlPaySuccessAction]:
+    def success_action(
+        self, payment_hash: str, request: Request
+    ) -> Optional[LnurlPaySuccessAction]:
         if not self.download_url:
             return None
 
+        url = request.url_for("livestream.track_redirect_download", track_id=self.id)
+        url_with_query = f"{url}?p={payment_hash}"
+
         return UrlAction(
-            url=url_for(
-                "livestream.track_redirect_download",
-                track_id=self.id,
-                p=payment_hash,
-                _external=True,
-            ),
-            description=f"Download the track {self.name}!",
+            url=url_with_query, description=f"Download the track {self.name}!"
         )
 
 

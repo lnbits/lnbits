@@ -1,0 +1,94 @@
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+    <q-card class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <h5 class="q-my-none">Tip {{ donatee }} some sats!</h5>
+        <br />
+        <q-form @submit="Invoice()" class="q-gutter-md">
+          <q-input
+            filled
+            dense
+            v-model.trim="tipDialog.data.name"
+            maxlength="25"
+            type="name"
+            label="Your Name (or contact info, leave blank for anonymous tip)"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="tipDialog.data.sats"
+            type="number"
+            min="1"
+            max="2100000000000000"
+            suffix="sats"
+            :rules="[val => val > 0 || 'Choose a positive number of sats!']"
+            label="Amount of sats"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="tipDialog.data.message"
+            maxlength="144"
+            type="textarea"
+            label="Tip Message (you can leave this blank too)"
+          ></q-input>
+          <div class="row q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              :disable="tipDialog.data.sats < 1 || !tipDialog.data.sats"
+              type="submit"
+              >Submit</q-btn
+            >
+          </div>
+        </q-form>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        paymentReq: null,
+        redirectUrl: null,
+        tipDialog: {
+          show: false,
+          data: {
+            name: '',
+            sats: '',
+            message: ''
+          }
+        }
+      }
+    },
+
+    methods: {
+      Invoice: function () {
+        var self = this
+        console.log('{{ tipjar }}')
+        axios
+          .post('/tipjar/api/v1/tips', {
+            tipjar: '{{ tipjar }}',
+            name: self.tipDialog.data.name,
+            sats: self.tipDialog.data.sats,
+            message: self.tipDialog.data.message
+          })
+          .then(function (response) {
+            console.log(response.data)
+            self.redirect_url = response.data.redirect_url
+            console.log(self.redirect_url)
+            window.location.href = self.redirect_url
+          })
+      }
+    }
+  })
+</script>
+{% endblock %}

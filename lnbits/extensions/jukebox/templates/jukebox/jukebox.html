@@ -1,4 +1,4 @@
-{% extends "public.html" %} {% block page %} {% raw %}
+{% extends "public.html" %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
   <div class="col-12 col-sm-6 col-md-5 col-lg-4">
     <q-card class="q-pa-lg">
@@ -9,10 +9,12 @@
             <img style="width: 100px" :src="currentPlay.image" />
           </div>
           <div class="col-8">
+            {% raw %}
             <strong style="font-size: 20px">{{ currentPlay.name }}</strong
             ><br />
             <strong style="font-size: 15px">{{ currentPlay.artist }}</strong>
           </div>
+          {% endraw %}
         </div>
       </q-card-section>
     </q-card>
@@ -46,7 +48,7 @@
             >
               <q-item-section>
                 <q-item-label>
-                  {{ item.name }} - ({{ item.artist }})
+                  {% raw %} {{ item.name }} - ({{ item.artist }}){% endraw %}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -54,49 +56,48 @@
         </q-virtual-scroll>
       </q-card-section>
     </q-card>
-  </div>
 
-  <q-dialog v-model="receive.dialogues.first" position="top">
-    <q-card class="q-pa-lg lnbits__dialog-card">
-      <q-card-section class="q-pa-none">
-        <div class="row">
-          <div class="col-4">
-            <img style="width: 100px" :src="receive.image" />
+    <q-dialog v-model="receive.dialogues.first" position="top">
+      <q-card class="q-pa-lg lnbits__dialog-card">
+        <q-card-section class="q-pa-none">
+          <div class="row">
+            <div class="col-4">
+              <img style="width: 100px" :src="receive.image" />
+            </div>
+            <div class="col-8">
+              {% raw %}
+              <strong style="font-size: 20px">{{ receive.name }}</strong><br />
+              <strong style="font-size: 15px">{{ receive.artist }}</strong>
+            </div>
           </div>
-          <div class="col-8">
-            <strong style="font-size: 20px">{{ receive.name }}</strong><br />
-            <strong style="font-size: 15px">{{ receive.artist }}</strong>
-          </div>
+        </q-card-section>
+        <br />
+        <div class="row q-mt-lg q-gutter-sm">
+          <q-btn outline color="grey" @click="getInvoice(receive.id)"
+            >Play for {% endraw %}{{ price }}sats
+          </q-btn>
         </div>
-      </q-card-section>
-      <br />
-      <div class="row q-mt-lg q-gutter-sm">
-        <q-btn outline color="grey" @click="getInvoice(receive.id)"
-          >Play for {% endraw %}{{ price }}{% raw %} sats
-        </q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="receive.dialogues.second" position="top">
-    <q-card class="q-pa-lg lnbits__dialog-card">
-      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-        <qrcode
-          :value="'lightning:' + receive.paymentReq"
-          :options="{width: 800}"
-          class="rounded-borders"
-        ></qrcode>
-      </q-responsive>
-      <div class="row q-mt-lg q-gutter-sm">
-        <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
-          >Copy invoice</q-btn
-        >
-      </div>
-    </q-card>
-  </q-dialog>
+      </q-card>
+    </q-dialog>
+    <q-dialog v-model="receive.dialogues.second" position="top">
+      <q-card class="q-pa-lg lnbits__dialog-card">
+        <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+          <qrcode
+            :value="'lightning:' + receive.paymentReq"
+            :options="{width: 800}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+        <div class="row q-mt-lg q-gutter-sm">
+          <q-btn outline color="grey" @click="copyText(receive.paymentReq)"
+            >Copy invoice</q-btn
+          >
+        </div>
+      </q-card>
+    </q-dialog>
+  </div>
 </div>
-{% endraw %} {% endblock %} {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
-<style></style>
+{% endblock %} {% block scripts %}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
@@ -156,8 +157,9 @@
               song_id
           )
           .then(function (response) {
-            self.receive.paymentReq = response.data[0][1]
-            self.receive.paymentHash = response.data[0][0]
+            console.log(response.data)
+            self.receive.paymentReq = response.data.invoice
+            self.receive.paymentHash = response.data.payment_hash
             self.receive.dialogues.second = true
             dialog.data = response.data
 
@@ -186,8 +188,10 @@
                           self.receive.paymentHash
                       )
                       .then(function (ress) {
+                        console.log('ress')
                         console.log(ress)
-                        if (ress.data[2] == self.receive.id) {
+                        console.log('ress')
+                        if (ress.data.song_id == self.receive.id) {
                           clearInterval(dialog.paymentChecker)
                           dialog.dismissMsg()
                           self.receive.dialogues.second = false

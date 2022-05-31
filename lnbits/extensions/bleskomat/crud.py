@@ -1,20 +1,14 @@
 import secrets
 import time
-from uuid import uuid4
 from typing import List, Optional, Union
+from uuid import uuid4
+
 from . import db
-from .models import Bleskomat, BleskomatLnurl
 from .helpers import generate_bleskomat_lnurl_hash
+from .models import Bleskomat, BleskomatLnurl, CreateBleskomat
 
 
-async def create_bleskomat(
-    *,
-    wallet_id: str,
-    name: str,
-    fiat_currency: str,
-    exchange_rate_provider: str,
-    fee: str,
-) -> Bleskomat:
+async def create_bleskomat(data: CreateBleskomat, wallet_id: str) -> Bleskomat:
     bleskomat_id = uuid4().hex
     api_key_id = secrets.token_hex(8)
     api_key_secret = secrets.token_hex(32)
@@ -30,10 +24,10 @@ async def create_bleskomat(
             api_key_id,
             api_key_secret,
             api_key_encoding,
-            name,
-            fiat_currency,
-            exchange_rate_provider,
-            fee,
+            data.name,
+            data.fiat_currency,
+            data.exchange_rate_provider,
+            data.fee,
         ),
     )
     bleskomat = await get_bleskomat(bleskomat_id)

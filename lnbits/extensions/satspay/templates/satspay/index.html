@@ -280,7 +280,8 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
+<!-- lnbits/static/vendor
+<script src="/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script> -->
 <style></style>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -474,7 +475,7 @@
       },
       sendFormDataCharge: function () {
         var self = this
-        var wallet = this.g.user.wallets[0].adminkey
+        var wallet = this.g.user.wallets[0].inkey
         var data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
@@ -508,6 +509,13 @@
           .then(function (response) {
             self.ChargeLinks.push(mapCharge(response.data))
             self.formDialogCharge.show = false
+            self.formDialogCharge.data = {
+              onchain: false,
+              lnbits: false,
+              description: '',
+              time: null,
+              amount: null
+            }
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -542,6 +550,7 @@
       }
     },
     created: function () {
+      console.log(this.g.user)
       var self = this
       var getCharges = this.getCharges
       getCharges()

@@ -1,42 +1,52 @@
-import time
-from datetime import datetime
-from quart import g, render_template, request, jsonify, websocket
 from http import HTTPStatus
-import trio
-from lnbits.decorators import check_user_exists, validate_uuids
-from lnbits.core.models import Payment
 
-import json
-from . import jukebox_ext
+from fastapi import Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse
+
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
+from . import jukebox_ext, jukebox_renderer
 from .crud import get_jukebox
 from .views_api import api_get_jukebox_device_check
 
-
-@jukebox_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    return await render_template("jukebox/index.html", user=g.user)
+templates = Jinja2Templates(directory="templates")
 
 
-@jukebox_ext.route("/<juke_id>")
-async def connect_to_jukebox(juke_id):
+@jukebox_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
+    return jukebox_renderer().TemplateResponse(
+        "jukebox/index.html", {"request": request, "user": user.dict()}
+    )
+
+
+@jukebox_ext.get("/{juke_id}", response_class=HTMLResponse)
+async def connect_to_jukebox(request: Request, juke_id):
     jukebox = await get_jukebox(juke_id)
     if not jukebox:
-        return "error"
-    deviceCheck = await api_get_jukebox_device_check(juke_id)
-    devices = json.loads(deviceCheck[0].text)
-    deviceConnected = False
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Jukebox does not exist."
+        )
+    devices = await api_get_jukebox_device_check(juke_id)
     for device in devices["devices"]:
         if device["id"] == jukebox.sp_device.split("-")[1]:
             deviceConnected = True
     if deviceConnected:
-        return await render_template(
+        return jukebox_renderer().TemplateResponse(
             "jukebox/jukebox.html",
-            playlists=jukebox.sp_playlists.split(","),
-            juke_id=juke_id,
-            price=jukebox.price,
-            inkey=jukebox.inkey,
+            {
+                "request": request,
+                "playlists": jukebox.sp_playlists.split(","),
+                "juke_id": juke_id,
+                "price": jukebox.price,
+                "inkey": jukebox.inkey,
+            },
         )
     else:
-        return await render_template("jukebox/error.html")
+        return jukebox_renderer().TemplateResponse(
+            "jukebox/error.html",
+            {"request": request, "jukebox": jukebox.jukebox(req=request)},
+        )

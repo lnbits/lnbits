@@ -3,8 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Tickets, Events
-
+from .models import CreateEvent, Events, Tickets
 
 # TICKETS
 
@@ -76,20 +75,14 @@ async def delete_ticket(payment_hash: str) -> None:
     await db.execute("DELETE FROM events.ticket WHERE id = ?", (payment_hash,))
 
 
+async def delete_event_tickets(event_id: str) -> None:
+    await db.execute("DELETE FROM events.ticket WHERE event = ?", (event_id,))
+
+
 # EVENTS
 
 
-async def create_event(
-    *,
-    wallet: str,
-    name: str,
-    info: str,
-    closing_date: str,
-    event_start_date: str,
-    event_end_date: str,
-    amount_tickets: int,
-    price_per_ticket: int,
-) -> Events:
+async def create_event(data: CreateEvent) -> Events:
     event_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -98,14 +91,14 @@ async def create_event(
         """,
         (
             event_id,
-            wallet,
-            name,
-            info,
-            closing_date,
-            event_start_date,
-            event_end_date,
-            amount_tickets,
-            price_per_ticket,
+            data.wallet,
+            data.name,
+            data.info,
+            data.closing_date,
+            data.event_start_date,
+            data.event_end_date,
+            data.amount_tickets,
+            data.price_per_ticket,
             0,
         ),
     )

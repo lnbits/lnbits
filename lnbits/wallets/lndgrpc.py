@@ -1,19 +1,21 @@
+imports_ok = True
 try:
-    import lndgrpc  # type: ignore
-    from lndgrpc.common import ln  # type: ignore
+    from google import protobuf
+    import grpc
 except ImportError:  # pragma: nocover
-    lndgrpc = None
+    imports_ok = False
 
-try:
-    import purerpc  # type: ignore
-except ImportError:  # pragma: nocover
-    purerpc = None
 
 import binascii
 import base64
 import hashlib
-from os import getenv
+from os import environ, error, getenv
 from typing import Optional, Dict, AsyncGenerator
+from .macaroon import load_macaroon, AESCipher
+
+if imports_ok:
+    import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
+    import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 
 from .base import (
     StatusResponse,
@@ -57,38 +59,25 @@ def get_ssl_context(cert_path: str):
     return context
 
 
-def load_macaroon(macaroon_path: str):
-    with open(macaroon_path, "rb") as f:
-        macaroon_bytes = f.read()
-        return macaroon_bytes.hex()
-
-
 def parse_checking_id(checking_id: str) -> bytes:
-    return base64.b64decode(
-        checking_id.replace("_", "/"),
-    )
+    return base64.b64decode(checking_id.replace("_", "/"))
 
 
 def stringify_checking_id(r_hash: bytes) -> str:
-    return (
-        base64.b64encode(
-            r_hash,
-        )
-        .decode("utf-8")
-        .replace("/", "_")
-    )
+    return base64.b64encode(r_hash).decode("utf-8").replace("/", "_")
+
+
+# Due to updated ECDSA generated tls.cert we need to let gprc know that
+# we need to use that cipher suite otherwise there will be a handhsake
+# error when we communicate with the lnd rpc server.
+environ["GRPC_SSL_CIPHER_SUITES"] = "HIGH+ECDSA"
 
 
 class LndWallet(Wallet):
     def __init__(self):
-        if lndgrpc is None:  # pragma: nocover
+        if not imports_ok:  # pragma: nocover
             raise ImportError(
-                "The `lndgrpc` library must be installed to use `LndWallet`."
-            )
-
-        if purerpc is None:  # pragma: nocover
-            raise ImportError(
-                "The `purerpc` library must be installed to use `LndWallet`."
+                "The `grpcio` and `protobuf` library must be installed to use `GRPC LndWallet`. Alternatively try using the LndRESTWallet."
             )
 
         endpoint = getenv("LND_GRPC_ENDPOINT")
@@ -96,25 +85,36 @@ class LndWallet(Wallet):
         self.port = int(getenv("LND_GRPC_PORT"))
         self.cert_path = getenv("LND_GRPC_CERT") or getenv("LND_CERT")
 
-        self.macaroon_path = (
+        macaroon = (
             getenv("LND_GRPC_MACAROON")
             or getenv("LND_GRPC_ADMIN_MACAROON")
             or getenv("LND_ADMIN_MACAROON")
             or getenv("LND_GRPC_INVOICE_MACAROON")
             or getenv("LND_INVOICE_MACAROON")
         )
-        network = getenv("LND_GRPC_NETWORK", "mainnet")
 
-        self.rpc = lndgrpc.LNDClient(
-            f"{self.endpoint}:{self.port}",
-            cert_filepath=self.cert_path,
-            network=network,
-            macaroon_filepath=self.macaroon_path,
+        encrypted_macaroon = getenv("LND_GRPC_MACAROON_ENCRYPTED")
+        if encrypted_macaroon:
+            macaroon = AESCipher(description="macaroon decryption").decrypt(
+                encrypted_macaroon
+            )
+        self.macaroon = load_macaroon(macaroon)
+
+        cert = open(self.cert_path, "rb").read()
+        creds = grpc.ssl_channel_credentials(cert)
+        auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
+        composite_creds = grpc.composite_channel_credentials(creds, auth_creds)
+        channel = grpc.aio.secure_channel(
+            f"{self.endpoint}:{self.port}", composite_creds
         )
+        self.rpc = lnrpc.LightningStub(channel)
+
+    def metadata_callback(self, _, callback):
+        callback([("macaroon", self.macaroon)], None)
 
     async def status(self) -> StatusResponse:
         try:
-            resp = self.rpc._ln_stub.ChannelBalance(ln.ChannelBalanceRequest())
+            resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
         except Exception as exc:
             return StatusResponse(str(exc), 0)
 
@@ -135,7 +135,7 @@ class LndWallet(Wallet):
 
         try:
             req = ln.Invoice(**params)
-            resp = self.rpc._ln_stub.AddInvoice(req)
+            resp = await self.rpc.AddInvoice(req)
         except Exception as exc:
             error_message = str(exc)
             return InvoiceResponse(False, None, None, error_message)
@@ -144,8 +144,10 @@ class LndWallet(Wallet):
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        resp = self.rpc.send_payment(payment_request=bolt11)
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
+        req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)
+        resp = await self.rpc.SendPaymentSync(req)
 
         if resp.payment_error:
             return PaymentResponse(False, "", 0, None, resp.payment_error)
@@ -166,7 +168,7 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentStatus(None)
 
-        resp = self.rpc.lookup_invoice(r_hash.hex())
+        resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
         if resp.settled:
             return PaymentStatus(True)
 
@@ -176,34 +178,15 @@ class LndWallet(Wallet):
         return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        async with purerpc.secure_channel(
-            self.endpoint,
-            self.port,
-            get_ssl_context(self.cert_path),
-        ) as channel:
-            client = purerpc.Client("lnrpc.Lightning", channel)
-            subscribe_invoices = client.get_method_stub(
-                "SubscribeInvoices",
-                purerpc.RPCSignature(
-                    purerpc.Cardinality.UNARY_STREAM,
-                    ln.InvoiceSubscription,
-                    ln.Invoice,
-                ),
-            )
-
-            if self.macaroon_path.split('.')[-1] == 'macaroon':
-                macaroon = load_macaroon(self.macaroon_path)
-            else:
-                macaroon = self.macaroon_path
-
-            async for inv in subscribe_invoices(
-                ln.InvoiceSubscription(),
-                metadata=[("macaroon", macaroon)],
-            ):
-                if not inv.settled:
+        request = ln.InvoiceSubscription()
+        try:
+            async for i in self.rpc.SubscribeInvoices(request):
+                if not i.settled:
                     continue
 
-                checking_id = stringify_checking_id(inv.r_hash)
+                checking_id = stringify_checking_id(i.r_hash)
                 yield checking_id
+        except error:
+            print(error)
 
         print("lost connection to lnd InvoiceSubscription, please restart lnbits.")

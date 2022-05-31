@@ -1,8 +1,9 @@
-import trio  # type: ignore
+import asyncio
 import json
-import httpx
-from quart import g, jsonify, url_for, websocket
 from http import HTTPStatus
+
+import httpx
+from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db
 from lnbits.core.models import Payment
@@ -10,17 +11,14 @@ from lnbits.tasks import register_invoice_listener
 
 from .crud import get_copilot
 from .views import updater
-import shortuuid
 
 
-async def register_listeners():
-    invoice_paid_chan_send, invoice_paid_chan_recv = trio.open_memory_channel(2)
-    register_invoice_listener(invoice_paid_chan_send)
-    await wait_for_paid_invoices(invoice_paid_chan_recv)
+async def wait_for_paid_invoices():
+    invoice_queue = asyncio.Queue()
+    register_invoice_listener(invoice_queue)
 
-
-async def wait_for_paid_invoices(invoice_paid_chan: trio.MemoryReceiveChannel):
-    async for payment in invoice_paid_chan:
+    while True:
+        payment = await invoice_queue.get()
         await on_invoice_paid(payment)
 
 
@@ -31,16 +29,11 @@ async def on_invoice_paid(payment: Payment) -> None:
         # not an copilot invoice
         return
 
-    if payment.extra.get("wh_status"):
-        # this webhook has already been sent
-        return
-
-    copilot = await get_copilot(payment.extra.get("copilot", -1))
+    copilot = await get_copilot(payment.extra.get("copilotid", -1))
 
     if not copilot:
-        return (
-            jsonify({"message": "Copilot link link does not exist."}),
-            HTTPStatus.NOT_FOUND,
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Copilot does not exist"
         )
     if copilot.animation1threshold:
         if int(payment.amount / 1000) >= copilot.animation1threshold:
@@ -72,8 +65,8 @@ async def on_invoice_paid(payment: Payment) -> None:
                 await mark_webhook_sent(payment, -1)
     if payment.extra.get("comment"):
         await updater(copilot.id, data, payment.extra.get("comment"))
-    else:
-        await updater(copilot.id, data, "none")
+
+    await updater(copilot.id, data, "none")
 
 
 async def mark_webhook_sent(payment: Payment, status: int) -> None:

@@ -1,5 +1,27 @@
+from fastapi.params import Query
+from pydantic.main import BaseModel
 
-from pydantic import BaseModel
+
+class CreateDomain(BaseModel):
+    wallet: str = Query(...)
+    domain: str = Query(...)
+    cf_token: str = Query(...)
+    cf_zone_id: str = Query(...)
+    webhook: str = Query("")
+    description: str = Query(..., min_length=0)
+    cost: int = Query(..., ge=0)
+    allowed_record_types: str = Query(...)
+
+
+class CreateSubdomain(BaseModel):
+    domain: str = Query(...)
+    subdomain: str = Query(...)
+    email: str = Query(...)
+    ip: str = Query(...)
+    sats: int = Query(..., ge=0)
+    duration: int = Query(...)
+    record_type: str = Query(...)
+
 
 class Domains(BaseModel):
     id: str

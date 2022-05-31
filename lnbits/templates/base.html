@@ -2,12 +2,11 @@
 
 <html lang="en">
   <head>
-    {% for url in g.VENDORED_CSS %}
+    {% for url in VENDORED_CSS %}
     <link rel="stylesheet" type="text/css" href="{{ url }}" />
     {% endfor %}
     <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
-
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -20,7 +19,7 @@
     {% block head_scripts %}{% endblock %}
   </head>
 
-  <body data-theme="classic">
+  <body data-theme="bitcoin">
     <q-layout id="vue" view="hHh lpR lfr" v-cloak>
       <q-header bordered class="bg-marginal-bg">
         <q-toolbar>
@@ -67,8 +66,19 @@
                 icon="format_color_fill"
                 color="deep-purple"
                 size="md"
-                ><q-tooltip>classic</q-tooltip> </q-btn
-              ><q-btn
+                ><q-tooltip>classic</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('bitcoin')"
+                dense
+                flat
+                @click="changeColor('bitcoin')"
+                icon="format_color_fill"
+                color="orange"
+                size="md"
+                ><q-tooltip>bitcoin</q-tooltip>
+              </q-btn>
+              <q-btn
                 v-if="g.allowedThemes.includes('mint')"
                 dense
                 flat
@@ -106,6 +116,16 @@
                 color="blue-10"
                 size="md"
                 ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('freedom')"
+                dense
+                flat
+                @click="changeColor('freedom')"
+                icon="format_color_fill"
+                color="pink-13"
+                size="md"
+                ><q-tooltip>Freedom</q-tooltip>
               </q-btn>
               <q-btn
                 v-if="g.allowedThemes.includes('flamingo')"
@@ -151,11 +171,12 @@
         </q-page>
       </q-page-container>
       {% endblock %} {% block footer %}
+
       <q-footer
         class="bg-transparent q-px-lg q-py-md"
         :class="{'text-dark': !$q.dark.isActive}"
       >
-        <q-toolbar>
+        <q-toolbar class="gt-sm">
           <q-toolbar-title class="text-caption">
             {{ SITE_TITLE }}, {{SITE_TAGLINE}}
             <br />
@@ -179,12 +200,13 @@
           </q-btn>
         </q-toolbar>
       </q-footer>
+
       {% endblock %}
     </q-layout>
 
     {% block vue_templates %}{% endblock %}
     <!---->
-    {% for url in g.VENDORED_JS %}
+    {% for url in VENDORED_JS %}
     <script src="{{ url }}"></script>
     {% endfor %}
     <!---->
@@ -192,6 +214,8 @@
     <script src="/static/js/components.js"></script>
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
+      const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}
+      console.log(LNBITS_DENOMINATION)
       if(themes && themes.length) {
         window.allowedThemes = themes.map(str => str.trim())
       }

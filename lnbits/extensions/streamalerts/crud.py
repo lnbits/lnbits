@@ -1,23 +1,20 @@
-from . import db
-from .models import Donation, Service
-
-from ..satspay.crud import delete_charge  # type: ignore
+from http import HTTPStatus
+from typing import Optional
 
 import httpx
 
-from http import HTTPStatus
-from quart import jsonify
-
-from typing import Optional
-
+from lnbits.core.crud import get_wallet
 from lnbits.db import SQLITE
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.core.crud import get_wallet
+
+from ..satspay.crud import delete_charge  # type: ignore
+from . import db
+from .models import CreateService, Donation, Service
 
 
 async def get_service_redirect_uri(request, service_id):
     """Return the service's redirect URI, to be given to the third party API"""
-    uri_base = request.scheme + "://"
+    uri_base = request.url.scheme + "://"
     uri_base += request.headers["Host"] + "/streamalerts/api/v1"
     redirect_uri = uri_base + f"/authenticate/{service_id}"
     return redirect_uri
@@ -28,9 +25,7 @@ async def get_charge_details(service_id):
 
     These might be different depending for services implemented in the future.
     """
-    details = {
-        "time": 1440,
-    }
+    details = {"time": 1440}
     service = await get_service(service_id)
     wallet_id = service.wallet
     wallet = await get_wallet(wallet_id)
@@ -83,12 +78,10 @@ async def post_donation(donation_id: str) -> tuple:
     """
     donation = await get_donation(donation_id)
     if not donation:
-        return (jsonify({"message": "Donation not found!"}), HTTPStatus.BAD_REQUEST)
+        return {"message": "Donation not found!"}
     if donation.posted:
-        return (
-            jsonify({"message": "Donation has already been posted!"}),
-            HTTPStatus.BAD_REQUEST,
-        )
+        return {"message": "Donation has already been posted!"}
+
     service = await get_service(donation.service)
     assert service, "Couldn't fetch service to donate to"
 
@@ -104,30 +97,18 @@ async def post_donation(donation_id: str) -> tuple:
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, data=data)
-        print(response.json())
         status = [s for s in list(HTTPStatus) if s == response.status_code][0]
     elif service.servicename == "StreamElements":
-        return (
-            jsonify({"message": "StreamElements not yet supported!"}),
-            HTTPStatus.BAD_REQUEST,
-        )
+        return {"message": "StreamElements not yet supported!"}
     else:
-        return (jsonify({"message": "Unsopported servicename"}), HTTPStatus.BAD_REQUEST)
+        return {"message": "Unsopported servicename"}
     await db.execute(
         "UPDATE streamalerts.Donations SET posted = 1 WHERE id = ?", (donation_id,)
     )
-    return (jsonify(response.json()), status)
+    return response.json()
 
 
-async def create_service(
-    twitchuser: str,
-    client_id: str,
-    client_secret: str,
-    wallet: str,
-    servicename: str,
-    state: str = None,
-    onchain: str = None,
-) -> Service:
+async def create_service(data: CreateService) -> Service:
     """Create a new Service"""
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
@@ -149,14 +130,14 @@ async def create_service(
         {returning}
         """,
         (
-            twitchuser,
-            client_id,
-            client_secret,
-            wallet,
-            servicename,
+            data.twitchuser,
+            data.client_id,
+            data.client_secret,
+            data.wallet,
+            data.servicename,
             False,
             urlsafe_short_hash(),
-            onchain,
+            data.onchain,
         ),
     )
     if db.type == SQLITE:
@@ -209,10 +190,8 @@ async def authenticate_service(service_id, code, redirect_uri):
         "client_secret": service.client_secret,
         "redirect_uri": redirect_uri,
     }
-    print(data)
     async with httpx.AsyncClient() as client:
         response = (await client.post(url, data=data)).json()
-    print(response)
     token = response["access_token"]
     success = await service_add_token(service_id, token)
     return f"/streamalerts/?usr={user}", success
@@ -229,10 +208,7 @@ async def service_add_token(service_id, token):
         return False
     await db.execute(
         "UPDATE streamalerts.Services SET authenticated = 1, token = ? where id = ?",
-        (
-            token,
-            service_id,
-        ),
+        (token, service_id),
     )
     return True
 

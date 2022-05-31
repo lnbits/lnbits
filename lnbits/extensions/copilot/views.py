@@ -1,61 +1,80 @@
-from quart import g, abort, render_template, jsonify, websocket
-from http import HTTPStatus
-import httpx
-from collections import defaultdict
-from lnbits.decorators import check_user_exists, validate_uuids
-from . import copilot_ext
+from typing import List
+
+from fastapi import Request, WebSocket, WebSocketDisconnect
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse  # type: ignore
+
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
+from . import copilot_ext, copilot_renderer
 from .crud import get_copilot
-from quart import g, abort, render_template, jsonify, websocket
-from functools import wraps
-import trio
-import shortuuid
-from . import copilot_ext
+
+templates = Jinja2Templates(directory="templates")
 
 
-@copilot_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    return await render_template("copilot/index.html", user=g.user)
+@copilot_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
+    return copilot_renderer().TemplateResponse(
+        "copilot/index.html", {"request": request, "user": user.dict()}
+    )
 
 
-@copilot_ext.route("/cp/")
-async def compose():
-    return await render_template("copilot/compose.html")
+@copilot_ext.get("/cp/", response_class=HTMLResponse)
+async def compose(request: Request):
+    return copilot_renderer().TemplateResponse(
+        "copilot/compose.html", {"request": request}
+    )
 
 
-@copilot_ext.route("/pn/")
-async def panel():
-    return await render_template("copilot/panel.html")
+@copilot_ext.get("/pn/", response_class=HTMLResponse)
+async def panel(request: Request):
+    return copilot_renderer().TemplateResponse(
+        "copilot/panel.html", {"request": request}
+    )
 
 
 ##################WEBSOCKET ROUTES########################
 
-# socket_relay is a list where the control panel or
-# lnurl endpoints can leave a message for the compose window
 
-connected_websockets = defaultdict(set)
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket, copilot_id: str):
+        await websocket.accept()
+        websocket.id = copilot_id
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, copilot_id: str):
+        for connection in self.active_connections:
+            if connection.id == copilot_id:
+                await connection.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
 
 
-@copilot_ext.websocket("/ws/<id>/")
-async def wss(id):
-    copilot = await get_copilot(id)
-    if not copilot:
-        return "", HTTPStatus.FORBIDDEN
-    global connected_websockets
-    send_channel, receive_channel = trio.open_memory_channel(0)
-    connected_websockets[id].add(send_channel)
+manager = ConnectionManager()
+
+
+@copilot_ext.websocket("/copilot/ws/{copilot_id}", name="copilot.websocket_by_id")
+async def websocket_endpoint(websocket: WebSocket, copilot_id: str):
+    await manager.connect(websocket, copilot_id)
     try:
         while True:
-            data = await receive_channel.receive()
-            await websocket.send(data)
-    finally:
-        connected_websockets[id].remove(send_channel)
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 
 async def updater(copilot_id, data, comment):
     copilot = await get_copilot(copilot_id)
     if not copilot:
         return
-    for queue in connected_websockets[copilot_id]:
-        await queue.send(f"{data + '-' + comment}")
+    await manager.send_personal_message(f"{data + '-' + comment}", copilot_id)

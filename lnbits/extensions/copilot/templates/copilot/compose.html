@@ -61,7 +61,6 @@
   </p>
 </q-page>
 {% endblock %} {% block scripts %}
-<script src="{{ url_for('static', filename='vendor/vue-qrcode@1.0.2/vue-qrcode.min.js') }}"></script>
 <style>
   body.body--dark .q-drawer,
   body.body--dark .q-footer,
@@ -240,8 +239,7 @@
           ':' +
           location.port +
           '/copilot/ws/' +
-          self.copilot.id +
-          '/'
+          self.copilot.id
       } else {
         localUrl =
           'ws://' +
@@ -249,11 +247,11 @@
           ':' +
           location.port +
           '/copilot/ws/' +
-          self.copilot.id +
-          '/'
+          self.copilot.id
       }
       this.connection = new WebSocket(localUrl)
       this.connection.onmessage = function (e) {
+        console.log(e)
         res = e.data.split('-')
         if (res[0] == 'rocket') {
           addTask(['40%', '/copilot/static/rocket.gif', res[1]])

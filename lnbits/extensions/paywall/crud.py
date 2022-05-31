@@ -3,25 +3,25 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Paywall
+from .models import CreatePaywall, Paywall
 
 
-async def create_paywall(
-    *,
-    wallet_id: str,
-    url: str,
-    memo: str,
-    description: Optional[str] = None,
-    amount: int = 0,
-    remembers: bool = True,
-) -> Paywall:
+async def create_paywall(wallet_id: str, data: CreatePaywall) -> Paywall:
     paywall_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO paywall.paywalls (id, wallet, url, memo, description, amount, remembers)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (paywall_id, wallet_id, url, memo, description, amount, int(remembers)),
+        (
+            paywall_id,
+            wallet_id,
+            data.url,
+            data.memo,
+            data.description,
+            data.amount,
+            int(data.remembers),
+        ),
     )
 
     paywall = await get_paywall(paywall_id)
@@ -33,7 +33,6 @@ async def get_paywall(paywall_id: str) -> Optional[Paywall]:
     row = await db.fetchone(
         "SELECT * FROM paywall.paywalls WHERE id = ?", (paywall_id,)
     )
-
     return Paywall.from_row(row) if row else None
 
 

@@ -3,20 +3,10 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Domains, Subdomains
+from .models import CreateDomain, Domains, Subdomains
 
 
-async def create_subdomain(
-    payment_hash: str,
-    wallet: str,
-    domain: str,
-    subdomain: str,
-    email: str,
-    ip: str,
-    sats: int,
-    duration: int,
-    record_type: str,
-) -> Subdomains:
+async def create_subdomain(payment_hash, wallet, data: CreateDomain) -> Subdomains:
     await db.execute(
         """
         INSERT INTO subdomains.subdomain (id, domain, email, subdomain, ip, wallet, sats, duration, paid, record_type)
@@ -24,15 +14,15 @@ async def create_subdomain(
         """,
         (
             payment_hash,
-            domain,
-            email,
-            subdomain,
-            ip,
+            data.domain,
+            data.email,
+            data.subdomain,
+            data.ip,
             wallet,
-            sats,
-            duration,
+            data.sats,
+            data.duration,
             False,
-            record_type,
+            data.record_type,
         ),
     )
 
@@ -43,7 +33,7 @@ async def create_subdomain(
 
 async def set_subdomain_paid(payment_hash: str) -> Subdomains:
     row = await db.fetchone(
-        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
+        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.id = ?",
         (payment_hash,),
     )
     if row[8] == False:
@@ -76,7 +66,7 @@ async def set_subdomain_paid(payment_hash: str) -> Subdomains:
 
 async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
     row = await db.fetchone(
-        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.id = ?",
+        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.id = ?",
         (subdomain_id,),
     )
     return Subdomains(**row) if row else None
@@ -84,10 +74,9 @@ async def get_subdomain(subdomain_id: str) -> Optional[Subdomains]:
 
 async def get_subdomainBySubdomain(subdomain: str) -> Optional[Subdomains]:
     row = await db.fetchone(
-        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
+        "SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.subdomain = ?",
         (subdomain,),
     )
-    print(row)
     return Subdomains(**row) if row else None
 
 
@@ -97,7 +86,7 @@ async def get_subdomains(wallet_ids: Union[str, List[str]]) -> List[Subdomains]:
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})",
+        f"SELECT s.*, d.domain as domain_name FROM subdomains.subdomain s INNER JOIN subdomains.domain d ON (s.domain = d.id) WHERE s.wallet IN ({q})",
         (*wallet_ids,),
     )
 
@@ -111,17 +100,7 @@ async def delete_subdomain(subdomain_id: str) -> None:
 # Domains
 
 
-async def create_domain(
-    *,
-    wallet: str,
-    domain: str,
-    cf_token: str,
-    cf_zone_id: str,
-    webhook: Optional[str] = None,
-    description: str,
-    cost: int,
-    allowed_record_types: str,
-) -> Domains:
+async def create_domain(data: CreateDomain) -> Domains:
     domain_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -130,15 +109,15 @@ async def create_domain(
         """,
         (
             domain_id,
-            wallet,
-            domain,
-            webhook,
-            cf_token,
-            cf_zone_id,
-            description,
-            cost,
+            data.wallet,
+            data.domain,
+            data.webhook,
+            data.cf_token,
+            data.cf_zone_id,
+            data.description,
+            data.cost,
             0,
-            allowed_record_types,
+            data.allowed_record_types,
         ),
     )
 

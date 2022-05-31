@@ -84,7 +84,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/bleskomat/api/v1/bleskomats?all_wallets',
+          '/bleskomat/api/v1/bleskomats?all_wallets=true',
           this.g.user.wallets[0].adminkey
         )
         .then(function (response) {

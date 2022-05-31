@@ -1,6 +1,7 @@
-import trio
-import httpx
+import asyncio
 from typing import Callable, NamedTuple
+
+import httpx
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
@@ -70,6 +71,7 @@ currencies = {
     "IMP": "Isle of Man Pound",
     "INR": "Indian Rupee",
     "IQD": "Iraqi Dinar",
+    "IRT": "Iranian Toman",
     "ISK": "Icelandic Króna",
     "JEP": "Jersey Pound",
     "JMD": "Jamaican Dollar",
@@ -178,6 +180,12 @@ class Provider(NamedTuple):
 
 
 exchange_rate_providers = {
+    "exir": Provider(
+        "Exir",
+        "exir.io",
+        "https://api.exir.io/v1/ticker?symbol={from}-{to}",
+        lambda data, replacements: data["last"],
+    ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
@@ -219,49 +227,71 @@ async def btc_price(currency: str) -> float:
         "to": currency.lower(),
     }
     rates = []
-    send_channel, receive_channel = trio.open_memory_channel(0)
+    tasks = []
 
-    async def controller(nursery):
+    send_channel = asyncio.Queue()
+
+    async def controller():
         failures = 0
         while True:
-            rate = await receive_channel.receive()
+            rate = await send_channel.get()
             if rate:
                 rates.append(rate)
             else:
                 failures += 1
+
             if len(rates) >= 2 or len(rates) == 1 and failures >= 2:
-                nursery.cancel_scope.cancel()
+                for t in tasks:
+                    t.cancel()
                 break
             if failures == len(exchange_rate_providers):
-                nursery.cancel_scope.cancel()
+                for t in tasks:
+                    t.cancel()
                 break
 
-    async def fetch_price(key: str, provider: Provider):
+    async def fetch_price(provider: Provider):
+        url = provider.api_url.format(**replacements)
         try:
-            url = provider.api_url.format(**replacements)
             async with httpx.AsyncClient() as client:
                 r = await client.get(url, timeout=0.5)
                 r.raise_for_status()
                 data = r.json()
                 rate = float(provider.getter(data, replacements))
-                await send_channel.send(rate)
-        except Exception:
-            await send_channel.send(None)
+                await send_channel.put(rate)
+        except (
+            TypeError,  # CoinMate returns HTTPStatus 200 but no data when a currency pair is not found
+            KeyError,  # Kraken's response dictionary doesn't include keys we look up for
+            httpx.ConnectTimeout,
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+            httpx.HTTPStatusError,  # Some providers throw a 404 when a currency pair is not found
+        ):
+            await send_channel.put(None)
 
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(controller, nursery)
-        for key, provider in exchange_rate_providers.items():
-            nursery.start_soon(fetch_price, key, provider)
+    asyncio.create_task(controller())
+    for _, provider in exchange_rate_providers.items():
+        tasks.append(asyncio.create_task(fetch_price(provider)))
+
+    try:
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        pass
 
     if not rates:
         return 9999999999
+    elif len(rates) == 1:
+        print("Warning could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 
 
 async def get_fiat_rate_satoshis(currency: str) -> float:
-    return int(100_000_000 / (await btc_price(currency)))
+    return float(100_000_000 / (await btc_price(currency)))
 
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
     return int(amount * (await get_fiat_rate_satoshis(currency)))
+
+
+async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
+    return float(amount / (await get_fiat_rate_satoshis(currency)))

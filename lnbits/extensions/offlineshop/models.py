@@ -2,18 +2,20 @@ import json
 import base64
 import hashlib
 from collections import OrderedDict
-from quart import url_for
+
 from typing import Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
 from pydantic import BaseModel
+from starlette.requests import Request
 from .helpers import totp
 
 shop_counters: Dict = {}
 
 
-class ShopCounter(BaseModel):
+class ShopCounter:
+    wordlist: List[str]
     fulfilled_payments: OrderedDict
     counter: int
 
@@ -64,7 +66,7 @@ class Shop(BaseModel):
     def otp_key(self) -> str:
         return base64.b32encode(
             hashlib.sha256(
-                ("otpkey" + str(self.id) + self.wallet).encode("ascii"),
+                ("otpkey" + str(self.id) + self.wallet).encode("ascii")
             ).digest()
         ).decode("ascii")
 
@@ -82,20 +84,19 @@ class Item(BaseModel):
     id: int
     name: str
     description: str
-    image: str
+    image: Optional[str]
     enabled: bool
     price: int
     unit: str
 
-    @property
-    def lnurl(self) -> str:
-        return lnurl_encode(
-            url_for("offlineshop.lnurl_response", item_id=self.id, _external=True)
-        )
+    def lnurl(self, req: Request) -> str:
+        return lnurl_encode(req.url_for("offlineshop.lnurl_response", item_id=self.id))
 
-    def values(self):
-        values = self._asdict()
-        values["lnurl"] = self.lnurl
+    def values(self, req: Request):
+        values = self.dict()
+        values["lnurl"] = lnurl_encode(
+            req.url_for("offlineshop.lnurl_response", item_id=self.id)
+        )
         return values
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
@@ -107,14 +108,12 @@ class Item(BaseModel):
         return LnurlPayMetadata(json.dumps(metadata))
 
     def success_action(
-        self, shop: Shop, payment_hash: str
+        self, shop: Shop, payment_hash: str, req: Request
     ) -> Optional[LnurlPaySuccessAction]:
         if not shop.wordlist:
             return None
 
         return UrlAction(
-            url=url_for(
-                "offlineshop.confirmation_code", p=payment_hash, _external=True
-            ),
+            url=req.url_for("offlineshop.confirmation_code", p=payment_hash),
             description="Open to get the confirmation code for your purchase.",
         )

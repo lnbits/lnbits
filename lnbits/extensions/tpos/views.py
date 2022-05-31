@@ -1,23 +1,35 @@
-from quart import g, abort, render_template
 from http import HTTPStatus
 
-from lnbits.decorators import check_user_exists, validate_uuids
+from fastapi import Request
+from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse
 
-from . import tpos_ext
+from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
+from . import tpos_ext, tpos_renderer
 from .crud import get_tpos
 
-
-@tpos_ext.route("/")
-@validate_uuids(["usr"], required=True)
-@check_user_exists()
-async def index():
-    return await render_template("tpos/index.html", user=g.user)
+templates = Jinja2Templates(directory="templates")
 
 
-@tpos_ext.route("/<tpos_id>")
-async def tpos(tpos_id):
+@tpos_ext.get("/", response_class=HTMLResponse)
+async def index(request: Request, user: User = Depends(check_user_exists)):
+    return tpos_renderer().TemplateResponse(
+        "tpos/index.html", {"request": request, "user": user.dict()}
+    )
+
+
+@tpos_ext.get("/{tpos_id}")
+async def tpos(request: Request, tpos_id):
     tpos = await get_tpos(tpos_id)
     if not tpos:
-        abort(HTTPStatus.NOT_FOUND, "TPoS does not exist.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+        )
 
-    return await render_template("tpos/tpos.html", tpos=tpos)
+    return tpos_renderer().TemplateResponse(
+        "tpos/tpos.html", {"request": request, "tpos": tpos}
+    )

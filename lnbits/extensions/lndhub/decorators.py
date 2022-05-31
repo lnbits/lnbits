@@ -1,29 +1,44 @@
 from base64 import b64decode
-from quart import jsonify, g, request
-from functools import wraps
+from fastapi.param_functions import Security
 
-from lnbits.core.crud import get_wallet_for_key
+from fastapi.security.api_key import APIKeyHeader
+
+from fastapi import Request, status
+from starlette.exceptions import HTTPException
+
+from lnbits.decorators import WalletTypeInfo, get_key_type  # type: ignore
 
 
-def check_wallet(requires_admin=False):
-    def wrap(view):
-        @wraps(view)
-        async def wrapped_view(**kwargs):
-            token = request.headers["Authorization"].split("Bearer ")[1]
-            key_type, key = b64decode(token).decode("utf-8").split(":")
+api_key_header_auth = APIKeyHeader(
+    name="AUTHORIZATION",
+    auto_error=False,
+    description="Admin or Invoice key for LNDHub API's",
+)
 
-            if requires_admin and key_type != "admin":
-                return jsonify(
-                    {"error": True, "code": 2, "message": "insufficient permissions"}
-                )
 
-            g.wallet = await get_wallet_for_key(key, key_type)
-            if not g.wallet:
-                return jsonify(
-                    {"error": True, "code": 2, "message": "insufficient permissions"}
-                )
-            return await view(**kwargs)
+async def check_wallet(
+    r: Request, api_key_header_auth: str = Security(api_key_header_auth)
+) -> WalletTypeInfo:
+    if not api_key_header_auth:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth key"
+        )
 
-        return wrapped_view
+    t = api_key_header_auth.split(" ")[1]
+    _, token = b64decode(t).decode("utf-8").split(":")
 
-    return wrap
+    return await get_key_type(r, api_key_header=token)
+
+
+async def require_admin_key(
+    r: Request, api_key_header_auth: str = Security(api_key_header_auth)
+):
+    wallet = await check_wallet(r, api_key_header_auth)
+    if wallet.wallet_type != 0:
+        # If wallet type is not admin then return the unauthorized status
+        # This also covers when the user passes an invalid key type
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin key required."
+        )
+    else:
+        return wallet
