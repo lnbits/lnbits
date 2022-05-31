@@ -2,27 +2,21 @@
 
 # add your dependencies here
 
-# import json
 # import httpx
 # (use httpx just like requests, except instead of response.ok there's only the
 #  response.is_error that is its inverse)
 
-from quart import jsonify
-from http import HTTPStatus
-
 from . import example_ext
-
 
 # add your endpoints here
 
-
-@example_ext.route("/api/v1/tools", methods=["GET"])
+@example_ext.get("/api/v1/tools")
 async def api_example():
     """Try to add descriptions for others."""
     tools = [
         {
-            "name": "Quart",
-            "url": "https://pgjones.gitlab.io/quart/",
+            "name": "fastAPI",
+            "url": "https://fastapi.tiangolo.com/",
             "language": "Python",
         },
         {
@@ -37,4 +31,4 @@ async def api_example():
         },
     ]
 
-    return jsonify(tools), HTTPStatus.OK
+    return tools
