@@ -14,7 +14,7 @@ from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import WALLET
+from lnbits.settings import WALLET, FAKE_WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -49,11 +49,15 @@ async def create_invoice(
     description_hash: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
+    internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
 
-    ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
+    # use the fake wallet if the invoice is for internal use only
+    wallet = FAKE_WALLET if internal else WALLET
+
+    ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
     )
     if not ok:
