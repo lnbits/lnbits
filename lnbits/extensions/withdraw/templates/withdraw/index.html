@@ -29,6 +29,7 @@
                 {{ col.label }}
               </q-th>
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
             </q-tr>
           </template>
                     <template v-slot:body="props">
@@ -80,6 +81,11 @@
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
+              </q-td>
+              <q-td>
+                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
+                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
+                </q-icon>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -143,6 +149,14 @@
                         </q-select>
                     </div>
                 </div>
+                <q-input
+                  filled
+                  dense
+                  v-model="formDialog.data.webhook_url"
+                  type="text"
+                  label="Webhook URL (optional)"
+                  hint="A URL to be called whenever this link gets used."
+                ></q-input>
                 <q-list>
                     <q-item tag="label" class="rounded-borders">
                         <q-item-section avatar>
