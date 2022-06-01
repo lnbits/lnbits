@@ -41,7 +41,7 @@ async def update_jukebox(
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
     items.append(juke_id)
-    q = q.replace("user", '"user"', 1) # hack to make user be "user"!
+    q = q.replace("user", '"user"', 1)  # hack to make user be "user"!
     await db.execute(f"UPDATE jukebox.jukebox SET {q} WHERE id = ?", (items))
     row = await db.fetchone("SELECT * FROM jukebox.jukebox WHERE id = ?", (juke_id,))
     return Jukebox(**row) if row else None

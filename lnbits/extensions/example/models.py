@@ -3,4 +3,3 @@
 # class Example(BaseModel):
 #    id: str
 #    wallet: str
-

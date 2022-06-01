@@ -109,9 +109,7 @@ async def api_discordbot_wallet_transactions(
 async def api_discordbot_users_wallets(
     user_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    return [
-        s_wallet.dict() for s_wallet in await get_discordbot_users_wallets(user_id)
-    ]
+    return [s_wallet.dict() for s_wallet in await get_discordbot_users_wallets(user_id)]
 
 
 @discordbot_ext.delete("/api/v1/wallets/{wallet_id}")

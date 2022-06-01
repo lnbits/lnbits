@@ -2,6 +2,7 @@ import hashlib
 import secrets
 from lnbits.core.crud import create_payment
 
+
 async def credit_wallet(wallet_id: str, amount: int):
     preimage = secrets.token_hex(32)
     m = hashlib.sha256()
@@ -14,6 +15,6 @@ async def credit_wallet(wallet_id: str, amount: int):
         checking_id=payment_hash,
         preimage=preimage,
         memo="",
-        amount=amount,# msat
-        pending=False,# not pending, so it will increase the wallet's balance
+        amount=amount,  # msat
+        pending=False,  # not pending, so it will increase the wallet's balance
     )

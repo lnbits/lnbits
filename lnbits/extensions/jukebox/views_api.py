@@ -455,5 +455,6 @@ async def api_get_jukebox_currently(
                 )
         except:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="Something went wrong, or no song is playing yet"
+                status_code=HTTPStatus.NOT_FOUND,
+                detail="Something went wrong, or no song is playing yet",
             )

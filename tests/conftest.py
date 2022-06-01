@@ -19,9 +19,10 @@ def app():
     loop.run_until_complete(loop.shutdown_asyncgens())
     loop.close()
 
+
 @pytest.fixture
 async def client(app):
-    client = AsyncClient(app=app, base_url=f'http://{HOST}:{PORT}')
+    client = AsyncClient(app=app, base_url=f"http://{HOST}:{PORT}")
     # yield and pass the client to the test
     yield client
     # close the async client after the test has finished
