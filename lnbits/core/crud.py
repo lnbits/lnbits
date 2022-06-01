@@ -180,7 +180,9 @@ async def get_wallet_for_key(
 
 
 async def get_standalone_payment(
-    checking_id_or_hash: str, conn: Optional[Connection] = None, incoming: bool = False
+    checking_id_or_hash: str,
+    conn: Optional[Connection] = None,
+    incoming: Optional[bool] = False,
 ) -> Optional[Payment]:
     clause: str = "checking_id = ? OR hash = ?"
     if incoming:
