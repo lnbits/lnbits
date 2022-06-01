@@ -13,7 +13,7 @@ from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import RESERVE_FEE, WALLET
+from lnbits.settings import RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
