@@ -21,13 +21,13 @@ from . import boltz_ext
 
 from .boltz import (
     get_boltz_status,
-    get_mempool_tx,
+    get_mempool_tx_status,
     get_mempool_blockheight,
-    create_onchain_tx,
-    send_onchain_tx
+    create_refund_tx,
 )
 
 from .crud import (
+    update_swap_status,
     create_submarine_swap,
     get_submarine_swaps,
     get_submarine_swap,
@@ -55,8 +55,9 @@ async def api_submarineswap_refund(submarineSwapId: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="submarine swap does not exist."
         )
-    tx = await create_onchain_tx(swap)
-    return await send_onchain_tx(tx)
+    await create_refund_tx(swap)
+    await update_swap_status(swap, "refunded")
+    return swap
 
 @boltz_ext.post("/api/v1/submarineswap")
 async def api_submarineswap_create(
@@ -110,21 +111,13 @@ async def api_submarineswap_status(swap_id: str):
         boltz_status = "boltz is offline"
 
     block_height = get_mempool_blockheight()
-    mempool = get_mempool_tx(address)
-    if mempool == None:
-        mempool_status = "transaction not in mempool"
-    else:
-        mempool_tx, txid, vout_cnt, vout_amount = mempool
-        if mempool_tx["status"]["confirmed"] == True:
-            mempool_status = "transaction.confirmed"
-        else:
-            mempool_status = "transaction.unconfirmed"
+
+    mempool_status = get_mempool_tx_status(address)
 
     return {
         "boltz": boltz_status,
         "mempool": mempool_status,
         "block_height": block_height,
-        "timeout_block_height": swap.timeout_block_height,
-        "invoice": "not implemented"
+        "timeout_block_height": swap.timeout_block_height
     }
 

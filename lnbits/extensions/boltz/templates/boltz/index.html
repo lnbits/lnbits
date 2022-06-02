@@ -362,6 +362,22 @@
         reverseSubmarineSwapTable: {
           columns: [
             {
+              name: 'time',
+              align: 'left',
+              label: 'time',
+              field: 'time',
+              sortable: true,
+              format: function(val, row) {
+                return new Date(val * 1000).toUTCString();
+              },
+            },
+            {
+              name: 'status',
+              align: 'left',
+              label: 'status',
+              field: 'status'
+            },
+            {
               name: 'boltz_id',
               align: 'left',
               label: 'boltz id',
@@ -386,6 +402,22 @@
         },
         submarineSwapTable: {
           columns: [
+            {
+              name: 'time',
+              align: 'left',
+              label: 'time',
+              field: 'time',
+              sortable: true,
+              format: function(val, row) {
+                return new Date(val * 1000).toUTCString();
+              },
+            },
+            {
+              name: 'status',
+              align: 'left',
+              label: 'status',
+              field: 'status'
+            },
             {
               name: 'boltz_id',
               align: 'left',
@@ -451,7 +483,7 @@
         var swap = _.findWhere(this.submarineSwaps, {id: swap_id})
         if (swap === undefined) {
           var swap = _.findWhere(this.reverseSubmarineSwaps, {id: swap_id})
-          var address = swap.onchain_address;
+          var address = swap.lockup_address;
         }
         else {
           var address = swap.address;
@@ -541,7 +573,7 @@
         LNbits.api
           .request('POST', '/boltz/api/v1/submarineswap', this.g.user.wallets[0].adminkey, data)
           .then(res => {
-            this.submarineSwaps.push(res.data);
+            this.submarineSwaps.unshift(res.data);
             this.resetSubmarineSwapDialog();
             this.openQrCodeDialog(res.data.id);
           })
@@ -553,7 +585,7 @@
         LNbits.api
           .request('POST', '/boltz/api/v1/reverse-submarineswap', this.g.user.wallets[0].adminkey, data)
           .then(res => {
-            this.reverseSubmarineSwaps.push(res.data);
+            this.reverseSubmarineSwaps.unshift(res.data);
             this.resetReverseSubmarineSwapDialog();
           })
           .catch(error => {

@@ -112,6 +112,7 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
         instant_settlement = data.instant_settlement,
         claim_privkey = claim_privkey.wif(net),
         preimage = preimage.hex(),
+        status = "pending",
         boltz_id = res["id"],
         timeout_block_height = res["timeoutBlockHeight"],
         lockup_address = res["lockupAddress"],
@@ -119,6 +120,7 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
         redeem_script = res["redeemScript"],
         time = getTimestamp(),
     )
+
     asyncio.ensure_future(wait_for_onchain_tx(swap, res["invoice"]))
     return swap
 
@@ -133,16 +135,38 @@ async def wait_for_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], 
            wallet_id=swap.wallet,
            payment_request=invoice,
            description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
-           extra={"tag": "boltz"},
+           extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
         ))
         data = await websocket.recv()
         message = json.loads(data)
-        mempool_lockup_tx = get_mempool_tx(message["address-transactions"], swap.lockup_address)
+        mempool_lockup_tx = get_mempool_tx_from_txs(message["address-transactions"], swap.lockup_address)
         tx = await create_onchain_tx(swap, mempool_lockup_tx)
         await send_onchain_tx(tx)
 
+async def create_refund_tx(swap: SubmarineSwap):
+    mempool_lockup_tx = get_mempool_tx(swap.address)
+    tx = await create_onchain_tx(swap, mempool_lockup_tx)
+    await send_onchain_tx(tx)
 
-def get_mempool_tx(txs, address):
+def get_mempool_tx_status(address):
+    tx, _, _, _ = get_mempool_tx(address)
+    if tx["status"]["confirmed"] == True:
+        status = "transaction.confirmed"
+    else:
+        status = "transaction.unconfirmed"
+    return status
+
+def get_mempool_tx(address):
+    res = httpx.get(
+        MEMPOOL_SPACE_URL + "/api/address/"+address+"/txs",
+        headers={"Content-Type": "text/plain"},
+        timeout=40,
+    )
+    handle_request_errors(res)
+    txs = json.loads(res.text)
+    return get_mempool_tx_from_txs(txs, address)
+
+def get_mempool_tx_from_txs(txs, address):
     if len(txs) == 0:
         return None
     tx = None
@@ -167,8 +191,6 @@ def get_mempool_tx(txs, address):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="vout_cnt not found")
     return tx, txid, vout_cnt, vout_amount
 
-
-
 async def send_onchain_tx(tx: Transaction):
     res = httpx.post(
         MEMPOOL_SPACE_URL+"/api/tx",
@@ -186,7 +208,7 @@ async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
             wallet_id=data.wallet,
             amount=data.amount,
             memo=f"submarine swap of {data.amount} sats on boltz.exchange",
-            extra={"tag": "boltz"},
+            extra={"tag": "boltz", "swap_id": swap_id},
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
@@ -209,6 +231,7 @@ async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
         amount = data.amount,
         refund_privkey = refund_privkey.wif(net),
         boltz_id = res["id"],
+        status = "pending",
         address = res["address"],
         expected_amount = res["expectedAmount"],
         timeout_block_height = res["timeoutBlockHeight"],
