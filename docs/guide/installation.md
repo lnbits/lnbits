@@ -49,17 +49,20 @@ You might also need to install additional packages or perform additional setup s
 ## Important note
 If you already have LNbits installed and running, on an SQLite database, we **HIGHLY** recommend you migrate to postgres!
 
-There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user, check the guide above.
+There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user, check the guide above. Additionally, your lnbits instance should run once on postgres to implement the database schema before the migration works:
 
 ```sh
 # STOP LNbits
-# on the LNBits folder, locate and edit 'conv.py' with the relevant credentials
-python3 conv.py
 
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
 # postgres://<user>:<password>@<host>/<database> - alter line bellow with your user, password and db name
 LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 # save and exit
+
+# START LNbits
+# STOP LNbits
+# on the LNBits folder, locate and edit 'conv.py' with the relevant credentials
+python3 conv.py
 ```
 
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
