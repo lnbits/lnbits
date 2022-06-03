@@ -114,7 +114,7 @@ async def perform_balance_checks():
 
 
 async def invoice_callback_dispatcher(checking_id: str):
-    payment = await get_standalone_payment(checking_id)
+    payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
         await payment.set_pending(False)
         for send_chan in invoice_listeners:
