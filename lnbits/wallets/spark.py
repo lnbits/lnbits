@@ -9,6 +9,8 @@ from loguru import logger
 
 from .proxy import get_httpx_transport
 
+from .proxy import get_httpx_transport
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,

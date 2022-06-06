@@ -10,6 +10,10 @@ from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
 
+from lnbits import bolt11 as lnbits_bolt11
+from .macaroon import load_macaroon, AESCipher
+from .proxy import get_httpx_transport
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -31,9 +35,10 @@ from python_socks import ProxyType  # pip install python_socks
 # It was found that httpx support for SOCKS5 seems to be missing https://github.com/encode/httpx/issues/203
 # Decided to use https://github.com/romis2012/httpx-socks in an attempt to address this
 
-from httpx_socks import AsyncProxyTransport # pip install httpx_socks
+from httpx_socks import AsyncProxyTransport  # pip install httpx_socks
 from httpx._config import SSLConfig
-from python_socks import ProxyType # pip install python_socks
+from python_socks import ProxyType  # pip install python_socks
+
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
