@@ -54,6 +54,9 @@ WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 
+FUNDING_PROXY_HOST = env.str("FUNDING_PROXY_HOST", default=None)
+FUNDING_PROXY_PORT = env.int("FUNDING_PROXY_PORT", default=None)
+
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
 try:

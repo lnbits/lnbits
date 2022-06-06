@@ -7,6 +7,8 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 
+from .proxy import get_httpx_transport
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -28,6 +30,7 @@ class SparkWallet(Wallet):
     def __init__(self):
         self.url = getenv("SPARK_URL").replace("/rpc", "")
         self.token = getenv("SPARK_TOKEN")
+        self.transport = get_httpx_transport(self.cert)
 
     def __getattr__(self, key):
         async def call(*args, **kwargs):
@@ -43,7 +46,7 @@ class SparkWallet(Wallet):
                 params = {}
 
             try:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(transport=self.transport) as client:
                     r = await client.post(
                         self.url + "/rpc",
                         headers={"X-Access": self.token},

@@ -14,6 +14,8 @@ from websockets.exceptions import (
     ConnectionClosedOK,
 )
 
+from .proxy import get_httpx_transport
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -42,9 +44,10 @@ class EclairWallet(Wallet):
         encodedAuth = base64.b64encode(f":{passw}".encode("utf-8"))
         auth = str(encodedAuth, "utf-8")
         self.auth = {"Authorization": f"Basic {auth}"}
+        self.transport = get_httpx_transport(self.cert)
 
     async def status(self) -> StatusResponse:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self.transport) as client:
             r = await client.post(
                 f"{self.url}/usablebalances", headers=self.auth, timeout=40
             )
@@ -73,7 +76,7 @@ class EclairWallet(Wallet):
         else:
             data["description"] = memo or ""
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self.transport) as client:
             r = await client.post(
                 f"{self.url}/createinvoice", headers=self.auth, data=data, timeout=40
             )
@@ -92,7 +95,7 @@ class EclairWallet(Wallet):
         return InvoiceResponse(True, data["paymentHash"], data["serialized"], None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self.transport) as client:
             r = await client.post(
                 f"{self.url}/payinvoice",
                 headers=self.auth,
@@ -114,7 +117,7 @@ class EclairWallet(Wallet):
         checking_id = data["paymentHash"]
         preimage = data["paymentPreimage"]
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self.transport) as client:
             r = await client.post(
                 f"{self.url}/getsentinfo",
                 headers=self.auth,
@@ -140,7 +143,7 @@ class EclairWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self.transport) as client:
             r = await client.post(
                 f"{self.url}/getreceivedinfo",
                 headers=self.auth,
@@ -157,7 +160,7 @@ class EclairWallet(Wallet):
         return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self.transport) as client:
             r = await client.post(
                 url=f"{self.url}/getsentinfo",
                 headers=self.auth,
