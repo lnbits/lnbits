@@ -5,6 +5,10 @@ import base64
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
+from lnbits import bolt11 as lnbits_bolt11
+from .macaroon import load_macaroon, AESCipher
+from .proxy import get_httpx_transport
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -17,9 +21,10 @@ from .base import (
 # It was found that httpx support for SOCKS5 seems to be missing https://github.com/encode/httpx/issues/203
 # Decided to use https://github.com/romis2012/httpx-socks in an attempt to address this
 
-from httpx_socks import AsyncProxyTransport # pip install httpx_socks
+from httpx_socks import AsyncProxyTransport  # pip install httpx_socks
 from httpx._config import SSLConfig
-from python_socks import ProxyType # pip install python_socks
+from python_socks import ProxyType  # pip install python_socks
+
 
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
@@ -40,23 +45,23 @@ class LndRestWallet(Wallet):
             or getenv("LND_INVOICE_MACAROON")
             or getenv("LND_REST_INVOICE_MACAROON")
         )
-        self.auth = {"Grpc-Metadata-macaroon": macaroon}
-        self.cert = getenv("LND_REST_CERT")
 
-        ssl_context = SSLConfig(
-            # Without this it appears CERTIFICATE_VERIFY_FAILED is emitted 
-            # resulting in a hypercorn.utils.LifespanFailure: Lifespan failure in startup. '' of lnbits
-            verify=False 
-        ).ssl_context
-        self.transport = AsyncProxyTransport(proxy_type=ProxyType.SOCKS5,
-                proxy_host= '127.0.0.1', proxy_port=9050,
-                username=None, password=None, rdns=None,
-                http2=True, ssl_context=ssl_context, verify=self.cert, cert=None,
-                trust_env=True)
+        encrypted_macaroon = getenv("LND_REST_MACAROON_ENCRYPTED")
+        if encrypted_macaroon:
+            macaroon = AESCipher(description="macaroon decryption").decrypt(
+                encrypted_macaroon
+            )
+        self.macaroon = load_macaroon(macaroon)
+
+        self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
+        self.cert = getenv("LND_REST_CERT", True)
+        self.transport = get_httpx_transport(self.cert)
 
     async def status(self) -> StatusResponse:
         try:
-            async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
+            async with httpx.AsyncClient(
+                verify=self.cert, transport=self.transport
+            ) as client:
                 r = await client.get(
                     f"{self.endpoint}/v1/balance/channels",
                     headers=self.auth,
@@ -90,7 +95,9 @@ class LndRestWallet(Wallet):
         else:
             data["memo"] = memo or ""
 
-        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
+        async with httpx.AsyncClient(
+            verify=self.cert, transport=self.transport
+        ) as client:
             r = await client.post(
                 url=f"{self.endpoint}/v1/invoices",
                 headers=self.auth,
@@ -112,8 +119,14 @@ class LndRestWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        async with httpx.AsyncClient(
+            verify=self.cert, transport=self.transport
+        ) as client:
+            # set the fee limit for the payment
+            lnrpcFeeLimit = dict()
+            lnrpcFeeLimit["fixed_msat"] = "{}".format(fee_limit_msat)
+
             r = await client.post(
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
@@ -134,7 +147,9 @@ class LndRestWallet(Wallet):
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         checking_id = checking_id.replace("_", "/")
 
-        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
+        async with httpx.AsyncClient(
+            verify=self.cert, transport=self.transport
+        ) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/invoice/{checking_id}",
                 headers=self.auth,
@@ -148,7 +163,9 @@ class LndRestWallet(Wallet):
         return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient(verify=self.cert, transport=self.transport) as client:
+        async with httpx.AsyncClient(
+            verify=self.cert, transport=self.transport
+        ) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/payments",
                 headers=self.auth,
@@ -186,7 +203,7 @@ class LndRestWallet(Wallet):
                     timeout=None,
                     headers=self.auth,
                     verify=self.cert,
-                    transport=self.transport
+                    transport=self.transport,
                 ) as client:
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():

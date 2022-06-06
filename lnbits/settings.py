@@ -28,6 +28,10 @@ LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 LNBITS_ALLOWED_USERS: List[str] = env.list(
     "LNBITS_ALLOWED_USERS", default=[], subcast=str
 )
+LNBITS_ADMIN_USERS: List[str] = env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
+LNBITS_ADMIN_EXTENSIONS: List[str] = env.list(
+    "LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str
+)
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
     "LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str
 )
@@ -46,6 +50,9 @@ LNBITS_THEME_OPTIONS: List[str] = env.list(
 WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
+
+FUNDING_PROXY_HOST = env.str("FUNDING_PROXY_HOST", default=None)
+FUNDING_PROXY_PORT = env.int("FUNDING_PROXY_PORT", default=None)
 
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
