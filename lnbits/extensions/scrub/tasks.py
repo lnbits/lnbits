@@ -3,10 +3,10 @@ import json
 import httpx
 
 from lnbits.core import db as core_db
-from lnbits.core.models import Scrubment
+from .models import ScrubLink
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_pay_link
+from .crud import get_scrub_link
 
 
 async def wait_for_paid_invoices():
@@ -18,7 +18,7 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 
-async def on_invoice_paid(payment: Scrubment) -> None:
+async def on_invoice_paid(payment: ScrubLink) -> None:
     if "scrub" != payment.extra.get("tag"):
         # not an scrub invoice
         return
@@ -31,7 +31,7 @@ async def on_invoice_paid(payment: Scrubment) -> None:
     # PAY LNURLP AND LNADDRESS
 
 
-async def mark_webhook_sent(payment: Scrubment, status: int) -> None:
+async def mark_webhook_sent(payment: ScrubLink, status: int) -> None:
     payment.extra["wh_status"] = status
 
     await core_db.execute(

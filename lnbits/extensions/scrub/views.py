@@ -10,7 +10,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import scrub_ext, scrub_renderer
-from .crud import get_pay_link
+from .crud import get_scrub_link
 
 templates = Jinja2Templates(directory="templates")
 
@@ -24,7 +24,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 @scrub_ext.get("/{link_id}", response_class=HTMLResponse)
 async def display(request: Request, link_id):
-    link = await get_pay_link(link_id)
+    link = await get_scrub_link(link_id)
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Scrub link does not exist."
@@ -35,7 +35,7 @@ async def display(request: Request, link_id):
 
 @scrub_ext.get("/print/{link_id}", response_class=HTMLResponse)
 async def print_qr(request: Request, link_id):
-    link = await get_pay_link(link_id)
+    link = await get_scrub_link(link_id)
     if not link:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Scrub link does not exist."

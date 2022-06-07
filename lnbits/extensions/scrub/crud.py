@@ -2,10 +2,10 @@ from typing import List, Optional, Union
 
 from lnbits.db import SQLITE
 from . import db
-from .models import ScrubLink, CreateScrubLinkData
+from .models import ScrubLink
 
 
-async def create_scrub_link(wallet_id: str, data: CreateSatsDiceLink) -> satsdiceLink:
+async def create_scrub_link(wallet_id: str, data: ScrubLink) -> ScrubLink:
     satsdice_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -29,14 +29,14 @@ async def create_scrub_link(wallet_id: str, data: CreateSatsDiceLink) -> satsdic
     return link
 
 
-async def get_scrub_link(link_id: str) -> Optional[satsdiceLink]:
+async def get_scrub_link(link_id: str) -> Optional[ScrubLink]:
     row = await db.fetchone(
         "SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,)
     )
-    return satsdiceLink(**row) if row else None
+    return ScrubLink(**row) if row else None
 
 
-async def get_scrub_links(wallet_ids: Union[str, List[str]]) -> List[satsdiceLink]:
+async def get_scrub_links(wallet_ids: Union[str, List[str]]) -> List[ScrubLink]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
 
@@ -48,10 +48,10 @@ async def get_scrub_links(wallet_ids: Union[str, List[str]]) -> List[satsdiceLin
         """,
         (*wallet_ids,),
     )
-    return [satsdiceLink(**row) for row in rows]
+    return [ScrubLink(**row) for row in rows]
 
 
-async def update_scrub_link(link_id: int, **kwargs) -> Optional[satsdiceLink]:
+async def update_scrub_link(link_id: int, **kwargs) -> Optional[ScrubLink]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE scrub.scrub_links SET {q} WHERE id = ?",
@@ -60,7 +60,7 @@ async def update_scrub_link(link_id: int, **kwargs) -> Optional[satsdiceLink]:
     row = await db.fetchone(
         "SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,)
     )
-    return satsdiceLink(**row) if row else None
+    return ScrubLink(**row) if row else None
 
 async def delete_scrub_link(link_id: int) -> None:
     await db.execute("DELETE FROM scrub.scrub_links WHERE id = ?", (link_id,))

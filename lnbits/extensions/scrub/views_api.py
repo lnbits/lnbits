@@ -18,7 +18,7 @@ from .crud import (
     get_scrub_links,
     update_scrub_link,
 )
-from .models import CreateScrubLinkData
+from .models import ScrubLink
 
 
 @scrub_ext.get("/api/v1/currencies")
@@ -46,7 +46,7 @@ async def api_links(
     except:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="No links available",
+            detail="No SCRUB links made yet",
         )
 
 
@@ -72,10 +72,11 @@ async def api_link_retrieve(
 @scrub_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
 @scrub_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
-    data: CreateScrubLinkData,
+    data: ScrubLink,
     link_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
+    print("WAH")
     if data.min < 1:
         raise HTTPException(
             detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
@@ -115,6 +116,7 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
+    
     return {**link.dict(), "lnurl": link.lnurl}
 
 

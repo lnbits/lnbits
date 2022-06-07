@@ -5,7 +5,7 @@
     <q-card>
       <q-card-section>
         <q-btn unelevated color="primary" @click="formDialog.show = true"
-          >New pay link</q-btn
+          >New scrub link</q-btn
         >
       </q-card-section>
     </q-card>
@@ -28,9 +28,9 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
+              <q-th auto-width>Wallet</q-th>
               <q-th auto-width>Description</q-th>
-              <q-th auto-width>Amount</q-th>
-              <q-th auto-width>Currency</q-th>
+              <q-th auto-width>LNURLPay/Address</q-th>
               <q-th auto-width></q-th>
               <q-th auto-width></q-th>
             </q-tr>
@@ -152,7 +152,7 @@
           dense
           v-model.trim="formDialog.data.description"
           type="text"
-          label="Item description *"
+          label="Description *"
         ></q-input>
 
         <q-input

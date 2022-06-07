@@ -106,11 +106,7 @@ new Vue({
       const wallet = _.findWhere(this.g.user.wallets, {
         id: this.formDialog.data.wallet
       })
-      var data = _.omit(this.formDialog.data, 'wallet')
-
-      if (this.formDialog.fixedAmount) data.max = data.min
-      if (data.currency === 'satoshis') data.currency = null
-      if (isNaN(parseInt(data.comment_chars))) data.comment_chars = 0
+      console.log(wallet)
 
       if (data.id) {
         this.updateScrubLink(wallet, data)
