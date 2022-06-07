@@ -1,6 +1,5 @@
 import importlib
 import subprocess
-from email.policy import default
 from os import path
 from typing import List
 
