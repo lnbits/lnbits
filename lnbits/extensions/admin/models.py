@@ -23,6 +23,7 @@ class UpdateAdminSettings(BaseModel):
     default_wallet_name: str = Query("LNbits wallet")
     denomination: str = Query("sats")
     theme: str = Query(None)
+    custom_logo: str = Query(None)
     ad_space: str = Query(None)
 
 class Admin(BaseModel):
@@ -46,6 +47,7 @@ class Admin(BaseModel):
     default_wallet_name: Optional[str]
     denomination: str = Field(default="sats")
     theme: Optional[str]
+    custom_logo: Optional[str]
     ad_space: Optional[str]
 
     @classmethod

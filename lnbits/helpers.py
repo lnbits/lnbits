@@ -167,7 +167,8 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         settings.LNBITS_DENOMINATION = _.denomination
         settings.LNBITS_SITE_TAGLINE = _.site_tagline
         settings.LNBITS_SITE_DESCRIPTION = _.site_description
-        settings.LNBITS_THEME_OPTIONS = _.theme        
+        settings.LNBITS_THEME_OPTIONS = _.theme
+        settings.LNBITS_CUSTOM_LOGO = _.custom_logo       
     
     t = Jinja2Templates(
         loader=jinja2.FileSystemLoader(

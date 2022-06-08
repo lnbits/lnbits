@@ -41,59 +41,8 @@ async def m001_create_admin_table(db):
     site_description = conf.site_description
     default_wallet_name = conf.default_wallet_name
     theme = ",".join(conf.theme)
+    custom_logo = conf.custom_logo
     ad_space = ",".join(conf.ad_space)
-
-    # if getenv("LNBITS_ADMIN_EXTENSIONS"):
-    #     admin_ext = getenv("LNBITS_ADMIN_EXTENSIONS")
-
-    # if getenv("LNBITS_DATABASE_URL"):
-    #     database_url = getenv("LNBITS_DATABASE_URL")
-
-    # if getenv("LNBITS_HIDE_API"):
-    #     hide_api = getenv("LNBITS_HIDE_API")
-
-    # if getenv("LNBITS_THEME_OPTIONS"):
-    #     theme = getenv("LNBITS_THEME_OPTIONS")
-
-    # if getenv("LNBITS_AD_SPACE"):
-    #     ad_space = getenv("LNBITS_AD_SPACE")
-
-    # if getenv("LNBITS_SITE_TITLE"):
-    #     site_title = getenv("LNBITS_SITE_TITLE")
-
-    # if getenv("LNBITS_SITE_TAGLINE"):
-    #     site_tagline = getenv("LNBITS_SITE_TAGLINE")
-
-    # if getenv("LNBITS_SITE_DESCRIPTION"):
-    #     site_description = getenv("LNBITS_SITE_DESCRIPTION")
-
-    # if getenv("LNBITS_ALLOWED_USERS"):
-    #     allowed_users = getenv("LNBITS_ALLOWED_USERS")
-
-    # if getenv("LNBITS_ADMIN_USERS"):
-    #     admin_users = "".join(getenv("LNBITS_ADMIN_USERS").split())
-    #     user = admin_users.split(',')[0]
-        
-    # if getenv("LNBITS_DEFAULT_WALLET_NAME"):
-    #     default_wallet_name = getenv("LNBITS_DEFAULT_WALLET_NAME")
-
-    # if getenv("LNBITS_DATA_FOLDER"):
-    #     data_folder = getenv("LNBITS_DATA_FOLDER")
-
-    # if getenv("LNBITS_DISABLED_EXTENSIONS"):
-    #     disabled_ext = getenv("LNBITS_DISABLED_EXTENSIONS")
-
-    # if getenv("LNBITS_FORCE_HTTPS"):
-    #     force_https = getenv("LNBITS_FORCE_HTTPS")
-
-    # if getenv("LNBITS_SERVICE_FEE"):
-    #     service_fee = getenv("LNBITS_SERVICE_FEE")
-
-    # if getenv("LNBITS_DENOMINATION"):
-    #     denomination = getenv("LNBITS_DENOMINATION", "sats")
-
-    # if getenv("LNBITS_BACKEND_WALLET_CLASS"):
-    #     funding_source = getenv("LNBITS_BACKEND_WALLET_CLASS")
 
     await db.execute(
         """
@@ -115,6 +64,7 @@ async def m001_create_admin_table(db):
             site_description TEXT,
             default_wallet_name TEXT,
             theme TEXT,
+            custom_logo TEXT,
             ad_space TEXT
         );
     """
@@ -139,8 +89,9 @@ async def m001_create_admin_table(db):
             site_description,
             default_wallet_name,
             theme,
+            custom_logo,
             ad_space)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user,
@@ -160,6 +111,7 @@ async def m001_create_admin_table(db):
             site_description,
             default_wallet_name,
             theme,
+            custom_logo,
             ad_space,
         ),
     )
