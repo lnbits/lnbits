@@ -3,7 +3,7 @@ import json
 from os import getenv, path
 from typing import List, Optional
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Field
 
 wallets_module = importlib.import_module("lnbits.wallets")
 wallet_class = getattr(    
@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     data_folder: str = Field(default=None, env="LNBITS_DATA_FOLDER")
     database_url: str = Field(default=None, env="LNBITS_DATABASE_URL")
     force_https: bool = Field(default=True, env="LNBITS_FORCE_HTTPS")
+    reserve_fee_min: int = Field(default=4000, env="LNBITS_RESERVE_FEE_MIN")
+    reserve_fee_pct: float = Field(default=1.0, env="LNBITS_RESERVE_FEE_PERCENT")
     service_fee: float = Field(default=0, env="LNBITS_SERVICE_FEE")
     hide_api: bool = Field(default=False, env="LNBITS_HIDE_API")
     denomination: str = Field(default="sats", env="LNBITS_DENOMINATION")
