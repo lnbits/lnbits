@@ -70,7 +70,8 @@
         <code
           >{"title": &lt;string&gt;, "min_withdrawable": &lt;integer&gt;,
           "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;,
-          "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}</code
+          "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;,
+          "webhook_url": &lt;string&gt;}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
@@ -81,7 +82,7 @@
           >curl -X POST {{ request.base_url }}withdraw/api/v1/links -d '{"title":
           &lt;string&gt;, "min_withdrawable": &lt;integer&gt;,
           "max_withdrawable": &lt;integer&gt;, "uses": &lt;integer&gt;,
-          "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;}' -H
+          "wait_time": &lt;integer&gt;, "is_unique": &lt;boolean&gt;, "webhook_url": &lt;string&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
           user.wallets[0].adminkey }}"
         </code>

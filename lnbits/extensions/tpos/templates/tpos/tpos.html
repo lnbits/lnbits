@@ -16,39 +16,95 @@
       <div class="row justify-center full-width">
         <div class="col-12 col-sm-8 col-md-6 col-lg-4">
           <div class="keypad q-pa-sm">
-            <q-btn unelevated @click="stack.push(1)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(1)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >1</q-btn
             >
-            <q-btn unelevated @click="stack.push(2)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(2)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >2</q-btn
             >
-            <q-btn unelevated @click="stack.push(3)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(3)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >3</q-btn
             >
             <q-btn
               unelevated
               @click="stack = []"
               size="xl"
-              color="pink"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               class="btn-cancel"
               >C</q-btn
             >
-            <q-btn unelevated @click="stack.push(4)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(4)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >4</q-btn
             >
-            <q-btn unelevated @click="stack.push(5)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(5)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >5</q-btn
             >
-            <q-btn unelevated @click="stack.push(6)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(6)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >6</q-btn
             >
-            <q-btn unelevated @click="stack.push(7)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(7)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >7</q-btn
             >
-            <q-btn unelevated @click="stack.push(8)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(8)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >8</q-btn
             >
-            <q-btn unelevated @click="stack.push(9)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(9)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >9</q-btn
             >
             <q-btn
@@ -56,7 +112,9 @@
               :disabled="amount == 0"
               @click="showInvoice()"
               size="xl"
-              color="green"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               class="btn-confirm"
               >OK</q-btn
             >
@@ -64,17 +122,27 @@
               unelevated
               @click="stack.splice(-1, 1)"
               size="xl"
-              color="grey-7"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >DEL</q-btn
             >
-            <q-btn unelevated @click="stack.push(0)" size="xl" color="grey-8"
+            <q-btn
+              unelevated
+              @click="stack.push(0)"
+              size="xl"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >0</q-btn
             >
             <q-btn
               unelevated
               @click="urlDialog.show = true"
               size="xl"
-              color="grey-7"
+              :outline="!($q.dark.isActive)"
+              rounded
+              color="primary"
               >#</q-btn
             >
           </div>
@@ -140,8 +208,8 @@
         transition-show="fade"
         class="text-light-green"
         style="font-size: 40em"
-      ></q-icon
-    ></q-dialog>
+      ></q-icon>
+    </q-dialog>
   </q-page>
 </q-page-container>
 {% endblock %} {% block styles %}
@@ -152,9 +220,11 @@
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
   }
+
   .keypad .btn {
     height: 100%;
   }
+
   .btn-cancel,
   .btn-confirm {
     grid-row: auto/span 2;
