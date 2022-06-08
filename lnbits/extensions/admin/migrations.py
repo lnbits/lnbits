@@ -32,6 +32,8 @@ async def m001_create_admin_table(db):
     data_folder = conf.data_folder
     database_url = conf.database_url
     force_https = conf.force_https
+    reserve_fee_min = conf.reserve_fee_min
+    reserve_fee_pct = conf.reserve_fee_pct
     service_fee = conf.service_fee
     hide_api = conf.hide_api
     denomination = conf.denomination
@@ -56,6 +58,8 @@ async def m001_create_admin_table(db):
             data_folder TEXT,
             database_url TEXT,
             force_https BOOLEAN,
+            reserve_fee_min INT,
+            reserve_fee_pct REAL,
             service_fee REAL,
             hide_api BOOLEAN,
             denomination TEXT,
@@ -81,6 +85,8 @@ async def m001_create_admin_table(db):
             data_folder,
             database_url,
             force_https,
+            reserve_fee_min,
+            reserve_fee_pct,
             service_fee,
             hide_api,
             denomination,
@@ -91,7 +97,7 @@ async def m001_create_admin_table(db):
             theme,
             custom_logo,
             ad_space)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user,
@@ -103,6 +109,8 @@ async def m001_create_admin_table(db):
             data_folder,
             database_url,
             force_https,
+            reserve_fee_min,
+            reserve_fee_pct,
             service_fee,
             hide_api,
             denomination,
