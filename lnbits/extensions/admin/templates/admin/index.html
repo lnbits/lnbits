@@ -705,6 +705,19 @@
                     <br />
                   </div>
                 </div>
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-6">
+                    <p>Custom Logo</p>
+                    <q-input
+                      filled
+                      type="text"
+                      v-model="data.admin.custom_logo"
+                      label="https://example.com/image.png"
+                      hint="URL to logo image"
+                    ></q-input>
+                    <br />
+                  </div>
+                </div>
               </div>
 
               <div class="row q-mt-lg">
@@ -718,10 +731,7 @@
   </div>
 </div>
 <!-- END TABS -->
-<!--
-  Forked from:
-  https://quasar.dev/vue-components/form#Example--Basic
--->
+
 <div class="row">
   <!-- <div class="col-8">
     <q-card class="q-mr-md">
@@ -1290,6 +1300,7 @@
           default_wallet_name,
           denomination,
           theme,
+          custom_logo,
           ad_space
         } = this.data.admin
         //console.log("this", this.data.admin)
@@ -1308,6 +1319,7 @@
           default_wallet_name,
           denomination,
           theme: theme.toString(),
+          custom_logo: custom_logo.toString(),
           ad_space: ad_space.toString()
         }
         //console.log(data)

@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     site_description: str = Field(default=None, env="LNBITS_SITE_DESCRIPTION")
     default_wallet_name: str = Field(default="LNbits wallet", env="LNBITS_DEFAULT_WALLET_NAME")
     theme: List[str] = Field(default=["classic, flamingo, mint, salvador, monochrome, autumn"], env="LNBITS_THEME_OPTIONS")
+    custom_logo: str = Field(default=None, env="LNBITS_CUSTOM_LOGO")
     ad_space: List[str] = Field(default_factory=list, env="LNBITS_AD_SPACE")
     # .env
     env: Optional[str]
