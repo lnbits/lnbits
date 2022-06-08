@@ -51,16 +51,47 @@
                 </div>
                 <div class="row q-col-gutter-md">
                   <div class="col-12 col-md-6">
-                    <p>
-                      Active Funding<small> (Requires server restart)</small>
-                    </p>
-                    <q-select
-                      filled
-                      v-model="data.admin.funding_source"
-                      hint="Select the active funding wallet"
-                      :options="data.funding_source"
-                    ></q-select>
-                    <br />
+                    <div class="row">
+                      <div class="col-12">
+                        <p>
+                          Active Funding<small>
+                            (Requires server restart)</small
+                          >
+                        </p>
+                        <q-select
+                          filled
+                          v-model="data.admin.funding_source"
+                          hint="Select the active funding wallet"
+                          :options="data.funding_source"
+                        ></q-select>
+                        <br />
+                      </div>
+                      <div class="col-12">
+                        <p>Minimum wallet reserve</p>
+                        <div class="row q-col-gutter-md">
+                          <div class="col-6">
+                            <q-input
+                              dense
+                              type="number"
+                              filled
+                              v-model="data.admin.reserve_fee_min"
+                              label="Reserve fee in msats"
+                            ></q-input>
+                          </div>
+                          <div class="col-6">
+                            <q-input
+                              dense
+                              type="number"
+                              filled
+                              v-model="data.admin.reserve_fee_pct"
+                              label="Reserve fee in percentage"
+                              step="0.1"
+                            ></q-input>
+                          </div>
+                        </div>
+                        <br />
+                      </div>
+                    </div>
                   </div>
                   <div class="col-12 col-md-6">
                     <!-- <q-form @submit="topupWallet"> -->
@@ -1292,6 +1323,8 @@
           disabled_ext,
           funding_source,
           force_https,
+          reserve_fee_min,
+          reserve_fee_pct,
           service_fee,
           hide_api,
           site_title,
@@ -1311,6 +1344,8 @@
           disabled_ext: disabled_ext.toString(),
           funding_source,
           force_https,
+          reserve_fee_min,
+          reserve_fee_pct,
           service_fee,
           hide_api,
           site_title,

@@ -14,6 +14,8 @@ class UpdateAdminSettings(BaseModel):
     funding_source: str = Query(None)
     # ops
     force_https: bool = Query(None)
+    reserve_fee_min: int = Query(None, ge=0)
+    reserve_fee_pct: float = Query(None, ge=0)
     service_fee: float = Query(None, ge=0)
     hide_api: bool = Query(None)
     # Change theme
@@ -38,7 +40,9 @@ class Admin(BaseModel):
     data_folder: Optional[str]
     database_url: Optional[str]
     force_https: bool = Field(default=True)
-    service_fee: float = Field(default=0)
+    reserve_fee_min: Optional[int]
+    reserve_fee_pct: Optional[float]
+    service_fee: float = Optional[float]
     hide_api: bool = Field(default=False)
     # Change theme
     site_title: Optional[str]
