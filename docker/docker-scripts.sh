@@ -64,9 +64,9 @@ lnbits-regtest-restart(){
 
 lnbits-regtest-init(){
   echo "init_bitcoin_wallet..."
-  bitcoin-cli-sim createwallet lnbits || bitcoin-cli-sim loadwallet lnbits
-  echo "mining 150 blocks..."
+  bitcoin-cli-sim createwallet lnbits || bitcoin-cli-sim loadwallet lnbits echo "mining 150 blocks..."
   bitcoin-cli-sim -generate 150 > /dev/null
+
   # create 10 UTXOs for each node
   for i in 0 1 2 3 4 5 6 7 8 9; do
     fund_clightning_node 1
@@ -75,9 +75,11 @@ lnbits-regtest-init(){
     fund_lnd_node 1
     fund_lnd_node 2
   done
-  echo "mining 5 blocks... and waiting 35s for the nodes to catch up"
+
+  echo "mining 5 blocks... and waiting for the nodes to catch up"
   bitcoin-cli-sim -generate 5 > /dev/null
-  sleep 35
+  wait-for-lnd-sync 1
+  wait-for-lnd-sync 2
 
   channel_size=16000000 # 0.016 btc
   balance_size_msat=7000000000 # 0.07 btc
@@ -95,28 +97,46 @@ lnbits-regtest-init(){
   lncli-sim 1 openchannel $(lncli-sim 1 listpeers | jq -r '.peers[0].pub_key') $channel_size 8000000
 
   # lnd doesnt like more than 1 pending channel?
-  echo "waiting 35s for lnd to catch up"
   bitcoin-cli-sim -generate 10 > /dev/null
-  sleep 35
+  echo "waiting for lnd to catch up..."
+  wait-for-lnd-channel 1
 
   # fund lnbits lnd channel
   lncli-sim 1 connect $(lncli-sim 2 getinfo | jq -r '.identity_pubkey')@lnbits-legend-lnd-2-1
   lncli-sim 1 openchannel $(lncli-sim 1 listpeers | jq -r '.peers[1].pub_key') $channel_size 8000000
 
-  # lnd doesnt like more than 1 pending channel?
-  echo "waiting 45s for lnd to catch up"
   bitcoin-cli-sim -generate 10 > /dev/null
-  sleep 45
+  echo "waiting for lnd to catch up..."
+  wait-for-lnd-channel 1
 
 
   # lnd node for lnbits
   lncli-sim 2 connect $(lightning-cli-sim 1 getinfo | jq -r '.id')@lnbits-legend-clightning-1-1
   lncli-sim 2 openchannel $(lncli-sim 2 listpeers | jq -r '.peers[0].pub_key') $channel_size 8000000
 
-  # TODO: eclair nodes?
-
-  # mine enough blocks for the channels to open
-  echo "mining 10 blocks... to open the lightning channels"
+  echo "waiting for lnd to catch up..."
   bitcoin-cli-sim -generate 10 > /dev/null
+  wait-for-lnd-channel 2
+
+  # TODO: eclair nodes?
 }
 
+wait-for-lnd-channel(){
+  while true; do
+    pending=$(lncli-sim $1 pendingchannels | jq -r '.pending_open_channels | length')
+    if [[ "$pending" == "0" ]]; then
+      break
+    fi
+    sleep 1
+  done
+}
+
+wait-for-lnd-sync(){
+  while true; do
+    if [[ "$(lncli-sim $1 getinfo 2>&1 | jq -r '.synced_to_chain')" == "true" ]]; then
+      break
+    fi
+    sleep 1
+  done
+  sleep 5
+}
