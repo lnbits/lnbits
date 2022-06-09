@@ -1,0 +1,153 @@
+version: "3.7"
+services:
+  lnbits:
+    hostname: lnbits
+    image: lnbitsdocker/lnbits-legend
+    restart: on-failure
+    user: "0:0"
+    entrypoint: "sh -c 'sleep 30; uvicorn lnbits.__main__:app --port 5000 --host lnbits --reload'"
+    environment:
+      HOST: lnbits
+      LNBITS_BACKEND_WALLET_CLASS: "LndRestWallet"
+      LNBITS_DATA_FOLDER: "./data"
+      LND_REST_ENDPOINT: "https://lnd-2:8081/"
+      LND_REST_CERT: "./lnd/tls.cert"
+      LND_REST_MACAROON: "./lnd/data/chain/bitcoin/regtest/admin.macaroon"
+    ports:
+      - 5000:5000
+    volumes:
+      - ../lnbits:/app/lnbits
+      - lnbits-data:/app/data
+      - ./data/lnd-2:/app/lnd:uid=1000,gid=1000
+
+  boltz:
+    hostname: boltz
+    image: boltz/backend
+    entrypoint: "sh -c 'sleep 40; /boltz-backend/bin/boltzd'"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - ./data/lnd-1:/data/lnd/
+      - ./data/boltz/:/root/.boltz/
+
+  bitcoind:
+    hostname: bitcoind
+    image: boltz/bitcoin-core:22.0
+    command: "-regtest -fallbackfee=0.00000253 -zmqpubrawtx=tcp://0.0.0.0:29000 -zmqpubrawblock=tcp://0.0.0.0:29001 -txindex -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0 -rpcuser=lnbits -rpcpassword=lnbits"
+    expose:
+      - 29000
+      - 29001
+      - 18443
+      - 18444
+
+  clightning-1:
+    hostname: clightning-1
+    image: michael1011/cln:latest
+    entrypoint: "sh -c 'sleep 15 && lightningd --network regtest --bind-addr=0.0.0.0:9735 --bitcoin-rpcconnect=bitcoind --bitcoin-rpcport=18443 --bitcoin-rpcuser=lnbits --bitcoin-rpcpassword=lnbits'"
+    expose:
+      - 9735
+    volumes:
+      - ./data/clightning-1:/root/.lightning/
+
+  clightning-2:
+    hostname: clightning-2
+    image: michael1011/cln:latest
+    entrypoint: "sh -c 'sleep 15 && lightningd --network regtest --bind-addr=0.0.0.0:9735 --bitcoin-rpcconnect=bitcoind --bitcoin-rpcport=18443 --bitcoin-rpcuser=lnbits --bitcoin-rpcpassword=lnbits'"
+    expose:
+      - 9735
+    volumes:
+      - ./data/clightning-2:/root/.lightning/
+
+  clightning-3:
+    hostname: clightning-3
+    image: michael1011/cln:latest
+    entrypoint: "sh -c 'sleep 15 && lightningd --network regtest --bind-addr=0.0.0.0:9735 --bitcoin-rpcconnect=bitcoind --bitcoin-rpcport=18443 --bitcoin-rpcuser=lnbits --bitcoin-rpcpassword=lnbits'"
+    expose:
+      - 9735
+    volumes:
+      - ./data/clightning-3:/root/.lightnind/
+
+  lnd-1:
+    hostname: lnd-1
+    depends_on:
+      - bitcoind
+    image: boltz/lnd:0.14.2-beta
+    restart: on-failure
+    entrypoint: "sh -c 'sleep 20; lnd --listen=lnd-1:9735 --rpclisten=lnd-1:10009 --restlisten=lnd-1:8081 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.zmqpubrawtx=bitcoind:29000 --bitcoind.zmqpubrawblock=bitcoind:29001 --bitcoind.rpcuser=lnbits --bitcoind.rpcpass=lnbits --noseedbackup --protocol.wumbo-channels'"
+    expose:
+      - 8081
+      - 9735
+      - 10009
+    volumes:
+      - ./data/lnd-1:/root/.lnd/
+
+  lnd-2:
+    hostname: lnd-2
+    depends_on:
+      - bitcoind
+    image: boltz/lnd:0.14.2-beta
+    restart: on-failure
+    entrypoint: "sh -c 'sleep 20; lnd --listen=lnd-2:9735 --rpclisten=lnd-2:10009 --restlisten=lnd-2:8081 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.zmqpubrawtx=bitcoind:29000 --bitcoind.zmqpubrawblock=bitcoind:29001 --bitcoind.rpcuser=lnbits --bitcoind.rpcpass=lnbits --noseedbackup --protocol.wumbo-channels'"
+    expose:
+      - 8081
+      - 9735
+      - 10009
+    volumes:
+      - ./data/lnd-2:/root/.lnd/
+
+  electrs:
+    depends_on:
+      - bitcoind
+    hostname: electrs
+    image: getumbrel/electrs:latest
+    environment:
+      ELECTRS_ELECTRUM_RPC_ADDR: "electrs:50001"
+      ELECTRS_DAEMON_RPC_ADDR: "bitcoind:18443"
+      ELECTRS_DAEMON_P2P_ADDR: "bitcoind:18444"
+    entrypoint: "sh -c 'sleep 15 && electrs'"
+    ports:
+      - 50001:50001
+    volumes:
+      - ./data/electrs/:/data/.electrs/
+
+  mempool-web:
+    restart: on-failure
+    environment:
+      FRONTEND_HTTP_PORT: "8080"
+      BACKEND_MAINNET_HTTP_HOST: "mempool-api"
+    image: mempool/frontend:latest
+    ports:
+      - 8080:8080
+
+  mempool-api:
+    depends_on:
+      - electrs
+    environment:
+      MEMPOOL_BACKEND: "electrum"
+      ELECTRUM_HOST: electrs
+      ELECTRUM_PORT: "50001"
+      ELECTRUM_TLS_ENABLED: "false"
+      CORE_RPC_HOST: bitcoind
+      CORE_RPC_PORT: "18443"
+      CORE_RPC_USERNAME: "lnbits"
+      CORE_RPC_PASSWORD: "lnbits"
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: "mempool-db"
+      DATABASE_DATABASE: "mempool"
+      DATABASE_USERNAME: "mempool"
+      DATABASE_PASSWORD: "mempool"
+      STATISTICS_ENABLED: "true"
+    image: mempool/backend:latest
+    restart: on-failure
+
+  mempool-db:
+    environment:
+      MYSQL_DATABASE: "mempool"
+      MYSQL_USER: "mempool"
+      MYSQL_PASSWORD: "mempool"
+      MYSQL_ROOT_PASSWORD: "admin"
+    image: mariadb:10.5.8
+
+volumes:
+  lnbits-data:

@@ -1,0 +1,8 @@
+data/lnbits
+data/lnd-1/*
+data/lnd-2/*
+data/clightning-1/*
+data/clightning-2/*
+data/clightning-3/*
+data/boltz/*
+!data/boltz/boltz.conf
