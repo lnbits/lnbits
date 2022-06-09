@@ -1,11 +1,3 @@
-# temporary warning
-boltz/backend is not in docker hub yet clone and build the image yourself
-```console
-git clone https://github.com/dni/boltz-backend
-cd boltz-backend
-git checkout dockerfile
-docker build -t boltz/backend .
-```
 # usage
 ```console
 source docker-scripts.sh
