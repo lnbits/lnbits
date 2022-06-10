@@ -34,6 +34,7 @@ class PayLink(BaseModel):
     currency: Optional[str]
     comment_chars: int
     max: float
+    fiat_base_multiplier: int
 
     @classmethod
     def from_row(cls, row: Row) -> "PayLink":
