@@ -9,6 +9,12 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
+    # database only allows int4 entries for min and max. For fiat currencies,
+    # we multiply by 100 to save the value in cents.
+    if data.currency:
+        data.min *= 100
+        data.max *= 100
+
     result = await (method)(
         f"""
         INSERT INTO lnurlp.pay_links (

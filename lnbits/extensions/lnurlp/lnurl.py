@@ -29,11 +29,11 @@ async def api_lnurl_response(request: Request, link_id):
             status_code=HTTPStatus.NOT_FOUND, detail="Pay link does not exist."
         )
 
-    rate = await get_fiat_rate_satoshis(link.currency) if link.currency else 1
+    rate = await get_fiat_rate_satoshis(link.currency) / 100 if link.currency else 1
 
     resp = LnurlPayResponse(
         callback=request.url_for("lnurlp.api_lnurl_callback", link_id=link.id),
-        min_sendable=math.ceil(link.min * rate) * 1000,
+        min_sendable=round(link.min * rate) * 1000,
         max_sendable=round(link.max * rate) * 1000,
         metadata=link.lnurlpay_metadata,
     )
