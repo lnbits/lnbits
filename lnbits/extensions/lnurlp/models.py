@@ -18,6 +18,7 @@ class CreatePayLinkData(BaseModel):
     webhook_url: str = Query(None)
     success_text: str = Query(None)
     success_url: str = Query(None)
+    fiat_base_multiplier: int = Query(100, ge=1)
 
 
 class PayLink(BaseModel):
@@ -37,9 +38,9 @@ class PayLink(BaseModel):
     @classmethod
     def from_row(cls, row: Row) -> "PayLink":
         data = dict(row)
-        if data["currency"]:
-            data["min"] /= 100
-            data["max"] /= 100
+        if data["currency"] and data["fiat_base_multiplier"]:
+            data["min"] /= data["fiat_base_multiplier"]
+            data["max"] /= data["fiat_base_multiplier"]
         return cls(**data)
 
     def lnurl(self, req: Request) -> str:
