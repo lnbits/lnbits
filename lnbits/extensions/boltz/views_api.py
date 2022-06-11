@@ -20,10 +20,10 @@ from .models import (
 from . import boltz_ext
 
 from .boltz import (
-    get_boltz_status,
-    get_mempool_tx_status,
-    get_mempool_blockheight,
     create_refund_tx,
+    get_boltz_pairs,
+    get_swap_status,
+    MEMPOOL_SPACE_URL,
 )
 
 from .crud import (
@@ -36,6 +36,9 @@ from .crud import (
     get_reverse_submarine_swap,
 )
 
+@boltz_ext.get("/api/v1/mempool-url")
+async def api_mempool_url():
+    return MEMPOOL_SPACE_URL
 
 # NORMAL SWAP
 @boltz_ext.get("/api/v1/submarineswap")
@@ -97,27 +100,24 @@ async def api_submarineswap_status(swap_id: str):
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
             )
+    return get_swap_status(swap)
 
-    # TODO: double check if this is right
-    if type(swap) == SubmarineSwap:
-        address = swap.address
-    else:
-        address = swap.lockup_address
 
-    try:
-        boltz_request = get_boltz_status(swap.boltz_id)
-        boltz_status = boltz_request["status"]
-    except:
-        boltz_status = "boltz is offline"
+@boltz_ext.get("/api/v1/check-swaps")
+async def api_check_swaps(
+    g: WalletTypeInfo = Depends(get_key_type),
+    all_wallets: bool = Query(False),
+):
+    wallet_ids = [g.wallet.id]
+    if all_wallets:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+    status = []
+    for swap in await get_submarine_swaps(wallet_ids):
+        if swap.status == "pending":
+            status.append(get_swap_status(swap))
+    return status
 
-    block_height = get_mempool_blockheight()
-
-    mempool_status = get_mempool_tx_status(address)
-
-    return {
-        "boltz": boltz_status,
-        "mempool": mempool_status,
-        "block_height": block_height,
-        "timeout_block_height": swap.timeout_block_height
-    }
-
+@boltz_ext.get("/api/v1/boltz-config")
+async def api_boltz_config():
+    res = get_boltz_pairs()
+    return res["pairs"]["BTC/BTC"]

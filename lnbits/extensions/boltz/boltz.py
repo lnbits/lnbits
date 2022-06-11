@@ -6,12 +6,9 @@ import calendar
 import datetime
 from starlette.exceptions import HTTPException
 from http import HTTPStatus
-from sseclient import SSEClient
-
+from lnbits import bolt11
 from websockets import connect
-
 from typing import Union
-
 from embit import ec, script
 from embit.networks import NETWORKS
 from embit.transaction import Transaction, TransactionInput, TransactionOutput, SIGHASH
@@ -21,11 +18,19 @@ from hashlib import (
     sha256
 )
 
+from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.services import (
+    get_wallet,
+    fee_reserve,
     check_invoice_status,
     create_invoice,
+    create_payment,
+    delete_payment,
     pay_invoice
 )
+
+# from .crud import update_swap_status
+# from lnbits.core.services import db
 
 from .models import (
     CreateSubmarineSwap,
@@ -33,20 +38,67 @@ from .models import (
     CreateReverseSubmarineSwap,
     ReverseSubmarineSwap,
 )
+# from .settings import DEBUG
+# if DEBUG:
+#     print("debug")
+# else:
+#     print("production")
 
 net = NETWORKS['regtest']
-BOLTZ_URL = "http://127.0.0.1:9001"
-MEMPOOL_SPACE_URL = "http://127.0.0.1"
-MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1"
+BOLTZ_URL = "http://boltz:9001"
+MEMPOOL_SPACE_URL = "http://mempool-web:8080"
+MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
 
 # net = NETWORKS['main']
 # BOLTZ_URL = "https://boltz.exchange/api"
 # MEMPOOL_SPACE_URL = "https://mempool.space/api"
 
+
+def get_boltz_pairs():
+    return create_get_request(BOLTZ_URL + "/getpairs")
+
 def get_boltz_status(boltzid):
     return create_post_request(BOLTZ_URL + "/swapstatus", {
       "id": boltzid,
     })
+
+
+def get_swap_status(swap):
+    status = ""
+    can_refund = False
+    try:
+        boltz_request = get_boltz_status(swap.boltz_id)
+        boltz_status = boltz_request["status"]
+    except:
+        boltz_status = "boltz is offline"
+    if type(swap) == SubmarineSwap:
+        address = swap.address
+    else:
+        address = swap.lockup_address
+
+    mempool_status = get_mempool_tx_status(address)
+    block_height = get_mempool_blockheight()
+
+    if block_height >= swap.timeout_block_height:
+        can_refund = True
+        status += "hit timeout_block_height"
+    else:
+        status += "timeout_block_height not exceeded "
+
+    if mempool_status == "transaction.unknown":
+        can_refund = False
+        status += ", lockup_tx not in mempool"
+
+    if can_refund == True:
+        status += ", refund is possible"
+
+    return {
+        "status": status,
+        "swap_id": swap.id,
+        "boltz": boltz_status,
+        "mempool": mempool_status,
+        "timeout_block_height": str(swap.timeout_block_height)+" -> "+str(block_height),
+    }
 
 def get_mempool_fees() -> int:
     res = httpx.get(
@@ -90,6 +142,16 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
     Note: expected_onchain_amount_sat is BEFORE deducting the on-chain claim tx fee.
     """
 
+    # check if we can pay the invoice before we create the actual swap on boltz
+    amount_msat = data.amount * 1000
+    fee_reserve_msat = fee_reserve(amount_msat)
+    wallet = await get_wallet(data.wallet)
+    assert wallet
+    if wallet.balance_msat-fee_reserve_msat < amount_msat:
+        raise HTTPException(
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
+        )
+
     claim_privkey = ec.PrivateKey(os.urandom(32), True, net)
     claim_pubkey_hex = hexlify(claim_privkey.sec()).decode("UTF-8")
     preimage = os.urandom(32)
@@ -103,6 +165,13 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
         "preimageHash": preimage_hash,
         "claimPublicKey": claim_pubkey_hex
     })
+
+    # check payment again with real invoice after we created a swap
+    # to include fee reserve calculation
+    # try:
+    #     await check_balance(wallet, data.amount, res)
+    # except Exception as e:
+    #     raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     swap = ReverseSubmarineSwap(
         id = swap_id,
@@ -124,36 +193,58 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
     asyncio.ensure_future(wait_for_onchain_tx(swap, res["invoice"]))
     return swap
 
-async def wait_for_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], invoice):
+async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
     uri = MEMPOOL_SPACE_URL_WS + f"/api/v1/ws"
     async with connect(uri) as websocket:
         await websocket.send(json.dumps({'track-address': swap.lockup_address }))
+
         # ensure_future is used because pay_invoice is stuck as long as boltz does not
         # see the onchain claim tx and it ends up in deadlock
-        # TODO: what happens when payment fails?
-        asyncio.ensure_future(pay_invoice(
+        task = asyncio.ensure_future(pay_invoice(
            wallet_id=swap.wallet,
            payment_request=invoice,
            description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
            extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
         ))
+
         data = await websocket.recv()
         message = json.loads(data)
-        mempool_lockup_tx = get_mempool_tx_from_txs(message["address-transactions"], swap.lockup_address)
-        tx = await create_onchain_tx(swap, mempool_lockup_tx)
-        await send_onchain_tx(tx)
+
+        print("!!!!!!! MESSAGE !!!!!!")
+        print(message)
+
+        try:
+            txs = message["address-transactions"]
+        except IndexError as e:
+            print("index error in mempool address-transactions")
+            print(repr(e))
+            return
+            raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="no txs in mempool")
+
+        mempool_lockup_tx = get_mempool_tx_from_txs(txs, swap.lockup_address)
+        if mempool_lockup_tx:
+            tx = await create_onchain_tx(swap, mempool_lockup_tx)
+            await send_onchain_tx(tx)
+            await task
+
+
 
 async def create_refund_tx(swap: SubmarineSwap):
     mempool_lockup_tx = get_mempool_tx(swap.address)
     tx = await create_onchain_tx(swap, mempool_lockup_tx)
     await send_onchain_tx(tx)
 
+
 def get_mempool_tx_status(address):
-    tx, _, _, _ = get_mempool_tx(address)
-    if tx["status"]["confirmed"] == True:
-        status = "transaction.confirmed"
+    mempool_tx = get_mempool_tx(address)
+    if mempool_tx == None:
+        status = "transaction.unknown"
     else:
-        status = "transaction.unconfirmed"
+        tx, _, _, _ = get_mempool_tx(address)
+        if tx["status"]["confirmed"] == True:
+            status = "transaction.confirmed"
+        else:
+            status = "transaction.unconfirmed"
     return status
 
 def get_mempool_tx(address):
@@ -241,7 +332,7 @@ async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
 
 def get_fee_estimation() -> int:
     # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
-    tx_size_vbyte = 150
+    tx_size_vbyte = 200
     mempool_fees = get_mempool_fees()
     return mempool_fees * tx_size_vbyte
 
@@ -335,3 +426,39 @@ def handle_request_errors(res):
         raise HTTPException(
             status_code=exc.response.status_code, detail=msg
         )
+
+
+# async def check_balance(wallet, amount, res):
+#     invoice = bolt11.decode(res["invoice"])
+#     amount_msat = amount * 1000
+#     fee_reserve_msat = fee_reserve(amount_msat)
+#     temp_id = f"temp_{urlsafe_short_hash()}"
+
+#     # create a temporary payment here so we can check if
+#     # the balance is enough in the next step
+#     async with db.connect() as conn:
+#         await create_payment(
+#             checking_id=temp_id,
+#             fee=-fee_reserve_msat,
+#             conn=conn,
+#             wallet_id=wallet.id,
+#             payment_hash=invoice.payment_hash,
+#             payment_request=res["invoice"],
+#             amount=-amount_msat,
+#             memo="swap-test-payment-"+temp_id
+#         )
+
+#         wallet = await get_wallet(wallet.id)
+#         assert wallet
+
+#         # first check if we can pay the invoice
+#         if wallet.balance_msat <= 0:
+#             if wallet.balance_msat > -fee_reserve_msat:
+#                 raise HTTPException(
+#                     status_code=HTTPStatus.METHOD_NOT_ALLOWED,
+#                     detail=f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+#                 )
+#             raise HTTPException(
+#                 status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
+#             )
+#         await delete_payment(temp_id, conn=conn)
