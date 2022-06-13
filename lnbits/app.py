@@ -4,10 +4,11 @@ import sys
 import traceback
 import warnings
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import lnbits.settings
@@ -58,15 +59,17 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        return template_renderer().TemplateResponse(
-            "error.html",
-            {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."},
-        )
+        
+        if "text/html" in request.headers["accept"]:
+            return template_renderer().TemplateResponse(
+                "error.html",
+                {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."},
+            )            
 
-        # return HTMLResponse(
-        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        #     content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
-        # )
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={"detail": exc.errors(), "body": exc.body},
+        )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     # app.add_middleware(ASGIProxyFix)
