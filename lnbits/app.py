@@ -59,16 +59,19 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
         
         if "text/html" in request.headers["accept"]:
             return template_renderer().TemplateResponse(
                 "error.html",
-                {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."},
-            )            
+                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+            )    
 
+                    
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"detail": exc.errors(), "body": exc.body},
+            content={"detail": exc.errors()},
         )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
