@@ -295,8 +295,12 @@ async def get_fiat_rate_satoshis(currency: str) -> float:
     return float(100_000_000 / (await btc_price(currency)))
 
 
-async def fiat_amount_as_satoshis(amount: float, currency: str) -> float:
-    return float(amount * (await get_fiat_rate_satoshis(currency)))
+async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
+    amount_as_sattoshi = amount * (await get_fiat_rate_satoshis(currency))
+    amount_as_sattoshi =round(amount_as_sattoshi)
+    if amount_as_sattoshi==0:
+        amount_as_sattoshi=1
+    return int(amount_as_sattoshi)
 
 
 async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
