@@ -1,0 +1,375 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="cardDialog.show = true"
+          >Add Card</q-btn
+        >
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Cards</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCardsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="cards"
+          row-key="id"
+          :columns="cardsTable.columns"
+          :pagination.sync="cardsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="link"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateCardDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteCard(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Bolt Cards extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "boltcards/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+  <q-dialog v-model="cardDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="cardDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="cardDialog.data.withdraw"
+          :options="withdrawsOptions"
+          label="Withdraw link *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="cardDialog.data.card_name"
+          type="text"
+          label="Card name "
+          ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            >The domain to use ex: "example.com"</q-tooltip
+          ></q-input
+        >
+        <q-input
+          filled
+          dense
+          bottom-slots
+          v-model.trim="cardDialog.data.uid"
+          type="text"
+          label="Card UID"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="cardDialog.data.file_key"
+          type="text"
+          label="Card File key"
+        >
+          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            >Create a "Edit zone DNS" API token in cloudflare</q-tooltip
+          >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="cardDialog.data.meta_key"
+          type="text"
+          label="Card Meta key"
+          hint="A URL to be called whenever this link receives a payment."
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="cardDialog.data.counter"
+          type="number"
+          label="Initial counter"
+          ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+            >How much to charge per day</q-tooltip
+          ></q-input
+        >
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="cardDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Form</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="cardDialog.data.uid == null"
+            type="submit"
+            >Create Card</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
+
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script>
+  const mapCards = obj => {
+    obj.date = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
+
+    obj.displayUrl = ['/boltcards/', obj.id].join('')
+    return obj
+  }
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        cards: [],
+        withdrawsOptions: [],
+        cardDialog: {
+          show: false,
+          data: {}
+        },
+        cardsTable: {
+          columns: [
+            {
+              name: 'card_name',
+              align: 'left',
+              label: 'Card name',
+              field: 'card_name'
+            },
+            {
+              name: 'counter',
+              align: 'left',
+              label: 'Counter',
+              field: 'counter'
+            },
+            {
+              name: 'withdraw',
+              align: 'left',
+              label: 'Withdraw ID',
+              field: 'withdraw'
+            },
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        }
+      }
+    },
+    methods: {
+      getCards: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/boltcards/api/v1/cards?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.cards = response.data
+              .map(function (obj) {
+
+                return mapCards(obj)
+              })
+            console.log(self.cards)
+          })
+      },
+      getWithdraws: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/withdraw/api/v1/links?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.withdrawsOptions = response.data
+              .map(function (obj) {
+                return {
+                  label: [obj.title, ' - ', obj.id].join(''),
+                  value: obj.id
+                }
+              })
+            console.log(self.withdraws)
+          })
+      },
+      sendFormData: function () {
+        let wallet = _.findWhere(this.g.user.wallets, {
+          id: this.cardDialog.data.wallet
+        })
+        let data = this.cardDialog.data
+        if (data.id) {
+          this.updateCard(wallet, data)
+        } else {
+          this.createCard(wallet, data)
+        }
+      },
+      createCard: function (wallet, data) {
+        var self = this
+
+        LNbits.api
+          .request('POST', '/boltcards/api/v1/cards', wallet.adminkey, data)
+          .then(function (response) {
+            self.cards.push(mapCards(response.data))
+            self.cardDialog.show = false
+            self.cardDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      updateCardDialog: function (formId) {
+        var card = _.findWhere(this.cards, {id: formId})
+        console.log(card.id)
+        this.cardDialog.data = _.clone(card)
+        this.cardDialog.show = true
+      },
+      updateCard: function (wallet, data) {
+        var self = this
+        console.log(data)
+
+        LNbits.api
+          .request(
+            'PUT',
+            '/boltcards/api/v1/cards/' + data.id,
+            wallet.adminkey,
+            data
+          )
+          .then(function (response) {
+            self.cards = _.reject(self.cards, function (obj) {
+              return obj.id == data.id
+            })
+            self.cards.push(mapCards(response.data))
+            self.cardDialog.show = false
+            self.cardDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      deleteCard: function (cardId) {
+        let self = this
+        let cards = _.findWhere(this.cards, {id: cardId})
+
+        LNbits.utils
+          .confirmDialog('Are you sure you want to delete this card')
+          .onOk(function () {
+            LNbits.api
+              .request(
+                'DELETE',
+                '/boltcards/api/v1/cards/' + cardId,
+                _.findWhere(self.g.user.wallets, {id: cards.wallet}).adminkey
+              )
+              .then(function (response) {
+                self.cards = _.reject(self.cards, function (obj) {
+                  return obj.id == cardId
+                })
+              })
+              .catch(function (error) {
+                LNbits.utils.notifyApiError(error)
+              })
+          })
+      },
+      exportCardsCSV: function () {
+        LNbits.utils.exportCSV(this.cardsTable.columns, this.cards)
+      }
+    },
+    created: function () {
+      if (this.g.user.wallets.length) {
+        this.getCards()
+        this.getWithdraws()
+      }
+    }
+  })
+</script>
+{% endblock %}
