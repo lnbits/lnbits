@@ -3,8 +3,9 @@ import importlib
 import sys
 import traceback
 import warnings
+from http import HTTPStatus
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -61,16 +62,15 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     ):
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
-        
+
         if "text/html" in request.headers["accept"]:
             return template_renderer().TemplateResponse(
                 "error.html",
                 {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
             )    
 
-                    
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTPStatus.NO_CONTENT,
             content={"detail": exc.errors()},
         )
 
