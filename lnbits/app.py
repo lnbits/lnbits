@@ -174,6 +174,7 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
         print("handled error", traceback.format_exc())
+        print("ERROR:", err)
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
@@ -182,8 +183,8 @@ def register_exception_handlers(app: FastAPI):
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": err}
             )
-        
+
         return JSONResponse(
             status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": exc},
+            content={"detail": err},
         )
