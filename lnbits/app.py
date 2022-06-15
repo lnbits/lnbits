@@ -177,7 +177,7 @@ def register_exception_handlers(app: FastAPI):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        
+
         if "text/html" in request.headers["accept"]:
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": err}
@@ -185,5 +185,5 @@ def register_exception_handlers(app: FastAPI):
         
         return JSONResponse(
             status_code=HTTPStatus.NO_CONTENT,
-            content={"detail": exc.errors()},
+            content={"detail": exc},
         )
