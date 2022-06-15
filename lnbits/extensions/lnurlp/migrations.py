@@ -50,3 +50,13 @@ async def m003_min_max_comment_fiat(db):
     await db.execute("ALTER TABLE lnurlp.pay_links ADD COLUMN max INTEGER;")
     await db.execute("UPDATE lnurlp.pay_links SET max = min;")
     await db.execute("DROP TABLE lnurlp.invoices")
+
+
+async def m004_fiat_base_multiplier(db):
+    """
+    Store the multiplier for fiat prices. We store the price in cents and
+    remember to multiply by 100 when we use it to convert to Dollars.
+    """
+    await db.execute(
+        "ALTER TABLE lnurlp.pay_links ADD COLUMN fiat_base_multiplier INTEGER DEFAULT 1;"
+    )
