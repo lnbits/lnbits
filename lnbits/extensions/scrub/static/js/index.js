@@ -106,7 +106,8 @@ new Vue({
       const wallet = _.findWhere(this.g.user.wallets, {
         id: this.formDialog.data.wallet
       })
-      console.log(wallet)
+      let data = Object.freeze(this.formDialog.data)
+      console.log(wallet, data)
 
       if (data.id) {
         this.updateScrubLink(wallet, data)
@@ -162,6 +163,7 @@ new Vue({
       LNbits.api
         .request('POST', '/scrub/api/v1/links', wallet.adminkey, data)
         .then(response => {
+          console.log('RES', response)
           this.getScrubLinks()
           this.formDialog.show = false
           this.resetFormData()
@@ -207,9 +209,9 @@ new Vue({
     if (this.g.user.wallets.length) {
       var getScrubLinks = this.getScrubLinks
       getScrubLinks()
-      this.checker = setInterval(() => {
-        getScrubLinks()
-      }, 20000)
+      // this.checker = setInterval(() => {
+      //   getScrubLinks()
+      // }, 20000)
     }
     LNbits.api
       .request('GET', '/scrub/api/v1/currencies')

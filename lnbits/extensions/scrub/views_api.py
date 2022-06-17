@@ -7,7 +7,7 @@ from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl  # type: ignore
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import scrub_ext
@@ -18,7 +18,7 @@ from .crud import (
     get_scrub_links,
     update_scrub_link,
 )
-from .models import ScrubLink
+from .models import CreateScrubLink, ScrubLink
 
 
 @scrub_ext.get("/api/v1/currencies")
@@ -40,7 +40,7 @@ async def api_links(
     try:
         return [
             {**link.dict()}
-            for link in await get_pay_links(wallet_ids)
+            for link in await get_scrub_links(wallet_ids)
         ]
 
     except:
@@ -54,7 +54,7 @@ async def api_links(
 async def api_link_retrieve(
     r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    link = await get_pay_link(link_id)
+    link = await get_scrub_link(link_id)
 
     if not link:
         raise HTTPException(
@@ -71,37 +71,14 @@ async def api_link_retrieve(
 
 @scrub_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
 @scrub_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
-async def api_link_create_or_update(
-    data: ScrubLink,
+async def api_scrub_create_or_update(
+    data: CreateScrubLink,
     link_id=None,
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     print("WAH")
-    if data.min < 1:
-        raise HTTPException(
-            detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
-        )
-
-    if data.min > data.max:
-        raise HTTPException(
-            detail="Min is greater than max.", status_code=HTTPStatus.BAD_REQUEST
-        )
-
-    if data.currency == None and (
-        round(data.min) != data.min or round(data.max) != data.max
-    ):
-        raise HTTPException(
-            detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
-        )
-
-    if "success_url" in data and data.success_url[:8] != "https://":
-        raise HTTPException(
-            detail="Success URL must be secure https://...",
-            status_code=HTTPStatus.BAD_REQUEST,
-        )
-
     if link_id:
-        link = await get_pay_link(link_id)
+        link = await get_scrub_link(link_id)
 
         if not link:
             raise HTTPException(
@@ -113,16 +90,16 @@ async def api_link_create_or_update(
                 detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
             )
 
-        link = await update_pay_link(**data.dict(), link_id=link_id)
+        link = await update_scrub_link(**data.dict(), link_id=link_id)
     else:
-        link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-    
-    return {**link.dict(), "lnurl": link.lnurl}
+        link = await create_scrub_link(wallet_id=wallet.wallet.id, data=data)
+
+    return link
 
 
 @scrub_ext.delete("/api/v1/links/{link_id}")
 async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
-    link = await get_pay_link(link_id)
+    link = await get_scrub_link(link_id)
 
     if not link:
         raise HTTPException(
@@ -134,7 +111,7 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type
             detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
         )
 
-    await delete_pay_link(link_id)
+    await delete_scrub_link(link_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 

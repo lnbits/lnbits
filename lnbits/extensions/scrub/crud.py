@@ -1,30 +1,31 @@
 from typing import List, Optional, Union
 
-from lnbits.db import SQLITE
+from lnbits.helpers import urlsafe_short_hash
+
 from . import db
-from .models import ScrubLink
+from .models import CreateScrubLink, ScrubLink
 
 
-async def create_scrub_link(wallet_id: str, data: ScrubLink) -> ScrubLink:
-    satsdice_id = urlsafe_short_hash()
+async def create_scrub_link(wallet_id: str, data: CreateScrubLink) -> ScrubLink:
+    scrub_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO scrub.scrub_links (
             id,
             wallet,
             description,
-            payoraddress,
+            payoraddress
         )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
         """,
         (
-            satsdice_id,
-            wallet,
-            description,
-            payoraddress,
+            scrub_id,
+            data.wallet,
+            data.description,
+            data.payoraddress,
         ),
     )
-    link = await get_satsdice_pay(satsdice_id)
+    link = await get_scrub_link(scrub_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 

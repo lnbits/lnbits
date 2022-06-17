@@ -1,11 +1,13 @@
 import json
-from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, ParseResult
-from starlette.requests import Request
-from fastapi.param_functions import Query
-from typing import Optional, Dict
-from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 from sqlite3 import Row
+from typing import Dict, Optional
+from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+
+from fastapi.param_functions import Query
 from pydantic import BaseModel
+from starlette.requests import Request
+
+from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 
 
 class CreateScrubLink(BaseModel):
@@ -15,7 +17,7 @@ class CreateScrubLink(BaseModel):
 
 
 class ScrubLink(BaseModel):
-    id: int
+    id: str
     wallet: str
     description: str
     payoraddress: str

@@ -26,71 +26,18 @@
         >
           {% raw %}
           <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th auto-width>Wallet</q-th>
-              <q-th auto-width>Description</q-th>
-              <q-th auto-width>LNURLPay/Address</q-th>
-              <q-th auto-width></q-th>
+            <q-tr :props="props" style="text-align: left">
+              <q-th>Wallet</q-th>
+              <q-th>Description</q-th>
+              <q-th>LNURLPay/Address</q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="launch"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.pay_url"
-                  target="_blank"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="visibility"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openQrCodeDialog(props.row.id)"
-                ></q-btn>
-              </q-td>
-              <q-td auto-width>{{ props.row.description }}</q-td>
-              <q-td auto-width>
-                <span v-if="props.row.min == props.row.max">
-                  {{ props.row.min }}
-                </span>
-                <span v-else>{{ props.row.min }} - {{ props.row.max }}</span>
-              </q-td>
-              <q-td>{{ props.row.currency || 'sat' }}</q-td>
-              <q-td>
-                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
-                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="props.row.success_text || props.row.success_url"
-                  size="14px"
-                  name="call_to_action"
-                >
-                  <q-tooltip>
-                    On success, show message '{{ props.row.success_text }}'
-                    <span v-if="props.row.success_url"
-                      >and URL '{{ props.row.success_url }}'</span
-                    >
-                  </q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="props.row.comment_chars > 0"
-                  size="14px"
-                  name="insert_comment"
-                >
-                  <q-tooltip>
-                    {{ props.row.comment_chars }}-char comment allowed
-                  </q-tooltip>
-                </q-icon>
-              </q-td>
+              <q-td>{{ props.row.wallet }}</q-td>
+              <q-td>{{ props.row.description }}</q-td>
+              <q-td>{{ props.row.payoraddress }}</q-td>
               <q-td auto-width>
                 <q-btn
                   flat
