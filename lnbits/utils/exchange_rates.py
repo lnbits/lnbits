@@ -180,6 +180,12 @@ class Provider(NamedTuple):
 
 
 exchange_rate_providers = {
+    "nobitex": Provider(
+        "Nobitex",
+        "nobitex.ir",
+        "https://api.nobitex.ir/v2/orderbook/{FROM}{TO}",
+        lambda data, replacements: data["lastTradePrice"],
+    ), 
     "exir": Provider(
         "Exir",
         "exir.io",
@@ -290,7 +296,11 @@ async def get_fiat_rate_satoshis(currency: str) -> float:
 
 
 async def fiat_amount_as_satoshis(amount: float, currency: str) -> int:
-    return int(amount * (await get_fiat_rate_satoshis(currency)))
+    amount_as_sattoshi = amount * (await get_fiat_rate_satoshis(currency))
+    amount_as_sattoshi = round(amount_as_sattoshi)
+    if amount_as_sattoshi==0:
+        amount_as_sattoshi=1
+    return int(amount_as_sattoshi)
 
 
 async def satoshis_amount_as_fiat(amount: float, currency: str) -> float:
