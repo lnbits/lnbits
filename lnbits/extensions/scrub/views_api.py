@@ -76,7 +76,6 @@ async def api_scrub_create_or_update(
     link_id=None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    print("WAH")
     if link_id:
         link = await get_scrub_link(link_id)
 

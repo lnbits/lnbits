@@ -118,37 +118,12 @@ new Vue({
     resetFormData() {
       this.formDialog = {
         show: false,
-        fixedAmount: true,
         data: {}
       }
     },
     updateScrubLink(wallet, data) {
-      let values = _.omit(
-        _.pick(
-          data,
-          'description',
-          'min',
-          'max',
-          'webhook_url',
-          'success_text',
-          'success_url',
-          'comment_chars',
-          'currency'
-        ),
-        (value, key) =>
-          (key === 'webhook_url' ||
-            key === 'success_text' ||
-            key === 'success_url') &&
-          (value === null || value === '')
-      )
-
       LNbits.api
-        .request(
-          'PUT',
-          '/scrub/api/v1/links/' + data.id,
-          wallet.adminkey,
-          values
-        )
+        .request('PUT', '/scrub/api/v1/links/' + data.id, wallet.adminkey, data)
         .then(response => {
           this.payLinks = _.reject(this.payLinks, obj => obj.id === data.id)
           this.payLinks.push(mapScrubLink(response.data))
