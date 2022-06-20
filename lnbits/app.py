@@ -62,7 +62,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     ):
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
-
+        
         if "text/html" in request.headers["accept"]:
             return template_renderer().TemplateResponse(
                 "error.html",
@@ -174,9 +174,17 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
         print("handled error", traceback.format_exc())
+        print("ERROR:", err)
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": err}
+
+        if "text/html" in request.headers["accept"]:
+            return template_renderer().TemplateResponse(
+                "error.html", {"request": request, "err": err}
+            )
+
+        return JSONResponse(
+            status_code=HTTPStatus.NO_CONTENT,
+            content={"detail": err},
         )
