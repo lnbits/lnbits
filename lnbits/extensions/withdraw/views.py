@@ -103,6 +103,7 @@ async def print_qr(request: Request, link_id):
         "withdraw/print_qr.html", {"request": request, "link": linked, "unique": True}
     )
 
+
 @withdraw_ext.get("/csv/{link_id}", response_class=HTMLResponse)
 async def print_qr(request: Request, link_id):
     link = await get_withdraw_link(link_id)

@@ -28,7 +28,9 @@ LNBITS_ALLOWED_USERS: List[str] = env.list(
     "LNBITS_ALLOWED_USERS", default=[], subcast=str
 )
 LNBITS_ADMIN_USERS: List[str] = env.list("LNBITS_ADMIN_USERS", default=[], subcast=str)
-LNBITS_ADMIN_EXTENSIONS: List[str] = env.list("LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str)
+LNBITS_ADMIN_EXTENSIONS: List[str] = env.list(
+    "LNBITS_ADMIN_EXTENSIONS", default=[], subcast=str
+)
 LNBITS_DISABLED_EXTENSIONS: List[str] = env.list(
     "LNBITS_DISABLED_EXTENSIONS", default=[], subcast=str
 )

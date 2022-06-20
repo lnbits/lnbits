@@ -10,6 +10,7 @@ from . import example_ext
 
 # add your endpoints here
 
+
 @example_ext.get("/api/v1/tools")
 async def api_example():
     """Try to add descriptions for others."""

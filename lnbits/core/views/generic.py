@@ -226,7 +226,9 @@ async def lnurl_balance_notify(request: Request, service: str):
         redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
-@core_html_routes.get("/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet")
+@core_html_routes.get(
+    "/lnurlwallet", response_class=RedirectResponse, name="core.lnurlwallet"
+)
 async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)
