@@ -19,3 +19,21 @@ class CreateCardData(BaseModel):
     withdraw: str = Query(...)
     file_key: str = Query(...)
     meta_key: str = Query(...)
+
+class Hit(BaseModel):
+    id: str
+    card_id: str
+    ip: str
+    useragent: str
+    old_ctr: int
+    new_ctr: int
+    time: int
+
+'''
+class CreateHitData(BaseModel):
+    card_id: str = Query(...)
+    ip: str = Query(...)
+    useragent: str = Query(...)
+    old_ctr: int = Query(...)
+    new_ctr: int = Query(...)
+'''

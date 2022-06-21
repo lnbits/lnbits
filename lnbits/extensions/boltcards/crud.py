@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Card, CreateCardData
+from .models import Card, CreateCardData, Hit
 
 async def create_card(
     data: CreateCardData, wallet_id: str
@@ -34,9 +34,9 @@ async def create_card(
             data.meta_key,
         ),
     )
-    link = await get_card(card_id, 0)
-    assert link, "Newly created card couldn't be retrieved"
-    return link
+    card = await get_card(card_id, 0)
+    assert card, "Newly created card couldn't be retrieved"
+    return card
 
 async def update_card(card_id: str, **kwargs) -> Optional[Card]:
     if "is_unique" in kwargs:
@@ -89,3 +89,54 @@ async def update_card_counter(counter: int, id: str):
         "UPDATE boltcards.cards SET counter = ? WHERE id = ?",
         (counter, id),
     )
+
+async def get_hit(hit_id: str) -> Optional[Hit]:
+    row = await db.fetchone(
+        f"SELECT * FROM boltcards.hits WHERE id = ?", (hit_id)
+    )
+    if not row:
+        return None
+
+    hit = dict(**row)
+
+    return Hit.parse_obj(hit)
+
+async def get_hits(wallet_ids: Union[str, List[str]]) -> List[Hit]:
+    
+    cards = get_cards(wallet_ids)
+
+    q = ",".join(["?"] * len(cards))
+    rows = await db.fetchall(
+        f"SELECT * FROM boltcards.hits WHERE wallet IN ({q})", (*(card.card_id for card in cards),)
+    )
+
+    return [Card(**row) for row in rows]
+
+async def create_hit(
+    card_id, ip, useragent, old_ctr, new_ctr
+) -> Hit:
+    hit_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO boltcards.hits (
+            id,
+            card_id,
+            ip,
+            useragent,
+            old_ctr,
+            new_ctr
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            hit_id,
+            card_id,
+            ip,
+            useragent,
+            old_ctr,
+            new_ctr,
+        ),
+    )
+    hit = await get_hit(hit_id)
+    assert hit, "Newly recorded hit couldn't be retrieved"
+    return hit
