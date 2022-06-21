@@ -28,12 +28,3 @@ class Hit(BaseModel):
     old_ctr: int
     new_ctr: int
     time: int
-
-'''
-class CreateHitData(BaseModel):
-    card_id: str = Query(...)
-    ip: str = Query(...)
-    useragent: str = Query(...)
-    old_ctr: int = Query(...)
-    new_ctr: int = Query(...)
-'''
