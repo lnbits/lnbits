@@ -24,6 +24,7 @@ from .crud import (
     get_cards,
     get_card,
     create_card,
+    get_hits,
     update_card,
     delete_card,
     update_card_counter
@@ -102,6 +103,22 @@ async def api_link_delete(card_id, wallet: WalletTypeInfo = Depends(require_admi
     await delete_card(card_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
+@boltcards_ext.get("/api/v1/hits")
+async def api_hits(
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+):
+    wallet_ids = [g.wallet.id]
+
+    if all_wallets:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
+    cards = await get_cards(wallet_ids)
+    cards_ids = []
+    for card in cards:
+        cards_ids.append(card.id)
+
+    return [hit.dict() for hit in await get_hits(cards_ids)]
+
 @boltcards_ext.get("/api/v1/scan/") # pay.btcslovnik.cz/boltcards/api/v1/scan/?uid=00000000000000&ctr=000000&c=0000000000000000
 async def api_scan(
     uid, ctr, c,
@@ -124,8 +141,17 @@ async def api_scan(
 
     await update_card_counter(ctr_int, card.id)
 
-    link = await get_withdraw_link(card.withdraw, 0)
+    ip = request.client.host
+    if request.headers['x-real-ip']:
+        ip = request.headers['x-real-ip']
+    elif request.headers['x-forwarded-for']:
+        ip = request.headers['x-forwarded-for']
 
+    agent = request.headers['user-agent'] if 'user-agent' in request.headers else ''
+
+    await create_hit(card.id, ip, agent, card.counter, ctr_int)
+
+    link = await get_withdraw_link(card.withdraw, 0)
     return link.lnurl_response(request)
 
 @boltcards_ext.get("/api/v1/scane/")
@@ -152,8 +178,8 @@ async def api_scane(
         print(getSunMAC(card_uid, counter, bytes.fromhex(card.file_key)).hex().upper())
         return {"status": "ERROR", "reason": "CMAC does not check."}
 
-    counter_int = int.from_bytes(counter, "little")
-    if counter_int <= card.counter:
+    ctr_int = int.from_bytes(counter, "little")
+    if ctr_int <= card.counter:
         return {"status": "ERROR", "reason": "This link is already used."}
     
     await update_card_counter(counter_int, card.id)
@@ -164,7 +190,9 @@ async def api_scane(
     elif request.headers['x-forwarded-for']:
         ip = request.headers['x-forwarded-for']
 
-    await create_hit(card.id, ip, request.headers['user-agent'], card.counter, counter_int)
+    agent = request.headers['user-agent'] if 'user-agent' in request.headers else ''
+
+    await create_hit(card.id, ip, agent, card.counter, ctr_int)
 
     link = await get_withdraw_link(card.withdraw, 0)
     return link.lnurl_response(request)

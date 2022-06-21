@@ -101,16 +101,13 @@ async def get_hit(hit_id: str) -> Optional[Hit]:
 
     return Hit.parse_obj(hit)
 
-async def get_hits(wallet_ids: Union[str, List[str]]) -> List[Hit]:
-    
-    cards = get_cards(wallet_ids)
-
-    q = ",".join(["?"] * len(cards))
+async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
+    q = ",".join(["?"] * len(cards_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM boltcards.hits WHERE wallet IN ({q})", (*(card.card_id for card in cards),)
+        f"SELECT * FROM boltcards.hits WHERE card_id IN ({q})", (*cards_ids,)
     )
 
-    return [Card(**row) for row in rows]
+    return [Hit(**row) for row in rows]
 
 async def create_hit(
     card_id, ip, useragent, old_ctr, new_ctr
