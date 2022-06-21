@@ -19,6 +19,7 @@ from lnbits.extensions.withdraw import get_withdraw_link
 from . import boltcards_ext
 from .nxp424 import decryptSUN, getSunMAC
 from .crud import (
+    create_hit,
     get_all_cards,
     get_cards,
     get_card,
@@ -43,7 +44,7 @@ async def api_cards(
 @boltcards_ext.post("/api/v1/cards", status_code=HTTPStatus.CREATED)
 @boltcards_ext.put("/api/v1/cards/{card_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
-    req: Request,
+#    req: Request,
     data: CreateCardData,
     card_id: str = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
@@ -156,6 +157,14 @@ async def api_scane(
         return {"status": "ERROR", "reason": "This link is already used."}
     
     await update_card_counter(counter_int, card.id)
+
+    ip = request.client.host
+    if request.headers['x-real-ip']:
+        ip = request.headers['x-real-ip']
+    elif request.headers['x-forwarded-for']:
+        ip = request.headers['x-forwarded-for']
+
+    await create_hit(card.id, ip, request.headers['user-agent'], card.counter, counter_int)
 
     link = await get_withdraw_link(card.withdraw, 0)
     return link.lnurl_response(request)
