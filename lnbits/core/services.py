@@ -85,17 +85,16 @@ async def pay_invoice(
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
+    invoice = bolt11.decode(payment_request)
+    fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
         temp_id = f"temp_{urlsafe_short_hash()}"
         internal_id = f"internal_{urlsafe_short_hash()}"
 
-        invoice = bolt11.decode(payment_request)
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
         if max_sat and invoice.amount_msat > max_sat * 1000:
             raise ValueError("Amount in invoice is too high.")
-
-        wallet = await get_wallet(wallet_id, conn=conn)
 
         # put all parameters that don't change here
         PaymentKwargs = TypedDict(
@@ -134,26 +133,20 @@ async def pay_invoice(
             # the balance is enough in the next step
             await create_payment(
                 checking_id=temp_id,
-                fee=-fee_reserve(invoice.amount_msat),
+                fee=-fee_reserve_msat,
                 conn=conn,
                 **payment_kwargs,
             )
 
-        # do the balance check if internal payment
-        if internal_checking_id:
-            wallet = await get_wallet(wallet_id, conn=conn)
-            assert wallet
-            if wallet.balance_msat < 0:
-                raise PermissionError("Insufficient balance.")
-
-        # do the balance check if external payment
-        else:
-            if invoice.amount_msat > wallet.balance_msat - (
-                wallet.balance_msat / 100 * 2
-            ):
-                raise PermissionError(
-                    "LNbits requires you keep at least 2% reserve to cover potential routing fees."
+        # do the balance check
+        wallet = await get_wallet(wallet_id, conn=conn)
+        assert wallet
+        if wallet.balance_msat < 0:
+            if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
+                raise PaymentFailure(
+                    f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
+            raise PermissionError("Insufficient balance.")
 
     if internal_checking_id:
         # mark the invoice from the other side as not pending anymore
@@ -171,7 +164,9 @@ async def pay_invoice(
         await internal_invoice_queue.put(internal_checking_id)
     else:
         # actually pay the external invoice
-        payment: PaymentResponse = await WALLET.pay_invoice(payment_request)
+        payment: PaymentResponse = await WALLET.pay_invoice(
+            payment_request, fee_reserve_msat
+        )
         if payment.checking_id:
             async with db.connect() as conn:
                 await create_payment(
@@ -286,12 +281,12 @@ async def perform_lnurlauth(
         sign_len = 6 + r_len + s_len
 
         signature = BytesIO()
-        signature.write(0x30 .to_bytes(1, "big", signed=False))
+        signature.write(0x30.to_bytes(1, "big", signed=False))
         signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(0x02.to_bytes(1, "big", signed=False))
         signature.write(r_len.to_bytes(1, "big", signed=False))
         signature.write(r)
-        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(0x02.to_bytes(1, "big", signed=False))
         signature.write(s_len.to_bytes(1, "big", signed=False))
         signature.write(s)
 
@@ -340,5 +335,6 @@ async def check_invoice_status(
     return status
 
 
+# WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(1000, int(amount_msat * 0.01))
+    return max(2000, int(amount_msat * 0.01))

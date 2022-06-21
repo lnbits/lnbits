@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core import update_user_extension
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import usermanager_ext
 from .crud import (
@@ -27,7 +27,7 @@ from .models import CreateUserData, CreateUserWallet
 
 
 @usermanager_ext.get("/api/v1/users", status_code=HTTPStatus.OK)
-async def api_usermanager_users(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_users(wallet: WalletTypeInfo = Depends(require_admin_key)):
     user_id = wallet.wallet.user
     return [user.dict() for user in await get_usermanager_users(user_id)]
 
@@ -52,7 +52,7 @@ async def api_usermanager_users_create(
 
 @usermanager_ext.delete("/api/v1/users/{user_id}")
 async def api_usermanager_users_delete(
-    user_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    user_id, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     user = await get_usermanager_user(user_id)
     if not user:
@@ -93,7 +93,7 @@ async def api_usermanager_wallets_create(
 
 
 @usermanager_ext.get("/api/v1/wallets")
-async def api_usermanager_wallets(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_usermanager_wallets(wallet: WalletTypeInfo = Depends(require_admin_key)):
     admin_id = wallet.wallet.user
     return [wallet.dict() for wallet in await get_usermanager_wallets(admin_id)]
 
@@ -107,7 +107,7 @@ async def api_usermanager_wallet_transactions(
 
 @usermanager_ext.get("/api/v1/wallets/{user_id}")
 async def api_usermanager_users_wallets(
-    user_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    user_id, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     return [
         s_wallet.dict() for s_wallet in await get_usermanager_users_wallets(user_id)
@@ -116,7 +116,7 @@ async def api_usermanager_users_wallets(
 
 @usermanager_ext.delete("/api/v1/wallets/{wallet_id}")
 async def api_usermanager_wallets_delete(
-    wallet_id, wallet: WalletTypeInfo = Depends(get_key_type)
+    wallet_id, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     get_wallet = await get_usermanager_wallet(wallet_id)
     if not get_wallet:

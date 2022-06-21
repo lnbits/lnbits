@@ -92,11 +92,12 @@ class LndWallet(Wallet):
             or getenv("LND_GRPC_INVOICE_MACAROON")
             or getenv("LND_INVOICE_MACAROON")
         )
-        
-        
+
         encrypted_macaroon = getenv("LND_GRPC_MACAROON_ENCRYPTED")
         if encrypted_macaroon:
-            macaroon = AESCipher(description="macaroon decryption").decrypt(encrypted_macaroon)    
+            macaroon = AESCipher(description="macaroon decryption").decrypt(
+                encrypted_macaroon
+            )
         self.macaroon = load_macaroon(macaroon)
 
         cert = open(self.cert_path, "rb").read()
@@ -143,10 +144,10 @@ class LndWallet(Wallet):
         payment_request = str(resp.payment_request)
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
-        resp = await self.rpc.SendPayment(
-            lnrpc.SendPaymentRequest(payment_request=bolt11)
-        )
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
+        fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
+        req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)
+        resp = await self.rpc.SendPaymentSync(req)
 
         if resp.payment_error:
             return PaymentResponse(False, "", 0, None, resp.payment_error)

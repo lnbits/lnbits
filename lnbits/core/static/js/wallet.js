@@ -364,12 +364,12 @@ new Vue({
     },
     decodeRequest: function () {
       this.parse.show = true
-
+      let req = this.parse.data.request.toLowerCase()
       if (this.parse.data.request.startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
       } else if (this.parse.data.request.startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
-      } else if (this.parse.data.request.indexOf('lightning=lnurl1') !== -1) {
+      } else if (req.indexOf('lightning=lnurl1') !== -1) {
         this.parse.data.request = this.parse.data.request
           .split('lightning=')[1]
           .split('&')[0]
@@ -618,10 +618,10 @@ new Vue({
     },
     updateWalletName: function () {
       let newName = this.newName
+      let adminkey = this.g.wallet.adminkey
       if (!newName || !newName.length) return
-      // let data = {name: newName}
       LNbits.api
-        .request('PUT', '/api/v1/wallet/' + newName, this.g.wallet.inkey, {})
+        .request('PUT', '/api/v1/wallet/' + newName, adminkey, {})
         .then(res => {
           this.newName = ''
           this.$q.notify({
@@ -691,10 +691,7 @@ new Vue({
   },
   mounted: function () {
     // show disclaimer
-    if (
-      this.$refs.disclaimer &&
-      !this.$q.localStorage.getItem('lnbits.disclaimerShown')
-    ) {
+    if (!this.$q.localStorage.getItem('lnbits.disclaimerShown')) {
       this.disclaimerDialog.show = true
       this.$q.localStorage.set('lnbits.disclaimerShown', true)
     }

@@ -13,7 +13,11 @@ from starlette.requests import Request
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
 from lnbits.requestvars import g
-from lnbits.settings import LNBITS_ALLOWED_USERS, LNBITS_ADMIN_USERS, LNBITS_ADMIN_EXTENSIONS
+from lnbits.settings import (
+    LNBITS_ALLOWED_USERS,
+    LNBITS_ADMIN_USERS,
+    LNBITS_ADMIN_EXTENSIONS,
+)
 
 
 class KeyChecker(SecurityBase):
@@ -122,7 +126,7 @@ async def get_key_type(
     # 0: admin
     # 1: invoice
     # 2: invalid
-    pathname = r['path'].split('/')[1]
+    pathname = r["path"].split("/")[1]
 
     if not api_key_header and not api_key_query:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
@@ -133,8 +137,12 @@ async def get_key_type(
         checker = WalletAdminKeyChecker(api_key=token)
         await checker.__call__(r)
         wallet = WalletTypeInfo(0, checker.wallet)
-        if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS):
-            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized.")
+        if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
+            LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+            )
         return wallet
     except HTTPException as e:
         if e.status_code == HTTPStatus.BAD_REQUEST:
@@ -147,9 +155,13 @@ async def get_key_type(
     try:
         checker = WalletInvoiceKeyChecker(api_key=token)
         await checker.__call__(r)
-        wallet = WalletTypeInfo(0, checker.wallet)
-        if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS):
-           raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized.")
+        wallet = WalletTypeInfo(1, checker.wallet)
+        if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
+            LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+            )
         return wallet
     except HTTPException as e:
         if e.status_code == HTTPStatus.BAD_REQUEST:

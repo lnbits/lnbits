@@ -11,20 +11,21 @@ from pydantic import BaseModel
 
 class CreatePayLinkData(BaseModel):
     description: str
-    min: int = Query(0.01, ge=0.01)
-    max: int = Query(0.01, ge=0.01)
+    min: float = Query(1, ge=0.01)
+    max: float = Query(1, ge=0.01)
     currency: str = Query(None)
     comment_chars: int = Query(0, ge=0, lt=800)
     webhook_url: str = Query(None)
     success_text: str = Query(None)
     success_url: str = Query(None)
+    fiat_base_multiplier: int = Query(100, ge=1)
 
 
 class PayLink(BaseModel):
     id: int
     wallet: str
     description: str
-    min: int
+    min: float
     served_meta: int
     served_pr: int
     webhook_url: Optional[str]
@@ -32,11 +33,15 @@ class PayLink(BaseModel):
     success_url: Optional[str]
     currency: Optional[str]
     comment_chars: int
-    max: int
+    max: float
+    fiat_base_multiplier: int
 
     @classmethod
     def from_row(cls, row: Row) -> "PayLink":
         data = dict(row)
+        if data["currency"] and data["fiat_base_multiplier"]:
+            data["min"] /= data["fiat_base_multiplier"]
+            data["max"] /= data["fiat_base_multiplier"]
         return cls(**data)
 
     def lnurl(self, req: Request) -> str:

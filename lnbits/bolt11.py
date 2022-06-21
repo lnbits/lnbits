@@ -165,7 +165,7 @@ def lnencode(addr, privkey):
     if addr.amount:
         amount = Decimal(str(addr.amount))
         # We can only send down to millisatoshi.
-        if amount * 10 ** 12 % 10:
+        if amount * 10**12 % 10:
             raise ValueError(
                 "Cannot encode {}: too many decimal places".format(addr.amount)
             )
@@ -270,7 +270,7 @@ class LnAddr(object):
 def shorten_amount(amount):
     """Given an amount in bitcoin, shorten it"""
     # Convert to pico initially
-    amount = int(amount * 10 ** 12)
+    amount = int(amount * 10**12)
     units = ["p", "n", "u", "m", ""]
     for unit in units:
         if amount % 1000 == 0:
@@ -289,7 +289,7 @@ def _unshorten_amount(amount: str) -> int:
     # * `u` (micro): multiply by 0.000001
     # * `n` (nano): multiply by 0.000000001
     # * `p` (pico): multiply by 0.000000000001
-    units = {"p": 10 ** 12, "n": 10 ** 9, "u": 10 ** 6, "m": 10 ** 3}
+    units = {"p": 10**12, "n": 10**9, "u": 10**6, "m": 10**3}
     unit = str(amount)[-1]
 
     # BOLT #11:
@@ -348,9 +348,9 @@ def _trim_to_bytes(barr):
 
 def _readable_scid(short_channel_id: int) -> str:
     return "{blockheight}x{transactionindex}x{outputindex}".format(
-        blockheight=((short_channel_id >> 40) & 0xffffff),
-        transactionindex=((short_channel_id >> 16) & 0xffffff),
-        outputindex=(short_channel_id & 0xffff),
+        blockheight=((short_channel_id >> 40) & 0xFFFFFF),
+        transactionindex=((short_channel_id >> 16) & 0xFFFFFF),
+        outputindex=(short_channel_id & 0xFFFF),
     )
 
 

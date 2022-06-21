@@ -77,7 +77,7 @@ class OpenNodeWallet(Wallet):
         payment_request = data["lightning_invoice"]["payreq"]
         return InvoiceResponse(True, checking_id, payment_request, None)
 
-    async def pay_invoice(self, bolt11: str) -> PaymentResponse:
+    async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
                 f"{self.endpoint}/v2/withdrawals",

@@ -7,6 +7,7 @@ from starlette.responses import RedirectResponse
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
+from lnbits.extensions.satspay.models import CreateCharge
 from lnbits.extensions.streamalerts.models import (
     CreateDonation,
     CreateService,
@@ -113,10 +114,10 @@ async def api_create_donation(data: CreateDonation, request: Request):
     service_id = data.service
     service = await get_service(service_id)
     charge_details = await get_charge_details(service.id)
-    name = data.name
+    name = data.name if data.name else "Anonymous"
 
     description = f"{sats} sats donation from {name} to {service.twitchuser}"
-    charge = await create_charge(
+    create_charge_data = CreateCharge(
         amount=sats,
         completelink=f"https://twitch.tv/{service.twitchuser}",
         completelinktext="Back to Stream!",
@@ -124,6 +125,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
         description=description,
         **charge_details,
     )
+    charge = await create_charge(user=charge_details["user"], data=create_charge_data)
     await create_donation(
         id=charge.id,
         wallet=service.wallet,

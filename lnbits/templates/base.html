@@ -7,7 +7,6 @@
     {% endfor %}
     <!---->
     <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
-
     {% block styles %}{% endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
@@ -35,10 +34,12 @@
           {% endblock %}
           <q-toolbar-title>
             <q-btn flat no-caps dense size="lg" type="a" href="/">
-              {% block toolbar_title %} {% if SITE_TITLE != 'LNbits' %} {{
-              SITE_TITLE }} {% else %} <strong>LN</strong>bits {% endif %} {%
-              endblock %}</q-btn
-            >
+              {% block toolbar_title %} {% if USE_CUSTOM_LOGO %}
+              <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
+              {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else
+              %}
+              <strong>LN</strong>bits {% endif %} {%endif%} {% endblock %}
+            </q-btn>
           </q-toolbar-title>
           {% block beta %}
           <q-badge color="yellow" text-color="black" class="q-mr-md">
@@ -117,6 +118,16 @@
                 color="blue-10"
                 size="md"
                 ><q-tooltip>elSalvador</q-tooltip>
+              </q-btn>
+              <q-btn
+                v-if="g.allowedThemes.includes('freedom')"
+                dense
+                flat
+                @click="changeColor('freedom')"
+                icon="format_color_fill"
+                color="pink-13"
+                size="md"
+                ><q-tooltip>Freedom</q-tooltip>
               </q-btn>
               <q-btn
                 v-if="g.allowedThemes.includes('flamingo')"
