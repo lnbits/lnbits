@@ -51,6 +51,7 @@ async def api_link_create_or_update(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     '''
+    TODO: some checks
     if data.uses > 250:
         raise HTTPException(
             detail="250 uses max.", status_code=HTTPStatus.BAD_REQUEST
@@ -119,7 +120,8 @@ async def api_hits(
 
     return [hit.dict() for hit in await get_hits(cards_ids)]
 
-@boltcards_ext.get("/api/v1/scan/") # pay.btcslovnik.cz/boltcards/api/v1/scan/?uid=00000000000000&ctr=000000&c=0000000000000000
+# /boltcards/api/v1/scan/?uid=00000000000000&ctr=000000&c=0000000000000000
+@boltcards_ext.get("/api/v1/scan/") 
 async def api_scan(
     uid, ctr, c,
     request: Request
@@ -141,6 +143,7 @@ async def api_scan(
 
     await update_card_counter(ctr_int, card.id)
 
+    # gathering some info for hit record
     ip = request.client.host
     if request.headers['x-real-ip']:
         ip = request.headers['x-real-ip']
@@ -154,6 +157,7 @@ async def api_scan(
     link = await get_withdraw_link(card.withdraw, 0)
     return link.lnurl_response(request)
 
+# /boltcards/api/v1/scane/?e=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scane/")
 async def api_scane(
     e, c,
@@ -162,6 +166,8 @@ async def api_scane(
     card = None
     counter = b''
 
+    # since this route is common to all cards I don't know whitch 'meta key' to use
+    # so I try one by one until decrypted uid matches
     for cand in await get_all_cards():
         if cand.meta_key:
             card_uid, counter = decryptSUN(bytes.fromhex(e), bytes.fromhex(cand.meta_key))
@@ -182,12 +188,13 @@ async def api_scane(
     if ctr_int <= card.counter:
         return {"status": "ERROR", "reason": "This link is already used."}
     
-    await update_card_counter(counter_int, card.id)
+    await update_card_counter(ctr_int, card.id)
 
+    # gathering some info for hit record
     ip = request.client.host
-    if request.headers['x-real-ip']:
+    if 'x-real-ip' in request.headers:
         ip = request.headers['x-real-ip']
-    elif request.headers['x-forwarded-for']:
+    elif 'x-forwarded-for' in request.headers:
         ip = request.headers['x-forwarded-for']
 
     agent = request.headers['user-agent'] if 'user-agent' in request.headers else ''

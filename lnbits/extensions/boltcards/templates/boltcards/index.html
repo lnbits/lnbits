@@ -126,17 +126,15 @@
           v-model.trim="cardDialog.data.card_name"
           type="text"
           label="Card name "
-          ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            >The domain to use ex: "example.com"</q-tooltip
           ></q-input
         >
         <q-input
           filled
           dense
-          bottom-slots
           v-model.trim="cardDialog.data.uid"
           type="text"
           label="Card UID"
+          hint="Card unique identificator (7 bytes in HEX)."
         >
         </q-input>
         <q-input
@@ -145,10 +143,8 @@
           v-model.trim="cardDialog.data.file_key"
           type="text"
           label="Card File key"
+          hint="Used for CMAC of the message (16 bytes in HEX)."
         >
-          <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            >Create a "Edit zone DNS" API token in cloudflare</q-tooltip
-          >
         </q-input>
         <q-input
           filled
@@ -156,7 +152,7 @@
           v-model.trim="cardDialog.data.meta_key"
           type="text"
           label="Card Meta key"
-          hint="A URL to be called whenever this link receives a payment."
+          hint="Used for encypting of the message (16 bytes in HEX)."
         ></q-input>
         <q-input
           filled
@@ -165,7 +161,7 @@
           type="number"
           label="Initial counter"
           ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            >How much to charge per day</q-tooltip
+            >Zero if you don't know.</q-tooltip
           ></q-input
         >
         <div class="row q-mt-lg">
