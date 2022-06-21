@@ -1,3 +1,4 @@
+# https://www.nxp.com/docs/en/application-note/AN12196.pdf
 from typing import Tuple
 from Cryptodome.Hash import CMAC
 from Cryptodome.Cipher import AES
