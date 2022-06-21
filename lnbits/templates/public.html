@@ -8,6 +8,7 @@
   {% if USE_CUSTOM_LOGO %}
   <img height="30px" alt="Logo" src="{{ USE_CUSTOM_LOGO }}" />
   {%else%} {% if SITE_TITLE != 'LNbits' %} {{ SITE_TITLE }} {% else %}
-  <strong>LN</strong>bits {% endif %} {% endif %}
+  <span><strong>LN</strong>bits</span>
+  {% endif %} {% endif %}
 </a>
 {% endblock %}
