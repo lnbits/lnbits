@@ -97,7 +97,7 @@ async def api_scrub_create_or_update(
 
 
 @scrub_ext.delete("/api/v1/links/{link_id}")
-async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
     link = await get_scrub_link(link_id)
 
     if not link:

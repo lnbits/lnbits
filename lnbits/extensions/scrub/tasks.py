@@ -1,12 +1,15 @@
 import asyncio
 import json
+
 import httpx
 
 from lnbits.core import db as core_db
-from .models import ScrubLink
+from lnbits.core.crud import get_wallet
+from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_scrub_link
+from .crud import get_scrub_by_wallet, get_scrub_link
+from .models import ScrubLink
 
 
 async def wait_for_paid_invoices():
@@ -18,26 +21,34 @@ async def wait_for_paid_invoices():
         await on_invoice_paid(payment)
 
 
-async def on_invoice_paid(payment: ScrubLink) -> None:
-    if "scrub" != payment.extra.get("tag"):
-        # not an scrub invoice
+async def on_invoice_paid(payment: Payment) -> None:
+    # (avoid loops)
+    if "scrub" == payment.extra.get("tag"):
+        # already scrubbed
         return
 
-    if payment.extra.get("wh_status"):
-        # this webhook has already been sent
+    scrub_link = await get_scrub_by_wallet(payment.wallet_id)
+    
+    if not scrub_link:
         return
 
-    pay_link = await get_pay_link(payment.extra.get("link", -1))
-    # PAY LNURLP AND LNADDRESS
-
-
-async def mark_webhook_sent(payment: ScrubLink, status: int) -> None:
-    payment.extra["wh_status"] = status
-
-    await core_db.execute(
-        """
-        UPDATE apipayments SET extra = ?
-        WHERE hash = ?
-        """,
-        (json.dumps(payment.extra), payment.payment_hash),
+    from lnbits.core.views.api import (
+        CreateLNURLData,
+        api_lnurlscan,
+        api_payments_pay_lnurl,
     )
+
+    wallet = await get_wallet(wallet_id=payment.wallet_id)
+    assert wallet
+    
+    # PAY LNURLP AND LNADDRESS
+    invoice = await api_lnurlscan(scrub_link.payoraddress)
+    invoice_data = CreateLNURLData(
+        callback = invoice["callback"],
+        description_hash = invoice["description_hash"],
+        amount = payment.amount
+    )
+    print("INV", invoice_data, wallet)
+    
+    invoice_paid = await api_payments_pay_lnurl(data=invoice_data, wallet=wallet.adminkey)
+    print("PAID", invoice_paid)

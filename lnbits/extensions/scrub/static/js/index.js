@@ -26,8 +26,6 @@ new Vue({
   mixins: [windowMixin],
   data() {
     return {
-      currencies: [],
-      fiatRates: {},
       checker: null,
       payLinks: [],
       payLinksTable: {
@@ -37,7 +35,6 @@ new Vue({
       },
       formDialog: {
         show: false,
-        fixedAmount: true,
         data: {}
       },
       qrCodeDialog: {
@@ -65,42 +62,11 @@ new Vue({
     closeFormDialog() {
       this.resetFormData()
     },
-    openQrCodeDialog(linkId) {
-      var link = _.findWhere(this.payLinks, {id: linkId})
-      if (link.currency) this.updateFiatRate(link.currency)
-
-      this.qrCodeDialog.data = {
-        id: link.id,
-        amount:
-          (link.min === link.max ? link.min : `${link.min} - ${link.max}`) +
-          ' ' +
-          (link.currency || 'sat'),
-        currency: link.currency,
-        comments: link.comment_chars
-          ? `${link.comment_chars} characters`
-          : 'no',
-        webhook: link.webhook_url || 'nowhere',
-        success:
-          link.success_text || link.success_url
-            ? 'Display message "' +
-              link.success_text +
-              '"' +
-              (link.success_url ? ' and URL "' + link.success_url + '"' : '')
-            : 'do nothing',
-        lnurl: link.lnurl,
-        pay_url: link.pay_url,
-        print_url: link.print_url
-      }
-      this.qrCodeDialog.show = true
-    },
     openUpdateDialog(linkId) {
       const link = _.findWhere(this.payLinks, {id: linkId})
-      if (link.currency) this.updateFiatRate(link.currency)
 
       this.formDialog.data = _.clone(link._data)
       this.formDialog.show = true
-      this.formDialog.fixedAmount =
-        this.formDialog.data.min === this.formDialog.data.max
     },
     sendFormData() {
       const wallet = _.findWhere(this.g.user.wallets, {
@@ -166,35 +132,12 @@ new Vue({
               LNbits.utils.notifyApiError(err)
             })
         })
-    },
-    updateFiatRate(currency) {
-      LNbits.api
-        .request('GET', '/scrub/api/v1/rate/' + currency, null)
-        .then(response => {
-          let rates = _.clone(this.fiatRates)
-          rates[currency] = response.data.rate
-          this.fiatRates = rates
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
     }
   },
   created() {
     if (this.g.user.wallets.length) {
       var getScrubLinks = this.getScrubLinks
       getScrubLinks()
-      // this.checker = setInterval(() => {
-      //   getScrubLinks()
-      // }, 20000)
     }
-    LNbits.api
-      .request('GET', '/scrub/api/v1/currencies')
-      .then(response => {
-        this.currencies = ['satoshis', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
   }
 })
