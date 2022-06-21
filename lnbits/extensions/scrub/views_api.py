@@ -8,7 +8,6 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import scrub_ext
 from .crud import (
@@ -18,12 +17,7 @@ from .crud import (
     get_scrub_links,
     update_scrub_link,
 )
-from .models import CreateScrubLink, ScrubLink
-
-
-@scrub_ext.get("/api/v1/currencies")
-async def api_list_currencies_available():
-    return list(currencies.keys())
+from .models import CreateScrubLink
 
 
 @scrub_ext.get("/api/v1/links", status_code=HTTPStatus.OK)
@@ -39,7 +33,7 @@ async def api_links(
 
     try:
         return [
-            {**link.dict()}
+            link.dict()
             for link in await get_scrub_links(wallet_ids)
         ]
 
@@ -112,13 +106,3 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(require_admi
 
     await delete_scrub_link(link_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
-
-
-@scrub_ext.get("/api/v1/rate/{currency}", status_code=HTTPStatus.OK)
-async def api_check_fiat_rate(currency):
-    try:
-        rate = await get_fiat_rate_satoshis(currency)
-    except AssertionError:
-        rate = None
-
-    return {"rate": rate}

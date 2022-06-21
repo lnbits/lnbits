@@ -21,7 +21,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
         "scrub/index.html", {"request": request, "user": user.dict()}
     )
 
-
+# DO WE NEED THIS ?!
 @scrub_ext.get("/{link_id}", response_class=HTMLResponse)
 async def display(request: Request, link_id):
     link = await get_scrub_link(link_id)
@@ -32,7 +32,7 @@ async def display(request: Request, link_id):
     ctx = {"request": request, "lnurl": link.lnurl(req=request)}
     return scrub_renderer().TemplateResponse("scrub/display.html", ctx)
 
-
+# DO WE NEED THIS ?!
 @scrub_ext.get("/print/{link_id}", response_class=HTMLResponse)
 async def print_qr(request: Request, link_id):
     link = await get_scrub_link(link_id)
