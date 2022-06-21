@@ -18,3 +18,19 @@ async def m001_initial(db):
         );
     """
     )
+
+    await db.execute(
+        """
+        CREATE TABLE boltcards.hits (
+            id TEXT PRIMARY KEY,
+            card_id TEXT NOT NULL,
+            ip TEXT NOT NULL,
+            useragent TEXT,
+            old_ctr INT NOT NULL DEFAULT 0,
+            new_ctr INT NOT NULL DEFAULT 0,
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
+        );
+    """
+    )
