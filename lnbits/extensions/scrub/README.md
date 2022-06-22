@@ -24,5 +24,5 @@ SCRUB is a small but handy extension that allows a user to take advantage of all
    - You can _edit_ or _delete_ the Scrub at any time\
      ![edit scrub](https://i.imgur.com/Qu65lGG.jpg)
 
-3. On your wallet, you'll see a transaction of a payment received and another right after it as apayment sent, marked with **#scrubbed**\
+3. On your wallet, you'll see a transaction of a payment received and another right after it as apayment sent, marked with **#scrubed**\
    ![wallet view](https://i.imgur.com/S6EWWCP.jpg)
