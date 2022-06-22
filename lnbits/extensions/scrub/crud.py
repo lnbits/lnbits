@@ -6,7 +6,7 @@ from . import db
 from .models import CreateScrubLink, ScrubLink
 
 
-async def create_scrub_link(wallet_id: str, data: CreateScrubLink) -> ScrubLink:
+async def create_scrub_link(data: CreateScrubLink) -> ScrubLink:
     scrub_id = urlsafe_short_hash()
     await db.execute(
         """
