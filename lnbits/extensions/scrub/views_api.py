@@ -44,6 +44,26 @@ async def api_links(
             detail="No SCRUB links made yet",
         )
 
+@scrub_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
+async def api_link_retrieve(
+    r: Request, link_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    link = await get_scrub_link(link_id)
+
+    if not link:
+        raise HTTPException(
+            detail="Scrub link does not exist.", status_code=HTTPStatus.NOT_FOUND
+        )
+
+    if link.wallet != wallet.wallet.id:
+        raise HTTPException(
+            detail="Not your pay link.", status_code=HTTPStatus.FORBIDDEN
+        )
+
+    return link
+
+
+
 
 @scrub_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
 @scrub_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
@@ -68,7 +88,6 @@ async def api_scrub_create_or_update(
         link = await update_scrub_link(**data.dict(), link_id=link_id)
     else:
         wallet_has_scrub = await unique_scrubed_wallet(wallet_id=data.wallet)
-        print("HAS", wallet_has_scrub)
         if wallet_has_scrub > 0:
             raise HTTPException(
                 detail="Wallet is already being Scrubbed", status_code=HTTPStatus.FORBIDDEN
