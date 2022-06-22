@@ -19,6 +19,10 @@ SCRUB is a small but handy extension that allows a user to take advantage of all
 
 2. A new scrub will show on the _Scrub links_ section\
    ![scrub](https://i.imgur.com/LNoFkeu.jpg)
+
    - only one scrub can be created for each wallet!
    - You can _edit_ or _delete_ the Scrub at any time\
      ![edit scrub](https://i.imgur.com/Qu65lGG.jpg)
+
+3. On your wallet, you'll see a transaction of a payment received and another right after it as apayment sent, marked with **#scrubbed**\
+   ![wallet view](https://i.imgur.com/S6EWWCP.jpg)
