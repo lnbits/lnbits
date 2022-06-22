@@ -1,27 +1,24 @@
-# scrub
+# Scrub
 
-## Create a static QR code people can use to pay over Lightning Network
+## Automatically forward funds (Scrub) that get paid to the wallet to an LNURLpay or Lightning Address
 
-LNURL is a range of lightning-network standards that allow us to use lightning-network differently. An LNURL-pay is a link that wallets use to fetch an invoice from a server on-demand. The link or QR code is fixed, but each time it is read by a compatible wallet a new invoice is issued by the service and sent to the wallet.
+SCRUB is a small but handy extension that allows a user to take advantage of all the functionalities inside **LNbits** and upon a payment received to your LNbits wallet, automatically forward it to your desired wallet via LNURL or LNAddress!
 
 [**Wallets supporting LNURL**](https://github.com/fiatjaf/awesome-lnurl#wallets)
 
 ## Usage
 
 1. Create an scrub (New Scrub link)\
-   ![create scrub](https://i.imgur.com/rhUBJFy.jpg)
+   ![create scrub](https://i.imgur.com/LUeNkzM.jpg)
 
-   - select your wallets
+   - select the wallet to be _scrubbed_
    - make a small description
-   - enter amount
-   - if _Fixed amount_ is unchecked you'll have the option to configure a Max and Min amount
-   - you can set the currency to something different than sats. For example if you choose EUR, the satoshi amount will be calculated when a user scans the scrub
-   - You can ask the user to send a comment that will be sent along with the payment (for example a comment to a blog post)
-   - Webhook URL allows to call an URL when the scrub is paid
-   - Success mesage, will send a message back to the user after a successful payment, for example a thank you note
-   - Success URL, will send back a clickable link to the user. Access to some hidden content, or a download link
+   - enter either an LNURL pay or a lightning address
 
-2. Use the shareable link or view the scrub you just created\
-   ![scrub](https://i.imgur.com/C8s1P0Q.jpg)
-   - you can now open your scrub and copy the LNURL, get the shareable link or print it\
-     ![view scrub](https://i.imgur.com/4n41S7T.jpg)
+   Make sure your LNURL or LNaddress is correct!
+
+2. A new scrub will show on the _Scrub links_ section\
+   ![scrub](https://i.imgur.com/LNoFkeu.jpg)
+   - only one scrub can be created for each wallet!
+   - You can _edit_ or _delete_ the Scrub at any time\
+     ![edit scrub](https://i.imgur.com/Qu65lGG.jpg)
