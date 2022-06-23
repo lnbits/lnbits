@@ -116,7 +116,9 @@ class LndRestWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        async with httpx.AsyncClient(verify=self.cert) as client:
+        async with httpx.AsyncClient(
+            verify=self.cert, transport=self.transport
+        ) as client:
             # set the fee limit for the payment
             lnrpcFeeLimit = dict()
             lnrpcFeeLimit["fixed_msat"] = "{}".format(fee_limit_msat)
@@ -195,7 +197,10 @@ class LndRestWallet(Wallet):
         while True:
             try:
                 async with httpx.AsyncClient(
-                    timeout=None, headers=self.auth, verify=self.cert
+                    timeout=None,
+                    headers=self.auth,
+                    verify=self.cert,
+                    transport=self.transport,
                 ) as client:
                     async with client.stream("GET", url) as r:
                         async for line in r.aiter_lines():
