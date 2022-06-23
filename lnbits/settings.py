@@ -8,6 +8,10 @@ from environs import Env  # type: ignore
 env = Env()
 env.read_env()
 
+# proxy settings must be set before wallet import since they depend on it
+FUNDING_PROXY_HOST = env.str("FUNDING_PROXY_HOST", default=None)
+FUNDING_PROXY_PORT = env.int("FUNDING_PROXY_PORT", default=None)
+
 wallets_module = importlib.import_module("lnbits.wallets")
 wallet_class = getattr(
     wallets_module, env.str("LNBITS_BACKEND_WALLET_CLASS", default="VoidWallet")
@@ -53,9 +57,6 @@ LNBITS_CUSTOM_LOGO = env.str("LNBITS_CUSTOM_LOGO", default="")
 WALLET = wallet_class()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
-
-FUNDING_PROXY_HOST = env.str("FUNDING_PROXY_HOST", default=None)
-FUNDING_PROXY_PORT = env.int("FUNDING_PROXY_PORT", default=None)
 
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
