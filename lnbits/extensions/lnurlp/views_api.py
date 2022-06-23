@@ -89,6 +89,12 @@ async def api_link_create_or_update(
             detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
         )
 
+    # database only allows int4 entries for min and max. For fiat currencies,
+    # we multiply by data.fiat_base_multiplier (usually 100) to save the value in cents.
+    if data.currency and data.fiat_base_multiplier:
+        data.min *= data.fiat_base_multiplier
+        data.max *= data.fiat_base_multiplier
+
     if "success_url" in data and data.success_url[:8] != "https://":
         raise HTTPException(
             detail="Success URL must be secure https://...",
