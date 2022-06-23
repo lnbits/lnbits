@@ -62,6 +62,7 @@ class LndRestWallet(Wallet):
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
         self.cert = getenv("LND_REST_CERT", True)
         self.transport = get_httpx_transport(self.cert)
+        self.timeout = None
 
         ssl_context = SSLConfig(
             # Without this it appears CERTIFICATE_VERIFY_FAILED is emitted 
@@ -80,7 +81,9 @@ class LndRestWallet(Wallet):
                 verify=self.cert, transport=self.transport
             ) as client:
                 r = await client.get(
-                    f"{self.endpoint}/v1/balance/channels", headers=self.auth
+                    f"{self.endpoint}/v1/balance/channels",
+                    timeout=self.timeout,
+                    headers=self.auth,
                 )
         except (httpx.ConnectError, httpx.RequestError):
             return StatusResponse(f"Unable to connect to {self.endpoint}.", 0)
@@ -112,7 +115,10 @@ class LndRestWallet(Wallet):
             verify=self.cert, transport=self.transport
         ) as client:
             r = await client.post(
-                url=f"{self.endpoint}/v1/invoices", headers=self.auth, json=data
+                url=f"{self.endpoint}/v1/invoices",
+                timeout=self.timeout,
+                headers=self.auth,
+                json=data,
             )
 
         if r.is_error:
@@ -142,7 +148,7 @@ class LndRestWallet(Wallet):
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
                 json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-                timeout=180,
+                timeout=self.timeout,
             )
 
         if r.is_error or r.json().get("payment_error"):
@@ -178,6 +184,7 @@ class LndRestWallet(Wallet):
             verify=self.cert, transport=self.transport
         ) as client:
             r = await client.get(
+                timeout=self.timeout,
                 url=f"{self.endpoint}/v1/payments",
                 headers=self.auth,
                 params={"max_payments": "20", "reversed": True},
