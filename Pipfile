@@ -17,11 +17,8 @@ pyscss = "*"
 shortuuid = "*"
 typing-extensions = "*"
 httpx = "*"
-<<<<<<< HEAD
-=======
 httpx_socks = "*"
 python_socks = "*"
->>>>>>> 25a2d7d5 (add proxy)
 sqlalchemy-aio = "*"
 embit = "*"
 pyqrcode = "*"
