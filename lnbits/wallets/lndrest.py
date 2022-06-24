@@ -220,7 +220,7 @@ class LndRestWallet(Wallet):
             try:
                 async with httpx.AsyncClient(
                     timeout=None,
-                    headers=self.auth,
+                    headers=dict({"Connection": "keep-alive"}, **self.auth),
                     verify=self.cert,
                     transport=self.transport,
                 ) as client:
@@ -235,7 +235,12 @@ class LndRestWallet(Wallet):
 
                             payment_hash = base64.b64decode(inv["r_hash"]).hex()
                             yield payment_hash
-            except (OSError, httpx.ConnectError, httpx.ReadError):
+            except (
+                OSError,
+                httpx.ConnectError,
+                httpx.ReadError,
+                httpcore.RemoteProtocolError,
+            ):
                 pass
 
             logger.error(
