@@ -62,7 +62,7 @@ class LndRestWallet(Wallet):
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
         self.cert = getenv("LND_REST_CERT", True)
         self.transport = get_httpx_transport(self.cert)
-        self.timeout = None
+        self.timeout = 180 if self.transport is None else None
 
         ssl_context = SSLConfig(
             # Without this it appears CERTIFICATE_VERIFY_FAILED is emitted 
