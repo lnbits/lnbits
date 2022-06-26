@@ -30,9 +30,9 @@ requirements.txt: Pipfile.lock
 	cat Pipfile.lock | jq -r '.default | map_values(.version) | to_entries | map("\(.key)\(.value)") | join("\n")' > requirements.txt
 
 test:
-	cp .env.example .env
 	rm -rf ./tests/data
 	mkdir -p ./tests/data
+	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	./venv/bin/pytest -s
