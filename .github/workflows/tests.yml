@@ -5,6 +5,23 @@ on: [push, pull_request]
 jobs:
   unit:
     runs-on: ubuntu-latest
+    container: node:10.18-jessie
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
         python-version: [3.8]
@@ -24,6 +41,8 @@ jobs:
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pytest pytest-asyncio requests trio mock
       - name: Run tests
+        env:
+          LNBITS_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
         run: make test
   # build:
   #   runs-on: ubuntu-latest
