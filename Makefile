@@ -31,5 +31,6 @@ requirements.txt: Pipfile.lock
 
 test:
 	FAKE_WALLET_SECRET="ToTheMoon1" \
+	LNBITS_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 	PYTHONUNBUFFERED=1 \
 	./venv/bin/pytest -s
