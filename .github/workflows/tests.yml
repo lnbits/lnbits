@@ -43,7 +43,7 @@ jobs:
           ./venv/bin/pip install pytest pytest-asyncio requests trio mock
       - name: Run tests
         env:
-          LNBITS_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+          LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
         run: make test
   # build:
   #   runs-on: ubuntu-latest
