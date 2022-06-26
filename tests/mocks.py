@@ -14,14 +14,6 @@ from lnbits.wallets.fake import FakeWallet
 
 from .helpers import get_random_string
 
-# primitive event loop for generate_mock_invoice()
-def drive(c):
-    while True:
-        try:
-            c.send(None)
-        except StopIteration as e:
-            return e.value
-
 
 # generates an invoice with FakeWallet
 async def generate_mock_invoice(**x):
@@ -43,6 +35,14 @@ WALLET.create_invoice = generate_mock_invoice
 # NOTE: This mock fails since it yields the same invoice multiple
 # times which makes the db throw an error due to uniqueness contraints
 # on the checking ID
+
+# # primitive event loop for generate_mock_invoice()
+# def drive(c):
+#     while True:
+#         try:
+#             c.send(None)
+#         except StopIteration as e:
+#             return e.value
 
 # # finally we await it
 # invoice = drive(generate_mock_invoice())
