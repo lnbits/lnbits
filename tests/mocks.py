@@ -12,6 +12,7 @@ from lnbits.settings import WALLET
 
 from lnbits.wallets.fake import FakeWallet
 
+from .helpers import get_random_string
 
 # primitive event loop for generate_mock_invoice()
 def drive(c):
@@ -23,15 +24,12 @@ def drive(c):
 
 
 # generates an invoice with FakeWallet
-async def generate_mock_invoice():
+async def generate_mock_invoice(**x):
     invoice = await FakeWallet.create_invoice(
-        FakeWallet(), amount=10, memo="mock invoice"
+        FakeWallet(), amount=10, memo=f"mock invoice {get_random_string()}"
     )
     return invoice
 
-
-# finally we await it
-invoice = drive(generate_mock_invoice())
 
 WALLET.status = AsyncMock(
     return_value=StatusResponse(
@@ -39,14 +37,24 @@ WALLET.status = AsyncMock(
         1000000,  # msats
     )
 )
-WALLET.create_invoice = AsyncMock(
-    return_value=InvoiceResponse(
-        True,  # ok
-        invoice.checking_id,  # checking_id (i.e. payment_hash)
-        invoice.payment_request,  # payment_request
-        "",  # no error
-    )
-)
+
+WALLET.create_invoice = generate_mock_invoice
+
+# NOTE: This mock fails since it yields the same invoice multiple
+# times which makes the db throw an error due to uniqueness contraints
+# on the checking ID
+
+# # finally we await it
+# invoice = drive(generate_mock_invoice())
+
+# WALLET.create_invoice = AsyncMock(
+#     return_value=InvoiceResponse(
+#         True,  # ok
+#         invoice.checking_id,  # checking_id (i.e. payment_hash)
+#         invoice.payment_request,  # payment_request
+#         "",  # no error
+#     )
+# )
 
 
 def pay_invoice_side_effect(

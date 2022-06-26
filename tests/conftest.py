@@ -44,7 +44,7 @@ async def client(app):
     await client.aclose()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 async def db():
     yield Database("database")
 
@@ -117,7 +117,10 @@ async def invoice(to_user_wallet):
     # print("--------- New invoice!")
     # print("wallet:")
     # print(wallet)
-    invoice = await api_payments_create_invoice(invoiceData, wallet)
+    stuff_lock = asyncio.Lock()
+    async with stuff_lock:
+        invoice = await api_payments_create_invoice(invoiceData, wallet)
+    await asyncio.sleep(1)
     # print("invoice")
     # print(invoice)
     yield invoice
