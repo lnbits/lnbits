@@ -24,6 +24,7 @@ from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -386,6 +387,7 @@ async def api_payments_sse(
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
+    # If a valid key is given, we also return the field "details", otherwise not
     wallet = await get_wallet_for_key(X_Api_Key) if X_Api_Key is not None else None
     payment = await get_standalone_payment(payment_hash)
     if payment is None:
@@ -399,8 +401,6 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
     elif not payment.pending:
-        if wallet:
-            print(wallet.id, payment.wallet_id)
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": True, "preimage": payment.preimage, "details": payment}
         return {"paid": True, "preimage": payment.preimage}

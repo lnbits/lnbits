@@ -8,9 +8,8 @@ from lnbits.settings import HOST, PORT
 from lnbits.core.views.api import api_payments_create_invoice, CreateInvoiceData
 
 from lnbits.core.crud import create_account, create_wallet, get_wallet
-from tests.helpers import credit_wallet
+from tests.helpers import credit_wallet, get_random_invoice_data
 
-from tests.core.views.test_api import test_core_create_invoice
 from lnbits.db import Database
 from lnbits.core.models import User, Wallet, Payment, BalanceCheck
 from typing import Tuple
@@ -50,48 +49,76 @@ async def db():
     yield Database("database")
 
 
-# @pytest.fixture(scope="session")
-# async def conn(db):
-#     yield db.connect()
-
-
-@pytest.fixture(scope="function")
-async def user_wallet(app, client):
+@pytest.fixture(scope="session")
+async def from_user_wallet():
     user = await create_account()
-    wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet")
-    print("new wallet:", wallet.id)
+    wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_from")
     await credit_wallet(
         wallet_id=wallet.id,
-        amount=100000,
+        amount=99999999,
     )
+    # print("new from_user_wallet:", wallet)
     yield user, wallet
 
 
-@pytest.fixture(scope="function")
-async def inkey_headers(user_wallet):
-    _, wallet = user_wallet
+@pytest.fixture(scope="session")
+async def to_user_wallet():
+    user = await create_account()
+    wallet = await create_wallet(user_id=user.id, wallet_name="test_wallet_to")
+    await credit_wallet(
+        wallet_id=wallet.id,
+        amount=99999999,
+    )
+    # print("new to_user_wallet:", wallet)
+    yield user, wallet
+
+
+@pytest.fixture(scope="session")
+async def inkey_headers_from(from_user_wallet):
+    _, wallet = from_user_wallet
     yield {
         "X-Api-Key": wallet.inkey,
         "Content-type": "application/json",
     }
 
 
-@pytest.fixture(scope="function")
-async def adminkey_headers(user_wallet):
-    _, wallet = user_wallet
+@pytest.fixture(scope="session")
+async def adminkey_headers_from(from_user_wallet):
+    _, wallet = from_user_wallet
     yield {
         "X-Api-Key": wallet.adminkey,
         "Content-type": "application/json",
     }
 
 
-@pytest.fixture(scope="function")
-async def invoice(user_wallet):
-    _, wallet = user_wallet
-    # invoice = await test_core_create_invoice(client, inkey_headers)
-    data = {"out": False, "amount": 1000, "memo": "test_memo"}
+@pytest.fixture(scope="session")
+async def inkey_headers_to(to_user_wallet):
+    _, wallet = to_user_wallet
+    yield {
+        "X-Api-Key": wallet.inkey,
+        "Content-type": "application/json",
+    }
+
+
+@pytest.fixture(scope="session")
+async def adminkey_headers_to(to_user_wallet):
+    _, wallet = to_user_wallet
+    yield {
+        "X-Api-Key": wallet.adminkey,
+        "Content-type": "application/json",
+    }
+
+
+@pytest.fixture(scope="session")
+async def invoice(to_user_wallet):
+    _, wallet = to_user_wallet
+    data = await get_random_invoice_data()
     invoiceData = CreateInvoiceData(**data)
+    # print("--------- New invoice!")
+    # print("wallet:")
+    # print(wallet)
     invoice = await api_payments_create_invoice(invoiceData, wallet)
-    invoice["inkey"] = wallet.inkey
+    # print("invoice")
+    # print(invoice)
     yield invoice
     del invoice

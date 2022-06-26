@@ -1,3 +1,4 @@
+import time
 from mock import AsyncMock
 from lnbits import bolt11
 from lnbits.wallets.base import (
@@ -9,6 +10,26 @@ from lnbits.wallets.base import (
 )
 from lnbits.settings import WALLET
 
+from lnbits.wallets.fake import FakeWallet
+
+
+def drive(c):
+    while True:
+        try:
+            c.send(None)
+        except StopIteration as e:
+            return e.value
+
+
+async def generate_mock_invoice():
+    invoice = await FakeWallet.create_invoice(
+        FakeWallet(), amount=10, memo="mock invoice"
+    )
+    return invoice
+
+
+invoice = drive(generate_mock_invoice())
+
 WALLET.status = AsyncMock(
     return_value=StatusResponse(
         "",  # no error
@@ -18,8 +39,8 @@ WALLET.status = AsyncMock(
 WALLET.create_invoice = AsyncMock(
     return_value=InvoiceResponse(
         True,  # ok
-        "6621aafbdd7709ca6eea6203f362d64bd7cb2911baa91311a176b3ecaf2274bd",  # checking_id (i.e. payment_hash)
-        "lntb1u1psezhgspp5vcs6477awuyu5mh2vgplxckkf0tuk2g3h253xydpw6e7etezwj7sdqqcqzpgxqyz5vqsp5dxpw8zs77hw5pla4wz4mfujllyxtlpu443auur2uxqdrs8q2h56q9qyyssq65zk30ylmygvv5y4tuwalnf3ttnqjn57ef6rmcqg0s53akem560jh8ptemjcmytn3lrlatw4hv9smg88exv3v4f4lqnp96s0psdrhxsp6pp75q",  # payment_request
+        invoice.checking_id,  # checking_id (i.e. payment_hash)
+        invoice.payment_request,  # payment_request
         "",  # no error
     )
 )

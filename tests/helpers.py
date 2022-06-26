@@ -1,5 +1,7 @@
 import hashlib
 import secrets
+import random
+import string
 from lnbits.core.crud import create_payment
 
 
@@ -14,7 +16,18 @@ async def credit_wallet(wallet_id: str, amount: int):
         payment_hash=payment_hash,
         checking_id=payment_hash,
         preimage=preimage,
-        memo="",
+        memo=f"funding_test_{get_random_string(5)}",
         amount=amount,  # msat
         pending=False,  # not pending, so it will increase the wallet's balance
     )
+
+
+def get_random_string(N=10):
+    return "".join(
+        random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+        for _ in range(10)
+    )
+
+
+async def get_random_invoice_data():
+    return {"out": False, "amount": 10, "memo": f"test_memo_{get_random_string(10)}"}
