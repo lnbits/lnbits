@@ -24,6 +24,7 @@ from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
     require_admin_key,
+    require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
@@ -110,15 +111,29 @@ async def api_update_wallet(
 
 
 @core_app.get("/api/v1/payments")
-async def api_payments(limit: Optional[int]=None, offset: Optional[int]=None, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_payments(
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     pendingPayments = await get_payments(
-        wallet_id=wallet.wallet.id, pending=True, exclude_uncheckable=True, limit=limit, offset=offset
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        exclude_uncheckable=True,
+        limit=limit,
+        offset=offset,
     )
     for payment in pendingPayments:
         await check_invoice_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
-    return await get_payments(wallet_id=wallet.wallet.id, pending=True, complete=True, limit=limit, offset=offset)
+    return await get_payments(
+        wallet_id=wallet.wallet.id,
+        pending=True,
+        complete=True,
+        limit=limit,
+        offset=offset,
+    )
 
 
 class CreateInvoiceData(BaseModel):
@@ -144,6 +159,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.unit == "sat":
         amount = int(data.amount)
     else:
+        assert data.unit is not None, "unit not set"
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
         amount = price_in_sats
 
@@ -168,6 +184,9 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
         if "lnurl_balance_check" in data:
+            assert (
+                data.lnurl_balance_check is not None
+            ), "lnurl_balance_check is required"
             save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
@@ -230,12 +249,9 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
     invoiceData: CreateInvoiceData = Body(...),
 ):
-    if wallet.wallet_type < 0 or wallet.wallet_type > 2:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Key is invalid")
-
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
             raise HTTPException(
@@ -245,8 +261,14 @@ async def api_payments_create(
         return await api_payments_pay_invoice(
             invoiceData.bolt11, wallet.wallet
         )  # admin key
-    # invoice key
-    return await api_payments_create_invoice(invoiceData, wallet.wallet)
+    elif not invoiceData.out:
+        # invoice key
+        return await api_payments_create_invoice(invoiceData, wallet.wallet)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Invoice (or Admin) key required.",
+        )
 
 
 class CreateLNURLData(BaseModel):
@@ -304,7 +326,7 @@ async def api_payments_pay_lnurl(
         extra["success_action"] = params["successAction"]
     if data.comment:
         extra["comment"] = data.comment
-
+    assert data.description is not None, "description is required"
     payment_hash = await pay_invoice(
         wallet_id=wallet.wallet.id,
         payment_request=params["pr"],
@@ -321,14 +343,14 @@ async def api_payments_pay_lnurl(
 
 
 async def subscribe(request: Request, wallet: Wallet):
-    this_wallet_id = wallet.wallet.id
+    this_wallet_id = wallet.id
 
-    payment_queue = asyncio.Queue(0)
+    payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
     print("adding sse listener", payment_queue)
     api_invoice_listeners.append(payment_queue)
 
-    send_queue = asyncio.Queue(0)
+    send_queue: asyncio.Queue[tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
@@ -358,19 +380,20 @@ async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     return EventSourceResponse(
-        subscribe(request, wallet), ping=20, media_type="text/event-stream"
+        subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
     )
 
 
 @core_app.get("/api/v1/payments/{payment_hash}")
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
-    wallet = None
-    try:
-        if X_Api_Key.extra:
-            print("No key")
-    except:
-        wallet = await get_wallet_for_key(X_Api_Key)
+    # We use X_Api_Key here because we want this call to work with and without keys
+    # If a valid key is given, we also return the field "details", otherwise not
+    wallet = await get_wallet_for_key(X_Api_Key) if X_Api_Key is not None else None
     payment = await get_standalone_payment(payment_hash)
+    if payment is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
+        )
     await check_invoice_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(payment_hash)
     if not payment:
