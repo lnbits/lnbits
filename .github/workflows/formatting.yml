@@ -2,9 +2,9 @@ name: formatting
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   black:
@@ -15,9 +15,3 @@ jobs:
       - run: python3 -m venv venv
       - run: ./venv/bin/pip install black
       - run: make checkblack
-  prettier:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm install
-      - run: make checkprettier

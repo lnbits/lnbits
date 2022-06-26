@@ -109,6 +109,7 @@ async def m003_make_hash_check(db):
     """
     )
 
+
 async def m004_webhook_url(db):
     """
     Adds webhook_url

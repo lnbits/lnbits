@@ -161,7 +161,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
             ["lnbits/templates", "lnbits/core/templates", *additional_folders]
         )
     )
-        
+
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
     t.env.globals["HIDE_API"] = settings.LNBITS_HIDE_API
