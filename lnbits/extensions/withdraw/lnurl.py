@@ -114,7 +114,7 @@ async def api_lnurl_callback(
         await update_withdraw_link(link.id, **changes)
 
         payment_request = pr
-        
+
         payment_hash = await pay_invoice(
             wallet_id=link.wallet,
             payment_request=payment_request,
