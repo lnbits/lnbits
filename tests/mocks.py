@@ -13,6 +13,7 @@ from lnbits.settings import WALLET
 from lnbits.wallets.fake import FakeWallet
 
 
+# primitive event loop for generate_mock_invoice()
 def drive(c):
     while True:
         try:
@@ -21,6 +22,7 @@ def drive(c):
             return e.value
 
 
+# generates an invoice with FakeWallet
 async def generate_mock_invoice():
     invoice = await FakeWallet.create_invoice(
         FakeWallet(), amount=10, memo="mock invoice"
@@ -28,6 +30,7 @@ async def generate_mock_invoice():
     return invoice
 
 
+# finally we await it
 invoice = drive(generate_mock_invoice())
 
 WALLET.status = AsyncMock(
