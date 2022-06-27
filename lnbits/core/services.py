@@ -26,6 +26,8 @@ from .crud import (
     update_payment_status,
 )
 
+EXTRA_FEE = 0.02
+
 try:
     from typing import TypedDict  # type: ignore
 except ImportError:  # pragma: nocover
@@ -123,7 +125,7 @@ async def pay_invoice(
             # create a new payment from this wallet
             await create_payment(
                 checking_id=internal_id,
-                fee=0,
+                fee=-EXTRA_FEE * payment_kwargs["amount"],
                 pending=False,
                 conn=conn,
                 **payment_kwargs,
@@ -133,7 +135,7 @@ async def pay_invoice(
             # the balance is enough in the next step
             await create_payment(
                 checking_id=temp_id,
-                fee=-fee_reserve_msat,
+                fee=-fee_reserve_msat - EXTRA_FEE * payment_kwargs["amount"],
                 conn=conn,
                 **payment_kwargs,
             )
@@ -171,7 +173,7 @@ async def pay_invoice(
             async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
-                    fee=payment.fee_msat,
+                    fee=-abs(payment.fee_msat) - EXTRA_FEE * payment_kwargs["amount"],
                     preimage=payment.preimage,
                     pending=payment.ok == None,
                     conn=conn,
