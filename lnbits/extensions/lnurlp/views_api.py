@@ -73,6 +73,7 @@ async def api_link_retrieve(
 @lnurlp_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
     data: CreatePayLinkData,
+    request: Request,
     link_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
@@ -117,7 +118,7 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-    return {**link.dict(), "lnurl": link.lnurl}
+    return {**link.dict(), "lnurl": link.lnurl(request)}
 
 
 @lnurlp_ext.delete("/api/v1/links/{link_id}")
