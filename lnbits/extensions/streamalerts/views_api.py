@@ -123,7 +123,7 @@ async def api_create_donation(data: CreateDonation, request: Request):
         completelinktext="Back to Stream!",
         webhook=webhook_base + "/streamalerts/api/v1/postdonation",
         description=description,
-        **charge_details
+        **charge_details,
     )
     charge = await create_charge(user=charge_details["user"], data=create_charge_data)
     await create_donation(

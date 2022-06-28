@@ -76,10 +76,6 @@ async def api_link_create_or_update(
     link_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-    if data.min < 1:
-        raise HTTPException(
-            detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
-        )
 
     if data.min > data.max:
         raise HTTPException(
@@ -87,11 +83,17 @@ async def api_link_create_or_update(
         )
 
     if data.currency == None and (
-        round(data.min) != data.min or round(data.max) != data.max
+        round(data.min) != data.min or round(data.max) != data.max or data.min < 1
     ):
         raise HTTPException(
             detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
         )
+
+    # database only allows int4 entries for min and max. For fiat currencies,
+    # we multiply by data.fiat_base_multiplier (usually 100) to save the value in cents.
+    if data.currency and data.fiat_base_multiplier:
+        data.min *= data.fiat_base_multiplier
+        data.max *= data.fiat_base_multiplier
 
     if "success_url" in data and data.success_url[:8] != "https://":
         raise HTTPException(

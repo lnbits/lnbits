@@ -6,10 +6,9 @@ from typing import Any, List, NamedTuple, Optional
 import jinja2
 import shortuuid  # type: ignore
 
+import lnbits.settings as settings
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
-
-import lnbits.settings as settings
 
 
 class Extension(NamedTuple):
@@ -26,7 +25,9 @@ class Extension(NamedTuple):
 class ExtensionManager:
     def __init__(self):
         self._disabled: List[str] = settings.LNBITS_DISABLED_EXTENSIONS
-        self._admin_only: List[str] = [x.strip(' ') for x in settings.LNBITS_ADMIN_EXTENSIONS]
+        self._admin_only: List[str] = [
+            x.strip(" ") for x in settings.LNBITS_ADMIN_EXTENSIONS
+        ]
         self._extension_folders: List[str] = [
             x[1] for x in os.walk(os.path.join(settings.LNBITS_PATH, "extensions"))
         ][0]
@@ -160,6 +161,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
             ["lnbits/templates", "lnbits/core/templates", *additional_folders]
         )
     )
+
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
     t.env.globals["HIDE_API"] = settings.LNBITS_HIDE_API
@@ -170,6 +172,8 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t.env.globals["LNBITS_THEME_OPTIONS"] = settings.LNBITS_THEME_OPTIONS
     t.env.globals["LNBITS_VERSION"] = settings.LNBITS_COMMIT
     t.env.globals["EXTENSIONS"] = get_valid_extensions()
+    if settings.LNBITS_CUSTOM_LOGO:
+        t.env.globals["USE_CUSTOM_LOGO"] = settings.LNBITS_CUSTOM_LOGO
 
     if settings.DEBUG:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())

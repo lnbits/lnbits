@@ -109,7 +109,10 @@ class SparkWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            r = await self.pay(bolt11)
+            r = await self.pay(
+                bolt11=bolt11,
+                maxfee=fee_limit_msat,
+            )
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if listpays:
@@ -129,7 +132,9 @@ class SparkWallet(Wallet):
                 if pay["status"] == "failed":
                     return PaymentResponse(False, None, 0, None, str(exc))
                 elif pay["status"] == "pending":
-                    return PaymentResponse(None, payment_hash, 0, None, None)
+                    return PaymentResponse(
+                        None, payment_hash, fee_limit_msat, None, None
+                    )
                 elif pay["status"] == "complete":
                     r = pay
                     r["payment_preimage"] = pay["preimage"]

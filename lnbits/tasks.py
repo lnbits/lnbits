@@ -82,8 +82,6 @@ async def invoice_listener():
 
 
 async def check_pending_payments():
-    await delete_expired_invoices()
-
     outgoing = True
     incoming = True
 
@@ -98,6 +96,9 @@ async def check_pending_payments():
         ):
             await payment.check_pending()
 
+        # we delete expired invoices once upon the first pending check
+        if incoming:
+            await delete_expired_invoices()
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
         incoming = False
@@ -114,7 +115,7 @@ async def perform_balance_checks():
 
 
 async def invoice_callback_dispatcher(checking_id: str):
-    payment = await get_standalone_payment(checking_id)
+    payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
         await payment.set_pending(False)
         for send_chan in invoice_listeners:

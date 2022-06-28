@@ -24,7 +24,7 @@ lnurl==0.3.6
 markupsafe==2.0.1
 marshmallow==3.13.0
 outcome==1.1.0
-psycopg2-binary==2.9.1
+psycopg2==2.9.3
 pycryptodomex==3.14.1
 pydantic==1.8.2
 pypng==0.0.21
