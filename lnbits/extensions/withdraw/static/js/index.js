@@ -140,7 +140,6 @@ new Vue({
           minutes: 60,
           hours: 3600
         }[this.formDialog.secondMultiplier]
-
       if (data.id) {
         this.updateWithdrawLink(wallet, data)
       } else {
@@ -180,7 +179,8 @@ new Vue({
             'uses',
             'wait_time',
             'is_unique',
-            'webhook_url'
+            'webhook_url',
+            'custom_url'
           )
         )
         .then(function (response) {
