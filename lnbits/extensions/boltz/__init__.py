@@ -8,10 +8,8 @@ from lnbits.tasks import catch_everything_and_restart
 
 db = Database("ext_boltz")
 
-boltz_ext: APIRouter = APIRouter(
-        prefix="/boltz",
-        tags=["boltz"]
-        )
+boltz_ext: APIRouter = APIRouter(prefix="/boltz", tags=["boltz"])
+
 
 def boltz_renderer():
     return template_renderer(["lnbits/extensions/boltz/templates"])

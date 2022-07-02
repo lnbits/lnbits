@@ -14,9 +14,7 @@ from embit.networks import NETWORKS
 from embit.transaction import Transaction, TransactionInput, TransactionOutput, SIGHASH
 from binascii import unhexlify, hexlify
 
-from hashlib import (
-    sha256
-)
+from hashlib import sha256
 
 from lnbits.core.services import (
     get_wallet,
@@ -25,7 +23,7 @@ from lnbits.core.services import (
     create_invoice,
     create_payment,
     delete_payment,
-    pay_invoice
+    pay_invoice,
 )
 
 from .crud import update_swap_status
@@ -36,13 +34,14 @@ from .models import (
     CreateReverseSubmarineSwap,
     ReverseSubmarineSwap,
 )
+
 # from .settings import DEBUG
 # if DEBUG:
 #     print("debug")
 # else:
 #     print("production")
 
-net = NETWORKS['regtest']
+net = NETWORKS["regtest"]
 BOLTZ_URL = "http://boltz:9001"
 MEMPOOL_SPACE_URL = "http://mempool-web:8080"
 MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
@@ -55,10 +54,14 @@ MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
 def get_boltz_pairs():
     return create_get_request(BOLTZ_URL + "/getpairs")
 
+
 def get_boltz_status(boltzid):
-    return create_post_request(BOLTZ_URL + "/swapstatus", {
-      "id": boltzid,
-    })
+    return create_post_request(
+        BOLTZ_URL + "/swapstatus",
+        {
+            "id": boltzid,
+        },
+    )
 
 
 def get_swap_status(swap):
@@ -96,8 +99,11 @@ def get_swap_status(swap):
         "swap_id": swap.id,
         "boltz": boltz_status,
         "mempool": mempool_status,
-        "timeout_block_height": str(swap.timeout_block_height)+" -> "+str(block_height),
+        "timeout_block_height": str(swap.timeout_block_height)
+        + " -> "
+        + str(block_height),
     }
+
 
 def get_mempool_fees() -> int:
     res = httpx.get(
@@ -110,10 +116,11 @@ def get_mempool_fees() -> int:
     try:
         value = int(data["hourFee"])
     except ValueError:
-        msg = 'get_mempool_fees: ' + data["hourFee"] + ' value is not an integer'
+        msg = "get_mempool_fees: " + data["hourFee"] + " value is not an integer"
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
     return value
+
 
 def get_mempool_blockheight() -> int:
     res = httpx.get(
@@ -125,12 +132,13 @@ def get_mempool_blockheight() -> int:
     try:
         value = int(res.text)
     except ValueError:
-        msg = 'get_mempool_blockheight: ' + res.text + ' value is not an integer'
+        msg = "get_mempool_blockheight: " + res.text + " value is not an integer"
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
     return value
 
+
 async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
-    """ explanation taken from electrum
+    """explanation taken from electrum
     send on Lightning, receive on-chain
     - User generates preimage, RHASH. Sends RHASH to server.
     - Server creates an LN invoice for RHASH.
@@ -146,7 +154,7 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
     fee_reserve_msat = fee_reserve(amount_msat)
     wallet = await get_wallet(data.wallet)
     assert wallet
-    if wallet.balance_msat-fee_reserve_msat < amount_msat:
+    if wallet.balance_msat - fee_reserve_msat < amount_msat:
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )
@@ -156,14 +164,17 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
     preimage = os.urandom(32)
     preimage_hash = sha256(preimage).hexdigest()
 
-    res = create_post_request(BOLTZ_URL + "/createswap", {
-        "type": "reversesubmarine",
-        "pairId": "BTC/BTC",
-        "orderSide": "buy",
-        "invoiceAmount": data.amount,
-        "preimageHash": preimage_hash,
-        "claimPublicKey": claim_pubkey_hex
-    })
+    res = create_post_request(
+        BOLTZ_URL + "/createswap",
+        {
+            "type": "reversesubmarine",
+            "pairId": "BTC/BTC",
+            "orderSide": "buy",
+            "invoiceAmount": data.amount,
+            "preimageHash": preimage_hash,
+            "claimPublicKey": claim_pubkey_hex,
+        },
+    )
 
     # check payment again with real invoice after we created a swap
     # to include fee reserve calculation
@@ -173,29 +184,30 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
     #     raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     swap = ReverseSubmarineSwap(
-        id = swap_id,
-        amount = data.amount,
-        wallet = data.wallet,
-        onchain_address = data.onchain_address,
-        instant_settlement = data.instant_settlement,
-        claim_privkey = claim_privkey.wif(net),
-        preimage = preimage.hex(),
-        status = "pending",
-        boltz_id = res["id"],
-        timeout_block_height = res["timeoutBlockHeight"],
-        lockup_address = res["lockupAddress"],
-        onchain_amount = res["onchainAmount"],
-        redeem_script = res["redeemScript"],
-        time = getTimestamp(),
+        id=swap_id,
+        amount=data.amount,
+        wallet=data.wallet,
+        onchain_address=data.onchain_address,
+        instant_settlement=data.instant_settlement,
+        claim_privkey=claim_privkey.wif(net),
+        preimage=preimage.hex(),
+        status="pending",
+        boltz_id=res["id"],
+        timeout_block_height=res["timeoutBlockHeight"],
+        lockup_address=res["lockupAddress"],
+        onchain_amount=res["onchainAmount"],
+        redeem_script=res["redeemScript"],
+        time=getTimestamp(),
     )
 
     asyncio.ensure_future(wait_for_onchain_tx(swap, res["invoice"]))
     return swap
 
+
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
     uri = MEMPOOL_SPACE_URL_WS + f"/api/v1/ws"
     async with connect(uri) as websocket:
-        await websocket.send(json.dumps({'track-address': swap.lockup_address }))
+        await websocket.send(json.dumps({"track-address": swap.lockup_address}))
 
         # create_task is used because pay_invoice is stuck as long as boltz does not
         # see the onchain claim tx and it ends up in deadlock
@@ -215,7 +227,9 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
             print("index error in mempool address-transactions")
             print(repr(e))
             return
-            raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="no txs in mempool")
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="no txs in mempool"
+            )
 
         mempool_lockup_tx = get_mempool_tx_from_txs(txs, swap.lockup_address)
         if mempool_lockup_tx:
@@ -226,7 +240,6 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
                 await update_swap_status(swap, "complete")
             except:
                 await update_swap_status(swap, "failed")
-
 
 
 async def create_refund_tx(swap: SubmarineSwap):
@@ -247,15 +260,17 @@ def get_mempool_tx_status(address):
             status = "transaction.unconfirmed"
     return status
 
+
 def get_mempool_tx(address):
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/address/"+address+"/txs",
+        MEMPOOL_SPACE_URL + "/api/address/" + address + "/txs",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
     handle_request_errors(res)
     txs = json.loads(res.text)
     return get_mempool_tx_from_txs(txs, address)
+
 
 def get_mempool_tx_from_txs(txs, address):
     if len(txs) == 0:
@@ -275,22 +290,30 @@ def get_mempool_tx_from_txs(txs, address):
             i += 1
     # should never happen
     if tx == None:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="tx not found")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="tx not found"
+        )
     if txid == None:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="txid not found")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="txid not found"
+        )
     if vout_cnt == None:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="vout_cnt not found")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="vout_cnt not found"
+        )
     return tx, txid, vout_cnt, vout_amount
+
 
 async def send_onchain_tx(tx: Transaction):
     res = httpx.post(
-        MEMPOOL_SPACE_URL+"/api/tx",
+        MEMPOOL_SPACE_URL + "/api/tx",
         headers={"Content-Type": "text/plain"},
         data=hexlify(tx.serialize()),
         timeout=40,
     )
     handle_request_errors(res)
     return res
+
 
 # send on on-chain, receive lightning
 async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
@@ -307,28 +330,32 @@ async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
     refund_privkey = ec.PrivateKey(os.urandom(32), True, net)
     refund_pubkey_hex = hexlify(refund_privkey.sec()).decode("UTF-8")
 
-    res = create_post_request(BOLTZ_URL + "/createswap", {
-      "type": "submarine",
-      "pairId": "BTC/BTC",
-      "orderSide": "sell",
-      "refundPublicKey": refund_pubkey_hex,
-      "invoice": payment_request
-    })
+    res = create_post_request(
+        BOLTZ_URL + "/createswap",
+        {
+            "type": "submarine",
+            "pairId": "BTC/BTC",
+            "orderSide": "sell",
+            "refundPublicKey": refund_pubkey_hex,
+            "invoice": payment_request,
+        },
+    )
 
     return SubmarineSwap(
-        id = swap_id,
-        time = getTimestamp(),
-        wallet = data.wallet,
-        amount = data.amount,
-        refund_privkey = refund_privkey.wif(net),
-        boltz_id = res["id"],
-        status = "pending",
-        address = res["address"],
-        expected_amount = res["expectedAmount"],
-        timeout_block_height = res["timeoutBlockHeight"],
-        bip21 = res["bip21"],
-        redeem_script = res["redeemScript"],
+        id=swap_id,
+        time=getTimestamp(),
+        wallet=data.wallet,
+        amount=data.amount,
+        refund_privkey=refund_privkey.wif(net),
+        boltz_id=res["id"],
+        status="pending",
+        address=res["address"],
+        expected_amount=res["expectedAmount"],
+        timeout_block_height=res["timeoutBlockHeight"],
+        bip21=res["bip21"],
+        redeem_script=res["redeemScript"],
     )
+
 
 def get_fee_estimation() -> int:
     # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
@@ -336,17 +363,18 @@ def get_fee_estimation() -> int:
     mempool_fees = get_mempool_fees()
     return mempool_fees * tx_size_vbyte
 
+
 # claim tx for reverse swaps
 # refund tx for normal swaps
-async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], mempool_lockup_tx) -> Transaction:
+async def create_onchain_tx(
+    swap: Union[ReverseSubmarineSwap, SubmarineSwap], mempool_lockup_tx
+) -> Transaction:
 
     if type(swap) == SubmarineSwap:
         current_block_height = get_mempool_blockheight()
         if current_block_height <= swap.timeout_block_height:
             msg = f"refund not possible, timeout_block_height ({swap.timeout_block_height}) is not yet exceeded ({current_block_height})"
-            raise HTTPException(
-                status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=msg
-            )
+            raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=msg)
         privkey = ec.PrivateKey.from_wif(swap.refund_privkey)
         preimage = b""
         onchain_address = swap.address
@@ -356,7 +384,6 @@ async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], me
         preimage = unhexlify(swap.preimage)
         onchain_address = swap.lockup_address
         sequence = 0xFFFFFFFF
-
 
     locktime = swap.timeout_block_height
     redeem_script = unhexlify(swap.redeem_script)
@@ -368,7 +395,7 @@ async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], me
     script_pubkey = script.address_to_scriptpubkey(onchain_address)
 
     vin = [TransactionInput(unhexlify(txid), vout_cnt, sequence=sequence)]
-    vout = [TransactionOutput(vout_amount-fees, script_pubkey)]
+    vout = [TransactionOutput(vout_amount - fees, script_pubkey)]
     tx = Transaction(vin=vin, vout=vout)
 
     if type(swap) == SubmarineSwap:
@@ -382,20 +409,22 @@ async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], me
             # OP_0 == 0
             # OP_PUSHDATA34 == 34
             # OP_PUSHDATA35 == 35
-            rs = bytes([34])+bytes([0])+bytes([32])+sha256(redeem_script).digest()
+            rs = bytes([34]) + bytes([0]) + bytes([32]) + sha256(redeem_script).digest()
             tx.vin[i].script_sig = script.Script(data=rs)
         h = tx.sighash_segwit(i, s, vout_amount)
         sig = privkey.sign(h).serialize() + bytes([SIGHASH.ALL])
-        witness_items = [ sig, preimage, redeem_script ]
+        witness_items = [sig, preimage, redeem_script]
         tx.vin[i].witness = script.Witness(items=witness_items)
 
     return tx
+
 
 def getTimestamp():
     date = datetime.datetime.utcnow()
     return calendar.timegm(date.utctimetuple())
 
-def create_post_request(url, payload = {}):
+
+def create_post_request(url, payload={}):
     payload["referralId"] = "lnbits"
     res = httpx.post(
         url,
@@ -406,6 +435,7 @@ def create_post_request(url, payload = {}):
     handle_request_errors(res)
     return res.json()
 
+
 def create_get_request(url):
     res = httpx.get(
         url,
@@ -415,6 +445,7 @@ def create_get_request(url):
     handle_request_errors(res)
     return res.json()
 
+
 def handle_request_errors(res):
     try:
         res.raise_for_status()
@@ -423,9 +454,7 @@ def handle_request_errors(res):
         if content:
             content = f" Content: {content}"
         msg = f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.{content}"
-        raise HTTPException(
-            status_code=exc.response.status_code, detail=msg
-        )
+        raise HTTPException(status_code=exc.response.status_code, detail=msg)
 
 
 # async def check_balance(wallet, amount, res):

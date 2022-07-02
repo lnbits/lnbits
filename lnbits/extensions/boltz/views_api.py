@@ -42,9 +42,11 @@ from .crud import (
     get_reverse_submarine_swap,
 )
 
+
 @boltz_ext.get("/api/v1/mempool-url")
 async def api_mempool_url():
     return MEMPOOL_SPACE_URL
+
 
 # NORMAL SWAP
 @boltz_ext.get("/api/v1/submarineswap")
@@ -57,6 +59,7 @@ async def api_submarineswap(
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
+
 @boltz_ext.get("/api/v1/submarineswap-refund/{submarineSwapId}")
 async def api_submarineswap_refund(submarineSwapId: str):
     swap = await get_submarine_swap(submarineSwapId)
@@ -68,15 +71,16 @@ async def api_submarineswap_refund(submarineSwapId: str):
     await update_swap_status(swap, "refunded")
     return swap
 
+
 @boltz_ext.post("/api/v1/submarineswap")
 async def api_submarineswap_create(
-    data: CreateSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateSubmarineSwap, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     swap_id = urlsafe_short_hash()
     data = await create_swap(swap_id, data)
     swap = await create_submarine_swap(data)
     return swap.dict()
+
 
 # REVERSE SWAP
 @boltz_ext.get("/api/v1/reverse-submarineswap")
@@ -89,10 +93,11 @@ async def api_reverse_submarineswap(
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     return [swap.dict() for swap in await get_reverse_submarine_swaps(wallet_ids)]
 
+
 @boltz_ext.post("/api/v1/reverse-submarineswap")
 async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key)
+    wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     swap_id = urlsafe_short_hash()
     data = await create_reverse_swap(swap_id, data)
@@ -126,6 +131,7 @@ async def api_check_swaps(
         if swap.status == "pending":
             status.append(get_swap_status(swap))
     return status
+
 
 @boltz_ext.get("/api/v1/boltz-config")
 async def api_boltz_config():
