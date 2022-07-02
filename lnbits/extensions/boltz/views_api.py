@@ -39,6 +39,7 @@ from .crud import (
     get_reverse_submarine_swap,
 )
 
+
 @boltz_ext.get("/api/v1/mempool-url")
 async def api_mempool_url():
     return MEMPOOL_SPACE_URL

@@ -35,6 +35,7 @@ from .models import (
     CreateReverseSubmarineSwap,
     ReverseSubmarineSwap,
 )
+
 # from .settings import DEBUG
 # if DEBUG:
 #     print("debug")
@@ -62,6 +63,7 @@ def get_boltz_pairs():
 
 def get_boltz_pairs():
     return create_get_request(BOLTZ_URL + "/getpairs")
+
 
 def get_boltz_status(boltzid):
     return create_post_request(
@@ -149,8 +151,11 @@ def get_swap_status(swap):
         "swap_id": swap.id,
         "boltz": boltz_status,
         "mempool": mempool_status,
-        "timeout_block_height": str(swap.timeout_block_height)+" -> "+str(block_height),
+        "timeout_block_height": str(swap.timeout_block_height)
+        + " -> "
+        + str(block_height),
     }
+
 
 def get_mempool_fees() -> int:
     res = httpx.get(
@@ -409,6 +414,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         bip21=res["bip21"],
         redeem_script=res["redeemScript"],
     )
+
 
 def get_fee_estimation() -> int:
     # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
