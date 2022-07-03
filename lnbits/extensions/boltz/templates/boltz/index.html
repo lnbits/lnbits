@@ -484,10 +484,12 @@
               align: 'left',
               label: 'wallet',
               field: (data) => {
-                return this.g.user.wallets.filter(function(w) {
-                  console.log(w.id, data.wallet, w.id === data.wallet);
+                var wallet = this.g.user.wallets.filter(function(w) {
                   return w.id === data.wallet;
-                })[0].name;
+                });
+                if (wallet.length > 0) {
+                  return wallet[0].name;
+                }
               },
             },
             {
