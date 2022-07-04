@@ -8,7 +8,7 @@ from lnbits.core import db as core_db
 from lnbits.core.crud import get_wallet
 from lnbits.core.models import Payment
 from lnbits.core.services import pay_invoice
-from lnbits.core.views.api import api_payments_decode
+from lnbits.core.views.api import api_payments_decode, DecodePayment
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_lnurlpayout_from_wallet
@@ -40,7 +40,7 @@ async def on_invoice_paid(payment: Payment) -> None:
             # Get the invoice from the LNURL to pay
             async with httpx.AsyncClient() as client:
                 try:
-                    url = await api_payments_decode({"data": lnurlpayout_link.lnurlpay})
+                    url = await api_payments_decode(DecodePayment(data=lnurlpayout_link.lnurlpay))
                     if str(url["domain"])[0:4] != "http":
                         raise HTTPException(
                             status_code=HTTPStatus.FORBIDDEN, detail="LNURL broken"
@@ -54,7 +54,7 @@ async def on_invoice_paid(payment: Payment) -> None:
                                 res["callback"]
                                 + "?amount="
                                 + str(
-                                    int((wallet.balance - wallet.balance * 0.02) * 1000)
+                                    int((wallet.balance - wallet.balance * 0.02)) * 1000
                                 ),
                                 timeout=40,
                             )
