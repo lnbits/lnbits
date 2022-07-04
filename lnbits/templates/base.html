@@ -51,6 +51,11 @@
             >
           </q-badge>
           {% endblock %}
+          <q-badge v-if="g.offline" color="red" text-color="white" class="q-mr-md">
+            <span>
+              OFFLINE
+            </span>
+          </q-badge>
           <q-btn-dropdown
             v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense

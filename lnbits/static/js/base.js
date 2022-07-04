@@ -315,6 +315,7 @@ window.windowMixin = {
   data: function () {
     return {
       g: {
+        offline: !navigator.onLine,
         visibleDrawer: false,
         extensions: [],
         user: null,
@@ -353,6 +354,14 @@ window.windowMixin = {
       this.$q.dark.set(true)
     }
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
+
+    addEventListener('offline', event => { 
+      this.g.offline = true
+    })
+
+    addEventListener('online', event => {
+      this.g.offline = false
+    })
 
     // failsafe if admin changes themes halfway
     if (!this.$q.localStorage.getItem('lnbits.theme')){
