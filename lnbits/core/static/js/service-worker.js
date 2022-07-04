@@ -1,12 +1,10 @@
 // the cache version gets updated every time there is a new deployment
 const CACHE_VERSION = 1;
-const CURRENT_CACHE = `lnbits-${CACHE_VERSION}`;
+const CURRENT_CACHE = `lnbits-${CACHE_VERSION}-`;
 
-// these are the routes we are going to cache for offline support
-const cacheFiles = [
-  '/core/static/js/wallet.js',
-  '/core/static/js/extensions.js',
-];
+const getApiKey = (request) => {
+  return request.headers.get('X-Api-Key') || "none"
+}
 
 // on activation we clean up the previously registered service workers
 self.addEventListener('activate', evt =>
@@ -14,20 +12,12 @@ self.addEventListener('activate', evt =>
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CURRENT_CACHE) {
+          const currentCacheVersion = cacheName.split('-').slice(-2)
+          if (currentCacheVersion !== CACHE_VERSION) {
             return caches.delete(cacheName);
           }
         })
       );
-    })
-  )
-);
-
-// on install we download the routes we want to cache for offline
-self.addEventListener('install', evt =>
-  evt.waitUntil(
-    caches.open(CURRENT_CACHE).then(cache => {
-      return cache.addAll(cacheFiles);
     })
   )
 );
@@ -46,7 +36,7 @@ const fromNetwork = (request, timeout) =>
 // fetch the resource from the browser cache
 const fromCache = request =>
   caches
-    .open(CURRENT_CACHE)
+    .open(CURRENT_CACHE + getApiKey(request))
     .then(cache =>
       cache
         .match(request)
@@ -56,7 +46,7 @@ const fromCache = request =>
 // cache the current page to make it available for offline
 const update = request =>
   caches
-    .open(CURRENT_CACHE)
+    .open(CURRENT_CACHE + getApiKey(request))
     .then(cache =>
       fetch(request).then(response => cache.put(request, response))
     );
