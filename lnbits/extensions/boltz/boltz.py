@@ -320,6 +320,7 @@ async def send_onchain_tx(tx: Transaction):
 
 # send on on-chain, receive lightning
 async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
+    swap_id = urlsafe_short_hash()
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=data.wallet,
