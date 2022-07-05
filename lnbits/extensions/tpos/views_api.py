@@ -52,7 +52,9 @@ async def api_tpos_delete(
 
 
 @tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices", status_code=HTTPStatus.CREATED)
-async def api_tpos_create_invoice(amount: int = Query(..., ge=1), tipAmount: int = None, tpos_id: str = None):
+async def api_tpos_create_invoice(
+    amount: int = Query(..., ge=1), tipAmount: int = None, tpos_id: str = None
+):
     tpos = await get_tpos(tpos_id)
 
     if not tpos:
