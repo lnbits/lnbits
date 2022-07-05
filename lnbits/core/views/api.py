@@ -424,7 +424,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
 @core_app.get(
     "/api/v1/lnurlscan/{code}", dependencies=[Depends(WalletInvoiceKeyChecker())]
 )
-async def api_lnurlscan(code: str):
+async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(require_admin_key)):
     try:
         url = lnurl.decode(code)
         domain = urlparse(url).netloc
@@ -452,7 +452,7 @@ async def api_lnurlscan(code: str):
         params.update(kind="auth")
         params.update(callback=url)  # with k1 already in it
 
-        lnurlauth_key = g().wallet.lnurlauth_key(domain)
+        lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
@@ -568,8 +568,8 @@ async def api_payments_decode(data: DecodePayment):
         return {"message": "Failed to decode"}
 
 
-@core_app.post("/api/v1/lnurlauth", dependencies=[Depends(WalletAdminKeyChecker())])
-async def api_perform_lnurlauth(callback: str):
+@core_app.post("/api/v1/lnurlauth")
+async def api_perform_lnurlauth(callback: str, wallet: WalletTypeInfo = Depends(require_admin_key)):
     err = await perform_lnurlauth(callback)
     if err:
         raise HTTPException(
