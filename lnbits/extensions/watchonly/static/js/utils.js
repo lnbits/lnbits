@@ -88,7 +88,7 @@ const guessAddressType = (a = '') => {
     return a.length === 42 ? 'p2wpkh' : 'p2wsh'
   if (a.startsWith('bc1p') || a.startsWith('tb1p')) return 'p2tr'
 }
-// bc1qwpdwyaqweavs5fpa8rujqaxmrmt9lvmydmcnt7
+
 const ACCOUNT_TYPES = {
   p2tr: 'Taproot, BIP86, P2TR, Bech32m',
   p2wpkh: 'SegWit, BIP84, P2WPKH, Bech32',
