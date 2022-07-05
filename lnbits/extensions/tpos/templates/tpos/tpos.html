@@ -1,7 +1,5 @@
 <link rel="manifest" href="/tpos/manifest/{{ tpos.id }}.webmanifest" />
-{% extends "public.html" %} 
-{% block toolbar_title %}
-{{ tpos.name }}
+{% extends "public.html" %} {% block toolbar_title %} {{ tpos.name }}
 <q-btn
   flat
   dense
@@ -10,8 +8,7 @@
   icon="share"
   color="white"
 ></q-btn>
-{% endblock %} 
-{% block footer %}{% endblock %} {% block page_container %}
+{% endblock %} {% block footer %}{% endblock %} {% block page_container %}
 <q-page-container>
   <q-page>
     <q-page-sticky v-if="exchangeRate" expand position="top">
@@ -180,27 +177,24 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog
-      v-model="tipDialog.show"
-      position="top"
-    >
+    <q-dialog v-model="tipDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
         <div class="text-center q-mb-xl">
-         <b style="font-size: 24px;">Would you like to leave a tip?</b>
+          <b style="font-size: 24px">Would you like to leave a tip?</b>
         </div>
         <div class="text-center q-mb-xl">
-         <q-btn
-         style="padding: 10px; margin: 3px;"
-          unelevated
-          @click="processTipSelection(tip)"
-          size="xl"
-          :outline="!($q.dark.isActive)"
-          rounded
-          color="primary"
-          v-for="tip in this.tip_options" 
-          :key="tip"
-          >{% raw %}{{ tip }}{% endraw %}%</q-btn
-        >
+          <q-btn
+            style="padding: 10px; margin: 3px"
+            unelevated
+            @click="processTipSelection(tip)"
+            size="xl"
+            :outline="!($q.dark.isActive)"
+            rounded
+            color="primary"
+            v-for="tip in this.tip_options"
+            :key="tip"
+            >{% raw %}{{ tip }}{% endraw %}%</q-btn
+          >
         </div>
         <div class="text-center q-mb-xl">
           <p><a @click="processTipSelection(0)"> No, thanks</a></p>
@@ -265,7 +259,7 @@
   }
 
   .keypad .btn-confirm {
-     grid-area: 1 / 4 / 5 / 4;
+    grid-area: 1 / 4 / 5 / 4;
   }
 </style>
 {% endblock %} {% block scripts %}
@@ -282,7 +276,7 @@
         tip_options: JSON.parse('{{ tpos.tip_options }}'),
         exchangeRate: null,
         stack: [],
-        tipAmount: 0.00,
+        tipAmount: 0.0,
         invoiceDialog: {
           show: false,
           data: null,
@@ -290,7 +284,7 @@
           paymentChecker: null
         },
         tipDialog: {
-          show: false,
+          show: false
         },
         urlDialog: {
           show: false
@@ -324,7 +318,7 @@
     methods: {
       closeInvoiceDialog: function () {
         this.stack = []
-        this.tipAmount = 0.00
+        this.tipAmount = 0.0
         var dialog = this.invoiceDialog
         setTimeout(function () {
           clearInterval(dialog.paymentChecker)
@@ -334,8 +328,10 @@
       processTipSelection: function (selectedTipOption) {
         this.tipDialog.show = false
 
-        if(selectedTipOption) {
-          const tipAmount = parseFloat(parseFloat((selectedTipOption / 100) * this.amount))
+        if (selectedTipOption) {
+          const tipAmount = parseFloat(
+            parseFloat((selectedTipOption / 100) * this.amount)
+          )
           const subtotal = parseFloat(this.amount)
           const grandTotal = parseFloat((tipAmount + subtotal).toFixed(2))
           const totalString = grandTotal.toFixed(2).toString()
@@ -344,7 +340,7 @@
           for (var i = 0; i < totalString.length; i++) {
             const char = totalString[i]
 
-            if(char !== ".") {
+            if (char !== '.') {
               this.stack.push(char)
             }
           }
@@ -354,14 +350,14 @@
 
         this.showInvoice()
       },
-      submitForm: function() {
-        if(this.tip_options.length) {
+      submitForm: function () {
+        if (this.tip_options.length) {
           this.showTipModal()
         } else {
           this.showInvoice()
         }
       },
-      showTipModal: function() {
+      showTipModal: function () {
         this.tipDialog.show = true
       },
       showInvoice: function () {
@@ -372,7 +368,7 @@
           .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
             params: {
               amount: this.sat,
-              tipAmount: this.tipAmountSat,
+              tipAmount: this.tipAmountSat
             }
           })
           .then(function (response) {

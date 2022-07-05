@@ -60,12 +60,13 @@
           <code>[&lt;charge_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X POST {{ request.base_url }}satspay/api/v1/charge/&lt;charge_id&gt;
-            -d '{"onchainwallet": &lt;string, watchonly_wallet_id&gt;,
-            "description": &lt;string&gt;, "webhook":&lt;string&gt;, "time":
-            &lt;integer&gt;, "amount": &lt;integer&gt;, "lnbitswallet":
-            &lt;string, lnbits_wallet_id&gt;}' -H "Content-type:
-            application/json" -H "X-Api-Key: {{user.wallets[0].adminkey }}"
+            >curl -X POST {{ request.base_url
+            }}satspay/api/v1/charge/&lt;charge_id&gt; -d '{"onchainwallet":
+            &lt;string, watchonly_wallet_id&gt;, "description": &lt;string&gt;,
+            "webhook":&lt;string&gt;, "time": &lt;integer&gt;, "amount":
+            &lt;integer&gt;, "lnbitswallet": &lt;string, lnbits_wallet_id&gt;}'
+            -H "Content-type: application/json" -H "X-Api-Key:
+            {{user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -89,8 +90,9 @@
           <code>[&lt;charge_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}satspay/api/v1/charge/&lt;charge_id&gt;
-            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url
+            }}satspay/api/v1/charge/&lt;charge_id&gt; -H "X-Api-Key: {{
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -112,8 +114,8 @@
           <code>[&lt;charge_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}satspay/api/v1/charges -H "X-Api-Key: {{
-            user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url }}satspay/api/v1/charges -H
+            "X-Api-Key: {{ user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -145,7 +147,8 @@
     </q-expansion-item>
     <q-expansion-item
       group="api"
-      dense expand-separator
+      dense
+      expand-separator
       label="Get balances"
       class="q-pb-md"
     >

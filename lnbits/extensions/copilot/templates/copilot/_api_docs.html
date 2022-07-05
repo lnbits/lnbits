@@ -31,8 +31,8 @@
           <code>[&lt;copilot_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X POST {{ request.base_url }}copilot/api/v1/copilot -d '{"title":
-            &lt;string&gt;, "animation": &lt;string&gt;,
+            >curl -X POST {{ request.base_url }}copilot/api/v1/copilot -d
+            '{"title": &lt;string&gt;, "animation": &lt;string&gt;,
             "show_message":&lt;string&gt;, "amount": &lt;integer&gt;,
             "lnurl_title": &lt;string&gt;}' -H "Content-type: application/json"
             -H "X-Api-Key: {{user.wallets[0].adminkey }}"
@@ -59,11 +59,11 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X POST {{ request.base_url
-            }}copilot/api/v1/copilot/&lt;copilot_id&gt; -d '{"title": &lt;string&gt;,
-            "animation": &lt;string&gt;, "show_message":&lt;string&gt;,
-            "amount": &lt;integer&gt;, "lnurl_title": &lt;string&gt;}' -H
-            "Content-type: application/json" -H "X-Api-Key:
-            {{user.wallets[0].adminkey }}"
+            }}copilot/api/v1/copilot/&lt;copilot_id&gt; -d '{"title":
+            &lt;string&gt;, "animation": &lt;string&gt;,
+            "show_message":&lt;string&gt;, "amount": &lt;integer&gt;,
+            "lnurl_title": &lt;string&gt;}' -H "Content-type: application/json"
+            -H "X-Api-Key: {{user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -87,8 +87,9 @@
           <code>[&lt;copilot_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}copilot/api/v1/copilot/&lt;copilot_id&gt;
-            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url
+            }}copilot/api/v1/copilot/&lt;copilot_id&gt; -H "X-Api-Key: {{
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -110,8 +111,8 @@
           <code>[&lt;copilot_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}copilot/api/v1/copilots -H "X-Api-Key: {{
-            user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url }}copilot/api/v1/copilots -H
+            "X-Api-Key: {{ user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -161,9 +162,10 @@
           <code></code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}copilot/api/v1/copilot/ws/&lt;string,
-            copilot_id&gt;/&lt;string, comment&gt;/&lt;string, gif name&gt; -H
-            "X-Api-Key: {{ user.wallets[0].adminkey }}"
+            >curl -X GET {{ request.base_url
+            }}copilot/api/v1/copilot/ws/&lt;string, copilot_id&gt;/&lt;string,
+            comment&gt;/&lt;string, gif name&gt; -H "X-Api-Key: {{
+            user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
