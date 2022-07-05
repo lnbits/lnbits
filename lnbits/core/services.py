@@ -243,12 +243,12 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str, conn: Optional[Connection] = None
+    callback: str, wallet, conn: Optional[Connection] = None
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
-
+    
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
-    key = g().wallet.lnurlauth_key(cb.netloc)
+    key = wallet.wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""
