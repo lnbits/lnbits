@@ -145,6 +145,7 @@ async def wallet(
             "user": user.dict(),
             "wallet": wallet.dict(),
             "service_fee": service_fee,
+            "web_manifest": f"/manifest/{user.id}.webmanifest"
         },
     )
 

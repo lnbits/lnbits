@@ -16,6 +16,10 @@
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    {% if web_manifest %}
+      <link async="async" rel="manifest" href="{{ web_manifest }}" />
+    {% endif %}
+
     {% block head_scripts %}{% endblock %}
   </head>
 
