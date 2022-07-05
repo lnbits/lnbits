@@ -37,8 +37,8 @@
         <code>[&lt;jukebox_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}jukebox/api/v1/jukebox -H "X-Api-Key: {{
-          user.wallets[0].adminkey }}"
+          >curl -X GET {{ request.base_url }}jukebox/api/v1/jukebox -H
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -59,8 +59,9 @@
         <code>&lt;jukebox_object&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}jukebox/api/v1/jukebox/&lt;juke_id&gt; -H
-          "X-Api-Key: {{ user.wallets[0].adminkey }}"
+          >curl -X GET {{ request.base_url
+          }}jukebox/api/v1/jukebox/&lt;juke_id&gt; -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -86,8 +87,8 @@
         <code>&lt;jukbox_object&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}jukebox/api/v1/jukebox/ -d '{"user":
-          &lt;string, user_id&gt;, "title": &lt;string&gt;,
+          >curl -X POST {{ request.base_url }}jukebox/api/v1/jukebox/ -d
+          '{"user": &lt;string, user_id&gt;, "title": &lt;string&gt;,
           "wallet":&lt;string&gt;, "sp_user": &lt;string,
           spotify_user_account&gt;, "sp_secret": &lt;string,
           spotify_user_secret&gt;, "sp_access_token": &lt;string,
@@ -116,8 +117,9 @@
         <code>&lt;jukebox_object&gt;</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.base_url }}jukebox/api/v1/jukebox/&lt;juke_id&gt;
-          -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
+          >curl -X DELETE {{ request.base_url
+          }}jukebox/api/v1/jukebox/&lt;juke_id&gt; -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
