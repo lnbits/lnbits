@@ -25,17 +25,14 @@ RUN pip install lndgrpc
 # Production image
 FROM python:3.7-slim as lnbits
 
-# Run as non-root
-USER 1000:1000
-
 # Copy over virtualenv
 ENV VIRTUAL_ENV="/opt/venv"
-COPY --from=builder --chown=1000:1000 $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Copy in app source
 WORKDIR /app
-COPY --chown=1000:1000 lnbits /app/lnbits
+COPY lnbits /app/lnbits
 
 ENV LNBITS_PORT="5000"
 ENV LNBITS_HOST="0.0.0.0"
