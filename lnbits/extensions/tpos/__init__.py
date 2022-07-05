@@ -14,9 +14,11 @@ tpos_ext: APIRouter = APIRouter(prefix="/tpos", tags=["TPoS"])
 def tpos_renderer():
     return template_renderer(["lnbits/extensions/tpos/templates"])
 
+
 from .tasks import wait_for_paid_invoices
 from .views_api import *  # noqa
 from .views import *  # noqa
+
 
 def tpos_start():
     loop = asyncio.get_event_loop()

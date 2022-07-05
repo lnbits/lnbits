@@ -13,6 +13,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_addtip_wallet(db):
     """
     Add tips to tposs table
@@ -22,6 +23,7 @@ async def m002_addtip_wallet(db):
         ALTER TABLE tpos.tposs ADD tip_wallet TEXT NULL;
     """
     )
+
 
 async def m003_addtip_options(db):
     """

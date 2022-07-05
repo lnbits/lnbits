@@ -13,7 +13,14 @@ async def create_tpos(wallet_id: str, data: CreateTposData) -> TPoS:
         INSERT INTO tpos.tposs (id, wallet, name, currency, tip_options, tip_wallet)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (tpos_id, wallet_id, data.name, data.currency, data.tip_options, data.tip_wallet),
+        (
+            tpos_id,
+            wallet_id,
+            data.name,
+            data.currency,
+            data.tip_options,
+            data.tip_wallet,
+        ),
     )
 
     tpos = await get_tpos(tpos_id)

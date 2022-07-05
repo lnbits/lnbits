@@ -30,7 +30,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     tipAmount = payment.extra.get("tipAmount")
 
     if tipAmount is None:
-        #no tip amount
+        # no tip amount
         return
 
     tipAmount = tipAmount * 1000

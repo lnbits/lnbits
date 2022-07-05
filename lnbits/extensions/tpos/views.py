@@ -38,6 +38,7 @@ async def tpos(request: Request, tpos_id):
         "tpos/tpos.html", {"request": request, "tpos": tpos}
     )
 
+
 @tpos_ext.get("/manifest/{tpos_id}.webmanifest")
 async def manifest(tpos_id: str):
     tpos = await get_tpos(tpos_id)
@@ -48,10 +49,12 @@ async def manifest(tpos_id: str):
 
     return {
         "short_name": LNBITS_SITE_TITLE,
-        "name": tpos.name + ' - ' + LNBITS_SITE_TITLE,
+        "name": tpos.name + " - " + LNBITS_SITE_TITLE,
         "icons": [
             {
-                "src": LNBITS_CUSTOM_LOGO if LNBITS_CUSTOM_LOGO else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
+                "src": LNBITS_CUSTOM_LOGO
+                if LNBITS_CUSTOM_LOGO
+                else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
                 "type": "image/png",
                 "sizes": "900x900",
             }
@@ -64,9 +67,9 @@ async def manifest(tpos_id: str):
         "theme_color": "#1F2234",
         "shortcuts": [
             {
-                "name": tpos.name + ' - ' + LNBITS_SITE_TITLE,
+                "name": tpos.name + " - " + LNBITS_SITE_TITLE,
                 "short_name": tpos.name,
-                "description": tpos.name + ' - ' + LNBITS_SITE_TITLE,
+                "description": tpos.name + " - " + LNBITS_SITE_TITLE,
                 "url": "/tpos/" + tpos_id,
             }
         ],
