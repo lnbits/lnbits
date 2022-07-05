@@ -7,6 +7,7 @@
       {% for one in page %}
       <div class="wrapper">
         <img src="{{custom_url}}" alt="..." />
+        <span>{{ amt }} sats</span>
         <div class="lnurlw">
           <qrcode :value="'{{one}}'" :options="{width: 95, margin: 1}"></qrcode>
         </div>
@@ -18,6 +19,7 @@
 </div>
 {% endblock %} {% block styles %}
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400');
   body {
     background: rgb(204, 204, 204);
   }
@@ -36,6 +38,16 @@
     position: relative;
     margin-bottom: 1rem;
     padding: 1rem;
+    width: fit-content;
+  }
+  .wrapper span {
+    display: block;
+    position: absolute;
+    font-family: 'Inter';
+    font-size: 0.75rem;
+    color: #fff;
+    top: calc(3.2mm + 1rem);
+    right: calc(4mm + 1rem);
   }
   .wrapper img {
     display: block;
@@ -60,6 +72,10 @@
     .q-page,
     .wrapper {
       padding: 0px !important;
+    }
+    .wrapper span {
+      top: 3mm;
+      right: 4mm;
     }
     .wrapper .lnurlw {
       display: block;

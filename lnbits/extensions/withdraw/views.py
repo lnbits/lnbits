@@ -101,7 +101,7 @@ async def print_qr(request: Request, link_id):
 
     if link.custom_url:
         return withdraw_renderer().TemplateResponse(
-        "withdraw/print_qr_custom.html", {"request": request, "link": page_link, "unique": True, "custom_url": link.custom_url}
+        "withdraw/print_qr_custom.html", {"request": request, "link": page_link, "unique": True, "custom_url": link.custom_url, "amt": link.max_withdrawable}
         )
 
     return withdraw_renderer().TemplateResponse(
