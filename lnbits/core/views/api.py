@@ -584,7 +584,7 @@ async def api_payments_decode(data: DecodePayment):
 
 @core_app.post("/api/v1/lnurlauth")
 async def api_perform_lnurlauth(callback: str, wallet: WalletTypeInfo = Depends(require_admin_key)):
-    err = await perform_lnurlauth(callback)
+    err = await perform_lnurlauth(callback, wallet)
     if err:
         raise HTTPException(
             status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail=err.reason
