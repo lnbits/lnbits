@@ -7,6 +7,7 @@ db = Database("ext_admin")
 
 admin_ext: APIRouter = APIRouter(prefix="/admin", tags=["admin"])
 
+
 def admin_renderer():
     return template_renderer(["lnbits/extensions/admin/templates"])
 

@@ -7,17 +7,19 @@ from lnbits.helpers import urlsafe_short_hash
 
 
 async def get_admin_user():
-    if(conf.admin_users[0]):
+    if conf.admin_users[0]:
         return conf.admin_users[0]
     from lnbits.core.crud import create_account, get_user
+
     print("Seems like there's no admin users yet. Let's create an account for you!")
     account = await create_account()
     user = account.id
     assert user, "Newly created user couldn't be retrieved"
-    print(f"Your newly created account/user id is: {user}. This will be the Super Admin user.")
+    print(
+        f"Your newly created account/user id is: {user}. This will be the Super Admin user."
+    )
     conf.admin_users.insert(0, user)
     return user
-
 
 
 async def m001_create_admin_table(db):
@@ -28,7 +30,7 @@ async def m001_create_admin_table(db):
     admin_ext = ",".join(conf.admin_ext)
     disabled_ext = ",".join(conf.disabled_ext)
     funding_source = conf.funding_source
-    #operational
+    # operational
     data_folder = conf.data_folder
     database_url = conf.database_url
     force_https = conf.force_https
