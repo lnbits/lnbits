@@ -356,7 +356,7 @@ window.windowMixin = {
     }
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
-    addEventListener('offline', event => { 
+    addEventListener('offline', event => {
       this.g.offline = true
     })
 
