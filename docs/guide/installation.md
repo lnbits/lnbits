@@ -116,36 +116,32 @@ If you want to run LNbits on your Umbrel but want it to be reached through clear
 
 ### Docker installation
 
-To install using docker you first need to build the docker image as:
+Arguably simplest and most reproducible way to install lnbits on your computer is to use docker-compose based setup. This gets lnbits up and running in minutes by running this commands:
 
 ```
 git clone https://github.com/lnbits/lnbits.git
-cd lnbits/ # ${PWD} referred as <lnbits_repo>
-docker build -t lnbits .
+cd lnbits/
+cp .env.example .env
+```
+edit the .env file and run
+```
+docker-compose up --detach
 ```
 
-You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
+The docker-compose installation provides postgres database service (requires corresponding adjustment of the .env file). 
+
+To access the service you can use your http://localhost:5000/
+
+
+A TOR service allows you (or anyone else!) to connect to lnbits through the TOR network (can be prevented by removing tor-node in docker-compose.yml file). 
+
+To find out your TOR hidden service address run:
 
 ```
-cp <lnbits_repo>/.env.example .env
+docker-compose exec tor-node cat /var/lib/tor/hidden_service/hostname
 ```
+and connect through the [TOR browser](https://www.torproject.org/download/) or TOR enabled wallet.
 
-and change the configuration in `.env` as required.
-
-Then create the data directory for the user ID 1000, which is the user that runs the lnbits within the docker container.
-
-```
-mkdir data
-sudo chown 1000:1000 ./data/
-```
-
-Then the image can be run as:
-
-```
-docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits
-```
-
-Finally you can access your lnbits on your machine at port 5000.
 
 # Additional guides
 
