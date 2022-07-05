@@ -35,7 +35,12 @@ async def tpos(request: Request, tpos_id):
         )
 
     return tpos_renderer().TemplateResponse(
-        "tpos/tpos.html", {"request": request, "tpos": tpos}
+        "tpos/tpos.html",
+        {
+            "request": request,
+            "tpos": tpos,
+            "web_manifest": f"/tpos/manifest/{tpos_id}.webmanifest",
+        },
     )
 
 
