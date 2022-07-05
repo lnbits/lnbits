@@ -197,7 +197,7 @@ new Vue({
           a.expanded = false
           a.accountType = type
           a.gapLimitExceeded =
-            a.branchIndex === 0 &&
+            !a.isChange &&
             a.addressIndex >
               lastAcctiveAddress.addressIndex +
                 this.config.DEFAULT_RECEIVE_GAP_LIMIT
@@ -209,7 +209,7 @@ new Vue({
       try {
         const wallet = this.g.user.wallets[0]
         addressData.amount = amount
-        if (addressData.branchIndex === 0) {
+        if (!addressData.isChange) {
           const addressWallet = this.walletAccounts.find(
             w => w.id === addressData.wallet
           )
@@ -267,9 +267,9 @@ new Vue({
 
       const addresses = this.addresses.data.filter(
         a =>
-          (includeChangeAddrs || a.addressIndex === 0) &&
+          (includeChangeAddrs || !a.isChange) &&
           (includeGapAddrs ||
-            a.addressIndex === 1 ||
+            a.isChange ||
             a.addressIndex <= walletsLimit[`_${a.wallet}`]) &&
           !(excludeNoAmount && a.amount === 0) &&
           (!selectedWalletId || a.wallet === selectedWalletId)
@@ -277,11 +277,12 @@ new Vue({
       return addresses
     },
     openGetFreshAddressDialog: async function (walletId) {
-      const {data: addressData} = await LNbits.api.request(
+      const {data} = await LNbits.api.request(
         'GET',
         `/watchonly/api/v1/address/${walletId}`,
         this.g.user.wallets[0].inkey
       )
+      const addressData = mapAddressesData(data)
 
       addressData.note = `Shared on ${currentDateTime()}`
       const lastAcctiveAddress =

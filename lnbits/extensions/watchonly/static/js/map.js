@@ -5,7 +5,7 @@ const mapAddressesData = a => ({
   wallet: a.wallet,
   note: a.note,
 
-  branchIndex: a.branch_index,
+  isChange: a.branch_index === 1,
   addressIndex: a.address_index,
   hasActivity: a.has_activity
 })
@@ -14,7 +14,7 @@ const mapInputToSentHistory = (tx, addressData, vin) => ({
   sent: true,
   txId: tx.txid,
   address: addressData.address,
-  isChange: addressData.branchIndex === 1,
+  isChange: addressData.isChange,
   amount: vin.prevout.value,
   date: blockTimeToDate(tx.status.block_time),
   height: tx.status.block_height,
@@ -27,7 +27,7 @@ const mapOutputToReceiveHistory = (tx, addressData, vout) => ({
   received: true,
   txId: tx.txid,
   address: addressData.address,
-  isChange: addressData.branchIndex === 1,
+  isChange: addressData.isChange,
   amount: vout.value,
   date: blockTimeToDate(tx.status.block_time),
   height: tx.status.block_height,
@@ -41,7 +41,7 @@ const mapUtxoToPsbtInput = utxo => ({
   vout: utxo.vout,
   amount: utxo.amount,
   address: utxo.address,
-  branch_index: utxo.branchIndex,
+  branch_index: utxo.isChange ? 1 : 0,
   address_index: utxo.addressIndex,
   masterpub_fingerprint: utxo.masterpubFingerprint,
   accountType: utxo.accountType,
@@ -51,9 +51,8 @@ const mapUtxoToPsbtInput = utxo => ({
 const mapAddressDataToUtxo = (wallet, addressData, utxo) => ({
   id: addressData.id,
   address: addressData.address,
-  isChange: addressData.branchIndex === 1,
+  isChange: addressData.isChange,
   addressIndex: addressData.addressIndex,
-  branchIndex: addressData.branchIndex,
   wallet: addressData.wallet,
   accountType: addressData.accountType,
   masterpubFingerprint: wallet.fingerprint,
