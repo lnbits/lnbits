@@ -96,12 +96,19 @@ new Vue({
         )
         this.walletAccounts.push(mapWalletAccount(response.data))
         this.formDialog.show = false
+
         await this.refreshWalletAccounts()
+        await this.refreshAddresses()
+
+        if (!this.payment.changeWallett) {
+          this.payment.changeWallet = this.walletAccounts[0]
+          this.selectChangeAddress(this.payment.changeWallet)
+        }
       } catch (error) {
         LNbits.utils.notifyApiError(error)
       }
     },
-    deleteWalletAccount: function (linkId) {
+    deleteWalletAccount: function (walletAccountId) {
       LNbits.utils
         .confirmDialog(
           'Are you sure you want to delete this watch only wallet?'
@@ -110,15 +117,21 @@ new Vue({
           try {
             await LNbits.api.request(
               'DELETE',
-              '/watchonly/api/v1/wallet/' + linkId,
+              '/watchonly/api/v1/wallet/' + walletAccountId,
               this.g.user.wallets[0].adminkey
             )
             this.walletAccounts = _.reject(this.walletAccounts, function (obj) {
-              return obj.id === linkId
+              return obj.id === walletAccountId
             })
             await this.refreshWalletAccounts()
             await this.refreshAddresses()
-            console.log('### 111')
+            if (
+              this.payment.changeWallet &&
+              this.payment.changeWallet.id === walletAccountId
+            ) {
+              this.payment.changeWallet = this.walletAccounts[0]
+              this.selectChangeAddress(this.payment.changeWallet)
+            }
             await this.scanAddressWithAmount()
           } catch (error) {
             this.$q.notify({
@@ -189,9 +202,7 @@ new Vue({
         )
 
         const lastAcctiveAddress =
-          uniqueAddresses
-            .filter(a => a.addressIndex === 0 && a.hasActivity)
-            .pop() || {}
+          uniqueAddresses.filter(a => !a.isChange && a.hasActivity).pop() || {}
 
         uniqueAddresses.forEach(a => {
           a.expanded = false
@@ -288,14 +299,11 @@ new Vue({
       const lastAcctiveAddress =
         this.addresses.data
           .filter(
-            a =>
-              a.wallet === addressData.wallet &&
-              a.addressIndex === 0 &&
-              a.hasActivity
+            a => a.wallet === addressData.wallet && !a.isChange && a.hasActivity
           )
           .pop() || {}
       addressData.gapLimitExceeded =
-        addressData.addressIndex === 0 &&
+        !addressData.isChange &&
         addressData.addressIndex >
           lastAcctiveAddress.addressIndex +
             this.config.DEFAULT_RECEIVE_GAP_LIMIT
@@ -452,7 +460,7 @@ new Vue({
 
       this.payment.showAdvanced = false
       this.payment.changeWallet = this.walletAccounts[0]
-      this.selectChangeAccount(this.payment.changeWallet)
+      this.selectChangeAddress(this.payment.changeWallet)
 
       await this.refreshRecommendedFees()
       this.payment.feeRate = this.payment.recommededFees.halfHourFee
@@ -471,10 +479,10 @@ new Vue({
     getTotalPaymentAmount: function () {
       return this.payment.data.reduce((t, a) => t + (a.amount || 0), 0)
     },
-    selectChangeAccount: function (wallet) {
+    selectChangeAddress: function (wallet = {}) {
       this.payment.changeAddress =
         this.addresses.data.find(
-          a => a.wallet === wallet.id && a.addressIndex === 1 && !a.hasActivity
+          a => a.wallet === wallet.id && a.isChange && !a.hasActivity
         ) || {}
     },
     goToPaymentView: async function () {

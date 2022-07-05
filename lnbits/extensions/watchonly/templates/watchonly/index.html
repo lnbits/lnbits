@@ -862,7 +862,7 @@
                         emit-value
                         v-model="payment.changeWallet"
                         :options="walletAccounts"
-                        @input="selectChangeAccount"
+                        @input="selectChangeAddress"
                         :rules="[val => !!val || 'Field is required']"
                         label="Wallet Account"
                       ></q-select>
