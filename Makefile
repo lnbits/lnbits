@@ -2,7 +2,7 @@
 
 all: format check requirements.txt
 
-format: black
+format: prettier black
 
 check: mypy checkprettier checkblack
 
