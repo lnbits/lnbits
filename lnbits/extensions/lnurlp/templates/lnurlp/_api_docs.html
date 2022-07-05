@@ -17,7 +17,7 @@
         <code>[&lt;pay_link_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}api/v1/links -H "X-Api-Key: {{
+          >curl -X GET {{ request.base_url }}lnurlp/api/v1/links -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -39,7 +39,7 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}api/v1/links/&lt;pay_id&gt; -H
+          >curl -X GET {{ request.base_url }}lnurlp/api/v1/links/&lt;pay_id&gt; -H
           "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -68,7 +68,7 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}api/v1/links -d '{"description":
+          >curl -X POST {{ request.base_url }}lnurlp/api/v1/links -d '{"description":
           &lt;string&gt;, "amount": &lt;integer&gt;, "max": &lt;integer&gt;,
           "min": &lt;integer&gt;, "comment_chars": &lt;integer&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
@@ -99,7 +99,7 @@
         <code>{"lnurl": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X PUT {{ request.base_url }}api/v1/links/&lt;pay_id&gt; -d
+          >curl -X PUT {{ request.base_url }}lnurlp/api/v1/links/&lt;pay_id&gt; -d
           '{"description": &lt;string&gt;, "amount": &lt;integer&gt;}' -H
           "Content-type: application/json" -H "X-Api-Key: {{
           user.wallets[0].adminkey }}"
@@ -126,7 +126,7 @@
         <code></code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.base_url }}api/v1/links/&lt;pay_id&gt; -H
+          >curl -X DELETE {{ request.base_url }}lnurlp/api/v1/links/&lt;pay_id&gt; -H
           "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
