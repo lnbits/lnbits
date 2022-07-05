@@ -60,7 +60,7 @@ async def m003_add_columns_to_wallets(db):
 
     await db.execute("ALTER TABLE watchonly.wallets ADD COLUMN type TEXT;")
     await db.execute(
-        "ALTER TABLE watchonly.wallets ADD COLUMN fingerprint TEXT NOT NULL;"
+        "ALTER TABLE watchonly.wallets ADD COLUMN fingerprint TEXT NOT NULL DEFAULT '';"
     )
 
 
