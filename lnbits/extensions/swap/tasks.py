@@ -24,9 +24,9 @@ async def on_invoice_paid(payment: Payment) -> None:
     if "swapin" == payment.extra.get("tag"):
         swap_id = payment.memo
         await update_swap_in(swap_id, **{"done": True})
-    
+
     has_recurrent = await get_recurrent_swapout_by_wallet(payment.wallet_id)
-    
+
     if has_recurrent:
         # do the balance check
         wallet = await get_wallet(wallet_id=payment.wallet_id)
@@ -42,5 +42,5 @@ async def on_invoice_paid(payment: Payment) -> None:
             "recurrent": True,
             "fee": has_recurrent.fee,
         }
-        
+
         await create_swapout(CreateSwapOut(**data))

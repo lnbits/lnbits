@@ -15,7 +15,6 @@ from . import swap_ext, swap_renderer
 templates = Jinja2Templates(directory="templates")
 
 
-
 @swap_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     root_url = urlparse(str(request.url)).netloc
@@ -36,6 +35,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
             )
             await on_invoice_paid(mock_payment)
 
-    return swap_renderer().TemplateResponse("swap/index.html", {"request": request, "user": user.dict(), "root_url": root_url})
-
-
+    return swap_renderer().TemplateResponse(
+        "swap/index.html",
+        {"request": request, "user": user.dict(), "root_url": root_url},
+    )

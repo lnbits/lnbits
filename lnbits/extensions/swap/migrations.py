@@ -16,6 +16,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_add_recurrent(db):
     await db.execute(
         """
@@ -32,6 +33,7 @@ async def m002_add_recurrent(db):
         );
     """
     )
+
 
 async def m003_add_swap_in(db):
     await db.execute(

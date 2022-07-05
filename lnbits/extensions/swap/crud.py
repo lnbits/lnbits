@@ -19,7 +19,7 @@ from .models import (
 )
 
 
-#SWAP OUT
+# SWAP OUT
 async def get_swapouts(wallet_ids: Union[str, List[str]]) -> List[SwapOut]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
@@ -31,9 +31,11 @@ async def get_swapouts(wallet_ids: Union[str, List[str]]) -> List[SwapOut]:
 
     return [SwapOut(**row) for row in rows]
 
+
 async def get_swapout(swap_id) -> SwapOut:
     row = await db.fetchone("SELECT * FROM swap.swpout WHERE id = ?", (swap_id,))
     return SwapOut(**row) if row else None
+
 
 async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
     if data.onchainwallet:
@@ -41,12 +43,11 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
         onchainaddress = onchain.address
     else:
         onchainaddress = data.onchainaddress
-    
-    
+
     etl_resp = await create_queue_pay(data.amount, onchainaddress, data.fee)
-    # print("ETL", etl_resp)    
+    # print("ETL", etl_resp)
     invoice = etl_resp["value"].get("invoice")
-    
+
     try:
         await pay_invoice(
             wallet_id=data.wallet,
@@ -77,8 +78,8 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
             onchainaddress,
             data.amount,
             data.recurrent,
-            data.fee
-        )
+            data.fee,
+        ),
     )
     return await get_swapout(swap_id)
 
@@ -86,7 +87,9 @@ async def create_swapout(data: CreateSwapOut) -> Optional[SwapOut]:
 async def delete_swapout(swap_id):
     await db.execute("DELETE FROM swap.swpout WHERE id = ?", (swap_id,))
 
+
 ## RECURRENT SWAP OUT
+
 
 async def get_recurrents(wallet_ids: Union[str, List[str]]) -> List[Recurrent]:
     if isinstance(wallet_ids, str):
@@ -98,6 +101,7 @@ async def get_recurrents(wallet_ids: Union[str, List[str]]) -> List[Recurrent]:
     )
 
     return [Recurrent(**row) for row in rows]
+
 
 async def create_recurrent(data: CreateRecurrent):
     if data.onchainwallet:
@@ -123,10 +127,11 @@ async def create_recurrent(data: CreateRecurrent):
             data.onchainwallet,
             onchainaddress,
             data.threshold,
-            data.fee
-        )
+            data.fee,
+        ),
     )
     return await get_recurrent_swapout(swap_id)
+
 
 async def update_recurrent(swap_id: str, **kwargs) -> Optional[Recurrent]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
@@ -135,6 +140,7 @@ async def update_recurrent(swap_id: str, **kwargs) -> Optional[Recurrent]:
     )
     row = await db.fetchone("SELECT * FROM swap.recurrent WHERE id = ?", (swap_id,))
     return Recurrent(**row) if row else None
+
 
 async def delete_recurrent(swap_id):
     await db.execute("DELETE FROM swap.recurrent WHERE id = ?", (swap_id,))
@@ -147,6 +153,7 @@ async def get_recurrent_swapout(swap_id) -> Optional[Recurrent]:
     )
     return Recurrent(**row) if row else None
 
+
 async def get_recurrent_swapout_by_wallet(wallet_id) -> Optional[Recurrent]:
     row = await db.fetchone(
         "SELECT * from swap.recurrent WHERE wallet = ?",
@@ -156,14 +163,14 @@ async def get_recurrent_swapout_by_wallet(wallet_id) -> Optional[Recurrent]:
 
 
 async def unique_recurrent_swapout(wallet_id):
-    row, = await db.fetchone(
+    (row,) = await db.fetchone(
         "SELECT COUNT(wallet) FROM swap.recurrent WHERE wallet = ?",
         (wallet_id,),
     )
     return row
 
 
-#SWAP IN
+# SWAP IN
 async def get_swapins(wallet_ids: Union[str, List[str]]) -> List[SwapIn]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]
@@ -175,12 +182,14 @@ async def get_swapins(wallet_ids: Union[str, List[str]]) -> List[SwapIn]:
 
     return [SwapIn(**row) for row in rows]
 
+
 async def get_swap_in(swap_id) -> Optional[SwapIn]:
     row = await db.fetchone(
         "SELECT * from swap.swpin WHERE id = ?",
         (swap_id,),
     )
     return SwapIn(**row) if row else None
+
 
 async def create_swap_in(data: CreateSwapIn):
     swap_id = urlsafe_short_hash()
@@ -195,16 +204,11 @@ async def create_swap_in(data: CreateSwapIn):
         )
         VALUES (?, ?, ?, ?, ?)
         """,
-        (
-            swap_id,
-            data.wallet,
-            data.session_id,
-            data.reserve_id,
-            data.amount
-        )
+        (swap_id, data.wallet, data.session_id, data.reserve_id, data.amount),
     )
 
     return await get_swap_in(swap_id)
+
 
 async def update_swap_in(swap_id: str, **kwargs) -> SwapIn:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
