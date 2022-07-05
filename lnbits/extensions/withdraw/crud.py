@@ -45,7 +45,7 @@ async def create_withdraw_link(
             int(datetime.now().timestamp()) + data.wait_time,
             usescsv,
             data.webhook_url,
-            data.custom_url
+            data.custom_url,
         ),
     )
     link = await get_withdraw_link(link_id, 0)

@@ -116,6 +116,7 @@ async def m004_webhook_url(db):
     """
     await db.execute("ALTER TABLE withdraw.withdraw_link ADD COLUMN webhook_url TEXT;")
 
+
 async def m005_add_custom_print_design(db):
     """
     Adds custom print design
