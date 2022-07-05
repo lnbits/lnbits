@@ -97,7 +97,7 @@
       <q-card-section>
         <code
           ><span class="text-light-blue">GET</span>
-          /usermanager/api/v1/wallets&lt;wallet_id&gt;</code
+          /usermanager/api/v1/transactions/&lt;wallet_id&gt;</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;string&gt;}</code>
@@ -109,7 +109,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ request.base_url
-          }}usermanager/api/v1/wallets&lt;wallet_id&gt; -H "X-Api-Key: {{
+          }}usermanager/api/v1/transactions/&lt;wallet_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>

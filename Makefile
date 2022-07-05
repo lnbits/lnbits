@@ -2,7 +2,7 @@
 
 all: format check requirements.txt
 
-format: prettier black
+format: black
 
 check: mypy checkprettier checkblack
 
@@ -32,6 +32,10 @@ requirements.txt: Pipfile.lock
 test:
 	rm -rf ./tests/data
 	mkdir -p ./tests/data
+	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	./venv/bin/pytest -s
+
+bak:
+	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres

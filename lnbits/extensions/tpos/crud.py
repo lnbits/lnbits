@@ -10,10 +10,17 @@ async def create_tpos(wallet_id: str, data: CreateTposData) -> TPoS:
     tpos_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO tpos.tposs (id, wallet, name, currency)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO tpos.tposs (id, wallet, name, currency, tip_options, tip_wallet)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (tpos_id, wallet_id, data.name, data.currency),
+        (
+            tpos_id,
+            wallet_id,
+            data.name,
+            data.currency,
+            data.tip_options,
+            data.tip_wallet,
+        ),
     )
 
     tpos = await get_tpos(tpos_id)

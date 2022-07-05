@@ -11,6 +11,7 @@ class CreateUserData(BaseModel):
     admin_id: str = Query(...)
     discord_id: str = Query("")
 
+
 class CreateUserWallet(BaseModel):
     user_id: str = Query(...)
     wallet_name: str = Query(...)
@@ -22,6 +23,7 @@ class Users(BaseModel):
     name: str
     admin: str
     discord_id: str
+
 
 class Wallets(BaseModel):
     id: str

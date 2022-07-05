@@ -9,6 +9,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
 
     returning = "" if db.type == SQLITE else "RETURNING ID"
     method = db.execute if db.type == SQLITE else db.fetchone
+
     result = await (method)(
         f"""
         INSERT INTO lnurlp.pay_links (
@@ -22,9 +23,10 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             success_text,
             success_url,
             comment_chars,
-            currency
+            currency,
+            fiat_base_multiplier
         )
-        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)
         {returning}
         """,
         (
@@ -37,6 +39,7 @@ async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
             data.success_url,
             data.comment_chars,
             data.currency,
+            data.fiat_base_multiplier,
         ),
     )
     if db.type == SQLITE:
