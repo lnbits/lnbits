@@ -1,5 +1,5 @@
 # Build image
-FROM python:3.10-buster as builder
+FROM python:3.7-buster as builder
 
 # Setup virtualenv
 ENV VIRTUAL_ENV=/opt/venv
@@ -23,7 +23,7 @@ RUN pip install pylightning
 RUN pip install lndgrpc
 
 # Production image
-FROM python:3.10-buster as lnbits
+FROM python:3.7-buster as lnbits
 
 # Copy over virtualenv
 ENV VIRTUAL_ENV="/opt/venv"
