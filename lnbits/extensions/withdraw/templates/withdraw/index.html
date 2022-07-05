@@ -1,28 +1,40 @@
-{% extends "base.html" %} {% from "macros.jinja" import window_vars with context %} {% block scripts %} {{ window_vars(user) }}
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block scripts %} {{ window_vars(user) }}
 <script src="/withdraw/static/js/index.js"></script>
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md">
-    <div class="col-12 col-md-7 q-gutter-y-md">
-        <q-card>
-            <q-card-section>
-                <q-btn unelevated color="primary" @click="simpleformDialog.show = true">Quick vouchers</q-btn>
-                <q-btn unelevated color="primary" @click="formDialog.show = true">Advanced withdraw link(s)</q-btn>
-            </q-card-section>
-        </q-card>
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="simpleformDialog.show = true"
+          >Quick vouchers</q-btn
+        >
+        <q-btn unelevated color="primary" @click="formDialog.show = true"
+          >Advanced withdraw link(s)</q-btn
+        >
+      </q-card-section>
+    </q-card>
 
-        <q-card>
-            <q-card-section>
-                <div class="row items-center no-wrap q-mb-md">
-                    <div class="col">
-                        <h5 class="text-subtitle1 q-my-none">Withdraw links</h5>
-                    </div>
-                    <div class="col-auto">
-                        <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
-                    </div>
-                </div>
-                <q-table dense flat :data="sortedWithdrawLinks" row-key="id" :columns="withdrawLinksTable.columns" :pagination.sync="withdrawLinksTable.pagination">
-                    {% raw %}
-                    <template v-slot:header="props">
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Withdraw links</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="sortedWithdrawLinks"
+          row-key="id"
+          :columns="withdrawLinksTable.columns"
+          :pagination.sync="withdrawLinksTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
@@ -32,7 +44,7 @@
               <q-th auto-width></q-th>
             </q-tr>
           </template>
-                    <template v-slot:body="props">
+          <template v-slot:body="props">
             <q-tr :props="props">
               <q-td auto-width>
                 <q-btn
@@ -106,72 +118,137 @@
                 ></q-btn>
               </q-td>
             </q-tr>
-          </template> {% endraw %}
-                </q-table>
-            </q-card-section>
-        </q-card>
-    </div>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
 
-    <div class="col-12 col-md-5 q-gutter-y-md">
-        <q-card>
-            <q-card-section>
-                <h6 class="text-subtitle1 q-my-none">
-                    {{SITE_TITLE}} LNURL-withdraw extension
-                </h6>
-            </q-card-section>
-            <q-card-section class="q-pa-none">
-                <q-separator></q-separator>
-                <q-list>
-                    {% include "withdraw/_api_docs.html" %}
-                    <q-separator></q-separator>
-                    {% include "withdraw/_lnurl.html" %}
-                </q-list>
-            </q-card-section>
-        </q-card>
-    </div>
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} LNURL-withdraw extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>
+          {% include "withdraw/_api_docs.html" %}
+          <q-separator></q-separator>
+          {% include "withdraw/_lnurl.html" %}
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
 
-    <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-            <q-form @submit="sendFormData" class="q-gutter-md">
-                <q-select filled dense emit-value v-model="formDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
-                </q-select>
-                <q-input filled dense v-model.trim="formDialog.data.title" type="text" label="Link title *"></q-input>
-                <q-input filled dense v-model.number="formDialog.data.min_withdrawable" type="number" min="10" label="Min withdrawable (sat, at least 10) *"></q-input>
-                <q-input filled dense v-model.number="formDialog.data.max_withdrawable" type="number" min="10" label="Max withdrawable (sat, at least 10) *"></q-input>
-                <q-input filled dense v-model.number="formDialog.data.uses" type="number" max="250"  :default="1" label="Amount of uses *"></q-input>
-                <div class="row q-col-gutter-none">
-                    <div class="col-8">
-                        <q-input filled dense v-model.number="formDialog.data.wait_time" type="number" :default="1" label="Time between withdrawals *">
-                        </q-input>
-                    </div>
-                    <div class="col-4 q-pl-xs">
-                        <q-select filled dense v-model="formDialog.secondMultiplier" :options="formDialog.secondMultiplierOptions">
-                        </q-select>
-                    </div>
-                </div>
-                <q-input
-                  filled
-                  dense
-                  v-model="formDialog.data.webhook_url"
-                  type="text"
-                  label="Webhook URL (optional)"
-                  hint="A URL to be called whenever this link gets used."
-                ></q-input>
-                <q-list>
-                    <q-item tag="label" class="rounded-borders">
-                        <q-item-section avatar>
-                            <q-checkbox v-model="formDialog.data.is_unique" color="primary"></q-checkbox>
-                        </q-item-section>
-                        <q-item-section>
-                            <q-item-label>Use unique withdraw QR codes to reduce `assmilking`
-                            </q-item-label>
-                            <q-item-label caption>This is recommended if you are sharing the links on social media or print QR codes.</q-item-label>
-                        </q-item-section>
-                    </q-item>
-                </q-list>
-                <div class="row q-mt-lg">
-                    <q-btn v-if="formDialog.data.id" unelevated color="primary" type="submit">Update withdraw link</q-btn>
-                    <q-btn v-else unelevated color="primary" :disable="
+  <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.title"
+          type="text"
+          label="Link title *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="formDialog.data.min_withdrawable"
+          type="number"
+          min="10"
+          label="Min withdrawable (sat, at least 10) *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="formDialog.data.max_withdrawable"
+          type="number"
+          min="10"
+          label="Max withdrawable (sat, at least 10) *"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="formDialog.data.uses"
+          type="number"
+          max="250"
+          :default="1"
+          label="Amount of uses *"
+        ></q-input>
+        <div class="row q-col-gutter-none">
+          <div class="col-8">
+            <q-input
+              filled
+              dense
+              v-model.number="formDialog.data.wait_time"
+              type="number"
+              :default="1"
+              label="Time between withdrawals *"
+            >
+            </q-input>
+          </div>
+          <div class="col-4 q-pl-xs">
+            <q-select
+              filled
+              dense
+              v-model="formDialog.secondMultiplier"
+              :options="formDialog.secondMultiplierOptions"
+            >
+            </q-select>
+          </div>
+        </div>
+        <q-input
+          filled
+          dense
+          v-model="formDialog.data.webhook_url"
+          type="text"
+          label="Webhook URL (optional)"
+          hint="A URL to be called whenever this link gets used."
+        ></q-input>
+        <q-list>
+          <q-item tag="label" class="rounded-borders">
+            <q-item-section avatar>
+              <q-checkbox
+                v-model="formDialog.data.is_unique"
+                color="primary"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label
+                >Use unique withdraw QR codes to reduce `assmilking`
+              </q-item-label>
+              <q-item-label caption
+                >This is recommended if you are sharing the links on social
+                media or print QR codes.</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update withdraw link</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="
                 formDialog.data.wallet == null ||
                 formDialog.data.title == null ||
                 (formDialog.data.min_withdrawable == null || formDialog.data.min_withdrawable < 1) ||
@@ -181,43 +258,89 @@
                   formDialog.data.max_withdrawable < formDialog.data.min_withdrawable
                 ) ||
                 formDialog.data.uses == null ||
-                formDialog.data.wait_time == null" type="submit">Create withdraw link</q-btn>
-                    <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-                </div>
-            </q-form>
-        </q-card>
-    </q-dialog>
+                formDialog.data.wait_time == null"
+            type="submit"
+            >Create withdraw link</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
 
-    <q-dialog v-model="simpleformDialog.show" position="top" @hide="simplecloseFormDialog">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-            <q-form @submit="simplesendFormData" class="q-gutter-md">
-                <q-select filled dense emit-value v-model="simpleformDialog.data.wallet" :options="g.user.walletOptions" label="Wallet *">
-                </q-select>
-                <q-input filled dense v-model.number="simpleformDialog.data.max_withdrawable" type="number" min="10" label="Withdraw amount per voucher (sat, at least 10)"></q-input>
-                <q-input filled dense v-model.number="simpleformDialog.data.uses" type="number" max="250" :default="1" label="Number of vouchers"></q-input>
+  <q-dialog
+    v-model="simpleformDialog.show"
+    position="top"
+    @hide="simplecloseFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="simplesendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="simpleformDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.number="simpleformDialog.data.max_withdrawable"
+          type="number"
+          min="10"
+          label="Withdraw amount per voucher (sat, at least 10)"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.number="simpleformDialog.data.uses"
+          type="number"
+          max="250"
+          :default="1"
+          label="Number of vouchers"
+        ></q-input>
 
-                <div class="row q-mt-lg">
-                    <q-btn unelevated color="primary" :disable="
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="
                 simpleformDialog.data.wallet == null ||
 
                   simpleformDialog.data.max_withdrawable == null ||
                   simpleformDialog.data.max_withdrawable < 1 ||
-                simpleformDialog.data.uses == null" type="submit">Create vouchers</q-btn>
-                    <q-btn v-close-popup flat color="grey" class="q-ml-auto">Cancel</q-btn>
-                </div>
-            </q-form>
-        </q-card>
-    </q-dialog>
+                simpleformDialog.data.uses == null"
+            type="submit"
+            >Create vouchers</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
 
-    <q-dialog v-model="qrCodeDialog.show" position="top">
-        <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
-            <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-                <qrcode :value="qrCodeDialog.data.url + '/?lightning=' + qrCodeDialog.data.lnurl" :options="{width: 800}" class="rounded-borders"></qrcode>
-                {% raw %}
-            </q-responsive>
-            <p style="word-break: break-all">
-                <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
-                <strong>Unique:</strong> {{ qrCodeDialog.data.is_unique }}<span v-if="qrCodeDialog.data.is_unique" class="text-deep-purple">
+  <q-dialog v-model="qrCodeDialog.show" position="top">
+    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="qrCodeDialog.data.url + '/?lightning=' + qrCodeDialog.data.lnurl"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+        {% raw %}
+      </q-responsive>
+      <p style="word-break: break-all">
+        <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
+        <strong>Unique:</strong> {{ qrCodeDialog.data.is_unique }}<span
+          v-if="qrCodeDialog.data.is_unique"
+          class="text-deep-purple"
+        >
           (QR code will change after each withdrawal)</span
         ><br />
         <strong>Max. withdrawable:</strong> {{

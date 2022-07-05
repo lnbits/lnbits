@@ -54,7 +54,8 @@
                 ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ (col.name == 'tip_options' ? JSON.parse(col.value).join(", ") : col.value) }}
+                {{ (col.name == 'tip_options' ? JSON.parse(col.value).join(", ")
+                : col.value) }}
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -360,15 +361,15 @@
             {
               name: 'tip_wallet',
               align: 'left',
-              label: "Tip Wallet",
-              field: "tip_wallet",
+              label: 'Tip Wallet',
+              field: 'tip_wallet'
             },
             {
               name: 'tip_options',
               align: 'left',
-              label: "Tip Options %",
-              field: "tip_options",
-            },
+              label: 'Tip Options %',
+              field: 'tip_options'
+            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -403,8 +404,12 @@
         var data = {
           name: this.formDialog.data.name,
           currency: this.formDialog.data.currency,
-          tip_options: (this.formDialog.data.tip_options ? JSON.stringify(this.formDialog.data.tip_options.map(str => parseInt(str))) : JSON.stringify([])),
-          tip_wallet: this.formDialog.data.tip_wallet || "",
+          tip_options: this.formDialog.data.tip_options
+            ? JSON.stringify(
+                this.formDialog.data.tip_options.map(str => parseInt(str))
+              )
+            : JSON.stringify([]),
+          tip_wallet: this.formDialog.data.tip_wallet || ''
         }
         var self = this
 

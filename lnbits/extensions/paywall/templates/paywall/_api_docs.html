@@ -17,8 +17,8 @@
         <code>[&lt;paywall_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}paywall/api/v1/paywalls -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          >curl -X GET {{ request.base_url }}paywall/api/v1/paywalls -H
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -48,11 +48,11 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}paywall/api/v1/paywalls -d '{"url":
-          &lt;string&gt;, "memo": &lt;string&gt;, "description": &lt;string&gt;,
-          "amount": &lt;integer&gt;, "remembers": &lt;boolean&gt;}' -H
-          "Content-type: application/json" -H "X-Api-Key: {{
-          user.wallets[0].adminkey }}"
+          >curl -X POST {{ request.base_url }}paywall/api/v1/paywalls -d
+          '{"url": &lt;string&gt;, "memo": &lt;string&gt;, "description":
+          &lt;string&gt;, "amount": &lt;integer&gt;, "remembers":
+          &lt;boolean&gt;}' -H "Content-type: application/json" -H "X-Api-Key:
+          {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>

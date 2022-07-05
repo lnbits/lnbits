@@ -10,12 +10,19 @@
         Discord Bot: Connect Discord users to LNbits.
       </h5>
       <p>
-        Connect your LNbits instance to a <a href="https://github.com/chrislennon/lnbits-discord-bot">Discord Bot</a> leveraging LNbits as a community based lightning node.<br />
+        Connect your LNbits instance to a
+        <a href="https://github.com/chrislennon/lnbits-discord-bot"
+          >Discord Bot</a
+        >
+        leveraging LNbits as a community based lightning node.<br />
         <small>
-          Created by, <a href="https://github.com/chrislennon">Chris Lennon</a></small
-        > <br />
+          Created by,
+          <a href="https://github.com/chrislennon">Chris Lennon</a></small
+        >
+        <br />
         <small>
-          Based on User Manager, by <a href="https://github.com/benarc">Ben Arc</a></small
+          Based on User Manager, by
+          <a href="https://github.com/benarc">Ben Arc</a></small
         >
       </p>
     </q-card-section>
@@ -149,8 +156,9 @@
         <code
           >curl -X POST {{ request.base_url }}discordbot/api/v1/users -d
           '{"admin_id": "{{ user.id }}", "wallet_name": &lt;string&gt;,
-          "user_name": &lt;string&gt;, "discord_id": &lt;string&gt;}' -H "X-Api-Key: {{
-          user.wallets[0].inkey }}" -H "Content-type: application/json"
+          "user_name": &lt;string&gt;, "discord_id": &lt;string&gt;}' -H
+          "X-Api-Key: {{ user.wallets[0].inkey }}" -H "Content-type:
+          application/json"
         </code>
       </q-card-section>
     </q-card>

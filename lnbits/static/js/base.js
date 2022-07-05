@@ -345,17 +345,18 @@ window.windowMixin = {
     }
   },
   created: function () {
-    
-    if(this.$q.localStorage.getItem('lnbits.darkMode') == true || this.$q.localStorage.getItem('lnbits.darkMode') == false){
+    if (
+      this.$q.localStorage.getItem('lnbits.darkMode') == true ||
+      this.$q.localStorage.getItem('lnbits.darkMode') == false
+    ) {
       this.$q.dark.set(this.$q.localStorage.getItem('lnbits.darkMode'))
-    }
-    else{
+    } else {
       this.$q.dark.set(true)
     }
     this.g.allowedThemes = window.allowedThemes ?? ['bitcoin']
 
     // failsafe if admin changes themes halfway
-    if (!this.$q.localStorage.getItem('lnbits.theme')){
+    if (!this.$q.localStorage.getItem('lnbits.theme')) {
       this.changeColor(this.g.allowedThemes[0])
     }
     if (
