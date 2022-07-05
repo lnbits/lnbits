@@ -31,9 +31,7 @@ async def create_scrub_link(data: CreateScrubLink) -> ScrubLink:
 
 
 async def get_scrub_link(link_id: str) -> Optional[ScrubLink]:
-    row = await db.fetchone(
-        "SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,)
-    )
+    row = await db.fetchone("SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,))
     return ScrubLink(**row) if row else None
 
 
@@ -58,13 +56,13 @@ async def update_scrub_link(link_id: int, **kwargs) -> Optional[ScrubLink]:
         f"UPDATE scrub.scrub_links SET {q} WHERE id = ?",
         (*kwargs.values(), link_id),
     )
-    row = await db.fetchone(
-        "SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,)
-    )
+    row = await db.fetchone("SELECT * FROM scrub.scrub_links WHERE id = ?", (link_id,))
     return ScrubLink(**row) if row else None
+
 
 async def delete_scrub_link(link_id: int) -> None:
     await db.execute("DELETE FROM scrub.scrub_links WHERE id = ?", (link_id,))
+
 
 async def get_scrub_by_wallet(wallet_id) -> Optional[ScrubLink]:
     row = await db.fetchone(
@@ -73,8 +71,9 @@ async def get_scrub_by_wallet(wallet_id) -> Optional[ScrubLink]:
     )
     return ScrubLink(**row) if row else None
 
+
 async def unique_scrubed_wallet(wallet_id):
-    row, = await db.fetchone(
+    (row,) = await db.fetchone(
         "SELECT COUNT(wallet) FROM scrub.scrub_links WHERE wallet = ?",
         (wallet_id,),
     )

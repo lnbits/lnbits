@@ -30,7 +30,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         return
 
     scrub_link = await get_scrub_by_wallet(payment.wallet_id)
-    
+
     if not scrub_link:
         return
 
@@ -38,8 +38,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     # DECODE LNURLP OR LNADDRESS
     data = await api_lnurlscan(scrub_link.payoraddress)
-    
-    
+
     # I REALLY HATE THIS DUPLICATION OF CODE!! CORE/VIEWS/API.PY, LINE 267
     domain = urlparse(data["callback"]).netloc
 
@@ -64,14 +63,14 @@ async def on_invoice_paid(payment: Payment) -> None:
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"{domain} said: '{params.get('reason', '')}'",
         )
-    
+
     invoice = bolt11.decode(params["pr"])
     if invoice.amount_msat != payment.amount:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"{domain} returned an invalid invoice. Expected {payment.amount} msat, got {invoice.amount_msat}.",
         )
-    
+
     payment_hash = await pay_invoice(
         wallet_id=payment.wallet_id,
         payment_request=params["pr"],

@@ -33,16 +33,14 @@ async def api_links(
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     try:
-        return [
-            link.dict()
-            for link in await get_scrub_links(wallet_ids)
-        ]
+        return [link.dict() for link in await get_scrub_links(wallet_ids)]
 
     except:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="No SCRUB links made yet",
         )
+
 
 @scrub_ext.get("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_retrieve(
@@ -61,8 +59,6 @@ async def api_link_retrieve(
         )
 
     return link
-
-
 
 
 @scrub_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
@@ -90,7 +86,8 @@ async def api_scrub_create_or_update(
         wallet_has_scrub = await unique_scrubed_wallet(wallet_id=data.wallet)
         if wallet_has_scrub > 0:
             raise HTTPException(
-                detail="Wallet is already being Scrubbed", status_code=HTTPStatus.FORBIDDEN
+                detail="Wallet is already being Scrubbed",
+                status_code=HTTPStatus.FORBIDDEN,
             )
         link = await create_scrub_link(data=data)
 
