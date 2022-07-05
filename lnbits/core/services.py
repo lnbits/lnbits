@@ -6,11 +6,13 @@ from typing import Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from fastapi import Depends
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
 
 from lnbits import bolt11
 from lnbits.db import Connection
+from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import WALLET
@@ -243,7 +245,7 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str, wallet, conn: Optional[Connection] = None
+    callback: str, wallet: WalletTypeInfo = Depends(require_admin_key), conn: Optional[Connection] = None
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
     
