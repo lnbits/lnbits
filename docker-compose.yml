@@ -1,0 +1,45 @@
+version: "3.6"
+services:
+  tor-node:
+    image: osminogin/tor-simple
+    restart: always
+    links:
+      - lnbits:myservice
+    volumes:
+      - ./torrc.sample:/etc/tor/torrc:ro
+      # would be nice to mount under /var/lib/tor/hidden_service but
+      # it fails for too permisive mode on the directory
+      - tor_hidden_service:/var/lib/tor/
+  
+  lnbits:
+    image: 'my-lnbits'
+    build: .
+    restart: always
+    environment:
+      PYTHONBUFFERED: 1
+    # enables lnbits localy
+    ports:
+      - 127.0.0.1:5000:5000
+    depends_on:
+      - db
+    volumes:
+      - ./.env:/app/.env:ro
+      - ${TLS_CERT_PATH?}:${TLS_CERT_PATH?}:ro
+      - ${MACAROON_PATH?}:${MACAROON_PATH?}:ro
+      # Volume for SQLite data (instead of postgres -- not recommended).
+      # - sqlite_data:/app/lnbits/data/
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER?}
+      POSTGRES_PASSWORD: ${DB_PASSWORD?}
+      POSTGRESS_DB: ${DB_NAME?}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  tor_hidden_service:
+  # sqlite_data:
+  db_data:
