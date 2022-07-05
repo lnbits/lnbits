@@ -40,7 +40,9 @@ async def on_invoice_paid(payment: Payment) -> None:
             # Get the invoice from the LNURL to pay
             async with httpx.AsyncClient() as client:
                 try:
-                    url = await api_payments_decode(DecodePayment(data=lnurlpayout_link.lnurlpay))
+                    url = await api_payments_decode(
+                        DecodePayment(data=lnurlpayout_link.lnurlpay)
+                    )
                     if str(url["domain"])[0:4] != "http":
                         raise HTTPException(
                             status_code=HTTPStatus.FORBIDDEN, detail="LNURL broken"
