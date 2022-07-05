@@ -125,6 +125,7 @@ cp .env.example .env
 ```
 edit the .env file and run
 ```
+docker-compose build
 docker-compose up --detach
 ```
 
