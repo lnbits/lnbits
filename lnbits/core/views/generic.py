@@ -256,6 +256,7 @@ async def lnurlwallet(request: Request):
 async def service_worker():
     return FileResponse("lnbits/core/static/js/service-worker.js")
 
+
 @core_html_routes.get("/manifest/{usr}.webmanifest")
 async def manifest(usr: str):
     user = await get_user(usr)
@@ -267,7 +268,9 @@ async def manifest(usr: str):
         "name": LNBITS_SITE_TITLE + " Wallet",
         "icons": [
             {
-                "src": LNBITS_CUSTOM_LOGO if LNBITS_CUSTOM_LOGO else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
+                "src": LNBITS_CUSTOM_LOGO
+                if LNBITS_CUSTOM_LOGO
+                else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
                 "type": "image/png",
                 "sizes": "900x900",
             }
