@@ -75,10 +75,10 @@ async def update_watch_wallet(wallet_id: str, **kwargs) -> Optional[WalletAccoun
 async def delete_watch_wallet(wallet_id: str) -> None:
     await db.execute("DELETE FROM watchonly.wallets WHERE id = ?", (wallet_id,))
 
-    ########################ADDRESSES#######################
-
+########################ADDRESSES#######################
 
 async def get_fresh_address(wallet_id: str) -> Optional[Address]:
+    # todo: move logic to views_api after satspay refactoring
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
@@ -87,7 +87,7 @@ async def get_fresh_address(wallet_id: str) -> Optional[Address]:
     wallet_addresses = await get_addresses(wallet_id)
     receive_addresses = list(
         filter(
-            lambda addr: addr.branch_index == 0 and addr.amount != 0, wallet_addresses
+            lambda addr: addr.branch_index == 0 and addr.has_activity, wallet_addresses
         )
     )
     last_receive_index = (
