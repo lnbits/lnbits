@@ -4,6 +4,8 @@
 
 Monitor an extended public key and generate deterministic fresh public keys with this simple watch only wallet. Invoice payments can also be generated, both through a publically shareable page and API.
 
+You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/satspay/README.md) extension
+
 ### Wallet Account
  - a user can add one or more `xPubs` or `descriptors`
    - the `xPub` fingerprint must be unique per user
@@ -13,27 +15,29 @@ Monitor an extended public key and generate deterministic fresh public keys with
    - see [BIP44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki#account-discovery) for more details
    - same `xPub` will always generate the same addresses (deterministic)
  - when a `Wallet Account` is created, there are generated `20 Receive Addresses` and `5 Change Address`
-   -  this limits can be change from the `Config` page (see `screenshot 1`)
+   -  the limits can be change from the `Config` page (see `screenshot 1`)
    - regular wallets only scan up to `20` empty receive addresses. If the user generates addresses beyond this limit a warning is shown (see `screenshot 4`)
 
 ### Scan Blockchain
- - when the user clicks `Scan Blockchain`, the app will go over the previous address list (for each account)
+ - when the user clicks `Scan Blockchain`, the wallet will loop over the all addresses (for each account)
    - if funds are found, then the list is extended
    -  will scan addresses for all wallet accounts
- - the search is done on the client-side (using the `mempool.space` API). `mempool.space` has a limit on the number of req/sec, therefore it is expected for the scanning to start fast, but slow down as more HTTP requests have to be re-tried
- - addresses can also be rescanned individually form the details section (`Addresses` tab) of each address
+ - the search is done on the client-side (using the `mempool.space` API). `mempool.space` has a limit on the number of req/sec, therefore it is expected for the scanning to start fast, but slow down as more HTTP requests have to be retried
+ - addresses can also be rescanned individually form the `Address Details` section (`Addresses` tab) of each address
  
 ### New Receive Address
  - the `New Receive Address` button show the user the NEXT un-used address
    - un-used means funds have not already been sent to that address AND the address has not already been shared
    - internally there is a counter that keeps track of the last shared address
-   - it is possible to add a `Note` to each address, in order to remember when/with whom it was shared
+   - it is possible to add a `Note` to each address in order to remember when/with whom it was shared
+   - mind the gap (`screenshot 4`)
 
 ### Addresses Tab
 - the `Addresses` tab contains a list with the addresses for all the `Wallet Accounts`
    - only one entry per address will be shown (even if there are multiple UTXOs at that address)
    - several filter criteria can be applied
    - unconfirmed funds are also taken into account
+   - `Address Details` can be viewed by clicking the `Expand` button
 
 ### History Tap
  - shows the chronological order of transactions
@@ -60,7 +64,8 @@ Monitor an extended public key and generate deterministic fresh public keys with
 ### Create PSBT
  - based on the Inputs & Outputs selected by the user a PSBT will be generated
  - this wallet is watch-only, therefore does not support signing
- - it is not mandatory for the `Selected Amount` to be grater than `Payed Amount`. The generated PSBT can be combined with other PSBTs that add more inputs.
+ - it is not mandatory for the `Selected Amount` to be grater than `Payed Amount`
+   - the generated PSBT can be combined with other PSBTs that add more inputs.
  - the generated PSBT can be imported for signing into different wallets like Electrum
    - import the PSBT into Electrum and check the In/Outs/Fee (see `screenshot 3`)
 
@@ -78,5 +83,3 @@ Monitor an extended public key and generate deterministic fresh public keys with
 ![image](https://user-images.githubusercontent.com/2951406/177337474-bfcf7a7c-501a-4ebb-916e-ca391e63f6a7.png)
 
 
-
-You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnbits/lnbits/blob/master/lnbits/extensions/satspay/README.md) extension
