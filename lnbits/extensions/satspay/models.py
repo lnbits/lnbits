@@ -40,6 +40,10 @@ class Charges(BaseModel):
 
     @property
     def time_elapsed(self):
+        # todo:
+        # now = datetime.utcnow().timestamp()
+        # start = datetime.utcfromtimestamp(self.timestamp)
+        # expiration = (start + timedelta(minutes=self.time)).timestamp()
         if (self.timestamp + (self.time * 60)) >= time.time():
             return False
         else:
