@@ -31,7 +31,7 @@ from .crud import (
     get_config,
     update_config,
 )
-from .models import CreateWallet, CreatePsbt, Config
+from .models import CreateWallet, CreatePsbt, Config, WalletAccount
 from .helpers import parse_key
 
 
@@ -66,9 +66,32 @@ async def api_wallet_create_or_update(
     data: CreateWallet, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
-        wallet = await create_watch_wallet(
-            user=w.wallet.user, masterpub=data.masterpub, title=data.title
+        (descriptor, _) = parse_key(data.masterpub)
+
+        new_wallet = WalletAccount(
+            id="none",
+            user=w.wallet.user,
+            masterpub=data.masterpub,
+            fingerprint=descriptor.keys[0].fingerprint.hex(),
+            type=descriptor.scriptpubkey_type(),
+            title=data.title,
+            address_no=-1,  # so fresh address on empty wallet can get address with index 0
+            balance=0,
         )
+
+        wallets = await get_watch_wallets(w.wallet.user)
+        existing_wallet = next(
+            (ew for ew in wallets if ew.fingerprint == new_wallet.fingerprint), None
+        )
+        if existing_wallet:
+            raise ValueError(
+                "Account '{}' has the same master pulic key".format(
+                    existing_wallet.title
+                )
+            )
+
+        wallet = await create_watch_wallet(new_wallet)
+
         await api_get_addresses(wallet.id, w)
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))

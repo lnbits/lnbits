@@ -12,19 +12,8 @@ from .helpers import parse_key, derive_address
 ##########################WALLETS####################
 
 
-async def create_watch_wallet(user: str, masterpub: str, title: str) -> WalletAccount:
-    # check the masterpub is fine, it will raise an exception if not
-    (descriptor, _) = parse_key(masterpub)
-
-    type = descriptor.scriptpubkey_type()
-    fingerprint = descriptor.keys[0].fingerprint.hex()
+async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
     wallet_id = urlsafe_short_hash()
-
-    wallets = await get_watch_wallets(user)
-    w = next((w for w in wallets if w.fingerprint == fingerprint), None)
-    if w:
-        raise ValueError("Account '{}' has the same master pulic key".format(w.title))
-
     await db.execute(
         """
         INSERT INTO watchonly.wallets (
@@ -39,8 +28,16 @@ async def create_watch_wallet(user: str, masterpub: str, title: str) -> WalletAc
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        # address_no is -1 so fresh address on empty wallet can get address with index 0
-        (wallet_id, user, masterpub, fingerprint, title, type, -1, 0),
+        (
+            wallet_id,
+            w.user,
+            w.masterpub,
+            w.fingerprint,
+            w.title,
+            w.type,
+            w.address_no,
+            w.balance,
+        ),
     )
 
     return await get_watch_wallet(wallet_id)
