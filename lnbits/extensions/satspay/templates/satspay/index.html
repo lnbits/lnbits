@@ -155,10 +155,7 @@
       </q-card-section>
     </q-card>
   </div>
-  <q-dialog
-    v-model="formDialogCharge.show"
-    position="top"
-  >
+  <q-dialog v-model="formDialogCharge.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormDataCharge" class="q-gutter-md">
         <q-input
