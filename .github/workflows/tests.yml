@@ -47,21 +47,21 @@ jobs:
         run: make test
   postgres:
     runs-on: ubuntu-latest
-      services:
-        postgres:
-          image: postgres:latest
-          env:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-            POSTGRES_DB: postgres
-          ports:
-            # maps tcp port 5432 on service container to the host
-            - 5432:5432
-          options: >-
-            --health-cmd pg_isready
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          # maps tcp port 5432 on service container to the host
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         python-version: [3.8]
@@ -83,8 +83,8 @@ jobs:
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pytest pytest-asyncio requests trio mock
       - name: Run tests
-        # env:
-        #   LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
+        env:
+          LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
         run: make test
   # build:
   #   runs-on: ubuntu-latest
