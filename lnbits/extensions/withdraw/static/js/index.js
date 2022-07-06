@@ -24,6 +24,8 @@ var mapWithdrawLink = function (obj) {
   return obj
 }
 
+const CUSTOM_URL = '/static/images/default_voucher.png'
+
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
@@ -138,7 +140,7 @@ new Vue({
       })
       var data = _.omit(this.formDialog.data, 'wallet')
       if (data.use_custom && !data?.custom_url) {
-        data.custom_url = '/static/images/default_voucher.png'
+        data.custom_url = CUSTOM_URL
       }
 
       data.wait_time =
