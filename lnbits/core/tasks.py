@@ -2,6 +2,8 @@ import asyncio
 import httpx
 from typing import List
 
+from loguru import logger
+
 from lnbits.tasks import register_invoice_listener
 
 from . import db
@@ -44,7 +46,7 @@ async def dispatch_invoice_listener(payment: Payment):
         try:
             send_channel.put_nowait(payment)
         except asyncio.QueueFull:
-            print("removing sse listener", send_channel)
+            logger.debug("removing sse listener", send_channel)
             api_invoice_listeners.remove(send_channel)
 
 

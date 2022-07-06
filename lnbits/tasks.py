@@ -4,6 +4,8 @@ import traceback
 from http import HTTPStatus
 from typing import List, Callable
 
+from loguru import logger
+
 from fastapi.exceptions import HTTPException
 
 from lnbits.settings import WALLET
@@ -37,9 +39,9 @@ async def catch_everything_and_restart(func):
     except asyncio.CancelledError:
         raise  # because we must pass this up
     except Exception as exc:
-        print("caught exception in background task:", exc)
-        print(traceback.format_exc())
-        print("will restart the task in 5 seconds.")
+        logger.error("caught exception in background task:", exc)
+        logger.error(traceback.format_exc())
+        logger.error("will restart the task in 5 seconds.")
         await asyncio.sleep(5)
         await catch_everything_and_restart(func)
 
@@ -77,7 +79,7 @@ async def internal_invoice_listener():
 
 async def invoice_listener():
     async for checking_id in WALLET.paid_invoices_stream():
-        print("> got a payment notification", checking_id)
+        logger.info("> got a payment notification", checking_id)
         asyncio.create_task(invoice_callback_dispatcher(checking_id))
 
 

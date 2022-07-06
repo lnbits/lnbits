@@ -10,6 +10,8 @@ from fastapi.routing import APIRouter
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
+from loguru import logger
+
 from lnbits.core import db
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
@@ -200,7 +202,7 @@ async def lnurl_full_withdraw_callback(request: Request):
 async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
     user_wallet_ids = [u.id for u in user.wallets]
-    print("USR", user_wallet_ids)
+    logger.debug("USR", user_wallet_ids)
 
     if wal not in user_wallet_ids:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")

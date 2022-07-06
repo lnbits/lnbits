@@ -7,6 +7,9 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
+
+from loguru import logger
+
 from fastapi import Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
@@ -347,7 +350,7 @@ async def subscribe(request: Request, wallet: Wallet):
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
-    print("adding sse listener", payment_queue)
+    logger.debug("adding sse listener", payment_queue)
     api_invoice_listeners.append(payment_queue)
 
     send_queue: asyncio.Queue[tuple[str, Payment]] = asyncio.Queue(0)
@@ -391,7 +394,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     wallet = None
     try:
         if X_Api_Key.extra:
-            print("No key")
+            logger.warn("No key")
     except:
         wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(payment_hash)

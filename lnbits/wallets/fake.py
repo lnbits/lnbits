@@ -1,11 +1,12 @@
 import asyncio
-import json
-import httpx
+
 from os import getenv
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Dict, AsyncGenerator
 import random
-import string
+
+from loguru import logger
+
 from lnbits.helpers import urlsafe_short_hash
 import hashlib
 from ..bolt11 import encode, decode
@@ -20,7 +21,7 @@ from .base import (
 
 class FakeWallet(Wallet):
     async def status(self) -> StatusResponse:
-        print(
+        logger.info(
             "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system with brrrrrr."
         )
         return StatusResponse(None, float("inf"))

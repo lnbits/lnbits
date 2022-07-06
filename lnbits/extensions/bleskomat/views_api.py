@@ -3,6 +3,8 @@ from http import HTTPStatus
 from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
+from loguru import logger
+
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.extensions.bleskomat.models import CreateBleskomat
@@ -60,7 +62,7 @@ async def api_bleskomat_create_or_update(
             currency=fiat_currency, provider=exchange_rate_provider
         )
     except Exception as e:
-        print(e)
+        logger.error(e)
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail=f'Failed to fetch BTC/{fiat_currency} currency pair from "{exchange_rate_provider}"',

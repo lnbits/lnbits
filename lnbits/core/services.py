@@ -3,6 +3,9 @@ import json
 from binascii import unhexlify
 from io import BytesIO
 from typing import Dict, Optional, Tuple
+
+from loguru import logger
+
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -216,7 +219,7 @@ async def redeem_lnurl_withdraw(
             conn=conn,
         )
     except:
-        print(
+        logger.warn(
             f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
         )
         return None
@@ -325,10 +328,12 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        print(f" - deleting outgoing failed payment {payment.checking_id}: {status}")
+        logger.info(
+            f" - deleting outgoing failed payment {payment.checking_id}: {status}"
+        )
         await payment.delete()
     elif not status.pending:
-        print(
+        logger.info(
             f" - marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
         )
         await payment.set_pending(status.pending)

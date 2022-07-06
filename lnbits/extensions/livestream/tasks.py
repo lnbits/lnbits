@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+from loguru import logger
+
 from lnbits.core import db as core_db
 from lnbits.core.crud import create_payment
 from lnbits.core.models import Payment
@@ -26,11 +28,11 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     track = await get_track(payment.extra.get("track", -1))
     if not track:
-        print("this should never happen", payment)
+        logger.error("this should never happen", payment)
         return
 
     if payment.extra.get("shared_with"):
-        print("payment was shared already", payment)
+        logger.error("payment was shared already", payment)
         return
 
     producer = await get_producer(track.producer)

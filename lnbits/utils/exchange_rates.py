@@ -1,6 +1,8 @@
 import asyncio
 from typing import Callable, NamedTuple
 
+from loguru import logger
+
 import httpx
 
 currencies = {
@@ -280,7 +282,7 @@ async def btc_price(currency: str) -> float:
     if not rates:
         return 9999999999
     elif len(rates) == 1:
-        print("Warning could only fetch one Bitcoin price.")
+        logger.warn("Could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 

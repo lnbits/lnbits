@@ -3,6 +3,9 @@ import importlib
 import sys
 import traceback
 import warnings
+
+from loguru import logger
+
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
@@ -94,13 +97,13 @@ def check_funding_source(app: FastAPI) -> None:
             error_message, balance = await WALLET.status()
             if not error_message:
                 break
-            warnings.warn(
-                f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+            logger.error(
+                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                 RuntimeWarning,
             )
-            print("Retrying connection to backend in 5 seconds...")
+            logger.info("Retrying connection to backend in 5 seconds...")
             await asyncio.sleep(5)
-        print(
+        logger.info(
             f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
         )
 
@@ -126,7 +129,7 @@ def register_routes(app: FastAPI) -> None:
 
             app.include_router(ext_route)
         except Exception as e:
-            print(str(e))
+            logger.error(str(e))
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
@@ -173,8 +176,8 @@ def register_async_tasks(app):
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
-        print("handled error", traceback.format_exc())
-        print("ERROR:", err)
+        logger.error("handled error", traceback.format_exc())
+        logger.error("ERROR:", err)
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
