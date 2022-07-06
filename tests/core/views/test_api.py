@@ -59,10 +59,10 @@ async def test_check_payment_without_key(client, invoice):
 
 # check GET /api/v1/payments/<hash>: payment status
 @pytest.mark.asyncio
-async def test_check_payment_with_key(client, invoice, inkey_headers_to):
+async def test_check_payment_with_key(client, invoice, inkey_headers_from):
     # check the payment status
     response = await client.get(
-        f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_to
+        f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_from
     )
     assert response.status_code < 300
     assert response.json()["paid"] == True
