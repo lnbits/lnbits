@@ -388,7 +388,12 @@ async def api_payments_sse(
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = await get_wallet_for_key(X_Api_Key) if X_Api_Key is not None else None
+    wallet = None
+    try:
+        if X_Api_Key.extra:
+            print("No key")
+    except:
+        wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(payment_hash)
     if payment is None:
         raise HTTPException(

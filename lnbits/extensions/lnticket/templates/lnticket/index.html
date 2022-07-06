@@ -120,7 +120,7 @@
               <q-th auto-width></q-th>
               <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}                
+                {{ col.label }}
               </q-th>
             </q-tr>
           </template>
@@ -145,11 +145,13 @@
                   icon="launch"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="ticketCard(props)"
-                ><q-tooltip> Click to show ticket </q-tooltip></q-btn>
+                  ><q-tooltip> Click to show ticket </q-tooltip></q-btn
+                >
               </q-td>
 
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label == "Ticket" ? col.value.length > 20 ? `${col.value.substring(0, 20)}...` : col.value : col.value }}
+                {{ col.label == "Ticket" ? col.value.length > 20 ?
+                `${col.value.substring(0, 20)}...` : col.value : col.value }}
               </q-td>
 
               <q-td auto-width>
@@ -410,7 +412,7 @@
               })
           })
       },
-      ticketCard(ticket){
+      ticketCard(ticket) {
         this.ticketDialog.show = true
         let {date, email, ltext, name} = ticket.row
         this.ticketDialog.data = {
@@ -469,7 +471,7 @@
       },
       updateformDialog: function (formId) {
         var link = _.findWhere(this.forms, {id: formId})
-        console.log("LINK", link)
+        console.log('LINK', link)
 
         this.formDialog.data.id = link.id
         this.formDialog.data.wallet = link.wallet

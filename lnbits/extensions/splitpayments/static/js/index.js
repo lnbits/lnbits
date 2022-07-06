@@ -119,7 +119,7 @@ new Vue({
           '/splitpayments/api/v1/targets',
           this.selectedWallet.adminkey,
           {
-            "targets": this.targets
+            targets: this.targets
               .filter(isTargetComplete)
               .map(({wallet, percent, alias}) => ({wallet, percent, alias}))
           }

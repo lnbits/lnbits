@@ -15,3 +15,12 @@ jobs:
       - run: python3 -m venv venv
       - run: ./venv/bin/pip install black
       - run: make checkblack
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: sudo apt-get install python3-venv
+      - run: python3 -m venv venv
+      - run: npm install prettier
+      - run: ./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js

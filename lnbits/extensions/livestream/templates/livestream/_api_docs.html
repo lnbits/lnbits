@@ -38,8 +38,8 @@
         <code>[&lt;livestream_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.url_root }}api/v1/livestream -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          >curl -X GET {{ request.base_url }}livestream/api/v1/livestream -H
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -59,8 +59,8 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X PUT {{ request.url_root
-          }}api/v1/livestream/track/&lt;track_id&gt; -H "X-Api-Key: {{
+          >curl -X PUT {{ request.base_url }}
+          livestream/api/v1/livestream/track/&lt;track_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -81,8 +81,8 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X PUT {{ request.url_root
-          }}api/v1/livestream/fee/&lt;fee_pct&gt; -H "X-Api-Key: {{
+          >curl -X PUT {{ request.base_url }}
+          livestream/api/v1/livestream/fee/&lt;fee_pct&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>
@@ -109,11 +109,12 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.url_root }}api/v1/livestream/tracks -d
-          '{"name": &lt;string&gt;, "download_url": &lt;string&gt;,
-          "price_msat": &lt;integer&gt;, "producer_id": &lt;integer&gt;,
-          "producer_name": &lt;string&gt;}' -H "Content-type: application/json"
-          -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
+          >curl -X POST {{ request.base_url }}
+          livestream/api/v1/livestream/tracks -d '{"name": &lt;string&gt;,
+          "download_url": &lt;string&gt;, "price_msat": &lt;integer&gt;,
+          "producer_id": &lt;integer&gt;, "producer_name": &lt;string&gt;}' -H
+          "Content-type: application/json" -H "X-Api-Key: {{
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -123,6 +124,7 @@
     dense
     expand-separator
     label="Delete a withdraw link"
+    class="q-pb-md"
   >
     <q-card>
       <q-card-section>
@@ -136,8 +138,8 @@
         <code></code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X DELETE {{ request.url_root
-          }}api/v1/livestream/tracks/&lt;track_id&gt; -H "X-Api-Key: {{
+          >curl -X DELETE {{ request.base_url }}
+          livestream/api/v1/livestream/tracks/&lt;track_id&gt; -H "X-Api-Key: {{
           user.wallets[0].inkey }}"
         </code>
       </q-card-section>

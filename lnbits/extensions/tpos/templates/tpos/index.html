@@ -54,7 +54,8 @@
                 ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
+                {{ (col.name == 'tip_options' ? JSON.parse(col.value).join(", ")
+                : col.value) }}
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -115,6 +116,29 @@
           v-model="formDialog.data.currency"
           :options="currencyOptions"
           label="Currency *"
+        ></q-select>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialog.data.tip_wallet"
+          :options="g.user.walletOptions"
+          label="Tip Wallet"
+        ></q-select>
+        <q-select
+          filled
+          multiple
+          dense
+          emit-value
+          v-model="formDialog.data.tip_options"
+          v-if="formDialog.data.tip_wallet"
+          use-input
+          use-chips
+          multiple
+          hide-dropdown-icon
+          input-debounce="0"
+          new-value-mode="add-unique"
+          label="Tip % Options"
         ></q-select>
         <div class="row q-mt-lg">
           <q-btn
@@ -333,6 +357,18 @@
               align: 'left',
               label: 'Currency',
               field: 'currency'
+            },
+            {
+              name: 'tip_wallet',
+              align: 'left',
+              label: 'Tip Wallet',
+              field: 'tip_wallet'
+            },
+            {
+              name: 'tip_options',
+              align: 'left',
+              label: 'Tip Options %',
+              field: 'tip_options'
             }
           ],
           pagination: {
@@ -367,7 +403,13 @@
       createTPoS: function () {
         var data = {
           name: this.formDialog.data.name,
-          currency: this.formDialog.data.currency
+          currency: this.formDialog.data.currency,
+          tip_options: this.formDialog.data.tip_options
+            ? JSON.stringify(
+                this.formDialog.data.tip_options.map(str => parseInt(str))
+              )
+            : JSON.stringify([]),
+          tip_wallet: this.formDialog.data.tip_wallet || ''
         }
         var self = this
 

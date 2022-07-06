@@ -52,8 +52,8 @@
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}api/v1/livestream -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          >curl -X GET {{ request.base_url }}splitpayments/api/v1/targets -H
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -63,6 +63,7 @@
     dense
     expand-separator
     label="Set Target Wallets"
+    class="q-pb-md"
   >
     <q-card>
       <q-card-section>
@@ -78,7 +79,7 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X PUT {{ request.base_url }}api/v1/splitpayments/targets -H
+          >curl -X PUT {{ request.base_url }}splitpayments/api/v1/targets -H
           "X-Api-Key: {{ user.wallets[0].adminkey }}" -H 'Content-Type:
           application/json' -d '{"targets": [{"wallet": &lt;wallet id or invoice
           key&gt;, "alias": &lt;name to identify this&gt;, "percent": &lt;number
