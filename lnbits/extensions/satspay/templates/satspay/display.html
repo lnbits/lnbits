@@ -226,6 +226,7 @@
     mixins: [windowMixin],
     data() {
       return {
+        charge: JSON.parse('{{charge | tojson}}'),
         newProgress: 0.4,
         counter: 1,
         newTimeLeft: '',
@@ -246,7 +247,7 @@
       startPaymentNotifier() {
         this.cancelListener()
 
-        this.cancelListener = LNbits.event.onInvoicePaid(
+        this.cancelListener = LNbits.events.onInvoicePaid(
           this.wallet,
           payment => {
             this.checkBalance()
@@ -258,7 +259,7 @@
         LNbits.api
           .request(
             'GET',
-            '/satspay/api/v1/charges/balance/{{ charge.id }}',
+            `/satspay/api/v1/charges/balance/${this.charge.id}`,
             'filla'
           )
           .then(function (response) {
@@ -316,12 +317,13 @@
       }
     },
     created: function () {
-      console.log('{{ charge.onchainaddress }}' == 'None')
-      if ('{{ charge.lnbitswallet }}' == 'None') {
-        this.lnbtc = false
-        this.onbtc = true
-      }
+      console.log('### charge ', this.charge)
+      this.lnbtc = !!this.charge.lnbitswallet
+      this.onbtc = !!this.charge.onchainwallet
+
+      // empty for onchain
       this.wallet.inkey = '{{ wallet_inkey }}'
+
       this.getTheTime()
       this.getThePercentage()
       var timerCount = this.timerCount

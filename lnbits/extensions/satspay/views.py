@@ -24,14 +24,15 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 
 @satspay_ext.get("/{charge_id}", response_class=HTMLResponse)
-async def display(request: Request, charge_id):
+async def display(request: Request, charge_id: str):
     charge = await get_charge(charge_id)
     if not charge:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Charge link does not exist."
         )
     wallet = await get_wallet(charge.lnbitswallet)
+    inkey = wallet.inkey if wallet else None
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
-        {"request": request, "charge": charge, "wallet_key": wallet.inkey},
+        {"request": request, "charge": charge.dict(), "wallet_inkey": inkey},
     )
