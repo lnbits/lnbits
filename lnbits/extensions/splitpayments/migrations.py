@@ -15,6 +15,7 @@ async def m001_initial(db):
         """
     )
 
+
 async def m002_float_percent(db):
     """
     Add float percent and migrates the existing data.
@@ -34,7 +35,8 @@ async def m002_float_percent(db):
     )
 
     for row in [
-        list(row) for row in await db.fetchall("SELECT * FROM splitpayments.splitpayments_old")
+        list(row)
+        for row in await db.fetchall("SELECT * FROM splitpayments.splitpayments_old")
     ]:
         await db.execute(
             """
