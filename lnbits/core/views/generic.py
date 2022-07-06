@@ -17,6 +17,7 @@ from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import (
     LNBITS_ADMIN_USERS,
     LNBITS_ALLOWED_USERS,
+    LNBITS_CUSTOM_LOGO,
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
 )
@@ -144,6 +145,7 @@ async def wallet(
             "user": user.dict(),
             "wallet": wallet.dict(),
             "service_fee": service_fee,
+            "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
     )
 
@@ -251,6 +253,11 @@ async def lnurlwallet(request: Request):
     )
 
 
+@core_html_routes.get("/service-worker.js", response_class=FileResponse)
+async def service_worker():
+    return FileResponse("lnbits/core/static/js/service-worker.js")
+
+
 @core_html_routes.get("/manifest/{usr}.webmanifest")
 async def manifest(usr: str):
     user = await get_user(usr)
@@ -258,21 +265,23 @@ async def manifest(usr: str):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
     return {
-        "short_name": "LNbits",
-        "name": "LNbits Wallet",
+        "short_name": LNBITS_SITE_TITLE,
+        "name": LNBITS_SITE_TITLE + " Wallet",
         "icons": [
             {
-                "src": "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
+                "src": LNBITS_CUSTOM_LOGO
+                if LNBITS_CUSTOM_LOGO
+                else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
                 "type": "image/png",
                 "sizes": "900x900",
             }
         ],
-        "start_url": "/wallet?usr=" + usr,
-        "background_color": "#3367D6",
-        "description": "Weather forecast information",
+        "start_url": "/wallet?usr=" + usr + "&wal=" + user.wallets[0].id,
+        "background_color": "#1F2234",
+        "description": "Bitcoin Lightning Wallet",
         "display": "standalone",
         "scope": "/",
-        "theme_color": "#3367D6",
+        "theme_color": "#1F2234",
         "shortcuts": [
             {
                 "name": wallet.name,

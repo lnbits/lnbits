@@ -16,7 +16,9 @@
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    {% block head_scripts %}{% endblock %}
+    {% if web_manifest %}
+    <link async="async" rel="manifest" href="{{ web_manifest }}" />
+    {% endif %} {% block head_scripts %}{% endblock %}
   </head>
 
   <body data-theme="bitcoin">
@@ -51,6 +53,14 @@
             >
           </q-badge>
           {% endblock %}
+          <q-badge
+            v-if="g.offline"
+            color="red"
+            text-color="white"
+            class="q-mr-md"
+          >
+            <span> OFFLINE </span>
+          </q-badge>
           <q-btn-dropdown
             v-if="g.allowedThemes && g.allowedThemes.length > 1"
             dense
