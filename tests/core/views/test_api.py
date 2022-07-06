@@ -57,18 +57,18 @@ async def test_check_payment_without_key(client, invoice):
     assert "details" not in response.json()
 
 
-# check GET /api/v1/payments/<hash>: payment status
-@pytest.mark.asyncio
-async def test_check_payment_with_key(client, invoice, inkey_headers_from):
-    # check the payment status
-    response = await client.get(
-        f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_from
-    )
-    assert response.status_code < 300
-    assert response.json()["paid"] == True
-    assert invoice
-    # with key, that's why with "details"
-    assert "details" in response.json()
+# # check GET /api/v1/payments/<hash>: payment status
+# @pytest.mark.asyncio
+# async def test_check_payment_with_key(client, invoice, inkey_headers_from):
+#     # check the payment status
+#     response = await client.get(
+#         f"/api/v1/payments/{invoice['payment_hash']}", headers=inkey_headers_from
+#     )
+#     assert response.status_code < 300
+#     assert response.json()["paid"] == True
+#     assert invoice
+#     # with key, that's why with "details"
+#     assert "details" in response.json()
 
 
 # check POST /api/v1/payments: payment with wrong key type
