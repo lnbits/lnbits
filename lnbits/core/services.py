@@ -13,7 +13,12 @@ from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
-from lnbits.decorators import WalletTypeInfo, require_admin_key
+from lnbits.decorators import (
+    WalletTypeInfo,
+    get_key_type,
+    require_admin_key,
+    require_invoice_key,
+)
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import FAKE_WALLET, WALLET
@@ -266,7 +271,6 @@ async def perform_lnurlauth(
     
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
     key = wallet.wallet.lnurlauth_key(cb.netloc)
-
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""
         b = x.to_bytes((x.bit_length() + 7) // 8, "big")
