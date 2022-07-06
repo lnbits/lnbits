@@ -24,7 +24,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pytest pytest-asyncio requests mock
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         run: make test
   unit-postgres:
@@ -63,7 +63,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pytest pytest-asyncio requests mock
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:
           LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
