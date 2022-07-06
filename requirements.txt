@@ -19,6 +19,7 @@ httpx==0.23.0
 idna==3.3
 jinja2==3.1.2
 lnurl==0.3.6
+loguru==0.6.0
 markupsafe==2.1.1
 marshmallow==3.17.0
 outcome==1.2.0
