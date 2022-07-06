@@ -1,6 +1,6 @@
 import asyncio
-import pytest
 import pytest_asyncio
+
 from httpx import AsyncClient
 from lnbits.app import create_app
 from lnbits.commands import migrate_databases

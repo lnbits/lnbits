@@ -1,12 +1,9 @@
-import time
 from mock import AsyncMock
 from lnbits import bolt11
 from lnbits.wallets.base import (
     StatusResponse,
-    InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
-    Wallet,
 )
 from lnbits.settings import WALLET
 
