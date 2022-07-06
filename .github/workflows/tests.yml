@@ -3,24 +3,8 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  unit:
+  unit-sqlite:
     runs-on: ubuntu-latest
-    # services:
-    #   postgres:
-    #     image: postgres:latest
-    #     env:
-    #       POSTGRES_USER: postgres
-    #       POSTGRES_PASSWORD: postgres
-    #       POSTGRES_DB: postgres
-    #     ports:
-    #       # maps tcp port 5432 on service container to the host
-    #       - 5432:5432
-    #     options: >-
-    #       --health-cmd pg_isready
-    #       --health-interval 10s
-    #       --health-timeout 5s
-    #       --health-retries 5
-
     strategy:
       matrix:
         python-version: [3.8]
@@ -40,12 +24,10 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pytest pytest-asyncio requests trio mock
+          ./venv/bin/pip install pytest pytest-asyncio requests mock
       - name: Run tests
-        # env:
-        #   LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
         run: make test
-  postgres:
+  unit-postgres:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -81,7 +63,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pytest pytest-asyncio requests trio mock
+          ./venv/bin/pip install pytest pytest-asyncio requests mock
       - name: Run tests
         env:
           LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
