@@ -287,7 +287,7 @@
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
-  var mapCharge = obj => {
+  const mapCharge = obj => {
     obj._data = _.clone(obj)
     obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
     obj.time = obj.time + 'mins'
@@ -437,7 +437,6 @@
             id: w.id,
             label: w.title
           }))
-         
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -447,12 +446,7 @@
           is_unique: false
         }
       },
-      openQrCodeDialog: function (linkId) {
-        var getAddresses = this.getAddresses
-        getAddresses(linkId)
-        this.current = linkId
-        this.Addresses.show = true
-      },
+
       getCharges: async function () {
         try {
           const {data} = await LNbits.api.request(
@@ -474,10 +468,10 @@
         this.createCharge(wallet, data)
       },
       timerCount: function () {
-        var refreshIntervalId = setInterval( () => {
+        setInterval(async () => {
           for (i = 0; i < this.ChargeLinks.length - 1; i++) {
             if (this.ChargeLinks[i]['paid'] == 'True') {
-              setTimeout(async function () {
+              setTimeout(async () => {
                 await LNbits.api.request(
                   'GET',
                   '/satspay/api/v1/charges/balance/' +
@@ -487,7 +481,7 @@
               }, 2000)
             }
           }
-          this.getCharges()
+          await this.getCharges()
         }, 20000)
       },
       createCharge: async function (wallet, data) {
@@ -514,7 +508,7 @@
       },
 
       deleteChargeLink: function (chargeId) {
-        var link = _.findWhere(this.ChargeLinks, {id: chargeId})
+        const link = _.findWhere(this.ChargeLinks, {id: chargeId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
           .onOk(async () => {
@@ -537,14 +531,11 @@
         LNbits.utils.exportCSV(this.ChargesTable.columns, this.ChargeLinks)
       }
     },
-    created: function () {
+    created: async function () {
       console.log(this.g.user)
-      var getCharges = this.getCharges
-      getCharges()
-      var getWalletLinks = this.getWalletLinks
-      getWalletLinks()
-      var timerCount = this.timerCount
-      timerCount()
+      await this.getCharges()
+      await this.getWalletLinks()
+      this.timerCount()
     }
   })
 </script>
