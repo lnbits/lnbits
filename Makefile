@@ -35,7 +35,7 @@ test:
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
-	./venv/bin/pytest -s
+	./venv/bin/pytest -s --cov=lnbits --cov-report=xml
 
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres

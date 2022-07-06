@@ -68,6 +68,10 @@ jobs:
         env:
           LNBITS_DATABASE_URL: postgres://postgres:postgres@0.0.0.0:5432/postgres
         run: make test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
   # build:
   #   runs-on: ubuntu-latest
   #   strategy:
