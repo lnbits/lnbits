@@ -24,9 +24,14 @@ services:
       - db
     volumes:
       - ./.env:/app/.env:ro
-      - ${TLS_CERT_PATH?}:${TLS_CERT_PATH?}:ro
-      - ${MACAROON_PATH?}:${MACAROON_PATH?}:ro
-      # Volume for SQLite data (instead of postgres -- not recommended).
+      # # if you are using REST or gRPC API, mount the tls.cert or
+      # # macaroon files here -- NOTE: requires absolute path without
+      # # quotations (") in .env file
+      # - ${LND_REST_CERT}:${LND_REST_CERT}:ro
+      # - ${LND_REST_MACAROON}:${LND_REST_MACAROON}:ro
+      # - ${LND_GRPC_CERT}:${LND_GRPC_CERT}:ro
+      # - ${LND_GRPC_MACAROON}:${LND_GRPC_MACAROON}:ro
+      # # Volume for SQLite data (instead of postgres -- not recommended).
       # - sqlite_data:/app/lnbits/data/
 
   db:
