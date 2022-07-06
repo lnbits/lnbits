@@ -246,7 +246,7 @@
             filled
             dense
             emit-value
-            v-model="formDialogCharge.data.onchainwallet"
+            v-model="onchainwallet"
             :options="walletLinks"
             label="Onchain Wallet"
           />
@@ -401,6 +401,7 @@
           show: false,
           data: {
             onchain: false,
+            onchainwallet: '',
             lnbits: false,
             description: '',
             time: null,
@@ -426,24 +427,21 @@
         self.formDialogCharge.show = false
       },
 
-      getWalletLinks: function () {
-        var self = this
-
-        LNbits.api
-          .request(
+      getWalletLinks: async function () {
+        try {
+          const {data} = await LNbits.api.request(
             'GET',
             '/watchonly/api/v1/wallet',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            for (i = 0; i < response.data.length; i++) {
-              self.walletLinks.push(response.data[i].id)
-            }
-            return
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          this.walletLinks = data.map(w => ({
+            id: w.id,
+            label: w.title
+          }))
+         
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
       },
       closeFormDialog: function () {
         this.formDialog.data = {
@@ -457,22 +455,17 @@
         self.current = linkId
         self.Addresses.show = true
       },
-      getCharges: function () {
-        var self = this
-        var getAddressBalance = this.getAddressBalance
-
-        LNbits.api
-          .request(
+      getCharges: async function () {
+        try {
+          const {data} = await LNbits.api.request(
             'GET',
             '/satspay/api/v1/charges',
             this.g.user.wallets[0].inkey
           )
-          .then(function (response) {
-            self.ChargeLinks = response.data.map(mapCharge)
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          this.ChargeLinks = data.map(mapCharge)
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
       },
       sendFormDataCharge: function () {
         var self = this
@@ -480,6 +473,7 @@
         var data = this.formDialogCharge.data
         data.amount = parseInt(data.amount)
         data.time = parseInt(data.time)
+        data.onchainwallet = this.onchainwallet?.id
         this.createCharge(wallet, data)
       },
       timerCount: function () {
@@ -487,40 +481,40 @@
         var refreshIntervalId = setInterval(function () {
           for (i = 0; i < self.ChargeLinks.length - 1; i++) {
             if (self.ChargeLinks[i]['paid'] == 'True') {
-              setTimeout(function () {
-                LNbits.api
-                  .request(
-                    'GET',
-                    '/satspay/api/v1/charges/balance/' +
-                      self.ChargeLinks[i]['id'],
-                    'filla'
-                  )
-                  .then(function (response) {})
+              setTimeout(async function () {
+                await LNbits.api.request(
+                  'GET',
+                  '/satspay/api/v1/charges/balance/' +
+                    self.ChargeLinks[i]['id'],
+                  'filla'
+                )
               }, 2000)
             }
           }
           self.getCharges()
         }, 20000)
       },
-      createCharge: function (wallet, data) {
-        var self = this
+      createCharge: async function (wallet, data) {
+        try {
+          const resp = await LNbits.api.request(
+            'POST',
+            '/satspay/api/v1/charge',
+            wallet,
+            data
+          )
 
-        LNbits.api
-          .request('POST', '/satspay/api/v1/charge', wallet, data)
-          .then(function (response) {
-            self.ChargeLinks.push(mapCharge(response.data))
-            self.formDialogCharge.show = false
-            self.formDialogCharge.data = {
-              onchain: false,
-              lnbits: false,
-              description: '',
-              time: null,
-              amount: null
-            }
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          this.ChargeLinks.push(mapCharge(resp.data))
+          this.formDialogCharge.show = false
+          this.formDialogCharge.data = {
+            onchain: false,
+            lnbits: false,
+            description: '',
+            time: null,
+            amount: null
+          }
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
       },
 
       deleteChargeLink: function (chargeId) {
@@ -528,26 +522,24 @@
         var link = _.findWhere(this.ChargeLinks, {id: chargeId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
+          .onOk(async function () {
+            try {
+              const response = await LNbits.api.request(
                 'DELETE',
                 '/satspay/api/v1/charge/' + chargeId,
                 self.g.user.wallets[0].adminkey
               )
-              .then(function (response) {
-                self.ChargeLinks = _.reject(self.ChargeLinks, function (obj) {
-                  return obj.id === chargeId
-                })
+
+              self.ChargeLinks = _.reject(self.ChargeLinks, function (obj) {
+                return obj.id === chargeId
               })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
+            } catch (error) {
+              LNbits.utils.notifyApiError(error)
+            }
           })
       },
       exportchargeCSV: function () {
-        var self = this
-        LNbits.utils.exportCSV(self.ChargesTable.columns, this.ChargeLinks)
+        LNbits.utils.exportCSV(this.ChargesTable.columns, this.ChargeLinks)
       }
     },
     created: function () {
