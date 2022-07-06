@@ -1,15 +1,5 @@
 version: "3.6"
 services:
-  tor-node:
-    image: osminogin/tor-simple
-    restart: always
-    links:
-      - lnbits:myservice
-    volumes:
-      - ./torrc.sample:/etc/tor/torrc:ro
-      # would be nice to mount under /var/lib/tor/hidden_service but
-      # it fails for too permisive mode on the directory
-      - tor_hidden_service:/var/lib/tor/
   
   lnbits:
     image: 'my-lnbits'
@@ -43,6 +33,17 @@ services:
       POSTGRESS_DB: ${DB_NAME?}
     volumes:
       - db_data:/var/lib/postgresql/data
+
+  tor-node:
+    image: osminogin/tor-simple
+    restart: always
+    links:
+      - lnbits:myservice
+    volumes:
+      - ./torrc.sample:/etc/tor/torrc:ro
+      # would be nice to mount under /var/lib/tor/hidden_service but
+      # it fails for too permisive mode on the directory
+      - tor_hidden_service:/var/lib/tor/
 
 volumes:
   tor_hidden_service:
