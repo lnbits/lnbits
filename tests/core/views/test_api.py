@@ -59,8 +59,8 @@ async def test_check_payment_without_key(client, invoice):
 
 # check GET /api/v1/payments/<hash>: payment status
 # NOTE: this test is sensitive to which db is used.
-# If postgres: it will succeed only with inkey_headers_to
-# If sqlite: it will succeed only with adminkey_headers_from
+# If postgres: it will succeed only with inkey_headers_from
+# If sqlite: it will succeed only with adminkey_headers_to
 # TODO: fix this
 @pytest.mark.asyncio
 async def test_check_payment_with_key(client, invoice, inkey_headers_from):
