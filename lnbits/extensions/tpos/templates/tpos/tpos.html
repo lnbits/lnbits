@@ -167,7 +167,10 @@
         <div class="text-center">
           <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
           <h5 class="q-mt-none">
-            {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+            {% raw %}{{ fsat }}
+            <small>sat</small>
+            <span style="font-size: 0.75rem">( + {{ tipAmountSat }} tip)</span>
+            {% endraw %}
           </h5>
         </div>
         <div class="row q-mt-lg">
