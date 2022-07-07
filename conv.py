@@ -565,9 +565,10 @@ def migrate_ext(sqlite_db_file, schema):
                 success_url,
                 currency,
                 comment_chars,
-                max
+                max,
+                fiat_base_multiplier
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         pay_links = res.fetchall()
         insert_to_pg(q, pay_links)
