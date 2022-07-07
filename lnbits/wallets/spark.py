@@ -56,6 +56,7 @@ class SparkWallet(Wallet):
                 httpx.ConnectError,
                 httpx.RequestError,
                 httpx.HTTPError,
+                httpx.TimeoutException,
             ) as exc:
                 raise UnknownError("error connecting to spark: " + str(exc))
 
