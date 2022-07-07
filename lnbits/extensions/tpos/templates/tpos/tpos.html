@@ -313,7 +313,6 @@
         return Math.ceil((this.tipAmount / this.exchangeRate) * 100000000)
       },
       fsat: function () {
-        console.log('sat', this.sat, LNbits.utils.formatSat(this.sat))
         return LNbits.utils.formatSat(this.sat)
       }
     },
@@ -365,7 +364,6 @@
       showInvoice: function () {
         var self = this
         var dialog = this.invoiceDialog
-        console.log(this.sat, this.tposId)
         axios
           .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
             params: {
