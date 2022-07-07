@@ -2,6 +2,11 @@ import psycopg2
 import sqlite3
 import os
 
+from environs import Env  # type: ignore
+
+env = Env()
+env.read_env()
+
 # Python script to migrate an LNbits SQLite DB to Postgres
 # All credits to @Fritz446 for the awesome work
 
@@ -11,13 +16,27 @@ import os
 
 # Change these values as needed
 
+
 sqfolder = "data/"
-pgdb = "postgres"
-pguser = "postgres"
-pgpswd = "postgres"
-pghost = "localhost"
-pgport = "5432"
-pgschema = ""
+
+LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
+if LNBITS_DATABASE_URL is None:
+    pgdb = "lnbits"
+    pguser = "lnbits"
+    pgpswd = "postgres"
+    pghost = "localhost"
+    pgport = "5432"
+    pgschema = ""
+else:
+    # parse postgres://lnbits:postgres@localhost:5432/lnbits
+    pgdb = LNBITS_DATABASE_URL.split("/")[-1]
+    pguser = LNBITS_DATABASE_URL.split("@")[0].split(":")[-2][2:]
+    pgpswd = LNBITS_DATABASE_URL.split("@")[0].split(":")[-1]
+    pghost = LNBITS_DATABASE_URL.split("@")[1].split(":")[0]
+    pgport = LNBITS_DATABASE_URL.split("@")[1].split(":")[1].split("/")[0]
+    pgschema = ""
+
+print(pgdb, pguser, pgpswd, pghost, pgport, pgschema)
 
 
 def get_sqlite_cursor(sqdb) -> sqlite3:
