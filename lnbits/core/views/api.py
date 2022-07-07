@@ -7,13 +7,11 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-
-from loguru import logger
-
 from fastapi import Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.param_functions import Depends
 from fastapi.params import Body
+from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
@@ -21,42 +19,21 @@ from sse_starlette.sse import EventSourceResponse
 from lnbits import bolt11, lnurl
 from lnbits.bolt11 import Invoice
 from lnbits.core.models import Payment, Wallet
-from lnbits.decorators import (
-    WalletAdminKeyChecker,
-    WalletInvoiceKeyChecker,
-    WalletTypeInfo,
-    get_key_type,
-    require_admin_key,
-    require_invoice_key,
-)
+from lnbits.decorators import (WalletAdminKeyChecker, WalletInvoiceKeyChecker,
+                               WalletTypeInfo, get_key_type, require_admin_key,
+                               require_invoice_key)
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
 from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE
-from lnbits.utils.exchange_rates import (
-    currencies,
-    fiat_amount_as_satoshis,
-    satoshis_amount_as_fiat,
-)
+from lnbits.utils.exchange_rates import (currencies, fiat_amount_as_satoshis,
+                                         satoshis_amount_as_fiat)
 
 from .. import core_app, db
-from ..crud import (
-    create_payment,
-    get_payments,
-    get_standalone_payment,
-    get_wallet,
-    get_wallet_for_key,
-    save_balance_check,
-    update_payment_status,
-    update_wallet,
-)
-from ..services import (
-    InvoiceFailure,
-    PaymentFailure,
-    check_invoice_status,
-    create_invoice,
-    pay_invoice,
-    perform_lnurlauth,
-)
+from ..crud import (create_payment, get_payments, get_standalone_payment,
+                    get_wallet, get_wallet_for_key, save_balance_check,
+                    update_payment_status, update_wallet)
+from ..services import (InvoiceFailure, PaymentFailure, check_invoice_status,
+                        create_invoice, pay_invoice, perform_lnurlauth)
 from ..tasks import api_invoice_listeners
 
 

@@ -11,18 +11,9 @@ from lnbits.extensions.subdomains.models import CreateDomain, CreateSubdomain
 
 from . import subdomains_ext
 from .cloudflare import cloudflare_create_subdomain, cloudflare_deletesubdomain
-from .crud import (
-    create_domain,
-    create_subdomain,
-    delete_domain,
-    delete_subdomain,
-    get_domain,
-    get_domains,
-    get_subdomain,
-    get_subdomainBySubdomain,
-    get_subdomains,
-    update_domain,
-)
+from .crud import (create_domain, create_subdomain, delete_domain,
+                   delete_subdomain, get_domain, get_domains, get_subdomain,
+                   get_subdomainBySubdomain, get_subdomains, update_domain)
 
 # domainS
 

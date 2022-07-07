@@ -1,7 +1,9 @@
 import pytest
+
 from lnbits.core.crud import get_wallet
 
 from ...helpers import get_random_invoice_data
+
 
 # check if the client is working
 @pytest.mark.asyncio

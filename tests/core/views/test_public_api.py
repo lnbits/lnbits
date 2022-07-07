@@ -1,5 +1,7 @@
 import pytest
+
 from lnbits.core.crud import get_wallet
+
 
 # check if the client is working
 @pytest.mark.asyncio

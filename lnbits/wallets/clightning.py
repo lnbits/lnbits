@@ -5,20 +5,15 @@ except ImportError:  # pragma: nocover
 
 import asyncio
 import random
+import time
 from functools import partial, wraps
 from os import getenv
 from typing import AsyncGenerator, Optional
-import time
 
-from .base import (
-    InvoiceResponse,
-    PaymentResponse,
-    PaymentStatus,
-    StatusResponse,
-    Unsupported,
-    Wallet,
-)
 from lnbits import bolt11 as lnbits_bolt11
+
+from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
+                   StatusResponse, Unsupported, Wallet)
 
 
 def async_wrap(func):

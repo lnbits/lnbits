@@ -9,18 +9,11 @@ from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import discordbot_ext
-from .crud import (
-    create_discordbot_user,
-    create_discordbot_wallet,
-    delete_discordbot_user,
-    delete_discordbot_wallet,
-    get_discordbot_user,
-    get_discordbot_users,
-    get_discordbot_users_wallets,
-    get_discordbot_wallet,
-    get_discordbot_wallet_transactions,
-    get_discordbot_wallets,
-)
+from .crud import (create_discordbot_user, create_discordbot_wallet,
+                   delete_discordbot_user, delete_discordbot_wallet,
+                   get_discordbot_user, get_discordbot_users,
+                   get_discordbot_users_wallets, get_discordbot_wallet,
+                   get_discordbot_wallet_transactions, get_discordbot_wallets)
 from .models import CreateUserData, CreateUserWallet
 
 # Users

@@ -12,18 +12,9 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.lnticket.models import CreateFormData, CreateTicketData
 
 from . import lnticket_ext
-from .crud import (
-    create_form,
-    create_ticket,
-    delete_form,
-    delete_ticket,
-    get_form,
-    get_forms,
-    get_ticket,
-    get_tickets,
-    set_ticket_paid,
-    update_form,
-)
+from .crud import (create_form, create_ticket, delete_form, delete_ticket,
+                   get_form, get_forms, get_ticket, get_tickets,
+                   set_ticket_paid, update_form)
 
 # FORMS
 

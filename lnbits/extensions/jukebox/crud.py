@@ -3,7 +3,8 @@ from typing import List, Optional
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateJukeboxPayment, CreateJukeLinkData, Jukebox, JukeboxPayment
+from .models import (CreateJukeboxPayment, CreateJukeLinkData, Jukebox,
+                     JukeboxPayment)
 
 
 async def create_jukebox(

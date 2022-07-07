@@ -7,7 +7,6 @@ from lnbits.core.views.api import api_payment
 from lnbits.helpers import urlsafe_short_hash
 
 from ..watchonly.crud import get_fresh_address, get_mempool, get_watch_wallet
-
 # from lnbits.db import open_ext_db
 from . import db
 from .models import Charges, CreateCharge

@@ -1,12 +1,7 @@
 from typing import List, Optional
 
-from lnbits.core.crud import (
-    create_account,
-    create_wallet,
-    delete_wallet,
-    get_payments,
-    get_user,
-)
+from lnbits.core.crud import (create_account, create_wallet, delete_wallet,
+                              get_payments, get_user)
 from lnbits.core.models import Payment
 
 from . import db

@@ -9,17 +9,10 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.livestream.models import CreateTrack
 
 from . import livestream_ext
-from .crud import (
-    add_producer,
-    add_track,
-    delete_track_from_livestream,
-    get_or_create_livestream_by_wallet,
-    get_producers,
-    get_tracks,
-    update_current_track,
-    update_livestream_fee,
-    update_track,
-)
+from .crud import (add_producer, add_track, delete_track_from_livestream,
+                   get_or_create_livestream_by_wallet, get_producers,
+                   get_tracks, update_current_track, update_livestream_fee,
+                   update_track)
 
 
 @livestream_ext.get("/api/v1/livestream")

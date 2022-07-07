@@ -5,22 +5,12 @@ from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
-from lnbits.decorators import (
-    WalletTypeInfo,
-    get_key_type,
-    require_admin_key,
-    require_invoice_key,
-)
+from lnbits.decorators import (WalletTypeInfo, get_key_type, require_admin_key,
+                               require_invoice_key)
 from lnbits.extensions.satspay import satspay_ext
 
-from .crud import (
-    check_address_balance,
-    create_charge,
-    delete_charge,
-    get_charge,
-    get_charges,
-    update_charge,
-)
+from .crud import (check_address_balance, create_charge, delete_charge,
+                   get_charge, get_charges, update_charge)
 from .models import CreateCharge
 
 #############################CHARGES##########################

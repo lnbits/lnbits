@@ -5,23 +5,14 @@ import urllib.parse
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
-from loguru import logger
-
 import httpx
+from loguru import logger
 from websockets import connect
-from websockets.exceptions import (
-    ConnectionClosed,
-    ConnectionClosedError,
-    ConnectionClosedOK,
-)
+from websockets.exceptions import (ConnectionClosed, ConnectionClosedError,
+                                   ConnectionClosedOK)
 
-from .base import (
-    InvoiceResponse,
-    PaymentResponse,
-    PaymentStatus,
-    StatusResponse,
-    Wallet,
-)
+from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
+                   StatusResponse, Wallet)
 
 
 class EclairError(Exception):

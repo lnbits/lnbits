@@ -1,22 +1,16 @@
 from http import HTTPStatus
 
 from fastapi import Depends, Query
-from starlette.exceptions import HTTPException
-
 from loguru import logger
+from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.extensions.bleskomat.models import CreateBleskomat
 
 from . import bleskomat_ext
-from .crud import (
-    create_bleskomat,
-    delete_bleskomat,
-    get_bleskomat,
-    get_bleskomats,
-    update_bleskomat,
-)
+from .crud import (create_bleskomat, delete_bleskomat, get_bleskomat,
+                   get_bleskomats, update_bleskomat)
 from .exchange_rates import fetch_fiat_exchange_rate
 
 

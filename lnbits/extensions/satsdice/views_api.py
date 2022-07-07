@@ -10,13 +10,8 @@ from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import satsdice_ext
-from .crud import (
-    create_satsdice_pay,
-    delete_satsdice_pay,
-    get_satsdice_pay,
-    get_satsdice_pays,
-    update_satsdice_pay,
-)
+from .crud import (create_satsdice_pay, delete_satsdice_pay, get_satsdice_pay,
+                   get_satsdice_pays, update_satsdice_pay)
 from .models import CreateSatsDiceLink, CreateSatsDiceWithdraws, satsdiceLink
 
 ################LNURL pay

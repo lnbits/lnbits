@@ -12,14 +12,8 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import currencies
 
 from . import offlineshop_ext
-from .crud import (
-    add_item,
-    delete_item_from_shop,
-    get_items,
-    get_or_create_shop_by_wallet,
-    set_method,
-    update_item,
-)
+from .crud import (add_item, delete_item_from_shop, get_items,
+                   get_or_create_shop_by_wallet, set_method, update_item)
 from .models import ShopCounter
 
 

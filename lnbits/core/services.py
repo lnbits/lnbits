@@ -3,14 +3,12 @@ import json
 from binascii import unhexlify
 from io import BytesIO
 from typing import Dict, Optional, Tuple
-
-from loguru import logger
-
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
+from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
@@ -20,14 +18,8 @@ from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
-from .crud import (
-    check_internal,
-    create_payment,
-    delete_payment,
-    get_wallet,
-    get_wallet_payment,
-    update_payment_status,
-)
+from .crud import (check_internal, create_payment, delete_payment, get_wallet,
+                   get_wallet_payment, update_payment_status)
 
 try:
     from typing import TypedDict  # type: ignore

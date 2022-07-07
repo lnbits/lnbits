@@ -12,21 +12,10 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.events.models import CreateEvent, CreateTicket
 
 from . import events_ext
-from .crud import (
-    create_event,
-    create_ticket,
-    delete_event,
-    delete_event_tickets,
-    delete_ticket,
-    get_event,
-    get_event_tickets,
-    get_events,
-    get_ticket,
-    get_tickets,
-    reg_ticket,
-    set_ticket_paid,
-    update_event,
-)
+from .crud import (create_event, create_ticket, delete_event,
+                   delete_event_tickets, delete_ticket, get_event,
+                   get_event_tickets, get_events, get_ticket, get_tickets,
+                   reg_ticket, set_ticket_paid, update_event)
 
 # Events
 

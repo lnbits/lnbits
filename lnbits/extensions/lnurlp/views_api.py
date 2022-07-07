@@ -11,13 +11,8 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.utils.exchange_rates import currencies, get_fiat_rate_satoshis
 
 from . import lnurlp_ext
-from .crud import (
-    create_pay_link,
-    delete_pay_link,
-    get_pay_link,
-    get_pay_links,
-    update_pay_link,
-)
+from .crud import (create_pay_link, delete_pay_link, get_pay_link,
+                   get_pay_links, update_pay_link)
 from .models import CreatePayLinkData
 
 

@@ -11,13 +11,8 @@ from lnbits.core.views.api import api_payment, api_payments_decode
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import lnurlpayout_ext
-from .crud import (
-    create_lnurlpayout,
-    delete_lnurlpayout,
-    get_lnurlpayout,
-    get_lnurlpayout_from_wallet,
-    get_lnurlpayouts,
-)
+from .crud import (create_lnurlpayout, delete_lnurlpayout, get_lnurlpayout,
+                   get_lnurlpayout_from_wallet, get_lnurlpayouts)
 from .models import CreateLnurlPayoutData, lnurlpayout
 from .tasks import on_invoice_paid
 

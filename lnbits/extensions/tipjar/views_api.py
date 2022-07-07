@@ -9,18 +9,9 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from ..satspay.crud import create_charge
 from . import tipjar_ext
-from .crud import (
-    create_tip,
-    create_tipjar,
-    delete_tip,
-    delete_tipjar,
-    get_tip,
-    get_tipjar,
-    get_tipjars,
-    get_tips,
-    update_tip,
-    update_tipjar,
-)
+from .crud import (create_tip, create_tipjar, delete_tip, delete_tipjar,
+                   get_tip, get_tipjar, get_tipjars, get_tips, update_tip,
+                   update_tipjar)
 from .helpers import get_charge_details
 from .models import CreateCharge, createTipJar, createTips
 

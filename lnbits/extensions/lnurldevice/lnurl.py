@@ -1,31 +1,23 @@
 import base64
 import hashlib
+import hmac
 from http import HTTPStatus
+from io import BytesIO
 from typing import Optional
 
-from embit import bech32
-from embit import compact
-import base64
-from io import BytesIO
-import hmac
-
+from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from lnbits.core.views.api import pay_invoice
-
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import lnurldevice_ext
-from .crud import (
-    create_lnurldevicepayment,
-    get_lnurldevice,
-    get_lnurldevicepayment,
-    update_lnurldevicepayment,
-    get_lnurlpayload,
-)
+from .crud import (create_lnurldevicepayment, get_lnurldevice,
+                   get_lnurldevicepayment, get_lnurlpayload,
+                   update_lnurldevicepayment)
 
 
 def bech32_decode(bech):

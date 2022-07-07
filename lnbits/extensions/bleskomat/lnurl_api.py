@@ -3,26 +3,17 @@ import math
 import traceback
 from http import HTTPStatus
 
+from loguru import logger
 from starlette.requests import Request
 
-from loguru import logger
-
 from . import bleskomat_ext
-from .crud import (
-    create_bleskomat_lnurl,
-    get_bleskomat_by_api_key_id,
-    get_bleskomat_lnurl,
-)
+from .crud import (create_bleskomat_lnurl, get_bleskomat_by_api_key_id,
+                   get_bleskomat_lnurl)
 from .exchange_rates import fetch_fiat_exchange_rate
-from .helpers import (
-    LnurlHttpError,
-    LnurlValidationError,
-    generate_bleskomat_lnurl_secret,
-    generate_bleskomat_lnurl_signature,
-    prepare_lnurl_params,
-    query_to_signing_payload,
-    unshorten_lnurl_query,
-)
+from .helpers import (LnurlHttpError, LnurlValidationError,
+                      generate_bleskomat_lnurl_secret,
+                      generate_bleskomat_lnurl_signature, prepare_lnurl_params,
+                      query_to_signing_payload, unshorten_lnurl_query)
 
 
 # Handles signed URL from Bleskomat ATMs and "action" callback of auto-generated LNURLs.

@@ -1,6 +1,7 @@
-import psycopg2
-import sqlite3
 import os
+import sqlite3
+
+import psycopg2
 
 # Python script to migrate an LNbits SQLite DB to Postgres
 # All credits to @Fritz446 for the awesome work

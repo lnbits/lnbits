@@ -13,13 +13,9 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists
 
 from . import satsdice_ext, satsdice_renderer
-from .crud import (
-    create_satsdice_withdraw,
-    get_satsdice_pay,
-    get_satsdice_payment,
-    get_satsdice_withdraw,
-    update_satsdice_payment,
-)
+from .crud import (create_satsdice_withdraw, get_satsdice_pay,
+                   get_satsdice_payment, get_satsdice_withdraw,
+                   update_satsdice_payment)
 from .models import CreateSatsDiceWithdraw, satsdiceLink
 
 templates = Jinja2Templates(directory="templates")
