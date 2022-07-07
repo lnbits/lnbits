@@ -43,6 +43,6 @@ jobs:
       - name: Run tests
         run: |
           timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001
-          LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
+          export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
           timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001
           python3 conv.py
