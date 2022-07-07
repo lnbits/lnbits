@@ -44,6 +44,8 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
+    set_logging_level()
+
     app = FastAPI()
     app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
     app.mount(
@@ -104,7 +106,7 @@ def check_funding_source(app: FastAPI) -> None:
             logger.info("Retrying connection to backend in 5 seconds...")
             await asyncio.sleep(5)
         logger.info(
-            f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
+            f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
 
 
@@ -127,6 +129,7 @@ def register_routes(app: FastAPI) -> None:
                 for s in ext_statics:
                     app.mount(s["path"], s["app"], s["name"])
 
+            logger.trace(f"adding route for extension {ext_module}")
             app.include_router(ext_route)
         except Exception as e:
             logger.error(str(e))
@@ -191,3 +194,10 @@ def register_exception_handlers(app: FastAPI):
             status_code=HTTPStatus.NO_CONTENT,
             content={"detail": err},
         )
+
+
+def set_logging_level() -> None:
+    """Set the logging level for the application."""
+    logger.remove()
+    log_level: str = "DEBUG" if lnbits.settings.DEBUG else "INFO"
+    logger.add(sys.stderr, level=log_level)
