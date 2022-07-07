@@ -198,7 +198,7 @@ async def pay_invoice(
                 payment.error_message
                 or "Payment failed, but backend didn't give us an error message."
             )
-    logger.debug(f"payment successful {invoice.checking_id}")
+    logger.debug(f"payment successful {payment.checking_id}")
     return invoice.payment_hash
 
 
