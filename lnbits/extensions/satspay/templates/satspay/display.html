@@ -18,7 +18,7 @@
           class="col"
           color="white"
           style="background-color: grey; height: 30px; padding: 5px"
-          v-else-if="charge_paid == 'True'"
+          v-else-if="charge.paid"
         >
           <center>Charge paid</center>
         </div>
@@ -46,10 +46,10 @@
         </center>
         <span
           ><small
-            >{% raw %} Total to pay: {{ charge_amount }}sats<br />
-            Amount paid: {{ charge_balance }}</small
+            >{% raw %} Total to pay: {{ charge.amount }}sats<br />
+            Amount paid: {{ charge.balance }}</small
           ><br />
-          Amount due: {{ charge_amount - charge_balance }}sats {% endraw %}
+          Amount due: {{ charge.amount - charge.balance }}sats {% endraw %}
         </span>
       </div>
       <q-separator></q-separator>
@@ -59,7 +59,7 @@
             <q-btn
               flat
               disable
-              v-if="'{{ charge.lnbitswallet }}' == 'None' || charge_time_elapsed == 'True'"
+              v-if="!charge.lnbitswallet || charge.time_elapsed"
               style="color: primary; width: 100%"
               label="lightning⚡"
             >
@@ -81,7 +81,7 @@
             <q-btn
               flat
               disable
-              v-if="'{{ charge.onchainwallet }}' == 'None' || charge_time_elapsed == 'True'"
+              v-if="!charge.onchainwallet || charge.time_elapsed"
               style="color: primary; width: 100%"
               label="onchain⛓️"
             >
@@ -106,13 +106,13 @@
     <q-card class="q-pa-lg" v-if="lnbtc">
       <q-card-section class="q-pa-none">
         <div class="text-center q-pt-md">
-          <div v-if="timetoComplete < 1 && charge_paid == 'False'">
+          <div v-if="timetoComplete < 1 && !charge.paid">
             <q-icon
               name="block"
               style="color: #ccc; font-size: 21.4em"
             ></q-icon>
           </div>
-          <div v-else-if="charge_paid == 'True'">
+          <div v-else-if="charge.paid">
             <q-icon
               name="check"
               style="color: green; font-size: 21.4em"
@@ -156,13 +156,13 @@
     <q-card class="q-pa-lg" v-if="onbtc">
       <q-card-section class="q-pa-none">
         <div class="text-center q-pt-md">
-          <div v-if="timetoComplete < 1 && charge_paid == 'False'">
+          <div v-if="timetoComplete < 1 && !charge.paid">
             <q-icon
               name="block"
               style="color: #ccc; font-size: 21.4em"
             ></q-icon>
           </div>
-          <div v-else-if="charge_paid == 'True'">
+          <div v-else-if="charge.paid">
             <q-icon
               name="check"
               style="color: green; font-size: 21.4em"
@@ -233,10 +233,6 @@
         timetoComplete: 100,
         lnbtc: true,
         onbtc: false,
-        charge_time_elapsed: '{{charge.time_elapsed}}',
-        charge_amount: '{{charge.amount}}',
-        charge_balance: '{{charge.balance}}',
-        charge_paid: '{{charge.paid}}',
         wallet: {
           inkey: ''
         },
@@ -254,25 +250,27 @@
           }
         )
       },
-      checkBalance: function () {
-        var self = this
-        LNbits.api
+      checkBalance: async function () {
+        try {
+          const {data} = await LNbits.api
           .request(
             'GET',
             `/satspay/api/v1/charges/balance/${this.charge.id}`,
             'filla'
           )
-          .then(function (response) {
-            self.charge_time_elapsed = response.data.time_elapsed
-            self.charge_amount = response.data.amount
-            self.charge_balance = response.data.balance
-            if (self.charge_balance >= self.charge_amount) {
-              self.charge_paid = 'True'
+
+            this.charge.time_elapsed = data.time_elapsed
+            this.charge.amount = data.amount
+            this.charge.balance = data.balance
+            if (this.charge.balance >= this.charge.amount) {
+              this.charge.paid = true
             }
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+
+
+
       },
       payLN: function () {
         this.lnbtc = true
@@ -304,7 +302,7 @@
       timerCount: function () {
         self = this
         var refreshIntervalId = setInterval(function () {
-          if (self.charge_paid == 'True' || self.timetoComplete < 1) {
+          if (self.charge.paid|| self.timetoComplete < 1) {
             clearInterval(refreshIntervalId)
           }
           self.getTheTime()
@@ -327,7 +325,7 @@
       this.getTheTime()
       this.getThePercentage()
       var timerCount = this.timerCount
-      if ('{{ charge.paid }}' == 'False') {
+      if (!this.charge.paid) {
         timerCount()
       }
       this.startPaymentNotifier()
