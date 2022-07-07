@@ -34,5 +34,5 @@ async def display(request: Request, charge_id: str):
     inkey = wallet.inkey if wallet else None
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
-        {"request": request, "charge": charge.dict(), "wallet_inkey": inkey},
+        {"request": request, "charge_data": charge.dict(), "wallet_inkey": inkey},
     )

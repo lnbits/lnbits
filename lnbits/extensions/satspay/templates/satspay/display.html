@@ -3,7 +3,9 @@
   <q-card class="my-card">
     <div class="column">
       <center>
-        <div class="col theHeading">{{ charge.description }}</div>
+        <div class="col theHeading">
+          <span v-text="charge.description"></span>
+        </div>
       </center>
       <div class="col">
         <div
@@ -39,18 +41,32 @@
         </div>
       </div>
       <div class="col" style="margin: 2px 15px; max-height: 100px">
-        <center>
-          <q-btn flat dense outline @click="copyText('{{ charge.id }}')"
-            >Charge ID: {{ charge.id }}</q-btn
-          >
-        </center>
-        <span
-          ><small
-            >{% raw %} Total to pay: {{ charge.amount }}sats<br />
-            Amount paid: {{ charge.balance }}</small
-          ><br />
-          Amount due: {{ charge.amount - charge.balance }}sats {% endraw %}
-        </span>
+        <div class="row items-center q-mt-md">
+          <div class="col-4 q-pr-lg">Charge Id:</div>
+          <div class="col-8 q-pr-lg">
+            <q-btn flat dense outline @click="copyText(charge.id)"
+              ><span v-text="charge.id"></span
+            ></q-btn>
+          </div>
+        </div>
+        <div class="row items-center q-mt-md">
+          <div class="col-4 q-pr-lg">Total to pay:</div>
+          <div class="col-8 q-pr-lg">
+            <span v-text="charge.amount"></span> sats
+          </div>
+        </div>
+        <div class="row items-center q-mt-md">
+          <div class="col-4 q-pr-lg">Amount paid:</div>
+          <div class="col-8 q-pr-lg">
+            <span v-text="charge.balance"></span> sats
+          </div>
+        </div>
+        <div class="row items-center q-mt-md">
+          <div class="col-4 q-pr-lg">Amount due:</div>
+          <div class="col-8 q-pr-lg">
+            <span v-text="charge.amount - charge.balance"></span> sats
+          </div>
+        </div>
       </div>
       <q-separator></q-separator>
       <div class="col">
@@ -119,23 +135,22 @@
             ></q-icon>
             <q-btn
               outline
-              v-if="'{{ charge.webhook }}' != 'None'"
+              v-if="charge.webhook"
               type="a"
-              href="{{ charge.completelink }}"
-              label="{{ charge.completelinktext }}"
+              :href="charge.completelink"
+              :label="charge.completelinktext"
             ></q-btn>
           </div>
           <div v-else>
-            <center>
-              <span class="text-subtitle2"
-                >Pay this <br />
-                lightning-network invoice</span
-              >
-            </center>
-            <a href="lightning:{{ charge.payment_request }}">
+            <span class="text-subtitle2"
+              >Pay this lightning-network invoice:</span
+            >
+            <br />
+
+            <a :href="'lightning:'+charge.payment_request">
               <q-responsive :ratio="1" class="q-mx-md">
                 <qrcode
-                  :value="'{{ charge.payment_request }}'"
+                  :value="charge.payment_request"
                   :options="{width: 800}"
                   class="rounded-borders"
                 ></qrcode>
@@ -145,7 +160,7 @@
               <q-btn
                 outline
                 color="grey"
-                @click="copyText('{{ charge.payment_request }}')"
+                @click="copyText(charge.payment_request)"
                 >Copy invoice</q-btn
               >
             </div>
@@ -169,23 +184,23 @@
             ></q-icon>
             <q-btn
               outline
-              v-if="'{{ charge.webhook }}' != None"
+              v-if="charge.webhook "
               type="a"
-              href="{{ charge.completelink }}"
-              label="{{ charge.completelinktext }}"
+              :href="charge.completelink"
+              :label="charge.completelinktext"
             ></q-btn>
           </div>
           <div v-else>
-            <center>
-              <span class="text-subtitle2"
-                >Send {{ charge.amount }}sats<br />
-                to this onchain address</span
-              >
-            </center>
-            <a href="bitcoin:{{ charge.onchainaddress }}">
+            <span class="text-subtitle2"
+              >Send
+              <span v-text="charge.amount"></span>
+              sats to this onchain address</span
+            >
+
+            <a :href="'bitcoin:'+charge.onchainaddress">
               <q-responsive :ratio="1" class="q-mx-md">
                 <qrcode
-                  :value="'{{ charge.onchainaddress }}'"
+                  :value="charge.onchainaddress"
                   :options="{width: 800}"
                   class="rounded-borders"
                 ></qrcode>
@@ -195,7 +210,7 @@
               <q-btn
                 outline
                 color="grey"
-                @click="copyText('{{ charge.onchainaddress }}')"
+                @click="copyText(charge.onchainaddress)"
                 >Copy address</q-btn
               >
             </div>
@@ -210,7 +225,7 @@
 
 <style>
   .theCard {
-    width: 360px;
+    width: 30%;
     margin: 10px auto;
   }
   .theHeading {
@@ -220,6 +235,7 @@
 </style>
 <!-- todo: use config mempool -->
 <script src="https://mempool.space/mempool.js"></script>
+<script src="{{ url_for('satspay_static', path='js/utils.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
@@ -228,7 +244,8 @@
     mixins: [windowMixin],
     data() {
       return {
-        charge: JSON.parse('{{charge | tojson}}'),
+        charge: JSON.parse('{{charge_data | tojson}}'),
+        ws: null,
         newProgress: 0.4,
         counter: 1,
         newTimeLeft: '',
@@ -277,11 +294,13 @@
 
         const fn = async () =>
           addressesAPI.getAddressTxsUtxo({
-            address: charge.onchainaddress
+            address: this.charge.onchainaddress
           })
 
         const utxos = await retryWithDelay(fn)
-        charge.balance = utxos.reduce((t, u) => t + u.value, 0)
+        console.log('### utxos', utxos)
+        this.charge.balance = utxos.reduce((t, u) => t + u.value, 0)
+        console.log('### utxos', utxos)
       },
       payInvoice: function () {
         this.lnbtc = true
@@ -293,8 +312,8 @@
       },
       refreshExpirationTime: function () {
         this.timetoComplete =
-          parseInt('{{ charge.time }}') * 60 -
-          (Date.now() / 1000 - parseInt('{{ charge.timestamp }}'))
+          parseInt(this.charge.time) * 60 -
+          (Date.now() / 1000 - parseInt(this.charge.timestamp))
 
         this.newTimeLeft = Quasar.utils.date.formatDate(
           new Date((this.timeToComplete - 3600) * 1000),
@@ -304,7 +323,7 @@
       refreshProgres: function () {
         this.refreshExpirationTime()
         this.newProgress =
-          1 - this.timeToComplete / (parseInt('{{ charge.time }}') * 60)
+          1 - this.timeToComplete / (parseInt(this.charge.time) * 60)
       },
       loopRefresh: function () {
         // invoice only
@@ -320,9 +339,50 @@
             if (this.charge.onchainaddress) this.checkAddressBalance()
           }
         }, 1000)
+      },
+      initWs: async function () {
+        const {
+          bitcoin: {websocket}
+        } = mempoolJS({
+          hostname: 'mempool.space'
+        })
+
+        this.ws = new WebSocket('wss://mempool.space/api/v1/ws')
+        this.ws.addEventListener('open', x => {
+          console.log('### open ws', x)
+        })
+        this.ws.addEventListener('close', x => {
+          console.log('### close ws', x)
+        })
+
+        this.ws.addEventListener('message', ({data}) => {
+          const res = JSON.parse(data.toString())
+          console.log('### socker mempool res', res)
+          if (res['address-transactions']) {
+            this.checkAddressBalance()
+          }
+        })
+      },
+      loopPingWs: function () {
+        setInterval(() => {
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) this.initWs()
+          this.ws.send(JSON.stringify({action: 'ping'}))
+        }, 30 * 1000)
+      },
+      trackAddress: async function (address, retry = 0) {
+        try {
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) this.initWs()
+          console.log('### start to track: ', address)
+          this.ws.send(JSON.stringify({'track-address': address}))
+        } catch (error) {
+          await sleep(1000)
+          if (retry > 10) throw error
+          this.trackAddress(address, retry + 1)
+        }
       }
     },
     created: function () {
+      console.log('### charge', this.charge)
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
 
@@ -334,6 +394,10 @@
         this.loopRefresh()
       }
       this.startPaymentNotifier()
+      if (this.charge.onchainaddress) {
+        this.loopPingWs()
+        this.trackAddress(this.charge.onchainaddress)
+      }
     }
   })
 </script>
