@@ -71,7 +71,7 @@ async def migrate_databases():
             if match:
                 version = int(match.group(1))
                 if version > current_versions.get(db_name, 0):
-                    logger.info(f"running migration {db_name}.{version}")
+                    logger.debug(f"running migration {db_name}.{version}")
                     await migrate(db)
 
                     if db.schema == None:
@@ -112,4 +112,4 @@ async def migrate_databases():
         async with ext_db.connect() as ext_conn:
             await run_migration(ext_conn, ext_migrations)
 
-    logger.info("  ✔️ All migrations done.")
+    logger.info("✔️ All migrations done.")

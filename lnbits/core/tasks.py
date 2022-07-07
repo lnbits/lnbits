@@ -22,7 +22,7 @@ async def register_task_listeners():
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     while True:
         payment = await invoice_paid_queue.get()
-
+        logger.debug("received invoice paid event")
         # send information to sse channel
         await dispatch_invoice_listener(payment)
 
@@ -54,6 +54,7 @@ async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient() as client:
         data = payment.dict()
         try:
+            logger.debug("sending webhook", payment.webhook)
             r = await client.post(payment.webhook, json=data, timeout=40)
             await mark_webhook_sent(payment, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):

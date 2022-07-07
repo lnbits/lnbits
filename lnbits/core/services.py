@@ -123,6 +123,7 @@ async def pay_invoice(
         # check_internal() returns the checking_id of the invoice we're waiting for
         internal_checking_id = await check_internal(invoice.payment_hash, conn=conn)
         if internal_checking_id:
+            logger.debug(f"creating temporary internal payment with id {internal_id}")
             # create a new payment from this wallet
             await create_payment(
                 checking_id=internal_id,
@@ -132,6 +133,7 @@ async def pay_invoice(
                 **payment_kwargs,
             )
         else:
+            logger.debug(f"creating temporary payment with id {temp_id}")
             # create a temporary payment here so we can check if
             # the balance is enough in the next step
             await create_payment(
@@ -145,6 +147,7 @@ async def pay_invoice(
         wallet = await get_wallet(wallet_id, conn=conn)
         assert wallet
         if wallet.balance_msat < 0:
+            logger.debug("balance is too low, deleting temporary payment")
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
                     f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
@@ -152,6 +155,7 @@ async def pay_invoice(
             raise PermissionError("Insufficient balance.")
 
     if internal_checking_id:
+        logger.debug(f"marking temporary payment as not pending {internal_checking_id}")
         # mark the invoice from the other side as not pending anymore
         # so the other side only has access to his new money when we are sure
         # the payer has enough to deduct from
@@ -166,11 +170,14 @@ async def pay_invoice(
 
         await internal_invoice_queue.put(internal_checking_id)
     else:
+        logger.debug(f"backend sending payment {temp_id}")
         # actually pay the external invoice
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )
+        logger.debug(f"backend pay_invoice finished {temp_id}")
         if payment.checking_id:
+            logger.debug(f"creating new payment {payment.checking_id}")
             async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
@@ -180,15 +187,18 @@ async def pay_invoice(
                     conn=conn,
                     **payment_kwargs,
                 )
+                logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
         else:
+            logger.debug(f"backend payment failed, no checking_id {temp_id}")
             async with db.connect() as conn:
+                logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
             raise PaymentFailure(
                 payment.error_message
                 or "Payment failed, but backend didn't give us an error message."
             )
-
+    logger.debug(f"payment successful {invoice.payment_hash}")
     return invoice.payment_hash
 
 
@@ -328,13 +338,11 @@ async def check_invoice_status(
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
-        logger.info(
-            f" - deleting outgoing failed payment {payment.checking_id}: {status}"
-        )
+        logger.info(f"deleting outgoing failed payment {payment.checking_id}: {status}")
         await payment.delete()
     elif not status.pending:
         logger.info(
-            f" - marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
+            f"marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
         )
         await payment.set_pending(status.pending)
     return status
