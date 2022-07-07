@@ -12,9 +12,9 @@ import os
 # Change these values as needed
 
 sqfolder = "data/"
-pgdb = "lnbits"
+pgdb = "postgres"
 pguser = "postgres"
-pgpswd = "yourpassword"
+pgpswd = "postgres"
 pghost = "localhost"
 pgport = "5432"
 pgschema = ""

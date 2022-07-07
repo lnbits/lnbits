@@ -42,9 +42,9 @@ jobs:
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         run: |
-          rm -rf ./tests/data
-          mkdir -p ./tests/data
-          export LNBITS_DATA_FOLDER="./tests/data"
+          rm -rf ./data
+          mkdir -p ./data
+          export LNBITS_DATA_FOLDER="./data"
           timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
           export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
           timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
