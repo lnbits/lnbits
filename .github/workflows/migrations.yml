@@ -45,7 +45,7 @@ jobs:
           rm -rf ./data
           mkdir -p ./data
           export LNBITS_DATA_FOLDER="./data"
-          timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+          timeout 5s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
           export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
-          timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+          timeout 5s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
           ./venv/bin/python conv.py

@@ -516,10 +516,10 @@ def migrate_ext(sqlite_db_file, schema):
         insert_to_pg(q, items)
         fix_id("offlineshop.items_id_seq", items)
     elif schema == "lnurlpos":
-        # LNURLPOSS
-        res = sq.execute("SELECT * FROM lnurlposs;")
+        # LNURLPOS
+        res = sq.execute("SELECT * FROM lnurlpos;")
         q = f"""
-            INSERT INTO lnurlpos.lnurlposs (id, key, title, wallet, currency, timestamp)
+            INSERT INTO lnurlpos.lnurlpos (id, key, title, wallet, currency, timestamp)
             VALUES (%s, %s, %s, %s, %s, to_timestamp(%s));
         """
         insert_to_pg(q, res.fetchall())
