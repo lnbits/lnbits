@@ -44,7 +44,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
-    set_logging_level()
+    configure_logger()
 
     app = FastAPI()
     app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
@@ -196,8 +196,11 @@ def register_exception_handlers(app: FastAPI):
         )
 
 
-def set_logging_level() -> None:
-    """Set the logging level for the application."""
+def configure_logger() -> None:
     logger.remove()
     log_level: str = "DEBUG" if lnbits.settings.DEBUG else "INFO"
-    logger.add(sys.stderr, level=log_level)
+    if lnbits.settings.DEBUG:
+        fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <6}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>"
+    else:
+        fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>"
+    logger.add(sys.stderr, level=log_level, format=fmt)
