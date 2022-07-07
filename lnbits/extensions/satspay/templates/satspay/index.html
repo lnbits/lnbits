@@ -280,6 +280,8 @@
 <!-- lnbits/static/vendor
 <script src="/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script> -->
 <style></style>
+<!-- todo: use config mempool -->
+<script src="https://mempool.space/mempool.js"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
 
@@ -298,6 +300,21 @@
     }
     obj.displayUrl = ['/satspay/', obj.id].join('')
     return obj
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+  const retryWithDelay = async function (fn, retryCount = 0) {
+    try {
+      await sleep(25)
+      // Do not return the call directly, use result.
+      // Otherwise the error will not be cought in this try-catch block.
+      const result = await fn()
+      return result
+    } catch (err) {
+      if (retryCount > 100) throw err
+      await sleep((retryCount + 1) * 1000)
+      return retryWithDelay(fn, retryCount + 1)
+    }
   }
 
   new Vue({
@@ -423,6 +440,19 @@
         }
       },
 
+      getWalletConfig: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/watchonly/api/v1/config',
+            this.g.user.wallets[0].inkey
+          )
+          this.mempool.endpoint = data.mempool_endpoint
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
       getCharges: async function () {
         try {
           const {data} = await LNbits.api.request(
@@ -459,6 +489,22 @@
           }
           await this.getCharges()
         }, 20000)
+      },
+      rescanOnchainAddresses: async function () {
+        const {
+          bitcoin: {addresses: addressesAPI}
+        } = mempoolJS()
+
+        const onchainCharges = this.chargeLinks.filter(c => c.onchainaddress)
+        for (const charge of onchainCharges) {
+          const fn = async () =>
+            addressesAPI.getAddressTxsUtxo({
+              address: charge.onchainaddress
+            })
+
+          const utxos = await retryWithDelay(fn)
+          charge.balance = utxos.reduce((t, u) => t + u.value, 0)
+        }
       },
       createCharge: async function (wallet, data) {
         try {
@@ -511,7 +557,10 @@
       console.log(this.g.user)
       await this.getCharges()
       await this.getWalletLinks()
+      await this.getWalletConfig()
       this.timerCount()
+      this.rescanOnchainAddresses()
+      setInterval(() => this.rescanOnchainAddresses(), 30 * 1000)
     }
   })
 </script>
