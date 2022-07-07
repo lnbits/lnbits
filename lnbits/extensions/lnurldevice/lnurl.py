@@ -15,9 +15,13 @@ from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import lnurldevice_ext
-from .crud import (create_lnurldevicepayment, get_lnurldevice,
-                   get_lnurldevicepayment, get_lnurlpayload,
-                   update_lnurldevicepayment)
+from .crud import (
+    create_lnurldevicepayment,
+    get_lnurldevice,
+    get_lnurldevicepayment,
+    get_lnurlpayload,
+    update_lnurldevicepayment,
+)
 
 
 def bech32_decode(bech):

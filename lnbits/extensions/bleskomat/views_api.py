@@ -9,8 +9,13 @@ from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.extensions.bleskomat.models import CreateBleskomat
 
 from . import bleskomat_ext
-from .crud import (create_bleskomat, delete_bleskomat, get_bleskomat,
-                   get_bleskomats, update_bleskomat)
+from .crud import (
+    create_bleskomat,
+    delete_bleskomat,
+    get_bleskomat,
+    get_bleskomats,
+    update_bleskomat,
+)
 from .exchange_rates import fetch_fiat_exchange_rate
 
 

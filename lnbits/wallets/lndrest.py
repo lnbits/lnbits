@@ -10,8 +10,13 @@ from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 from .macaroon import AESCipher, load_macaroon
 
 

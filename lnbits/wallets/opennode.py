@@ -10,8 +10,14 @@ from loguru import logger
 
 from lnbits.helpers import url_for
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Unsupported, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 
 
 class OpenNodeWallet(Wallet):

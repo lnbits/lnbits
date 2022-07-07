@@ -12,10 +12,19 @@ from lnbits.extensions.lnaddress.models import CreateAddress, CreateDomain
 
 from . import lnaddress_ext
 from .cloudflare import cloudflare_create_record, cloudflare_deleterecord
-from .crud import (check_address_available, create_address, create_domain,
-                   delete_address, delete_domain, get_address,
-                   get_address_by_username, get_addresses, get_domain,
-                   get_domains, update_domain)
+from .crud import (
+    check_address_available,
+    create_address,
+    create_domain,
+    delete_address,
+    delete_domain,
+    get_address,
+    get_address_by_username,
+    get_addresses,
+    get_domain,
+    get_domains,
+    update_domain,
+)
 
 
 # DOMAINS

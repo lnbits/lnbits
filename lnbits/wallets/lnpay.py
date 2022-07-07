@@ -8,8 +8,13 @@ import httpx
 from fastapi.exceptions import HTTPException
 from loguru import logger
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class LNPayWallet(Wallet):

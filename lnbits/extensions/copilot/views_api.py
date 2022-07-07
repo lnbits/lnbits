@@ -8,8 +8,13 @@ from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import copilot_ext
-from .crud import (create_copilot, delete_copilot, get_copilot, get_copilots,
-                   update_copilot)
+from .crud import (
+    create_copilot,
+    delete_copilot,
+    get_copilot,
+    get_copilots,
+    update_copilot,
+)
 from .models import CreateCopilotData
 from .views import updater
 

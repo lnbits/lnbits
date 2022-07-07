@@ -10,8 +10,12 @@ from loguru import logger
 from .core import db as core_db
 from .core import migrations as core_migrations
 from .db import COCKROACH, POSTGRES, SQLITE
-from .helpers import (get_css_vendored, get_js_vendored, get_valid_extensions,
-                      url_for_vendored)
+from .helpers import (
+    get_css_vendored,
+    get_js_vendored,
+    get_valid_extensions,
+    url_for_vendored,
+)
 from .settings import LNBITS_PATH
 
 

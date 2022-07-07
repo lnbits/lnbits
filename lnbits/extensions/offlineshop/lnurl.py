@@ -1,8 +1,11 @@
 import hashlib
 
 from fastapi.params import Query
-from lnurl import (LnurlErrorResponse, LnurlPayActionResponse,  # type: ignore
-                   LnurlPayResponse)
+from lnurl import (
+    LnurlErrorResponse,
+    LnurlPayActionResponse,  # type: ignore
+    LnurlPayResponse,
+)
 from starlette.requests import Request
 
 from lnbits.core.services import create_invoice

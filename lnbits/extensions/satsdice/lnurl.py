@@ -11,8 +11,12 @@ from starlette.responses import HTMLResponse  # type: ignore
 from lnbits.core.services import create_invoice, pay_invoice
 
 from . import satsdice_ext
-from .crud import (create_satsdice_payment, get_satsdice_pay,
-                   get_satsdice_withdraw_by_hash, update_satsdice_withdraw)
+from .crud import (
+    create_satsdice_payment,
+    get_satsdice_pay,
+    get_satsdice_withdraw_by_hash,
+    update_satsdice_withdraw,
+)
 from .models import CreateSatsDicePayment
 
 ##############LNURLP STUFF

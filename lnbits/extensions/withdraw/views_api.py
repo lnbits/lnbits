@@ -10,8 +10,14 @@ from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import withdraw_ext
-from .crud import (create_withdraw_link, delete_withdraw_link, get_hash_check,
-                   get_withdraw_link, get_withdraw_links, update_withdraw_link)
+from .crud import (
+    create_withdraw_link,
+    delete_withdraw_link,
+    get_hash_check,
+    get_withdraw_link,
+    get_withdraw_links,
+    update_withdraw_link,
+)
 from .models import CreateWithdrawData
 
 

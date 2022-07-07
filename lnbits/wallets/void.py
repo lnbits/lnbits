@@ -2,8 +2,14 @@ from typing import AsyncGenerator, Optional
 
 from loguru import logger
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Unsupported, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 
 
 class VoidWallet(Wallet):

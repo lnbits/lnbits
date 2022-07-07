@@ -8,8 +8,7 @@ from lnbits.app import create_app
 from lnbits.commands import migrate_databases
 from lnbits.core.crud import create_account, create_wallet, get_wallet
 from lnbits.core.models import BalanceCheck, Payment, User, Wallet
-from lnbits.core.views.api import (CreateInvoiceData,
-                                   api_payments_create_invoice)
+from lnbits.core.views.api import CreateInvoiceData, api_payments_create_invoice
 from lnbits.db import Database
 from lnbits.settings import HOST, PORT
 from tests.helpers import credit_wallet, get_random_invoice_data

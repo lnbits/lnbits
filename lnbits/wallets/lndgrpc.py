@@ -20,8 +20,13 @@ if imports_ok:
     import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
     import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 def get_ssl_context(cert_path: str):

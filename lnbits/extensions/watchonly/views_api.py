@@ -7,9 +7,17 @@ from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.watchonly import watchonly_ext
 
-from .crud import (create_mempool, create_watch_wallet, delete_watch_wallet,
-                   get_addresses, get_fresh_address, get_mempool,
-                   get_watch_wallet, get_watch_wallets, update_mempool)
+from .crud import (
+    create_mempool,
+    create_watch_wallet,
+    delete_watch_wallet,
+    get_addresses,
+    get_fresh_address,
+    get_mempool,
+    get_watch_wallet,
+    get_watch_wallets,
+    update_mempool,
+)
 from .models import CreateWallet
 
 ###################WALLETS#############################

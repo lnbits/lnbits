@@ -14,9 +14,16 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 
 from . import jukebox_ext
-from .crud import (create_jukebox, create_jukebox_payment, delete_jukebox,
-                   get_jukebox, get_jukebox_payment, get_jukeboxs,
-                   update_jukebox, update_jukebox_payment)
+from .crud import (
+    create_jukebox,
+    create_jukebox_payment,
+    delete_jukebox,
+    get_jukebox,
+    get_jukebox_payment,
+    get_jukeboxs,
+    update_jukebox,
+    update_jukebox_payment,
+)
 from .models import CreateJukeboxPayment, CreateJukeLinkData
 
 

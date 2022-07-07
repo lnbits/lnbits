@@ -13,8 +13,11 @@ from starlette.requests import Request
 from lnbits.core.crud import get_user, get_wallet_for_key
 from lnbits.core.models import User, Wallet
 from lnbits.requestvars import g
-from lnbits.settings import (LNBITS_ADMIN_EXTENSIONS, LNBITS_ADMIN_USERS,
-                             LNBITS_ALLOWED_USERS)
+from lnbits.settings import (
+    LNBITS_ADMIN_EXTENSIONS,
+    LNBITS_ADMIN_USERS,
+    LNBITS_ALLOWED_USERS,
+)
 
 
 class KeyChecker(SecurityBase):

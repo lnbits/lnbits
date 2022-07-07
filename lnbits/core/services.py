@@ -18,8 +18,14 @@ from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
-from .crud import (check_internal, create_payment, delete_payment, get_wallet,
-                   get_wallet_payment, update_payment_status)
+from .crud import (
+    check_internal,
+    create_payment,
+    delete_payment,
+    get_wallet,
+    get_wallet_payment,
+    update_payment_status,
+)
 
 try:
     from typing import TypedDict  # type: ignore

@@ -9,12 +9,18 @@ from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import usermanager_ext
-from .crud import (create_usermanager_user, create_usermanager_wallet,
-                   delete_usermanager_user, delete_usermanager_wallet,
-                   get_usermanager_user, get_usermanager_users,
-                   get_usermanager_users_wallets, get_usermanager_wallet,
-                   get_usermanager_wallet_transactions,
-                   get_usermanager_wallets)
+from .crud import (
+    create_usermanager_user,
+    create_usermanager_wallet,
+    delete_usermanager_user,
+    delete_usermanager_wallet,
+    get_usermanager_user,
+    get_usermanager_users,
+    get_usermanager_users_wallets,
+    get_usermanager_wallet,
+    get_usermanager_wallet_transactions,
+    get_usermanager_wallets,
+)
 from .models import CreateUserData, CreateUserWallet
 
 # Users

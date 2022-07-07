@@ -11,8 +11,13 @@ from lnbits.extensions.lnurldevice import lnurldevice_ext
 from lnbits.utils.exchange_rates import currencies
 
 from . import lnurldevice_ext
-from .crud import (create_lnurldevice, delete_lnurldevice, get_lnurldevice,
-                   get_lnurldevices, update_lnurldevice)
+from .crud import (
+    create_lnurldevice,
+    delete_lnurldevice,
+    get_lnurldevice,
+    get_lnurldevices,
+    update_lnurldevice,
+)
 from .models import createLnurldevice
 
 

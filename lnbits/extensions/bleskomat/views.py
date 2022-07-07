@@ -7,8 +7,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import bleskomat_ext, bleskomat_renderer
-from .exchange_rates import (exchange_rate_providers_serializable,
-                             fiat_currencies)
+from .exchange_rates import exchange_rate_providers_serializable, fiat_currencies
 from .helpers import get_callback_url
 
 templates = Jinja2Templates(directory="templates")

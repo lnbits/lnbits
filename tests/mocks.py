@@ -4,8 +4,13 @@ from mock import AsyncMock
 
 from lnbits import bolt11
 from lnbits.settings import WALLET
-from lnbits.wallets.base import (InvoiceResponse, PaymentResponse,
-                                 PaymentStatus, StatusResponse, Wallet)
+from lnbits.wallets.base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 from lnbits.wallets.fake import FakeWallet
 
 from .helpers import get_random_string

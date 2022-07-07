@@ -16,9 +16,6 @@ from .crud import get_livestream_by_track, get_track
 # from mmap import MAP_DENYWRITE
 
 
-
-
-
 @livestream_ext.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return livestream_renderer().TemplateResponse(

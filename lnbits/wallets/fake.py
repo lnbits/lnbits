@@ -10,8 +10,13 @@ from loguru import logger
 from lnbits.helpers import urlsafe_short_hash
 
 from ..bolt11 import decode, encode
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class FakeWallet(Wallet):

@@ -15,13 +15,23 @@ from lnbits.core import db
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer, url_for
-from lnbits.settings import (LNBITS_ADMIN_USERS, LNBITS_ALLOWED_USERS,
-                             LNBITS_CUSTOM_LOGO, LNBITS_SITE_TITLE,
-                             SERVICE_FEE)
+from lnbits.settings import (
+    LNBITS_ADMIN_USERS,
+    LNBITS_ALLOWED_USERS,
+    LNBITS_CUSTOM_LOGO,
+    LNBITS_SITE_TITLE,
+    SERVICE_FEE,
+)
 
-from ..crud import (create_account, create_wallet, delete_wallet,
-                    get_balance_check, get_user, save_balance_notify,
-                    update_user_extension)
+from ..crud import (
+    create_account,
+    create_wallet,
+    delete_wallet,
+    get_balance_check,
+    get_user,
+    save_balance_notify,
+    update_user_extension,
+)
 from ..services import pay_invoice, redeem_lnurl_withdraw
 
 core_html_routes: APIRouter = APIRouter(tags=["Core NON-API Website Routes"])

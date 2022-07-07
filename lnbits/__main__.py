@@ -5,8 +5,16 @@ from loguru import logger
 from starlette.requests import Request
 
 from .commands import bundle_vendored, migrate_databases, transpile_scss
-from .settings import (DEBUG, HOST, LNBITS_COMMIT, LNBITS_DATA_FOLDER,
-                       LNBITS_DATABASE_URL, LNBITS_SITE_TITLE, PORT, WALLET)
+from .settings import (
+    DEBUG,
+    HOST,
+    LNBITS_COMMIT,
+    LNBITS_DATA_FOLDER,
+    LNBITS_DATABASE_URL,
+    LNBITS_SITE_TITLE,
+    PORT,
+    WALLET,
+)
 
 uvloop.install()
 

@@ -19,13 +19,23 @@ from lnbits.core.tasks import register_task_listeners
 from .commands import db_migrate, handle_assets
 from .core import core_app
 from .core.views.generic import core_html_routes
-from .helpers import (get_css_vendored, get_js_vendored, get_valid_extensions,
-                      template_renderer, url_for_vendored)
+from .helpers import (
+    get_css_vendored,
+    get_js_vendored,
+    get_valid_extensions,
+    template_renderer,
+    url_for_vendored,
+)
 from .requestvars import g
 from .settings import WALLET
-from .tasks import (catch_everything_and_restart, check_pending_payments,
-                    internal_invoice_listener, invoice_listener,
-                    run_deferred_async, webhook_handler)
+from .tasks import (
+    catch_everything_and_restart,
+    check_pending_payments,
+    internal_invoice_listener,
+    invoice_listener,
+    run_deferred_async,
+    webhook_handler,
+)
 
 
 def create_app(config_object="lnbits.settings") -> FastAPI:

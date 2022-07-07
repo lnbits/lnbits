@@ -8,18 +8,31 @@ from starlette.responses import RedirectResponse
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type
 from lnbits.extensions.satspay.models import CreateCharge
-from lnbits.extensions.streamalerts.models import (CreateDonation,
-                                                   CreateService,
-                                                   ValidateDonation)
+from lnbits.extensions.streamalerts.models import (
+    CreateDonation,
+    CreateService,
+    ValidateDonation,
+)
 from lnbits.utils.exchange_rates import btc_price
 
 from ..satspay.crud import create_charge, get_charge
 from . import streamalerts_ext
-from .crud import (authenticate_service, create_donation, create_service,
-                   delete_donation, delete_service, get_charge_details,
-                   get_donation, get_donations, get_service,
-                   get_service_redirect_uri, get_services, post_donation,
-                   update_donation, update_service)
+from .crud import (
+    authenticate_service,
+    create_donation,
+    create_service,
+    delete_donation,
+    delete_service,
+    get_charge_details,
+    get_donation,
+    get_donations,
+    get_service,
+    get_service_redirect_uri,
+    get_services,
+    post_donation,
+    update_donation,
+    update_service,
+)
 
 
 @streamalerts_ext.post("/api/v1/services")

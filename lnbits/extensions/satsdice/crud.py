@@ -4,9 +4,15 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import (CreateSatsDiceLink, CreateSatsDicePayment,
-                     CreateSatsDiceWithdraw, HashCheck, satsdiceLink,
-                     satsdicePayment, satsdiceWithdraw)
+from .models import (
+    CreateSatsDiceLink,
+    CreateSatsDicePayment,
+    CreateSatsDiceWithdraw,
+    HashCheck,
+    satsdiceLink,
+    satsdicePayment,
+    satsdiceWithdraw,
+)
 
 
 async def create_satsdice_pay(wallet_id: str, data: CreateSatsDiceLink) -> satsdiceLink:

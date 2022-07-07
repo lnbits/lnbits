@@ -7,8 +7,13 @@ from typing import AsyncGenerator, Optional
 import httpx
 from loguru import logger
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class SparkError(Exception):

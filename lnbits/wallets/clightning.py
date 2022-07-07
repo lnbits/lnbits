@@ -12,8 +12,14 @@ from typing import AsyncGenerator, Optional
 
 from lnbits import bolt11 as lnbits_bolt11
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Unsupported, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Unsupported,
+    Wallet,
+)
 
 
 def async_wrap(func):

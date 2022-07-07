@@ -6,8 +6,13 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
-from .base import (InvoiceResponse, PaymentResponse, PaymentStatus,
-                   StatusResponse, Wallet)
+from .base import (
+    InvoiceResponse,
+    PaymentResponse,
+    PaymentStatus,
+    StatusResponse,
+    Wallet,
+)
 
 
 class LNbitsWallet(Wallet):
