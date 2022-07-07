@@ -559,7 +559,7 @@
       await this.getWalletLinks()
       await this.getWalletConfig()
       this.timerCount()
-      this.rescanOnchainAddresses()
+      await this.rescanOnchainAddresses()
       setInterval(() => this.rescanOnchainAddresses(), 30 * 1000)
     }
   })
