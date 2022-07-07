@@ -35,7 +35,7 @@ logger.info(f"Debug: {DEBUG}")
 logger.info(f"Site title: {LNBITS_SITE_TITLE}")
 logger.info(f"Funding source: {WALLET.__class__.__name__}")
 logger.info(
-    f"Database: {'PostgreSQL' if LNBITS_DATABASE_URL.startswith('postgres://') else 'CockroachDB' if LNBITS_DATABASE_URL.startswith('cockroachdb://') else 'SQLite'}"
+    f"Database: {'PostgreSQL' if LNBITS_DATABASE_URL and LNBITS_DATABASE_URL.startswith('postgres://') else 'CockroachDB' if LNBITS_DATABASE_URL and LNBITS_DATABASE_URL.startswith('cockroachdb://') else 'SQLite'}"
 )
 logger.info(f"Data folder: {LNBITS_DATA_FOLDER}")
 logger.info(f"Git version: {LNBITS_COMMIT}")
