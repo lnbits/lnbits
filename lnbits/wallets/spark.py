@@ -50,7 +50,13 @@ class SparkWallet(Wallet):
                         json={"method": key, "params": params},
                         timeout=60 * 60 * 24,
                     )
-            except (OSError, httpx.ConnectError, httpx.RequestError) as exc:
+                    r.raise_for_status()
+            except (
+                OSError,
+                httpx.ConnectError,
+                httpx.RequestError,
+                httpx.HTTPError,
+            ) as exc:
                 raise UnknownError("error connecting to spark: " + str(exc))
 
             try:
@@ -203,7 +209,13 @@ class SparkWallet(Wallet):
                                 data = json.loads(line[5:])
                                 if "pay_index" in data and data.get("status") == "paid":
                                     yield data["label"]
-            except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
+            except (
+                OSError,
+                httpx.ReadError,
+                httpx.ConnectError,
+                httpx.ReadTimeout,
+                httpx.HTTPError,
+            ):
                 pass
 
             logger.error("lost connection to spark /stream, retrying in 5 seconds")
