@@ -3,11 +3,8 @@ import math
 from http import HTTPStatus
 
 from fastapi import Request
-from lnurl import (
-    LnurlErrorResponse,
-    LnurlPayActionResponse,  # type: ignore
-    LnurlPayResponse,
-)
+from lnurl import LnurlPayActionResponse  # type: ignore
+from lnurl import LnurlErrorResponse, LnurlPayResponse
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
