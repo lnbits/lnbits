@@ -48,7 +48,7 @@ class SparkWallet(Wallet):
                         self.url + "/rpc",
                         headers={"X-Access": self.token},
                         json={"method": key, "params": params},
-                        timeout=40,
+                        timeout=60 * 60 * 24,
                     )
             except (OSError, httpx.ConnectError, httpx.RequestError) as exc:
                 raise UnknownError("error connecting to spark: " + str(exc))
