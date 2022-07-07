@@ -21,6 +21,7 @@ idna==3.2
 importlib-metadata==4.8.1
 jinja2==3.0.1
 lnurl==0.3.6
+loguru==0.6.0
 markupsafe==2.0.1
 marshmallow==3.13.0
 outcome==1.1.0

@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+from loguru import logger
+
 from lnbits.core import db as core_db
 from lnbits.core.crud import create_payment
 from lnbits.core.models import Payment
@@ -34,7 +36,9 @@ async def on_invoice_paid(payment: Payment) -> None:
     amount_left = payment.amount - sum([amount for _, amount in transfers])
 
     if amount_left < 0:
-        print("splitpayments failure: amount_left is negative.", payment.payment_hash)
+        logger.error(
+            "splitpayments failure: amount_left is negative.", payment.payment_hash
+        )
         return
 
     if not targets:

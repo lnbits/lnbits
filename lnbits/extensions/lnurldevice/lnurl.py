@@ -150,7 +150,7 @@ async def lnurl_v1_params(
             "defaultDescription": device.title,
         }
     price_msat = int(price_msat * ((device.profit / 100) + 1) / 1000)
-    print(price_msat)
+
     lnurldevicepayment = await create_lnurldevicepayment(
         deviceid=device.id,
         payload=p,
@@ -204,7 +204,7 @@ async def lnurl_callback(
             extra={"tag": "withdraw"},
         )
         return {"status": "OK"}
-    print(lnurldevicepayment.sats)
+
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
         amount=lnurldevicepayment.sats / 1000,

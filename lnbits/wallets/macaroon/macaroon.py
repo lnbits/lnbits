@@ -4,6 +4,8 @@ import base64
 from hashlib import md5
 import getpass
 
+from loguru import logger
+
 BLOCK_SIZE = 16
 import getpass
 
@@ -103,5 +105,5 @@ if __name__ == "__main__":
     macaroon = input("Enter macaroon: ")
     macaroon = load_macaroon(macaroon)
     macaroon = AESCipher(description="encryption").encrypt(macaroon.encode())
-    print("Encrypted macaroon:")
-    print(macaroon)
+    logger.info("Encrypted macaroon:")
+    logger.info(macaroon)

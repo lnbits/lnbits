@@ -11,6 +11,9 @@ import base64
 import hashlib
 from os import environ, error, getenv
 from typing import Optional, Dict, AsyncGenerator
+
+from loguru import logger
+
 from .macaroon import load_macaroon, AESCipher
 
 if imports_ok:
@@ -187,6 +190,8 @@ class LndWallet(Wallet):
                 checking_id = stringify_checking_id(i.r_hash)
                 yield checking_id
         except error:
-            print(error)
+            logger.error(error)
 
-        print("lost connection to lnd InvoiceSubscription, please restart lnbits.")
+        logger.error(
+            "lost connection to lnd InvoiceSubscription, please restart lnbits."
+        )

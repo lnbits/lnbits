@@ -5,6 +5,8 @@ from http import HTTPStatus
 
 from starlette.requests import Request
 
+from loguru import logger
+
 from . import bleskomat_ext
 from .crud import (
     create_bleskomat_lnurl,
@@ -122,7 +124,7 @@ async def api_bleskomat_lnurl(req: Request):
     except LnurlHttpError as e:
         return {"status": "ERROR", "reason": str(e)}
     except Exception as e:
-        print(str(e))
+        logger.error(str(e))
         return {"status": "ERROR", "reason": "Unexpected error"}
 
     return {"status": "OK"}

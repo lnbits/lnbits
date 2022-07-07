@@ -6,6 +6,8 @@ import base64
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
+from loguru import logger
+
 from lnbits import bolt11 as lnbits_bolt11
 from .macaroon import load_macaroon, AESCipher
 
@@ -191,5 +193,7 @@ class LndRestWallet(Wallet):
             except (OSError, httpx.ConnectError, httpx.ReadError):
                 pass
 
-            print("lost connection to lnd invoices stream, retrying in 5 seconds")
+            logger.error(
+                "lost connection to lnd invoices stream, retrying in 5 seconds"
+            )
             await asyncio.sleep(5)

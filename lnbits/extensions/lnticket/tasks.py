@@ -1,5 +1,7 @@
 import asyncio
 
+from loguru import logger
+
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
@@ -22,7 +24,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     ticket = await get_ticket(payment.checking_id)
     if not ticket:
-        print("this should never happen", payment)
+        logger.error("this should never happen", payment)
         return
 
     await payment.set_pending(False)
