@@ -1,5 +1,6 @@
 import json
 import pytest
+import pytest_asyncio
 import secrets
 from lnbits.core.crud import create_account, create_wallet
 from lnbits.extensions.bleskomat.crud import create_bleskomat, create_bleskomat_lnurl
@@ -20,7 +21,7 @@ exchange_rate_providers["dummy"] = {
 }
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def bleskomat():
     user = await create_account()
     wallet = await create_wallet(user_id=user.id, wallet_name="bleskomat_test")
@@ -34,7 +35,7 @@ async def bleskomat():
     return bleskomat
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def lnurl(bleskomat):
     query = {
         "tag": "withdrawRequest",

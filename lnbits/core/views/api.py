@@ -398,13 +398,18 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
             logger.warn("No key")
     except:
         wallet = await get_wallet_for_key(X_Api_Key)
-    payment = await get_standalone_payment(payment_hash)
+    payment = await get_standalone_payment(
+        payment_hash, wallet_id=wallet.id if wallet else None
+    )  # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
+    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
     if payment is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
     await check_invoice_status(payment.wallet_id, payment_hash)
-    payment = await get_standalone_payment(payment_hash)
+    payment = await get_standalone_payment(
+        payment_hash, wallet_id=wallet.id if wallet else None
+    )
     if not payment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."

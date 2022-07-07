@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import secrets
 from lnbits.core.crud import get_wallet
 from lnbits.settings import HOST, PORT
