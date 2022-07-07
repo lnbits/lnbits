@@ -70,7 +70,7 @@
             <q-btn
               flat
               v-else
-              @click="payLN"
+              @click="payInvoice"
               style="color: primary; width: 100%"
               label="lightning⚡"
             >
@@ -92,7 +92,7 @@
             <q-btn
               flat
               v-else
-              @click="payON"
+              @click="payOnchain"
               style="color: primary; width: 100%"
               label="onchain⛓️"
             >
@@ -270,25 +270,24 @@
           LNbits.utils.notifyApiError(error)
         }
       },
-      checkOnchainAddressBalance: async function () {
+      checkAddressBalance: async function () {
         const {
           bitcoin: {addresses: addressesAPI}
         } = mempoolJS()
 
-          const fn = async () =>
-            addressesAPI.getAddressTxsUtxo({
-              address: charge.onchainaddress
-            })
+        const fn = async () =>
+          addressesAPI.getAddressTxsUtxo({
+            address: charge.onchainaddress
+          })
 
-          const utxos = await retryWithDelay(fn)
-          charge.balance = utxos.reduce((t, u) => t + u.value, 0)
-        
+        const utxos = await retryWithDelay(fn)
+        charge.balance = utxos.reduce((t, u) => t + u.value, 0)
       },
-      payLN: function () {
+      payInvoice: function () {
         this.lnbtc = true
         this.onbtc = false
       },
-      payON: function () {
+      payOnchain: function () {
         this.lnbtc = false
         this.onbtc = true
       },
@@ -307,7 +306,8 @@
         this.newProgress =
           1 - this.timeToComplete / (parseInt('{{ charge.time }}') * 60)
       },
-      loopRefresh: function () { // invoice only
+      loopRefresh: function () {
+        // invoice only
         const refreshIntervalId = setInterval(() => {
           console.log('### 1111')
           if (this.charge.paid || this.timetoComplete < 1) {
@@ -316,16 +316,15 @@
           this.refreshProgres()
           this.counter++
           if (this.counter % 10 === 0) {
-            this.checkInvoiceBalance()
+            if (this.charge.lnbitswallet) this.checkInvoiceBalance()
+            if (this.charge.onchainaddress) this.checkAddressBalance()
           }
         }, 1000)
-      },
-      
+      }
     },
     created: function () {
-      console.log('### charge ', this.charge)
-      this.lnbtc = !!this.charge.lnbitswallet
-      this.onbtc = !!this.charge.onchainwallet
+      if (this.charge.lnbitswallet) this.payInvoice()
+      else this.payOnchain()
 
       // empty for onchain
       this.wallet.inkey = '{{ wallet_inkey }}'
