@@ -170,14 +170,14 @@ async def pay_invoice(
 
         await internal_invoice_queue.put(internal_checking_id)
     else:
-        logger.debug(f"backend sending payment {temp_id}")
+        logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )
-        logger.debug(f"backend pay_invoice finished {temp_id}")
+        logger.debug(f"backend: pay_invoice finished {temp_id}")
         if payment.checking_id:
-            logger.debug(f"creating new payment {payment.checking_id}")
+            logger.debug(f"creating final payment {payment.checking_id}")
             async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
@@ -198,7 +198,7 @@ async def pay_invoice(
                 payment.error_message
                 or "Payment failed, but backend didn't give us an error message."
             )
-    logger.debug(f"payment successful {invoice.payment_hash}")
+    logger.debug(f"payment successful {invoice.checking_id}")
     return invoice.payment_hash
 
 

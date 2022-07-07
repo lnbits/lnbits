@@ -67,10 +67,12 @@ async def extensions(
         )
 
     if extension_to_enable:
+        logger.info(f"Enabling extension: {extension_to_enable} for user {user.id}")
         await update_user_extension(
             user_id=user.id, extension=extension_to_enable, active=True
         )
     elif extension_to_disable:
+        logger.info(f"Disabling extension: {extension_to_disable} for user {user.id}")
         await update_user_extension(
             user_id=user.id, extension=extension_to_disable, active=False
         )
@@ -110,6 +112,7 @@ async def wallet(
 
     if not user_id:
         user = await get_user((await create_account()).id)
+        logger.info(f"Created new account for user {user.id}")
     else:
         user = await get_user(user_id)
         if not user:
@@ -127,12 +130,16 @@ async def wallet(
             wallet = user.wallets[0]
         else:
             wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+            logger.info(
+                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"
+            )
 
         return RedirectResponse(
             f"/wallet?usr={user.id}&wal={wallet.id}",
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
+    logger.info(f"Access wallet {wallet_name} of user {user.id}")
     wallet = user.get_wallet(wallet_id)
     if not wallet:
         return template_renderer().TemplateResponse(
@@ -202,13 +209,13 @@ async def lnurl_full_withdraw_callback(request: Request):
 async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
     user_wallet_ids = [u.id for u in user.wallets]
-    logger.debug("USR", user_wallet_ids)
 
     if wal not in user_wallet_ids:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
         await delete_wallet(user_id=user.id, wallet_id=wal)
         user_wallet_ids.remove(wal)
+        logger.debug("Deleted wallet {wal} of user {user.id}")
 
     if user_wallet_ids:
         return RedirectResponse(
