@@ -48,4 +48,4 @@ jobs:
           timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
           export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
           timeout 10s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-          python3 conv.py
+          ./venv/bin/python conv.py
