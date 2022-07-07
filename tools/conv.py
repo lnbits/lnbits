@@ -9,6 +9,11 @@ from environs import Env  # type: ignore
 env = Env()
 env.read_env()
 
+from environs import Env  # type: ignore
+
+env = Env()
+env.read_env()
+
 # Python script to migrate an LNbits SQLite DB to Postgres
 # All credits to @Fritz446 for the awesome work
 
