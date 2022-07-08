@@ -7,3 +7,15 @@ venv
 
 *.md
 *.log
+
+.env
+
+.gitignore
+.prettierrc
+conv.py
+LICENSE
+Makefile
+mypy.ini
+package-lock.json
+package.json
+pytest.ini
