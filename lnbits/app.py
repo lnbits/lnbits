@@ -47,9 +47,9 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     configure_logger()
 
     app = FastAPI()
-    app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
+    app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
-        "/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static"
+        "/core/static", StaticFiles(packages=[("lnbits.core", "static")]), name="core_static"
     )
 
     origins = ["*"]

@@ -12,7 +12,7 @@ db = Database("ext_copilot")
 copilot_static_files = [
     {
         "path": "/copilot/static",
-        "app": StaticFiles(directory="lnbits/extensions/copilot/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/copilot/static")]),
         "name": "copilot_static",
     }
 ]
@@ -20,7 +20,7 @@ copilot_ext: APIRouter = APIRouter(prefix="/copilot", tags=["copilot"])
 
 
 def copilot_renderer():
-    return template_renderer(["lnbits/extensions/copilot/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/copilot/static/templates")])])
 
 
 from .lnurl import *  # noqa

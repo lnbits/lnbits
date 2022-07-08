@@ -12,7 +12,7 @@ db = Database("ext_lnurlp")
 lnurlp_static_files = [
     {
         "path": "/lnurlp/static",
-        "app": StaticFiles(directory="lnbits/extensions/lnurlp/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/lnurlp/static")]),
         "name": "lnurlp_static",
     }
 ]
@@ -21,7 +21,7 @@ lnurlp_ext: APIRouter = APIRouter(prefix="/lnurlp", tags=["lnurlp"])
 
 
 def lnurlp_renderer():
-    return template_renderer(["lnbits/extensions/lnurlp/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/lnurlp/static/templates")])])
 
 
 from .lnurl import *  # noqa

@@ -12,7 +12,7 @@ db = Database("ext_jukebox")
 jukebox_static_files = [
     {
         "path": "/jukebox/static",
-        "app": StaticFiles(directory="lnbits/extensions/jukebox/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/jukebox/static")]),
         "name": "jukebox_static",
     }
 ]
@@ -21,7 +21,7 @@ jukebox_ext: APIRouter = APIRouter(prefix="/jukebox", tags=["jukebox"])
 
 
 def jukebox_renderer():
-    return template_renderer(["lnbits/extensions/jukebox/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/jukebox/static/templates")])])
 
 
 from .tasks import wait_for_paid_invoices

@@ -12,7 +12,7 @@ db = Database("ext_livestream")
 livestream_static_files = [
     {
         "path": "/livestream/static",
-        "app": StaticFiles(directory="lnbits/extensions/livestream/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/livestream/static")]),
         "name": "livestream_static",
     }
 ]
@@ -21,7 +21,7 @@ livestream_ext: APIRouter = APIRouter(prefix="/livestream", tags=["livestream"])
 
 
 def livestream_renderer():
-    return template_renderer(["lnbits/extensions/livestream/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/livestream/static/templates")])])
 
 
 from .lnurl import *  # noqa
