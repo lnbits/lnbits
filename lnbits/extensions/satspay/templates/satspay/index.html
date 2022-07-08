@@ -208,16 +208,27 @@
                 <div class="row items-center q-mt-md q-mb-lg">
                   <div class="col-2 q-pr-lg"></div>
                   <div class="col-6 q-pr-lg">
-                  <q-btn
-                  unelevated
-                  color="gray"
-                  outline
-                  type="a"
-                  :href="props.row.displayUrl"
-                  target="_blank"
-                  class="float-right"
-                  >Details</q-btn
-                ></div>
+                    <q-btn
+                      unelevated
+                      color="gray"
+                      outline
+                      type="a"
+                      :href="props.row.displayUrl"
+                      target="_blank"
+                      class="float-left q-mr-lg"
+                      >Details</q-btn
+                    >
+                    <q-btn
+                      unelevated
+                      color="gray"
+                      outline
+                      type="a"
+                      @click="refreshBalance(props.row)"
+                      target="_blank"
+                      class="float-left"
+                      >Refresh Balance</q-btn
+                    >
+                  </div>
                   <div class="col-4 q-pr-lg">
                     <q-btn
                       unelevated
@@ -575,6 +586,18 @@
           )
           await this.getCharges()
         }, 20000)
+      },
+      refreshBalance: async function(charge) {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/satspay/api/v1/charge/balance/' + charge.id,
+            'filla'
+          )
+          charge.balance = data.balance
+        } catch (error) {
+          
+        }
       },
       rescanOnchainAddresses: async function () {
         if (this.rescanning) return
