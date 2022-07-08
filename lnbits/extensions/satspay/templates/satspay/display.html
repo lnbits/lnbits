@@ -1,12 +1,12 @@
 {% extends "public.html" %} {% block page %}
 <div class="row items-center q-mt-md">
-  <div class="col-lg-4 col-md-2 col-sm-1"></div>
-  <div class="col-lg-4 col-md-8 col-sm-10">
-    <q-card class="my-card">
+  <div class="col-lg-4 col-md-3 col-sm-1"></div>
+  <div class="col-lg-4 col-md-6 col-sm-10">
+    <q-card>
       <div class="column">
         <center>
-          <div class="col theHeading">
-            <span v-text="charge.description"></span>
+          <div class="col">
+            <span class="text-h4" v-text="charge.description"></span>
           </div>
         </center>
         <div class="col">
@@ -43,7 +43,7 @@
           </div>
         </div>
         <div class="col" style="margin: 2px 15px; max-height: 100px">
-          <div class="row items-center ">
+          <div class="row items-center">
             <div class="col-4 q-pr-lg">Charge Id:</div>
             <div class="col-8 q-pr-lg">
               <q-btn flat dense outline @click="copyText(charge.id)"
@@ -51,23 +51,29 @@
               ></q-btn>
             </div>
           </div>
-          <div class="row items-center ">
+          <div class="row items-center">
             <div class="col-4 q-pr-lg">Total to pay:</div>
             <div class="col-8 q-pr-lg">
               <span v-text="charge.amount"></span> sats
             </div>
           </div>
-          <div class="row items-center ">
+          <div class="row items-center">
             <div class="col-4 q-pr-lg">Amount paid:</div>
             <div class="col-8 q-pr-lg">
               <span v-text="charge.balance"></span> sats
             </div>
           </div>
-          <div class="row items-center ">
+          <div class="row items-center">
             <div class="col-4 q-pr-lg">Amount due:</div>
             <div class="col-8 q-pr-lg">
-              <span v-if="charge.amount - charge.balance > 0" v-text="charge.amount - charge.balance">sats</span> 
-              <q-badge v-if="charge.amount - charge.balance <= 0" color="green"> none</q-badge>
+              <span
+                v-if="charge.amount - charge.balance > 0"
+                v-text="charge.amount - charge.balance"
+                >sats</span
+              >
+              <q-badge v-if="charge.amount - charge.balance <= 0" color="green">
+                none</q-badge
+              >
             </div>
           </div>
         </div>
@@ -122,9 +128,12 @@
           <q-separator></q-separator>
         </div>
       </div>
-      <q-card class="q-pa-lg" v-if="lnbtc">
-        <q-card-section class="q-pa-none">
-          <div class="text-center q-pt-md">
+    </q-card>
+    <q-card class="q-pa-lg" v-if="lnbtc">
+      <q-card-section class="q-pa-none">
+        <div class="row items-center q-mt-md">
+          <div class="col-md-2 col-sm-0"></div>
+          <div class="col-md-8 col-sm-12">
             <div v-if="timetoComplete < 1 && !charge.paid">
               <q-icon
                 name="block"
@@ -169,76 +178,66 @@
               </div>
             </div>
           </div>
-        </q-card-section>
-      </q-card>
-      <q-card class="q-pa-lg" v-if="onbtc">
-        <q-card-section class="q-pa-none">
-          <div class="text-center q-pt-md">
-            <div v-if="timetoComplete < 1 && !charge.paid">
-              <q-icon
-                name="block"
-                style="color: #ccc; font-size: 21.4em"
-              ></q-icon>
-            </div>
-            <div v-else-if="charge.paid">
-              <q-icon
-                name="check"
-                style="color: green; font-size: 21.4em"
-              ></q-icon>
+        </div>
+        <div class="col-md-2 col-sm-0"></div>
+      </q-card-section>
+    </q-card>
+    <q-card class="q-pa-lg" v-if="onbtc">
+      <q-card-section class="q-pa-none">
+        <div class="text-center q-pt-md">
+          <div v-if="timetoComplete < 1 && !charge.paid">
+            <q-icon
+              name="block"
+              style="color: #ccc; font-size: 21.4em"
+            ></q-icon>
+          </div>
+          <div v-else-if="charge.paid">
+            <q-icon
+              name="check"
+              style="color: green; font-size: 21.4em"
+            ></q-icon>
+            <q-btn
+              outline
+              v-if="charge.webhook "
+              type="a"
+              :href="charge.completelink"
+              :label="charge.completelinktext"
+            ></q-btn>
+          </div>
+          <div v-else>
+            <span class="text-subtitle2"
+              >Send
+              <span v-text="charge.amount"></span>
+              sats to this onchain address</span
+            >
+
+            <a :href="'bitcoin:'+charge.onchainaddress">
+              <q-responsive :ratio="1" class="q-mx-md">
+                <qrcode
+                  :value="charge.onchainaddress"
+                  :options="{width: 800}"
+                  class="rounded-borders"
+                ></qrcode>
+              </q-responsive>
+            </a>
+            <div class="row q-mt-lg">
               <q-btn
                 outline
-                v-if="charge.webhook "
-                type="a"
-                :href="charge.completelink"
-                :label="charge.completelinktext"
-              ></q-btn>
-            </div>
-            <div v-else>
-              <span class="text-subtitle2"
-                >Send
-                <span v-text="charge.amount"></span>
-                sats to this onchain address</span
+                color="grey"
+                @click="copyText(charge.onchainaddress)"
+                >Copy address</q-btn
               >
-
-              <a :href="'bitcoin:'+charge.onchainaddress">
-                <q-responsive :ratio="1" class="q-mx-md">
-                  <qrcode
-                    :value="charge.onchainaddress"
-                    :options="{width: 800}"
-                    class="rounded-borders"
-                  ></qrcode>
-                </q-responsive>
-              </a>
-              <div class="row q-mt-lg">
-                <q-btn
-                  outline
-                  color="grey"
-                  @click="copyText(charge.onchainaddress)"
-                  >Copy address</q-btn
-                >
-              </div>
             </div>
           </div>
-        </q-card-section>
-      </q-card>
+        </div>
+      </q-card-section>
     </q-card>
   </div>
-  <div class="col-lg- 4 col-md-2 col-sm-1" ></div>
+  <div class="col-lg- 4 col-md-3 col-sm-1"></div>
 </div>
 
 {% endblock %} {% block scripts %}
 
-<style>
-  /* .theCard {
-    width: 30%;
-    margin: 10px auto;
-  } */
-  .theHeading {
-    margin: 15px;
-    font-size: 25px;
-  }
-</style>
-<!-- todo: use config mempool -->
 <script src="https://mempool.space/mempool.js"></script>
 <script src="{{ url_for('satspay_static', path='js/utils.js') }}"></script>
 <script>
@@ -266,7 +265,7 @@
     methods: {
       startPaymentNotifier() {
         this.cancelListener()
-
+        if (!this.lnbitswallet) return
         this.cancelListener = LNbits.events.onInvoicePaid(
           this.wallet,
           payment => {
@@ -303,11 +302,10 @@
           })
 
         const utxos = await retryWithDelay(fn)
-        console.log('### utxos', utxos)
-        this.charge.balance = utxos.reduce((t, u) => t + u.value, 0)
-        console.log('### utxos', utxos)
+        const balance = utxos.reduce((t, u) => t + u.value, 0)
+
       },
-      checkBalances: async function() {
+      checkBalances: async function () {
         if (this.charge.lnbitswallet) this.checkInvoiceBalance()
         if (this.charge.onchainaddress) this.checkAddressBalance()
       },
@@ -368,7 +366,6 @@
           const res = JSON.parse(data.toString())
           console.log('### socker mempool res', res)
           if (res['address-transactions']) {
-            this.checkAddressBalance()
           }
         })
       },
@@ -398,12 +395,13 @@
 
       // empty for onchain
       this.wallet.inkey = '{{ wallet_inkey }}'
+      this.startPaymentNotifier()
 
       this.refreshProgres()
       if (!this.charge.paid) {
         this.loopRefresh()
       }
-      this.startPaymentNotifier()
+
       if (this.charge.onchainaddress) {
         this.loopPingWs()
         this.trackAddress(this.charge.onchainaddress)
