@@ -343,12 +343,9 @@
         } = mempoolJS()
 
         try {
-          const fn = async () =>
-            addressesAPI.getAddressTxsUtxo({
+          const utxos = await addressesAPI.getAddressTxsUtxo({
               address: this.charge.onchainaddress
             })
-
-          const utxos = await retryWithDelay(fn)
 
           this.pendingFunds = utxos
             .filter(u => !u.status.confirmed)
