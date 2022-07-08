@@ -88,7 +88,8 @@ async def get_charge(charge_id: str) -> Charges:
 
 async def get_charges(user: str) -> List[Charges]:
     rows = await db.fetchall(
-        """SELECT * FROM satspay.charges WHERE "user" = ?""", (user,)
+        """SELECT * FROM satspay.charges WHERE "user" = ? ORDER BY "timestamp" DESC """,
+        (user,),
     )
     return [Charges.from_row(row) for row in rows]
 
