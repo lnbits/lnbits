@@ -9,7 +9,7 @@ db = Database("ext_withdraw")
 withdraw_static_files = [
     {
         "path": "/withdraw/static",
-        "app": StaticFiles(directory="lnbits/extensions/withdraw/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/withdraw/static")]),
         "name": "withdraw_static",
     }
 ]
@@ -19,7 +19,7 @@ withdraw_ext: APIRouter = APIRouter(prefix="/withdraw", tags=["withdraw"])
 
 
 def withdraw_renderer():
-    return template_renderer(["lnbits/extensions/withdraw/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/withdraw/static/templates")])])
 
 
 from .lnurl import *  # noqa

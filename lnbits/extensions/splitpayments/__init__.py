@@ -12,7 +12,7 @@ db = Database("ext_splitpayments")
 splitpayments_static_files = [
     {
         "path": "/splitpayments/static",
-        "app": StaticFiles(directory="lnbits/extensions/splitpayments/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/splitpayments/static")]),
         "name": "splitpayments_static",
     }
 ]
@@ -22,7 +22,7 @@ splitpayments_ext: APIRouter = APIRouter(
 
 
 def splitpayments_renderer():
-    return template_renderer(["lnbits/extensions/splitpayments/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/splitpayments/static/templates")])])
 
 
 from .tasks import wait_for_paid_invoices

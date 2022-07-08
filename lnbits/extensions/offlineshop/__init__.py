@@ -9,7 +9,7 @@ db = Database("ext_offlineshop")
 offlineshop_static_files = [
     {
         "path": "/offlineshop/static",
-        "app": StaticFiles(directory="lnbits/extensions/offlineshop/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/offlineshop/static")]),
         "name": "offlineshop_static",
     }
 ]
@@ -18,7 +18,7 @@ offlineshop_ext: APIRouter = APIRouter(prefix="/offlineshop", tags=["Offlineshop
 
 
 def offlineshop_renderer():
-    return template_renderer(["lnbits/extensions/offlineshop/templates"])
+    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/offlineshop/static/templates")])])
 
 
 from .lnurl import *  # noqa
