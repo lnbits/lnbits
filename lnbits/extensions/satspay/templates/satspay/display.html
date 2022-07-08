@@ -66,11 +66,9 @@
           <div class="row items-center">
             <div class="col-4 q-pr-lg">Amount due:</div>
             <div class="col-8 q-pr-lg">
-              <span
-                v-if="charge.amount - charge.balance > 0"
-                v-text="charge.amount - charge.balance"
-                >sats</span
-              >
+              <div v-if="charge.amount - charge.balance > 0">
+                <span v-text="charge.amount - charge.balance"></span> sats
+              </div>
               <q-badge v-if="charge.amount - charge.balance <= 0" color="green">
                 none</q-badge
               >
@@ -157,10 +155,10 @@
               <div class="row text-center q-mb-sm">
                 <div class="col text-center">
                   <span class="text-subtitle2"
-                >Pay this lightning-network invoice:</span
-              >
-                </div></div>
-              
+                    >Pay this lightning-network invoice:</span
+                  >
+                </div>
+              </div>
 
               <a :href="'lightning:'+charge.payment_request">
                 <q-responsive :ratio="1" class="q-mx-md">
@@ -173,13 +171,13 @@
               </a>
               <div class="row text-center q-mt-lg">
                 <div class="col text-center">
-                <q-btn
-                  outline
-                  color="grey"
-                  @click="copyText(charge.payment_request)"
-                  >Copy invoice</q-btn
-                >
-              </div>
+                  <q-btn
+                    outline
+                    color="grey"
+                    @click="copyText(charge.payment_request)"
+                    >Copy invoice</q-btn
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -189,14 +187,17 @@
     </q-card>
     <q-card class="q-pa-lg" v-if="onbtc">
       <q-card-section class="q-pa-none">
-        <div  v-if="timetoComplete >= 0 && !charge.paid" class="row items-center">
+        <div
+          v-if="timetoComplete >= 0 && !charge.paid"
+          class="row items-center"
+        >
           <div class="col text-center">
             <span class="text-subtitle1" v-text="charge.onchainaddress"></span>
           </div>
         </div>
         <div class="row items-center q-mt-md">
           <div class="col-md-2 col-sm-0"></div>
-          <div class="col-md-8 col-sm-12">
+          <div class="col-md-8 col-sm-12 text-center">
             <div v-if="timetoComplete < 1 && !charge.paid">
               <q-icon
                 name="block"
@@ -365,10 +366,17 @@
           console.log('### close ws', x)
         })
 
-        this.ws.addEventListener('message', ({data}) => {
+        this.ws.addEventListener('message', async ({data}) => {
           const res = JSON.parse(data.toString())
           console.log('### socker mempool res', res)
           if (res['address-transactions']) {
+            console.log('### res', res)
+            await this.checkBalances()
+            this.$q.notify({
+              type: 'positive',
+              message: 'New payment received!',
+              timeout: 10000
+            })
           }
         })
       },
