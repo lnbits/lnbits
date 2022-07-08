@@ -58,17 +58,14 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th auto-width></q-th>
-
-              <q-th
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
-              >
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>{{ col.label }}</div>
-              </q-th>
+              <q-th auto-width>Status</q-th>
+              <q-th auto-width>Title</q-th>
+              <q-th auto-width>Time Left</q-th>
+              <q-th auto-width>Time To Pay</q-th>
+              <q-th auto-width>Amount To Pay</q-th>
+              <q-th auto-width>Balance</q-th>
+              <q-th auto-width>Pending Balance</q-th>
+              <q-th auto-width>Onchain Address</q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
@@ -77,53 +74,162 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-btn
-                  unelevated
+                  size="sm"
+                  color="accent"
+                  round
                   dense
-                  size="xs"
-                  icon="link"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.displayUrl"
-                  target="_blank"
-                >
-                  <q-tooltip> Payment link </q-tooltip>
-                </q-btn>
+                  @click="props.row.expanded= !props.row.expanded"
+                  :icon="props.row.expanded? 'remove' : 'add'"
+                />
               </q-td>
+
               <q-td auto-width>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="deleteChargeLink(props.row.id)"
-                  icon="cancel"
-                  color="pink"
-                >
-                  <q-tooltip> Delete charge </q-tooltip>
-                </q-btn>
                 <q-badge
                   v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
                   color="red"
                 >
-                  expired
+                  <a
+                    :href="props.row.displayUrl"
+                    target="_blank"
+                    style="color: unset; text-decoration: none"
+                    >expired</a
+                  >
                 </q-badge>
 
                 <q-badge
                   v-else-if="props.row.balance >= props.row.amount"
                   color="green"
                 >
-                  paid
+                  <a
+                    :href="props.row.displayUrl"
+                    target="_blank"
+                    style="color: unset; text-decoration: none"
+                    >paid</a
+                  >
                 </q-badge>
 
-                <q-badge v-else color="blue"> waiting </q-badge>
+                <q-badge v-else color="blue"
+                  ><a
+                    :href="props.row.displayUrl"
+                    target="_blank"
+                    style="color: unset; text-decoration: none"
+                    >waiting</a
+                  >
+                </q-badge>
               </q-td>
-              <q-td
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
-              >
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>{{ col.value }}</div>
+              <q-td key="description" :props="props" :class="">
+                <a
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                  style="color: unset; text-decoration: none"
+                  >{{props.row.description}}</a
+                >
+              </q-td>
+              <q-td key="timeleft" :props="props" :class="">
+                <div>{{props.row.date}}</div>
+              </q-td>
+              <q-td key="time to pay" :props="props" :class="">
+                <div>{{props.row.time}}</div>
+              </q-td>
+              <q-td key="amount" :props="props" :class="">
+                <div>{{props.row.amount}}</div>
+              </q-td>
+              <q-td key="balance" :props="props" :class="">
+                <div>{{props.row.balance}}</div>
+              </q-td>
+              <q-td key="pendingBalance" :props="props" :class="">
+                <div>
+                  {{props.row.pendingBalance ? props.row.pendingBalance : ''}}
+                </div>
+              </q-td>
+              <q-td key="onchain address" :props="props" :class="">
+                <a
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                  style="color: unset; text-decoration: none"
+                  >{{props.row.onchainaddress}}</a
+                >
+              </q-td>
+            </q-tr>
+            <q-tr v-show="props.row.expanded" :props="props">
+              <q-td colspan="100%">
+                <div
+                  v-if="props.row.onchainwallet"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">Onchain Wallet:</div>
+                  <div class="col-4 q-pr-lg">
+                    {{getOnchainWalletName(props.row.onchainwallet)}}
+                  </div>
+                </div>
+                <div
+                  v-if="props.row.lnbitswallet"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">LNbits Wallet:</div>
+                  <div class="col-4 q-pr-lg">
+                    {{getLNbitsWalletName(props.row.lnbitswallet)}}
+                  </div>
+                </div>
+
+                <div
+                  v-if="props.row.completelink || props.row.completelinktext"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">Completed Link:</div>
+                  <div class="col-4 q-pr-lg">
+                    <a
+                      :href="props.row.completelink"
+                      target="_blank"
+                      style="color: unset; text-decoration: none"
+                      >{{props.row.completelinktext ||
+                      props.row.completelink}}</a
+                    >
+                  </div>
+                </div>
+                <div
+                  v-if="props.row.webhook"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">Webhook:</div>
+                  <div class="col-4 q-pr-lg">
+                    <a
+                      :href="props.row.webhook"
+                      target="_blank"
+                      style="color: unset; text-decoration: none"
+                      >{{props.row.webhook || props.row.webhook}}</a
+                    >
+                  </div>
+                </div>
+                <div class="row items-center q-mt-md q-mb-lg">
+                  <div class="col-2 q-pr-lg">ID:</div>
+                  <div class="col-4 q-pr-lg">{{props.row.id}}</div>
+                </div>
+                <div class="row items-center q-mt-md q-mb-lg">
+                  <div class="col-2 q-pr-lg"></div>
+                  <div class="col-6 q-pr-lg">
+                  <q-btn
+                  unelevated
+                  color="gray"
+                  outline
+                  type="a"
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                  class="float-right"
+                  >Details</q-btn
+                ></div>
+                  <div class="col-4 q-pr-lg">
+                    <q-btn
+                      unelevated
+                      color="pink"
+                      icon="cancel"
+                      @click="deleteChargeLink(props.row.id)"
+                      >Delete</q-btn
+                    >
+                  </div>
+                  <div class="col-4"></div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
               </q-td>
             </q-tr>
           </template>
@@ -331,6 +437,12 @@
               field: 'balance'
             },
             {
+              name: 'pendingBalance',
+              align: 'left',
+              label: 'Pending Balance',
+              field: 'pendingBalance'
+            },
+            {
               name: 'onchain address',
               align: 'left',
               label: 'Onchain Address',
@@ -394,7 +506,7 @@
           )
           this.walletLinks = data.map(w => ({
             id: w.id,
-            label: w.title
+            label: w.title + ' - ' + w.id
           }))
         } catch (error) {
           LNbits.utils.notifyApiError(error)
@@ -413,6 +525,16 @@
           LNbits.utils.notifyApiError(error)
         }
       },
+      getOnchainWalletName: function (walletId) {
+        const wallet = this.walletLinks.find(w => w.id === walletId)
+        if (!wallet) return 'unknown'
+        return wallet.label
+      },
+      getLNbitsWalletName: function (walletId) {
+        const wallet = this.g.user.walletOptions.find(w => w.value === walletId)
+        if (!wallet) return 'unknown'
+        return wallet.label
+      },
 
       getCharges: async function () {
         try {
@@ -421,7 +543,13 @@
             '/satspay/api/v1/charges',
             this.g.user.wallets[0].inkey
           )
-          this.chargeLinks = data.map(mapCharge)
+          this.chargeLinks = data.map(c =>
+            mapCharge(
+              c,
+              this.chargeLinks.find(old => old.id === c.id)
+            )
+          )
+          console.log('### this.chargeLinks', this.chargeLinks)
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -466,7 +594,7 @@
               })
 
             const utxos = await retryWithDelay(fn)
-            charge.balance = utxos.reduce((t, u) => t + u.value, 0)
+            charge.pendingBalance = utxos.reduce((t, u) => t + u.value, 0)
           }
         } catch (error) {
           console.error(error)
