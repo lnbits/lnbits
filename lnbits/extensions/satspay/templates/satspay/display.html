@@ -323,10 +323,9 @@
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/satspay/api/v1/charges/balance/${this.charge.id}`,
+            `/satspay/api/v1/charge/balance/${this.charge.id}`,
             'filla'
           )
-
           this.charge.time_elapsed = data.time_elapsed
           this.charge.amount = data.amount
           this.charge.balance = data.balance
@@ -344,8 +343,8 @@
 
         try {
           const utxos = await addressesAPI.getAddressTxsUtxo({
-              address: this.charge.onchainaddress
-            })
+            address: this.charge.onchainaddress
+          })
 
           this.pendingFunds = utxos
             .filter(u => !u.status.confirmed)
