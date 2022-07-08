@@ -532,6 +532,8 @@
             this.g.user.wallets[0].inkey
           )
           this.mempool.endpoint = data.mempool_endpoint
+          const url = new URL(this.mempool.endpoint)
+          this.mempool.hostname = url.hostname
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -560,7 +562,6 @@
               this.chargeLinks.find(old => old.id === c.id)
             )
           )
-          console.log('### this.chargeLinks', this.chargeLinks)
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -587,7 +588,7 @@
           await this.getCharges()
         }, 20000)
       },
-      refreshBalance: async function(charge) {
+      refreshBalance: async function (charge) {
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -595,16 +596,15 @@
             'filla'
           )
           charge.balance = data.balance
-        } catch (error) {
-          
-        }
+        } catch (error) {}
       },
       rescanOnchainAddresses: async function () {
         if (this.rescanning) return
         this.rescanning = true
+
         const {
           bitcoin: {addresses: addressesAPI}
-        } = mempoolJS()
+        } = mempoolJS({hostname: this.mempool.hostname})
 
         try {
           const onchainActiveCharges = this.chargeLinks.filter(

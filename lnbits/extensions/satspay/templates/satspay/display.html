@@ -215,7 +215,15 @@
           class="row items-center"
         >
           <div class="col text-center">
-            <span class="text-subtitle1" v-text="charge.onchainaddress"></span>
+            <a
+              style="color: unset"
+              :href="mempool_endpoint + '/address/' + charge.onchainaddress"
+              target="_blank"
+              ><span
+                class="text-subtitle1"
+                v-text="charge.onchainaddress"
+              ></span>
+            </a>
           </div>
         </div>
         <div class="row items-center q-mt-md">
@@ -294,6 +302,7 @@
     data() {
       return {
         charge: JSON.parse('{{charge_data | tojson}}'),
+        mempool_endpoint: '{{mempool_endpoint}}',
         pendingFunds: 0,
         ws: null,
         newProgress: 0.4,
@@ -339,7 +348,9 @@
       checkPendingOnchain: async function () {
         const {
           bitcoin: {addresses: addressesAPI}
-        } = mempoolJS()
+        } = mempoolJS({
+          hostname: new URL(this.mempool_endpoint).hostname
+        })
 
         try {
           const utxos = await addressesAPI.getAddressTxsUtxo({
@@ -394,7 +405,7 @@
         const {
           bitcoin: {websocket}
         } = mempoolJS({
-          hostname: 'mempool.space'
+          hostname: new URL(this.mempool_endpoint).hostname
         })
 
         this.ws = new WebSocket('wss://mempool.space/api/v1/ws')
@@ -434,7 +445,6 @@
       }
     },
     created: async function () {
-      console.log('### charge', this.charge)
       if (this.charge.lnbitswallet) this.payInvoice()
       else this.payOnchain()
       await this.checkBalances()

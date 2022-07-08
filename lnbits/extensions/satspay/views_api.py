@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 import httpx
-from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
