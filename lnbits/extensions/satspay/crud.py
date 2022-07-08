@@ -105,7 +105,9 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
             try:
                 async with httpx.AsyncClient() as client:
                     r = await client.get(
-                        config.mempool_endpoint + "/api/address/" + charge.onchainaddress
+                        config.mempool_endpoint
+                        + "/api/address/"
+                        + charge.onchainaddress
                     )
                     respAmount = r.json()["chain_stats"]["funded_txo_sum"]
                     if respAmount >= charge.balance:
