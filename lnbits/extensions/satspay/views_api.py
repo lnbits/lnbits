@@ -93,8 +93,18 @@ async def api_charge_delete(charge_id, wallet: WalletTypeInfo = Depends(get_key_
 #############################BALANCE##########################
 
 
-@satspay_ext.get("/api/v1/charges/balance/{charge_id}")
-async def api_charges_balance(charge_id):
+@satspay_ext.get("/api/v1/charges/balance/{charge_ids}")
+async def api_charges_balance(charge_ids):
+    charge_id_list = charge_ids.split(",")
+    charges = []
+    for charge_id in charge_id_list:
+        charge = await api_charge_balance(charge_id)
+        charges.append(charge)
+    return charges
+
+
+@satspay_ext.get("/api/v1/charge/balance/{charge_id}")
+async def api_charge_balance(charge_id):
     charge = await check_address_balance(charge_id)
 
     if not charge:
