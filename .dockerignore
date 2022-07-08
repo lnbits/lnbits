@@ -1,6 +1,9 @@
 .git
-docs
+data
 docker
+docs
+tests
+venv
 
-# ignore all the markdown
 *.md
+*.log
