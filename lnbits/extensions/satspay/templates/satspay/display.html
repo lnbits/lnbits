@@ -3,28 +3,26 @@
   <div class="col-lg-4 col-md-3 col-sm-1"></div>
   <div class="col-lg-4 col-md-6 col-sm-10">
     <q-card>
-      <div class="column">
-        <center>
-          <div class="col">
-            <span class="text-h4" v-text="charge.description"></span>
-          </div>
-        </center>
-        <div class="col">
+      <div class="row q-mb-md">
+        <div class="col text-center q-mt-md">
+          <span class="text-h4" v-text="charge.description"></span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col text-center">
           <div
-            class="col"
             color="white"
             style="background-color: grey; height: 30px; padding: 5px"
             v-if="timetoComplete < 1"
           >
-            <center>Time elapsed</center>
+            Time elapsed
           </div>
           <div
-            class="col"
             color="white"
             style="background-color: grey; height: 30px; padding: 5px"
             v-else-if="charge.paid"
           >
-            <center>Charge paid</center>
+            Charge paid
           </div>
           <div v-else>
             <q-linear-progress size="30px" :value="newProgress" color="grey">
@@ -42,8 +40,10 @@
             </q-linear-progress>
           </div>
         </div>
-        <div class="col" style="margin: 2px 15px; max-height: 100px">
-          <div class="row items-center">
+      </div>
+      <div class="row q-ml-md q-mt-md q-mb-lg">
+        <div class="col">
+          <div class="row">
             <div class="col-4 q-pr-lg">Charge Id:</div>
             <div class="col-8 q-pr-lg">
               <q-btn flat dense outline @click="copyText(charge.id)"
@@ -54,28 +54,51 @@
           <div class="row items-center">
             <div class="col-4 q-pr-lg">Total to pay:</div>
             <div class="col-8 q-pr-lg">
-              <span v-text="charge.amount"></span> sats
+              <q-badge color="blue">
+                <span v-text="charge.amount" class="text-subtitle2"></span> sat
+              </q-badge>
             </div>
           </div>
-          <div class="row items-center">
+          <div class="row items-center q-mt-sm">
             <div class="col-4 q-pr-lg">Amount paid:</div>
             <div class="col-8 q-pr-lg">
-              <span v-text="charge.balance"></span> sats
+              <q-badge color="orange">
+                <span v-text="charge.balance" class="text-subtitle2"></span>
+                sat</q-badge
+              >
             </div>
           </div>
-          <div class="row items-center">
+          <div v-if="pendingFunds" class="row items-center q-mt-sm">
+            <div class="col-4 q-pr-lg">Amount pending:</div>
+            <div class="col-8 q-pr-lg">
+              <q-badge color="gray">
+                <span v-text="pendingFunds" class="text-subtitle2"></span> sat
+              </q-badge>
+            </div>
+          </div>
+          <div class="row items-center q-mt-sm">
             <div class="col-4 q-pr-lg">Amount due:</div>
             <div class="col-8 q-pr-lg">
-              <div v-if="charge.amount - charge.balance > 0">
-                <span v-text="charge.amount - charge.balance"></span> sats
-              </div>
-              <q-badge v-if="charge.amount - charge.balance <= 0" color="green">
+              <q-badge v-if="charge.amount - charge.balance > 0" color="green">
+                <span
+                  v-text="charge.amount - charge.balance"
+                  class="text-subtitle2"
+                ></span>
+                sat
+              </q-badge>
+              <q-badge
+                v-else="charge.amount - charge.balance <= 0"
+                color="green"
+                class="text-subtitle2"
+              >
                 none</q-badge
               >
             </div>
           </div>
         </div>
-        <q-separator></q-separator>
+      </div>
+      <q-separator></q-separator>
+      <div class="row">
         <div class="col">
           <div class="row">
             <div class="col">
@@ -271,6 +294,7 @@
     data() {
       return {
         charge: JSON.parse('{{charge_data | tojson}}'),
+        pendingFunds: 0,
         ws: null,
         newProgress: 0.4,
         counter: 1,
@@ -313,6 +337,26 @@
           LNbits.utils.notifyApiError(error)
         }
       },
+      checkPendingOnchain: async function () {
+        const {
+          bitcoin: {addresses: addressesAPI}
+        } = mempoolJS()
+
+        try {
+          const fn = async () =>
+            addressesAPI.getAddressTxsUtxo({
+              address: this.charge.onchainaddress
+            })
+
+          const utxos = await retryWithDelay(fn)
+
+          this.pendingFunds = utxos
+            .filter(u => !u.status.confirmed)
+            .reduce((t, u) => t + u.value, 0)
+        } catch (error) {
+          console.error('cannot check pending funds')
+        }
+      },
       payInvoice: function () {
         this.lnbtc = true
         this.onbtc = false
@@ -339,14 +383,13 @@
       loopRefresh: function () {
         // invoice only
         const refreshIntervalId = setInterval(async () => {
-          console.log('### 1111')
           if (this.charge.paid || this.timetoComplete < 1) {
             clearInterval(refreshIntervalId)
           }
           this.refreshProgres()
           if (this.counter % 10 === 0) {
-            console.log('### 11110')
             await this.checkBalances()
+            await this.checkPendingOnchain()
           }
           this.counter++
         }, 1000)
@@ -360,17 +403,14 @@
 
         this.ws = new WebSocket('wss://mempool.space/api/v1/ws')
         this.ws.addEventListener('open', x => {
-          console.log('### open ws', x)
-        })
-        this.ws.addEventListener('close', x => {
-          console.log('### close ws', x)
+          if (this.charge.onchainaddress) {
+            this.trackAddress(this.charge.onchainaddress)
+          }
         })
 
         this.ws.addEventListener('message', async ({data}) => {
           const res = JSON.parse(data.toString())
-          console.log('### socker mempool res', res)
           if (res['address-transactions']) {
-            console.log('### res', res)
             await this.checkBalances()
             this.$q.notify({
               type: 'positive',
@@ -389,7 +429,6 @@
       trackAddress: async function (address, retry = 0) {
         try {
           if (!this.ws || this.ws.readyState !== WebSocket.OPEN) this.initWs()
-          console.log('### start to track: ', address)
           this.ws.send(JSON.stringify({'track-address': address}))
         } catch (error) {
           await sleep(1000)
@@ -415,6 +454,7 @@
 
       if (this.charge.onchainaddress) {
         this.loopPingWs()
+        this.checkPendingOnchain()
         this.trackAddress(this.charge.onchainaddress)
       }
     }
