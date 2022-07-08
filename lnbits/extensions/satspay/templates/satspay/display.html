@@ -131,6 +131,69 @@
     </q-card>
     <q-card class="q-pa-lg" v-if="lnbtc">
       <q-card-section class="q-pa-none">
+        <div class="row items-center q-mt-sm">
+          <div class="col-md-2 col-sm-0"></div>
+          <div class="col-md-8 col-sm-12">
+            <div v-if="timetoComplete < 1 && !charge.paid">
+              <q-icon
+                name="block"
+                style="color: #ccc; font-size: 21.4em"
+              ></q-icon>
+            </div>
+            <div v-else-if="charge.paid">
+              <q-icon
+                name="check"
+                style="color: green; font-size: 21.4em"
+              ></q-icon>
+              <q-btn
+                outline
+                v-if="charge.webhook"
+                type="a"
+                :href="charge.completelink"
+                :label="charge.completelinktext"
+              ></q-btn>
+            </div>
+            <div v-else>
+              <div class="row text-center q-mb-sm">
+                <div class="col text-center">
+                  <span class="text-subtitle2"
+                >Pay this lightning-network invoice:</span
+              >
+                </div></div>
+              
+
+              <a :href="'lightning:'+charge.payment_request">
+                <q-responsive :ratio="1" class="q-mx-md">
+                  <qrcode
+                    :value="charge.payment_request"
+                    :options="{width: 800}"
+                    class="rounded-borders"
+                  ></qrcode>
+                </q-responsive>
+              </a>
+              <div class="row text-center q-mt-lg">
+                <div class="col text-center">
+                <q-btn
+                  outline
+                  color="grey"
+                  @click="copyText(charge.payment_request)"
+                  >Copy invoice</q-btn
+                >
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2 col-sm-0"></div>
+      </q-card-section>
+    </q-card>
+    <q-card class="q-pa-lg" v-if="onbtc">
+      <q-card-section class="q-pa-none">
+        <div  v-if="timetoComplete >= 0 && !charge.paid" class="row items-center">
+          <div class="col text-center">
+            <span class="text-subtitle1" v-text="charge.onchainaddress"></span>
+          </div>
+        </div>
         <div class="row items-center q-mt-md">
           <div class="col-md-2 col-sm-0"></div>
           <div class="col-md-8 col-sm-12">
@@ -154,81 +217,39 @@
               ></q-btn>
             </div>
             <div v-else>
-              <span class="text-subtitle2"
-                >Pay this lightning-network invoice:</span
-              >
-              <br />
+              <div class="row items-center q-mb-sm">
+                <div class="col text-center">
+                  <span class="text-subtitle2"
+                    >Send
 
-              <a :href="'lightning:'+charge.payment_request">
+                    <span v-text="charge.amount"></span>
+                    sats to this onchain address</span
+                  >
+                </div>
+              </div>
+
+              <a :href="'bitcoin:'+charge.onchainaddress">
                 <q-responsive :ratio="1" class="q-mx-md">
                   <qrcode
-                    :value="charge.payment_request"
+                    :value="charge.onchainaddress"
                     :options="{width: 800}"
                     class="rounded-borders"
                   ></qrcode>
                 </q-responsive>
               </a>
-              <div class="row q-mt-lg">
-                <q-btn
-                  outline
-                  color="grey"
-                  @click="copyText(charge.payment_request)"
-                  >Copy invoice</q-btn
-                >
+              <div class="row items-center q-mt-lg">
+                <div class="col text-center">
+                  <q-btn
+                    outline
+                    color="grey"
+                    @click="copyText(charge.onchainaddress)"
+                    >Copy address</q-btn
+                  >
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="col-md-2 col-sm-0"></div>
-      </q-card-section>
-    </q-card>
-    <q-card class="q-pa-lg" v-if="onbtc">
-      <q-card-section class="q-pa-none">
-        <div class="text-center q-pt-md">
-          <div v-if="timetoComplete < 1 && !charge.paid">
-            <q-icon
-              name="block"
-              style="color: #ccc; font-size: 21.4em"
-            ></q-icon>
-          </div>
-          <div v-else-if="charge.paid">
-            <q-icon
-              name="check"
-              style="color: green; font-size: 21.4em"
-            ></q-icon>
-            <q-btn
-              outline
-              v-if="charge.webhook "
-              type="a"
-              :href="charge.completelink"
-              :label="charge.completelinktext"
-            ></q-btn>
-          </div>
-          <div v-else>
-            <span class="text-subtitle2"
-              >Send
-              <span v-text="charge.amount"></span>
-              sats to this onchain address</span
-            >
-
-            <a :href="'bitcoin:'+charge.onchainaddress">
-              <q-responsive :ratio="1" class="q-mx-md">
-                <qrcode
-                  :value="charge.onchainaddress"
-                  :options="{width: 800}"
-                  class="rounded-borders"
-                ></qrcode>
-              </q-responsive>
-            </a>
-            <div class="row q-mt-lg">
-              <q-btn
-                outline
-                color="grey"
-                @click="copyText(charge.onchainaddress)"
-                >Copy address</q-btn
-              >
-            </div>
-          </div>
+          <div class="col-md-2 col-sm-0"></div>
         </div>
       </q-card-section>
     </q-card>
@@ -273,7 +294,7 @@
           }
         )
       },
-      checkInvoiceBalance: async function () {
+      checkBalances: async function () {
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -290,24 +311,6 @@
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
-      },
-      checkAddressBalance: async function () {
-        const {
-          bitcoin: {addresses: addressesAPI}
-        } = mempoolJS()
-
-        const fn = async () =>
-          addressesAPI.getAddressTxsUtxo({
-            address: this.charge.onchainaddress
-          })
-
-        const utxos = await retryWithDelay(fn)
-        const balance = utxos.reduce((t, u) => t + u.value, 0)
-
-      },
-      checkBalances: async function () {
-        if (this.charge.lnbitswallet) this.checkInvoiceBalance()
-        if (this.charge.onchainaddress) this.checkAddressBalance()
       },
       payInvoice: function () {
         this.lnbtc = true
