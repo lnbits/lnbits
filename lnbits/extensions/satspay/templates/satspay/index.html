@@ -18,7 +18,6 @@
             <h5 class="text-subtitle1 q-my-none">Charges</h5>
           </div>
 
-
           <div class="col q-pr-lg">
             <q-input
               borderless
@@ -92,41 +91,6 @@
               </q-td>
               <q-td auto-width>
                 <q-btn
-                  v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
-                  unelevated
-                  flat
-                  dense
-                  size="xs"
-                  icon="error"
-                  :color="($q.dark.isActive) ? 'red' : 'red'"
-                >
-                  <q-tooltip> Time elapsed </q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  v-else-if="props.row.balance >= props.row.amount"
-                  unelevated
-                  flat
-                  dense
-                  size="xs"
-                  icon="check"
-                  :color="($q.dark.isActive) ? 'green' : 'green'"
-                >
-                  <q-tooltip> PAID! </q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  v-else
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="cached"
-                  flat
-                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
-                >
-                  <q-tooltip> Processing </q-tooltip>
-                </q-btn>
-                <q-btn
                   flat
                   dense
                   size="xs"
@@ -136,6 +100,21 @@
                 >
                   <q-tooltip> Delete charge </q-tooltip>
                 </q-btn>
+                <q-badge
+                  v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
+                  color="red"
+                >
+                  expired
+                </q-badge>
+
+                <q-badge
+                  v-else-if="props.row.balance >= props.row.amount"
+                  color="green"
+                >
+                  paid
+                </q-badge>
+
+                <q-badge v-else color="blue"> waiting </q-badge>
               </q-td>
               <q-td
                 v-for="col in props.cols"
