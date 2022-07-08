@@ -95,7 +95,6 @@ async def api_charge_delete(charge_id, wallet: WalletTypeInfo = Depends(get_key_
 
 @satspay_ext.get("/api/v1/charges/balance/{charge_id}")
 async def api_charges_balance(charge_id):
-
     charge = await check_address_balance(charge_id)
 
     if not charge:
@@ -126,22 +125,3 @@ async def api_charges_balance(charge_id):
             except AssertionError:
                 charge.webhook = None
     return charge.dict()
-
-
-#############################MEMPOOL##########################
-
-
-@satspay_ext.put("/api/v1/mempool")
-async def api_update_mempool(
-    endpoint: str = Query(...), wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    mempool = await update_mempool(endpoint, user=wallet.wallet.user)
-    return mempool.dict()
-
-
-@satspay_ext.route("/api/v1/mempool")
-async def api_get_mempool(wallet: WalletTypeInfo = Depends(get_key_type)):
-    mempool = await get_mempool(wallet.wallet.user)
-    if not mempool:
-        mempool = await create_mempool(user=wallet.wallet.user)
-    return mempool.dict()
