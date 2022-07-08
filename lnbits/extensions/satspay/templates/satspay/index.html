@@ -18,21 +18,33 @@
             <h5 class="text-subtitle1 q-my-none">Charges</h5>
           </div>
 
-          <div class="col-auto">
+
+          <div class="col q-pr-lg">
             <q-input
               borderless
               dense
               debounce="300"
               v-model="filter"
               placeholder="Search"
+              class="float-right"
             >
               <template v-slot:append>
                 <q-icon name="search"></q-icon>
               </template>
             </q-input>
-            <q-btn flat color="grey" @click="exportchargeCSV"
-              >Export to CSV</q-btn
-            >
+          </div>
+          <div class="col-auto">
+            <q-btn outline color="grey" label="...">
+              <q-menu auto-close>
+                <q-list style="min-width: 100px">
+                  <q-item clickable>
+                    <q-item-section @click="exportchargeCSV"
+                      >Export to CSV</q-item-section
+                    >
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
           </div>
         </div>
         <q-table
