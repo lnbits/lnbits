@@ -296,6 +296,7 @@
         walletLinks: [],
         chargeLinks: [],
         onchainwallet: '',
+        rescanning: false,
         mempool: {
           endpoint: ''
         },
@@ -444,35 +445,42 @@
       },
       timerCount: function () {
         setInterval(async () => {
-          for (i = 0; i < this.chargeLinks.length - 1; i++) {
-            if (this.chargeLinks[i]['paid'] == 'True') {
-              setTimeout(async () => {
-                await LNbits.api.request(
-                  'GET',
-                  '/satspay/api/v1/charges/balance/' +
-                    this.chargeLinks[i]['id'],
-                  'filla'
-                )
-              }, 2000)
-            }
-          }
+          const activeLinkIds = this.chargeLinks
+            .filter(c => !c.paid && !c.time_elapsed)
+            .map(c => c.id)
+            .join(',')
+          await LNbits.api.request(
+            'GET',
+            '/satspay/api/v1/charges/balance/' + activeLinkIds,
+            'filla'
+          )
           await this.getCharges()
         }, 20000)
       },
       rescanOnchainAddresses: async function () {
+        if (this.rescanning) return
+        this.rescanning = true
         const {
           bitcoin: {addresses: addressesAPI}
         } = mempoolJS()
 
-        const onchainCharges = this.chargeLinks.filter(c => c.onchainaddress)
-        for (const charge of onchainCharges) {
-          const fn = async () =>
-            addressesAPI.getAddressTxsUtxo({
-              address: charge.onchainaddress
-            })
+        try {
+          const onchainActiveCharges = this.chargeLinks.filter(
+            c => c.onchainaddress && !c.paid && !c.time_elapsed
+          )
+          for (const charge of onchainActiveCharges) {
+            const fn = async () =>
+              addressesAPI.getAddressTxsUtxo({
+                address: charge.onchainaddress
+              })
 
-          const utxos = await retryWithDelay(fn)
-          charge.balance = utxos.reduce((t, u) => t + u.value, 0)
+            const utxos = await retryWithDelay(fn)
+            charge.balance = utxos.reduce((t, u) => t + u.value, 0)
+          }
+        } catch (error) {
+          console.error(error)
+        } finally {
+          this.rescanning = false
         }
       },
       createCharge: async function (wallet, data) {
@@ -523,13 +531,12 @@
       }
     },
     created: async function () {
-      console.log(this.g.user)
       await this.getCharges()
       await this.getWalletLinks()
       await this.getWalletConfig()
       this.timerCount()
       await this.rescanOnchainAddresses()
-      setInterval(() => this.rescanOnchainAddresses(), 30 * 1000)
+      setInterval(() => this.rescanOnchainAddresses(), 10 * 1000)
     }
   })
 </script>
