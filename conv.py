@@ -658,11 +658,11 @@ def migrate_ext(sqlite_db_file, schema):
         insert_to_pg(q, tracks)
         fix_id("livestream.tracks_id_seq", tracks)
     else:
-        print(f"Not implemented: {schema}")
+        print(f"❌ Not implemented: {schema}")
         sq.close()
         return
 
-    print(f"Migrated: {schema}")
+    print(f"✅ Migrated: {schema}")
     sq.close()
 
 
