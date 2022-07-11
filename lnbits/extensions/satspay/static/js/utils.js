@@ -15,20 +15,20 @@ const retryWithDelay = async function (fn, retryCount = 0) {
 
 const mapCharge = (obj, oldObj = {}) => {
   obj._data = _.clone(obj)
-  obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
-  obj.time = obj.time + ' min'
 
-  if (obj.time_elapsed) {
-    obj.date = ''
-  } else {
-    obj.date = Quasar.utils.date.formatDate(
-      new Date((obj.theTime - 3600) * 1000),
-      'HH:mm:ss'
-    )
-  }
+  obj.progress = obj.time_left < 0 ? 1 : 1 - obj.time_left / obj.time
+  obj.time = minutesToShortTime(obj.time)
+  obj.timeLeft = minutesToTime(obj.time_left)
+
   obj.expanded = false
   obj.displayUrl = ['/satspay/', obj.id].join('')
   obj.expanded = oldObj.expanded
   obj.pendingBalance = oldObj.pendingBalance || 0
   return obj
 }
+
+const minutesToTime = min =>
+  min > 0 ? new Date(min * 1000).toISOString().substring(11, 19) : ''
+
+const minutesToShortTime = min =>
+  min > 0 ? new Date(min * 1000).toISOString().substring(14, 22) : ''
