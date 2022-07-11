@@ -8,6 +8,8 @@ from http import HTTPStatus
 from os import getenv
 from typing import Optional, AsyncGenerator
 
+from loguru import logger
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -139,7 +141,7 @@ class OpenNodeWallet(Wallet):
         x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
         x.update(charge_id.encode("ascii"))
         if x.hexdigest() != data["hashed_order"]:
-            print("invalid webhook, not from opennode")
+            logger.error("invalid webhook, not from opennode")
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         await self.queue.put(charge_id)

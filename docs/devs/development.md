@@ -17,7 +17,7 @@ Tests
 
 This project has unit tests that help prevent regressions. Before you can run the tests, you must install a few dependencies:
 ```bash
-./venv/bin/pip install pytest pytest-asyncio requests trio mock
+./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
 ```
 
 Then to run the tests:

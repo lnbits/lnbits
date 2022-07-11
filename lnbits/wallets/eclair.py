@@ -5,6 +5,8 @@ import urllib.parse
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
+from loguru import logger
+
 import httpx
 from websockets import connect
 from websockets.exceptions import (
@@ -193,8 +195,8 @@ class EclairWallet(Wallet):
             ConnectionClosedError,
             ConnectionClosed,
         ) as ose:
-            print("OSE", ose)
+            logger.error("OSE", ose)
             pass
 
-            print("lost connection to eclair's websocket, retrying in 5 seconds")
+            logger.error("lost connection to eclair's websocket, retrying in 5 seconds")
             await asyncio.sleep(5)

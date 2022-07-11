@@ -5,6 +5,8 @@ import httpx
 from datetime import datetime
 from http import HTTPStatus
 
+from loguru import logger
+
 import shortuuid  # type: ignore
 from fastapi import HTTPException
 from fastapi.param_functions import Query
@@ -136,13 +138,13 @@ async def api_lnurl_callback(
                     )
                 except Exception as exc:
                     # webhook fails shouldn't cause the lnurlw to fail since invoice is already paid
-                    print("Caught exception when dispatching webhook url:", exc)
+                    logger.error("Caught exception when dispatching webhook url:", exc)
 
         return {"status": "OK"}
 
     except Exception as e:
         await update_withdraw_link(link.id, **changesback)
-        print(traceback.format_exc())
+        logger.error(traceback.format_exc())
         return {"status": "ERROR", "reason": "Link not working"}
 
 

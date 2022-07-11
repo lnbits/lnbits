@@ -1,0 +1,6 @@
+.git
+docs
+docker
+
+# ignore all the markdown
+*.md

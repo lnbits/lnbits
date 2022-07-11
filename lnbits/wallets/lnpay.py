@@ -6,6 +6,8 @@ from os import getenv
 from http import HTTPStatus
 from typing import Optional, Dict, AsyncGenerator
 
+from loguru import logger
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -127,7 +129,7 @@ class LNPayWallet(Wallet):
         try:
             data = json.loads(text)
         except json.decoder.JSONDecodeError:
-            print(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
+            logger.error(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
             data = None
         if (
             type(data) is not dict

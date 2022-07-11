@@ -4,6 +4,8 @@ from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
+from loguru import logger
+
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import api_payment
@@ -91,6 +93,6 @@ async def api_tpos_check_invoice(tpos_id: str, payment_hash: str):
         status = await api_payment(payment_hash)
 
     except Exception as exc:
-        print(exc)
+        logger.error(exc)
         return {"paid": False}
     return status

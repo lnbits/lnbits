@@ -4,6 +4,8 @@ import httpx
 from os import getenv
 from typing import Optional, Dict, AsyncGenerator
 
+from loguru import logger
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -143,5 +145,7 @@ class LntxbotWallet(Wallet):
             except (OSError, httpx.ReadError, httpx.ReadTimeout, httpx.ConnectError):
                 pass
 
-            print("lost connection to lntxbot /payments/stream, retrying in 5 seconds")
+            logger.error(
+                "lost connection to lntxbot /payments/stream, retrying in 5 seconds"
+            )
             await asyncio.sleep(5)

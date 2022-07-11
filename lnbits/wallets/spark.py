@@ -5,6 +5,8 @@ import random
 from os import getenv
 from typing import Optional, AsyncGenerator
 
+from loguru import logger
+
 from .base import (
     StatusResponse,
     InvoiceResponse,
@@ -204,5 +206,5 @@ class SparkWallet(Wallet):
             except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
 
-            print("lost connection to spark /stream, retrying in 5 seconds")
+            logger.error("lost connection to spark /stream, retrying in 5 seconds")
             await asyncio.sleep(5)
