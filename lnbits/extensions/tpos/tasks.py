@@ -60,7 +60,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         payment_request="",
         payment_hash=payment.payment_hash,
         amount=tipAmount,
-        memo="Tip",
+        memo=f"Tip for {payment.memo}",
         pending=False,
         extra={"tipSplitted": True},
     )
