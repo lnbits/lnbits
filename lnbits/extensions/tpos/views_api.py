@@ -64,7 +64,7 @@ async def api_tpos_create_invoice(
 
     if tipAmount:
         amount += tipAmount
-        
+
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=tpos.wallet,
