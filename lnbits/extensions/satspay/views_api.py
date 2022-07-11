@@ -30,7 +30,12 @@ async def api_charge_create(
     data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
     charge = await create_charge(user=wallet.wallet.user, data=data)
-    return charge.dict()
+    return {
+        **charge.dict(),
+        **{"time_elapsed": charge.time_elapsed},
+        **{"time_left": charge.time_left},
+        **{"paid": charge.paid},
+    }
 
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
@@ -50,6 +55,7 @@ async def api_charges_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
             {
                 **charge.dict(),
                 **{"time_elapsed": charge.time_elapsed},
+                **{"time_left": charge.time_left},
                 **{"paid": charge.paid},
             }
             for charge in await get_charges(wallet.wallet.user)
@@ -72,6 +78,7 @@ async def api_charge_retrieve(
     return {
         **charge.dict(),
         **{"time_elapsed": charge.time_elapsed},
+        **{"time_left": charge.time_left},
         **{"paid": charge.paid},
     }
 
@@ -133,4 +140,9 @@ async def api_charge_balance(charge_id):
                 )
             except AssertionError:
                 charge.webhook = None
-    return charge.dict()
+    return {
+        **charge.dict(),
+        **{"time_elapsed": charge.time_elapsed},
+        **{"time_left": charge.time_left},
+        **{"paid": charge.paid},
+    }
