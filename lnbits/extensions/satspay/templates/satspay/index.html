@@ -125,8 +125,13 @@
                   >{{props.row.description}}</a
                 >
               </q-td>
-              <q-td key="timeleft" :props="props" :class="">
-                <div>{{props.row.date}}</div>
+              <q-td key="timeLeft" :props="props" :class="">
+                <div>{{props.row.timeLeft}}</div>
+                <q-linear-progress
+                  :value="props.row.progress"
+                  color="secondary"
+                >
+                </q-linear-progress>
               </q-td>
               <q-td key="time to pay" :props="props" :class="">
                 <div>{{props.row.time}}</div>
@@ -424,10 +429,10 @@
               field: 'description'
             },
             {
-              name: 'timeleft',
+              name: 'timeLeft',
               align: 'left',
               label: 'Time left',
-              field: 'date'
+              field: 'timeLeft'
             },
             {
               name: 'time to pay',
@@ -638,7 +643,7 @@
             data
           )
 
-          this.chargeLinks.push(mapCharge(resp.data))
+          this.chargeLinks.unshift(mapCharge(resp.data))
           this.formDialogCharge.show = false
           this.formDialogCharge.data = {
             onchain: false,

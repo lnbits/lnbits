@@ -13,7 +13,7 @@
           <div
             color="white"
             style="background-color: grey; height: 30px; padding: 5px"
-            v-if="timetoComplete < 1"
+            v-if="!charge.timeLeft"
           >
             Time elapsed
           </div>
@@ -25,14 +25,18 @@
             Charge paid
           </div>
           <div v-else>
-            <q-linear-progress size="30px" :value="newProgress" color="grey">
+            <q-linear-progress
+              size="30px"
+              :value="charge.progress"
+              color="secondary"
+            >
               <q-item-section>
                 <q-item style="padding: 3px">
                   <q-spinner color="white" size="0.8em"></q-spinner
                   ><span style="font-size: 15px; color: white"
                     ><span class="q-pr-xl q-pl-md"> Awaiting payment...</span>
                     <span class="q-pl-xl" style="color: white">
-                      {% raw %} {{ newTimeLeft }} {% endraw %}</span
+                      {% raw %} {{ charge.timeLeft }} {% endraw %}</span
                     ></span
                   >
                 </q-item>
@@ -155,7 +159,7 @@
         <div class="row items-center q-mt-sm">
           <div class="col-md-2 col-sm-0"></div>
           <div class="col-md-8 col-sm-12">
-            <div v-if="timetoComplete < 1 && !charge.paid">
+            <div v-if="!charge.timeLeft && !charge.paid">
               <q-icon
                 name="block"
                 style="color: #ccc; font-size: 21.4em"
@@ -210,10 +214,7 @@
     </q-card>
     <q-card class="q-pa-lg" v-if="onbtc">
       <q-card-section class="q-pa-none">
-        <div
-          v-if="timetoComplete >= 0 && !charge.paid"
-          class="row items-center"
-        >
+        <div v-if="charge.timeLeft && !charge.paid" class="row items-center">
           <div class="col text-center">
             <a
               style="color: unset"
@@ -229,7 +230,7 @@
         <div class="row items-center q-mt-md">
           <div class="col-md-2 col-sm-0"></div>
           <div class="col-md-8 col-sm-12 text-center">
-            <div v-if="timetoComplete < 1 && !charge.paid">
+            <div v-if="!charge.timeLeft && !charge.paid">
               <q-icon
                 name="block"
                 style="color: #ccc; font-size: 21.4em"
@@ -307,8 +308,6 @@
         ws: null,
         newProgress: 0.4,
         counter: 1,
-        newTimeLeft: '',
-        timetoComplete: 100,
         lnbtc: true,
         onbtc: false,
         wallet: {
@@ -329,19 +328,25 @@
         )
       },
       checkBalances: async function () {
-        if (!this.charge.hasStaleBalance) return
+        if (!this.charge.hasStaleBalance) await this.refreshCharge()
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/satspay/api/v1/charge/balance/${this.charge.id}`,
-            'filla'
+            `/satspay/api/v1/charge/balance/${this.charge.id}`
           )
-          this.charge.time_elapsed = data.time_elapsed
-          this.charge.amount = data.amount
-          this.charge.balance = data.balance
-          if (this.charge.balance >= this.charge.amount) {
-            this.charge.paid = true
-          }
+          this.charge = mapCharge(data, this.charge)
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      refreshCharge: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            `/satspay/api/v1/charge/${this.charge.id}`
+          )
+          this.charge = mapCharge(data, this.charge)
+          console.log('### ', this.charge)
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -375,28 +380,13 @@
         this.lnbtc = false
         this.onbtc = true
       },
-      refreshExpirationTime: function () {
-        this.timetoComplete =
-          parseInt(this.charge.time) * 60 -
-          (Date.now() / 1000 - parseInt(this.charge.timestamp))
 
-        this.newTimeLeft = Quasar.utils.date.formatDate(
-          new Date((this.timeToComplete - 3600) * 1000),
-          'HH:mm:ss'
-        )
-      },
-      refreshProgres: function () {
-        this.refreshExpirationTime()
-        this.newProgress =
-          1 - this.timeToComplete / (parseInt(this.charge.time) * 60)
-      },
       loopRefresh: function () {
         // invoice only
         const refreshIntervalId = setInterval(async () => {
-          if (this.charge.paid || this.timetoComplete < 1) {
+          if (this.charge.paid || !this.charge.timeLeft) {
             clearInterval(refreshIntervalId)
           }
-          this.refreshProgres()
           if (this.counter % 10 === 0) {
             await this.checkBalances()
             await this.checkPendingOnchain()
@@ -456,7 +446,6 @@
       this.wallet.inkey = '{{ wallet_inkey }}'
       this.startPaymentNotifier()
 
-      this.refreshProgres()
       if (!this.charge.paid) {
         this.loopRefresh()
       }
