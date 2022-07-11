@@ -574,19 +574,17 @@
         data.onchainwallet = this.onchainwallet?.id
         this.createCharge(wallet, data)
       },
-      timerCount: function () {
-        setInterval(async () => {
-          const activeLinkIds = this.chargeLinks
-            .filter(c => !c.paid && !c.time_elapsed)
-            .map(c => c.id)
-            .join(',')
-          await LNbits.api.request(
-            'GET',
-            '/satspay/api/v1/charges/balance/' + activeLinkIds,
-            'filla'
-          )
-          await this.getCharges()
-        }, 20000)
+      refreshActiveChargesBalance: async function () {
+        const activeLinkIds = this.chargeLinks
+          .filter(c => !c.paid && !c.time_elapsed)
+          .map(c => c.id)
+          .join(',')
+        await LNbits.api.request(
+          'GET',
+          '/satspay/api/v1/charges/balance/' + activeLinkIds,
+          'filla'
+        )
+        await this.getCharges()
       },
       refreshBalance: async function (charge) {
         try {
@@ -617,7 +615,9 @@
               })
 
             const utxos = await retryWithDelay(fn)
-            charge.pendingBalance = utxos.reduce((t, u) => t + u.value, 0)
+            charge.pendingBalance = utxos
+              .filter(u => !u.status.confirmed)
+              .reduce((t, u) => t + u.value, 0)
           }
         } catch (error) {
           console.error(error)
@@ -669,14 +669,18 @@
           })
       },
       exportchargeCSV: function () {
-        LNbits.utils.exportCSV(this.chargesTable.columns, this.chargeLinks)
+        LNbits.utils.exportCSV(
+          this.chargesTable.columns,
+          this.chargeLinks,
+          'charges'
+        )
       }
     },
     created: async function () {
       await this.getCharges()
       await this.getWalletLinks()
       await this.getWalletConfig()
-      this.timerCount()
+      setInterval(() => this.refreshActiveChargesBalance(), 10 * 2000)
       await this.rescanOnchainAddresses()
       setInterval(() => this.rescanOnchainAddresses(), 10 * 1000)
     }
