@@ -1,6 +1,8 @@
 import psycopg2
 import sqlite3
 import os
+import argparse
+
 
 from environs import Env  # type: ignore
 
@@ -147,7 +149,7 @@ def migrate_core(sqlite_db_file):
     print("Migrated: core")
 
 
-def migrate_ext(sqlite_db_file, schema):
+def migrate_ext(sqlite_db_file, schema, ignore_missing = True):
     sq = get_sqlite_cursor(sqlite_db_file)
 
     if schema == "bleskomat":
@@ -660,14 +662,24 @@ def migrate_ext(sqlite_db_file, schema):
     else:
         print(f"❌ Not implemented: {schema}")
         sq.close()
+
+        if ignore_missing == False:
+            raise Exception(f"Not implemented: {schema}. Use --ignore-missing to skip missing extensions.")
         return
 
     print(f"✅ Migrated: {schema}")
     sq.close()
 
 
-check_db_versions("data/database.sqlite3")
-migrate_core("data/database.sqlite3")
+parser = argparse.ArgumentParser(description="Migrate data from SQLite to PostgreSQL")
+parser.add_argument(dest="sqlite_file",  const=True, nargs='?', help='SQLite DB to migrate from', default="data/database.sqlite3", type=str)
+parser.add_argument('-i','--ignore-missing', help='Output file name', required=False, default=False, const=True, nargs='?', type=bool)
+args = parser.parse_args()
+
+print(args)
+
+check_db_versions(args.sqlite_file)
+migrate_core(args.sqlite_file)
 
 files = os.listdir(sqfolder)
 for file in files:
@@ -675,4 +687,4 @@ for file in files:
     if file.startswith("ext_"):
         schema = file.replace("ext_", "").split(".")[0]
         print(f"Migrating: {schema}")
-        migrate_ext(path, schema)
+        migrate_ext(path, schema, args.ignore_missing)
