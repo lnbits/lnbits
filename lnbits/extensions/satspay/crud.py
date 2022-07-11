@@ -111,7 +111,7 @@ async def check_address_balance(charge_id: str) -> List[Charges]:
                         + charge.onchainaddress
                     )
                     respAmount = r.json()["chain_stats"]["funded_txo_sum"]
-                    if respAmount >= charge.balance:
+                    if respAmount > charge.balance:
                         await update_charge(charge_id=charge_id, balance=respAmount)
             except Exception:
                 pass
