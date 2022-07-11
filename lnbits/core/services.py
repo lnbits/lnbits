@@ -172,9 +172,17 @@ async def pay_invoice(
     else:
         logger.debug(f"backend: sending payment {temp_id}")
         # actually pay the external invoice
-        payment: PaymentResponse = await WALLET.pay_invoice(
-            payment_request, fee_reserve_msat
-        )
+        try:
+            payment: PaymentResponse = await WALLET.pay_invoice(
+                payment_request, fee_reserve_msat
+            )
+        except Exception as e:
+            async with db.connect() as conn:
+                logger.debug(f"deleting temporary payment {temp_id}")
+                await delete_payment(temp_id, conn=conn)
+            raise PaymentFailure(
+                str(e) or "Payment failed, but backend didn't give us an error message."
+            )
         logger.debug(f"backend: pay_invoice finished {temp_id}")
         if payment.checking_id:
             logger.debug(f"creating final payment {payment.checking_id}")

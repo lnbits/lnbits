@@ -178,6 +178,7 @@ class LndWallet(Wallet):
         return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        resp = await self.rpc.ListPayments()
         return PaymentStatus(True)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:

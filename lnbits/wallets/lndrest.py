@@ -111,7 +111,7 @@ class LndRestWallet(Wallet):
                 url=f"{self.endpoint}/v1/channels/transactions",
                 headers=self.auth,
                 json={"payment_request": bolt11, "fee_limit": lnrpcFeeLimit},
-                timeout=180,
+                timeout=None,
             )
 
         if r.is_error or r.json().get("payment_error"):
