@@ -14,21 +14,19 @@ const retryWithDelay = async function (fn, retryCount = 0) {
 }
 
 const mapCharge = (obj, oldObj = {}) => {
-  obj._data = _.clone(obj)
+  const charge = _.clone(obj)
 
-  obj.progress = obj.time_left < 0 ? 1 : 1 - obj.time_left / obj.time
-  obj.time = minutesToShortTime(obj.time)
-  obj.timeLeft = minutesToTime(obj.time_left)
+  charge.progress = obj.time_left < 0 ? 1 : 1 - obj.time_left / obj.time
+  charge.time = minutesToTime(obj.time)
+  charge.timeLeft = minutesToTime(obj.time_left)
 
-  obj.expanded = false
-  obj.displayUrl = ['/satspay/', obj.id].join('')
-  obj.expanded = oldObj.expanded
-  obj.pendingBalance = oldObj.pendingBalance || 0
-  return obj
+  charge.expanded = false
+  charge.displayUrl = ['/satspay/', obj.id].join('')
+  charge.expanded = oldObj.expanded
+  charge.pendingBalance = oldObj.pendingBalance || 0
+  console.log('### charge', charge)
+  return charge
 }
 
 const minutesToTime = min =>
-  min > 0 ? new Date(min * 1000).toISOString().substring(11, 19) : ''
-
-const minutesToShortTime = min =>
-  min > 0 ? new Date(min * 1000).toISOString().substring(14, 22) : ''
+  min > 0 ? new Date(min * 1000).toISOString().substring(14, 19) : ''
