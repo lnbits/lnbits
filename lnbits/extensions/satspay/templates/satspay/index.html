@@ -576,9 +576,10 @@
       },
       refreshActiveChargesBalance: async function () {
         const activeLinkIds = this.chargeLinks
-          .filter(c => !c.paid && !c.time_elapsed)
+          .filter(c => !c.paid && !c.time_elapsed && !c.hasStaleBalance)
           .map(c => c.id)
           .join(',')
+        console.log('### activeLinkIds', activeLinkIds)
         await LNbits.api.request(
           'GET',
           '/satspay/api/v1/charges/balance/' + activeLinkIds,
@@ -615,9 +616,18 @@
               })
 
             const utxos = await retryWithDelay(fn)
+            const newBalance = utxos.reduce((t, u) => t + u.value, 0)
+
             charge.pendingBalance = utxos
               .filter(u => !u.status.confirmed)
               .reduce((t, u) => t + u.value, 0)
+
+            charge.hasStaleBalance = charge.balance === newBalance
+            console.log(
+              '### charge new funds',
+              charge.balance === newBalance,
+              charge
+            )
           }
         } catch (error) {
           console.error(error)
