@@ -579,7 +579,6 @@
           .filter(c => !c.paid && !c.time_elapsed && !c.hasStaleBalance)
           .map(c => c.id)
           .join(',')
-        console.log('### activeLinkIds', activeLinkIds)
         await LNbits.api.request(
           'GET',
           '/satspay/api/v1/charges/balance/' + activeLinkIds,
@@ -623,11 +622,6 @@
               .reduce((t, u) => t + u.value, 0)
 
             charge.hasStaleBalance = charge.balance === newBalance
-            console.log(
-              '### charge new funds',
-              charge.balance === newBalance,
-              charge
-            )
           }
         } catch (error) {
           console.error(error)

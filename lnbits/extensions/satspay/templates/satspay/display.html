@@ -329,9 +329,7 @@
         )
       },
       checkBalances: async function () {
-        console.log('### checkBalances 1', this.charge.hasStaleBalance)
         if (!this.charge.hasStaleBalance) return
-        console.log('### checkBalances 2')
         try {
           const {data} = await LNbits.api.request(
             'GET',
@@ -365,12 +363,6 @@
           this.pendingFunds = utxos
             .filter(u => !u.status.confirmed)
             .reduce((t, u) => t + u.value, 0)
-
-          console.log(
-            '### charge new funds',
-            this.charge.balance === newBalance,
-            this.charge
-          )
         } catch (error) {
           console.error('cannot check pending funds')
         }
