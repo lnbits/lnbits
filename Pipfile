@@ -28,7 +28,7 @@ asyncio = "*"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 sse-starlette = "*"
-jinja2 = "*"
+jinja2 = "==3.0.1"
 pyngrok = "*"
 secp256k1 = "*"
 pycryptodomex = "*"
