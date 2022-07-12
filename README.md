@@ -13,7 +13,7 @@ LNbits
 
 (LNbits is beta, for responsible disclosure of any concerns please contact lnbits@pm.me)
 
-Use [lnbits.com](https://lnbits.com), or run your own LNbits server!
+Use [legend.lnbits.com](https://legend.lnbits.com), or run your own LNbits server!
 
 LNbits is a very simple Python server that sits on top of any funding source, and can be used as:
 
@@ -33,7 +33,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](docs/devs/installation.md) for details on installation and setup.
+See the [install guide](docs/guide/installation.md) for details on installation and setup.
 
 ## LNbits as an account system
 

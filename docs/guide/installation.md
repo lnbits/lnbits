@@ -4,8 +4,88 @@ title: Basic installation
 nav_order: 2
 ---
 
+
+
 # Basic installation
-Install Postgres and setup a database for LNbits:
+
+You can choose between two python package managers, `venv` and `pipenv`. Both are fine but if you don't know what you're doing, just go for the first option.
+
+By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
+
+## Option 1: venv
+
+Download this repo and install the dependencies:
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv'
+python3 -m venv venv
+# If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
+./venv/bin/pip install -r requirements.txt
+# create the data folder and the .env file
+mkdir data && cp .env.example .env
+```
+
+#### Running the server
+
+```sh
+./venv/bin/uvicorn lnbits.__main__:app --port 5000
+```
+
+If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
+
+
+## Option 2: pipenv
+
+You can also use Pipenv to manage your python packages. 
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+
+sudo apt update && sudo apt install -y pipenv
+pipenv install --dev
+# pipenv --python 3.9 install --dev (if you wish to use a version of Python higher than 3.7)
+pipenv shell
+# pipenv --python 3.9 shell (if you wish to use a version of Python higher than 3.7)
+
+# If any of the modules fails to install, try checking and upgrading your setupTool module
+# pip install -U setuptools wheel
+
+# install libffi/libpq in case "pipenv install" fails
+# sudo apt-get install -y libffi-dev libpq-dev
+
+ mkdir data && cp .env.example .env
+``` 
+
+#### Running the server
+    
+```sh
+pipenv run python -m uvicorn lnbits.__main__:app --port 5000 --host 0.0.0.0
+```
+
+Add the flag `--reload` for development (includes hot-reload).
+
+### Troubleshooting
+
+Problems installing? These commands have helped us install LNbits. 
+
+```sh
+sudo apt install pkg-config libffi-dev libpq-dev setuptools 
+
+# if the secp256k1 build fails:
+# if you used venv (option 1)
+./venv/bin/pip install setuptools wheel 
+# if you used pipenv (option 2)
+pipenv install setuptools wheel 
+# build essentials for debian/ubuntu
+sudo apt install python3-dev gcc build-essential
+```
+
+### Optional: PostgreSQL database
+
+If you want to use LNbits at scale, we recommend using PostgreSQL as the backend database. Install Postgres and setup a database for LNbits:
 
 ```sh
 # on debian/ubuntu 'sudo apt-get -y install postgresql'
@@ -22,34 +102,35 @@ createdb lnbits
 exit
 ```
 
-Download this repo and install the dependencies:
+You need to edit the `.env` file.
 
 ```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv' should work
-python3 -m venv venv
-./venv/bin/pip install -r requirements.txt
-cp .env.example .env
 # add the database connection string to .env 'nano .env' LNBITS_DATABASE_URL=
 # postgres://<user>:<myPassword>@<host>/<lnbits> - alter line bellow with your user, password and db name
 LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 # save and exit
-./venv/bin/uvicorn lnbits.__main__:app --port 5000
 ```
+
+# Using LNbits
 
 Now you can visit your LNbits at http://localhost:5000/. 
 
-Now modify the `.env` file with any settings you prefer and add a proper [funding source](./wallets.md) by modifying the value of `LNBITS_BACKEND_WALLET_CLASS` and providing the extra information and credentials related to the chosen funding source.
+Now modify the `.env` file with any settings you prefer and add a proper [funding source](./wallets.md) by modifying the value of `LNBITS_BACKEND_WALLET_CLASS` and providing the extra information and credentials related to the chosen funding source. 
 
 Then you can restart it and it will be using the new settings.
 
-You might also need to install additional packages or perform additional setup steps, depending on the chosen backend. See [the short guide](./wallets.md) on each different funding source.
+You might also need to install additional packages or perform additional setup steps, depending on the chosen backend. See [the short guide](./wallets.md) on each different funding source. 
 
-## Important note
-If you already have LNbits installed and running, on an SQLite database, we **HIGHLY** recommend you migrate to postgres!
+Take a look at [Polar](https://lightningpolar.com/) for an excellent way of spinning up a Lightning Network dev environment.
 
-There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user, check the guide above. Additionally, your lnbits instance should run once on postgres to implement the database schema before the migration works:
+
+
+# Additional guides
+
+### SQLite to PostgreSQL migration
+If you already have LNbits installed and running, on an SQLite database, we **highly** recommend you migrate to postgres if you are planning to run LNbits on scale.
+
+There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user (see Postgres install guide above). Additionally, your LNbits instance should run once on postgres to implement the database schema before the migration works:
 
 ```sh
 # STOP LNbits
@@ -67,9 +148,6 @@ python3 conv.py
 
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
 
-
-
-# Additional guides
 
 ### LNbits as a systemd service
 
