@@ -168,7 +168,7 @@ async def create_diagonalley_stall(
             data.publickey,
             data.privatekey,
             data.relays,
-            repr(data.shippingzones)),
+            data.shippingzones),
     )
 
     stall = await get_diagonalley_stall(stall_id)

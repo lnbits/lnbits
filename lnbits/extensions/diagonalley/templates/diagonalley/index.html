@@ -221,7 +221,8 @@
           label="Wallet *"
         >
         </q-select>
-        <div class="row">
+        <!-- NOSTR -->
+        <!-- <div class="row">
           <div class="col-5">
             <q-btn unelevated @onclick="generateKeys" color="primary">Generate keys</q-btn>
           </div>
@@ -242,7 +243,7 @@
           dense
           v-model.trim="stallDialog.data.privatekey"
           label="Private Key"
-        ></q-input>
+        ></q-input> -->
         <q-select
           :options="zoneOptions"
           filled
@@ -251,7 +252,8 @@
           v-model.trim="stallDialog.data.shippingzones"
           label="Shipping Zones"
         ></q-select>
-        <q-select
+        <!-- NOSTR -->
+        <!-- <q-select
           :options="relayOptions"
           filled
           dense
@@ -271,23 +273,24 @@
           dense
           v-model.trim="stallDialog.data.nostrShops"
           label="Nostr shop public keys (seperate by comma)"
-        ></q-input>
+        ></q-input> -->
+        <p><strong><small>Nostr support coming soon!</small></strong></p>
         <div class="row q-mt-lg">
           <q-btn
             v-if="stallDialog.data.id"
             unelevated
             color="primary"
             type="submit"
-            >Update Stall</q-btn
+            >Update Store</q-btn
           >
           <q-btn
             v-else
             unelevated
             color="primary"
-            :disable="stallDialog.data.countries == null
-              || stallDialog.data.cost == null"
+            :disable="stallDialog.data.wallet == null
+              || stallDialog.data.shippingzones == null"
             type="submit"
-            >Create Stall</q-btn
+            >Create Store</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -311,11 +314,11 @@
           >+ Shipping Zone<q-tooltip> Create a shipping zone </q-tooltip></q-btn
         >
         <q-btn unelevated v-if="zones.length > 0" color="primary" @click="openStallDialog()"
-          >+ Stall
+          >+ Store
           <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
         >
         <q-btn unelevated v-else color="primary" @click="errorMessage('First set shipping zone(s).')"
-          >+ Stall
+          >+ Store
           <q-tooltip> Create a stall to list products on </q-tooltip></q-btn
         >
         <q-btn unelevated color="primary" @click="shopDialog.show = true"
@@ -469,12 +472,12 @@
         </q-table>
       </q-card-section>
     </q-card>
-
+    <!-- STORES -->
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Stalls</h5>
+            <h5 class="text-subtitle1 q-my-none">Stores</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportStallsCSV"
@@ -528,7 +531,7 @@
         </q-table>
       </q-card-section>
     </q-card>
-
+    <!-- ZONES -->
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
@@ -964,7 +967,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/diagonalley/api/v1/stalls?all_wallets',
+          '/diagonalley/api/v1/stalls?all_wallets=true',
           self.g.user.wallets[0].adminkey
         )
         .then(function (response) {
@@ -977,49 +980,59 @@ new Vue({
           })
     },
     openStallDialog: function () {
-      console.log(this.zones[0]['id'])
-      for(let i = 0; i < this.zones.length; i ++){
-        this.zoneOptions.push(this.zones[i]['id'])
-      }
+      this.zoneOptions = this.zones.map(z => `${z.id} - ${z.countries}`)
+      //console.log(this.zones[0]['id'])
+      //for(let i = 0; i < this.zones.length; i ++){
+      //  this.zoneOptions.push(this.zones[i]['id'])
+      //}
       this.stallDialog.show = true
     },
     openStallUpdateDialog: function (linkId) {
       var self = this
       var link = _.findWhere(self.stalls, {id: linkId})
-      for(let i = 0; i < this.zones.length; i ++){
-        this.zoneOptions.push(this.stalls[i][0])
-      }
+      this.zoneOptions = this.zones.map(z => `${z.id} - ${z.countries}`)
+      //for(let i = 0; i < this.zones.length; i ++){
+      //  this.zoneOptions.push(this.stalls[i][0])
+      //}
       this.stallDialog.data = _.clone(link._data)
+      let shippingzones = this.zoneOptions.filter(z => this.stallDialog.data.shippingzones.split(",").includes(z.split("-")[0].trim()))
+        
+      this.stallDialog.data.shippingzones = shippingzones//this.stallDialog.data.shippingzones.split(",")
+
+      console.log(this.stallDialog.data)
+      //let zones = this.zoneOptions
+      //  .filter(z => z.id == )
       this.stallDialog.show = true
     },
     sendStallFormData: function () {
-      if (this.stallDialog.data.id) {
-      } else {
-        var data = {
-          name: this.stallDialog.data.name,
-          wallet: this.stallDialog.data.wallet,
-          publickey: this.stallDialog.data.publickey,
-          privatekey: this.stallDialog.data.privatekey,
-          relays: this.stallDialog.data.relays
-        }
+      let data = {
+        name: this.stallDialog.data.name,
+        wallet: this.stallDialog.data.wallet,
+        publickey: this.stallDialog.data.publickey,
+        privatekey: this.stallDialog.data.privatekey,
+        relays: this.stallDialog.data.relays,
+        shippingzones: this.stallDialog.data.shippingzones
+          .map(z => z.split("-")[0].trim())
+          .toString()
       }
-
       if (this.stallDialog.data.id) {
+        this.stallDialog.data = {...this.stallDialog.data, ...data}
         this.updateStall(this.stallDialog.data)
       } else {
         this.createStall(data)
       }
     },
     updateStall: function (data) {
+      console.log(data)
       var self = this
       LNbits.api
         .request(
           'PUT',
-          '/diagonalley/api/v1/stalls' + data.id,
+          '/diagonalley/api/v1/stalls/' + data.id,
           _.findWhere(self.g.user.wallets, {
             id: self.stallDialog.data.wallet
           }).inkey,
-          _.pick(data, 'name', 'wallet', 'publickey', 'privatekey')
+          data
         )
         .then(function (response) {
           self.stalls = _.reject(self.stalls, function (obj) {
