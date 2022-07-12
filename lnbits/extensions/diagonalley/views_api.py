@@ -9,7 +9,12 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import (
+    WalletTypeInfo,
+    get_key_type,
+    require_admin_key,
+    require_invoice_key,
+)
 
 from . import db, diagonalley_ext
 from .crud import (
@@ -186,7 +191,7 @@ async def api_diagonalley_stalls(
 async def api_diagonalley_stall_create(
     data: createStalls,
     stall_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
 
     if stall_id:
