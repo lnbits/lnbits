@@ -102,7 +102,7 @@ async def create_diagonalley_zone(
         f"""
         INSERT INTO diagonalley.zones (
             id,
-            user,
+            "user",
             cost,
             countries
 
@@ -133,7 +133,7 @@ async def get_diagonalley_zone(zone_id: str) -> Optional[Zones]:
 
 
 async def get_diagonalley_zones(user: str) -> List[Zones]:
-    rows = await db.fetchall("SELECT * FROM diagonalley.zones WHERE user = ?", (user,))
+    rows = await db.fetchall('SELECT * FROM diagonalley.zones WHERE "user" = ?', (user,))
     return [Zones(**row) for row in rows]
 
 
