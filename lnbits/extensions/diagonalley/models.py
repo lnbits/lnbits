@@ -1,32 +1,24 @@
-import json
-from lib2to3.pytree import Base
-from sqlite3 import Row
-from typing import Dict, Optional
-from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
+from typing import Optional
 
 from fastapi.param_functions import Query
-from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
-from starlette.requests import Request
-
-from lnbits.lnurl import encode as lnurl_encode  # type: ignore
 
 
 class Stalls(BaseModel):
     id: str
     wallet: str
     name: str
-    publickey: str
-    privatekey: str
-    relays: str
+    publickey: Optional[str]
+    privatekey: Optional[str]
+    relays: Optional[str]
     shippingzones: str
 
 class createStalls(BaseModel):
     wallet: str = Query(...)
     name: str = Query(...)
-    publickey: str = Query(...)
-    privatekey: str = Query(...)
-    relays: str = Query(...)
+    publickey: str = Query(None)
+    privatekey: str = Query(None)
+    relays: str = Query(None)
     shippingzones: str = Query(...)
 
 class createProduct(BaseModel):
@@ -50,7 +42,7 @@ class Products(BaseModel):
 
 class createZones(BaseModel):
     cost: int = Query(0, ge=0)
-    countries: str = Query(None)
+    countries: str = Query(...)
 
 class Zones(BaseModel):
     id: str
@@ -82,3 +74,4 @@ class Orders(BaseModel):
     invoiceid: str
     paid: bool
     shipped: bool
+    time: int
