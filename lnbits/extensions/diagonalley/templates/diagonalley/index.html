@@ -9,7 +9,7 @@
           dense
           emit-value
           v-model="productDialog.data.stall"
-          :options="stalls"
+          :options="stalls.map(s => ({label: s.name, value: s.id}))"
           label="Stall"
         >
         </q-select>
@@ -100,7 +100,7 @@
             v-else
             unelevated
             color="primary"
-            :disable="productDialog.data.image == null
+            :disable="productDialog.data.price == null
               || productDialog.data.product == null
               || productDialog.data.description == null
               || productDialog.data.quantity == null"
@@ -645,32 +645,36 @@
 </div>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-
+<script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
 <script>
 
 Vue.component(VueQrcode.name, VueQrcode)
 
-//const pica = window.pica()
+const pica = window.pica()
 
-var mapStalls = obj => {
+const mapStalls = obj => {
   obj._data = _.clone(obj)
   return obj
 }
-var mapProducts = obj => {
+const mapProducts = obj => {
   obj._data = _.clone(obj)
   return obj
 }
-var mapZone = obj => {
+const mapZone = obj => {
   obj._data = _.clone(obj)
   return obj
 }
-var mapOrders = obj => {
+const mapOrders = obj => {
   obj._data = _.clone(obj)
   return obj
 }
-var mapKeys = obj => {
+const mapKeys = obj => {
   obj._data = _.clone(obj)
   return obj
+}
+
+const humanReadableZones = (zones) => {
+  return zones.map(z => `${z.id} - ${z.countries}`)
 }
 
 new Vue({
@@ -973,6 +977,7 @@ new Vue({
         .then(function (response) {
           if (response.data) {
             self.stalls = response.data.map(mapStalls)
+            console.log(self.stalls)
           }
         })
         .catch(function (error) {
@@ -980,20 +985,13 @@ new Vue({
           })
     },
     openStallDialog: function () {
-      this.zoneOptions = this.zones.map(z => `${z.id} - ${z.countries}`)
-      //console.log(this.zones[0]['id'])
-      //for(let i = 0; i < this.zones.length; i ++){
-      //  this.zoneOptions.push(this.zones[i]['id'])
-      //}
+      this.zoneOptions = humanReadableZones(this.zones)
       this.stallDialog.show = true
     },
     openStallUpdateDialog: function (linkId) {
       var self = this
       var link = _.findWhere(self.stalls, {id: linkId})
-      this.zoneOptions = this.zones.map(z => `${z.id} - ${z.countries}`)
-      //for(let i = 0; i < this.zones.length; i ++){
-      //  this.zoneOptions.push(this.stalls[i][0])
-      //}
+      this.zoneOptions = humanReadableZones(this.zones)
       this.stallDialog.data = _.clone(link._data)
       let shippingzones = this.zoneOptions.filter(z => this.stallDialog.data.shippingzones.split(",").includes(z.split("-")[0].trim()))
         
@@ -1103,10 +1101,11 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/diagonalley/api/v1/products?all_stalls',
+          '/diagonalley/api/v1/products?all_stalls=true',
           self.g.user.wallets[0].inkey
         )
         .then(function (response) {
+          console.log(response.data)
           if (response.data) {
             self.products = response.data.map(mapProducts)
           }
@@ -1123,21 +1122,19 @@ new Vue({
       self.productDialog.show = true
     },
     sendProductFormData: function () {
-      if (this.productDialog.data.id) {
-      } else {
-        var data = {
-          product: this.productDialog.data.product,
-          categories:
-            this.productDialog.data.categories +
-            this.productDialog.categoriesextra,
-          description: this.productDialog.data.description,
-          image: this.productDialog.data.image,
-          price: this.productDialog.data.price,
-          quantity: this.productDialog.data.quantity
-        }
+      var data = {
+        stall: this.productDialog.data.stall,
+        product: this.productDialog.data.product,
+        categories:
+          this.productDialog.data.categories +
+          this.productDialog.categoriesextra,
+        description: this.productDialog.data.description,
+        image: this.productDialog.data.image,
+        price: this.productDialog.data.price,
+        quantity: this.productDialog.data.quantity
       }
       if (this.productDialog.data.id) {
-        this.updateProduct(this.productDialog.data)
+        this.updateProduct({...this.productDialog.data, ...data})
       } else {
         this.createProduct(data)
       }
@@ -1199,12 +1196,16 @@ new Vue({
     },
     createProduct: function (data) {
       var self = this
+      let wallet = _.findWhere(this.stalls, {
+        id: self.productDialog.data.stall
+      }).wallet
+      console.log(wallet)
       LNbits.api
         .request(
           'POST',
           '/diagonalley/api/v1/products',
           _.findWhere(self.g.user.wallets, {
-            id: self.productDialog.data.wallet
+            id: wallet
           }).inkey,
           data
         )
@@ -1570,7 +1571,7 @@ new Vue({
         'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
         'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'
       ]
-      console.log(this.products.length)
+      console.log(_.pick(this.g.user, "id")) 
     }
   }
 })

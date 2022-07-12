@@ -73,7 +73,6 @@ async def api_copilot_retrieve(
 
 @diagonalley_ext.get("/api/v1/products")
 async def api_diagonalley_products(
-    req: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
     all_stalls: bool = Query(False),
 ):
@@ -82,13 +81,15 @@ async def api_diagonalley_products(
     if all_stalls:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return [product.dict() for product in await get_diagonalley_products(wallet_ids)]
+    stalls = [stall.id for stall in await get_diagonalley_stalls(wallet_ids)]
+    
+    return [product.dict() for product in await get_diagonalley_products(stalls)]
 
 
 @diagonalley_ext.post("/api/v1/products")
 @diagonalley_ext.put("/api/v1/products/{product_id}")
 async def api_diagonalley_product_create(
-    product_id, data: createProduct, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: createProduct, product_id = None, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
 
     if product_id:
