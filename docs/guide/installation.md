@@ -5,6 +5,9 @@ nav_order: 2
 ---
 
 # Basic installation
+
+### Postgres (Optional)
+
 Install Postgres and setup a database for LNbits:
 
 ```sh
@@ -22,6 +25,12 @@ createdb lnbits
 exit
 ```
 
+## Install LNbits
+
+You can choose between two python package managers, `venv` and `pipenv`. Both are fine but if you don't know what you're doing, just go for the first option.
+
+### Option 1: venv
+
 Download this repo and install the dependencies:
 
 ```sh
@@ -37,6 +46,46 @@ LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 # save and exit
 ./venv/bin/uvicorn lnbits.__main__:app --port 5000
 ```
+
+### Option 2: pipenv
+
+You can also use Pipenv to manage your python packages. 
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+
+sudo apt update && sudo apt install -y pipenv
+pipenv install --dev
+# pipenv --python 3.9 install --dev (if you wish to use a version of Python higher than 3.7)
+pipenv shell
+# pipenv --python 3.9 shell (if you wish to use a version of Python higher than 3.7)
+
+# If any of the modules fails to install, try checking and upgrading your setupTool module
+# pip install -U setuptools
+
+# install libffi/libpq in case "pipenv install" fails
+# sudo apt-get install -y libffi-dev libpq-dev
+``` 
+
+### Running the server
+
+Create the data folder and edit the .env file:
+
+    mkdir data
+    cp .env.example .env
+    sudo nano .env
+
+To then run the server for development purposes (includes hot-reload), use:
+
+    pipenv run python -m uvicorn lnbits.__main__:app --host 0.0.0.0  --reload
+    
+For production, use:
+
+    pipenv run python -m uvicorn lnbits.__main__:app --host 0.0.0.0
+
+
+# Using LNbits
 
 Now you can visit your LNbits at http://localhost:5000/. 
 
