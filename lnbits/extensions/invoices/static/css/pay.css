@@ -1,0 +1,11 @@
+#invoicePage>.row:first-child>.col-12 {
+	display:  flex;
+}
+
+#invoicePage>.row:first-child>.col-12>.q-card {
+	flex:  1;
+}
+
+#invoicePage .clear {
+	margin-bottom: 25px;
+}
