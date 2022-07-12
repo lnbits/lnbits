@@ -44,7 +44,7 @@ jobs:
           --health-retries 5
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: 3.8
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: 3.8
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -80,11 +80,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        env: 
-          VIRTUAL_ENV: ./venv
-          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
-          python -m venv ${{ env.VIRTUAL_ENV }}
           sudo apt update && sudo apt install -y pipenv
           pipenv install --dev
       - name: Run tests
