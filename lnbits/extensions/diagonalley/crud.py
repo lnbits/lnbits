@@ -24,9 +24,8 @@ from .models import (
 
 ###Products
 
-async def create_diagonalley_product(
-    data: createProduct
-) -> Products:
+
+async def create_diagonalley_product(data: createProduct) -> Products:
     product_id = urlsafe_short_hash()
     await db.execute(
         f"""
@@ -93,10 +92,7 @@ async def delete_diagonalley_product(product_id: str) -> None:
 ###zones
 
 
-async def create_diagonalley_zone(
-    user,
-    data: createZones
-) -> Zones:
+async def create_diagonalley_zone(user, data: createZones) -> Zones:
     zone_id = urlsafe_short_hash()
     await db.execute(
         f"""
@@ -133,7 +129,9 @@ async def get_diagonalley_zone(zone_id: str) -> Optional[Zones]:
 
 
 async def get_diagonalley_zones(user: str) -> List[Zones]:
-    rows = await db.fetchall('SELECT * FROM diagonalley.zones WHERE "user" = ?', (user,))
+    rows = await db.fetchall(
+        'SELECT * FROM diagonalley.zones WHERE "user" = ?', (user,)
+    )
     return [Zones(**row) for row in rows]
 
 
@@ -144,9 +142,7 @@ async def delete_diagonalley_zone(zone_id: str) -> None:
 ###Stalls
 
 
-async def create_diagonalley_stall(
-    data: createStalls
-) -> Stalls:
+async def create_diagonalley_stall(data: createStalls) -> Stalls:
     stall_id = urlsafe_short_hash()
     await db.execute(
         f"""
@@ -168,7 +164,8 @@ async def create_diagonalley_stall(
             data.publickey,
             data.privatekey,
             data.relays,
-            data.shippingzones),
+            data.shippingzones,
+        ),
     )
 
     stall = await get_diagonalley_stall(stall_id)
@@ -210,9 +207,7 @@ async def delete_diagonalley_stall(stall_id: str) -> None:
 ###Orders
 
 
-async def create_diagonalley_order(
-    data: createOrder
-) -> Orders:
+async def create_diagonalley_order(data: createOrder) -> Orders:
 
     order_id = urlsafe_short_hash()
     await db.execute(

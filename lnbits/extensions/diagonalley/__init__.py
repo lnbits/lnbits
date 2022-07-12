@@ -11,9 +11,7 @@ from lnbits.helpers import template_renderer
 from lnbits.settings import LNBITS_ADMIN_EXTENSIONS
 from lnbits.tasks import catch_everything_and_restart
 
-diagonalley_ext: APIRouter = APIRouter(
-    prefix="/diagonalley", tags=["diagonalley"]
-)
+diagonalley_ext: APIRouter = APIRouter(prefix="/diagonalley", tags=["diagonalley"])
 db = Database("ext_diagonalley")
 # if 'nostradmin' not in LNBITS_ADMIN_EXTENSIONS:
 #     @diagonalley_ext.get("/", response_class=HTMLResponse)
@@ -24,6 +22,7 @@ db = Database("ext_diagonalley")
 # else:
 def diagonalley_renderer():
     return template_renderer(["lnbits/extensions/diagonalley/templates"])
+
 
 from .tasks import wait_for_paid_invoices
 from .views import *  # noqa

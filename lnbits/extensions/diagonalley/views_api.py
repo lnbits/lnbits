@@ -65,36 +65,35 @@ async def api_copilot_retrieve(
     return {**copilot.dict(), **{"lnurl": copilot.lnurl(req)}}
 """
 
+
 @diagonalley_ext.get("/api/v1/products")
 async def api_diagonalley_products(
     req: Request,
     wallet: WalletTypeInfo = Depends(get_key_type),
-    all_stalls: bool = Query(False)
+    all_stalls: bool = Query(False),
 ):
     wallet_ids = [wallet.wallet.id]
 
     if all_stalls:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return ([product.dict() for product in await get_diagonalley_products(wallet_ids)])
+    return [product.dict() for product in await get_diagonalley_products(wallet_ids)]
 
 
 @diagonalley_ext.post("/api/v1/products")
 @diagonalley_ext.put("/api/v1/products/{product_id}")
 async def api_diagonalley_product_create(
-    product_id, 
-    data: createProduct, 
-    wallet: WalletTypeInfo = Depends(get_key_type)
-    ):
+    product_id, data: createProduct, wallet: WalletTypeInfo = Depends(get_key_type)
+):
 
     if product_id:
         product = await get_diagonalley_product(product_id)
 
         if not product:
-            return ({"message": "Withdraw product does not exist."})
+            return {"message": "Withdraw product does not exist."}
 
         if product.wallet != wallet.wallet.id:
-            return ({"message": "Not your withdraw product."})
+            return {"message": "Not your withdraw product."}
 
         product = await update_diagonalley_product(product_id, **data.dict())
     else:
@@ -104,14 +103,16 @@ async def api_diagonalley_product_create(
 
 
 @diagonalley_ext.delete("/api/v1/products/{product_id}")
-async def api_diagonalley_products_delete(product_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_diagonalley_products_delete(
+    product_id, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     product = await get_diagonalley_product(product_id)
 
     if not product:
-        return ({"message": "Product does not exist."})
+        return {"message": "Product does not exist."}
 
     if product.wallet != wallet.wallet.id:
-        return ({"message": "Not your Diagon Alley."})
+        return {"message": "Not your Diagon Alley."}
 
     await delete_diagonalley_product(product_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -125,38 +126,41 @@ async def api_diagonalley_zones(wallet: WalletTypeInfo = Depends(get_key_type)):
 
     return await get_diagonalley_zones(wallet.wallet.user)
 
+
 @diagonalley_ext.post("/api/v1/zones")
 async def api_diagonalley_zone_create(
-    data: createZones, 
-    wallet: WalletTypeInfo = Depends(get_key_type)
-    ):
+    data: createZones, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     zone = await create_diagonalley_zone(user=wallet.wallet.user, data=data)
     return zone.dict()
 
+
 @diagonalley_ext.post("/api/v1/zones/{zone_id}")
 async def api_diagonalley_zone_update(
-    data: createZones, 
-    zone_id: str = Query(None),  
-    wallet: WalletTypeInfo = Depends(require_admin_key)
-    ):
+    data: createZones,
+    zone_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
     zone = await get_diagonalley_zone(zone_id)
     if not zone:
-        return ({"message": "Zone does not exist."})
+        return {"message": "Zone does not exist."}
     if zone.user != wallet.wallet.user:
-        return ({"message": "Not your record."})
+        return {"message": "Not your record."}
     zone = await update_diagonalley_zone(zone_id, **data.dict())
     return zone
 
 
 @diagonalley_ext.delete("/api/v1/zones/{zone_id}")
-async def api_diagonalley_zone_delete(zone_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_diagonalley_zone_delete(
+    zone_id, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     zone = await get_diagonalley_zone(zone_id)
 
     if not zone:
-        return ({"message": "zone does not exist."})
+        return {"message": "zone does not exist."}
 
     if zone.user != wallet.wallet.user:
-        return ({"message": "Not your zone."})
+        return {"message": "Not your zone."}
 
     await delete_diagonalley_zone(zone_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -166,27 +170,33 @@ async def api_diagonalley_zone_delete(zone_id, wallet: WalletTypeInfo = Depends(
 
 
 @diagonalley_ext.get("/api/v1/stalls")
-async def api_diagonalley_stalls(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+async def api_diagonalley_stalls(
+    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
-    return ([stall.dict() for stall in await get_diagonalley_stalls(wallet_ids)])
+    return [stall.dict() for stall in await get_diagonalley_stalls(wallet_ids)]
 
 
 @diagonalley_ext.post("/api/v1/stalls")
 @diagonalley_ext.put("/api/v1/stalls/{stall_id}")
-async def api_diagonalley_stall_create(data: createStalls, stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_stall_create(
+    data: createStalls,
+    stall_id: str = Query(None),
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
 
     if stall_id:
         stall = await get_diagonalley_stall(stall_id)
 
         if not stall:
-            return ({"message": "Withdraw stall does not exist."})
+            return {"message": "Withdraw stall does not exist."}
 
         if stall.wallet != wallet.wallet.id:
-            return ({"message": "Not your withdraw stall."})
+            return {"message": "Not your withdraw stall."}
 
         stall = await update_diagonalley_stall(stall_id, **data.dict())
     else:
@@ -196,14 +206,16 @@ async def api_diagonalley_stall_create(data: createStalls, stall_id: str = Query
 
 
 @diagonalley_ext.delete("/api/v1/stalls/{stall_id}")
-async def api_diagonalley_stall_delete(stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_diagonalley_stall_delete(
+    stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     stall = await get_diagonalley_stall(stall_id)
 
     if not stall:
-        return ({"message": "Stall does not exist."})
+        return {"message": "Stall does not exist."}
 
     if stall.wallet != wallet.wallet.id:
-        return ({"message": "Not your Stall."})
+        return {"message": "Not your Stall."}
 
     await delete_diagonalley_stall(stall_id)
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
@@ -213,33 +225,39 @@ async def api_diagonalley_stall_delete(stall_id: str = Query(None), wallet: Wall
 
 
 @diagonalley_ext.get("/api/v1/orders")
-async def api_diagonalley_orders(wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)):
+async def api_diagonalley_orders(
+    wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+):
     wallet_ids = [wallet.wallet.id]
 
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     try:
-        return ([order.dict() for order in await get_diagonalley_orders(wallet_ids)])
+        return [order.dict() for order in await get_diagonalley_orders(wallet_ids)]
     except:
-        return ({"message": "We could not retrieve the orders."})
+        return {"message": "We could not retrieve the orders."}
 
 
 @diagonalley_ext.post("/api/v1/orders")
-async def api_diagonalley_order_create(data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_order_create(
+    data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
     return order.dict()
 
 
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")
-async def api_diagonalley_order_delete(order_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_order_delete(
+    order_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+):
     order = await get_diagonalley_order(order_id)
 
     if not order:
-        return ({"message": "Order does not exist."})
+        return {"message": "Order does not exist."}
 
     if order.wallet != wallet.wallet.id:
-        return ({"message": "Not your Order."})
+        return {"message": "Not your Order."}
 
     await delete_diagonalley_order(order_id)
 
@@ -247,7 +265,9 @@ async def api_diagonalley_order_delete(order_id: str = Query(None), wallet: Wall
 
 
 @diagonalley_ext.get("/api/v1/orders/paid/{order_id}")
-async def api_diagonalley_order_paid(order_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_diagonalley_order_paid(
+    order_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     await db.execute(
         "UPDATE diagonalley.orders SET paid = ? WHERE id = ?",
         (
@@ -259,7 +279,9 @@ async def api_diagonalley_order_paid(order_id: str = Query(None), wallet: Wallet
 
 
 @diagonalley_ext.get("/api/v1/orders/shipped/{order_id}")
-async def api_diagonalley_order_shipped(order_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_order_shipped(
+    order_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+):
     await db.execute(
         "UPDATE diagonalley.orders SET shipped = ? WHERE id = ?",
         (
@@ -271,54 +293,60 @@ async def api_diagonalley_order_shipped(order_id: str = Query(None), wallet: Wal
         "SELECT * FROM diagonalley.orders WHERE id = ?", (order_id,)
     )
 
-    return ([order.dict() for order in get_diagonalley_orders(order["wallet"])])
+    return [order.dict() for order in get_diagonalley_orders(order["wallet"])]
 
 
 ###List products based on stall id
 
 
 @diagonalley_ext.get("/api/v1/stall/products/{stall_id}")
-async def api_diagonalley_stall_products(stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_stall_products(
+    stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+):
 
     rows = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
     print(rows[1])
     if not rows:
-        return ({"message": "Stall does not exist."})
+        return {"message": "Stall does not exist."}
 
     products = db.fetchone(
         "SELECT * FROM diagonalley.products WHERE wallet = ?", (rows[1],)
     )
     if not products:
-        return ({"message": "No products"})
+        return {"message": "No products"}
 
-    return ([products.dict() for products in await get_diagonalley_products(rows[1])])
+    return [products.dict() for products in await get_diagonalley_products(rows[1])]
 
 
 ###Check a product has been shipped
 
 
 @diagonalley_ext.get("/api/v1/stall/checkshipped/{checking_id}")
-async def api_diagonalley_stall_checkshipped(checking_id, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_stall_checkshipped(
+    checking_id, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     rows = await db.fetchone(
         "SELECT * FROM diagonalley.orders WHERE invoiceid = ?", (checking_id,)
     )
-    return ({"shipped": rows["shipped"]})
+    return {"shipped": rows["shipped"]}
 
 
 ###Place order
 
 
 @diagonalley_ext.post("/api/v1/stall/order/{stall_id}")
-async def api_diagonalley_stall_order(stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_diagonalley_stall_order(
+    stall_id, data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
+):
     product = await get_diagonalley_product(data.productid)
     shipping = await get_diagonalley_stall(stall_id)
 
     if data.shippingzone == 1:
-        shippingcost = shipping.zone1cost #missing in model
+        shippingcost = shipping.zone1cost  # missing in model
     else:
-        shippingcost = shipping.zone2cost #missing in model
+        shippingcost = shipping.zone2cost  # missing in model
 
     checking_id, payment_request = await create_invoice(
         wallet_id=product.wallet,
@@ -334,7 +362,7 @@ async def api_diagonalley_stall_order(stall_id, data: createOrder, wallet: Walle
         (
             selling_id,
             data.productid,
-            product.wallet, #doesn't exist in model
+            product.wallet,  # doesn't exist in model
             product.product,
             data.quantity,
             data.shippingzone,
@@ -345,4 +373,4 @@ async def api_diagonalley_stall_order(stall_id, data: createOrder, wallet: Walle
             False,
         ),
     )
-    return ({"checking_id": checking_id, "payment_request": payment_request})
+    return {"checking_id": checking_id, "payment_request": payment_request}
