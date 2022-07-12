@@ -26,9 +26,9 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             name TEXT NOT NULL,
-            publickey TEXT NOT NULL,
-            privatekey TEXT NOT NULL,
-            relays TEXT NOT NULL,
+            publickey TEXT,
+            privatekey TEXT,
+            relays TEXT,
             shippingzones TEXT NOT NULL
         );
     """
@@ -41,7 +41,7 @@ async def m001_initial(db):
         """
         CREATE TABLE diagonalley.zones (
             id TEXT PRIMARY KEY,
-            user TEXT NOT NULL,
+            "user" TEXT NOT NULL,
             cost TEXT NOT NULL,
             countries TEXT NOT NULL
         );
@@ -65,7 +65,10 @@ async def m001_initial(db):
             email TEXT NOT NULL,
             invoiceid TEXT NOT NULL,
             paid BOOLEAN NOT NULL,
-            shipped BOOLEAN NOT NULL
+            shipped BOOLEAN NOT NULL,
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
         );
     """
     )
