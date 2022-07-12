@@ -87,6 +87,5 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           sudo apt update && sudo apt install -y pipenv
           pipenv install --dev
-          pipenv install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         run: make test
