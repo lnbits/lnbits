@@ -70,18 +70,19 @@ async def get_diagonalley_product(product_id: str) -> Optional[Products]:
     return Products(**row) if row else None
 
 
-async def get_diagonalley_products(wallet_ids: Union[str, List[str]]) -> List[Products]:
-    if isinstance(wallet_ids, str):
-        wallet_ids = [wallet_ids]
+async def get_diagonalley_products(stall_ids: Union[str, List[str]]) -> List[Products]:
+    if isinstance(stall_ids, str):
+        stall_ids = [stall_ids]
 
     # with open_ext_db("diagonalley") as db:
-    q = ",".join(["?"] * len(wallet_ids))
+    q = ",".join(["?"] * len(stall_ids))
     rows = await db.fetchall(
         f"""
         SELECT * FROM diagonalley.products WHERE stall IN ({q})
         """,
-        (*wallet_ids,),
+        (*stall_ids,),
     )
+    print("PRODS", rows)
     return [Products(**row) for row in rows]
 
 
