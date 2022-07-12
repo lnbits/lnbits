@@ -426,28 +426,6 @@ new Vue({
       this.payment.txSize = Math.round(txSize(tx))
       return this.payment.feeRate * this.payment.txSize
     },
-    createPsbt: async function () {
-      const wallet = this.g.user.wallets[0]
-      try {
-        this.computeFee()
-        const tx = this.createTx()
-        txSize(tx)
-        for (const input of tx.inputs) {
-          input.tx_hex = await this.fetchTxHex(input.tx_id)
-        }
-
-        const {data} = await LNbits.api.request(
-          'POST',
-          '/watchonly/api/v1/psbt',
-          wallet.adminkey,
-          tx
-        )
-
-        this.payment.psbtBase64 = data
-      } catch (err) {
-        LNbits.utils.notifyApiError(err)
-      }
-    },
     deletePaymentAddress: function (v) {
       const index = this.payment.data.indexOf(v)
       if (index !== -1) {
@@ -498,6 +476,35 @@ new Vue({
       const inputAmount = this.getTotalSelectedUtxoAmount()
       const payedAmount = this.getTotalPaymentAmount()
       paymentAddress.amount = Math.max(0, inputAmount - payedAmount - fee)
+    },
+    //################### PSBT ###################
+    createPsbt: async function () {
+      const wallet = this.g.user.wallets[0]
+      try {
+        this.computeFee()
+        const tx = this.createTx()
+        txSize(tx)
+        for (const input of tx.inputs) {
+          input.tx_hex = await this.fetchTxHex(input.tx_id)
+        }
+
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/watchonly/api/v1/psbt',
+          wallet.adminkey,
+          tx
+        )
+
+        this.payment.psbtBase64 = data
+      } catch (err) {
+        LNbits.utils.notifyApiError(err)
+      }
+    },
+    sharePsbtOnSerialPort: async function () {
+      console.log('### sharePsbtOnSerialPort')
+    },
+    sharePsbtWithAnimatedQRCode: async function () {
+      console.log('### sharePsbtWithAnimatedQRCode')
     },
 
     //################### UTXOs ###################

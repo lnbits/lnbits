@@ -674,8 +674,22 @@
                         </template>
                       </q-table>
                     </div>
-                  </div></q-card-section
-                >
+                  </div>
+                  <div
+                    v-if="payment.changeAmount < 0"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-12">
+                      <q-badge
+                        class="text-subtitle2 float-left"
+                        color="yellow"
+                        text-color="black"
+                      >
+                        The payed amount is higher than the selected amount!
+                      </q-badge>
+                    </div>
+                  </div>
+                </q-card-section>
               </q-card>
               <q-card>
                 <q-card-section>
@@ -993,6 +1007,7 @@
                       </q-table>
                     </div>
                   </div>
+
                   <div class="row items-center no-wrap q-mb-md">
                     <div class="col-4 q-pr-lg">
                       <q-btn unelevated color="secondary" type="submit"
@@ -1000,14 +1015,54 @@
                       >
                     </div>
                     <div class="col-8">
-                      <q-badge
-                        v-if="payment.changeAmount < 0"
-                        class="text-subtitle2 float-right"
-                        color="yellow"
-                        text-color="black"
+                      <q-btn-dropdown
+                        v-if="payment.psbtBase64"
+                        split
+                        class="float-right"
+                        color="secondary"
+                        label="Share PSBT"
+                        @click="sharePsbtOnSerialPort"
                       >
-                        The payed amount is higher than the selected amount!
-                      </q-badge>
+                        <q-list>
+                          <q-item
+                            @click="sharePsbtOnSerialPort"
+                            clickable
+                            v-close-popup
+                          >
+                            <q-item-section avatar>
+                              <q-avatar
+                                icon="usb"
+                                color="primary"
+                                text-color="white"
+                              />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>Serial Port</q-item-label>
+                              <q-item-label caption
+                                >Send the PSBT using an USB port
+                              </q-item-label>
+                            </q-item-section>
+                          </q-item>
+
+                          <q-item
+                            @click="sharePsbtWithAnimatedQRCode"
+                            disabled
+                            v-close-popup
+                          >
+                            <q-item-section avatar>
+                              <q-avatar
+                                icon="qr_code"
+                                color="secondary"
+                                text-color="white"
+                              />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label>Animated QR Code</q-item-label>
+                              <q-item-label caption>Comming Soon</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-btn-dropdown>
                     </div>
                   </div>
                   <div
