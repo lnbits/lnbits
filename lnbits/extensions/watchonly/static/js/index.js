@@ -501,7 +501,43 @@ new Vue({
       }
     },
     sharePsbtOnSerialPort: async function () {
-      console.log('### sharePsbtOnSerialPort')
+      console.log('### sharePsbtOnSerialPort', navigator.serial, navigator)
+      if (!navigator.serial) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Serial port communication not supported!',
+          caption:
+            'Make sure your browser supports Serial Port and that you are using HTTPS.',
+          timeout: 10000
+        })
+        return
+      }
+      navigator.serial.addEventListener('connect', event => {
+        console.log('### navigator.serial event: connected!', event)
+      })
+
+      navigator.serial.addEventListener('disconnect', event => {
+        console.log('### navigator.serial event: disconnected!', event)
+      })
+      // const ports = await navigator.serial.getPorts();
+      const port = await navigator.serial.requestPort()
+      console.log('### port', port)
+
+      // Wait for the serial port to open.
+      await port.open({baudRate: 9600})
+
+      const writer = port.writable.getWriter()
+
+      const psbtByteArray = Uint8Array.from(atob(this.payment.psbtBase64), c =>
+        c.charCodeAt(0)
+      )
+      await writer.write(psbtByteArray)
+
+      // Allow the serial port to be closed later.
+      writer.releaseLock()
+
+      await port.close()
+      console.log('### sharePsbtOnSerialPort done')
     },
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')
