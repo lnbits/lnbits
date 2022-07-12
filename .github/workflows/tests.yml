@@ -83,6 +83,6 @@ jobs:
         run: |
           pip install pipenv
           pipenv install --dev
-          pipenv install importlib_metadata
+          pipenv install importlib-metadata
       - name: Run tests
         run: make test-pipenv
