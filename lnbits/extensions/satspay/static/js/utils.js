@@ -24,7 +24,6 @@ const mapCharge = (obj, oldObj = {}) => {
   charge.displayUrl = ['/satspay/', obj.id].join('')
   charge.expanded = oldObj.expanded
   charge.pendingBalance = oldObj.pendingBalance || 0
-  console.log('### charge', charge)
   return charge
 }
 

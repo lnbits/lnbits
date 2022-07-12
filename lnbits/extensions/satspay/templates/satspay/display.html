@@ -346,7 +346,6 @@
             `/satspay/api/v1/charge/${this.charge.id}`
           )
           this.charge = mapCharge(data, this.charge)
-          console.log('### ', this.charge)
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
