@@ -1079,7 +1079,7 @@ new Vue({
             .request(
               'DELETE',
               '/diagonalley/api/v1/stalls/' + stallId,
-              _.findWhere(self.g.user.wallets, {id: stall.wallet}).inkey
+              _.findWhere(self.g.user.wallets, {id: stall.wallet}).adminkey
             )
             .then(function (response) {
               self.stalls = _.reject(self.stalls, function (obj) {
