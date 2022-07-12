@@ -49,7 +49,6 @@ class Charges(BaseModel):
     def time_elapsed(self):
         return self.time_left < 0
 
-
     @property
     def paid(self):
         if self.balance >= self.amount:
