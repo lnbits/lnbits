@@ -83,6 +83,5 @@ jobs:
         run: |
           pip install pipenv
           pipenv install --dev
-          pipenv shell
       - name: Run tests
-        run: make test
+        run: make test-pipenv
