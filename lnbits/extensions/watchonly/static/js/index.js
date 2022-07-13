@@ -33,6 +33,16 @@ new Vue({
         show: false
       },
 
+      serial: {
+        selectedPort: null,
+        writableStreamClosed: null,
+        writer: null,
+        readableStreamClosed: null,
+        reader: null,
+        showAdvancedConfig: false,
+        config: {}
+      },
+
       formDialog: {
         show: false,
         data: {}
@@ -500,8 +510,7 @@ new Vue({
         LNbits.utils.notifyApiError(err)
       }
     },
-    sharePsbtOnSerialPort: async function () {
-      console.log('### sharePsbtOnSerialPort', navigator.serial, navigator)
+    checkSerialPortSupported: function () {
       if (!navigator.serial) {
         this.$q.notify({
           type: 'warning',
@@ -510,45 +519,118 @@ new Vue({
             'Make sure your browser supports Serial Port and that you are using HTTPS.',
           timeout: 10000
         })
-        return
+        return false
       }
-      navigator.serial.addEventListener('connect', event => {
-        console.log('### navigator.serial event: connected!', event)
-      })
-
-      navigator.serial.addEventListener('disconnect', event => {
-        console.log('### navigator.serial event: disconnected!', event)
-      })
+      return true
+    },
+    openSerialPort: async function () {
+      if (!this.checkSerialPortSupported()) return
+      console.log('### openSerialPort', this.serial.selectedPort)
       try {
-        // const ports = await navigator.serial.getPorts();
-        const port = await navigator.serial.requestPort()
-        console.log('### port', port)
+        navigator.serial.addEventListener('connect', event => {
+          console.log('### navigator.serial event: connected!', event)
+        })
 
+        navigator.serial.addEventListener('disconnect', event => {
+          console.log('### navigator.serial event: disconnected!', event)
+        })
+        this.serial.selectedPort = await navigator.serial.requestPort()
         // Wait for the serial port to open.
-        await port.open({baudRate: 9600})
+        await this.serial.selectedPort.open({baudRate: 9600})
+        this.startSerialPortReading()
 
-        const writer = port.writable.getWriter()
-
-        const psbtByteArray = Uint8Array.from(
-          atob(this.payment.psbtBase64),
-          c => c.charCodeAt(0)
+        const textEncoder = new TextEncoderStream()
+        this.serial.writableStreamClosed = textEncoder.readable.pipeTo(
+          this.serial.selectedPort.writable
         )
-        await writer.write(psbtByteArray)
 
-        // Allow the serial port to be closed later.
-        writer.releaseLock()
-
-        await port.close()
-        console.log('### sharePsbtOnSerialPort done')
+        this.serial.writer = textEncoder.writable.getWriter()
       } catch (error) {
-        console.log('### error', error)
         this.$q.notify({
           type: 'warning',
-          message: 'Serial port communication failed!',
+          message: 'Cannot open serial port!',
           caption: `${error}`,
           timeout: 10000
         })
       }
+    },
+    closeSerialPort: async function () {
+      try {
+        console.log('### closeSerialPort', this.serial.selectedPort)
+        if (this.serial.writer) this.serial.writer.close()
+        if (this.serial.writableStreamClosed)
+          await this.serial.writableStreamClosed
+        if (this.serial.reader) this.reader.writer.close()
+        if (this.serial.readableStreamClosed)
+          await this.serial.readableStreamClosed
+        if (this.serial.selectedPort) await this.serial.selectedPort.close()
+        this.serial.selectedPort = null
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Cannot close serial port!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+    sendPsbtToSerialPort: async function () {
+      try {
+        await this.serial.writer.write(this.payment.psbtBase64 + '\n')
+        this.$q.notify({
+          type: 'positive',
+          message: 'Data sent to serial port!',
+          timeout: 5000
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to send data to serial port!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+
+    startSerialPortReading: async function () {
+      const port = this.serial.selectedPort
+
+      while (port && port.readable) {
+        const textDecoder = new TextDecoderStream()
+        this.serial.readableStreamClosed = port.readable.pipeTo(
+          textDecoder.writable
+        )
+        this.serial.reader = textDecoder.readable.getReader()
+
+        try {
+          while (true) {
+            console.log('### reader.read()')
+            const {value, done} = await this.serial.reader.read()
+            if (value) {
+              console.log(value)
+              this.$q.notify({
+                type: 'warning',
+                message: 'Received data from serial port (not psbt)',
+                caption: value.slice(0, 80) + '...',
+                timeout: 5000
+              })
+            }
+            if (done) {
+              this.serial.reader.close()
+              this.serial.readereadableStreamClosed()
+              return
+            }
+          }
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Serial port communication error!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      }
+      console.log('### startSerialPortReading DONE')
     },
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')

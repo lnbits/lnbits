@@ -1009,72 +1009,82 @@
                   </div>
 
                   <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-4 q-pr-lg">
+                    <div class="col-3 q-pr-lg">
                       <q-btn unelevated color="secondary" type="submit"
                         >Create PSBT</q-btn
                       >
                     </div>
-                    <div class="col-8">
-                      <q-btn-dropdown
+                    <div class="col-9">
+                      <q-input
                         v-if="payment.psbtBase64"
-                        split
-                        class="float-right"
-                        color="secondary"
-                        label="Share PSBT"
-                        @click="sharePsbtOnSerialPort"
-                      >
-                        <q-list>
-                          <q-item
-                            @click="sharePsbtOnSerialPort"
-                            clickable
-                            v-close-popup
-                          >
-                            <q-item-section avatar>
-                              <q-avatar
-                                icon="usb"
-                                color="primary"
-                                text-color="white"
-                              />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Serial Port</q-item-label>
-                              <q-item-label caption
-                                >Send the PSBT using an USB port
-                              </q-item-label>
-                            </q-item-section>
-                          </q-item>
-
-                          <q-item
-                            @click="sharePsbtWithAnimatedQRCode"
-                            disabled
-                            v-close-popup
-                          >
-                            <q-item-section avatar>
-                              <q-avatar
-                                icon="qr_code"
-                                color="secondary"
-                                text-color="white"
-                              />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Animated QR Code</q-item-label>
-                              <q-item-label caption>Comming Soon</q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-btn-dropdown>
+                        v-model="payment.psbtBase64"
+                        filled
+                        readonly
+                      />
                     </div>
                   </div>
                   <div
                     v-if="payment.psbtBase64"
                     class="row items-center no-wrap q-mb-md"
                   >
-                    <div class="col-12">
+                    <div class="col-3">Sign With</div>
+                    <div class="col-9">
+                      <q-option-group
+                        v-model="payment.signMode"
+                        :options="payment.signModes"
+                        color="primary"
+                        label="Sign Mode"
+                        inline
+                      ></q-option-group>
+                    </div>
+                  </div>
+                  <q-separator></q-separator>
+                  <div
+                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                    class="row items-center no-wrap q-mb-md q-mt-lg"
+                  >
+                    <div class="col-3"></div>
+                    <div class="col-3">
+                      <q-btn
+                        v-if="!serial.selectedPort"
+                        @click="openSerialPort()"
+                        unelevated
+                        color="secondary"
+                        >Connect</q-btn
+                      >
+                      <q-btn
+                        v-if="serial.selectedPort"
+                        @click="closeSerialPort()"
+                        outline
+                        color="gray"
+                        >Disconnect</q-btn
+                      >
+                    </div>
+                    <div class="col-3">
+                      <q-btn
+                        v-if="serial.selectedPort"
+                        @click="sendPsbtToSerialPort()"
+                        unelevated
+                        color="secondary float-right"
+                        >Send PSBT</q-btn
+                      >
+                    </div>
+                    <div class="col-3">
+                      <q-toggle
+                        label="Advanced Config"
+                        color="secodary float-right"
+                        v-model="serial.showAdvancedConfig"
+                      ></q-toggle>
+                    </div>
+                  </div>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col-4 q-pr-lg"></div>
+                    <div class="col-8">
                       <q-input
-                        v-model="payment.psbtBase64"
+                        v-if="payment.psbtBase64Signed"
+                        v-model="payment.psbtBase64Signed"
                         filled
                         readonly
-                        type="textarea"
                       />
                     </div>
                   </div>
