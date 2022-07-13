@@ -260,6 +260,7 @@ const tableData = {
     fee: 0,
     txSize: 0,
     psbtBase64: '',
+    psbtBase64Signed: '',
     utxoSelectionModes: [
       'Manual',
       'Random',
@@ -268,6 +269,18 @@ const tableData = {
       'Larger Inputs First'
     ],
     utxoSelectionMode: 'Manual',
+    signModes: [
+      {
+        label: 'Serial Port',
+        value: 'serial-port'
+      },
+      {
+        label: 'Animated QR',
+        value: 'animated-qr',
+        disable: true
+      }
+    ],
+    signMode: '',
     show: false,
     showAdvanced: false
   },
