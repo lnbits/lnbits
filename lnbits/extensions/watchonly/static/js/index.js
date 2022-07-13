@@ -560,12 +560,20 @@ new Vue({
         if (this.serial.writer) this.serial.writer.close()
         if (this.serial.writableStreamClosed)
           await this.serial.writableStreamClosed
-        if (this.serial.reader) this.reader.writer.close()
+        if (this.serial.reader) this.serial.reader.cancel()
         if (this.serial.readableStreamClosed)
-          await this.serial.readableStreamClosed
+          await this.serial.readableStreamClosed.catch(() => {
+            /* Ignore the error */
+          })
         if (this.serial.selectedPort) await this.serial.selectedPort.close()
         this.serial.selectedPort = null
+        this.$q.notify({
+          type: 'positive',
+          message: 'Serial port disconnected!',
+          timeout: 5000
+        })
       } catch (error) {
+        console.log('### error', error)
         this.$q.notify({
           type: 'warning',
           message: 'Cannot close serial port!',
@@ -616,8 +624,6 @@ new Vue({
               })
             }
             if (done) {
-              this.serial.reader.close()
-              this.serial.readereadableStreamClosed()
               return
             }
           }
