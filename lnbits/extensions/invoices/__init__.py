@@ -23,7 +23,9 @@ invoices_ext: APIRouter = APIRouter(prefix="/invoices", tags=["invoices"])
 def invoices_renderer():
     return template_renderer(["lnbits/extensions/invoices/templates"])
 
+
 from .tasks import wait_for_paid_invoices
+
 
 def invoices_start():
     loop = asyncio.get_event_loop()

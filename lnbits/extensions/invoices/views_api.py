@@ -16,7 +16,18 @@ from lnbits.utils.exchange_rates import (
 
 from . import invoices_ext
 
-from .crud import get_invoices, get_invoice, get_invoice_items, create_invoice_internal, create_invoice_items, update_invoice_internal, update_invoice_items, get_invoice_payments, get_invoice_total, get_payments_total
+from .crud import (
+    get_invoices,
+    get_invoice,
+    get_invoice_items,
+    create_invoice_internal,
+    create_invoice_items,
+    update_invoice_internal,
+    update_invoice_items,
+    get_invoice_payments,
+    get_invoice_total,
+    get_payments_total,
+)
 from .models import CreateInvoiceData, UpdateInvoiceData
 
 
@@ -30,35 +41,43 @@ async def api_invoices(
 
     return [invoice.dict() for invoice in await get_invoices(wallet_ids)]
 
+
 @invoices_ext.get("/api/v1/invoice/{invoice_id}", status_code=HTTPStatus.OK)
 async def api_invoice(invoice_id: str):
     invoice = await get_invoice(invoice_id)
     invoice_items = await get_invoice_items(invoice_id)
     invoice_dict = invoice.dict()
-    invoice_dict['items'] = invoice_items
+    invoice_dict["items"] = invoice_items
     return invoice_dict
+
 
 @invoices_ext.post("/api/v1/invoice", status_code=HTTPStatus.CREATED)
 async def api_invoice_create(
     data: CreateInvoiceData, wallet: WalletTypeInfo = Depends(get_key_type)
-):  
+):
     invoice = await create_invoice_internal(wallet_id=wallet.wallet.id, data=data)
     items = await create_invoice_items(invoice_id=invoice.id, data=data.items)
     invoice_dict = invoice.dict()
-    invoice_dict['items'] = items
+    invoice_dict["items"] = items
     return invoice_dict
+
 
 @invoices_ext.post("/api/v1/invoice/{invoice_id}", status_code=HTTPStatus.OK)
 async def api_invoice_update(
-    data: UpdateInvoiceData, invoice_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
-):  
+    data: UpdateInvoiceData,
+    invoice_id: str,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+):
     invoice = await update_invoice_internal(wallet_id=wallet.wallet.id, data=data)
     items = await update_invoice_items(invoice_id=invoice.id, data=data.items)
     invoice_dict = invoice.dict()
-    invoice_dict['items'] = items
+    invoice_dict["items"] = items
     return invoice_dict
 
-@invoices_ext.post("/api/v1/invoice/{invoice_id}/payments", status_code=HTTPStatus.CREATED)
+
+@invoices_ext.post(
+    "/api/v1/invoice/{invoice_id}/payments", status_code=HTTPStatus.CREATED
+)
 async def api_invoices_create_payment(
     famount: int = Query(..., ge=1), invoice_id: str = None
 ):
@@ -67,19 +86,21 @@ async def api_invoices_create_payment(
     invoice_total = await get_invoice_total(invoice_items)
 
     invoice_payments = await get_invoice_payments(invoice_id)
-    payments_total   = await get_payments_total(invoice_payments)
+    payments_total = await get_payments_total(invoice_payments)
 
     if payments_total + famount > invoice_total:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="Amount exceeds invoice due."
-        ) 
+        )
 
     if not invoice:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Invoice does not exist."
         )
 
-    price_in_sats = await fiat_amount_as_satoshis(float(famount) / 100, invoice.currency)
+    price_in_sats = await fiat_amount_as_satoshis(
+        float(famount) / 100, invoice.currency
+    )
 
     try:
         payment_hash, payment_request = await create_invoice(
@@ -92,6 +113,7 @@ async def api_invoices_create_payment(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
+
 
 @invoices_ext.get(
     "/api/v1/invoice/{invoice_id}/payments/{payment_hash}", status_code=HTTPStatus.OK

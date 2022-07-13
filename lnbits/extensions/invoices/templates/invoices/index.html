@@ -75,17 +75,16 @@
   <div class="col-12 col-md-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <h6 class="text-subtitle1 q-my-none">{{SITE_TITLE}} Invoices extension</h6>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Invoices extension
+        </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list>
-          {% include "invoices/_api_docs.html" %}
-        </q-list>
+        <q-list> {% include "invoices/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
-
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
@@ -159,7 +158,12 @@
         ></q-input>
 
         <q-list bordered separator>
-          <q-item clickable v-ripple v-for="(item, index) in formDialog.invoiceItems" :key="index">
+          <q-item
+            clickable
+            v-ripple
+            v-for="(item, index) in formDialog.invoiceItems"
+            :key="index"
+          >
             <q-item-section>
               <q-input
                 filled
@@ -167,7 +171,7 @@
                 label="Item"
                 placeholder="Jelly Beans"
                 v-model="formDialog.invoiceItems[index].description"
-                ></q-input>
+              ></q-input>
             </q-item-section>
             <q-item-section>
               <q-input
@@ -176,7 +180,7 @@
                 label="Amount"
                 placeholder="4.20"
                 v-model="formDialog.invoiceItems[index].amount"
-                ></q-input>
+              ></q-input>
             </q-item-section>
             <q-item-section side>
               <q-btn
@@ -196,7 +200,7 @@
             </q-btn>
           </q-item>
         </q-list>
-        
+
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -221,7 +225,6 @@
       </q-form>
     </q-card>
   </q-dialog>
-
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -230,13 +233,13 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
-    
+
     return obj
   }
 
   var mapInvoiceItems = function (obj) {
     obj.amount = parseFloat(obj.amount / 100).toFixed(2)
-    
+
     return obj
   }
 
@@ -426,13 +429,33 @@
             {name: 'status', align: 'left', label: 'Status', field: 'status'},
             {name: 'time', align: 'left', label: 'Created', field: 'time'},
             {name: 'wallet', align: 'left', label: 'Wallet', field: 'wallet'},
-            {name: 'currency', align: 'left', label: 'Currency', field: 'currency'},
-            {name: 'company_name', align: 'left', label: 'Company Name', field: 'company_name'},
-            {name: 'first_name', align: 'left', label: 'First Name', field: 'first_name'},
-            {name: 'last_name', align: 'left', label: 'Last Name', field: 'last_name'},
+            {
+              name: 'currency',
+              align: 'left',
+              label: 'Currency',
+              field: 'currency'
+            },
+            {
+              name: 'company_name',
+              align: 'left',
+              label: 'Company Name',
+              field: 'company_name'
+            },
+            {
+              name: 'first_name',
+              align: 'left',
+              label: 'First Name',
+              field: 'first_name'
+            },
+            {
+              name: 'last_name',
+              align: 'left',
+              label: 'Last Name',
+              field: 'last_name'
+            },
             {name: 'email', align: 'left', label: 'Email', field: 'email'},
             {name: 'phone', align: 'left', label: 'Phone', field: 'phone'},
-            {name: 'address', align: 'left', label: 'Address', field: 'address'},
+            {name: 'address', align: 'left', label: 'Address', field: 'address'}
           ],
           pagination: {
             rowsPerPage: 10
@@ -441,8 +464,8 @@
         formDialog: {
           show: false,
           data: {},
-          invoiceItems: [],
-        },
+          invoiceItems: []
+        }
       }
     },
     methods: {
@@ -450,22 +473,21 @@
         this.formDialog.data = {}
         this.formDialog.invoiceItems = []
       },
-      showEditModal: function(obj) {
+      showEditModal: function (obj) {
         this.formDialog.data = obj
         this.formDialog.show = true
 
         this.getInvoice(obj.id)
       },
-      getInvoice: function(invoice_id) {
+      getInvoice: function (invoice_id) {
         var self = this
 
         LNbits.api
-          .request(
-            'GET',
-            '/invoices/api/v1/invoice/' + invoice_id,
-          )
+          .request('GET', '/invoices/api/v1/invoice/' + invoice_id)
           .then(function (response) {
-            self.formDialog.invoiceItems = response.data.items.map(function(obj) {
+            self.formDialog.invoiceItems = response.data.items.map(function (
+              obj
+            ) {
               return mapInvoiceItems(obj)
             })
           })
@@ -493,13 +515,13 @@
         LNbits.api
           .request(
             'POST',
-            '/invoices/api/v1/invoice' + (data.id ? "/" + data.id : ""),
+            '/invoices/api/v1/invoice' + (data.id ? '/' + data.id : ''),
             _.findWhere(this.g.user.wallets, {id: this.formDialog.data.wallet})
               .inkey,
             data
           )
           .then(function (response) {
-            if(!data.id) {
+            if (!data.id) {
               self.invoices.push(mapInvoice(response.data))
             } else {
               self.getInvoices()

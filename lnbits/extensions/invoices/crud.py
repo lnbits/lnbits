@@ -3,11 +3,24 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import CreateInvoiceData, CreateInvoiceItemData, UpdateInvoiceData, UpdateInvoiceItemData, Invoice, InvoiceItem, Payment, CreatePaymentData
+from .models import (
+    CreateInvoiceData,
+    CreateInvoiceItemData,
+    UpdateInvoiceData,
+    UpdateInvoiceItemData,
+    Invoice,
+    InvoiceItem,
+    Payment,
+    CreatePaymentData,
+)
+
 
 async def get_invoice(invoice_id: str) -> Optional[Invoice]:
-    row = await db.fetchone("SELECT * FROM invoices.invoices WHERE id = ?", (invoice_id,))
+    row = await db.fetchone(
+        "SELECT * FROM invoices.invoices WHERE id = ?", (invoice_id,)
+    )
     return Invoice.from_row(row) if row else None
+
 
 async def get_invoice_items(invoice_id: str) -> List[InvoiceItem]:
     rows = await db.fetchall(
@@ -16,13 +29,17 @@ async def get_invoice_items(invoice_id: str) -> List[InvoiceItem]:
 
     return [InvoiceItem.from_row(row) for row in rows]
 
+
 async def get_invoice_item(item_id: str) -> InvoiceItem:
-    row = await db.fetchone("SELECT * FROM invoices.invoice_items WHERE id = ?", (item_id,))
+    row = await db.fetchone(
+        "SELECT * FROM invoices.invoice_items WHERE id = ?", (item_id,)
+    )
     return InvoiceItem.from_row(row) if row else None
 
 
 async def get_invoice_total(items: List[InvoiceItem]) -> int:
     return sum(item.amount for item in items)
+
 
 async def get_invoices(wallet_ids: Union[str, List[str]]) -> List[Invoice]:
     if isinstance(wallet_ids, str):
@@ -33,7 +50,7 @@ async def get_invoices(wallet_ids: Union[str, List[str]]) -> List[Invoice]:
         f"SELECT * FROM invoices.invoices WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
-    return [Invoice.from_row(row)  for row in rows]
+    return [Invoice.from_row(row) for row in rows]
 
 
 async def get_invoice_payments(invoice_id: str) -> List[Payment]:
@@ -43,13 +60,17 @@ async def get_invoice_payments(invoice_id: str) -> List[Payment]:
 
     return [Payment.from_row(row) for row in rows]
 
+
 async def get_invoice_payment(payment_id: str) -> Payment:
-    row = await db.fetchone("SELECT * FROM invoices.payments WHERE id = ?", (payment_id,))
+    row = await db.fetchone(
+        "SELECT * FROM invoices.payments WHERE id = ?", (payment_id,)
+    )
     return Payment.from_row(row) if row else None
 
 
 async def get_payments_total(payments: List[Payment]) -> int:
     return sum(item.amount for item in payments)
+
 
 async def create_invoice_internal(wallet_id: str, data: CreateInvoiceData) -> Invoice:
     invoice_id = urlsafe_short_hash()
@@ -67,7 +88,7 @@ async def create_invoice_internal(wallet_id: str, data: CreateInvoiceData) -> In
             data.last_name,
             data.email,
             data.phone,
-            data.address
+            data.address,
         ),
     )
 
@@ -75,7 +96,10 @@ async def create_invoice_internal(wallet_id: str, data: CreateInvoiceData) -> In
     assert invoice, "Newly created invoice couldn't be retrieved"
     return invoice
 
-async def create_invoice_items(invoice_id: str, data: List[CreateInvoiceItemData]) -> List[InvoiceItem]:
+
+async def create_invoice_items(
+    invoice_id: str, data: List[CreateInvoiceItemData]
+) -> List[InvoiceItem]:
     for item in data:
         item_id = urlsafe_short_hash()
         await db.execute(
@@ -93,6 +117,7 @@ async def create_invoice_items(invoice_id: str, data: List[CreateInvoiceItemData
 
     invoice_items = await get_invoice_items(invoice_id)
     return invoice_items
+
 
 async def update_invoice_internal(wallet_id: str, data: UpdateInvoiceData) -> Invoice:
     await db.execute(
@@ -119,7 +144,10 @@ async def update_invoice_internal(wallet_id: str, data: UpdateInvoiceData) -> In
     assert invoice, "Newly updated invoice couldn't be retrieved"
     return invoice
 
-async def update_invoice_items(invoice_id: str, data: List[UpdateInvoiceItemData]) -> List[InvoiceItem]:
+
+async def update_invoice_items(
+    invoice_id: str, data: List[UpdateInvoiceItemData]
+) -> List[InvoiceItem]:
     updated_items = []
     for item in data:
         if item.id:
@@ -130,17 +158,13 @@ async def update_invoice_items(invoice_id: str, data: List[UpdateInvoiceItemData
                 SET description = ?, amount = ?
                 WHERE id = ?
                 """,
-                (
-                    item.description,
-                    int(item.amount * 100),
-                    item.id
-                ),
+                (item.description, int(item.amount * 100), item.id),
             )
 
-    placeholders = ','.join('?' for i in range(len(updated_items)))
+    placeholders = ",".join("?" for i in range(len(updated_items)))
     if not placeholders:
-        placeholders = '?'
-        updated_items = ('skip',)
+        placeholders = "?"
+        updated_items = ("skip",)
 
     await db.execute(
         f"""
@@ -160,6 +184,7 @@ async def update_invoice_items(invoice_id: str, data: List[UpdateInvoiceItemData
 
     invoice_items = await get_invoice_items(invoice_id)
     return invoice_items
+
 
 async def create_invoice_payment(invoice_id: str, amount: int) -> Payment:
     payment_id = urlsafe_short_hash()

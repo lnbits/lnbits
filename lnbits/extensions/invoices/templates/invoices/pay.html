@@ -1,7 +1,5 @@
-{% extends "public.html" %} 
-{% block toolbar_title %}
-  Invoice
-  <q-btn
+{% extends "public.html" %} {% block toolbar_title %} Invoice
+<q-btn
   flat
   dense
   size="md"
@@ -9,10 +7,9 @@
   icon="share"
   color="white"
 ></q-btn>
-{% endblock %}
-{% from "macros.jinja" import window_vars with context %} 
-{% block page %}
-<link rel="stylesheet" href="/invoices/static/css/pay.css"></script>
+{% endblock %} {% from "macros.jinja" import window_vars with context %} {%
+block page %}
+<link rel="stylesheet" href="/invoices/static/css/pay.css" />
 <div id="invoicePage">
   <div class="row q-gutter-y-md q-gutter-md">
     <div class="col-12 col-md">
@@ -27,19 +24,20 @@
               <q-item-section><b>ID</b></q-item-section>
               <q-item-section>{{ invoice_id }}</q-item-section>
             </q-item>
-            
+
             <q-item clickable v-ripple>
               <q-item-section><b>Created At</b></q-item-section>
-              <q-item-section>{{ datetime.utcfromtimestamp(invoice.time).strftime('%Y-%m-%d %H:%M') }}</q-item-section>
+              <q-item-section
+                >{{ datetime.utcfromtimestamp(invoice.time).strftime('%Y-%m-%d
+                %H:%M') }}</q-item-section
+              >
             </q-item>
 
             <q-item clickable v-ripple>
               <q-item-section><b>Status</b></q-item-section>
               <q-item-section>
                 <span>
-                  <q-badge color="">
-                    {{ invoice.status }}
-                  </q-badge>
+                  <q-badge color=""> {{ invoice.status }} </q-badge>
                 </span>
               </q-item-section>
             </q-item>
@@ -47,32 +45,35 @@
             <q-item clickable v-ripple>
               <q-item-section><b>Total</b></q-item-section>
               <q-item-section>
-                {{ "{:0,.2f}".format(invoice_total / 100) }}
-                {{ invoice.currency }}
+                {{ "{:0,.2f}".format(invoice_total / 100) }} {{ invoice.currency
+                }}
               </q-item-section>
             </q-item>
 
             <q-item clickable v-ripple>
               <q-item-section><b>Paid</b></q-item-section>
               <q-item-section>
-                <div class="row" style="align-items: center;">
+                <div class="row" style="align-items: center">
                   <div class="col-4">
-                    {{ "{:0,.2f}".format(payments_total / 100) }}
-                    {{ invoice.currency }}
+                    {{ "{:0,.2f}".format(payments_total / 100) }} {{
+                    invoice.currency }}
                   </div>
                   <div class="col-8">
                     {% if payments_total < invoice_total %}
-                      <q-btn unelevated color="primary" @click="formDialog.show = true" v-if="status == 'open'">
-                        Pay Invoice
-                      </q-btn>
+                    <q-btn
+                      unelevated
+                      color="primary"
+                      @click="formDialog.show = true"
+                      v-if="status == 'open'"
+                    >
+                      Pay Invoice
+                    </q-btn>
                     {% endif %}
                   </div>
                 </div>
               </q-item-section>
             </q-item>
-
           </q-list>
-
         </q-card-section>
       </q-card>
     </div>
@@ -89,10 +90,13 @@
               <q-item-section><b>Company Name</b></q-item-section>
               <q-item-section>{{ invoice.company_name }}</q-item-section>
             </q-item>
-            
+
             <q-item clickable v-ripple>
               <q-item-section><b>Name</b></q-item-section>
-              <q-item-section>{{ invoice.first_name }} {{ invoice.last_name }}</q-item-section>
+              <q-item-section
+                >{{ invoice.first_name }} {{ invoice.last_name
+                }}</q-item-section
+              >
             </q-item>
 
             <q-item clickable v-ripple>
@@ -110,11 +114,9 @@
               <q-item-section>{{ invoice.phone }}</q-item-section>
             </q-item>
           </q-list>
-
-        
         </q-card-section>
       </q-card>
-    </div> 
+    </div>
   </div>
 
   <div class="clear"></div>
@@ -129,26 +131,19 @@
 
           <q-list bordered separator>
             {% if invoice_items %}
-              <q-item clickable v-ripple>
-                <q-item-section><b>Item</b></q-item-section>
-                <q-item-section side><b>Amount</b></q-item-section>
-              </q-item>
-            {% endif %}
-
-            {% for item in invoice_items %}
+            <q-item clickable v-ripple>
+              <q-item-section><b>Item</b></q-item-section>
+              <q-item-section side><b>Amount</b></q-item-section>
+            </q-item>
+            {% endif %} {% for item in invoice_items %}
             <q-item clickable v-ripple>
               <q-item-section><b>{{item.description}}</b></q-item-section>
               <q-item-section side>
-                {{ "{:0,.2f}".format(item.amount / 100) }} 
-
-                {{ invoice.currency }} 
+                {{ "{:0,.2f}".format(item.amount / 100) }} {{ invoice.currency
+                }}
               </q-item-section>
             </q-item>
-            {% endfor %}
-
-            {% if not invoice_items %}
-              No Invoice Items
-            {% endif %}
+            {% endfor %} {% if not invoice_items %} No Invoice Items {% endif %}
           </q-list>
         </q-card-section>
       </q-card>
@@ -167,37 +162,34 @@
 
           <q-list bordered separator>
             {% if invoice_payments %}
-              <q-item clickable v-ripple>
-                <q-item-section><b>Date</b></q-item-section>
-                <q-item-section side><b>Amount</b></q-item-section>
-              </q-item>
-            {% endif %}
-
-            {% for item in invoice_payments %}
             <q-item clickable v-ripple>
-              <q-item-section><b>{{ datetime.utcfromtimestamp(item.time).strftime('%Y-%m-%d %H:%M') }}</b></q-item-section>
+              <q-item-section><b>Date</b></q-item-section>
+              <q-item-section side><b>Amount</b></q-item-section>
+            </q-item>
+            {% endif %} {% for item in invoice_payments %}
+            <q-item clickable v-ripple>
+              <q-item-section
+                ><b
+                  >{{ datetime.utcfromtimestamp(item.time).strftime('%Y-%m-%d
+                  %H:%M') }}</b
+                ></q-item-section
+              >
               <q-item-section side>
-                {{ "{:0,.2f}".format(item.amount / 100) }} 
-
-                {{ invoice.currency }} 
+                {{ "{:0,.2f}".format(item.amount / 100) }} {{ invoice.currency
+                }}
               </q-item-section>
             </q-item>
-            {% endfor %}
-
-            {% if not invoice_payments %}
-              No Invoice Payments
-            {% endif %}
+            {% endfor %} {% if not invoice_payments %} No Invoice Payments {%
+            endif %}
           </q-list>
         </q-card-section>
       </q-card>
     </div>
   </div>
 
-
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl">
       <q-form @submit="createPayment" class="q-gutter-md">
-       
         <q-input
           filled
           dense
@@ -206,12 +198,10 @@
           placeholder="4.20"
         >
           <template v-slot:append>
-            <span style="font-size: 12px;">
-              {{ invoice.currency }}
-            </span>
+            <span style="font-size: 12px"> {{ invoice.currency }} </span>
           </template>
         </q-input>
-        
+
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -228,7 +218,11 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="qrCodeDialog.show" position="top" @hide="closeQrCodeDialog">
+  <q-dialog
+    v-model="qrCodeDialog.show"
+    position="top"
+    @hide="closeQrCodeDialog"
+  >
     <q-card class="q-pa-lg q-pt-xl">
       <qrcode
         :value="qrCodeDialog.data.payment_request"
@@ -248,9 +242,7 @@
         ></qrcode>
       </q-responsive>
       <div class="text-center q-mb-xl">
-        <p style="word-break: break-all">
-          {{ request.url }}
-        </p>
+        <p style="word-break: break-all">{{ request.url }}</p>
       </div>
       <div class="row q-mt-lg">
         <q-btn
@@ -263,7 +255,6 @@
       </div>
     </q-card>
   </q-dialog>
-
 </div>
 {% endblock %} {% block scripts %}
 <script>
@@ -272,13 +263,13 @@
       new Date(obj.time * 1000),
       'YYYY-MM-DD HH:mm'
     )
-    
+
     return obj
   }
 
   var mapInvoiceItems = function (obj) {
     obj.amount = parseFloat(obj.amount / 100).toFixed(2)
-    
+
     return obj
   }
 
@@ -300,7 +291,7 @@
           show: false,
         },
         formDialog: {
-          data: { 
+          data: {
             payment_amount: parseFloat({{invoice_total - payments_total}} / 100).toFixed(2)
           },
           show: false,
@@ -391,7 +382,7 @@
       },
     },
     created: function () {
-     
+
     }
   })
 </script>
