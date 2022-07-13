@@ -519,25 +519,36 @@ new Vue({
       navigator.serial.addEventListener('disconnect', event => {
         console.log('### navigator.serial event: disconnected!', event)
       })
-      // const ports = await navigator.serial.getPorts();
-      const port = await navigator.serial.requestPort()
-      console.log('### port', port)
+      try {
+        // const ports = await navigator.serial.getPorts();
+        const port = await navigator.serial.requestPort()
+        console.log('### port', port)
 
-      // Wait for the serial port to open.
-      await port.open({baudRate: 9600})
+        // Wait for the serial port to open.
+        await port.open({baudRate: 9600})
 
-      const writer = port.writable.getWriter()
+        const writer = port.writable.getWriter()
 
-      const psbtByteArray = Uint8Array.from(atob(this.payment.psbtBase64), c =>
-        c.charCodeAt(0)
-      )
-      await writer.write(psbtByteArray)
+        const psbtByteArray = Uint8Array.from(
+          atob(this.payment.psbtBase64),
+          c => c.charCodeAt(0)
+        )
+        await writer.write(psbtByteArray)
 
-      // Allow the serial port to be closed later.
-      writer.releaseLock()
+        // Allow the serial port to be closed later.
+        writer.releaseLock()
 
-      await port.close()
-      console.log('### sharePsbtOnSerialPort done')
+        await port.close()
+        console.log('### sharePsbtOnSerialPort done')
+      } catch (error) {
+        console.log('### error', error)
+        this.$q.notify({
+          type: 'warning',
+          message: 'Serial port communication failed!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
     },
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')
