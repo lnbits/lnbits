@@ -30,7 +30,9 @@ block page %}
           <q-list bordered separator>
             <q-item clickable v-ripple>
               <q-item-section><b>ID</b></q-item-section>
-              <q-item-section style="word-break: break-all;">{{ invoice_id }}</q-item-section>
+              <q-item-section style="word-break: break-all"
+                >{{ invoice_id }}</q-item-section
+              >
             </q-item>
 
             <q-item clickable v-ripple>
@@ -202,10 +204,10 @@ block page %}
       <div class="text-center">
         <p><b>Scan to View & Pay Online!</b></p>
         <qrcode
-            value="{{ request.url }}"
-            :options="{width: 200}"
-            class="rounded-borders"
-          ></qrcode>
+          value="{{ request.url }}"
+          :options="{width: 200}"
+          class="rounded-borders"
+        ></qrcode>
       </div>
     </div>
   </div>
