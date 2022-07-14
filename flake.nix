@@ -32,12 +32,12 @@
           python = pkgs.python39;
         };
       });
-      nixosModules = forAllSystems (system: pkgs: {
+      nixosModules = {
         default = { pkgs, lib, config, ... }: {
           imports = [ "${./nix/modules/${projectName}-service.nix}" ];
           nixpkgs.overlays = [ self.overlays.default ];
         };
-      });
+      };
       checks = forAllSystems (system: pkgs:
         let
           vmTests = import ./nix/tests {
