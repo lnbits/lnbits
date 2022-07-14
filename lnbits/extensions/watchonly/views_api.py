@@ -1,34 +1,40 @@
 from http import HTTPStatus
+import json
 
-from embit import script
-from embit.descriptor import Descriptor, Key
-from embit.ec import PublicKey
-from embit.psbt import PSBT, DerivationPath
-from embit.transaction import Transaction, TransactionInput, TransactionOutput
 from fastapi import Query, Request
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
+
+from embit.descriptor import Descriptor, Key
+from embit.psbt import PSBT, DerivationPath
+from embit.ec import PublicKey
+from embit.transaction import Transaction, TransactionInput, TransactionOutput
+from embit import script, finalizer
 
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.watchonly import watchonly_ext
 
 from .crud import (
-    create_config,
-    create_fresh_addresses,
+    create_mempool,
     create_watch_wallet,
-    delete_addresses_for_wallet,
     delete_watch_wallet,
     get_addresses,
-    get_config,
     get_fresh_address,
+    create_fresh_addresses,
+    update_address,
+    delete_addresses_for_wallet,
+    get_mempool,
     get_watch_wallet,
     get_watch_wallets,
-    update_address,
-    update_config,
+    update_mempool,
     update_watch_wallet,
+    create_config,
+    get_config,
+    update_config,
 )
+from .models import SignedTransaction, CreateWallet, CreatePsbt, Config, WalletAccount, ExtractPsbt
 from .helpers import parse_key
-from .models import Config, CreatePsbt, CreateWallet, WalletAccount
+
 
 ###################WALLETS#############################
 
@@ -261,6 +267,36 @@ async def api_psbt_create(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
+@watchonly_ext.put("/api/v1/psbt/extract")
+async def api_psbt_extract_tx(
+    data: ExtractPsbt, w: WalletTypeInfo = Depends(require_admin_key)
+):
+    res = SignedTransaction()
+    try:
+        psbt = PSBT.from_base64(data.psbtBase64)
+        final_psbt = finalizer.finalize_psbt(psbt)
+        if not final_psbt:
+            raise ValueError("PSBT cannot be finalized!")
+        res.tx_hex = final_psbt.to_string()
+
+        transaction = Transaction.from_string(res.tx_hex)
+        tx = {
+            "locktime": transaction.locktime,
+            "version": transaction.version,
+            "outputs": [],
+            "fee": psbt.fee(),
+        }
+
+        for out in transaction.vout:
+            tx["outputs"].append(
+                {"value": out.value, "address": out.script_pubkey.address()}
+            )
+        res.tx_json = json.dumps(tx)
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    return res.dict()
+
+
 #############################CONFIG##########################
 
 
@@ -278,3 +314,23 @@ async def api_get_config(w: WalletTypeInfo = Depends(get_key_type)):
     if not config:
         config = await create_config(user=w.wallet.user)
     return config.dict()
+
+
+#############################MEMPOOL##########################
+
+### TODO: fix statspay dependcy and remove
+@watchonly_ext.put("/api/v1/mempool")
+async def api_update_mempool(
+    endpoint: str = Query(...), w: WalletTypeInfo = Depends(require_admin_key)
+):
+    mempool = await update_mempool(**{"endpoint": endpoint}, user=w.wallet.user)
+    return mempool.dict()
+
+
+### TODO: fix statspay dependcy and remove
+@watchonly_ext.get("/api/v1/mempool")
+async def api_get_mempool(w: WalletTypeInfo = Depends(require_admin_key)):
+    mempool = await get_mempool(w.wallet.user)
+    if not mempool:
+        mempool = await create_mempool(user=w.wallet.user)
+    return mempool.dict()

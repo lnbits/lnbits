@@ -1,6 +1,5 @@
 from sqlite3 import Row
-from typing import List
-
+from typing import List, Optional
 from fastapi.param_functions import Query
 from pydantic import BaseModel
 
@@ -80,6 +79,15 @@ class CreatePsbt(BaseModel):
     outputs: List[TransactionOutput]
     fee_rate: int
     tx_size: int
+
+
+class ExtractPsbt(BaseModel):
+    psbtBase64 = ""
+
+
+class SignedTransaction(BaseModel):
+    tx_hex: Optional[str]
+    tx_json: Optional[str]
 
 
 class Config(BaseModel):

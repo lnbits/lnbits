@@ -1044,7 +1044,7 @@
                     class="row items-center no-wrap q-mb-md q-mt-lg"
                   >
                     <div class="col-3"></div>
-                    <div class="col-3">
+                    <div class="col-2">
                       <q-btn
                         v-if="!serial.selectedPort"
                         @click="openSerialPort()"
@@ -1061,20 +1061,21 @@
                       >
                     </div>
                     <div class="col-3">
+                      <q-toggle
+                        label="Advanced Config"
+                        color="secodary float-left"
+                        class="q-pl-lg"
+                        v-model="serial.showAdvancedConfig"
+                      ></q-toggle>
+                    </div>
+                    <div class="col-4">
                       <q-btn
                         v-if="serial.selectedPort"
                         @click="sendPsbtToSerialPort()"
                         unelevated
                         color="secondary float-right"
-                        >Send PSBT</q-btn
+                        >Send to Device</q-btn
                       >
-                    </div>
-                    <div class="col-3">
-                      <q-toggle
-                        label="Advanced Config"
-                        color="secodary float-right"
-                        v-model="serial.showAdvancedConfig"
-                      ></q-toggle>
                     </div>
                   </div>
                   <div class="row items-center no-wrap q-mb-md">

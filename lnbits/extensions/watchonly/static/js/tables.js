@@ -271,7 +271,7 @@ const tableData = {
     utxoSelectionMode: 'Manual',
     signModes: [
       {
-        label: 'Serial Port',
+        label: 'Serial Port Device',
         value: 'serial-port'
       },
       {
