@@ -1043,13 +1043,14 @@
                     v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
                   >
-                    <div class="col-3"></div>
-                    <div class="col-2">
+                    <!-- <div class="col-3"></div> -->
+                    <div class="col-3">
                       <q-btn
                         v-if="!serial.selectedPort"
                         @click="openSerialPort()"
                         unelevated
                         color="secondary"
+                        class="q-pr-lg"
                         >Connect</q-btn
                       >
                       <q-btn
@@ -1057,14 +1058,14 @@
                         @click="closeSerialPort()"
                         outline
                         color="gray"
+                        class="q-pr-lg"
                         >Disconnect</q-btn
                       >
                     </div>
-                    <div class="col-3">
+                    <div class="col-5">
                       <q-toggle
                         label="Advanced Config"
                         color="secodary float-left"
-                        class="q-pl-lg"
                         v-model="serial.showAdvancedConfig"
                       ></q-toggle>
                     </div>
@@ -1074,19 +1075,52 @@
                         @click="sendPsbtToSerialPort()"
                         unelevated
                         color="secondary float-right"
-                        >Send to Device</q-btn
+                        >Send PSBT to Device</q-btn
                       >
                     </div>
                   </div>
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-4 q-pr-lg"></div>
-                    <div class="col-8">
+                  <div
+                    v-if="payment.psbtBase64Signed"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-3 q-pr-lg">PSBT from device</div>
+                    <div class="col-9">
                       <q-input
-                        v-if="payment.psbtBase64Signed"
                         v-model="payment.psbtBase64Signed"
                         filled
                         readonly
                       />
+                    </div>
+                  </div>
+                  <div
+                    v-if="payment.signedTx"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-3 q-pr-lg"></div>
+                    <div class="col-9">
+                      <div class="row items-center no-wrap q-mb-sm">
+                        <div class="col-3 q-pr-lg">Version</div>
+                        <div class="col-9">{{payment.signedTx.version}}</div>
+                      </div>
+                      <div class="row items-center no-wrap q-mb-sm">
+                        <div class="col-3 q-pr-lg">Locktime</div>
+                        <div class="col-9">{{payment.signedTx.locktime}}</div>
+                      </div>
+                      <div class="row items-center no-wrap q-mb-sm">
+                        <div class="col-3 q-pr-lg">Fee</div>
+                        <div class="col-9">
+                          <q-badge  color="orange">{{satBtc(payment.signedTx.fee)}} </q-badge></div>
+                      </div>
+                      <div class="row items-center no-wrap q-mb-sm">
+                        <div class="col-3 q-pr-lg">Send </div>
+                        <div class="col-9">
+                          <div v-for="out in payment.signedTx.outputs" class="row items-center no-wrap q-mb-sm">
+                            <div class="col-3 q-pr-lg"> <q-badge  color="orange">{{satBtc(out.amount)}}</div>
+                            <div class="col-1">to</div>
+                            <div class="col-8">{{out.address}}</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </q-card-section>

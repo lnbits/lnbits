@@ -32,7 +32,14 @@ from .crud import (
     get_config,
     update_config,
 )
-from .models import SignedTransaction, CreateWallet, CreatePsbt, Config, WalletAccount, ExtractPsbt
+from .models import (
+    SignedTransaction,
+    CreateWallet,
+    CreatePsbt,
+    Config,
+    WalletAccount,
+    ExtractPsbt,
+)
 from .helpers import parse_key
 
 
@@ -289,7 +296,7 @@ async def api_psbt_extract_tx(
 
         for out in transaction.vout:
             tx["outputs"].append(
-                {"value": out.value, "address": out.script_pubkey.address()}
+                {"amount": out.value, "address": out.script_pubkey.address()}
             )
         res.tx_json = json.dumps(tx)
     except Exception as e:
