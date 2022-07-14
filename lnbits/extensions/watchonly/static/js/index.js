@@ -626,15 +626,16 @@ new Vue({
                 psbtChunks.push(data[0])
                 if (data.length > 1) {
                   console.log('### psbtChunks', psbtChunks)
+                  this.payment.psbtBase64Signed = psbtChunks.join('')
                   this.$q.notify({
                     type: 'positive',
                     message: 'PSBT received from serial port device!',
                     timeout: 10000
                   })
-                  const transaction = await this.etractTxFromPsbt(
-                    psbtChunks.join('')
+                  const data = await this.etractTxFromPsbt(
+                    this.payment.psbtBase64Signed
                   )
-                  console.log('### transaction', transaction)
+                  this.payment.signedTx = JSON.parse(data.tx_json)
                 }
               } else {
                 psbtChunks = []
@@ -672,19 +673,8 @@ new Vue({
             psbtBase64
           }
         )
-        console.log('### data', data)
-        if (data.error) {
-          this.$q.notify({
-            type: 'warning',
-            message: 'Cannot process received PSBT!',
-            caption: data.error,
-            timeout: 10000
-          })
-        }
-
         return data
       } catch (error) {
-        console.log('### error', error, JSON.stringify(error))
         LNbits.utils.notifyApiError(error)
       }
     },
