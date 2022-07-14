@@ -637,7 +637,11 @@ new Vue({
                   const data = await this.etractTxFromPsbt(
                     this.payment.psbtBase64Signed
                   )
-                  this.payment.signedTx = JSON.parse(data.tx_json)
+                  if (data) {
+                    this.payment.signedTx = JSON.parse(data.tx_json)
+                  } else {
+                    this.payment.signedTx = null
+                  }
                 }
               } else {
                 psbtChunks = []

@@ -173,24 +173,29 @@
 
     <q-card>
       <div class="row q-pt-sm q-pb-sm items-center no-wrap q-mb-md">
-        <div class="col q-ml-lg">
+        <div class="col-3 q-pl-md">
           <q-btn
             unelevated
+            class="btn-full"
             color="secondary"
             @click="scanAllAddresses"
             :disabled="scan.scanning == true"
             >Scan Blockchain</q-btn
           >
-          <q-spinner
-            v-if="scan.scanning == true"
-            color="primary"
-            size="2.55em"
-          ></q-spinner>
+         
         </div>
-        <div class="col-auto q-mr-md">
+        <div class="col-6">
+          <q-spinner
+          v-if="scan.scanning == true"
+          color="primary"
+          size="2.55em"
+        ></q-spinner>
+        </div>
+        <div class="col-3 q-pr-md">
           <q-btn
             unelevated
             color="secondary"
+            class="btn-full"
             @click="goToPaymentView"
             :disabled="scan.scanning == true"
             >Make Payment</q-btn
@@ -992,7 +997,7 @@
                                 class="text-subtitle2"
                                 color="green"
                               >
-                                {{payment.changeAmount ? payment.changeAmount:
+                                {{payment.changeAmount ? satBtc(payment.changeAmount):
                                 'no change'}}
                               </q-badge>
                               <q-badge
@@ -1050,7 +1055,6 @@
                         @click="openSerialPort()"
                         unelevated
                         color="secondary"
-                        class="q-pr-lg"
                         >Connect</q-btn
                       >
                       <q-btn
@@ -1058,7 +1062,6 @@
                         @click="closeSerialPort()"
                         outline
                         color="gray"
-                        class="q-pr-lg"
                         >Disconnect</q-btn
                       >
                     </div>
@@ -1066,10 +1069,11 @@
                       <q-toggle
                         label="Advanced Config"
                         color="secodary float-left"
+                        class="q-ml-lg"
                         v-model="serial.showAdvancedConfig"
                       ></q-toggle>
                     </div>
-                    <div class="col-4">
+                    <div class="col-3 ">
                       <q-btn
                         v-if="serial.selectedPort"
                         @click="sendPsbtToSerialPort()"
@@ -1111,16 +1115,14 @@
                         <div class="col-9">
                           <q-badge  color="orange">{{satBtc(payment.signedTx.fee)}} </q-badge></div>
                       </div>
-                      <div class="row items-center no-wrap q-mb-sm">
-                        <div class="col-3 q-pr-lg">Send </div>
+                      <q-separator class="q-mb-lg"></q-separator>
+                      <div v-for="out in payment.signedTx.outputs" class="row items-center no-wrap q-mb-sm">
+                        <div class="col-3 q-pr-lg"> <q-badge  color="orange">{{satBtc(out.amount)}}</div>
+                      
                         <div class="col-9">
-                          <div v-for="out in payment.signedTx.outputs" class="row items-center no-wrap q-mb-sm">
-                            <div class="col-3 q-pr-lg"> <q-badge  color="orange">{{satBtc(out.amount)}}</div>
-                            <div class="col-1">to</div>
-                            <div class="col-8">{{out.address}}</div>
-                          </div>
-                        </div>
+                          <q-badge  outline color="blue">{{out.address}}</q-badge></div>
                       </div>
+                      
                     </div>
                   </div>
                 </q-card-section>
@@ -1298,7 +1300,12 @@
 </div>
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<!-- todo: use endpoint here -->
+<style>
+
+  .btn-full {
+    width: 100%;
+  }
+</style>
 <script type="text/javascript" src="https://mempool.space/mempool.js"></script>
 
 <script src="{{ url_for('watchonly_static', path='js/tables.js') }}"></script>
