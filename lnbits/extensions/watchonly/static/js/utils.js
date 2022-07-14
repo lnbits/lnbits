@@ -1,3 +1,5 @@
+const PSBT_BASE64_PREFIX = 'cHNidP8'
+
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''
 

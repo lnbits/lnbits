@@ -587,7 +587,7 @@ new Vue({
         await this.serial.writer.write(this.payment.psbtBase64 + '\n')
         this.$q.notify({
           type: 'positive',
-          message: 'Data sent to serial port!',
+          message: 'Data sent to serial port device!',
           timeout: 5000
         })
       } catch (error) {
@@ -609,19 +609,42 @@ new Vue({
           textDecoder.writable
         )
         this.serial.reader = textDecoder.readable.getReader()
+        let psbtChunks = []
 
         try {
           while (true) {
             console.log('### reader.read()')
             const {value, done} = await this.serial.reader.read()
+            console.log('### value', value)
             if (value) {
-              console.log(value)
-              this.$q.notify({
-                type: 'warning',
-                message: 'Received data from serial port (not psbt)',
-                caption: value.slice(0, 80) + '...',
-                timeout: 5000
-              })
+              const data = value.split('\n')
+              console.log('### xxx', data)
+              const isPsbtStartChunk = data[0].startsWith(PSBT_BASE64_PREFIX)
+              if (isPsbtStartChunk) {
+                psbtChunks = [data[0]]
+              } else if (psbtChunks.length) {
+                psbtChunks.push(data[0])
+                if (data.length > 1) {
+                  console.log('### psbtChunks', psbtChunks)
+                  this.$q.notify({
+                    type: 'positive',
+                    message: 'PSBT received from serial port device!',
+                    timeout: 10000
+                  })
+                  const transaction = await this.etractTxFromPsbt(
+                    psbtChunks.join('')
+                  )
+                  console.log('### transaction', transaction)
+                }
+              } else {
+                psbtChunks = []
+                this.$q.notify({
+                  type: 'warning',
+                  message: 'Received data from serial port (not psbt)',
+                  caption: value.slice(0, 80) + '...',
+                  timeout: 5000
+                })
+              }
             }
             if (done) {
               return
@@ -637,6 +660,33 @@ new Vue({
         }
       }
       console.log('### startSerialPortReading DONE')
+    },
+    etractTxFromPsbt: async function (psbtBase64) {
+      const wallet = this.g.user.wallets[0]
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/watchonly/api/v1/psbt/extract',
+          wallet.adminkey,
+          {
+            psbtBase64
+          }
+        )
+        console.log('### data', data)
+        if (data.error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Cannot process received PSBT!',
+            caption: data.error,
+            timeout: 10000
+          })
+        }
+
+        return data
+      } catch (error) {
+        console.log('### error', error, JSON.stringify(error))
+        LNbits.utils.notifyApiError(error)
+      }
     },
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')
