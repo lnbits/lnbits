@@ -5,7 +5,7 @@ makeTest {
       environment.systemPackages = [ pkgs.curl ];
     };
     lnbits = { ... }: {
-      imports = [ inputs.self.nixosModules.${pkgs.hostPlatform.system}.default ];
+      imports = [ inputs.self.nixosModules.default ];
       services.lnbits = {
         enable = true;
         openFirewall = true;
