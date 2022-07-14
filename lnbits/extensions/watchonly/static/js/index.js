@@ -546,6 +546,7 @@ new Vue({
 
         this.serial.writer = textEncoder.writable.getWriter()
       } catch (error) {
+        this.serial.selectedPort = null
         this.$q.notify({
           type: 'warning',
           message: 'Cannot open serial port!',
@@ -573,6 +574,7 @@ new Vue({
           timeout: 5000
         })
       } catch (error) {
+        this.serial.selectedPort = null
         console.log('### error', error)
         this.$q.notify({
           type: 'warning',
