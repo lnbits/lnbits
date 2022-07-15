@@ -1,13 +1,13 @@
 name: regtest
 
-on: [push, pull_request]
+on: pull_request
 
 jobs:
   sqlite:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -20,7 +20,9 @@ jobs:
           cd docker
           source docker-scripts.sh
           lnbits-regtest-start
+          echo "sleeping 60 seconds"
           sleep 60
+          echo "continue"
           lnbits-regtest-init
           bitcoin-cli-sim -generate 1
           lncli-sim 1 listpeers
