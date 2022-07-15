@@ -25,7 +25,7 @@ class createStalls(BaseModel):
 
 class createProduct(BaseModel):
     stall: str = Query(...)
-    product: str = Query(None)
+    product: str = Query(...)
     categories: str = Query(None)
     description: str = Query(None)
     image: str = Query(None)
@@ -37,9 +37,9 @@ class Products(BaseModel):
     id: str
     stall: str
     product: str
-    categories: str
-    description: str
-    image: str
+    categories: Optional[str]
+    description: Optional[str]
+    image: Optional[str]
     price: int
     quantity: int
 

@@ -82,7 +82,10 @@ async def api_diagonalley_products(
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
     stalls = [stall.id for stall in await get_diagonalley_stalls(wallet_ids)]
-    
+
+    if not stalls:
+        return
+
     return [product.dict() for product in await get_diagonalley_products(stalls)]
 
 
@@ -93,18 +96,18 @@ async def api_diagonalley_product_create(
 ):
 
     if product_id:
-        product = await get_diagonalley_product(product_id)
-
+        product = await get_diagonalley_product(product_id)        
         if not product:
             return {"message": "Withdraw product does not exist."}
-
-        if product.wallet != wallet.wallet.id:
+        
+        stall = await get_diagonalley_stall(stall_id = product.stall)
+        if stall.wallet != wallet.wallet.id:
             return {"message": "Not your withdraw product."}
 
         product = await update_diagonalley_product(product_id, **data.dict())
     else:
         product = await create_diagonalley_product(data=data)
-
+    print("PRODUCT", product)
     return product.dict()
 
 
@@ -117,7 +120,8 @@ async def api_diagonalley_products_delete(
     if not product:
         return {"message": "Product does not exist."}
 
-    if product.wallet != wallet.wallet.id:
+    stall = await get_diagonalley_stall(product.stall)
+    if stall.wallet != wallet.wallet.id:
         return {"message": "Not your Diagon Alley."}
 
     await delete_diagonalley_product(product_id)
@@ -144,7 +148,7 @@ async def api_diagonalley_zone_create(
 @diagonalley_ext.post("/api/v1/zones/{zone_id}")
 async def api_diagonalley_zone_update(
     data: createZones,
-    zone_id: str = Query(None),
+    zone_id: str,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     zone = await get_diagonalley_zone(zone_id)
@@ -191,13 +195,13 @@ async def api_diagonalley_stalls(
 @diagonalley_ext.put("/api/v1/stalls/{stall_id}")
 async def api_diagonalley_stall_create(
     data: createStalls,
-    stall_id: str = Query(None),
+    stall_id: str = None,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
 
     if stall_id:
         stall = await get_diagonalley_stall(stall_id)
-
+        print("ID", stall_id)
         if not stall:
             return {"message": "Withdraw stall does not exist."}
 
@@ -213,7 +217,7 @@ async def api_diagonalley_stall_create(
 
 @diagonalley_ext.delete("/api/v1/stalls/{stall_id}")
 async def api_diagonalley_stall_delete(
-    stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
+    stall_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     stall = await get_diagonalley_stall(stall_id)
 
@@ -255,7 +259,7 @@ async def api_diagonalley_order_create(
 
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")
 async def api_diagonalley_order_delete(
-    order_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    order_id: str, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     order = await get_diagonalley_order(order_id)
 
@@ -272,7 +276,7 @@ async def api_diagonalley_order_delete(
 
 @diagonalley_ext.get("/api/v1/orders/paid/{order_id}")
 async def api_diagonalley_order_paid(
-    order_id: str = Query(None), wallet: WalletTypeInfo = Depends(require_admin_key)
+    order_id, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     await db.execute(
         "UPDATE diagonalley.orders SET paid = ? WHERE id = ?",
@@ -286,7 +290,7 @@ async def api_diagonalley_order_paid(
 
 @diagonalley_ext.get("/api/v1/orders/shipped/{order_id}")
 async def api_diagonalley_order_shipped(
-    order_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    order_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     await db.execute(
         "UPDATE diagonalley.orders SET shipped = ? WHERE id = ?",
@@ -307,7 +311,7 @@ async def api_diagonalley_order_shipped(
 
 @diagonalley_ext.get("/api/v1/stall/products/{stall_id}")
 async def api_diagonalley_stall_products(
-    stall_id: str = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+    stall_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
 
     rows = await db.fetchone(
