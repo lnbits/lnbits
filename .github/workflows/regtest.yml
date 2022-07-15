@@ -3,7 +3,7 @@ name: regtest
 on: pull_request
 
 jobs:
-  sqlite:
+  wallets:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,5 +36,14 @@ jobs:
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
-      - name: Run tests
-        run: make test
+      - name: Run tests - LndRestWallet
+        env:
+          PYTHONUNBUFFERED: 1
+          LNBITS_BACKEND_WALLET_CLASS: LndRestWallet
+          LND_REST_ENDPOINT: https://lnd-1:8081/
+          LND_REST_CERT: docker/data/lnd-1/tls.cert
+          LND_REST_MACAROON: docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
+        run: |
+          rm -rf ./data
+          mkdir -p ./data
+          ./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
