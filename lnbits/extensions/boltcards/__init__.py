@@ -5,10 +5,7 @@ from lnbits.helpers import template_renderer
 
 db = Database("ext_boltcards")
 
-boltcards_ext: APIRouter = APIRouter(
-    prefix="/boltcards",
-    tags=["boltcards"]
-)
+boltcards_ext: APIRouter = APIRouter(prefix="/boltcards", tags=["boltcards"])
 
 
 def boltcards_renderer():

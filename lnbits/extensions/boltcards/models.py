@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from fastapi.params import Query
+from pydantic import BaseModel
+
 
 class Card(BaseModel):
     id: str
@@ -12,6 +13,7 @@ class Card(BaseModel):
     meta_key: str
     time: int
 
+
 class CreateCardData(BaseModel):
     card_name: str = Query(...)
     uid: str = Query(...)
@@ -19,6 +21,7 @@ class CreateCardData(BaseModel):
     withdraw: str = Query(...)
     file_key: str = Query(...)
     meta_key: str = Query(...)
+
 
 class Hit(BaseModel):
     id: str
