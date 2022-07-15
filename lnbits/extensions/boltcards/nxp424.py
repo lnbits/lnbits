@@ -1,18 +1,21 @@
 # https://www.nxp.com/docs/en/application-note/AN12196.pdf
 from typing import Tuple
-from Cryptodome.Hash import CMAC
+
 from Cryptodome.Cipher import AES
+from Cryptodome.Hash import CMAC
 
 SV2 = "3CC300010080"
 
-def myCMAC(key: bytes, msg: bytes=b'') -> bytes:
+
+def myCMAC(key: bytes, msg: bytes = b"") -> bytes:
     cobj = CMAC.new(key, ciphermod=AES)
-    if msg != b'':
+    if msg != b"":
         cobj.update(msg)
     return cobj.digest()
 
+
 def decryptSUN(sun: bytes, key: bytes) -> Tuple[bytes, bytes]:
-    IVbytes =  b"\x00" * 16
+    IVbytes = b"\x00" * 16
 
     cipher = AES.new(key, AES.MODE_CBC, IVbytes)
     sun_plain = cipher.decrypt(sun)
@@ -21,6 +24,7 @@ def decryptSUN(sun: bytes, key: bytes) -> Tuple[bytes, bytes]:
     counter = sun_plain[8:11]
 
     return UID, counter
+
 
 def getSunMAC(UID: bytes, counter: bytes, key: bytes) -> bytes:
     sv2prefix = bytes.fromhex(SV2)
