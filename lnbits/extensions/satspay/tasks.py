@@ -19,7 +19,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if "charge" != payment.extra.get("tag"):
+    if payment.extra.get("tag") != "charge":
         # not a charge invoice
         return
 
