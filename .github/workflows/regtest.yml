@@ -49,5 +49,5 @@ jobs:
           sudo chmod -R a+rwx .
           rm -rf ./data
           mkdir -p ./data
-          lncli-sim 1 listpeers
+          source docker/docker-scripts.sh && lncli-sim 1 listpeers
           timeout 10 ./venv/bin/uvicorn lnbits.__main__:app --port 5000 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
