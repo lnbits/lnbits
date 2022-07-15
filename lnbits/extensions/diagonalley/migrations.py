@@ -8,9 +8,9 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             stall TEXT NOT NULL,
             product TEXT NOT NULL,
-            categories TEXT NOT NULL,
-            description TEXT NOT NULL,
-            image TEXT NOT NULL,
+            categories TEXT,
+            description TEXT,
+            image TEXT,
             price INTEGER NOT NULL,
             quantity INTEGER NOT NULL
         );

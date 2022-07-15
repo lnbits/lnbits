@@ -51,7 +51,6 @@ async def create_diagonalley_product(data: createProduct) -> Products:
 async def update_diagonalley_product(product_id: str, **kwargs) -> Optional[Stalls]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
-    # with open_ext_db("diagonalley") as db:
     await db.execute(
         f"UPDATE diagonalley.products SET {q} WHERE id = ?",
         (*kwargs.values(), product_id),
@@ -60,7 +59,7 @@ async def update_diagonalley_product(product_id: str, **kwargs) -> Optional[Stal
         "SELECT * FROM diagonalley.products WHERE id = ?", (product_id,)
     )
 
-    return get_diagonalley_stall(product_id)
+    return Products(**row) if row else None
 
 
 async def get_diagonalley_product(product_id: str) -> Optional[Products]:
@@ -190,6 +189,7 @@ async def get_diagonalley_stall(stall_id: str) -> Optional[Stalls]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.stalls WHERE id = ?", (stall_id,)
     )
+    print("ROW", row)
     return Stalls(**row) if row else None
 
 
