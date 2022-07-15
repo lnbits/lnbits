@@ -639,8 +639,10 @@ new Vue({
                   )
                   if (data) {
                     this.payment.signedTx = JSON.parse(data.tx_json)
+                    this.payment.signedTxHex = data.tx_hex
                   } else {
                     this.payment.signedTx = null
+                    his.payment.signedTxHex = null
                   }
                 }
               } else {
@@ -686,6 +688,27 @@ new Vue({
     },
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')
+    },
+
+    broadcastTransaction: async function () {
+      console.log('### broadcastTransaction', this.payment.signedTxHex)
+
+      try {
+        const wallet = this.g.user.wallets[0]
+        await LNbits.api.request(
+          'POST',
+          '/watchonly/api/v1/tx',
+          wallet.adminkey,
+          {tx_hex: this.payment.signedTxHex}
+        )
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to broadcast!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
     },
 
     //################### UTXOs ###################
