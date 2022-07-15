@@ -1,5 +1,6 @@
 from lnbits.helpers import urlsafe_short_hash
 
+
 async def m001_initial(db):
     await db.execute(
         """
