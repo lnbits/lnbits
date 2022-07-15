@@ -16,13 +16,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Setup Regtest
         run: |
-          echo "clone"
+          docker build -t lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
-          echo "cd"
           cd docker
-          echo "source"
           source docker-scripts.sh
-          echo "lnbits-regtest-start-log"
           lnbits-regtest-start
           echo "sleeping 60 seconds"
           sleep 60
