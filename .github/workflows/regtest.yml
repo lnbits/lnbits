@@ -40,6 +40,7 @@ jobs:
       - name: Run tests - LndRestWallet
         env:
           PYTHONUNBUFFERED: 1
+          LNBITS_DATA_FOLDER: ./data
           LNBITS_BACKEND_WALLET_CLASS: LndRestWallet
           LND_REST_ENDPOINT: https://lnd-1:8081/
           LND_REST_CERT: docker/data/lnd-1/tls.cert
