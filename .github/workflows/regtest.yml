@@ -27,6 +27,7 @@ jobs:
           lnbits-regtest-init
           bitcoin-cli-sim -generate 1
           lncli-sim 1 listpeers
+          sudo chmod -R a+rwx docker/
       - name: Install dependencies
         env: 
           VIRTUAL_ENV: ./venv
