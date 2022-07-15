@@ -46,6 +46,7 @@ jobs:
           LND_REST_CERT: docker/data/lnd-1/tls.cert
           LND_REST_MACAROON: docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
         run: |
+          sudo chmod -R a+rwx .
           rm -rf ./data
           mkdir -p ./data
-          ./venv/bin/uvicorn lnbits.__main__:app --port 5000
+          timeout 10 ./venv/bin/uvicorn lnbits.__main__:app --port 5000 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
