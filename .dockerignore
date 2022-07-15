@@ -1,6 +1,21 @@
 .git
-docs
+data
 docker
+docs
+tests
+venv
 
-# ignore all the markdown
 *.md
+*.log
+
+.env
+
+.gitignore
+.prettierrc
+conv.py
+LICENSE
+Makefile
+mypy.ini
+package-lock.json
+package.json
+pytest.ini
