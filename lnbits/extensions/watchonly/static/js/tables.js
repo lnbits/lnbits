@@ -262,6 +262,8 @@ const tableData = {
     psbtBase64: '',
     psbtBase64Signed: '',
     signedTx: null,
+    signedTxHex: null,
+    sentTxId: null,
     utxoSelectionModes: [
       'Manual',
       'Random',

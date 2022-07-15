@@ -182,14 +182,13 @@
             :disabled="scan.scanning == true"
             >Scan Blockchain</q-btn
           >
-         
         </div>
         <div class="col-6">
           <q-spinner
-          v-if="scan.scanning == true"
-          color="primary"
-          size="2.55em"
-        ></q-spinner>
+            v-if="scan.scanning == true"
+            color="primary"
+            size="2.55em"
+          ></q-spinner>
         </div>
         <div class="col-3 q-pr-md">
           <q-btn
@@ -997,8 +996,8 @@
                                 class="text-subtitle2"
                                 color="green"
                               >
-                                {{payment.changeAmount ? satBtc(payment.changeAmount):
-                                'no change'}}
+                                {{payment.changeAmount ?
+                                satBtc(payment.changeAmount): 'no change'}}
                               </q-badge>
                               <q-badge
                                 v-if="payment.changeAmount > 0 && payment.changeAmount < DUST_LIMIT"
@@ -1065,7 +1064,7 @@
                         >Disconnect</q-btn
                       >
                     </div>
-                    <div class="col-5">
+                    <div class="col-6">
                       <q-toggle
                         label="Advanced Config"
                         color="secodary float-left"
@@ -1073,7 +1072,7 @@
                         v-model="serial.showAdvancedConfig"
                       ></q-toggle>
                     </div>
-                    <div class="col-3 ">
+                    <div class="col-3">
                       <q-btn
                         v-if="serial.selectedPort"
                         @click="sendPsbtToSerialPort()"
@@ -1113,16 +1112,50 @@
                       <div class="row items-center no-wrap q-mb-sm">
                         <div class="col-3 q-pr-lg">Fee</div>
                         <div class="col-9">
-                          <q-badge  color="orange">{{satBtc(payment.signedTx.fee)}} </q-badge></div>
+                          <q-badge color="orange"
+                            >{{satBtc(payment.signedTx.fee)}}
+                          </q-badge>
+                        </div>
                       </div>
                       <q-separator class="q-mb-lg"></q-separator>
-                      <div v-for="out in payment.signedTx.outputs" class="row items-center no-wrap q-mb-sm">
-                        <div class="col-3 q-pr-lg"> <q-badge  color="orange">{{satBtc(out.amount)}}</div>
-                      
+                      <div
+                        v-for="out in payment.signedTx.outputs"
+                        class="row items-center no-wrap q-mb-sm"
+                      >
+                        <div class="col-3 q-pr-lg">
+                          <q-badge color="orange"
+                            >{{satBtc(out.amount)}}</q-badge
+                          >
+                        </div>
+
                         <div class="col-9">
-                          <q-badge  outline color="blue">{{out.address}}</q-badge></div>
+                          <q-badge outline color="blue"
+                            >{{out.address}}</q-badge
+                          >
+                        </div>
                       </div>
-                      
+                    </div>
+                  </div>
+                  <div
+                    v-if="payment.psbtBase64Signed"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-3 q-pr-lg">
+                      <q-btn
+                        v-if="payment.signedTx"
+                        @click="broadcastTransaction()"
+                        unelevated
+                        color="secondary"
+                        >Send Payment</q-btn
+                      >
+                    </div>
+                    <div class="col-9">
+                      <q-input
+                        v-if="payment.sentTxId"
+                        v-model="payment.sentTxId"
+                        filled
+                        readonly
+                      />
                     </div>
                   </div>
                 </q-card-section>
@@ -1301,7 +1334,6 @@
 
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <style>
-
   .btn-full {
     width: 100%;
   }

@@ -82,12 +82,16 @@ class CreatePsbt(BaseModel):
 
 
 class ExtractPsbt(BaseModel):
-    psbtBase64 = ""
+    psbtBase64 = ""  # // todo snake case
 
 
 class SignedTransaction(BaseModel):
     tx_hex: Optional[str]
     tx_json: Optional[str]
+
+
+class BroadcastTransaction(BaseModel):
+    tx_hex: str
 
 
 class Config(BaseModel):

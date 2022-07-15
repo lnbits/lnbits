@@ -1,4 +1,5 @@
 from http import HTTPStatus
+import httpx
 import json
 
 from fastapi import Query, Request
@@ -33,6 +34,7 @@ from .crud import (
     update_config,
 )
 from .models import (
+    BroadcastTransaction,
     SignedTransaction,
     CreateWallet,
     CreatePsbt,
@@ -303,6 +305,27 @@ async def api_psbt_extract_tx(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
     return res.dict()
 
+
+@watchonly_ext.post("/api/v1/tx")
+async def api_psbt_extract_tx(
+    data: BroadcastTransaction, w: WalletTypeInfo = Depends(require_admin_key)
+):
+    print("### data", data)
+    try:
+        config = await get_config(w.wallet.user)
+        if not config:
+            raise ValueError("Cannot broadcast transaction. Mempool endpoint not defined!")
+        x = bytes.fromhex(data.tx_hex)
+        print('### x', x)
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                config.mempool_endpoint + "/api/tx",
+                data=x
+            )
+            tx_id = r.json()
+            return tx_id
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 #############################CONFIG##########################
 
