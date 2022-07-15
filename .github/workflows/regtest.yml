@@ -1,0 +1,37 @@
+name: regtest
+
+on: [push, pull_request]
+
+jobs:
+  sqlite:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup Regtest
+        run: |
+          git clone git@github.com:lnbits/legend-regtest-enviroment.git docker
+          cd docker
+          source docker-scripts.sh
+          lnbits-regtest-start
+          sleep 60
+          lnbits-regtest-init
+          bitcoin-cli-sim -generate 1
+          lncli-sim 1 listpeers
+      - name: Install dependencies
+        env: 
+          VIRTUAL_ENV: ./venv
+          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
+        run: |
+          python -m venv ${{ env.VIRTUAL_ENV }}
+          ./venv/bin/python -m pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
+      - name: Run tests
+        run: make test
