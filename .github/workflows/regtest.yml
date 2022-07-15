@@ -22,7 +22,7 @@ jobs:
           cd docker
           echo "source"
           source docker-scripts.sh
-          echo "lnbits-regtest-start"
+          echo "lnbits-regtest-start-log"
           lnbits-regtest-start
           echo "sleeping 60 seconds"
           sleep 60
