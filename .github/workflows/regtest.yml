@@ -48,4 +48,4 @@ jobs:
         run: |
           rm -rf ./data
           mkdir -p ./data
-          ./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
+          ./venv/bin/uvicorn lnbits.__main__:app --port 5000
