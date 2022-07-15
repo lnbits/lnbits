@@ -211,7 +211,7 @@ def configure_logger() -> None:
 class Formatter:
     def __init__(self):
         self.padding = 0
-        self.minimal_fmt:  str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
+        self.minimal_fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
         if lnbits.settings.DEBUG:
             self.fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <4}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>\n"
         else:
@@ -219,9 +219,10 @@ class Formatter:
 
     def format(self, record):
         function = "{function}".format(**record)
-        if function == "emit": #uvicorn logs
+        if function == "emit":  # uvicorn logs
             return self.minimal_fmt
         return self.fmt
+
 
 class InterceptHandler(logging.Handler):
     def emit(self, record):
