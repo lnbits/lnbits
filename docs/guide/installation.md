@@ -12,31 +12,7 @@ You can choose between two python package managers, `venv` and `pipenv`. Both ar
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
-## Option 1: venv
-
-Download this repo and install the dependencies:
-
-```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
-# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv'
-python3 -m venv venv
-# If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
-./venv/bin/pip install -r requirements.txt
-# create the data folder and the .env file
-mkdir data && cp .env.example .env
-```
-
-#### Running the server
-
-```sh
-./venv/bin/uvicorn lnbits.__main__:app --port 5000
-```
-
-If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
-
-
-## Option 2: pipenv
+## Option 1: pipenv
 
 You can also use Pipenv to manage your python packages. 
 
@@ -66,6 +42,30 @@ pipenv run python -m uvicorn lnbits.__main__:app --port 5000 --host 0.0.0.0
 ```
 
 Add the flag `--reload` for development (includes hot-reload).
+
+
+## Option 2: venv
+
+Download this repo and install the dependencies:
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+# ensure you have virtualenv installed, on debian/ubuntu 'apt install python3-venv'
+python3 -m venv venv
+# If you have problems here, try `sudo apt install -y pkg-config libpq-dev`
+./venv/bin/pip install -r requirements.txt
+# create the data folder and the .env file
+mkdir data && cp .env.example .env
+```
+
+#### Running the server
+
+```sh
+./venv/bin/uvicorn lnbits.__main__:app --port 5000
+```
+
+If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
 
 ### Troubleshooting
 
