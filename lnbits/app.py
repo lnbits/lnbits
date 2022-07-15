@@ -3,6 +3,7 @@ import importlib
 import sys
 import traceback
 import warnings
+import logging
 
 from loguru import logger
 
@@ -204,3 +205,21 @@ def configure_logger() -> None:
     else:
         fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>"
     logger.add(sys.stderr, level=log_level, format=fmt)
+
+    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
+
+
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
