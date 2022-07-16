@@ -38,6 +38,13 @@ test:
 	PYTHONUNBUFFERED=1 \
 	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
+test-real-wallet:
+	rm -rf ./tests/data
+	mkdir -p ./tests/data
+	LNBITS_DATA_FOLDER="./tests/data" \
+	PYTHONUNBUFFERED=1 \
+	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests	
+
 test-pipenv:
 	rm -rf ./tests/data
 	mkdir -p ./tests/data
