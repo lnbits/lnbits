@@ -36,6 +36,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install pylightning
           # ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests - LndRestWallet
         env:
@@ -61,4 +62,3 @@ jobs:
           rm -rf ./data
           mkdir -p ./data
           timeout 10 ./venv/bin/uvicorn lnbits.__main__:app --port 5123 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-          
