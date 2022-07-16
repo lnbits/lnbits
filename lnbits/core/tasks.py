@@ -1,7 +1,7 @@
 import asyncio
-import httpx
 from typing import List
 
+import httpx
 from loguru import logger
 
 from lnbits.tasks import register_invoice_listener

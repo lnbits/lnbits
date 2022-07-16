@@ -1,4 +1,5 @@
 import asyncio
+
 from fastapi import APIRouter
 
 from lnbits.db import Database

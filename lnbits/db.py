@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from loguru import logger
-
 from sqlalchemy import create_engine
 from sqlalchemy_aio.base import AsyncConnection
 from sqlalchemy_aio.strategy import ASYNCIO_STRATEGY  # type: ignore

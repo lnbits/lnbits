@@ -16,8 +16,8 @@ def tpos_renderer():
 
 
 from .tasks import wait_for_paid_invoices
-from .views_api import *  # noqa
 from .views import *  # noqa
+from .views_api import *  # noqa
 
 
 def tpos_start():

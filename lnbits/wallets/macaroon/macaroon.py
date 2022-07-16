@@ -1,9 +1,9 @@
+import base64
+import getpass
+from hashlib import md5
+
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-import base64
-from hashlib import md5
-import getpass
-
 from loguru import logger
 
 BLOCK_SIZE = 16

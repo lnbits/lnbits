@@ -3,14 +3,12 @@ import json
 from binascii import unhexlify
 from io import BytesIO
 from typing import Dict, Optional, Tuple
-
-from loguru import logger
-
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
+from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection

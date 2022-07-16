@@ -15,6 +15,16 @@ jobs:
       - run: python3 -m venv venv
       - run: ./venv/bin/pip install black
       - run: make checkblack
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: sudo apt-get install python3-venv
+      - run: python3 -m venv venv
+      - run: ./venv/bin/pip install isort
+      - run: make checkisort
+            
   prettier:
     runs-on: ubuntu-latest
     steps:
