@@ -2,7 +2,7 @@
 
 all: format check requirements.txt
 
-format: prettier black
+format: prettier isort black
 
 check: mypy checkprettier checkblack
 
@@ -17,11 +17,17 @@ mypy: $(shell find lnbits -name "*.py")
 	./venv/bin/mypy lnbits/core
 	./venv/bin/mypy lnbits/extensions/*
 
+isort: $(shell find lnbits -name "*.py") 
+	./venv/bin/isort --profile black lnbits
+
 checkprettier: $(shell find lnbits -name "*.js" -name ".html")
 	./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js
 
 checkblack: $(shell find lnbits -name "*.py")
 	./venv/bin/black --check lnbits
+
+checkisort: $(shell find lnbits -name "*.py")
+	./venv/bin/isort --profile black --check-only lnbits
 
 Pipfile.lock: Pipfile
 	./venv/bin/pipenv lock
