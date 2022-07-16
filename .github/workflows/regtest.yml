@@ -37,7 +37,7 @@ jobs:
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pylightning
-          # ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests - LndRestWallet
         env:
           PYTHONUNBUFFERED: 1
