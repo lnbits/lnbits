@@ -1,15 +1,16 @@
-import bitstring  # type: ignore
-import re
 import hashlib
-from typing import List, NamedTuple, Optional
-from bech32 import bech32_encode, bech32_decode, CHARSET
-from ecdsa import SECP256k1, VerifyingKey  # type: ignore
-from ecdsa.util import sigdecode_string  # type: ignore
-from binascii import unhexlify
+import re
 import time
+from binascii import unhexlify
 from decimal import Decimal
+from typing import List, NamedTuple, Optional
+
+import bitstring  # type: ignore
 import embit
 import secp256k1
+from bech32 import CHARSET, bech32_decode, bech32_encode
+from ecdsa import SECP256k1, VerifyingKey  # type: ignore
+from ecdsa.util import sigdecode_string  # type: ignore
 
 
 class Route(NamedTuple):

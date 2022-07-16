@@ -3,9 +3,8 @@ import math
 import traceback
 from http import HTTPStatus
 
-from starlette.requests import Request
-
 from loguru import logger
+from starlette.requests import Request
 
 from . import bleskomat_ext
 from .crud import (

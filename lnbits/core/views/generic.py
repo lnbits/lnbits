@@ -7,10 +7,9 @@ from fastapi.exceptions import HTTPException
 from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
+from loguru import logger
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
-
-from loguru import logger
 
 from lnbits.core import db
 from lnbits.core.models import User

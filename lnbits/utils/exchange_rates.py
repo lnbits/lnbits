@@ -1,9 +1,8 @@
 import asyncio
 from typing import Callable, NamedTuple
 
-from loguru import logger
-
 import httpx
+from loguru import logger
 
 currencies = {
     "AED": "United Arab Emirates Dirham",

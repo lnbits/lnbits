@@ -1,11 +1,11 @@
-from typing import Optional, List, Callable
 from functools import partial
-from urllib.request import parse_http_list as _parse_list_header
+from typing import Callable, List, Optional
 from urllib.parse import urlparse
-from werkzeug.datastructures import Headers
+from urllib.request import parse_http_list as _parse_list_header
 
 from quart import Request
 from quart_trio.asgi import TrioASGIHTTPConnection
+from werkzeug.datastructures import Headers
 
 
 class ASGIProxyFix(TrioASGIHTTPConnection):
