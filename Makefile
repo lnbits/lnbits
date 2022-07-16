@@ -32,6 +32,7 @@ requirements.txt: Pipfile.lock
 test:
 	rm -rf ./tests/data
 	mkdir -p ./tests/data
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
@@ -40,6 +41,7 @@ test:
 test-pipenv:
 	rm -rf ./tests/data
 	mkdir -p ./tests/data
+	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
