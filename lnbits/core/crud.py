@@ -3,6 +3,8 @@ import json
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
+from loguru import logger
+
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
@@ -334,7 +336,7 @@ async def delete_expired_invoices(
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
-
+        logger.debug(f"Deleting expired invoice: {invoice.payment_hash}")
         await (conn or db).execute(
             """
             DELETE FROM apipayments

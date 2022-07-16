@@ -45,7 +45,7 @@ from ..crud import (
 from ..services import (
     InvoiceFailure,
     PaymentFailure,
-    check_invoice_status,
+    check_transaction_status,
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
@@ -120,7 +120,7 @@ async def api_payments(
         offset=offset,
     )
     for payment in pendingPayments:
-        await check_invoice_status(
+        await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
     return await get_payments(
@@ -404,7 +404,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    await check_invoice_status(payment.wallet_id, payment_hash)
+    await check_transaction_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )

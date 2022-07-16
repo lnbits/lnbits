@@ -4,6 +4,7 @@ from .clightning import CLightningWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
 from .lnbits import LNbitsWallet
+from .lndgrpc import LndWallet
 from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
 from .lntxbot import LntxbotWallet

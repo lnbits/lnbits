@@ -146,6 +146,8 @@ class Payment(BaseModel):
         else:
             status = await WALLET.get_invoice_status(self.checking_id)
 
+        logger.debug(f"Checking pending payment {self.checking_id} status: {status}")
+
         if self.is_out and status.failed:
             logger.info(
                 f" - deleting outgoing failed payment {self.checking_id}: {status}"

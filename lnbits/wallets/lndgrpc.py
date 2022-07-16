@@ -178,7 +178,35 @@ class LndWallet(Wallet):
         return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        return PaymentStatus(True)
+        try:
+            r_hash = parse_checking_id(checking_id)
+            if len(r_hash) != 32:
+                raise binascii.Error
+        except binascii.Error:
+            # this may happen if we switch between backend wallets
+            # that use different checking_id formats
+            return PaymentStatus(None)
+
+        # for some reason our checking_ids are in base64 but the payment hashes
+        # returned here are in hex, lnd is weird
+        checking_id = checking_id.replace("_", "/")
+        checking_id = base64.b64decode(checking_id).hex()
+
+        resp = await self.rpc.ListPayments(ln.PaymentHash(r_hash=r_hash))
+
+        # HTLCAttempt.HTLCStatus:
+        # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
+        statuses = {
+            0: None,  # IN_FLIGHT
+            1: True,  # "SUCCEEDED"
+            2: False,  # "SUCCEEDED"
+        }
+
+        for payment in resp.payments:
+            if payment.payment_hash == checking_id:
+                return PaymentStatus(statuses[payment.htlcs[-1].status])
+
+        return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         request = ln.InvoiceSubscription()
