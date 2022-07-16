@@ -20,7 +20,7 @@ jobs:
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
           source docker-scripts.sh
-          RUNNER_TRACKING_ID="" && lnbits-regtest-start
+          lnbits-regtest-start
           echo "sleeping 60 seconds"
           sleep 60
           echo "continue"
@@ -36,7 +36,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
+          # ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests - LndRestWallet
         env:
           PYTHONUNBUFFERED: 1
@@ -50,4 +50,4 @@ jobs:
           rm -rf ./data
           mkdir -p ./data
           source docker/docker-scripts.sh && lncli-sim 1 listpeers
-          timeout 10 ./venv/bin/uvicorn lnbits.__main__:app --port 5000 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+          timeout 10 ./venv/bin/uvicorn lnbits.__main__:app --port 5123 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
