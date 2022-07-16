@@ -5,15 +5,15 @@ on: pull_request
 jobs:
   setup:
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     python-version: [3.7]
+    strategy:
+      matrix:
+        python-version: [3.7]
     steps:
       - uses: actions/checkout@v2
-      # - name: Set up Python ${{ matrix.python-version }}
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Setup Regtest
         run: |
           docker build -t lnbits-legend .
@@ -63,15 +63,15 @@ jobs:
       #     timeout 10 ./venv/bin/uvicorn lnbits.__main__:app || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
         - name: LndRestWallet
           runs-on: ubuntu-latest
-          strategy:
-            matrix:
-              python-version: [3.7]
+          # strategy:
+          #   matrix:
+          #     python-version: [3.7]
           steps:
-            - uses: actions/checkout@v2
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v2
-              with:
-                python-version: ${{ matrix.python-version }}
+            # - uses: actions/checkout@v2
+            # - name: Set up Python ${{ matrix.python-version }}
+            #   uses: actions/setup-python@v2
+            #   with:
+            #     python-version: ${{ matrix.python-version }}
             - name: Install dependencies
               env: 
                 VIRTUAL_ENV: ./venv
