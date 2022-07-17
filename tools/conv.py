@@ -679,6 +679,23 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::boolean, to_timestamp(%s));
         """
         insert_to_pg(q, res.fetchall())
+    elif schema == "discordbot":
+        # USERS
+        res = sq.execute("SELECT * FROM users;")
+        q = f"""
+            INSERT INTO discordbot.users(
+	        id, name, admin, discord_id)
+	        VALUES (%s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+        # WALLETS
+        res = sq.execute("SELECT * FROM wallets;")
+        q = f"""
+            INSERT INTO discordbot.wallets(
+            id, admin, name, "user", adminkey, inkey)
+            VALUES (%s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
     else:
         print(f"❌ Not implemented: {schema}")
         sq.close()

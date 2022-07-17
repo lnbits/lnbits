@@ -38,7 +38,7 @@ jobs:
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
-      - name: Run tests
+      - name: Run migrations
         run: |
           rm -rf ./data
           mkdir -p ./data
@@ -46,4 +46,4 @@ jobs:
           timeout 5s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
           export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
           timeout 5s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-          ./venv/bin/python tools/conv.py
+          ./venv/bin/python tools/conv.py --dont-ignore-missing
