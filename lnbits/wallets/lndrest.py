@@ -140,7 +140,12 @@ class LndRestWallet(Wallet):
 
         return PaymentStatus(True)
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status_legacy(self, checking_id: str) -> PaymentStatus:
+        """
+        This routine uses /v1/payments and then checks whether the payment_hash is in this list.
+        This is a very bad way to check payments. /v2/router/track allows a direct
+        lookup of the payment_hash.
+        """
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/payments",
@@ -168,6 +173,48 @@ class LndRestWallet(Wallet):
         for p in r.json()["payments"]:
             if p["payment_hash"] == checking_id:
                 return PaymentStatus(statuses[p["status"]])
+
+        return PaymentStatus(None)
+
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        url = f"{self.endpoint}/v2/router/track/{checking_id}"
+
+        # check payment.status:
+        # https://api.lightning.community/rest/index.html?python#peersynctype
+        statuses = {
+            "UNKNOWN": None,
+            "IN_FLIGHT": None,
+            "SUCCEEDED": True,
+            "FAILED": False,
+        }
+
+        async with httpx.AsyncClient(
+            timeout=None, headers=self.auth, verify=self.cert
+        ) as client:
+            async with client.stream("GET", url) as r:
+                async for line in r.aiter_lines():
+                    try:
+                        line = json.loads(line)
+                        if line.get("error"):
+                            logger.error(
+                                line["error"]["message"]
+                                if "message" in line["error"]
+                                else line["error"]
+                            )
+                            return PaymentStatus(None)
+                        payment = line.get("result")
+                        if payment is not None and payment.get("status"):
+                            if payment["status"] == "IN_FLIGHT":
+                                logger.debug(
+                                    "payment is in flight, checking again in 1 second"
+                                )
+                                await asyncio.sleep(1)
+                                continue
+                            return PaymentStatus(statuses[payment["status"]])
+                        else:
+                            return PaymentStatus(None)
+                    except:
+                        continue
 
         return PaymentStatus(None)
 
