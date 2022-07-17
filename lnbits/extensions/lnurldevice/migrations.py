@@ -38,11 +38,12 @@ async def m001_initial(db):
 
 async def m002_redux(db):
     """
-    Moves everything from lnurlpos to lnurldevices
+    Moves everything from lnurlpos to lnurldevice
     """
     try:
         for row in [
-            list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlposs")
+            list(row)
+            for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurldevices")
         ]:
             await db.execute(
                 """
