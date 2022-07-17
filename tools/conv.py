@@ -173,6 +173,23 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
+    elif schema == "boltcards":
+        # BOLTCARDS CARDS
+        res = sq.execute("SELECT * FROM cards;")
+        q = f"""
+            INSERT INTO boltcards.cards(
+            id, wallet, card_name, uid, counter, withdraw, file_key, meta_key, time
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+        # BOLTCARDS HITS
+        res = sq.execute("SELECT * FROM hits;")
+        q = f"""
+            INSERT INTO boltcards.hits(
+            card_id, ip, useragent, old_ctr, new_ctr, time
+            VALUES (%s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
     elif schema == "captcha":
         # CAPTCHA
         res = sq.execute("SELECT * FROM captchas;")
