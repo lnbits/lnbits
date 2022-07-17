@@ -49,7 +49,6 @@ async def test_create_internal_invoice(client, inkey_headers_to):
     assert len(invoice["payment_hash"]) == 64
     assert "payment_request" in invoice
     assert "checking_id" in invoice
-    assert invoice["internal"] is True
     assert len(invoice["checking_id"])
     return invoice
 
