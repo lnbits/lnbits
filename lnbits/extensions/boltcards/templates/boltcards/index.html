@@ -126,8 +126,7 @@
           v-model.trim="cardDialog.data.card_name"
           type="text"
           label="Card name "
-          ></q-input
-        >
+        ></q-input>
         <q-input
           filled
           dense
@@ -189,7 +188,6 @@
   </q-dialog>
 </div>
 
-
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
   const mapCards = obj => {
@@ -232,7 +230,7 @@
               align: 'left',
               label: 'Withdraw ID',
               field: 'withdraw'
-            },
+            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -251,11 +249,9 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.cards = response.data
-              .map(function (obj) {
-
-                return mapCards(obj)
-              })
+            self.cards = response.data.map(function (obj) {
+              return mapCards(obj)
+            })
             console.log(self.cards)
           })
       },
@@ -269,13 +265,12 @@
             this.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            self.withdrawsOptions = response.data
-              .map(function (obj) {
-                return {
-                  label: [obj.title, ' - ', obj.id].join(''),
-                  value: obj.id
-                }
-              })
+            self.withdrawsOptions = response.data.map(function (obj) {
+              return {
+                label: [obj.title, ' - ', obj.id].join(''),
+                value: obj.id
+              }
+            })
             console.log(self.withdraws)
           })
       },
