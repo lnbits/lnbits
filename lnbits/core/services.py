@@ -14,7 +14,7 @@ from lnbits import bolt11
 from lnbits.db import Connection
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import WALLET, FAKE_WALLET
+from lnbits.settings import FAKE_WALLET, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
