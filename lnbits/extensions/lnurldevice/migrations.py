@@ -42,7 +42,7 @@ async def m002_redux(db):
     """
     try:
         for row in [
-            list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlpos")
+            list(row) for row in await db2.fetchall("SELECT * FROM lnurlpos.lnurlposs")
         ]:
             await db.execute(
                 """
