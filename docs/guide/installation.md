@@ -61,8 +61,8 @@ LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 
 # START LNbits
 # STOP LNbits
-# on the LNBits folder, locate and edit 'conv.py' with the relevant credentials
-python3 conv.py
+# on the LNBits folder, locate and edit 'tools/conv.py' with the relevant credentials
+python3 tools/conv.py
 ```
 
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
