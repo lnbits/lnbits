@@ -5,7 +5,7 @@ try:
 except ImportError:  # pragma: nocover
     imports_ok = False
 
-
+import asyncio
 import base64
 import binascii
 import hashlib
@@ -19,6 +19,8 @@ from .macaroon import AESCipher, load_macaroon
 if imports_ok:
     import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
     import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
+    import lnbits.wallets.lnd_grpc_files.router_pb2 as router
+    import lnbits.wallets.lnd_grpc_files.router_pb2_grpc as routerrpc
 
 from .base import (
     InvoiceResponse,
@@ -111,6 +113,7 @@ class LndWallet(Wallet):
             f"{self.endpoint}:{self.port}", composite_creds
         )
         self.rpc = lnrpc.LightningStub(channel)
+        self.routerpc = routerrpc.RouterStub(channel)
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -177,7 +180,12 @@ class LndWallet(Wallet):
 
         return PaymentStatus(None)
 
-    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+    async def get_payment_status_legacy(self, checking_id: str) -> PaymentStatus:
+        """
+        This routine uses ListPayments and then checks whether the payment_hash is in this list.
+        This is a very bad way to check payments. routerpc.TrackPaymentV2 allows a direct
+        lookup of the payment_hash.
+        """
         try:
             r_hash = parse_checking_id(checking_id)
             if len(r_hash) != 32:
@@ -192,7 +200,11 @@ class LndWallet(Wallet):
         checking_id = checking_id.replace("_", "/")
         checking_id = base64.b64decode(checking_id).hex()
 
-        resp = await self.rpc.ListPayments(ln.PaymentHash(r_hash=r_hash))
+        resp = await self.rpc.ListPayments(
+            ln.ListPaymentsRequest(
+                include_incomplete=True, max_payments=20, reversed=True
+            )
+        )
 
         # HTLCAttempt.HTLCStatus:
         # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
@@ -208,18 +220,60 @@ class LndWallet(Wallet):
 
         return PaymentStatus(None)
 
-    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        request = ln.InvoiceSubscription()
+    async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         try:
-            async for i in self.rpc.SubscribeInvoices(request):
-                if not i.settled:
+            r_hash = parse_checking_id(checking_id)
+            if len(r_hash) != 32:
+                raise binascii.Error
+        except binascii.Error:
+            # this may happen if we switch between backend wallets
+            # that use different checking_id formats
+            return PaymentStatus(None)
+
+        # for some reason our checking_ids are in base64 but the payment hashes
+        # returned here are in hex, lnd is weird
+        checking_id = checking_id.replace("_", "/")
+        checking_id = base64.b64decode(checking_id).hex()
+
+        resp = self.routerpc.TrackPaymentV2(
+            router.TrackPaymentRequest(payment_hash=r_hash)
+        )
+
+        # HTLCAttempt.HTLCStatus:
+        # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
+        statuses = {
+            0: None,  # IN_FLIGHT
+            1: True,  # "SUCCEEDED"
+            2: False,  # "SUCCEEDED"
+        }
+
+        try:
+            async for payment in resp:
+                if payment.htlcs[-1].status == 0:  # IN_FLIGHT
+                    logger.debug("payment is in flight, checking again in 1 second")
+                    await asyncio.sleep(1)
                     continue
 
-                checking_id = stringify_checking_id(i.r_hash)
-                yield checking_id
-        except error:
-            logger.error(error)
+                return PaymentStatus(statuses[payment.htlcs[-1].status])
+        except:  # most likely the payment wasn't found
+            return PaymentStatus(None)
 
-        logger.error(
-            "lost connection to lnd InvoiceSubscription, please restart lnbits."
-        )
+        return PaymentStatus(None)
+
+    async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        while True:
+            request = ln.InvoiceSubscription()
+            try:
+                async for i in self.rpc.SubscribeInvoices(request):
+                    if not i.settled:
+                        continue
+
+                    checking_id = stringify_checking_id(i.r_hash)
+                    yield checking_id
+            except error:
+                logger.error(error)
+
+            logger.error(
+                "lost connection to lnd InvoiceSubscription, retrying in 5 seconds"
+            )
+            await asyncio.sleep(5)
