@@ -4,6 +4,7 @@ docker
 docs
 tests
 venv
+tools
 
 *.md
 *.log
@@ -12,7 +13,6 @@ venv
 
 .gitignore
 .prettierrc
-conv.py
 LICENSE
 Makefile
 mypy.ini

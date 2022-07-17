@@ -534,19 +534,19 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         items = res.fetchall()
         insert_to_pg(q, items)
         fix_id("offlineshop.items_id_seq", items)
-    elif schema == "lnurlpos":
+    elif schema == "lnurlpos" or schema == "lnurldevice":
         # lnurldevice
         res = sq.execute("SELECT * FROM lnurldevices;")
         q = f"""
-            INSERT INTO lnurlpos.lnurldevices (id, key, title, wallet, currency, timestamp)
-            VALUES (%s, %s, %s, %s, %s, to_timestamp(%s));
+            INSERT INTO lnurldevice.lnurldevices (id, key, title, wallet, currency, device, profit)
+            VALUES (%s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # lnurldevice PAYMENT
         res = sq.execute("SELECT * FROM lnurldevicepayment;")
         q = f"""
-            INSERT INTO lnurlpos.lnurldevicepayment (id, posid, payhash, payload, pin, sats, timestamp)
-            VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s));
+            INSERT INTO lnurldevice.lnurldevicepayment (id, deviceid, payhash, payload, pin, sats)
+            VALUES (%s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     elif schema == "lnurlp":
