@@ -231,7 +231,7 @@ async def redeem_lnurl_withdraw(
             conn=conn,
         )
     except:
-        logger.warn(
+        logger.warning(
             f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
         )
         return None
