@@ -5,6 +5,7 @@ from datetime import datetime
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
+from environs import Env  # type: ignore
 from loguru import logger
 
 from lnbits.helpers import urlsafe_short_hash
@@ -17,6 +18,9 @@ from .base import (
     StatusResponse,
     Wallet,
 )
+
+env = Env()
+env.read_env()
 
 
 class FakeWallet(Wallet):
@@ -32,7 +36,9 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        secret = getenv("FAKE_WALLET_SECRET")
+        # we set a default secret since FakeWallet is used for internal=True invoices
+        # and the user might not have configured a secret yet
+        secret = env.str("FAKE_WALLET_SECTRET", default="ToTheMoon1")
         data: Dict = {
             "out": False,
             "amount": amount,

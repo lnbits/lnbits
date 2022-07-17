@@ -147,6 +147,7 @@ class CreateInvoiceData(BaseModel):
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
     webhook: Optional[str] = None
+    internal: Optional[bool] = False
     bolt11: Optional[str] = None
 
 
@@ -173,6 +174,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 description_hash=description_hash,
                 extra=data.extra,
                 webhook=data.webhook,
+                internal=data.internal,
                 conn=conn,
             )
         except InvoiceFailure as e:
