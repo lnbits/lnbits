@@ -281,7 +281,7 @@ async def btc_price(currency: str) -> float:
     if not rates:
         return 9999999999
     elif len(rates) == 1:
-        logger.warn("Could only fetch one Bitcoin price.")
+        logger.warning("Could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 

@@ -395,7 +395,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     wallet = None
     try:
         if X_Api_Key.extra:
-            logger.warn("No key")
+            logger.warning("No key")
     except:
         wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(
