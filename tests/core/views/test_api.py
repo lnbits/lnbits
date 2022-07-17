@@ -25,13 +25,33 @@ async def test_create_invoice(client, inkey_headers_to):
     response = await client.post(
         "/api/v1/payments", json=data, headers=inkey_headers_to
     )
-    assert response.status_code < 300
-    assert "payment_hash" in response.json()
-    assert len(response.json()["payment_hash"]) == 64
-    assert "payment_request" in response.json()
-    assert "checking_id" in response.json()
-    assert len(response.json()["checking_id"])
-    return response.json()
+    assert response.status_code == 201
+    invoice = response.json()
+    assert "payment_hash" in invoice
+    assert len(invoice["payment_hash"]) == 64
+    assert "payment_request" in invoice
+    assert "checking_id" in invoice
+    assert len(invoice["checking_id"])
+    return invoice
+
+
+# check POST /api/v1/payments: invoice creation for internal payments only
+@pytest.mark.asyncio
+async def test_create_internal_invoice(client, inkey_headers_to):
+    data = await get_random_invoice_data()
+    data["internal"] = True
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    invoice = response.json()
+    assert response.status_code == 201
+    assert "payment_hash" in invoice
+    assert len(invoice["payment_hash"]) == 64
+    assert "payment_request" in invoice
+    assert "checking_id" in invoice
+    assert invoice["internal"] is True
+    assert len(invoice["checking_id"])
+    return invoice
 
 
 # check POST /api/v1/payments: make payment

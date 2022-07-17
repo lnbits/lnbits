@@ -61,7 +61,7 @@ async def create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
     )
     if not ok:
-        raise InvoiceFailure(error_message or "Unexpected backend error.")
+        raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
 
