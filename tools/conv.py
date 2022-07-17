@@ -148,8 +148,8 @@ def migrate_core(sqlite_db_file):
 
 
 def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
+    print(f"Migrating {sqlite_db_file}.{schema}")
     sq = get_sqlite_cursor(sqlite_db_file)
-
     if schema == "bleskomat":
         # BLESKOMAT LNURLS
         res = sq.execute("SELECT * FROM bleskomat_lnurls;")
