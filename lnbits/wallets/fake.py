@@ -18,6 +18,11 @@ from .base import (
     Wallet,
 )
 
+from environs import Env  # type: ignore
+
+env = Env()
+env.read_env()
+
 
 class FakeWallet(Wallet):
     async def status(self) -> StatusResponse:
@@ -32,7 +37,7 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        secret = getenv("FAKE_WALLET_SECRET")
+        secret = env.str("FAKE_WALLET_SECTRET", default="ToTheMoon1")
         data: Dict = {
             "out": False,
             "amount": amount,
