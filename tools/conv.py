@@ -56,8 +56,6 @@ def get_postgres_cursor():
 def check_db_versions(sqdb):
     sqlite = get_sqlite_cursor(sqdb)
     dblite = dict(sqlite.execute("SELECT * FROM dbversions;").fetchall())
-    if "lnurlpos" in dblite:
-        del dblite["lnurlpos"]
     sqlite.close()
 
     postgres = get_postgres_cursor()
@@ -149,7 +147,7 @@ def migrate_core(sqlite_db_file):
     print("Migrated: core")
 
 
-def migrate_ext(sqlite_db_file, schema, ignore_missing = True):
+def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
     sq = get_sqlite_cursor(sqlite_db_file)
 
     if schema == "bleskomat":
@@ -664,7 +662,9 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing = True):
         sq.close()
 
         if ignore_missing == False:
-            raise Exception(f"Not implemented: {schema}. Use --ignore-missing to skip missing extensions.")
+            raise Exception(
+                f"Not implemented: {schema}. Use --ignore-missing to skip missing extensions."
+            )
         return
 
     print(f"✅ Migrated: {schema}")
@@ -672,8 +672,24 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing = True):
 
 
 parser = argparse.ArgumentParser(description="Migrate data from SQLite to PostgreSQL")
-parser.add_argument(dest="sqlite_file",  const=True, nargs='?', help='SQLite DB to migrate from', default="data/database.sqlite3", type=str)
-parser.add_argument('-i','--dont-ignore-missing', help='Error if migration is missing for an extension.', required=False, default=False, const=True, nargs='?', type=bool)
+parser.add_argument(
+    dest="sqlite_file",
+    const=True,
+    nargs="?",
+    help="SQLite DB to migrate from",
+    default="data/database.sqlite3",
+    type=str,
+)
+parser.add_argument(
+    "-i",
+    "--dont-ignore-missing",
+    help="Error if migration is missing for an extension.",
+    required=False,
+    default=False,
+    const=True,
+    nargs="?",
+    type=bool,
+)
 args = parser.parse_args()
 
 print(args)
@@ -687,4 +703,4 @@ for file in files:
     if file.startswith("ext_"):
         schema = file.replace("ext_", "").split(".")[0]
         print(f"Migrating: {schema}")
-        migrate_ext(path, schema, ignore_missing = not args.dont_ignore_missing)
+        migrate_ext(path, schema, ignore_missing=not args.dont_ignore_missing)
