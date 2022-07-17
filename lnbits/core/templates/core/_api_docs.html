@@ -1,10 +1,20 @@
-<q-expansion-item group="extras" icon="swap_vertical_circle" label="API info" :content-inset-level="0.5">
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
   <q-card-section>
     <strong>Wallet ID: </strong><em>{{ wallet.id }}</em><br />
     <strong>Admin key: </strong><em>{{ wallet.adminkey }}</em><br />
     <strong>Invoice/read key: </strong><em>{{ wallet.inkey }}</em>
   </q-card-section>
-  <q-expansion-item group="api" dense expand-separator label="Get wallet details">
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get wallet details"
+  >
     <q-card>
       <q-card-section>
         <code><span class="text-light-green">GET</span> /api/v1/wallet</code>
@@ -13,37 +23,58 @@
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>{"id": &lt;string&gt;, "name": &lt;string&gt;, "balance":
-          &lt;int&gt;}</code>
+        <code
+          >{"id": &lt;string&gt;, "name": &lt;string&gt;, "balance":
+          &lt;int&gt;}</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl {{ request.base_url }}api/v1/wallet -H "X-Api-Key:
-          <i>{{ wallet.inkey }}</i>"</code>
+        <code
+          >curl {{ request.base_url }}api/v1/wallet -H "X-Api-Key:
+          <i>{{ wallet.inkey }}</i>"</code
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
-  <q-expansion-item group="api" dense expand-separator label="Create an invoice (incoming)">
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create an invoice (incoming)"
+  >
     <q-card>
       <q-card-section>
         <code><span class="text-light-green">POST</span> /api/v1/payments</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": "<i>{{ wallet.inkey }}</i>"}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-        <code>{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;, "unit":
-          &lt;string&gt;, "webhook": &lt;url:string&gt;, "internal": &lt;bool&gt;}</code>
+        <code
+          >{"out": false, "amount": &lt;int&gt;, "memo": &lt;string&gt;, "unit":
+          &lt;string&gt;, "webhook": &lt;url:string&gt;, "internal":
+          &lt;bool&gt;}</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 201 CREATED (application/json)
         </h5>
-        <code>{"payment_hash": &lt;string&gt;, "payment_request":
-          &lt;string&gt;}</code>
+        <code
+          >{"payment_hash": &lt;string&gt;, "payment_request":
+          &lt;string&gt;}</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": false,
+        <code
+          >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": false,
           "amount": &lt;int&gt;, "memo": &lt;string&gt;, "webhook":
           &lt;url:string&gt;, "unit": &lt;string&gt;}' -H "X-Api-Key:
-          <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code>
+          <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
-  <q-expansion-item group="api" dense expand-separator label="Pay an invoice (outgoing)">
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Pay an invoice (outgoing)"
+  >
     <q-card>
       <q-card-section>
         <code><span class="text-light-green">POST</span> /api/v1/payments</code>
@@ -56,19 +87,28 @@
         </h5>
         <code>{"payment_hash": &lt;string&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": true,
+        <code
+          >curl -X POST {{ request.base_url }}api/v1/payments -d '{"out": true,
           "bolt11": &lt;string&gt;}' -H "X-Api-Key:
           <i>{{ wallet.adminkey }}"</i> -H "Content-type:
-          application/json"</code>
+          application/json"</code
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
 
-  <q-expansion-item group="api" dense expand-separator label="Decode an invoice">
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Decode an invoice"
+  >
     <q-card>
       <q-card-section>
-        <code><span class="text-light-green">POST</span>
-          /api/v1/payments/decode</code>
+        <code
+          ><span class="text-light-green">POST</span>
+          /api/v1/payments/decode</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": "<i>{{ wallet.inkey }}</i>"}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -77,17 +117,27 @@
           Returns 200 (application/json)
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X POST {{ request.base_url }}api/v1/payments/decode -d
+        <code
+          >curl -X POST {{ request.base_url }}api/v1/payments/decode -d
           '{"data": &lt;bolt11/lnurl, string&gt;}' -H "X-Api-Key:
-          <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code>
+          <i>{{ wallet.inkey }}</i>" -H "Content-type: application/json"</code
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
-  <q-expansion-item group="api" dense expand-separator label="Check an invoice (incoming or outgoing)" class="q-pb-md">
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Check an invoice (incoming or outgoing)"
+    class="q-pb-md"
+  >
     <q-card>
       <q-card-section>
-        <code><span class="text-light-blue">GET</span>
-          /api/v1/payments/&lt;payment_hash&gt;</code>
+        <code
+          ><span class="text-light-blue">GET</span>
+          /api/v1/payments/&lt;payment_hash&gt;</code
+        >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": "{{ wallet.inkey }}"}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -95,9 +145,11 @@
         </h5>
         <code>{"paid": &lt;bool&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code>curl -X GET {{ request.base_url
+        <code
+          >curl -X GET {{ request.base_url
           }}api/v1/payments/&lt;payment_hash&gt; -H "X-Api-Key:
-          <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code>
+          <i>{{ wallet.inkey }}"</i> -H "Content-type: application/json"</code
+        >
       </q-card-section>
     </q-card>
   </q-expansion-item>
