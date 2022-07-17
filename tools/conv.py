@@ -662,6 +662,23 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         tracks = res.fetchall()
         insert_to_pg(q, tracks)
         fix_id("livestream.tracks_id_seq", tracks)
+    elif schema == "lnaddress":
+        # DOMAINS
+        res = sq.execute("SELECT * FROM domain;")
+        q = f"""
+            INSERT INTO lnaddress.domain(
+	        id, wallet, domain, webhook, cf_token, cf_zone_id, cost, "time")
+	        VALUES (%s, %s, %s, %s, %s, %s, %s, to_timestamp(%s));
+        """
+        insert_to_pg(q, res.fetchall())
+        # ADDRESSES
+        res = sq.execute("SELECT * FROM address;")
+        q = f"""
+            INSERT INTO lnaddress.address(
+            id, wallet, domain, email, username, wallet_key, wallet_endpoint, sats, duration, paid, "time")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::boolean, to_timestamp(%s));
+        """
+        insert_to_pg(q, res.fetchall())
     else:
         print(f"❌ Not implemented: {schema}")
         sq.close()
