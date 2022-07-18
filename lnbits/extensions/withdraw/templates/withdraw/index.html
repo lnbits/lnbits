@@ -372,6 +372,13 @@
         <q-btn
           outline
           color="grey"
+          icon="nfc"
+          @click="writeNfcTag(qrCodeDialog.data.lnurl)"
+          :disable="nfcTagWriting"
+        ></q-btn>
+        <q-btn
+          outline
+          color="grey"
           icon="print"
           type="a"
           :href="qrCodeDialog.data.print_url"
