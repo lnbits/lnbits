@@ -111,6 +111,7 @@ class LndWallet(Wallet):
             f"{self.endpoint}:{self.port}", composite_creds
         )
         self.rpc = lnrpc.LightningStub(channel)
+        self.invoice_expiry = int(getenv("INVOICE_EXPIRY"))
 
     def metadata_callback(self, _, callback):
         callback([("macaroon", self.macaroon)], None)
@@ -129,7 +130,7 @@ class LndWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        params: Dict = {"value": amount, "expiry": 600, "private": True}
+        params: Dict = {"value": amount, "expiry": self.invoice_expiry, "private": True}
 
         if description_hash:
             params["description_hash"] = description_hash  # as bytes directly

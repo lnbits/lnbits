@@ -48,6 +48,7 @@ class LndRestWallet(Wallet):
 
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
         self.cert = getenv("LND_REST_CERT", True)
+        self.invoice_expiry = int(getenv("INVOICE_EXPIRY"))
 
     async def status(self) -> StatusResponse:
         try:
@@ -73,7 +74,7 @@ class LndRestWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        data: Dict = {"value": amount, "private": True}
+        data: Dict = {"value": amount, "expiry": self.invoice_expiry, "private": True}
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"
