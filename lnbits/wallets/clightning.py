@@ -69,6 +69,7 @@ class CLightningWallet(Wallet):
             if "pay_index" in inv:
                 self.last_pay_index = inv["pay_index"]
                 break
+        self.invoice_expiry = int(getenv("INVOICE_EXPIRY"))
 
     async def status(self) -> StatusResponse:
         try:
@@ -94,11 +95,11 @@ class CLightningWallet(Wallet):
                 if not self.supports_description_hash:
                     raise Unsupported("description_hash")
 
-                params = [msat, label, description_hash.hex()]
+                params = [msat, label, description_hash.hex(), self.invoice_expiry]
                 r = self.ln.call("invoicewithdescriptionhash", params)
                 return InvoiceResponse(True, label, r["bolt11"], "")
             else:
-                r = self.ln.invoice(msat, label, memo, exposeprivatechannels=True)
+                r = self.ln.invoice(msat, label, memo, expiry=self.invoice_expiry, exposeprivatechannels=True)
                 return InvoiceResponse(True, label, r["bolt11"], "")
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
