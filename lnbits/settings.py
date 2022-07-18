@@ -56,6 +56,8 @@ DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wall
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
+INVOICE_EXPIRY = env.int("INVOICE_EXPIRY", default=3600)
+
 
 try:
     LNBITS_COMMIT = (
