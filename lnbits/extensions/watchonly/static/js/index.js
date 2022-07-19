@@ -40,6 +40,7 @@ new Vue({
         readableStreamClosed: null,
         reader: null,
         showAdvancedConfig: false,
+        receivedData: '',
         config: {}
       },
 
@@ -498,6 +499,7 @@ new Vue({
           input.tx_hex = await this.fetchTxHex(input.tx_id)
         }
 
+        this.payment.tx = tx
         const {data} = await LNbits.api.request(
           'POST',
           '/watchonly/api/v1/psbt',
@@ -611,53 +613,19 @@ new Vue({
           textDecoder.writable
         )
         this.serial.reader = textDecoder.readable.getReader()
-        let psbtChunks = []
+        const readStringUntil = readFromSerialPort(this.serial)
 
         try {
           while (true) {
-            console.log('### reader.read()')
-            const {value, done} = await this.serial.reader.read()
+            const {value, done} = await readStringUntil('\n')
             console.log('### value', value)
             if (value) {
-              const data = value.split('\n')
-              console.log('### xxx', data)
-              const isPsbtStartChunk = data[0].startsWith(PSBT_BASE64_PREFIX)
-              if (isPsbtStartChunk) {
-                psbtChunks = [data[0]]
-              } else if (psbtChunks.length) {
-                psbtChunks.push(data[0])
-                if (data.length > 1) {
-                  console.log('### psbtChunks', psbtChunks)
-                  this.payment.psbtBase64Signed = psbtChunks.join('')
-                  this.$q.notify({
-                    type: 'positive',
-                    message: 'PSBT received from serial port device!',
-                    timeout: 10000
-                  })
-                  const data = await this.etractTxFromPsbt(
-                    this.payment.psbtBase64Signed
-                  )
-                  if (data) {
-                    this.payment.signedTx = JSON.parse(data.tx_json)
-                    this.payment.signedTxHex = data.tx_hex
-                  } else {
-                    this.payment.signedTx = null
-                    his.payment.signedTxHex = null
-                  }
-                }
-              } else {
-                psbtChunks = []
-                this.$q.notify({
-                  type: 'warning',
-                  message: 'Received data from serial port (not psbt)',
-                  caption: value.slice(0, 80) + '...',
-                  timeout: 5000
-                })
-              }
+              const isPsbt = value.startsWith(PSBT_BASE64_PREFIX)
+              if (isPsbt) this.updateSignedPsbt(value)
+              this.updateSerialPortConsole(value)
             }
-            if (done) {
-              return
-            }
+            console.log('### startSerialPortReading DONE', done)
+            if (done) return
           }
         } catch (error) {
           this.$q.notify({
@@ -668,9 +636,9 @@ new Vue({
           })
         }
       }
-      console.log('### startSerialPortReading DONE')
+      console.log('### startSerialPortReading port', port)
     },
-    etractTxFromPsbt: async function (psbtBase64) {
+    extractTxFromPsbt: async function (psbtBase64) {
       const wallet = this.g.user.wallets[0]
       try {
         const {data} = await LNbits.api.request(
@@ -678,13 +646,42 @@ new Vue({
           '/watchonly/api/v1/psbt/extract',
           wallet.adminkey,
           {
-            psbtBase64
+            psbtBase64,
+            inputs: this.payment.tx.inputs
           }
         )
         return data
       } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Cannot finalize PSBT!',
+          timeout: 10000
+        })
         LNbits.utils.notifyApiError(error)
       }
+    },
+    updateSignedPsbt: async function (value) {
+      this.payment.psbtBase64Signed = value
+      this.$q.notify({
+        type: 'positive',
+        message: 'PSBT received from serial port device!',
+        timeout: 10000
+      })
+      const data = await this.extractTxFromPsbt(this.payment.psbtBase64Signed)
+      if (data) {
+        this.payment.signedTx = JSON.parse(data.tx_json)
+        this.payment.signedTxHex = data.tx_hex
+      } else {
+        this.payment.signedTx = null
+        this.payment.signedTxHex = null
+      }
+    },
+    updateSerialPortConsole: function (value) {
+      this.serial.receivedData += value + '\n'
+      const textArea = document.getElementById(
+        'watchonly-serial-port-data-input'
+      )
+      if (textArea) textArea.scrollTop = textArea.scrollHeight
     },
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')
@@ -695,12 +692,18 @@ new Vue({
 
       try {
         const wallet = this.g.user.wallets[0]
-        await LNbits.api.request(
+        const {data} = await LNbits.api.request(
           'POST',
           '/watchonly/api/v1/tx',
           wallet.adminkey,
           {tx_hex: this.payment.signedTxHex}
         )
+        this.$q.notify({
+          type: 'positive',
+          message: 'Transaction broadcasted!',
+          caption: `${data}`,
+          timeout: 10000
+        })
       } catch (error) {
         this.$q.notify({
           type: 'warning',
