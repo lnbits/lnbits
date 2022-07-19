@@ -7,9 +7,8 @@ from typing import Dict, List, Optional, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-from fastapi import Header, Query, Request
+from fastapi import Depends, Header, Query, Request
 from fastapi.exceptions import HTTPException
-from fastapi.param_functions import Depends
 from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
@@ -17,18 +16,14 @@ from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
 
 from lnbits import bolt11, lnurl
-from lnbits.bolt11 import Invoice
 from lnbits.core.models import Payment, Wallet
 from lnbits.decorators import (
-    WalletAdminKeyChecker,
-    WalletInvoiceKeyChecker,
     WalletTypeInfo,
     get_key_type,
     require_admin_key,
     require_invoice_key,
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
-from lnbits.requestvars import g
 from lnbits.settings import LNBITS_ADMIN_USERS, LNBITS_SITE_TITLE
 from lnbits.utils.exchange_rates import (
     currencies,
@@ -435,10 +430,8 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     return {"paid": not payment.pending, "preimage": payment.preimage}
 
 
-@core_app.get(
-    "/api/v1/lnurlscan/{code}", dependencies=[Depends(WalletInvoiceKeyChecker())]
-)
-async def api_lnurlscan(code: str):
+@core_app.get("/api/v1/lnurlscan/{code}")
+async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
         url = lnurl.decode(code)
         domain = urlparse(url).netloc
@@ -466,7 +459,7 @@ async def api_lnurlscan(code: str):
         params.update(kind="auth")
         params.update(callback=url)  # with k1 already in it
 
-        lnurlauth_key = g().wallet.lnurlauth_key(domain)
+        lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
         async with httpx.AsyncClient() as client:
@@ -582,14 +575,19 @@ async def api_payments_decode(data: DecodePayment):
         return {"message": "Failed to decode"}
 
 
-@core_app.post("/api/v1/lnurlauth", dependencies=[Depends(WalletAdminKeyChecker())])
-async def api_perform_lnurlauth(callback: str):
-    err = await perform_lnurlauth(callback)
+class Callback(BaseModel):
+    callback: str = Query(...)
+
+
+@core_app.post("/api/v1/lnurlauth")
+async def api_perform_lnurlauth(
+    callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
+    err = await perform_lnurlauth(callback.callback, wallet=wallet)
     if err:
         raise HTTPException(
             status_code=HTTPStatus.SERVICE_UNAVAILABLE, detail=err.reason
         )
-
     return ""
 
 
