@@ -9,25 +9,14 @@
           {% endif %}
           <a href="lightning:{{ lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
-              <qrcode
-                :value="this.here + '/?lightning={{lnurl }}'"
-                :options="{width: 800}"
-                class="rounded-borders"
-              ></qrcode>
+              <qrcode :value="this.here + '/?lightning={{lnurl }}'" :options="{width: 800}" class="rounded-borders">
+              </qrcode>
             </q-responsive>
           </a>
         </div>
         <div class="row q-mt-lg q-gutter-sm">
-          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
-            >Copy LNURL</q-btn
-          >
-          <q-btn
-            outline
-            color="grey"
-            icon="nfc"
-            @click="writeNfcTag(' {{ lnurl }} ')"
-            :disable="nfcTagWriting"
-          ></q-btn>
+          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')">Copy LNURL</q-btn>
+          <q-btn outline color="grey" icon="nfc" @click="writeNfcTag(' {{ lnurl }} ')" :disable="nfcTagWriting"></q-btn>
         </div>
       </q-card-section>
     </q-card>
@@ -60,40 +49,6 @@
       return {
         here: location.protocol + '//' + location.host,
         nfcTagWriting: false
-      }
-    },
-    methods: {
-      writeNfcTag: async function (lnurl) {
-        try {
-          if (typeof NDEFReader == 'undefined') {
-            throw {
-              toString: function () {
-                return 'NFC not supported on this device and/or browser.'
-              }
-            }
-          }
-
-          const ndef = new NDEFReader()
-
-          this.nfcTagWriting = true
-          this.$q.notify({
-            message: 'Tap your NFC tag now to write the LNURLw to it'
-          })
-
-          await ndef.write(lnurl)
-
-          this.nfcTagWriting = false
-          this.$q.notify({
-            message: 'NFC Tag written successfully!'
-          })
-        } catch (error) {
-          this.nfcTagWriting = false
-          this.$q.notify({
-            message: error
-              ? error.toString()
-              : 'An unexpected error has occurred'
-          })
-        }
       }
     }
   })

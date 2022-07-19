@@ -32,8 +32,8 @@ new Vue({
       withdrawLinks: [],
       withdrawLinksTable: {
         columns: [
-          {name: 'id', align: 'left', label: 'ID', field: 'id'},
-          {name: 'title', align: 'left', label: 'Title', field: 'title'},
+          { name: 'id', align: 'left', label: 'ID', field: 'id' },
+          { name: 'title', align: 'left', label: 'Title', field: 'title' },
           {
             name: 'wait_time',
             align: 'right',
@@ -46,8 +46,8 @@ new Vue({
             label: 'Uses left',
             field: 'uses_left'
           },
-          {name: 'min', align: 'right', label: 'Min (sat)', field: 'min_fsat'},
-          {name: 'max', align: 'right', label: 'Max (sat)', field: 'max_fsat'}
+          { name: 'min', align: 'right', label: 'Min (sat)', field: 'min_fsat' },
+          { name: 'max', align: 'right', label: 'Max (sat)', field: 'max_fsat' }
         ],
         pagination: {
           rowsPerPage: 10
@@ -115,7 +115,7 @@ new Vue({
       }
     },
     openQrCodeDialog: function (linkId) {
-      var link = _.findWhere(this.withdrawLinks, {id: linkId})
+      var link = _.findWhere(this.withdrawLinks, { id: linkId })
 
       this.qrCodeDialog.data = _.clone(link)
       console.log(this.qrCodeDialog.data)
@@ -124,7 +124,7 @@ new Vue({
       this.qrCodeDialog.show = true
     },
     openUpdateDialog: function (linkId) {
-      var link = _.findWhere(this.withdrawLinks, {id: linkId})
+      var link = _.findWhere(this.withdrawLinks, { id: linkId })
       this.formDialog.data = _.clone(link._data)
       this.formDialog.show = true
     },
@@ -211,7 +211,7 @@ new Vue({
     },
     deleteWithdrawLink: function (linkId) {
       var self = this
-      var link = _.findWhere(this.withdrawLinks, {id: linkId})
+      var link = _.findWhere(this.withdrawLinks, { id: linkId })
 
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this withdraw link?')
@@ -220,7 +220,7 @@ new Vue({
             .request(
               'DELETE',
               '/withdraw/api/v1/links/' + linkId,
-              _.findWhere(self.g.user.wallets, {id: link.wallet}).adminkey
+              _.findWhere(self.g.user.wallets, { id: link.wallet }).adminkey
             )
             .then(function (response) {
               self.withdrawLinks = _.reject(self.withdrawLinks, function (obj) {
@@ -249,7 +249,9 @@ new Vue({
           message: 'Tap your NFC tag now to write the LNURLw to it'
         })
 
-        await ndef.write(lnurl)
+        await ndef.write({
+          records: [{ recordType: "url", data: "lnurlw://" + lnurl, lang: "en" }]
+        })
 
         this.nfcTagWriting = false
         this.$q.notify({
