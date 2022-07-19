@@ -17,7 +17,6 @@ from loguru import logger
 import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
 
-from .commands import db_migrate, handle_assets
 from .core import core_app
 from .core.views.generic import core_html_routes
 from .helpers import (
@@ -84,7 +83,6 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     check_funding_source(app)
     register_assets(app)
     register_routes(app)
-    # register_commands(app)
     register_async_tasks(app)
     register_exception_handlers(app)
 
@@ -135,12 +133,6 @@ def register_routes(app: FastAPI) -> None:
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
-
-
-def register_commands(app: FastAPI):
-    """Register Click commands."""
-    app.cli.add_command(db_migrate)
-    app.cli.add_command(handle_assets)
 
 
 def register_assets(app: FastAPI):
