@@ -284,7 +284,7 @@ class CreateLNURLData(BaseModel):
 
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
-    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
     domain = urlparse(data.callback).netloc
 
