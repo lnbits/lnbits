@@ -233,18 +233,19 @@
 
         <q-step :name="3" title="Add Redirect URI" icon="link" :done="step > 3">
           <img src="/jukebox/static/spotapi1.gif" />
-          In the app go to edit-settings, set the redirect URI to this link
-          <br />
-          <q-btn
-            dense
-            outline
-            unelevated
-            color="primary"
-            size="xs"
+          <p>In the app go to edit-settings, set the redirect URI to this link</p>
+          <q-card
+            class="cursor-pointer word-break"
             @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')"
-            >{% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
-            %}<q-tooltip> Click to copy URL </q-tooltip>
-          </q-btn>
+          >
+            <q-card-section
+              style="word-break: break-all"
+            >
+              {% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw %}
+            </q-card-section>
+          <q-tooltip> Click to copy URL </q-tooltip>
+        </q-card>
+
           <br />
           Settings can be found
           <a
