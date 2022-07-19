@@ -9,14 +9,26 @@
           {% endif %}
           <a href="lightning:{{ lnurl }}">
             <q-responsive :ratio="1" class="q-mx-md">
-              <qrcode :value="this.here + '/?lightning={{lnurl }}'" :options="{width: 800}" class="rounded-borders">
+              <qrcode
+                :value="this.here + '/?lightning={{lnurl }}'"
+                :options="{width: 800}"
+                class="rounded-borders"
+              >
               </qrcode>
             </q-responsive>
           </a>
         </div>
         <div class="row q-mt-lg q-gutter-sm">
-          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')">Copy LNURL</q-btn>
-          <q-btn outline color="grey" icon="nfc" @click="writeNfcTag(' {{ lnurl }} ')" :disable="nfcTagWriting"></q-btn>
+          <q-btn outline color="grey" @click="copyText('{{ lnurl }}')"
+            >Copy LNURL</q-btn
+          >
+          <q-btn
+            outline
+            color="grey"
+            icon="nfc"
+            @click="writeNfcTag(' {{ lnurl }} ')"
+            :disable="nfcTagWriting"
+          ></q-btn>
         </div>
       </q-card-section>
     </q-card>
