@@ -28,7 +28,7 @@ class FakeWallet(Wallet):
         logger.info(
             "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system with brrrrrr."
         )
-        return StatusResponse(None, float("inf"))
+        return StatusResponse(None, 1000000000)
 
     async def create_invoice(
         self,
@@ -80,8 +80,12 @@ class FakeWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = decode(bolt11)
+        # TODO: no data here?
+        data: Dict = {
+            "privkey": "missing"
+        }
         if (
-            hasattr(invoice, "checking_id")
+            invoice.checking_id is not None
             and invoice.checking_id[6:] == data["privkey"][:6]
         ):
             return PaymentResponse(True, invoice.payment_hash, 0)
@@ -97,7 +101,7 @@ class FakeWallet(Wallet):
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue = asyncio.Queue(0)
+        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
             value = await self.queue.get()
             yield value

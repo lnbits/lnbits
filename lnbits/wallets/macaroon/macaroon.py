@@ -73,7 +73,7 @@ class AESCipher(object):
             final_key += key
         return final_key[:output]
 
-    def decrypt(self, encrypted: str) -> str:
+    def decrypt(self, encrypted) -> str:
         """Decrypts a string using AES-256-CBC."""
         passphrase = self.passphrase
         encrypted = base64.b64decode(encrypted)
