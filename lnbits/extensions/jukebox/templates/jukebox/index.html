@@ -117,7 +117,7 @@
       >
         <q-step
           :name="1"
-          title="Pick wallet, price"
+          title="1. Pick Wallet and Price"
           icon="account_balance_wallet"
           :done="step > 1"
         >
@@ -170,7 +170,7 @@
           <br />
         </q-step>
 
-        <q-step :name="2" title="Add api keys" icon="vpn_key" :done="step > 2">
+        <q-step :name="2" title="2. Add API keys" icon="vpn_key" :done="step > 2">
           <img src="/jukebox/static/spotapi.gif" />
           To use this extension you need a Spotify client ID and client secret.
             You get these by creating an app in the Spotify Developer Dashboard
@@ -235,7 +235,7 @@
           <br />
         </q-step>
 
-        <q-step :name="3" title="Add Redirect URI" icon="link" :done="step > 3">
+        <q-step :name="3" title="3. Add Redirect URI" icon="link" :done="step > 3">
           <img src="/jukebox/static/spotapi1.gif" />
           <p>In the app go to edit-settings, set the redirect URI to this link</p>
           <q-card
@@ -284,7 +284,7 @@
 
         <q-step
           :name="4"
-          title="Select playlists"
+          title="4. Select Device and Playlists"
           icon="queue_music"
           active-color="primary"
           :done="step > 4"
