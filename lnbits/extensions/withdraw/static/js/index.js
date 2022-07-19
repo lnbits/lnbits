@@ -249,7 +249,9 @@ new Vue({
           message: 'Tap your NFC tag now to write the LNURLw to it'
         })
 
-        await ndef.write(lnurl)
+        await ndef.write({
+          records: [{recordType: 'url', data: 'lnurlw://' + lnurl, lang: 'en'}]
+        })
 
         this.nfcTagWriting = false
         this.$q.notify({
