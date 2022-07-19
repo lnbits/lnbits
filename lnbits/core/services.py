@@ -305,12 +305,12 @@ async def perform_lnurlauth(
         sign_len = 6 + r_len + s_len
 
         signature = BytesIO()
-        signature.write(0x30 .to_bytes(1, "big", signed=False))
+        signature.write(0x30.to_bytes(1, "big", signed=False))
         signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(0x02.to_bytes(1, "big", signed=False))
         signature.write(r_len.to_bytes(1, "big", signed=False))
         signature.write(r)
-        signature.write(0x02 .to_bytes(1, "big", signed=False))
+        signature.write(0x02.to_bytes(1, "big", signed=False))
         signature.write(s_len.to_bytes(1, "big", signed=False))
         signature.write(s)
 
