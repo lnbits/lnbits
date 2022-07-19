@@ -252,6 +252,7 @@ async def api_psbt_create(
         psbt = PSBT(tx)
 
         for i, inp in enumerate(inputs_extra):
+            print("### ", psbt.inputs[i].bip32_derivations)
             psbt.inputs[i].bip32_derivations = inp["bip32_derivations"]
             psbt.inputs[i].non_witness_utxo = inp.get("non_witness_utxo", None)
 
@@ -283,6 +284,9 @@ async def api_psbt_extract_tx(
     res = SignedTransaction()
     try:
         psbt = PSBT.from_base64(data.psbtBase64)
+        for i, inp in enumerate(data.inputs):
+            psbt.inputs[i].non_witness_utxo = Transaction.from_string(inp.tx_hex)
+
         final_psbt = finalizer.finalize_psbt(psbt)
         if not final_psbt:
             raise ValueError("PSBT cannot be finalized!")
@@ -314,18 +318,18 @@ async def api_psbt_extract_tx(
     try:
         config = await get_config(w.wallet.user)
         if not config:
-            raise ValueError("Cannot broadcast transaction. Mempool endpoint not defined!")
-        x = bytes.fromhex(data.tx_hex)
-        print('### x', x)
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                config.mempool_endpoint + "/api/tx",
-                data=x
+            raise ValueError(
+                "Cannot broadcast transaction. Mempool endpoint not defined!"
             )
-            tx_id = r.json()
+        x = bytes.fromhex(data.tx_hex)
+        print("### x", x)
+        async with httpx.AsyncClient() as client:
+            r = await client.post(config.mempool_endpoint + "/api/tx", data=data.tx_hex)
+            tx_id = r.text
             return tx_id
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+
 
 #############################CONFIG##########################
 

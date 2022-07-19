@@ -1019,12 +1019,7 @@
                       >
                     </div>
                     <div class="col-9">
-                      <q-input
-                        v-if="payment.psbtBase64"
-                        v-model="payment.psbtBase64"
-                        filled
-                        readonly
-                      />
+                      <q-input v-model="payment.psbtBase64" filled />
                     </div>
                   </div>
                   <div
@@ -1066,7 +1061,7 @@
                     </div>
                     <div class="col-6">
                       <q-toggle
-                        label="Advanced Config"
+                        label="Advanced"
                         color="secodary float-left"
                         class="q-ml-lg"
                         v-model="serial.showAdvancedConfig"
@@ -1080,6 +1075,20 @@
                         color="secondary float-right"
                         >Send PSBT to Device</q-btn
                       >
+                    </div>
+                  </div>
+                  <div
+                    v-if="serial.showAdvancedConfig"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-3 q-pr-lg">Message from device</div>
+                    <div class="col-9">
+                      <q-input
+                        for="watchonly-serial-port-data-input"
+                        v-model="serial.receivedData"
+                        filled
+                        type="textarea"
+                      />
                     </div>
                   </div>
                   <div

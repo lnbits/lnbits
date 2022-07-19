@@ -83,6 +83,7 @@ class CreatePsbt(BaseModel):
 
 class ExtractPsbt(BaseModel):
     psbtBase64 = ""  # // todo snake case
+    inputs: List[TransactionInput]
 
 
 class SignedTransaction(BaseModel):

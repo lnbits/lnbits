@@ -99,3 +99,36 @@ const ACCOUNT_TYPES = {
 }
 
 const getAccountDescription = type => ACCOUNT_TYPES[type] || 'nonstandard'
+
+const readFromSerialPort = serial => {
+  let partialChunk
+  let fulliness = []
+
+  const readStringUntil = async (separator = '\n') => {
+    console.log('### fulliness', fulliness)
+    if (fulliness.length) return fulliness.shift()
+    const chunks = []
+    if (partialChunk) {
+      // leftovers from previous read
+      chunks.push(partialChunk)
+      partialChunk = undefined
+    }
+    while (true) {
+      const {value, done} = await serial.reader.read()
+      console.log('### value 1', value)
+      if (value) {
+        const values = value.split(separator)
+        // found one or more separators
+        if (values.length > 1) {
+          chunks.push(values.shift()) // first element
+          partialChunk = values.pop() // last element
+          fulliness = values // full lines
+          return {value: chunks.join(''), done: false}
+        }
+        chunks.push(value)
+      }
+      if (done) return {value: chunks.join(''), done: true}
+    }
+  }
+  return readStringUntil
+}
