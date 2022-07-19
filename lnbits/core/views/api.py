@@ -3,7 +3,7 @@ import hashlib
 import json
 from binascii import unhexlify
 from http import HTTPStatus
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -185,7 +185,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             assert (
                 data.lnurl_balance_check is not None
             ), "lnurl_balance_check is required"
-            save_balance_check(wallet.id, data.lnurl_balance_check)
+            await save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
             try:
@@ -291,7 +291,7 @@ async def api_payments_pay_lnurl(
                 timeout=40,
             )
             if r.is_error:
-                raise httpx.ConnectError
+                raise httpx.ConnectError("LNURL Callback Connection Error")
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -348,7 +348,7 @@ async def subscribe(request: Request, wallet: Wallet):
     logger.debug("adding sse listener", payment_queue)
     api_invoice_listeners.append(payment_queue)
 
-    send_queue: asyncio.Queue[tuple[str, Payment]] = asyncio.Queue(0)
+    send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
@@ -389,10 +389,13 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # If a valid key is given, we also return the field "details", otherwise not
     wallet = None
     try:
+        assert X_Api_Key is not None
+        # TODO: type above is Optional[str] how can that have .extra?
         if X_Api_Key.extra:
             logger.warning("No key")
     except:
-        wallet = await get_wallet_for_key(X_Api_Key)
+        if X_Api_Key is not None:
+            wallet = await get_wallet_for_key(X_Api_Key)
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )  # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
@@ -606,7 +609,7 @@ class ConversionData(BaseModel):
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
     if data.from_ == "sat":
-        output["sats"] = int(data.amount)
+        output["sats"] = data.amount
         output["BTC"] = data.amount / 100000000
         for currency in data.to.split(","):
             output[currency.strip().upper()] = await satoshis_amount_as_fiat(
