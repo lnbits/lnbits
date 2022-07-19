@@ -250,7 +250,7 @@ new Vue({
         })
 
         await ndef.write({
-          records: [{recordType: 'url', data: 'lnurlw://' + lnurl, lang: 'en'}]
+          records: [{recordType: 'url', data: 'lightning:' + lnurl, lang: 'en'}]
         })
 
         this.nfcTagWriting = false
