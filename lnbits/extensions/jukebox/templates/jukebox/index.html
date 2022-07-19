@@ -170,12 +170,17 @@
           <br />
         </q-step>
 
-        <q-step :name="2" title="2. Add API keys" icon="vpn_key" :done="step > 2">
+        <q-step
+          :name="2"
+          title="2. Add API keys"
+          icon="vpn_key"
+          :done="step > 2"
+        >
           <img src="/jukebox/static/spotapi.gif" />
           To use this extension you need a Spotify client ID and client secret.
-            You get these by creating an app in the Spotify Developer Dashboard
-            <br/>
-            <br/>
+          You get these by creating an app in the Spotify Developer Dashboard
+          <br />
+          <br />
           <q-btn
             type="a"
             target="_blank"
@@ -235,27 +240,39 @@
           <br />
         </q-step>
 
-        <q-step :name="3" title="3. Add Redirect URI" icon="link" :done="step > 3">
+        <q-step
+          :name="3"
+          title="3. Add Redirect URI"
+          icon="link"
+          :done="step > 3"
+        >
           <img src="/jukebox/static/spotapi1.gif" />
-          <p>In the app go to edit-settings, set the redirect URI to this link</p>
+          <p>
+            In the app go to edit-settings, set the redirect URI to this link
+          </p>
           <q-card
             class="cursor-pointer word-break"
             @click="copyText(locationcb + jukeboxDialog.data.sp_id, 'Link copied to clipboard!')"
           >
             <q-card-section style="word-break: break-all">
-              {% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw %}
+              {% raw %}{{ locationcb }}{{ jukeboxDialog.data.sp_id }}{% endraw
+              %}
             </q-card-section>
             <q-tooltip> Click to copy URL </q-tooltip>
           </q-card>
-          <br/>
+          <br />
           <q-btn
-          type="a"
-          target="_blank"
-          color="primary"
-          href="https://developer.spotify.com/dashboard/applications"
-          >Open the Spotify Application Settings</q-btn>
-          <br><br>
-          <p>After adding the redirect URI, click the "Authorise access" button below.</p>
+            type="a"
+            target="_blank"
+            color="primary"
+            href="https://developer.spotify.com/dashboard/applications"
+            >Open the Spotify Application Settings</q-btn
+          >
+          <br /><br />
+          <p>
+            After adding the redirect URI, click the "Authorise access" button
+            below.
+          </p>
 
           <div class="row q-mt-md">
             <div class="col-4">
