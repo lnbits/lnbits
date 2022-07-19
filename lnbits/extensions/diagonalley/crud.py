@@ -81,7 +81,6 @@ async def get_diagonalley_products(stall_ids: Union[str, List[str]]) -> List[Pro
         """,
         (*stall_ids,),
     )
-    print("PRODS", rows)
     return [Products(**row) for row in rows]
 
 

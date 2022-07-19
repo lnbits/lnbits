@@ -5,8 +5,6 @@ from uuid import uuid4
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
-from starlette.exceptions import HTTPException
-
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.decorators import (
@@ -15,6 +13,7 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
+from starlette.exceptions import HTTPException
 
 from . import db, diagonalley_ext
 from .crud import (
@@ -107,7 +106,7 @@ async def api_diagonalley_product_create(
         product = await update_diagonalley_product(product_id, **data.dict())
     else:
         product = await create_diagonalley_product(data=data)
-    print("PRODUCT", product)
+    
     return product.dict()
 
 
