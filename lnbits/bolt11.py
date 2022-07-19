@@ -23,6 +23,7 @@ class Route(NamedTuple):
 
 class Invoice(object):
     payment_hash: str
+    checking_id: Optional[str] = None
     amount_msat: int = 0
     description: Optional[str] = None
     description_hash: Optional[str] = None
