@@ -430,9 +430,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     return {"paid": not payment.pending, "preimage": payment.preimage}
 
 
-@core_app.get(
-    "/api/v1/lnurlscan/{code}"
-)
+@core_app.get("/api/v1/lnurlscan/{code}")
 async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
         url = lnurl.decode(code)
@@ -576,11 +574,15 @@ async def api_payments_decode(data: DecodePayment):
     except:
         return {"message": "Failed to decode"}
 
+
 class Callback(BaseModel):
     callback: str = Query(...)
 
+
 @core_app.post("/api/v1/lnurlauth")
-async def api_perform_lnurlauth(callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_perform_lnurlauth(
+    callback: Callback, wallet: WalletTypeInfo = Depends(require_admin_key)
+):
     err = await perform_lnurlauth(callback.callback, wallet=wallet)
     if err:
         raise HTTPException(

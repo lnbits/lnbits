@@ -265,12 +265,15 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str, wallet: WalletTypeInfo = Depends(require_admin_key), conn: Optional[Connection] = None
+    callback: str,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    conn: Optional[Connection] = None,
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
-    
+
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
     key = wallet.wallet.lnurlauth_key(cb.netloc)
+
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""
         b = x.to_bytes((x.bit_length() + 7) // 8, "big")
@@ -302,12 +305,12 @@ async def perform_lnurlauth(
         sign_len = 6 + r_len + s_len
 
         signature = BytesIO()
-        signature.write(0x30.to_bytes(1, "big", signed=False))
+        signature.write(0x30 .to_bytes(1, "big", signed=False))
         signature.write((sign_len - 2).to_bytes(1, "big", signed=False))
-        signature.write(0x02.to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
         signature.write(r_len.to_bytes(1, "big", signed=False))
         signature.write(r)
-        signature.write(0x02.to_bytes(1, "big", signed=False))
+        signature.write(0x02 .to_bytes(1, "big", signed=False))
         signature.write(s_len.to_bytes(1, "big", signed=False))
         signature.write(s)
 
