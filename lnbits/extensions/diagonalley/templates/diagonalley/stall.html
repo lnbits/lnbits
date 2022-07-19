@@ -1,4 +1,128 @@
-<pre id="json"></pre>
+{% extends "public.html" %} {% block page %}
+<div class="col-lg-10 col-md-10 col-sm-12 col-xs-12">
+  <div class="q-pa-md row items-start q-gutter-md">
+    <template>
+      <q-card class="cursor-pointer" v-for="item in products" :key="item.id">
+        <q-img
+          src="https://miipublications.com.my/wp-content/uploads/2019/10/shop-online-760x490.jpg"
+        ></q-img>
+
+        <q-card-section class="q-pb-xs q-pt-md">
+          <!--<q-btn-->
+          <!--fab-->
+          <!--color="primary"-->
+          <!--icon="shopping_cart"-->
+          <!--class="absolute"-->
+          <!--style="top: 0; right: 12px; transform: translateY(-50%);"-->
+          <!--&gt;</q-btn>-->
+
+          <div class="row no-wrap items-center">
+            <div class="col text-subtitle2 ellipsis-2-lines text-grey-10">
+              Benling C200-BLK Smartwatch (Black Strap Free Size)
+            </div>
+            <div
+              class="col-auto text-grey text-caption q-pt-md row no-wrap items-center"
+            >
+              <!--<q-icon name="place"></q-icon>-->
+              <!--250 ft-->
+            </div>
+          </div>
+
+          <!-- <q-rating v-model="stars" color="orange" :max="5" readonly size="17px"></q-rating> -->
+        </q-card-section>
+
+        <q-card-section class="q-py-sm">
+          <div>
+            <div class="text-caption text-green-8 text-weight-bolder">
+              Special Price
+            </div>
+            <span class="text-h6">₹3,149</span
+            ><span
+              class="q-ml-sm text-grey-6"
+              style="text-decoration: line-through"
+              >₹3,699</span
+            >
+            <span
+              class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
+              >20% off</span
+            >
+          </div>
+          <!--<div class="text-subtitle1">-->
+          <!--$・Italian, Cafe-->
+          <!--</div>-->
+          <!--<div class="text-caption text-grey">-->
+          <!--Small plates, salads & sandwiches in an intimate setting.-->
+          <!--</div>-->
+        </q-card-section>
+
+        <q-separator></q-separator>
+
+        <q-card-actions>
+          <q-btn
+            flat
+            class="text-weight-bold text-capitalize"
+            dense
+            color="primary"
+          >
+            View details
+          </q-btn>
+        </q-card-actions>
+      </q-card>
+    </template>
+  </div>
+</div>
+<!-- <div class="row q-col-gutter-md">
+  <div class="col-6 col-md-4 col-lg-3" v-for="item in products" :key="item.id">
+    <q-card class="my-card">
+      {% raw %}
+      <q-card-section>
+        <img
+          v-if="item.image"
+          :src="item.image"
+          alt="Product Image"
+          loading="lazy"
+          spinner-color="white"
+          fit="cover"
+        />
+      </q-card-section>
+
+      <q-card-section>
+        <div class="text-h6">{{ item.product }}</div>
+        <div class="text-subtitle2">{{ item.description }}</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none"> {{ lorem }} </q-card-section>
+      {% endraw %}
+    </q-card>
+  </div>
+</div> -->
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    data: function () {
+      return {
+        products: []
+      }
+    },
+    methods: {},
+    created() {
+      this.products = JSON.parse('{{ products | tojson }}')
+      console.log(this.products)
+    }
+  })
+</script>
+{% endblock %}
+<style scoped>
+  .my-card {
+    width: 100%;
+    max-width: 300px;
+  }
+</style>
+
+<!-- <pre id="json"></pre>
 
 <script>
   document.getElementById('json').innerHTML = JSON.stringify(
@@ -6,4 +130,4 @@
     null,
     2
   )
-</script>
+</script> -->

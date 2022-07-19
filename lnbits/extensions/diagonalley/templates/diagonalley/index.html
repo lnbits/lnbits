@@ -506,6 +506,7 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
+              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -514,6 +515,19 @@
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="storefront"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'/diagonalley/' + props.row.id"
+                  target="_blank"
+                ></q-btn>
+                <q-tooltip> Link to pass to stall relay </q-tooltip>
+              </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
@@ -1163,8 +1177,8 @@ new Vue({
       image.src = blobURL
       image.onload = async () => {
         let canvas = document.createElement('canvas')
-        canvas.setAttribute('width', 100)
-        canvas.setAttribute('height', 100)
+        canvas.setAttribute('width', 760)
+        canvas.setAttribute('height', 490)
         await pica.resize(image, canvas, {
           quality: 0,
           alpha: true,
@@ -1493,7 +1507,7 @@ new Vue({
       LNbits.api
         .request(
           'GET',
-          '/diagonalley/api/v1/orders?all_wallets',
+          '/diagonalley/api/v1/orders?all_wallets=true',
           this.g.user.wallets[0].inkey
         )
         .then(function (response) {
