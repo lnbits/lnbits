@@ -317,11 +317,11 @@ async def api_payments_pay_lnurl(
             detail=f"{domain} returned an invalid invoice. Expected {data.amount} msat, got {invoice.amount_msat}.",
         )
 
-    #  if invoice.description_hash != data.description_hash:
-    #      raise HTTPException(
-    #          status_code=HTTPStatus.BAD_REQUEST,
-    #          detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
-    #      )
+    if invoice.description_hash != data.description_hash:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
+        )
 
     extra = {}
 
