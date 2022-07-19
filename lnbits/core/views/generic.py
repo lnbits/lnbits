@@ -121,9 +121,11 @@ async def wallet(
 
     if not user_id:
         user = await get_user((await create_account()).id)
+        assert user is not None
         logger.info(f"Create user {user.id}")
     else:
         user = await get_user(user_id)
+        assert user is not None
         if not user:
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": "User does not exist."}
@@ -218,6 +220,7 @@ async def lnurl_full_withdraw_callback(request: Request):
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
 async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):
     user = await get_user(usr)
+    assert user is not None
     user_wallet_ids = [u.id for u in user.wallets]
 
     if wal not in user_wallet_ids:
@@ -242,7 +245,7 @@ async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query
 async def lnurl_balance_notify(request: Request, service: str):
     bc = await get_balance_check(request.query_params.get("wal"), service)
     if bc:
-        redeem_lnurl_withdraw(bc.wallet, bc.url)
+        await redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
 @core_html_routes.get(
@@ -252,6 +255,7 @@ async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)
         user = await get_user(account.id, conn=conn)
+        assert user is not None
         wallet = await create_wallet(user_id=user.id, conn=conn)
 
     asyncio.create_task(
