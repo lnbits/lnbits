@@ -310,6 +310,12 @@ async def api_payments_pay_lnurl(
             detail=f"{domain} said: '{params.get('reason', '')}'",
         )
 
+    if not params.get("pr"):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"{domain} did not return a payment request.",
+        )
+
     invoice = bolt11.decode(params["pr"])
     if invoice.amount_msat != data.amount:
         raise HTTPException(
