@@ -165,7 +165,7 @@ async def test_api_payment_without_key(invoice):
     response = await api_payment(invoice["payment_hash"])
     assert type(response) == dict
     assert response["paid"] == True
-    # not key, that's why no "details"
+    # no key, that's why no "details"
     assert "details" not in response
 
 
