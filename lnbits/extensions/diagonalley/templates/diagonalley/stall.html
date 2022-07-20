@@ -21,14 +21,56 @@
           </template>
         </q-input>
       </div>
-      <q-btn class="q-ml-auto" flat icon="shopping_cart" />
+      <q-btn dense round flat icon="shopping_cart">
+        {% raw %}
+        <q-badge v-if="cart.size" color="red" class="text-bold" floating>
+          {{ cart.size }}
+        </q-badge>
+        {% endraw %}
+        <q-menu auto-close v-if="cart.size">
+          <q-list style="min-width: 100px">
+            {% raw %}
+            <q-item clickable :key="p.id" v-for="p in cartMenu">
+              <q-item-section side>
+                <span>{{p.quantity}} x </span>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-avatar color="primary">
+                  <img
+                    size="sm"
+                    :src="products.find(f => f.id == p.id).image"
+                  />
+                </q-avatar>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label>{{ p.name }}</q-item-label>
+              </q-item-section>
+
+              <q-item-section side>
+                <span> {{p.price}} sats</span>
+              </q-item-section>
+            </q-item>
+            {% endraw %}
+            <q-separator />
+          </q-list>
+          <div class="q-pa-md q-gutter-md">
+            <q-btn
+              color="primary"
+              icon-right="checkout"
+              label="Checkout"
+              @click="placeOrder"
+            />
+          </div>
+        </q-menu>
+      </q-btn>
     </q-toolbar>
   </div>
 </div>
 <div class="row q-col-gutter-md">
   <div
     class="col-xs-12 col-sm-6 col-lg-4"
-    v-for="item in products"
+    v-for="item in filterProducts"
     :key="item.id"
   >
     <q-card class="card--product">
@@ -54,7 +96,7 @@
             right: 0;
             transform: translate(-50%, -50%);
           "
-          @click="sendAlert"
+          @click="addToCart(item)"
           ><q-tooltip> Add to cart </q-tooltip></q-btn
         >
 
@@ -121,17 +163,56 @@
       return {
         products: [],
         searchText: null,
-        cart: []
+        cart: {
+          total: 0,
+          size: 0,
+          products: new Map()
+        },
+        cartMenu: []
+      }
+    },
+    computed: {
+      filterProducts() {
+        if (!this.searchText || this.searchText.length < 2) return this.products
+        return this.products.filter(p => {
+          return (
+            p.product.includes(this.searchText) ||
+            p.description.includes(this.searchText) ||
+            p.categories.includes(this.searchText)
+          )
+        })
       }
     },
     methods: {
-      sendAlert() {
-        alert('really')
+      addToCart(item) {
+        let prod = this.cart.products
+        if (prod.has(item.id)) {
+          let qty = prod.get(item.id).quantity
+          prod.set(item.id, {
+            ...prod.get(item.id),
+            quantity: qty + 1
+          })
+        } else {
+          prod.set(item.id, {
+            name: item.product,
+            quantity: 1,
+            price: item.price
+          })
+        }
+        this.cart.total += item.price
+        this.cart.size++
+        this.cart.products = prod
+        this.cartMenu = Array.from(prod, item => {
+          return {id: item[0], ...item[1]}
+        })
+        console.log(this.cartMenu)
       }
+    },
+    placeOrder() {
+      return
     },
     created() {
       this.products = JSON.parse('{{ products | tojson }}')
-      console.log(this.searchText)
     }
   })
 </script>
