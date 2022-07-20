@@ -155,3 +155,27 @@ async def test_decode_invoice(client, invoice):
     )
     assert response.status_code < 300
     assert response.json()["payment_hash"] == invoice["payment_hash"]
+
+
+# check api_payment() internal function call (NOT API): payment status
+@pytest.mark.asyncio
+async def test_api_payment_without_key(invoice):
+    # check the payment status
+    response = await api_payment(invoice["payment_hash"])
+    assert type(response) == dict
+    assert response["paid"] == True
+    # not key, that's why no "details"
+    assert "details" not in response
+
+
+# check api_payment() internal function call (NOT API): payment status
+@pytest.mark.asyncio
+async def test_api_payment_with_key(invoice, inkey_headers_from):
+    # check the payment status
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert type(response) == dict
+    assert response["paid"] == True
+    # not key, that's why no "details"
+    assert "details" in response
