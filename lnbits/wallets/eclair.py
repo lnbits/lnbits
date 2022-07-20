@@ -9,7 +9,8 @@ import httpx
 from loguru import logger
 
 # mypy https://github.com/aaugustin/websockets/issues/940
-from websockets.client import connect
+# from websockets.client import connect
+from websockets import connect
 from websockets.exceptions import (
     ConnectionClosed,
     ConnectionClosedError,
