@@ -55,9 +55,9 @@ async def home(request: Request, lightning: str = None):
 )
 async def extensions(
     request: Request,
-    user = Depends(check_user_exists),
-    enable = Query(None),
-    disable = Query(None),
+    user=Depends(check_user_exists),
+    enable=Query(None),
+    disable=Query(None),
 ):
     extension_to_enable = enable
     extension_to_disable = disable
@@ -109,10 +109,10 @@ nothing: create everything<br>
 """,
 )
 async def wallet(
-    request = Query(None),
-    nme = Query(None),
-    usr = Query(None),
-    wal = Query(None),
+    request=Query(None),
+    nme=Query(None),
+    usr=Query(None),
+    wal=Query(None),
 ):
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
@@ -218,7 +218,7 @@ async def lnurl_full_withdraw_callback(request: Request):
 
 
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
-async def deletewallet(request: Request, wal = Query(...), usr = Query(...)):
+async def deletewallet(request: Request, wal=Query(...), usr=Query(...)):
     user = await get_user(usr)
     assert user is not None
     user_wallet_ids = [u.id for u in user.wallets]
