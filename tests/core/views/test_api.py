@@ -178,5 +178,4 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
     )
     assert type(response) == dict
     assert response["paid"] == True
-    # not key, that's why no "details"
     assert "details" in response
