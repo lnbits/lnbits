@@ -1015,30 +1015,66 @@
                   <div class="row items-center no-wrap q-mb-md">
                     <div class="col-3 q-pr-lg">
                       <q-btn unelevated color="secondary" type="submit"
-                        >Check Transaction</q-btn
+                        >Check Tx</q-btn
                       >
                     </div>
                     <div class="col-9">
                       <q-input v-model="payment.psbtBase64" filled />
                     </div>
                   </div>
-                  <q-separator v-if="payment.psbtBase64"></q-separator>
+                  <q-separator
+                    v-if="payment.psbtBase64"
+                    class="q-mb-md"
+                  ></q-separator>
                   <div
                     v-if="payment.psbtBase64"
                     class="row items-center no-wrap q-mb-md"
                   >
-                    <div class="col-3">Sign With</div>
+                    <div class="col-3">
+                      <q-btn-dropdown
+                        class="glossy float-left"
+                        color="secondary"
+                        label="Sign With"
+                      >
+                        <q-list>
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="payment.signMode = 'serial-port'"
+                          >
+                            <q-item-section>
+                              <q-item-label>Serial Port Device</q-item-label>
+                              <q-item-label caption
+                                >Connect via Serial Port and sign.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+
+                          <q-item clickable disabled v-close-popup>
+                            <q-item-section>
+                              <q-item-label>Animated QR Code</q-item-label>
+                              <q-item-label caption
+                                >Share and Scan using animated QR
+                                codes.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-btn-dropdown>
+                    </div>
                     <div class="col-9">
                       <q-option-group
                         v-model="payment.signMode"
                         :options="payment.signModes"
                         color="primary"
-                        label="Sign Mode"
                         inline
                       ></q-option-group>
                     </div>
                   </div>
-                  <q-separator v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"></q-separator>
+                  <q-separator
+                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                    class="q-mb-md"
+                  ></q-separator>
                   <div
                     v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
@@ -1070,7 +1106,10 @@
                     </div>
                     <div class="col-6"></div>
                   </div>
-                  <q-separator v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"></q-separator>
+                  <q-separator
+                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                    class="q-mb-md"
+                  ></q-separator>
                   <div
                     v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
@@ -1180,7 +1219,10 @@
                       />
                     </div>
                   </div>
-                  <q-separator v-if="hww.authenticated"></q-separator>
+                  <q-separator
+                    v-if="hww.authenticated"
+                    class="q-mb-md"
+                  ></q-separator>
                   <div
                     v-if="hww.authenticated"
                     class="row items-center no-wrap q-mb-md"
@@ -1207,7 +1249,10 @@
                       >
                     </div>
                   </div>
-                  <q-separator  v-if="payment.signedTx"></q-separator>
+                  <q-separator
+                    v-if="payment.signedTx"
+                    class="q-mb-md"
+                  ></q-separator>
                   <div
                     v-if="payment.signedTx"
                     class="row items-center no-wrap q-mb-md"
