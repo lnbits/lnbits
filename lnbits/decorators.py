@@ -159,6 +159,8 @@ async def get_key_type(
         invoice_checker = WalletInvoiceKeyChecker(api_key=token)
         await invoice_checker.__call__(r)
         wallet = WalletTypeInfo(1, invoice_checker.wallet)
+        # FIXME: wallet.wallet can be None here
+        assert wallet.wallet is not None
         if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
             LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
         ):

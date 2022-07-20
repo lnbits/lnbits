@@ -56,12 +56,16 @@ from ..tasks import api_invoice_listeners
 @core_app.get("/api/v1/wallet")
 async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
     if wallet.wallet_type == 0:
+        # FIXME: wallet.wallet can be None here
+        assert wallet.wallet is not None
         return {
             "id": wallet.wallet.id,
             "name": wallet.wallet.name,
             "balance": wallet.wallet.balance_msat,
         }
     else:
+        # FIXME: wallet.wallet can be None here
+        assert wallet.wallet is not None
         return {"name": wallet.wallet.name, "balance": wallet.wallet.balance_msat}
 
 
@@ -69,6 +73,9 @@ async def api_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
 async def api_update_balance(
     amount: int, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    # FIXME: wallet.wallet can be None here
+    assert wallet.wallet is not None
+
     if wallet.wallet.user not in LNBITS_ADMIN_USERS:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Not an admin user"
@@ -98,6 +105,9 @@ async def api_update_balance(
 async def api_update_wallet(
     new_name: str, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
+    # FIXME: wallet.wallet can be None here
+    assert wallet.wallet is not None
+
     await update_wallet(wallet.wallet.id, new_name)
     return {
         "id": wallet.wallet.id,
@@ -112,6 +122,9 @@ async def api_payments(
     offset: Optional[int] = None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
+    # FIXME: wallet.wallet can be None here
+    assert wallet.wallet is not None
+
     pendingPayments = await get_payments(
         wallet_id=wallet.wallet.id,
         pending=True,
@@ -256,11 +269,15 @@ async def api_payments_create(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="BOLT11 string is invalid or not given",
             )
+        # FIXME: wallet.wallet can be None here
+        assert wallet.wallet is not None
         return await api_payments_pay_invoice(
             invoiceData.bolt11, wallet.wallet
         )  # admin key
     elif not invoiceData.out:
         # invoice key
+        # FIXME: wallet.wallet can be None here
+        assert wallet.wallet is not None
         return await api_payments_create_invoice(invoiceData, wallet.wallet)
     else:
         raise HTTPException(
@@ -325,6 +342,8 @@ async def api_payments_pay_lnurl(
     if data.comment:
         extra["comment"] = data.comment
     assert data.description is not None, "description is required"
+    # FIXME: wallet.wallet can be None here
+    assert wallet.wallet is not None
     payment_hash = await pay_invoice(
         wallet_id=wallet.wallet.id,
         payment_request=params["pr"],
@@ -378,6 +397,8 @@ async def subscribe(request: Request, wallet: Wallet):
 async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    # FIXME: wallet.wallet can be None here
+    assert wallet.wallet is not None
     return EventSourceResponse(
         subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
     )
@@ -456,6 +477,8 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
         params.update(kind="auth")
         params.update(callback=url)  # with k1 already in it
 
+        # FIXME: wallet.wallet can be None here
+        assert wallet.wallet is not None
         lnurlauth_key = wallet.wallet.lnurlauth_key(domain)
         params.update(pubkey=lnurlauth_key.verifying_key.to_string("compressed").hex())
     else:
