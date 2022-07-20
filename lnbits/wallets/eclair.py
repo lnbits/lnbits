@@ -7,7 +7,9 @@ from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
-from websockets import connect
+
+# mypy https://github.com/aaugustin/websockets/issues/940
+from websockets.client import connect
 from websockets.exceptions import (
     ConnectionClosed,
     ConnectionClosedError,
