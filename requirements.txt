@@ -43,8 +43,6 @@ sqlalchemy==1.3.23
 sqlalchemy-aio==0.16.0
 sse-starlette==0.6.2
 starlette==0.14.2
-types-mock==4.0.15
-types-protobuf==3.19.22
 typing-extensions==3.10.0.2
 uvicorn==0.15.0
 uvloop==0.16.0
