@@ -387,19 +387,13 @@ async def api_payments_sse(
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = None
-    try:
-        assert X_Api_Key is not None
-        # TODO: type above is Optional[str] how can that have .extra?
-        if X_Api_Key.extra:
-            logger.warning("No key")
-    except:
-        if X_Api_Key is not None:
-            wallet = await get_wallet_for_key(X_Api_Key)
+    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None
+
+    # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
+    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
-    )  # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
-    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
+    )
     if payment is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
