@@ -269,6 +269,10 @@ async def perform_lnurlauth(
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
+
+    # FIXME: wallet.wallet can be None here
+    assert wallet.wallet is not None
+
     key = wallet.wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
