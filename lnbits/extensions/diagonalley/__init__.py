@@ -1,18 +1,23 @@
 import asyncio
-from http import HTTPStatus
 
-from fastapi import APIRouter, Request
-from fastapi.staticfiles import StaticFiles
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
-
+from fastapi import APIRouter
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
-from lnbits.settings import LNBITS_ADMIN_EXTENSIONS
 from lnbits.tasks import catch_everything_and_restart
+from starlette.staticfiles import StaticFiles
+
+db = Database("ext_diagonalley")
 
 diagonalley_ext: APIRouter = APIRouter(prefix="/diagonalley", tags=["diagonalley"])
-db = Database("ext_diagonalley")
+
+diagonalley_static_files = [
+    {
+        "path": "/diagonalley/static",
+        "app": StaticFiles(directory="lnbits/extensions/diagonalley/static"),
+        "name": "diagonalley_static",
+    }
+]
+
 # if 'nostradmin' not in LNBITS_ADMIN_EXTENSIONS:
 #     @diagonalley_ext.get("/", response_class=HTMLResponse)
 #     async def index(request: Request):
@@ -20,8 +25,10 @@ db = Database("ext_diagonalley")
 #                 "error.html", {"request": request, "err": "Ask system admin to enable NostrAdmin!"}
 #             )
 # else:
+
 def diagonalley_renderer():
     return template_renderer(["lnbits/extensions/diagonalley/templates"])
+    # return template_renderer(["lnbits/extensions/diagonalley/templates"])
 
 
 from .tasks import wait_for_paid_invoices
