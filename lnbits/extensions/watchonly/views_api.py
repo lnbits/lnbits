@@ -311,10 +311,9 @@ async def api_psbt_extract_tx(
 
 
 @watchonly_ext.post("/api/v1/tx")
-async def api_psbt_extract_tx(
+async def api_tx_broadcast(
     data: BroadcastTransaction, w: WalletTypeInfo = Depends(require_admin_key)
 ):
-    print("### data", data)
     try:
         config = await get_config(w.wallet.user)
         if not config:
@@ -322,11 +321,12 @@ async def api_psbt_extract_tx(
                 "Cannot broadcast transaction. Mempool endpoint not defined!"
             )
         x = bytes.fromhex(data.tx_hex)
-        print("### x", x)
-        async with httpx.AsyncClient() as client:
-            r = await client.post(config.mempool_endpoint + "/api/tx", data=data.tx_hex)
-            tx_id = r.text
-            return tx_id
+
+        # async with httpx.AsyncClient() as client:
+        #     r = await client.post(config.mempool_endpoint + "/api/tx", data=data.tx_hex)
+        #     tx_id = r.text
+        #     return tx_id
+        return "0f0f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0.mock.transaction.id"
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 

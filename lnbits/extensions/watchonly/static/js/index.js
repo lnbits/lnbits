@@ -48,7 +48,8 @@ new Vue({
         password: null,
         authenticated: false,
         showPasswordDialog: false,
-        showConsole: false
+        showConsole: false,
+        psbtSent: false
       },
 
       formDialog: {
@@ -564,6 +565,7 @@ new Vue({
           wallet.adminkey,
           {tx_hex: this.payment.signedTxHex}
         )
+        this.payment.sentTxId = data
         this.$q.notify({
           type: 'positive',
           message: 'Transaction broadcasted!',
@@ -571,6 +573,7 @@ new Vue({
           timeout: 10000
         })
       } catch (error) {
+        this.payment.sentTxId = null
         this.$q.notify({
           type: 'warning',
           message: 'Failed to broadcast!',
@@ -695,6 +698,7 @@ new Vue({
       else if (msg[0] == COMMAND_PASSWORD) this.handleLoginResponse(msg[1])
       else if (msg[0] == COMMAND_PASSWORD_CLEAR)
         this.handleLogoutResponse(msg[1])
+      else if (msg[0] == COMMAND_SEND_PSBT) this.handleSendPsbtResponse(msg[1])
       else console.log('### handleSerialPortResponse', value)
     },
     updateSerialPortConsole: function (value) {
@@ -708,6 +712,19 @@ new Vue({
       console.log('### sharePsbtWithAnimatedQRCode')
     },
     //################### HARDWARE WALLET ###################
+    hwwShowPasswordDialog: async function () {
+      try {
+        this.hww.showPasswordDialog = true
+        await this.serial.writer.write(COMMAND_PASSWORD + '\n')
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to connect to Hardware Wallet!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
     hwwLogin: async function () {
       try {
         await this.serial.writer.write(
@@ -716,7 +733,7 @@ new Vue({
       } catch (error) {
         this.$q.notify({
           type: 'warning',
-          message: 'Failed to send password to hardware wallet!',
+          message: 'Failed to send password to Hardware Wallet!',
           caption: `${error}`,
           timeout: 10000
         })
@@ -767,7 +784,7 @@ new Vue({
       if (this.hww.authenticated) {
         this.hwwLogout()
       } else {
-        this.hww.showPasswordDialog = true
+        this.hwwShowPasswordDialog()
       }
     },
     hwwSendPsbt: async function () {
@@ -788,6 +805,9 @@ new Vue({
           timeout: 10000
         })
       }
+    },
+    handleSendPsbtResponse: function (res = '') {
+      this.hww.psbtSent = true
     },
     hwwSignPsbt: async function () {
       try {

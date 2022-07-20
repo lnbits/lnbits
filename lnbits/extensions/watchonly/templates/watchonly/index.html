@@ -1128,12 +1128,13 @@
                             v-if="!hww.authenticated"
                             clickable
                             v-close-popup
-                            @click="hww.showPasswordDialog = true"
+                            @click="hwwShowPasswordDialog()"
                           >
                             <q-item-section>
                               <q-item-label>Login</q-item-label>
                               <q-item-label caption
-                                >Enter password for HWW.</q-item-label
+                                >Enter password for Hardware
+                                Wallet.</q-item-label
                               >
                             </q-item-section>
                           </q-item>
@@ -1155,14 +1156,8 @@
                             :disabled="!hww.authenticated"
                             clickable
                             v-close-popup
-                            @click="hww.showPasswordDialog = true"
+                            @click="hwwShowPasswordDialog()"
                           >
-                            <q-item-section>
-                              <q-item-label>Sign</q-item-label>
-                              <q-item-label caption
-                                >Sign PSBT on Hardware Wallet.</q-item-label
-                              >
-                            </q-item-section>
                           </q-item>
                           <q-item clickable v-close-popup>
                             <q-item-section>
@@ -1234,25 +1229,62 @@
                     </div>
 
                     <div class="col-6">
-                      <q-badge color="blue"
+                      <q-badge
+                        v-if="hww.psbtSent"
+                        color="yellow"
+                        text-color="black"
+                        class="text-subtitle1"
                         >Please check transaction data on the Hardware Wallet
-                        Display</q-badge
+                        display</q-badge
                       >
                     </div>
                     <div class="col-3">
                       <q-btn
+                        v-if="hww.psbtSent"
                         @click="hwwSignPsbt()"
                         unelevated
                         color="green"
-                        class="float-right text-subtitle1"
+                        class="float-right"
                         >Confirm</q-btn
                       >
+                    </div>
+                  </div>
+                  <div
+                    v-if="payment.psbtBase64Signed"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-3 q-pr-lg"></div>
+
+                    <div class="col-9">
+                      <q-input
+                        v-model="payment.psbtBase64Signed"
+                        filled
+                        readonly
+                      />
                     </div>
                   </div>
                   <q-separator
                     v-if="payment.signedTx"
                     class="q-mb-md"
                   ></q-separator>
+                  <div
+                    v-if="payment.psbtBase64Signed"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-3 q-pr-lg">
+                      <q-btn
+                        v-if="payment.signedTx"
+                        @click="broadcastTransaction()"
+                        unelevated
+                        color="secondary"
+                        >Send Payment</q-btn
+                      >
+                    </div>
+                    <div class="col-9">
+                      <span class="text-subtitle2">Transaction Details</span>
+                      <q-separator></q-separator>
+                    </div>
+                  </div>
                   <div
                     v-if="payment.signedTx"
                     class="row items-center no-wrap q-mb-md"
@@ -1276,6 +1308,8 @@
                         </div>
                       </div>
                       <q-separator class="q-mb-lg"></q-separator>
+                      <span class="text-subtitle2">Outputs</span>
+                      <q-separator class="q-mb-lg"></q-separator>
                       <div
                         v-for="out in payment.signedTx.outputs"
                         class="row items-center no-wrap q-mb-sm"
@@ -1292,28 +1326,18 @@
                           >
                         </div>
                       </div>
-                    </div>
-                  </div>
-                  <div
-                    v-if="payment.psbtBase64Signed"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg">
-                      <q-btn
-                        v-if="payment.signedTx"
-                        @click="broadcastTransaction()"
-                        unelevated
-                        color="secondary"
-                        >Send Payment</q-btn
-                      >
-                    </div>
-                    <div class="col-9">
-                      <q-input
+                      <q-separator
                         v-if="payment.sentTxId"
-                        v-model="payment.sentTxId"
-                        filled
-                        readonly
-                      />
+                        class="q-mb-lg"
+                      ></q-separator>
+                      <div
+                        v-if="payment.sentTxId"
+                        class="row items-center no-wrap q-mb-sm"
+                      >
+                        <div class="col-12">
+                          <q-input v-model="payment.sentTxId" filled readonly />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </q-card-section>
