@@ -248,7 +248,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData=Body(...),
+    invoiceData: CreateInvoiceData = Body(...),
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
