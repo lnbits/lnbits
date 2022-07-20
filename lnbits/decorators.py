@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+from typing import Optional
+
 from cerberus import Validator  # type: ignore
 from fastapi import status
 from fastapi.exceptions import HTTPException
@@ -29,20 +31,20 @@ class KeyChecker(SecurityBase):
         self._key_type = "invoice"
         self._api_key = api_key
         if api_key:
-            self.model: APIKey = APIKey(
+            key = APIKey(
                 **{"in": APIKeyIn.query},
                 name="X-API-KEY",
                 description="Wallet API Key - QUERY",
             )
         else:
-            self.model: APIKey = APIKey(
+            key = APIKey(
                 **{"in": APIKeyIn.header},
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
-        self.wallet = None
+        self.model: APIKey = key
 
-    async def __call__(self, request: Request) -> Wallet:
+    async def __call__(self, request: Request):
         try:
             key_value = (
                 self._api_key
@@ -52,12 +54,13 @@ class KeyChecker(SecurityBase):
             # FIXME: Find another way to validate the key. A fetch from DB should be avoided here.
             #        Also, we should not return the wallet here - thats silly.
             #        Possibly store it in a Redis DB
-            self.wallet = await get_wallet_for_key(key_value, self._key_type)
-            if not self.wallet:
+            wallet = await get_wallet_for_key(key_value, self._key_type)
+            if not wallet:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
                     detail="Invalid key or expired key.",
                 )
+            self.wallet = wallet
 
         except KeyError:
             raise HTTPException(
@@ -120,8 +123,8 @@ api_key_query = APIKeyQuery(
 
 async def get_key_type(
     r: Request,
-    api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
+    api_key_header = Security(api_key_header),
+    api_key_query = Security(api_key_query),
 ) -> WalletTypeInfo:
     # 0: admin
     # 1: invoice
@@ -134,9 +137,10 @@ async def get_key_type(
     token = api_key_header if api_key_header else api_key_query
 
     try:
-        checker = WalletAdminKeyChecker(api_key=token)
-        await checker.__call__(r)
-        wallet = WalletTypeInfo(0, checker.wallet)
+        admin_checker = WalletAdminKeyChecker(api_key=token)
+        await admin_checker.__call__(r)
+        wallet = WalletTypeInfo(0, admin_checker.wallet)
+        assert wallet.wallet is not None
         if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
             LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
         ):
@@ -153,9 +157,9 @@ async def get_key_type(
         raise
 
     try:
-        checker = WalletInvoiceKeyChecker(api_key=token)
-        await checker.__call__(r)
-        wallet = WalletTypeInfo(1, checker.wallet)
+        invoice_checker = WalletInvoiceKeyChecker(api_key=token)
+        await invoice_checker.__call__(r)
+        wallet = WalletTypeInfo(1, invoice_checker.wallet)
         if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
             LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
         ):
@@ -174,8 +178,8 @@ async def get_key_type(
 
 async def require_admin_key(
     r: Request,
-    api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
+    api_key_header = Security(api_key_header),
+    api_key_query = Security(api_key_query),
 ):
     token = api_key_header if api_key_header else api_key_query
 
@@ -193,8 +197,8 @@ async def require_admin_key(
 
 async def require_invoice_key(
     r: Request,
-    api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
+    api_key_header = Security(api_key_header),
+    api_key_query = Security(api_key_query),
 ):
     token = api_key_header if api_key_header else api_key_query
 
