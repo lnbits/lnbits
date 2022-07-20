@@ -8,7 +8,8 @@ from typing import AsyncGenerator, Dict, Optional
 import httpx
 from loguru import logger
 
-from websockets import connect # type: ignore
+from websockets import connect  # type: ignore
+
 # TODO: https://github.com/lnbits/lnbits-legend/issues/764
 # mypy https://github.com/aaugustin/websockets/issues/940
 
