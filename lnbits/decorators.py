@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from typing import Optional
+from typing import Union
 
 from cerberus import Validator  # type: ignore
 from fastapi import status
@@ -102,9 +102,9 @@ class WalletAdminKeyChecker(KeyChecker):
 
 class WalletTypeInfo:
     wallet_type: int
-    wallet: Wallet
+    wallet: Union[Wallet, None]
 
-    def __init__(self, wallet_type: int, wallet: Wallet) -> None:
+    def __init__(self, wallet_type: int, wallet: Union[Wallet, None]) -> None:
         self.wallet_type = wallet_type
         self.wallet = wallet
 
@@ -171,7 +171,7 @@ async def get_key_type(
         if e.status_code == HTTPStatus.BAD_REQUEST:
             raise
         if e.status_code == HTTPStatus.UNAUTHORIZED:
-            return WalletTypeInfo(2, Wallet())
+            return WalletTypeInfo(2, None)
     except:
         raise
     return wallet
