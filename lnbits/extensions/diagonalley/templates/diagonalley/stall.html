@@ -1,101 +1,116 @@
 {% extends "public.html" %} {% block page %}
-<div class="col-lg-10 col-md-10 col-sm-12 col-xs-12">
-  <div class="q-pa-md row items-start q-gutter-md">
-    <template>
-      <q-card class="cursor-pointer" v-for="item in products" :key="item.id">
-        <q-img
-          src="https://miipublications.com.my/wp-content/uploads/2019/10/shop-online-760x490.jpg"
-        ></q-img>
-
-        <q-card-section class="q-pb-xs q-pt-md">
-          <!--<q-btn-->
-          <!--fab-->
-          <!--color="primary"-->
-          <!--icon="shopping_cart"-->
-          <!--class="absolute"-->
-          <!--style="top: 0; right: 12px; transform: translateY(-50%);"-->
-          <!--&gt;</q-btn>-->
-
-          <div class="row no-wrap items-center">
-            <div class="col text-subtitle2 ellipsis-2-lines text-grey-10">
-              Benling C200-BLK Smartwatch (Black Strap Free Size)
-            </div>
-            <div
-              class="col-auto text-grey text-caption q-pt-md row no-wrap items-center"
-            >
-              <!--<q-icon name="place"></q-icon>-->
-              <!--250 ft-->
-            </div>
-          </div>
-
-          <!-- <q-rating v-model="stars" color="orange" :max="5" readonly size="17px"></q-rating> -->
-        </q-card-section>
-
-        <q-card-section class="q-py-sm">
-          <div>
-            <div class="text-caption text-green-8 text-weight-bolder">
-              Special Price
-            </div>
-            <span class="text-h6">₹3,149</span
-            ><span
-              class="q-ml-sm text-grey-6"
-              style="text-decoration: line-through"
-              >₹3,699</span
-            >
-            <span
-              class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
-              >20% off</span
-            >
-          </div>
-          <!--<div class="text-subtitle1">-->
-          <!--$・Italian, Cafe-->
-          <!--</div>-->
-          <!--<div class="text-caption text-grey">-->
-          <!--Small plates, salads & sandwiches in an intimate setting.-->
-          <!--</div>-->
-        </q-card-section>
-
-        <q-separator></q-separator>
-
-        <q-card-actions>
-          <q-btn
-            flat
-            class="text-weight-bold text-capitalize"
-            dense
-            color="primary"
-          >
-            View details
-          </q-btn>
-        </q-card-actions>
-      </q-card>
-    </template>
+<div class="row q-mb-md">
+  <div class="col-12 q-gutter-y-md">
+    <q-toolbar class="row">
+      <div class="col">
+        <q-toolbar-title> {{ stall.name }} </q-toolbar-title>
+      </div>
+      <div class="col q-mx-md">
+        <q-input
+          class="float-left full-width q-ml-md"
+          standout
+          square
+          dense
+          outlined
+          clearable
+          v-model.trim="searchText"
+          label="Search for products"
+        >
+          <template v-slot:append>
+            <q-icon v-if="!searchText" name="search" />
+          </template>
+        </q-input>
+      </div>
+      <q-btn class="q-ml-auto" flat icon="shopping_cart" />
+    </q-toolbar>
   </div>
 </div>
-<!-- <div class="row q-col-gutter-md">
-  <div class="col-6 col-md-4 col-lg-3" v-for="item in products" :key="item.id">
-    <q-card class="my-card">
+<div class="row q-col-gutter-md">
+  <div
+    class="col-xs-12 col-sm-6 col-lg-4"
+    v-for="item in products"
+    :key="item.id"
+  >
+    <q-card class="card--product">
       {% raw %}
-      <q-card-section>
-        <img
-          v-if="item.image"
-          :src="item.image"
-          alt="Product Image"
-          loading="lazy"
-          spinner-color="white"
-          fit="cover"
-        />
+      <q-img
+        :src="item.image ? item.image : '/diagonalley/static/images/placeholder.png'"
+        alt="Product Image"
+        loading="lazy"
+        spinner-color="white"
+        fit="cover"
+        height="300px"
+      ></q-img>
+
+      <q-card-section class="q-pb-xs q-pt-md">
+        <q-btn
+          round
+          color="primary"
+          icon="shopping_cart"
+          size="lg"
+          style="
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(-50%, -50%);
+          "
+          @click="sendAlert"
+          ><q-tooltip> Add to cart </q-tooltip></q-btn
+        >
+
+        <div class="row no-wrap items-center">
+          <div class="col text-subtitle2 ellipsis-2-lines">
+            {{ item.product }}
+          </div>
+        </div>
+
+        <!-- <q-rating v-model="stars" color="orange" :max="5" readonly size="17px"></q-rating> -->
       </q-card-section>
 
-      <q-card-section>
-        <div class="text-h6">{{ item.product }}</div>
-        <div class="text-subtitle2">{{ item.description }}</div>
+      <q-card-section class="q-py-sm">
+        <div>
+          <div class="text-caption text-green-8 text-weight-bolder">
+            Special Price
+          </div>
+          <span class="text-h6">{{ item.price }} sats</span
+          ><span class="q-ml-sm text-grey-6"
+            >BTC {{ (item.price / 1e8).toFixed(8) }}</span
+          >
+          <span
+            class="q-ml-md text-caption text-green-8 text-weight-bolder q-mt-md"
+            >{{item.quantity}} left</span
+          >
+        </div>
+        <div v-if="item.categories" class="text-subtitle1">
+          <q-chip v-for="cat in item.categories.split(',')" dense
+            >{{cat}}</q-chip
+          >
+        </div>
+        <div
+          v-if="item.description"
+          class="text-caption text-grey ellipsis-2-lines"
+          style="min-height: 40px"
+        >
+          {{ item.description }}
+        </div>
       </q-card-section>
 
-      <q-card-section class="q-pt-none"> {{ lorem }} </q-card-section>
+      <q-separator></q-separator>
+
+      <q-card-actions>
+        <q-btn
+          flat
+          class="text-weight-bold text-capitalize"
+          dense
+          color="primary"
+        >
+          View details
+        </q-btn>
+      </q-card-actions>
       {% endraw %}
     </q-card>
   </div>
-</div> -->
+</div>
 {% endblock %} {% block scripts %}
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
@@ -104,23 +119,28 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        products: []
+        products: [],
+        searchText: null,
+        cart: []
       }
     },
-    methods: {},
+    methods: {
+      sendAlert() {
+        alert('really')
+      }
+    },
     created() {
       this.products = JSON.parse('{{ products | tojson }}')
-      console.log(this.products)
+      console.log(this.searchText)
     }
   })
 </script>
-{% endblock %}
 <style scoped>
-  .my-card {
-    width: 100%;
-    max-width: 300px;
+  .card--product {
+    background: pink;
   }
 </style>
+{% endblock %}
 
 <!-- <pre id="json"></pre>
 
