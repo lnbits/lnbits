@@ -3,7 +3,7 @@ import hashlib
 import json
 from binascii import unhexlify
 from http import HTTPStatus
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx

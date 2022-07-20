@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, NamedTuple, List
+from typing import Callable, List, NamedTuple
 
 import httpx
 from loguru import logger
