@@ -1,4 +1,8 @@
 const PSBT_BASE64_PREFIX = 'cHNidP8'
+const COMMAND_PASSWORD = '/password'
+const COMMAND_PASSWORD_CLEAR = '/password-clear'
+const COMMAND_SEND_PSBT = '/psbt'
+const COMMAND_SIGN_PSBT = '/sign'
 
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''
@@ -105,8 +109,7 @@ const readFromSerialPort = serial => {
   let fulliness = []
 
   const readStringUntil = async (separator = '\n') => {
-    console.log('### fulliness', fulliness)
-    if (fulliness.length) return fulliness.shift()
+    if (fulliness.length) return fulliness.shift().trim()
     const chunks = []
     if (partialChunk) {
       // leftovers from previous read
@@ -115,7 +118,7 @@ const readFromSerialPort = serial => {
     }
     while (true) {
       const {value, done} = await serial.reader.read()
-      console.log('### value 1', value)
+      console.log('### serial read', value)
       if (value) {
         const values = value.split(separator)
         // found one or more separators
@@ -123,11 +126,11 @@ const readFromSerialPort = serial => {
           chunks.push(values.shift()) // first element
           partialChunk = values.pop() // last element
           fulliness = values // full lines
-          return {value: chunks.join(''), done: false}
+          return {value: chunks.join('').trim(), done: false}
         }
         chunks.push(value)
       }
-      if (done) return {value: chunks.join(''), done: true}
+      if (done) return {value: chunks.join('').trim(), done: true}
     }
   }
   return readStringUntil

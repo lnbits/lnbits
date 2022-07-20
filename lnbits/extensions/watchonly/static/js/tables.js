@@ -259,6 +259,7 @@ const tableData = {
     },
     fee: 0,
     txSize: 0,
+    tx: null,
     psbtBase64: '',
     psbtBase64Signed: '',
     signedTx: null,

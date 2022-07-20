@@ -1015,13 +1015,14 @@
                   <div class="row items-center no-wrap q-mb-md">
                     <div class="col-3 q-pr-lg">
                       <q-btn unelevated color="secondary" type="submit"
-                        >Create PSBT</q-btn
+                        >Check Transaction</q-btn
                       >
                     </div>
                     <div class="col-9">
                       <q-input v-model="payment.psbtBase64" filled />
                     </div>
                   </div>
+                  <q-separator v-if="payment.psbtBase64"></q-separator>
                   <div
                     v-if="payment.psbtBase64"
                     class="row items-center no-wrap q-mb-md"
@@ -1037,12 +1038,11 @@
                       ></q-option-group>
                     </div>
                   </div>
-                  <q-separator></q-separator>
+                  <q-separator v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"></q-separator>
                   <div
                     v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
                   >
-                    <!-- <div class="col-3"></div> -->
                     <div class="col-3">
                       <q-btn
                         v-if="!serial.selectedPort"
@@ -1059,29 +1059,118 @@
                         >Disconnect</q-btn
                       >
                     </div>
-                    <div class="col-6">
+                    <div class="col-3">
                       <q-toggle
                         label="Advanced"
+                        disabled
                         color="secodary float-left"
                         class="q-ml-lg"
                         v-model="serial.showAdvancedConfig"
                       ></q-toggle>
                     </div>
+                    <div class="col-6"></div>
+                  </div>
+                  <q-separator v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"></q-separator>
+                  <div
+                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                    class="row items-center no-wrap q-mb-md q-mt-lg"
+                  >
                     <div class="col-3">
-                      <q-btn
+                      <q-btn-dropdown
                         v-if="serial.selectedPort"
-                        @click="sendPsbtToSerialPort()"
-                        unelevated
-                        color="secondary float-right"
-                        >Send PSBT to Device</q-btn
+                        split
+                        class="glossy float-left"
+                        color="secondary"
+                        :label="hww.authenticated ? 'Logout' : 'Login'"
+                        @click="hwwToggleAuth()"
                       >
+                        <q-list>
+                          <q-item
+                            v-if="!hww.authenticated"
+                            clickable
+                            v-close-popup
+                            @click="hww.showPasswordDialog = true"
+                          >
+                            <q-item-section>
+                              <q-item-label>Login</q-item-label>
+                              <q-item-label caption
+                                >Enter password for HWW.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+
+                          <q-item
+                            v-if="hww.authenticated"
+                            clickable
+                            v-close-popup
+                            @click="hwwLogout()"
+                          >
+                            <q-item-section>
+                              <q-item-label>Logout</q-item-label>
+                              <q-item-label caption
+                                >Clear password for HWW.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                          <q-item
+                            :disabled="!hww.authenticated"
+                            clickable
+                            v-close-popup
+                            @click="hww.showPasswordDialog = true"
+                          >
+                            <q-item-section>
+                              <q-item-label>Sign</q-item-label>
+                              <q-item-label caption
+                                >Sign PSBT on Hardware Wallet.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup>
+                            <q-item-section>
+                              <q-item-label>Restore</q-item-label>
+                              <q-item-label caption
+                                >Restore wallet from existing word
+                                list.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup>
+                            <q-item-section>
+                              <q-item-label>Wipe</q-item-label>
+                              <q-item-label caption
+                                >Clean-up the wallet. New random
+                                seed.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                          <q-item clickable v-close-popup>
+                            <q-item-section>
+                              <q-item-label>Help</q-item-label>
+                              <q-item-label caption
+                                >View available comands.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-btn-dropdown>
                     </div>
+                    <div class="col-3">
+                      <q-toggle
+                        v-if="serial.selectedPort"
+                        label="Show Console"
+                        color="secodary float-left"
+                        class="q-ml-lg"
+                        v-model="hww.showConsole"
+                      ></q-toggle>
+                    </div>
+                    <div class="col-3"></div>
+                    <div class="col-3"></div>
                   </div>
                   <div
-                    v-if="serial.showAdvancedConfig"
+                    v-if="hww.showConsole"
                     class="row items-center no-wrap q-mb-md"
                   >
-                    <div class="col-3 q-pr-lg">Message from device</div>
+                    <div class="col-3 q-pr-lg"></div>
                     <div class="col-9">
                       <q-input
                         for="watchonly-serial-port-data-input"
@@ -1091,19 +1180,34 @@
                       />
                     </div>
                   </div>
+                  <q-separator v-if="hww.authenticated"></q-separator>
                   <div
-                    v-if="payment.psbtBase64Signed"
+                    v-if="hww.authenticated"
                     class="row items-center no-wrap q-mb-md"
                   >
-                    <div class="col-3 q-pr-lg">PSBT from device</div>
-                    <div class="col-9">
-                      <q-input
-                        v-model="payment.psbtBase64Signed"
-                        filled
-                        readonly
-                      />
+                    <div class="col-3 q-pr-lg">
+                      <q-btn @click="hwwSendPsbt()" unelevated color="secondary"
+                        >Sign</q-btn
+                      >
+                    </div>
+
+                    <div class="col-6">
+                      <q-badge color="blue"
+                        >Please check transaction data on the Hardware Wallet
+                        Display</q-badge
+                      >
+                    </div>
+                    <div class="col-3">
+                      <q-btn
+                        @click="hwwSignPsbt()"
+                        unelevated
+                        color="green"
+                        class="float-right text-subtitle1"
+                        >Confirm</q-btn
+                      >
                     </div>
                   </div>
+                  <q-separator  v-if="payment.signedTx"></q-separator>
                   <div
                     v-if="payment.signedTx"
                     class="row items-center no-wrap q-mb-md"
@@ -1336,6 +1440,34 @@
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
       <div class="row q-mt-lg q-gutter-sm"></div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="hww.showPasswordDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwLogin" class="q-gutter-md">
+        <span>Enter password for Hardware Wallet</span>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.password"
+          type="password"
+          label="Password"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!serial.selectedPort"
+            type="submit"
+            >Login</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
     </q-card>
   </q-dialog>
   {% endraw %}

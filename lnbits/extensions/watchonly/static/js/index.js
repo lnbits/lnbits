@@ -44,6 +44,13 @@ new Vue({
         config: {}
       },
 
+      hww: {
+        password: null,
+        authenticated: false,
+        showPasswordDialog: false,
+        showConsole: false
+      },
+
       formDialog: {
         show: false,
         data: {}
@@ -512,6 +519,67 @@ new Vue({
         LNbits.utils.notifyApiError(err)
       }
     },
+    extractTxFromPsbt: async function (psbtBase64) {
+      const wallet = this.g.user.wallets[0]
+      try {
+        const {data} = await LNbits.api.request(
+          'PUT',
+          '/watchonly/api/v1/psbt/extract',
+          wallet.adminkey,
+          {
+            psbtBase64,
+            inputs: this.payment.tx.inputs
+          }
+        )
+        return data
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Cannot finalize PSBT!',
+          timeout: 10000
+        })
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    updateSignedPsbt: async function (value) {
+      this.payment.psbtBase64Signed = value
+
+      const data = await this.extractTxFromPsbt(this.payment.psbtBase64Signed)
+      if (data) {
+        this.payment.signedTx = JSON.parse(data.tx_json)
+        this.payment.signedTxHex = data.tx_hex
+      } else {
+        this.payment.signedTx = null
+        this.payment.signedTxHex = null
+      }
+    },
+    broadcastTransaction: async function () {
+      console.log('### broadcastTransaction', this.payment.signedTxHex)
+
+      try {
+        const wallet = this.g.user.wallets[0]
+        const {data} = await LNbits.api.request(
+          'POST',
+          '/watchonly/api/v1/tx',
+          wallet.adminkey,
+          {tx_hex: this.payment.signedTxHex}
+        )
+        this.$q.notify({
+          type: 'positive',
+          message: 'Transaction broadcasted!',
+          caption: `${data}`,
+          timeout: 10000
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to broadcast!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+    //################### SERIAL PORT ###################
     checkSerialPortSupported: function () {
       if (!navigator.serial) {
         this.$q.notify({
@@ -586,23 +654,6 @@ new Vue({
         })
       }
     },
-    sendPsbtToSerialPort: async function () {
-      try {
-        await this.serial.writer.write(this.payment.psbtBase64 + '\n')
-        this.$q.notify({
-          type: 'positive',
-          message: 'Data sent to serial port device!',
-          timeout: 5000
-        })
-      } catch (error) {
-        this.$q.notify({
-          type: 'warning',
-          message: 'Failed to send data to serial port!',
-          caption: `${error}`,
-          timeout: 10000
-        })
-      }
-    },
 
     startSerialPortReading: async function () {
       const port = this.serial.selectedPort
@@ -620,8 +671,7 @@ new Vue({
             const {value, done} = await readStringUntil('\n')
             console.log('### value', value)
             if (value) {
-              const isPsbt = value.startsWith(PSBT_BASE64_PREFIX)
-              if (isPsbt) this.updateSignedPsbt(value)
+              this.handleSerialPortResponse(value)
               this.updateSerialPortConsole(value)
             }
             console.log('### startSerialPortReading DONE', done)
@@ -638,43 +688,14 @@ new Vue({
       }
       console.log('### startSerialPortReading port', port)
     },
-    extractTxFromPsbt: async function (psbtBase64) {
-      const wallet = this.g.user.wallets[0]
-      try {
-        const {data} = await LNbits.api.request(
-          'PUT',
-          '/watchonly/api/v1/psbt/extract',
-          wallet.adminkey,
-          {
-            psbtBase64,
-            inputs: this.payment.tx.inputs
-          }
-        )
-        return data
-      } catch (error) {
-        this.$q.notify({
-          type: 'warning',
-          message: 'Cannot finalize PSBT!',
-          timeout: 10000
-        })
-        LNbits.utils.notifyApiError(error)
-      }
-    },
-    updateSignedPsbt: async function (value) {
-      this.payment.psbtBase64Signed = value
-      this.$q.notify({
-        type: 'positive',
-        message: 'PSBT received from serial port device!',
-        timeout: 10000
-      })
-      const data = await this.extractTxFromPsbt(this.payment.psbtBase64Signed)
-      if (data) {
-        this.payment.signedTx = JSON.parse(data.tx_json)
-        this.payment.signedTxHex = data.tx_hex
-      } else {
-        this.payment.signedTx = null
-        this.payment.signedTxHex = null
-      }
+
+    handleSerialPortResponse: function (value) {
+      const msg = value.split(' ')
+      if (msg[0] == COMMAND_SIGN_PSBT) this.handleSignResponse(msg[1])
+      else if (msg[0] == COMMAND_PASSWORD) this.handleLoginResponse(msg[1])
+      else if (msg[0] == COMMAND_PASSWORD_CLEAR)
+        this.handleLogoutResponse(msg[1])
+      else console.log('### handleSerialPortResponse', value)
     },
     updateSerialPortConsole: function (value) {
       this.serial.receivedData += value + '\n'
@@ -686,34 +707,115 @@ new Vue({
     sharePsbtWithAnimatedQRCode: async function () {
       console.log('### sharePsbtWithAnimatedQRCode')
     },
-
-    broadcastTransaction: async function () {
-      console.log('### broadcastTransaction', this.payment.signedTxHex)
-
+    //################### HARDWARE WALLET ###################
+    hwwLogin: async function () {
       try {
-        const wallet = this.g.user.wallets[0]
-        const {data} = await LNbits.api.request(
-          'POST',
-          '/watchonly/api/v1/tx',
-          wallet.adminkey,
-          {tx_hex: this.payment.signedTxHex}
+        await this.serial.writer.write(
+          COMMAND_PASSWORD + ' ' + this.hww.password + '\n'
         )
-        this.$q.notify({
-          type: 'positive',
-          message: 'Transaction broadcasted!',
-          caption: `${data}`,
-          timeout: 10000
-        })
       } catch (error) {
         this.$q.notify({
           type: 'warning',
-          message: 'Failed to broadcast!',
+          message: 'Failed to send password to hardware wallet!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      } finally {
+        this.hww.showPasswordDialog = false
+        this.hww.password = null
+      }
+    },
+    handleLoginResponse: function (res = '') {
+      this.hww.authenticated = res.trim() === '1'
+      if (this.hww.authenticated) {
+        this.$q.notify({
+          type: 'positive',
+          message: 'Login successfull!',
+          timeout: 10000
+        })
+      } else {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Wrong password, try again!',
+          timeout: 10000
+        })
+      }
+    },
+    hwwLogout: async function () {
+      try {
+        await this.serial.writer.write(COMMAND_PASSWORD_CLEAR + '\n')
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to logout from Hardware Wallet!',
           caption: `${error}`,
           timeout: 10000
         })
       }
     },
-
+    handleLogoutResponse: function (res = '') {
+      this.hww.authenticated = !(res.trim() === '1')
+      if (this.hww.authenticated) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to logout from Hardware Wallet',
+          timeout: 10000
+        })
+      }
+    },
+    hwwToggleAuth: function () {
+      if (this.hww.authenticated) {
+        this.hwwLogout()
+      } else {
+        this.hww.showPasswordDialog = true
+      }
+    },
+    hwwSendPsbt: async function () {
+      try {
+        await this.serial.writer.write(
+          COMMAND_SEND_PSBT + ' ' + this.payment.psbtBase64 + '\n'
+        )
+        this.$q.notify({
+          type: 'positive',
+          message: 'Data sent to serial port device!',
+          timeout: 5000
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to send data to serial port!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+    hwwSignPsbt: async function () {
+      try {
+        await this.serial.writer.write(COMMAND_SIGN_PSBT + '\n')
+        this.$q.notify({
+          type: 'positive',
+          message: 'PSBT signed!',
+          timeout: 5000
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to sign PSBT!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+    handleSignResponse: function (res = '') {
+      this.updateSignedPsbt(res)
+      if (this.hww.authenticated) {
+        this.$q.notify({
+          type: 'positive',
+          message: 'Transaction Signed',
+          timeout: 10000
+        })
+      }
+    },
     //################### UTXOs ###################
     scanAllAddresses: async function () {
       await this.refreshAddresses()
