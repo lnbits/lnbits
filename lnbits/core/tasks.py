@@ -55,6 +55,7 @@ async def dispatch_webhook(payment: Payment):
         data = payment.dict()
         try:
             logger.debug("sending webhook", payment.webhook)
+            assert payment.webhook is not None
             r = await client.post(payment.webhook, json=data, timeout=40)
             await mark_webhook_sent(payment, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
