@@ -171,9 +171,10 @@ async def get_key_type(
         if e.status_code == HTTPStatus.BAD_REQUEST:
             raise
         if e.status_code == HTTPStatus.UNAUTHORIZED:
-            return WalletTypeInfo(2, None)
+            return WalletTypeInfo(2, Wallet())
     except:
         raise
+    return wallet
 
 
 async def require_admin_key(
