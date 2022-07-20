@@ -1,5 +1,4 @@
 from http import HTTPStatus
-
 from typing import Union
 
 from cerberus import Validator  # type: ignore
