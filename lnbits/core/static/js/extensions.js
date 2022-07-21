@@ -1,7 +1,6 @@
 new Vue({
   el: '#vue',
   data: function () {
-    console.log(this)
     return {
       searchTerm: '',
       filteredExtensions: null
@@ -17,7 +16,6 @@ new Vue({
       if (term !== '') {
         // Filter the extensions list
         function extensionNameContains(searchTerm) {
-          console.log('wordToCompare', searchTerm)
           return function (extension) {
             if (
               extension.name.toLowerCase().indexOf(searchTerm.toLowerCase()) >
