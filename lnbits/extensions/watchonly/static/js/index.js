@@ -56,6 +56,7 @@ new Vue({
         showConsole: false,
         showSignedPsbt: false,
         sendingPsbt: false,
+        signingPsbt: false,
         psbtSent: false
       },
 
@@ -611,8 +612,13 @@ new Vue({
           console.log('### navigator.serial event: connected!', event)
         })
 
-        navigator.serial.addEventListener('disconnect', event => {
-          console.log('### navigator.serial event: disconnected!', event)
+        navigator.serial.addEventListener('disconnect', () => {
+          this.hww.authenticated = false
+          this.$q.notify({
+            type: 'warning',
+            message: 'Disconnected from Serial Port!',
+            timeout: 10000
+          })
         })
         this.serial.selectedPort = await navigator.serial.requestPort()
         // Wait for the serial port to open.
@@ -848,6 +854,7 @@ new Vue({
     },
     hwwSignPsbt: async function () {
       try {
+        this.hww.signingPsbt = true
         await this.serial.writer.write(COMMAND_SIGN_PSBT + '\n')
         this.$q.notify({
           type: 'positive',
@@ -864,6 +871,7 @@ new Vue({
       }
     },
     handleSignResponse: function (res = '') {
+      this.hww.signingPsbt = false
       this.updateSignedPsbt(res)
       if (this.hww.authenticated) {
         this.$q.notify({
