@@ -18,8 +18,7 @@ new Vue({
         function extensionNameContains(searchTerm) {
           return function (extension) {
             return (
-              extension.name.toLowerCase().includes(searchTerm.toLowerCase())
-                ||
+              extension.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
               extension.shortDescription
                 .toLowerCase()
                 .includes(searchTerm.toLowerCase())
