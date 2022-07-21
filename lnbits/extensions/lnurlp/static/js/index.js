@@ -231,7 +231,7 @@ new Vue({
         this.nfcTagWriting = false
         this.$q.notify({
           type: 'positive',
-          message: 'NFC Tag written successfully.'
+          message: 'NFC tag written successfully.'
         })
       } catch (error) {
         this.nfcTagWriting = false
