@@ -1175,7 +1175,11 @@
                               >
                             </q-item-section>
                           </q-item>
-                          <q-item clickable v-close-popup>
+                          <q-item
+                            clickable
+                            v-close-popup
+                            @click="hwwShowRestoreDialog()"
+                          >
                             <q-item-section>
                               <q-item-label>Restore</q-item-label>
                               <q-item-label caption
@@ -1558,7 +1562,7 @@
   <q-dialog v-model="hww.showPasswordDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwLogin" class="q-gutter-md">
-        <span>Enter password for Hardware Wallet</span>
+        <span>Enter password for Hardware Wallet (8 numbers/letters)</span>
         <q-input
           filled
           dense
@@ -1589,7 +1593,7 @@
           This action will remove all data from the Hardware Wallet. Please
           create a back-up for the seed!
         </q-badge>
-        <span>Enter new password for Hardware Wallet</span>
+        <span>Enter new password for Hardware Wallet (8 numbers/letters)</span>
         <q-input
           filled
           dense
@@ -1608,6 +1612,78 @@
             :disable="!serial.selectedPort"
             type="submit"
             >Wipe</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="hww.showRestoreDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwRestore" class="q-gutter-md">
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          For test purposes only. Do not enter word list with real funds!!!
+        </q-badge>
+        <br /><br /><br />
+        <span>Enter new word list separated by space</span>
+        <q-input
+          v-model.trim="hww.mnemonic"
+          filled
+          :type="hww.showMnemonic ? 'text' : 'password'"
+          filled
+          dense
+          hint="Word List"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showMnemonic = !hww.showMnemonic"
+            />
+          </template>
+        </q-input>
+        <br />
+        <span>Enter new password (8 numbers/letters)</span>
+        <q-input
+          v-model.trim="hww.password"
+          filled
+          :type="hww.showPassword ? 'text' : 'password'"
+          filled
+          dense
+          hint="New Password"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showPassword ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showPassword = !hww.showPassword"
+            />
+          </template>
+        </q-input>
+        <br /><br />
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          For test purposes only. Do not enter word list with real funds.
+        </q-badge>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!serial.selectedPort"
+            type="submit"
+            >Restore</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
