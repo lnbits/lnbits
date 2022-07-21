@@ -1129,8 +1129,8 @@
                         split
                         class="btn-full"
                         color="secondary"
-                        :label="hww.authenticated ? 'Logout' : 'Login'"
-                        @click="hwwToggleAuth()"
+                        :label="hww.authenticated ? 'Sign' : 'Login'"
+                        @click="hwwExecuteDefaultCommand()"
                       >
                         <q-list>
                           <q-item
@@ -1165,8 +1165,15 @@
                             :disabled="!hww.authenticated"
                             clickable
                             v-close-popup
-                            @click="hwwShowPasswordDialog()"
+                            @click="hwwSendPsbt()"
                           >
+                            <q-item-section>
+                              <q-item-label>Sign</q-item-label>
+                              <q-item-label caption
+                                >Sign transaction on Hardware
+                                Wallet</q-item-label
+                              >
+                            </q-item-section>
                           </q-item>
                           <q-item clickable v-close-popup>
                             <q-item-section>
@@ -1205,7 +1212,13 @@
                         v-model="hww.showConsole"
                       ></q-toggle>
                     </div>
-                    <div class="col-3"></div>
+                    <div class="col-3">
+                      <q-spinner
+                        v-if="hww.sendingPsbt == true"
+                        color="primary"
+                        size="2.55em"
+                      ></q-spinner>
+                    </div>
                     <div class="col-3"></div>
                   </div>
                   <div
@@ -1232,31 +1245,6 @@
                   >
                     <div class="col-3 q-pr-lg">
                       <q-btn
-                        @click="hwwSendPsbt()"
-                        unelevated
-                        color="secondary"
-                        class="btn-full"
-                        >Sign
-                        <q-spinner
-                          v-if="hww.sendingPsbt == true"
-                          color="primary"
-                        ></q-spinner>
-                      </q-btn>
-                    </div>
-
-                    <div class="col-6">
-                      <q-badge
-                        v-if="hww.psbtSent"
-                        color="yellow"
-                        text-color="black"
-                        multi-line
-                        class="text-subtitle2"
-                        >Please check transaction data on the Hardware Wallet
-                        display</q-badge
-                      >
-                    </div>
-                    <div class="col-3 q-pl-lg">
-                      <q-btn
                         v-if="hww.psbtSent"
                         @click="hwwSignPsbt()"
                         unelevated
@@ -1265,9 +1253,28 @@
                         >Confirm</q-btn
                       >
                     </div>
+                    <div class="col-3 q-pl-lg">
+                      <q-toggle
+                        v-if="serial.psbtBase64Signed"
+                        label="Show Console"
+                        color="secodary float-left"
+                        v-model="hww.showSignedPsbt"
+                      ></q-toggle>
+                    </div>
+                    <div class="col-6">
+                      <q-badge
+                        v-if="hww.psbtSent"
+                        color="yellow"
+                        text-color="black"
+                        multi-line
+                        class="text-subtitle2"
+                        >Check transaction data on the Hardware Wallet
+                        display</q-badge
+                      >
+                    </div>
                   </div>
                   <div
-                    v-if="payment.psbtBase64Signed"
+                    v-if="hww.showSignedPsbt"
                     class="row items-center no-wrap q-mb-md"
                   >
                     <div class="col-3 q-pr-lg"></div>
