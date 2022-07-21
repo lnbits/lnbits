@@ -4,6 +4,7 @@ const COMMAND_PASSWORD_CLEAR = '/password-clear'
 const COMMAND_SEND_PSBT = '/psbt'
 const COMMAND_SIGN_PSBT = '/sign'
 const COMMAND_HELP = '/help'
+const COMMAND_WIPE = '/wipe'
 
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''

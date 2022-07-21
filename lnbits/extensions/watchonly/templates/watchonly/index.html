@@ -1184,7 +1184,11 @@
                               >
                             </q-item-section>
                           </q-item>
-                          <q-item clickable v-close-popup>
+                          <q-item
+                            @click="hwwShowWipeDialog()"
+                            clickable
+                            v-close-popup
+                          >
                             <q-item-section>
                               <q-item-label>Wipe</q-item-label>
                               <q-item-label caption
@@ -1556,6 +1560,40 @@
             :disable="!serial.selectedPort"
             type="submit"
             >Login</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="hww.showWipeDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwWipe" class="q-gutter-md">
+        <q-badge color="pink" text-color="black">
+          This action will remove all data from the Hardware Wallet. Please
+          create a back-up for the seed!
+        </q-badge>
+        <span>Enter new password for Hardware Wallet</span>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.password"
+          type="password"
+          label="Password"
+        ></q-input>
+        <q-badge color="pink" text-color="black">
+          This action cannot be reversed!
+        </q-badge>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!serial.selectedPort"
+            type="submit"
+            >Wipe</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn

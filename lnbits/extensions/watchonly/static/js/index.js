@@ -48,6 +48,7 @@ new Vue({
         password: null,
         authenticated: false,
         showPasswordDialog: false,
+        showWipeDialog: false,
         showConsole: false,
         showSignedPsbt: false,
         sendingPsbt: false,
@@ -701,6 +702,7 @@ new Vue({
       else if (msg[0] == COMMAND_PASSWORD_CLEAR)
         this.handleLogoutResponse(msg[1])
       else if (msg[0] == COMMAND_SEND_PSBT) this.handleSendPsbtResponse(msg[1])
+      else if (msg[0] == COMMAND_WIPE) this.handleWipeResponse(msg[1])
       else console.log('### handleSerialPortResponse', value)
     },
     updateSerialPortConsole: function (value) {
@@ -718,6 +720,19 @@ new Vue({
       try {
         this.hww.showPasswordDialog = true
         await this.serial.writer.write(COMMAND_PASSWORD + '\n')
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to connect to Hardware Wallet!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+    hwwShowWipeDialog: async function () {
+      try {
+        this.hww.showWipeDialog = true
+        await this.serial.writer.write(COMMAND_WIPE + '\n')
       } catch (error) {
         this.$q.notify({
           type: 'warning',
@@ -852,6 +867,41 @@ new Vue({
         this.$q.notify({
           type: 'warning',
           message: 'Failed to ask for help!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
+    hwwWipe: async function () {
+      try {
+        this.hww.showWipeDialog = false
+        await this.serial.writer.write(
+          COMMAND_WIPE + ' ' + this.hww.password + '\n'
+        )
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to ask for help!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      } finally {
+        this.hww.password = null
+      }
+    },
+    handleWipeResponse: function (res = '') {
+      const wiped = res.trim() === '1'
+      console.log('### wiped', wiped)
+      if (wiped) {
+        this.$q.notify({
+          type: 'positive',
+          message: 'Wallet wiped!',
+          timeout: 10000
+        })
+      } else {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to wipe wallet!',
           caption: `${error}`,
           timeout: 10000
         })
