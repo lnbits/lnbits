@@ -396,7 +396,6 @@ window.windowMixin = {
         window.extensions
           .map(function (data) {
             return window.LNbits.map.extension(data)
-
           })
           .filter(function (obj) {
             return !obj.hidden
@@ -414,9 +413,9 @@ window.windowMixin = {
             return obj
           })
           .sort(function (a, b) {
-            const nameA = a.name.toUpperCase();
-            const nameB = b.name.toUpperCase();
-            return (nameA < nameB) ? -1 : (nameA > nameB) ? 1 : 0;
+            const nameA = a.name.toUpperCase()
+            const nameB = b.name.toUpperCase()
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0
           })
       )
 

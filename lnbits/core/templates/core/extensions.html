@@ -5,8 +5,13 @@
 <div class="row q-col-gutter-md q-mb-md">
   <div class="col-sm-3 col-xs-8 q-ml-auto">
     <q-input v-model="searchTerm" label="Search extensions">
-      <q-icon v-if="searchTerm !== ''" name="close" @click="searchTerm = ''" class="cursor-pointer q-mt-lg" />
-      </q-input>
+      <q-icon
+        v-if="searchTerm !== ''"
+        name="close"
+        @click="searchTerm = ''"
+        class="cursor-pointer q-mt-lg"
+      />
+    </q-input>
   </div>
 </div>
 
