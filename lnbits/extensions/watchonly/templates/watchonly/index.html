@@ -1125,7 +1125,7 @@
                         split
                         class="btn-full"
                         color="secondary"
-                        :label="hww.authenticated ? 'Sign' : 'Login'"
+                        :label="hww.authenticated ? 'Sign Tx' : 'Login'"
                         @click="hwwExecuteDefaultCommand()"
                       >
                         <q-list>
@@ -1268,7 +1268,12 @@
                         unelevated
                         color="green"
                         class="btn-full"
-                        >Confirm</q-btn
+                        >Confirm
+                        <q-spinner
+                        v-if="hww.signingPsbt == true"
+                        color="primary"
+                      ></q-spinner>
+                        </q-btn
                       >
                     </div>
                     <div class="col-3">
