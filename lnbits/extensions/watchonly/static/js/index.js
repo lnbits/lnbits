@@ -49,6 +49,7 @@ new Vue({
         authenticated: false,
         showPasswordDialog: false,
         showConsole: false,
+        showSignedPsbt: false,
         sendingPsbt: false,
         psbtSent: false
       },
@@ -781,9 +782,9 @@ new Vue({
         })
       }
     },
-    hwwToggleAuth: function () {
+    hwwExecuteDefaultCommand: function () {
       if (this.hww.authenticated) {
-        this.hwwLogout()
+        this.hwwSendPsbt()
       } else {
         this.hwwShowPasswordDialog()
       }
