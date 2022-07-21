@@ -35,6 +35,7 @@ new Vue({
           rowsPerPage: 10
         }
       },
+      nfcTagWriting: false,
       formDialog: {
         show: false,
         fixedAmount: true,
@@ -205,6 +206,40 @@ new Vue({
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
+    },
+    writeNfcTag: async function (lnurl) {
+      try {
+        if (typeof NDEFReader == 'undefined') {
+          throw {
+            toString: function () {
+              return 'NFC not supported on this device and/or browser.'
+            }
+          }
+        }
+
+        const ndef = new NDEFReader()
+
+        this.nfcTagWriting = true
+        this.$q.notify({
+          message: 'Tap your NFC tag to write the LNURL-pay link to it.'
+        })
+
+        await ndef.write({
+          records: [{recordType: 'url', data: 'lightning:' + lnurl, lang: 'en'}]
+        })
+
+        this.nfcTagWriting = false
+        this.$q.notify({
+          message: 'NFC Tag written successfully.'
+        })
+      } catch (error) {
+        this.nfcTagWriting = false
+        this.$q.notify({
+          message: error
+            ? error.toString()
+            : 'An unexpected error has occurred.'
+        })
+      }
     }
   },
   created() {
