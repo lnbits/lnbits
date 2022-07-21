@@ -17,16 +17,13 @@ new Vue({
         // Filter the extensions list
         function extensionNameContains(searchTerm) {
           return function (extension) {
-            if (
-              extension.name.toLowerCase().indexOf(searchTerm.toLowerCase()) >
-                -1 ||
+            return (
+              extension.name.toLowerCase().includes(searchTerm.toLowerCase())
+                ||
               extension.shortDescription
                 .toLowerCase()
-                .indexOf(searchTerm.toLowerCase()) > -1
-            ) {
-              return true
-            }
-            return false
+                .includes(searchTerm.toLowerCase())
+            )
           }
         }
 
