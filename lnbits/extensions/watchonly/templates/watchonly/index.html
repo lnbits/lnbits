@@ -1014,12 +1014,20 @@
 
                   <div class="row items-center no-wrap q-mb-md">
                     <div class="col-3 q-pr-lg">
-                      <q-btn unelevated color="secondary" type="submit"
+                      <q-btn
+                        unelevated
+                        color="secondary"
+                        type="submit"
+                        class="btn-full"
                         >Check Tx</q-btn
                       >
                     </div>
                     <div class="col-9">
-                      <q-input v-model="payment.psbtBase64" filled />
+                      <q-input
+                        v-if="payment.psbtBase64"
+                        v-model="payment.psbtBase64"
+                        filled
+                      />
                     </div>
                   </div>
                   <q-separator
@@ -1030,9 +1038,9 @@
                     v-if="payment.psbtBase64"
                     class="row items-center no-wrap q-mb-md"
                   >
-                    <div class="col-3">
+                    <div class="col-3 q-pr-lg">
                       <q-btn-dropdown
-                        class="glossy float-left"
+                        class="btn-full"
                         color="secondary"
                         label="Sign With"
                       >
@@ -1079,12 +1087,13 @@
                     v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
                   >
-                    <div class="col-3">
+                    <div class="col-3 q-pr-lg">
                       <q-btn
                         v-if="!serial.selectedPort"
                         @click="openSerialPort()"
                         unelevated
                         color="secondary"
+                        class="btn-full"
                         >Connect</q-btn
                       >
                       <q-btn
@@ -1092,6 +1101,7 @@
                         @click="closeSerialPort()"
                         outline
                         color="gray"
+                        class="btn-full"
                         >Disconnect</q-btn
                       >
                     </div>
@@ -1100,7 +1110,6 @@
                         label="Advanced"
                         disabled
                         color="secodary float-left"
-                        class="q-ml-lg"
                         v-model="serial.showAdvancedConfig"
                       ></q-toggle>
                     </div>
@@ -1114,11 +1123,11 @@
                     v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
                   >
-                    <div class="col-3">
+                    <div class="col-3 q-pr-lg">
                       <q-btn-dropdown
                         v-if="serial.selectedPort"
                         split
-                        class="glossy float-left"
+                        class="btn-full"
                         color="secondary"
                         :label="hww.authenticated ? 'Logout' : 'Login'"
                         @click="hwwToggleAuth()"
@@ -1193,7 +1202,6 @@
                         v-if="serial.selectedPort"
                         label="Show Console"
                         color="secodary float-left"
-                        class="q-ml-lg"
                         v-model="hww.showConsole"
                       ></q-toggle>
                     </div>
@@ -1223,9 +1231,17 @@
                     class="row items-center no-wrap q-mb-md"
                   >
                     <div class="col-3 q-pr-lg">
-                      <q-btn @click="hwwSendPsbt()" unelevated color="secondary"
-                        >Sign</q-btn
-                      >
+                      <q-btn
+                        @click="hwwSendPsbt()"
+                        unelevated
+                        color="secondary"
+                        class="btn-full"
+                        >Sign
+                        <q-spinner
+                          v-if="hww.sendingPsbt == true"
+                          color="primary"
+                        ></q-spinner>
+                      </q-btn>
                     </div>
 
                     <div class="col-6">
@@ -1233,18 +1249,19 @@
                         v-if="hww.psbtSent"
                         color="yellow"
                         text-color="black"
-                        class="text-subtitle1"
+                        multi-line
+                        class="text-subtitle2"
                         >Please check transaction data on the Hardware Wallet
                         display</q-badge
                       >
                     </div>
-                    <div class="col-3">
+                    <div class="col-3 q-pl-lg">
                       <q-btn
                         v-if="hww.psbtSent"
                         @click="hwwSignPsbt()"
                         unelevated
                         color="green"
-                        class="float-right"
+                        class="btn-full"
                         >Confirm</q-btn
                       >
                     </div>
@@ -1277,6 +1294,7 @@
                         @click="broadcastTransaction()"
                         unelevated
                         color="secondary"
+                        class="btn-full"
                         >Send Payment</q-btn
                       >
                     </div>
