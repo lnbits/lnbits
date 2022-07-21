@@ -237,7 +237,7 @@ new Vue({
         if (typeof NDEFReader == 'undefined') {
           throw {
             toString: function () {
-              return 'NFC not supported on this device and/or browser.'
+              return 'NFC not supported on this device or browser.'
             }
           }
         }
@@ -255,11 +255,13 @@ new Vue({
 
         this.nfcTagWriting = false
         this.$q.notify({
+          type: 'positive',
           message: 'NFC Tag written successfully.'
         })
       } catch (error) {
         this.nfcTagWriting = false
         this.$q.notify({
+          type: 'negative',
           message: error
             ? error.toString()
             : 'An unexpected error has occurred.'
