@@ -392,10 +392,11 @@ window.windowMixin = {
     }
     if (window.extensions) {
       var user = this.g.user
-      this.g.extensions = Object.freeze(
+      const extensions = Object.freeze(
         window.extensions
           .map(function (data) {
             return window.LNbits.map.extension(data)
+
           })
           .filter(function (obj) {
             return !obj.hidden
@@ -413,9 +414,13 @@ window.windowMixin = {
             return obj
           })
           .sort(function (a, b) {
-            return a.name > b.name
+            const nameA = a.name.toUpperCase();
+            const nameB = b.name.toUpperCase();
+            return (nameA < nameB) ? -1 : (nameA > nameB) ? 1 : 0;
           })
       )
+
+      this.g.extensions = extensions
     }
   }
 }
