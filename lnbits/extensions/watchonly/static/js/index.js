@@ -907,6 +907,18 @@ new Vue({
         })
       }
     },
+    hwwShowSeed: async function () {
+      try {
+        await this.serial.writer.write(COMMAND_SEED + '\n')
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to show seed!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
     //################### UTXOs ###################
     scanAllAddresses: async function () {
       await this.refreshAddresses()

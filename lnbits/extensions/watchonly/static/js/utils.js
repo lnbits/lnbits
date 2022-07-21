@@ -5,6 +5,7 @@ const COMMAND_SEND_PSBT = '/psbt'
 const COMMAND_SIGN_PSBT = '/sign'
 const COMMAND_HELP = '/help'
 const COMMAND_WIPE = '/wipe'
+const COMMAND_SEED = '/seed'
 
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''

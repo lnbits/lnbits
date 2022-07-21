@@ -1185,6 +1185,20 @@
                             </q-item-section>
                           </q-item>
                           <q-item
+                            :disabled="!hww.authenticated"
+                            clickable
+                            v-close-popup
+                            @click="hwwShowSeed()"
+                          >
+                            <q-item-section>
+                              <q-item-label>Show Seed</q-item-label>
+                              <q-item-label caption
+                                >Show seed on the Hardware Wallet
+                                display.</q-item-label
+                              >
+                            </q-item-section>
+                          </q-item>
+                          <q-item
                             @click="hwwShowWipeDialog()"
                             clickable
                             v-close-popup
