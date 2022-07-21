@@ -840,6 +840,23 @@ new Vue({
         })
       }
     },
+    hwwHelp: async function () {
+      try {
+        await this.serial.writer.write(COMMAND_HELP + '\n')
+        this.$q.notify({
+          type: 'positive',
+          message: 'Check display or console for details!',
+          timeout: 5000
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to ask for help!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
     //################### UTXOs ###################
     scanAllAddresses: async function () {
       await this.refreshAddresses()

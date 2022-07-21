@@ -1193,7 +1193,7 @@
                               >
                             </q-item-section>
                           </q-item>
-                          <q-item clickable v-close-popup>
+                          <q-item @click="hwwHelp()" clickable v-close-popup>
                             <q-item-section>
                               <q-item-label>Help</q-item-label>
                               <q-item-label caption
@@ -1253,10 +1253,10 @@
                         >Confirm</q-btn
                       >
                     </div>
-                    <div class="col-3 q-pl-lg">
+                    <div class="col-3">
                       <q-toggle
-                        v-if="serial.psbtBase64Signed"
-                        label="Show Console"
+                        v-if="payment.psbtBase64Signed"
+                        label="Show Signed Psbt"
                         color="secodary float-left"
                         v-model="hww.showSignedPsbt"
                       ></q-toggle>
