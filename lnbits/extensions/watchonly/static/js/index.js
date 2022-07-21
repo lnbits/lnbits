@@ -46,9 +46,13 @@ new Vue({
 
       hww: {
         password: null,
+        showPassword: false,
+        mnemonic: null,
+        showMnemonic: false,
         authenticated: false,
         showPasswordDialog: false,
         showWipeDialog: false,
+        showRestoreDialog: false,
         showConsole: false,
         showSignedPsbt: false,
         sendingPsbt: false,
@@ -742,6 +746,19 @@ new Vue({
         })
       }
     },
+    hwwShowRestoreDialog: async function () {
+      try {
+        this.hww.showRestoreDialog = true
+        await this.serial.writer.write(COMMAND_WIPE + '\n')
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to connect to Hardware Wallet!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      }
+    },
     hwwLogin: async function () {
       try {
         await this.serial.writer.write(
@@ -757,6 +774,7 @@ new Vue({
       } finally {
         this.hww.showPasswordDialog = false
         this.hww.password = null
+        this.hww.showPassword = false
       }
     },
     handleLoginResponse: function (res = '') {
@@ -887,6 +905,7 @@ new Vue({
         })
       } finally {
         this.hww.password = null
+        this.hww.showPassword = false
       }
     },
     handleWipeResponse: function (res = '') {
@@ -917,6 +936,29 @@ new Vue({
           caption: `${error}`,
           timeout: 10000
         })
+      }
+    },
+    hwwRestore: async function () {
+      try {
+        await this.serial.writer.write(
+          COMMAND_RESTORE + ' ' + this.hww.mnemonic + '\n'
+        )
+        await this.serial.writer.write(
+          COMMAND_PASSWORD + ' ' + this.hww.password + '\n'
+        )
+      } catch (error) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Failed to restore from seed!',
+          caption: `${error}`,
+          timeout: 10000
+        })
+      } finally {
+        this.hww.showRestoreDialog = false
+        this.hww.mnemonic = null
+        this.hww.showMnemonic = false
+        this.hww.password = null
+        this.hww.showPassword = false
       }
     },
     //################### UTXOs ###################
