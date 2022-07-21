@@ -49,6 +49,7 @@ new Vue({
         authenticated: false,
         showPasswordDialog: false,
         showConsole: false,
+        sendingPsbt: false,
         psbtSent: false
       },
 
@@ -789,6 +790,7 @@ new Vue({
     },
     hwwSendPsbt: async function () {
       try {
+        this.hww.sendingPsbt = true
         await this.serial.writer.write(
           COMMAND_SEND_PSBT + ' ' + this.payment.psbtBase64 + '\n'
         )
@@ -808,6 +810,7 @@ new Vue({
     },
     handleSendPsbtResponse: function (res = '') {
       this.hww.psbtSent = true
+      this.hww.sendingPsbt = false
     },
     hwwSignPsbt: async function () {
       try {
