@@ -1,6 +1,6 @@
 const watchOnly = async () => {
   Vue.component(VueQrcode.name, VueQrcode)
-  await initMyCheckbox('static/js/components/my-checkbox/my-checkbox.html')
+  await initMyCheckbox('static/components/my-checkbox/my-checkbox.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -13,7 +13,6 @@ const watchOnly = async () => {
     mounted: function () {
       console.log('### mounted')
     },
-    // components: ['my-checkbox'],
     data: function () {
       return {
         DUST_LIMIT: 546,
