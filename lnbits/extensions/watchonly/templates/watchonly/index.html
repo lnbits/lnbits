@@ -31,7 +31,9 @@
             </q-btn>
           </div>
 
-          <div class="col-auto q-pr-lg"></div>
+          <div class="col-auto q-pr-lg">
+            <my-checkbox></my-checkbox>
+          </div>
           <div class="col-auto q-pl-lg">
             <q-input
               borderless
@@ -1710,5 +1712,6 @@
 <script src="{{ url_for('watchonly_static', path='js/tables.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/map.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/components/my-checkbox/my-checkbox.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}
