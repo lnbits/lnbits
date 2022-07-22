@@ -563,8 +563,6 @@ new Vue({
       }
     },
     broadcastTransaction: async function () {
-      console.log('### broadcastTransaction', this.payment.signedTxHex)
-
       try {
         const wallet = this.g.user.wallets[0]
         const {data} = await LNbits.api.request(
@@ -574,12 +572,21 @@ new Vue({
           {tx_hex: this.payment.signedTxHex}
         )
         this.payment.sentTxId = data
+
         this.$q.notify({
           type: 'positive',
           message: 'Transaction broadcasted!',
           caption: `${data}`,
           timeout: 10000
         })
+
+        this.hww.psbtSent = false
+        this.payment.psbtBase64Signed = null
+        this.payment.signedTxHex = null
+        this.payment.signedTx = null
+        this.payment.psbtBase64 = null
+
+        await this.scanAddressWithAmount()
       } catch (error) {
         this.payment.sentTxId = null
         this.$q.notify({
