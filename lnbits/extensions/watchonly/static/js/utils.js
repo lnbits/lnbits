@@ -140,10 +140,19 @@ const readFromSerialPort = serial => {
   return readStringUntil
 }
 
+function satOrBtc(val, showUnit = true, showSats = false) {
+  const value = showSats
+    ? LNbits.utils.formatSat(val)
+    : val == 0
+    ? 0.0
+    : (val / 100000000).toFixed(8)
+  if (!showUnit) return value
+  return showSats ? value + ' sat' : value + ' BTC'
+}
+
 function loadTemplateAsync(path) {
   const result = new Promise(resolve => {
     const xhttp = new XMLHttpRequest()
-    console.log('### 300')
 
     xhttp.onreadystatechange = function () {
       if (this.readyState == 4) {

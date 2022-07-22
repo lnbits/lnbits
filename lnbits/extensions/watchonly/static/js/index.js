@@ -1,6 +1,7 @@
 const watchOnly = async () => {
   Vue.component(VueQrcode.name, VueQrcode)
-  await initMyCheckbox('static/components/my-checkbox/my-checkbox.html')
+
+  await walletConfig('static/components/wallet-config/wallet-config.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -10,9 +11,6 @@ const watchOnly = async () => {
   new Vue({
     el: '#vue',
     mixins: [windowMixin],
-    mounted: function () {
-      console.log('### mounted')
-    },
     data: function () {
       return {
         DUST_LIMIT: 546,
@@ -81,32 +79,6 @@ const watchOnly = async () => {
 
     methods: {
       //################### CONFIG ###################
-      getConfig: async function () {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            '/watchonly/api/v1/config',
-            this.g.user.wallets[0].adminkey
-          )
-          this.config.data = data
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
-      updateConfig: async function () {
-        const wallet = this.g.user.wallets[0]
-        try {
-          await LNbits.api.request(
-            'PUT',
-            '/watchonly/api/v1/config',
-            wallet.adminkey,
-            this.config.data
-          )
-          this.config.show = false
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
 
       //################### WALLETS ###################
       getWalletName: function (walletId) {
@@ -1202,15 +1174,7 @@ const watchOnly = async () => {
       },
 
       satBtc(val, showUnit = true) {
-        const value = this.config.data.sats_denominated
-          ? LNbits.utils.formatSat(val)
-          : val == 0
-          ? 0.0
-          : (val / 100000000).toFixed(8)
-        if (!showUnit) return value
-        return this.config.data.sats_denominated
-          ? value + ' sat'
-          : value + ' BTC'
+        return satOrBtc(val, showUnit, this.config.data.sats_denominated)
       },
       getAccountDescription: function (accountType) {
         return getAccountDescription(accountType)
@@ -1218,7 +1182,6 @@ const watchOnly = async () => {
     },
     created: async function () {
       if (this.g.user.wallets.length) {
-        await this.getConfig()
         await this.refreshWalletAccounts()
         await this.refreshAddresses()
         await this.scanAddressWithAmount()
