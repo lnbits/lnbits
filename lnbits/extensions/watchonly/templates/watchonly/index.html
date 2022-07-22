@@ -1116,12 +1116,11 @@
                     class="q-mb-md"
                   ></q-separator>
                   <div
-                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                    v-if="serial.selectedPort && payment.psbtBase64 && payment.signMode === 'serial-port'"
                     class="row items-center no-wrap q-mb-md q-mt-lg"
                   >
                     <div class="col-3 q-pr-lg">
                       <q-btn-dropdown
-                        v-if="serial.selectedPort"
                         split
                         class="btn-full"
                         color="secondary"
@@ -1224,7 +1223,6 @@
                     </div>
                     <div class="col-3">
                       <q-toggle
-                        v-if="serial.selectedPort"
                         label="Show Console"
                         color="secodary float-left"
                         v-model="hww.showConsole"
@@ -1258,23 +1256,21 @@
                     class="q-mb-md"
                   ></q-separator>
                   <div
-                    v-if="hww.authenticated"
+                    v-if="hww.authenticated && hww.psbtSent"
                     class="row items-center no-wrap q-mb-md"
                   >
                     <div class="col-3 q-pr-lg">
                       <q-btn
-                        v-if="hww.psbtSent"
                         @click="hwwSignPsbt()"
                         unelevated
                         color="green"
                         class="btn-full"
                         >Confirm
                         <q-spinner
-                        v-if="hww.signingPsbt == true"
-                        color="primary"
-                      ></q-spinner>
-                        </q-btn
-                      >
+                          v-if="hww.signingPsbt == true"
+                          color="primary"
+                        ></q-spinner>
+                      </q-btn>
                     </div>
                     <div class="col-3">
                       <q-toggle
@@ -1286,7 +1282,6 @@
                     </div>
                     <div class="col-6">
                       <q-badge
-                        v-if="hww.psbtSent"
                         color="yellow"
                         text-color="black"
                         multi-line
@@ -1374,18 +1369,26 @@
                           >
                         </div>
                       </div>
-                      <q-separator
-                        v-if="payment.sentTxId"
-                        class="q-mb-lg"
-                      ></q-separator>
-                      <div
-                        v-if="payment.sentTxId"
-                        class="row items-center no-wrap q-mb-sm"
+                    </div>
+                  </div>
+
+                  <q-separator
+                    v-if="payment.sentTxId"
+                    class="q-mb-lg"
+                  ></q-separator>
+                  <div
+                    v-if="payment.sentTxId"
+                    class="row items-center no-wrap q-mb-sm"
+                  >
+                    <div class="col-3">Transaction Id</div>
+                    <div class="col-9">
+                      <a
+                        style="color: unset"
+                        :href="config.data.mempool_endpoint + '/tx/' + payment.sentTxId"
+                        target="_blank"
                       >
-                        <div class="col-12">
-                          <q-input v-model="payment.sentTxId" filled readonly />
-                        </div>
-                      </div>
+                        {{payment.sentTxId}}</a
+                      >
                     </div>
                   </div>
                 </q-card-section>
