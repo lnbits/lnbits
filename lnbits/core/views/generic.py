@@ -23,10 +23,7 @@ from lnbits.settings import (
     SERVICE_FEE,
 )
 
-from ...helpers import (
-    get_valid_extensions,
-)
-
+from ...helpers import get_valid_extensions
 from ..crud import (
     create_account,
     create_wallet,
