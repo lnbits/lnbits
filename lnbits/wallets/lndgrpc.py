@@ -221,6 +221,12 @@ class LndWallet(Wallet):
         return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        """
+        This routine checks the payment status using routerpc.TrackPaymentV2.
+        It blocks until the payment is either settled or failed.
+        """
+        # TODO: remove
+        BLOCKING = True
         try:
             r_hash = parse_checking_id(checking_id)
             if len(r_hash) != 32:
@@ -249,7 +255,7 @@ class LndWallet(Wallet):
 
         try:
             async for payment in resp:
-                if payment.htlcs[-1].status == 0:  # IN_FLIGHT
+                if BLOCKING and payment.htlcs[-1].status == 0:  # IN_FLIGHT
                     logger.debug("payment is in flight, checking again in 1 second")
                     await asyncio.sleep(1)
                     continue

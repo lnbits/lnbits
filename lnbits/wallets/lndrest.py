@@ -177,6 +177,12 @@ class LndRestWallet(Wallet):
         return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
+        """
+        This routine checks the payment status using routerpc.TrackPaymentV2.
+        It blocks until the payment is either settled or failed.
+        """
+        # TODO: remove
+        BLOCKING = True
         url = f"{self.endpoint}/v2/router/track/{checking_id}"
 
         # check payment.status:
@@ -204,7 +210,7 @@ class LndRestWallet(Wallet):
                             return PaymentStatus(None)
                         payment = line.get("result")
                         if payment is not None and payment.get("status"):
-                            if payment["status"] == "IN_FLIGHT":
+                            if BLOCKING and payment["status"] == "IN_FLIGHT":
                                 logger.debug(
                                     "payment is in flight, checking again in 1 second"
                                 )
