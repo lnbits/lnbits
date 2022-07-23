@@ -108,6 +108,15 @@ async def test_get_extensions(client, to_user):
     )
 
 
+# check GET /extensions: extensions list wrong user, expect 204
+@pytest.mark.asyncio
+async def test_get_extensions_wrong_user(client, to_user):
+    response = await client.get("extensions", params={"usr": "1"})
+    assert response.status_code == 204, (
+        str(response.url) + " " + str(response.status_code)
+    )
+
+
 # check GET /extensions: no user given, expect code 204 no content
 @pytest.mark.asyncio
 async def test_get_extensions_no_user(client):
