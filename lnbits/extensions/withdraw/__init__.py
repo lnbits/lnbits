@@ -19,7 +19,7 @@ withdraw_ext: APIRouter = APIRouter(prefix="/withdraw", tags=["withdraw"])
 
 
 def withdraw_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/withdraw/static/templates")])])
+    return template_renderer(["lnbits/extensions/withdraw/templates"])
 
 
 from .lnurl import *  # noqa

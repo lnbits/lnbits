@@ -21,7 +21,7 @@ jukebox_ext: APIRouter = APIRouter(prefix="/jukebox", tags=["jukebox"])
 
 
 def jukebox_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/jukebox/static/templates")])])
+    return template_renderer(["lnbits/extensions/jukebox/templates"])
 
 
 from .tasks import wait_for_paid_invoices

@@ -20,7 +20,7 @@ copilot_ext: APIRouter = APIRouter(prefix="/copilot", tags=["copilot"])
 
 
 def copilot_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/copilot/static/templates")])])
+    return template_renderer(["lnbits/extensions/copilot/templates"])
 
 
 from .lnurl import *  # noqa

@@ -18,7 +18,7 @@ discordbot_ext: APIRouter = APIRouter(prefix="/discordbot", tags=["discordbot"])
 
 
 def discordbot_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/discordbot/static/templates")])])
+    return template_renderer(["lnbits/extensions/discordbot/templates"])
 
 
 from .views import *  # noqa

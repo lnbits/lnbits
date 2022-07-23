@@ -18,7 +18,7 @@ bleskomat_ext: APIRouter = APIRouter(prefix="/bleskomat", tags=["Bleskomat"])
 
 
 def bleskomat_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/bleskomat/static/templates")])])
+    return template_renderer(["lnbits/extensions/bleskomat/templates"])
 
 
 from .lnurl_api import *  # noqa
