@@ -72,7 +72,7 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 Problems installing? These commands have helped us install LNbits. 
 
 ```sh
-sudo apt install pkg-config libffi-dev libpq-dev setuptools 
+sudo apt install pkg-config libffi-dev libpq-dev
 
 # if the secp256k1 build fails:
 # if you used pipenv (option 1)
