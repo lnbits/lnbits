@@ -22,7 +22,7 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if "splitpayments" == payment.extra.get("tag") or payment.extra.get("splitted"):
+    if payment.extra.get("tag") == "splitpayments" or payment.extra.get("splitted"):
         # already splitted, ignore
         return
 

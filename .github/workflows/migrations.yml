@@ -1,0 +1,49 @@
+name: migrations
+
+on: [pull_request]
+
+jobs:
+  sqlite-to-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          # maps tcp port 5432 on service container to the host
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    strategy:
+      matrix:
+        python-version: [3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        env: 
+          VIRTUAL_ENV: ./venv
+          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
+        run: |
+          python -m venv ${{ env.VIRTUAL_ENV }}
+          ./venv/bin/python -m pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
+      - name: Run migrations
+        run: |
+          rm -rf ./data
+          mkdir -p ./data
+          export LNBITS_DATA_FOLDER="./data"
+          timeout 5s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+          export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
+          timeout 5s ./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+          ./venv/bin/python tools/conv.py --dont-ignore-missing

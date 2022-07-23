@@ -3,20 +3,25 @@ import json
 from binascii import unhexlify
 from io import BytesIO
 from typing import Dict, Optional, Tuple
-
-from loguru import logger
-
 from urllib.parse import parse_qs, urlparse
 
 import httpx
+from fastapi import Depends
 from lnurl import LnurlErrorResponse
 from lnurl import decode as decode_lnurl  # type: ignore
+from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import Connection
+from lnbits.decorators import (
+    WalletTypeInfo,
+    get_key_type,
+    require_admin_key,
+    require_invoice_key,
+)
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import WALLET
+from lnbits.settings import FAKE_WALLET, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -51,15 +56,19 @@ async def create_invoice(
     description_hash: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
+    internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
 
-    ok, checking_id, payment_request, error_message = await WALLET.create_invoice(
+    # use the fake wallet if the invoice is for internal use only
+    wallet = FAKE_WALLET if internal else WALLET
+
+    ok, checking_id, payment_request, error_message = await wallet.create_invoice(
         amount=amount, memo=invoice_memo, description_hash=description_hash
     )
     if not ok:
-        raise InvoiceFailure(error_message or "Unexpected backend error.")
+        raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
 
@@ -229,7 +238,7 @@ async def redeem_lnurl_withdraw(
             conn=conn,
         )
     except:
-        logger.warn(
+        logger.warning(
             f"failed to create invoice on redeem_lnurl_withdraw from {lnurl}. params: {res}"
         )
         return None
@@ -256,12 +265,14 @@ async def redeem_lnurl_withdraw(
 
 
 async def perform_lnurlauth(
-    callback: str, conn: Optional[Connection] = None
+    callback: str,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+    conn: Optional[Connection] = None,
 ) -> Optional[LnurlErrorResponse]:
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
-    key = g().wallet.lnurlauth_key(cb.netloc)
+    key = wallet.wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:
         """for strict DER we need to encode the integer with some quirks"""

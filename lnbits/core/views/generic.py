@@ -7,10 +7,9 @@ from fastapi.exceptions import HTTPException
 from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
+from loguru import logger
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
-
-from loguru import logger
 
 from lnbits.core import db
 from lnbits.core.models import User
@@ -113,7 +112,7 @@ async def wallet(
 
     if not user_id:
         user = await get_user((await create_account()).id)
-        logger.info(f"Created new account for user {user.id}")
+        logger.info(f"Create user {user.id}")
     else:
         user = await get_user(user_id)
         if not user:
@@ -140,7 +139,7 @@ async def wallet(
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
-    logger.info(f"Access wallet {wallet_name} of user {user.id}")
+    logger.debug(f"Access wallet {wallet_name}{'of user '+ user.id if user else ''}")
     wallet = user.get_wallet(wallet_id)
     if not wallet:
         return template_renderer().TemplateResponse(

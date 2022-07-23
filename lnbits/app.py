@@ -1,11 +1,9 @@
 import asyncio
 import importlib
+import logging
 import sys
 import traceback
 import warnings
-
-from loguru import logger
-
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
@@ -14,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 
 import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
@@ -199,8 +198,33 @@ def register_exception_handlers(app: FastAPI):
 def configure_logger() -> None:
     logger.remove()
     log_level: str = "DEBUG" if lnbits.settings.DEBUG else "INFO"
-    if lnbits.settings.DEBUG:
-        fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <6}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>"
-    else:
-        fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>"
-    logger.add(sys.stderr, level=log_level, format=fmt)
+    formatter = Formatter()
+    logger.add(sys.stderr, level=log_level, format=formatter.format)
+
+    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
+
+
+class Formatter:
+    def __init__(self):
+        self.padding = 0
+        self.minimal_fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
+        if lnbits.settings.DEBUG:
+            self.fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <4}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>\n"
+        else:
+            self.fmt: str = self.minimal_fmt
+
+    def format(self, record):
+        function = "{function}".format(**record)
+        if function == "emit":  # uvicorn logs
+            return self.minimal_fmt
+        return self.fmt
+
+
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        logger.log(level, record.getMessage())

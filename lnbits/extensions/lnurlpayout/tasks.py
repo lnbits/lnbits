@@ -2,9 +2,7 @@ import asyncio
 from http import HTTPStatus
 
 import httpx
-
 from loguru import logger
-
 from starlette.exceptions import HTTPException
 
 from lnbits.core import db as core_db

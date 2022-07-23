@@ -75,7 +75,7 @@ async def api_usermanager_activate_extension(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="User does not exist."
         )
-    update_user_extension(user_id=userid, extension=extension, active=active)
+    await update_user_extension(user_id=userid, extension=extension, active=active)
     return {"extension": "updated"}
 
 

@@ -1,21 +1,19 @@
 import asyncio
 
 import uvloop
-from starlette.requests import Request
-
 from loguru import logger
+from starlette.requests import Request
 
 from .commands import migrate_databases
 from .settings import (
     DEBUG,
+    HOST,
     LNBITS_COMMIT,
     LNBITS_DATA_FOLDER,
+    LNBITS_DATABASE_URL,
     LNBITS_SITE_TITLE,
-    HOST,
     PORT,
     WALLET,
-    LNBITS_DATABASE_URL,
-    LNBITS_DATA_FOLDER,
 )
 
 uvloop.install()
