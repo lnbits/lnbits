@@ -30,7 +30,8 @@ uvicorn = {extras = ["standard"], version = "*"}
 sse-starlette = "*"
 jinja2 = "==3.0.1"
 pyngrok = "*"
-secp256k1 = "*"
+secp256k1 = "0.14.0"
+cffi = "0.15.0"
 pycryptodomex = "*"
 
 [dev-packages]
