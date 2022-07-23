@@ -88,9 +88,9 @@ async def test_get_wallet_with_user_and_wallet(client, to_user, to_wallet):
     assert response.status_code == 200, (
         str(response.url) + " " + str(response.status_code)
     )
-    # check GET /wallet: wrong wallet and user, expect 204
 
 
+# check GET /wallet: wrong wallet and user, expect 204
 @pytest.mark.asyncio
 async def test_get_wallet_with_user_and_wrong_wallet(client, to_user, to_wallet):
     response = await client.get("wallet", params={"usr": to_user.id, "wal": "1"})
