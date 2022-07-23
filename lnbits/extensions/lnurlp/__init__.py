@@ -21,7 +21,7 @@ lnurlp_ext: APIRouter = APIRouter(prefix="/lnurlp", tags=["lnurlp"])
 
 
 def lnurlp_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/lnurlp/static/templates")])])
+    return template_renderer(["lnbits/extensions/lnurlp/templates"])
 
 
 from .lnurl import *  # noqa

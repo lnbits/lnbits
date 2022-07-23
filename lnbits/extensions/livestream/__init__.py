@@ -21,7 +21,7 @@ livestream_ext: APIRouter = APIRouter(prefix="/livestream", tags=["livestream"])
 
 
 def livestream_renderer():
-    return template_renderer([StaticFiles(packages=[("lnbits", "extensions/livestream/static/templates")])])
+    return template_renderer(["lnbits/extensions/livestream/templates"])
 
 
 from .lnurl import *  # noqa
