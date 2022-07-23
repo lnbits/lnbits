@@ -23,6 +23,10 @@ from lnbits.settings import (
     SERVICE_FEE,
 )
 
+from ...helpers import (
+    get_valid_extensions,
+)
+
 from ..crud import (
     create_account,
     create_wallet,
@@ -65,6 +69,14 @@ async def extensions(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
         )
+
+    # check if extension exists
+    if extension_to_enable or extension_to_disable:
+        ext = extension_to_enable or extension_to_disable
+        if ext not in [e.code for e in get_valid_extensions()]:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
+            )
 
     if extension_to_enable:
         logger.info(f"Enabling extension: {extension_to_enable} for user {user.id}")
