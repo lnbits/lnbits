@@ -14,9 +14,9 @@ embit==0.4.9
 environs==9.3.3
 fastapi==0.68.1
 h11==0.12.0
-httpcore==0.13.7
+httpcore==0.15.0
 httptools==0.2.0
-httpx==0.19.0
+httpx==0.23.0
 idna==3.2
 importlib-metadata==4.8.1
 jinja2==3.0.1
@@ -36,6 +36,7 @@ pyyaml==5.4.1
 represent==1.6.0.post0
 rfc3986==1.5.0
 secp256k1==0.14.0
+cffi==1.15.0
 shortuuid==1.0.1
 six==1.16.0
 sniffio==1.2.0

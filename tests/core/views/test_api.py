@@ -11,11 +11,26 @@ async def test_core_views_generic(client):
     assert response.status_code == 200
 
 
-# check GET /api/v1/wallet: wallet info
+# check GET /api/v1/wallet with inkey: wallet info, no balance
 @pytest.mark.asyncio
-async def test_get_wallet(client, inkey_headers_to):
+async def test_get_wallet_inkey(client, inkey_headers_to):
     response = await client.get("/api/v1/wallet", headers=inkey_headers_to)
-    assert response.status_code < 300
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert "balance" in result
+    assert "id" not in result
+
+
+# check GET /api/v1/wallet with adminkey: wallet info with balance
+@pytest.mark.asyncio
+async def test_get_wallet_adminkey(client, adminkey_headers_to):
+    response = await client.get("/api/v1/wallet", headers=adminkey_headers_to)
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert "balance" in result
+    assert "id" in result
 
 
 # check POST /api/v1/payments: invoice creation
