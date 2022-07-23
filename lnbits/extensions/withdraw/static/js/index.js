@@ -237,7 +237,7 @@ new Vue({
         if (typeof NDEFReader == 'undefined') {
           throw {
             toString: function () {
-              return 'NFC not supported on this device and/or browser.'
+              return 'NFC not supported on this device or browser.'
             }
           }
         }
@@ -246,19 +246,25 @@ new Vue({
 
         this.nfcTagWriting = true
         this.$q.notify({
-          message: 'Tap your NFC tag now to write the LNURLw to it'
+          message: 'Tap your NFC tag to write the LNURL-withdraw link to it.'
         })
 
-        await ndef.write(lnurl)
+        await ndef.write({
+          records: [{recordType: 'url', data: 'lightning:' + lnurl, lang: 'en'}]
+        })
 
         this.nfcTagWriting = false
         this.$q.notify({
-          message: 'NFC Tag written successfully!'
+          type: 'positive',
+          message: 'NFC tag written successfully.'
         })
       } catch (error) {
         this.nfcTagWriting = false
         this.$q.notify({
-          message: error ? error.toString() : 'An unexpected error has occurred'
+          type: 'negative',
+          message: error
+            ? error.toString()
+            : 'An unexpected error has occurred.'
         })
       }
     },

@@ -4,7 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
 
 [packages]
 bitstring = "*"
@@ -30,7 +30,8 @@ uvicorn = {extras = ["standard"], version = "*"}
 sse-starlette = "*"
 jinja2 = "==3.0.1"
 pyngrok = "*"
-secp256k1 = "*"
+secp256k1 = "==0.14.0"
+cffi = "==1.15.0"
 pycryptodomex = "*"
 
 [dev-packages]

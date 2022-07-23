@@ -72,13 +72,13 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 Problems installing? These commands have helped us install LNbits. 
 
 ```sh
-sudo apt install pkg-config libffi-dev libpq-dev setuptools 
+sudo apt install pkg-config libffi-dev libpq-dev
 
 # if the secp256k1 build fails:
-# if you used venv (option 1)
-./venv/bin/pip install setuptools wheel 
-# if you used pipenv (option 2)
+# if you used pipenv (option 1)
 pipenv install setuptools wheel 
+# if you used venv (option 2)
+./venv/bin/pip install setuptools wheel 
 # build essentials for debian/ubuntu
 sudo apt install python3-dev gcc build-essential
 ```
@@ -127,7 +127,7 @@ Take a look at [Polar](https://lightningpolar.com/) for an excellent way of spin
 
 # Additional guides
 
-### SQLite to PostgreSQL migration
+## SQLite to PostgreSQL migration
 If you already have LNbits installed and running, on an SQLite database, we **highly** recommend you migrate to postgres if you are planning to run LNbits on scale.
 
 There's a script included that can do the migration easy. You should have Postgres already installed and there should be a password for the user (see Postgres install guide above). Additionally, your LNbits instance should run once on postgres to implement the database schema before the migration works:
@@ -149,7 +149,7 @@ python3 tools/conv.py
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
 
 
-### LNbits as a systemd service
+## LNbits as a systemd service
 
 Systemd is great for taking care of your LNbits instance. It will start it on boot and restart it in case it crashes. If you want to run LNbits as a systemd service on your Debian/Ubuntu/Raspbian server, create a file at `/etc/systemd/system/lnbits.service` with the following content:
 
@@ -188,11 +188,40 @@ sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
 
-### LNbits running on Umbrel behind Tor
+## Using https without reverse proxy
+The most common way of using LNbits via https is to use a reverse proxy such as Caddy, nginx, or ngriok. However, you can also run LNbits via https without additional software. This is useful for development purposes or if you want to use LNbits in your local network. 
+
+We have to create a self-signed certificate using `mkcert`. Note that this certiciate is not "trusted" by most browsers but that's fine (since you know that you have created it) and encryption is always better than clear text.
+
+#### Install mkcert
+You can find the install instructions for `mkcert` [here](https://github.com/FiloSottile/mkcert). 
+
+Install mkcert on Ubuntu:
+```sh
+sudo apt install libnss3-tools
+curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
+chmod +x mkcert-v*-linux-amd64
+sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
+```
+#### Create certificate
+To create a certificate, first `cd` into your lnbits folder and execute the following command ([more info](https://kifarunix.com/how-to-create-self-signed-ssl-certificate-with-mkcert-on-ubuntu-18-04/))
+```sh
+# add your local IP (192.x.x.x) as well if you want to use it in your local network
+mkcert localhost 127.0.0.1 ::1 
+```
+
+This will create two new files (`localhost-key.pem` and `localhost.pem `) which you can then pass to uvicorn when you start LNbits:
+
+```sh
+./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./localhost-key.pem --ssl-certfile ./localhost.pem 
+```
+
+
+## LNbits running on Umbrel behind Tor
 
 If you want to run LNbits on your Umbrel but want it to be reached through clearnet, _Uxellodunum_ made an extensive [guide](https://community.getumbrel.com/t/guide-lnbits-without-tor/604) on how to do it.
 
-### Docker installation
+## Docker installation
 
 To install using docker you first need to build the docker image as:
 
@@ -224,9 +253,3 @@ docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/
 ```
 
 Finally you can access your lnbits on your machine at port 5000.
-
-# Additional guides
-
-## LNbits running on Umbrel behind Tor
-
-If you want to run LNbits on your Umbrel but want it to be reached through clearnet, _Uxellodunum_ made an extensive [guide](https://community.getumbrel.com/t/guide-lnbits-without-tor/604) on how to do it.

@@ -3,11 +3,11 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  sqlite:
+  venv-sqlite:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -25,7 +25,7 @@ jobs:
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         run: make test
-  postgres:
+  venv-postgres:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -44,7 +44,7 @@ jobs:
           --health-retries 5
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -68,11 +68,11 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
-  pipenv:
+  pipenv-sqlite:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
