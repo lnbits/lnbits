@@ -94,7 +94,6 @@ def insert_to_pg(query, data):
     cursor = get_postgres_cursor()
     connection = cursor.connection
 
-    print(f"Inserting {len(data)} rows...")
     for d in data:
         try:
             cursor.execute(query, d)
