@@ -757,11 +757,11 @@ args = parser.parse_args()
 print("Selected path: ", args.sqlite_path)
 
 if os.path.isdir(args.sqlite_path):
-    file = "database.sqlite3"
-    check_db_versions(os.path.join(args.sqlite_path, file))
+    file = os.path.join(args.sqlite_path, "database.sqlite3")
+    check_db_versions(file)
     if not args.extensions_only:
-        print(f"Migrating: {os.path.join(args.sqlite_path, file)}")
-        migrate_core(os.path.join(args.sqlite_path, file))
+        print(f"Migrating: {file}")
+        migrate_core(file)
 
 if os.path.isdir(args.sqlite_path):
     files = [
@@ -776,7 +776,7 @@ for file in files:
         schema = filename.replace("ext_", "").split(".")[0]
         print(f"Migrating: {file}")
         migrate_ext(
-            os.path.join(args.sqlite_path, file),
+            file,
             schema,
             ignore_missing=args.skip_missing,
         )
