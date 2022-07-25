@@ -102,6 +102,8 @@ def insert_to_pg(query, data):
                 print(e)
                 print(f"Failed to insert {d}")
             else:
+                print("query:", query)
+                print("data:", d)
                 raise ValueError(f"Failed to insert {d}")
     connection.commit()
 
@@ -259,9 +261,10 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
                 open_time,
                 used,
                 usescsv,
-                webhook_url
+                webhook_url,
+                custom_url
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # WITHDRAW HASH CHECK
