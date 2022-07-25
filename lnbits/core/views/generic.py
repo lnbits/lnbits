@@ -55,9 +55,9 @@ async def home(request: Request, lightning: str = None):
 )
 async def extensions(
     request: Request,
-    user=Depends(check_user_exists),
-    enable=Query(None),
-    disable=Query(None),
+    user: User = Depends(check_user_exists), #type: ignore
+    enable: str = Query(None), #type: ignore
+    disable: str = Query(None), #type: ignore
 ):
     extension_to_enable = enable
     extension_to_disable = disable
@@ -108,11 +108,12 @@ just **user_id**: return the first user wallet or create one if none found (with
 nothing: create everything<br>
 """,
 )
+
 async def wallet(
     request=Query(None),
-    nme=Query(None),
-    usr=Query(None),
-    wal=Query(None),
+    nme: Optional[str] = Query(None), #type: ignore
+    usr: Optional[UUID4] = Query(None), #type: ignore
+    wal: Optional[UUID4] = Query(None), #type: ignore
 ):
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
