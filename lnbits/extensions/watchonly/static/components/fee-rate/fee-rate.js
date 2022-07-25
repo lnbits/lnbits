@@ -1,4 +1,4 @@
-async function fees(path) {
+async function feeRate(path) {
   const template = await loadTemplateAsync(path)
   Vue.component('fees', {
     name: 'fees',
