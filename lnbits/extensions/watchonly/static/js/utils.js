@@ -8,6 +8,8 @@ const COMMAND_WIPE = '/wipe'
 const COMMAND_SEED = '/seed'
 const COMMAND_RESTORE = '/restore'
 
+const DEFAULT_RECEIVE_GAP_LIMIT = 20
+
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''
 
@@ -158,7 +160,7 @@ function loadTemplateAsync(path) {
       if (this.readyState == 4) {
         if (this.status == 200) resolve(this.responseText)
 
-        if (this.status == 404) resolve('Page not found.')
+        if (this.status == 404) resolve(`<div>Page not found: ${path}</div>`)
       }
     }
 

@@ -41,7 +41,7 @@ async function walletConfig(path) {
       }
     },
     created: async function () {
-        await this.getConfig()
+      await this.getConfig()
     }
   })
 }
