@@ -4,7 +4,14 @@ async function utxoList(path) {
     name: 'utxo-list',
     template,
 
-    props: ['utxos', 'accounts', 'sats_denominated', 'mempool_endpoint'],
+    props: [
+      'utxos',
+      'accounts',
+      'selectable',
+      'payed-amount',
+      'sats_denominated',
+      'mempool_endpoint'
+    ],
 
     data: function () {
       return {
@@ -18,7 +25,8 @@ async function utxoList(path) {
             {
               name: 'selected',
               align: 'left',
-              label: ''
+              label: '',
+              selectable: true
             },
             {
               name: 'status',
@@ -59,7 +67,21 @@ async function utxoList(path) {
             rowsPerPage: 10
           },
           filter: ''
-        }
+        },
+        utxoSelectionModes: [
+          'Manual',
+          'Random',
+          'Select All',
+          'Smaller Inputs First',
+          'Larger Inputs First'
+        ],
+        utxoSelectionMode: 'Random'
+      }
+    },
+
+    computed: {
+      columns: function() {
+        return this.utxosTable.columns.filter(c => c.selectable ? this.selectable : true)
       }
     },
 
@@ -76,6 +98,37 @@ async function utxoList(path) {
           .filter(u => u.selected)
           .reduce((t, a) => t + (a.amount || 0), 0)
         return total
+      },
+      applyUtxoSelectionMode: function () {
+        const payedAmount = this['payed-amount']
+        const mode = this.payment.utxoSelectionMode
+        this.utxos.data.forEach(u => (u.selected = false))
+        const isManual = mode === 'Manual'
+        if (isManual || !payedAmount) return
+
+        const isSelectAll = mode === 'Select All'
+        if (isSelectAll || payedAmount >= this.utxos.total) {
+          this.utxos.data.forEach(u => (u.selected = true))
+          return
+        }
+        const isSmallerFirst = mode === 'Smaller Inputs First'
+        const isLargerFirst = mode === 'Larger Inputs First'
+
+        let selectedUtxos = this.utxos.data.slice()
+        if (isSmallerFirst || isLargerFirst) {
+          const sortFn = isSmallerFirst
+            ? (a, b) => a.amount - b.amount
+            : (a, b) => b.amount - a.amount
+          selectedUtxos.sort(sortFn)
+        } else {
+          // default to random order
+          selectedUtxos = _.shuffle(selectedUtxos)
+        }
+        selectedUtxos.reduce((total, utxo) => {
+          utxo.selected = total < payedAmount
+          total += utxo.amount
+          return total
+        }, 0)
       }
     },
 
