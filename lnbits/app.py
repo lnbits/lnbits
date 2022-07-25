@@ -65,6 +65,12 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         request: Request, exc: RequestValidationError
     ):
 
+        if request.headers.get("accept") and "text/html" in request.headers["accept"]:
+            return template_renderer().TemplateResponse(
+            "error.html",
+            {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+        )
+
         return JSONResponse(
             status_code=HTTPStatus.NO_CONTENT,
             content={"detail": exc.errors()},
@@ -175,6 +181,12 @@ def register_exception_handlers(app: FastAPI):
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
+
+        if request.headers.get("accept") and "text/html" in request.headers["accept"]:
+            return template_renderer().TemplateResponse(
+            "error.html",
+            {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+        )
 
         return JSONResponse(
             status_code=HTTPStatus.NO_CONTENT,
