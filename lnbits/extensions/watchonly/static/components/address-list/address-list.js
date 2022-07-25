@@ -5,6 +5,14 @@ async function addressList(path) {
     template,
 
     props: ['accounts', 'mempool_endpoint', 'inkey'],
+    watch: {
+      immediate: true,
+      accounts(newVal, oldVal) {
+        if ((newVal || []).length !== (oldVal || []).length) {
+          this.refreshAddresses() // todo await
+        }
+      }
+    },
     data: function () {
       return {
         addresses: [],
@@ -65,15 +73,7 @@ async function addressList(path) {
         }
       }
     },
-    watch: {
-      immediate: true,
-      accounts(newVal, oldVal) {
-        if ((newVal || []).length !== (oldVal || []).length) {
-          console.log('### refreshAddresses')
-          this.refreshAddresses() // todo await
-        }
-      }
-    },
+
 
     methods: {
       satBtc(val, showUnit = true) {
@@ -95,8 +95,6 @@ async function addressList(path) {
           return r
         }, {})
 
-        console.log('### walletsLimit', walletsLimit)
-        console.log('### this.addresses', this.addresses)
         const fAddresses = this.addresses.filter(
           a =>
             (includeChangeAddrs || !a.isChange) &&
@@ -106,7 +104,6 @@ async function addressList(path) {
             !(excludeNoAmount && a.amount === 0) &&
             (!selectedWalletId || a.wallet === selectedWalletId)
         )
-        console.log('### fAddresses', fAddresses)
         return fAddresses
       },
       getAddressesForWallet: async function (walletId) {
@@ -128,7 +125,6 @@ async function addressList(path) {
         return []
       },
       refreshAddresses: async function () {
-        console.log('### refreshAddresses, this.accounts', this.accounts)
         if (!this.accounts) return
         this.addresses = []
         for (const {id, type} of this.accounts) {
@@ -151,7 +147,6 @@ async function addressList(path) {
           })
           this.addresses.push(...uniqueAddresses)
         }
-        console.log('### refreshAddresses, this.addresse', this.addresses)
         this.$emit('update:addresses', this.addresses)
       },
       scanAddress: async function (addressData) {
@@ -164,6 +159,7 @@ async function addressList(path) {
 
     created: async function () {
       await this.refreshAddresses()
+      // this.$emit('update:addresses', this.addresses)
     }
   })
 }

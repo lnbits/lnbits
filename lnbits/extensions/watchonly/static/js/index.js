@@ -4,6 +4,7 @@ const watchOnly = async () => {
   await walletConfig('static/components/wallet-config/wallet-config.html')
   await walletList('static/components/wallet-list/wallet-list.html')
   await addressList('static/components/address-list/address-list.html')
+  await history('static/components/history/history.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -158,20 +159,7 @@ const watchOnly = async () => {
         })
         return addressHistory
       },
-      getFilteredAddressesHistory: function () {
-        return this.history.filter(a => (!a.isChange || a.sent) && !a.isSubItem)
-      },
-      exportHistoryToCSV: function () {
-        const history = this.getFilteredAddressesHistory().map(a => ({
-          ...a,
-          action: a.sent ? 'Sent' : 'Received'
-        }))
-        LNbits.utils.exportCSV(
-          this.historyTable.exportColums,
-          history,
-          'address-history'
-        )
-      },
+
       markSameTxAddressHistory: function () {
         this.history
           .filter(s => s.sent)
@@ -807,11 +795,12 @@ const watchOnly = async () => {
         this.utxos.data = []
         this.utxos.total = 0
         this.history = []
+        console.log('### scanAddressWithAmount1',  this.addresses)
         const addresses = this.addresses.filter(a => a.hasActivity)
+        console.log('### scanAddressWithAmount2', addresses)
         await this.updateUtxosForAddresses(addresses)
       },
       scanAddress: async function (addressData) {
-        console.log('### scanAddress', addressData)
         this.updateUtxosForAddresses([addressData])
         this.$q.notify({
           type: 'positive',
@@ -830,7 +819,8 @@ const watchOnly = async () => {
               h => h.address !== addrData.address
             )
 
-            // add new entrie
+            console.log('### addressHistory', addressHistory)
+            // add new entries
             this.history.push(...addressHistory)
             this.history.sort((a, b) => (!a.height ? -1 : b.height - a.height))
             this.markSameTxAddressHistory()
@@ -975,7 +965,6 @@ const watchOnly = async () => {
       //################### OTHER ###################
 
       openQrCodeDialog: function (addressData) {
-        console.log('### addressData', addressData)
         this.currentAddress = addressData
         this.addressNote = addressData.note || ''
         this.showAddress = true
@@ -1005,16 +994,16 @@ const watchOnly = async () => {
         }
       },
       showAddressDetails: function (addressData) {
-        console.log('### showAddressDetails addressData', addressData)
         this.openQrCodeDialog(addressData)
       },
-      handleAddressesUpdated: function (addresses) {
+      handleAddressesUpdated: async function (addresses) {
         this.addresses = addresses
+        await this.scanAddressWithAmount()
       }
     },
     created: async function () {
       if (this.g.user.wallets.length) {
-        // await this.refreshAddressesxxx() todo: done when <address-list is created
+        // await this.$refs.addressList.refreshAddresses()
         await this.scanAddressWithAmount()
       }
     }

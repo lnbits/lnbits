@@ -86,68 +86,6 @@ const tables = {
         label: 'Change'
       }
     ]
-  },
-
-  historyTable: {
-    columns: [
-      {
-        name: 'expand',
-        align: 'left',
-        label: ''
-      },
-      {
-        name: 'status',
-        align: 'left',
-        label: 'Status'
-      },
-      {
-        name: 'amount',
-        align: 'left',
-        label: 'Amount',
-        field: 'amount',
-        sortable: true
-      },
-      {
-        name: 'address',
-        align: 'left',
-        label: 'Address',
-        field: 'address',
-        sortable: true
-      },
-      {
-        name: 'date',
-        align: 'left',
-        label: 'Date',
-        field: 'date',
-        sortable: true
-      }
-    ],
-    exportColums: [
-      {
-        label: 'Action',
-        field: 'action'
-      },
-      {
-        label: 'Date&Time',
-        field: 'date'
-      },
-      {
-        label: 'Amount',
-        field: 'amount'
-      },
-      {
-        label: 'Fee',
-        field: 'fee'
-      },
-      {
-        label: 'Transaction Id',
-        field: 'txId'
-      }
-    ],
-    pagination: {
-      rowsPerPage: 0
-    },
-    filter: ''
   }
 }
 
