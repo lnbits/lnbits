@@ -12,14 +12,13 @@
       :adminkey="g.user.wallets[0].adminkey"
       :inkey="g.user.wallets[0].inkey"
       :sats-denominated="config.data.sats_denominated"
-      :addresses="addresses.data"
+      :addresses="addresses"
       @accounts-update="updateAccounts"
-      @new-receive-address="handleNewReceiveAddress"
+      @new-receive-address="showAddressDetails"
     >
     </wallet-list>
+
     {% raw %}
-    <!-- :walletAccounts.sync="walletAccounts" -->
-    <!-- :walletAccounts="walletAccounts" -->
     <q-card>
       <div class="row q-pt-sm q-pb-sm items-center no-wrap q-mb-md">
         <div class="col-3 q-pl-md">
@@ -46,7 +45,7 @@
             class="btn-full"
             @click="goToPaymentView"
             :disabled="scan.scanning == true"
-            >Make Payment</q-btn
+            >New Payment</q-btn
           >
         </div>
       </div>
@@ -70,210 +69,16 @@
         </q-tabs>
         <q-tab-panels v-model="tab">
           <q-tab-panel name="addresses">
-            <div class="row items-center no-wrap q-mb-md">
-              <div class="col q-pr-lg">
-                <q-select
-                  filled
-                  clearable
-                  dense
-                  emit-value
-                  v-model="addresses.selectedWallet"
-                  :options="walletAccounts"
-                  label="Wallet Account"
-                ></q-select>
-              </div>
-              <div class="col q-pr-lg">
-                <q-select
-                  filled
-                  clearable
-                  dense
-                  emit-value
-                  multiple
-                  :options="addresses.filterOptions"
-                  v-model="addresses.filterValues"
-                  :options="walletAccounts"
-                  label="Filter"
-                ></q-select>
-              </div>
-              <div class="col-auto">
-                <q-input
-                  borderless
-                  dense
-                  debounce="300"
-                  v-model="addressesTable.filter"
-                  placeholder="Search"
-                >
-                  <template v-slot:append>
-                    <q-icon name="search"></q-icon>
-                  </template>
-                </q-input>
-              </div>
-            </div>
-            <q-table
-              style="height: 400px"
-              flat
-              dense
-              :data="getFilteredAddresses()"
-              row-key="id"
-              virtual-scroll
-              :columns="addressesTable.columns"
-              :pagination.sync="addressesTable.pagination"
-              :filter="addressesTable.filter"
+            <address-list
+              ref="addressList"
+              :accounts="walletAccounts"
+              :mempool_endpoint="config.data.mempool_endpoint"
+              @update:addresses="handleAddressesUpdated"
+              @scan:address="scanAddress"
+              @show-address-details="showAddressDetails"
+              :inkey="g.user.wallets[0].inkey"
             >
-              <template v-slot:body="props">
-                <q-tr :props="props">
-                  <q-td auto-width>
-                    <q-btn
-                      size="sm"
-                      color="accent"
-                      round
-                      dense
-                      @click="props.row.expanded= !props.row.expanded"
-                      :icon="props.row.expanded? 'remove' : 'add'"
-                    />
-                  </q-td>
-
-                  <q-td key="address" :props="props">
-                    <div>
-                      <a
-                        style="color: unset"
-                        :href="config.data.mempool_endpoint + '/address/' + props.row.address"
-                        target="_blank"
-                      >
-                        {{props.row.address}}</a
-                      >
-                      <q-badge
-                        v-if="props.row.branch_index === 1"
-                        color="orange"
-                        class="q-mr-md"
-                        outline
-                      >
-                        change
-                      </q-badge>
-                      <q-btn
-                        v-if="props.row.gapLimitExceeded"
-                        color="yellow"
-                        icon="warning"
-                        title="Gap Limit Exceeded"
-                        @click="props.row.expanded= !props.row.expanded"
-                        outline
-                        class="q-ml-md"
-                        size="xs"
-                      >
-                      </q-btn>
-                    </div>
-                  </q-td>
-
-                  <q-td
-                    key="amount"
-                    :props="props"
-                    :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
-                  >
-                    <div>{{satBtc(props.row.amount)}}</div>
-                  </q-td>
-
-                  <q-td key="note" :props="props" :class="">
-                    <div>{{props.row.note}}</div>
-                  </q-td>
-                  <q-td key="wallet" :props="props" :class="">
-                    <div>{{getWalletName(props.row.wallet)}}</div>
-                  </q-td>
-                </q-tr>
-                <q-tr v-show="props.row.expanded" :props="props">
-                  <q-td colspan="100%">
-                    <div class="row items-center q-mt-md q-mb-lg">
-                      <div class="col-2 q-pr-lg"></div>
-                      <div class="col-4 q-pr-lg">
-                        <q-btn
-                          unelevated
-                          dense
-                          size="md"
-                          icon="qr_code"
-                          :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                          @click="openQrCodeDialog(props.row)"
-                          >QR Code</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          dense
-                          size="md"
-                          icon="refresh"
-                          color="grey"
-                          @click="scanAddress(props.row)"
-                          >Rescan</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          dense
-                          size="md"
-                          icon="history"
-                          color="grey"
-                          @click="searchInTab('history', props.row.address)"
-                          >History</q-btn
-                        >
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          dense
-                          size="md"
-                          color="grey"
-                          @click="searchInTab('utxos', props.row.address)"
-                          >View Coins</q-btn
-                        >
-                      </div>
-                    </div>
-
-                    <div class="row items-center no-wrap q-mb-md">
-                      <div class="col-2 q-pr-lg">Note:</div>
-                      <div class="col-8 q-pr-lg">
-                        <q-input
-                          filled
-                          dense
-                          v-model.trim="props.row.note"
-                          type="text"
-                          label="Note"
-                        ></q-input>
-                      </div>
-                      <div class="col-2 q-pr-lg">
-                        <q-btn
-                          outline
-                          color="grey"
-                          @click="updateNoteForAddress(props.row, props.row.note)"
-                          >Update</q-btn
-                        >
-                      </div>
-                    </div>
-
-                    <div
-                      v-if="props.row.error"
-                      class="row items-center no-wrap q-mb-md"
-                    >
-                      <div class="col-2 q-pr-lg"></div>
-                      <div class="col-10 q-pr-lg">
-                        <q-badge color="red">{{props.row.error}}</q-badge>
-                      </div>
-                    </div>
-                    <div
-                      v-if="props.row.gapLimitExceeded"
-                      class="row items-center no-wrap q-mb-md"
-                    >
-                      <div class="col-2 q-pr-lg"></div>
-                      <div class="col-10 q-pr-lg">
-                        <q-badge color="yellow" text-color="black"
-                          >Gap limit of 20 addresses exceeded. Other wallets
-                          might not detect funds at this address.</q-badge
-                        >
-                      </div>
-                    </div>
-                  </q-td>
-                </q-tr>
-              </template>
-            </q-table>
+            </address-list>
           </q-tab-panel>
           <q-tab-panel name="history">
             <div class="row items-center no-wrap q-mb-md">
@@ -427,7 +232,7 @@
             <div class="row items-center no-wrap q-mb-md">
               <div class="col">
                 <q-toggle
-                  label="Make Payment"
+                  label="New Payment"
                   color="secodary"
                   v-model="payment.show"
                   @input="initPaymentData()"
@@ -1264,11 +1069,9 @@
       </q-card-section>
     </q-card>
   </div>
-
-  <q-dialog v-model="addresses.show" position="top">
-    <q-card v-if="addresses.data" class="q-pa-lg lnbits__dialog-card">
-      {% raw %}
-
+  {% raw %}
+  <q-dialog v-model="showAddress" position="top">
+    <q-card class="q-pa-lg lnbits__dialog-card">
       <h5 class="text-subtitle1 q-my-none">Address Details</h5>
       <q-separator></q-separator><br />
 
@@ -1296,7 +1099,7 @@
         <q-input
           filled
           dense
-          v-model.trim="addresses.note"
+          v-model.trim="addressNote"
           type="text"
           label="Note"
         ></q-input>
@@ -1313,7 +1116,7 @@
           outline
           v-close-popup
           color="grey"
-          @click="updateNoteForAddress(currentAddress, addresses.note)"
+          @click="updateNoteForAddress(currentAddress, addressNote)"
           class="q-ml-sm"
           >Save Note</q-btn
         >
@@ -1473,5 +1276,6 @@
 <script src="{{ url_for('watchonly_static', path='components/my-checkbox/my-checkbox.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/wallet-config/wallet-config.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/wallet-list/wallet-list.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='components/address-list/address-list.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}

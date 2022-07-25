@@ -48,7 +48,7 @@ You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnb
  - shows the UTXOs for all wallets
  - there can be multiple UTXOs for the same address
 
-### Make Payment
+### New Payment
  - create a new `Partially Signed Bitcoin Transaction`
  - multiple `Send Addresses` can be added
    -  the `Max` button next to an address is for sending the remaining funds to this address (no change)
@@ -57,7 +57,7 @@ You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnb
  - `Show Advanced` allows to (see `screenshot 2`):
     - select from which account the change address will be selected (defaults to the first one)
     - select the `Fee Rate`
-       - it defaults to the `Medium` value at the moment the `Make Payment` button was clicked
+       - it defaults to the `Medium` value at the moment the `New Payment` button was clicked
        - it can be refreshed
        - warnings are shown if the fee is too Low or to High
 
