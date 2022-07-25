@@ -1,14 +1,16 @@
 import asyncio
 import json
-import httpx
 from os import getenv
-from typing import Optional, Dict, AsyncGenerator
+from typing import AsyncGenerator, Dict, Optional
+
+import httpx
+from loguru import logger
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
 
@@ -144,5 +146,7 @@ class LNbitsWallet(Wallet):
             except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
 
-            print("lost connection to lnbits /payments/sse, retrying in 5 seconds")
+            logger.error(
+                "lost connection to lnbits /payments/sse, retrying in 5 seconds"
+            )
             await asyncio.sleep(5)
