@@ -110,7 +110,7 @@ nothing: create everything<br>
 )
 
 async def wallet(
-    request=Query(None),
+    request: Request = Query(None), #type: ignore
     nme: Optional[str] = Query(None), #type: ignore
     usr: Optional[UUID4] = Query(None), #type: ignore
     wal: Optional[UUID4] = Query(None), #type: ignore
