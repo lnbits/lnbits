@@ -3,6 +3,7 @@ const watchOnly = async () => {
 
   await walletConfig('static/components/wallet-config/wallet-config.html')
   await walletList('static/components/wallet-list/wallet-list.html')
+  await addressList('static/components/address-list/address-list.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -71,7 +72,12 @@ const watchOnly = async () => {
         ...tables,
         ...tableData,
 
-        walletAccounts: []
+        walletAccounts: [],
+        addresses: [],
+        history: [],
+
+        showAddress: false,
+        addressNote: ''
       }
     },
 
@@ -79,56 +85,13 @@ const watchOnly = async () => {
       //################### CONFIG ###################
 
       //################### WALLETS ###################
-      getAddressesForWallet: async function (walletId) {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            '/watchonly/api/v1/addresses/' + walletId,
-            this.g.user.wallets[0].inkey
-          )
-          return data.map(mapAddressesData)
-        } catch (err) {
-          this.$q.notify({
-            type: 'warning',
-            message: `Failed to fetch addresses for wallet with id ${walletId}.`,
-            timeout: 10000
-          })
-          LNbits.utils.notifyApiError(err)
-        }
-        return []
-      },
+
       getWalletName: function (walletId) {
         const wallet = this.walletAccounts.find(wl => wl.id === walletId)
         return wallet ? wallet.title : 'unknown'
       },
       //################### ADDRESSES ###################
 
-      refreshAddresses: async function () {
-        // const wallets = await this.getWatchOnlyWallets() todo: revisit
-        // const wallets =
-        this.addresses.data = []
-        for (const {id, type} of this.walletAccounts) {
-          const newAddresses = await this.getAddressesForWallet(id)
-          const uniqueAddresses = newAddresses.filter(
-            newAddr =>
-              !this.addresses.data.find(a => a.address === newAddr.address)
-          )
-
-          const lastAcctiveAddress =
-            uniqueAddresses.filter(a => !a.isChange && a.hasActivity).pop() ||
-            {}
-
-          uniqueAddresses.forEach(a => {
-            a.expanded = false
-            a.accountType = type
-            a.gapLimitExceeded =
-              !a.isChange &&
-              a.addressIndex >
-                lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
-          })
-          this.addresses.data.push(...uniqueAddresses)
-        }
-      },
       updateAmountForAddress: async function (addressData, amount = 0) {
         try {
           const wallet = this.g.user.wallets[0]
@@ -171,34 +134,11 @@ const watchOnly = async () => {
             {note: addressData.note}
           )
           const updatedAddress =
-            this.addresses.data.find(a => a.id === addressData.id) || {}
+            this.addresses.find(a => a.id === addressData.id) || {}
           updatedAddress.note = note
         } catch (err) {
           LNbits.utils.notifyApiError(err)
         }
-      },
-      getFilteredAddresses: function () {
-        const selectedWalletId = this.addresses.selectedWallet?.id
-        const filter = this.addresses.filterValues || []
-        const includeChangeAddrs = filter.includes('Show Change Addresses')
-        const includeGapAddrs = filter.includes('Show Gap Addresses')
-        const excludeNoAmount = filter.includes('Only With Amount')
-
-        const walletsLimit = this.walletAccounts.reduce((r, w) => {
-          r[`_${w.id}`] = w.address_no
-          return r
-        }, {})
-
-        const addresses = this.addresses.data.filter(
-          a =>
-            (includeChangeAddrs || !a.isChange) &&
-            (includeGapAddrs ||
-              a.isChange ||
-              a.addressIndex <= walletsLimit[`_${a.wallet}`]) &&
-            !(excludeNoAmount && a.amount === 0) &&
-            (!selectedWalletId || a.wallet === selectedWalletId)
-        )
-        return addresses
       },
 
       //################### ADDRESS HISTORY ###################
@@ -219,9 +159,7 @@ const watchOnly = async () => {
         return addressHistory
       },
       getFilteredAddressesHistory: function () {
-        return this.addresses.history.filter(
-          a => (!a.isChange || a.sent) && !a.isSubItem
-        )
+        return this.history.filter(a => (!a.isChange || a.sent) && !a.isSubItem)
       },
       exportHistoryToCSV: function () {
         const history = this.getFilteredAddressesHistory().map(a => ({
@@ -235,7 +173,7 @@ const watchOnly = async () => {
         )
       },
       markSameTxAddressHistory: function () {
-        this.addresses.history
+        this.history
           .filter(s => s.sent)
           .forEach((el, i, arr) => {
             if (el.isSubItem) return
@@ -321,7 +259,7 @@ const watchOnly = async () => {
       },
       initPaymentData: async function () {
         if (!this.payment.show) return
-        await this.refreshAddresses()
+        await this.$refs.addressList.refreshAddresses()
 
         this.payment.showAdvanced = false
         this.payment.changeWallet = this.walletAccounts[0]
@@ -347,7 +285,7 @@ const watchOnly = async () => {
       },
       selectChangeAddress: function (wallet = {}) {
         this.payment.changeAddress =
-          this.addresses.data.find(
+          this.addresses.find(
             a => a.wallet === wallet.id && a.isChange && !a.hasActivity
           ) || {}
       },
@@ -840,18 +778,18 @@ const watchOnly = async () => {
       },
       //################### UTXOs ###################
       scanAllAddresses: async function () {
-        await this.refreshAddresses()
-        this.addresses.history = []
-        let addresses = this.addresses.data
+        await this.$refs.addressList.refreshAddresses()
+        this.history = []
+        let addresses = this.addresses
         this.utxos.data = []
         this.utxos.total = 0
         // Loop while new funds are found on the gap adresses.
         // Use 1000 limit as a safety check (scan 20 000 addresses max)
         for (let i = 0; i < 1000 && addresses.length; i++) {
           await this.updateUtxosForAddresses(addresses)
-          const oldAddresses = this.addresses.data.slice()
-          await this.refreshAddresses()
-          const newAddresses = this.addresses.data.slice()
+          const oldAddresses = this.addresses.slice()
+          await this.$refs.addressList.refreshAddresses()
+          const newAddresses = this.addresses.slice()
           // check if gap addresses have been extended
           addresses = newAddresses.filter(
             newAddr => !oldAddresses.find(oldAddr => oldAddr.id === newAddr.id)
@@ -868,11 +806,12 @@ const watchOnly = async () => {
       scanAddressWithAmount: async function () {
         this.utxos.data = []
         this.utxos.total = 0
-        this.addresses.history = []
-        const addresses = this.addresses.data.filter(a => a.hasActivity)
+        this.history = []
+        const addresses = this.addresses.filter(a => a.hasActivity)
         await this.updateUtxosForAddresses(addresses)
       },
       scanAddress: async function (addressData) {
+        console.log('### scanAddress', addressData)
         this.updateUtxosForAddresses([addressData])
         this.$q.notify({
           type: 'positive',
@@ -887,15 +826,13 @@ const watchOnly = async () => {
           for (addrData of addresses) {
             const addressHistory = await this.getAddressTxsDelayed(addrData)
             // remove old entries
-            this.addresses.history = this.addresses.history.filter(
+            this.history = this.history.filter(
               h => h.address !== addrData.address
             )
 
             // add new entrie
-            this.addresses.history.push(...addressHistory)
-            this.addresses.history.sort((a, b) =>
-              !a.height ? -1 : b.height - a.height
-            )
+            this.history.push(...addressHistory)
+            this.history.sort((a, b) => (!a.height ? -1 : b.height - a.height))
             this.markSameTxAddressHistory()
 
             if (addressHistory.length) {
@@ -1038,9 +975,10 @@ const watchOnly = async () => {
       //################### OTHER ###################
 
       openQrCodeDialog: function (addressData) {
+        console.log('### addressData', addressData)
         this.currentAddress = addressData
-        this.addresses.note = addressData.note || ''
-        this.addresses.show = true
+        this.addressNote = addressData.note || ''
+        this.showAddress = true
       },
       searchInTab: function (tab, value) {
         this.tab = tab
@@ -1052,7 +990,7 @@ const watchOnly = async () => {
       },
       updateAccounts: async function (accounts) {
         this.walletAccounts = accounts
-        await this.refreshAddresses()
+        // await this.refreshAddressesxx() // todo: automatic now?
         await this.scanAddressWithAmount()
 
         if (this.payment.changeWallet) {
@@ -1066,13 +1004,17 @@ const watchOnly = async () => {
           }
         }
       },
-      handleNewReceiveAddress: function (addressData) {
+      showAddressDetails: function (addressData) {
+        console.log('### showAddressDetails addressData', addressData)
         this.openQrCodeDialog(addressData)
+      },
+      handleAddressesUpdated: function (addresses) {
+        this.addresses = addresses
       }
     },
     created: async function () {
       if (this.g.user.wallets.length) {
-        await this.refreshAddresses()
+        // await this.refreshAddressesxxx() todo: done when <address-list is created
         await this.scanAddressWithAmount()
       }
     }
