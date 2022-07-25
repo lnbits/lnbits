@@ -3,15 +3,13 @@ import json
 from datetime import datetime, timedelta
 
 import httpx
-
-from loguru import logger
-
 from fastapi.params import Query
 from lnurl import (  # type: ignore
     LnurlErrorResponse,
     LnurlPayActionResponse,
     LnurlPayResponse,
 )
+from loguru import logger
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 

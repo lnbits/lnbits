@@ -51,6 +51,7 @@ LNBITS_THEME_OPTIONS: List[str] = env.list(
 LNBITS_CUSTOM_LOGO = env.str("LNBITS_CUSTOM_LOGO", default="")
 
 WALLET = wallet_class()
+FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 

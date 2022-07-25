@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Optional, AsyncGenerator, Coroutine
+from typing import AsyncGenerator, Coroutine, NamedTuple, Optional
 
 
 class StatusResponse(NamedTuple):

@@ -7,14 +7,14 @@ from pydantic import BaseModel
 class Target(BaseModel):
     wallet: str
     source: str
-    percent: int
+    percent: float
     alias: Optional[str]
 
 
 class TargetPutList(BaseModel):
     wallet: str = Query(...)
     alias: str = Query("")
-    percent: int = Query(..., ge=1)
+    percent: float = Query(..., ge=0.01)
 
 
 class TargetPut(BaseModel):

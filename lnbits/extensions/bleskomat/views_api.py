@@ -1,9 +1,8 @@
 from http import HTTPStatus
 
 from fastapi import Depends, Query
-from starlette.exceptions import HTTPException
-
 from loguru import logger
+from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, require_admin_key

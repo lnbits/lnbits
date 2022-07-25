@@ -2,9 +2,8 @@ from http import HTTPStatus
 
 from fastapi import Query
 from fastapi.params import Depends
-from starlette.exceptions import HTTPException
-
 from loguru import logger
+from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice

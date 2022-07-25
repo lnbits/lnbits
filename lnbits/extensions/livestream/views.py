@@ -1,7 +1,5 @@
 from http import HTTPStatus
 
-# from mmap import MAP_DENYWRITE
-
 from fastapi.param_functions import Depends
 from fastapi.params import Query
 from starlette.exceptions import HTTPException
@@ -14,6 +12,8 @@ from lnbits.decorators import check_user_exists
 
 from . import livestream_ext, livestream_renderer
 from .crud import get_livestream_by_track, get_track
+
+# from mmap import MAP_DENYWRITE
 
 
 @livestream_ext.get("/", response_class=HTMLResponse)

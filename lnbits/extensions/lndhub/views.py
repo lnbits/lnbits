@@ -1,8 +1,10 @@
-from lnbits.decorators import check_user_exists
-from . import lndhub_ext, lndhub_renderer
 from fastapi import Request
 from fastapi.params import Depends
+
 from lnbits.core.models import User
+from lnbits.decorators import check_user_exists
+
+from . import lndhub_ext, lndhub_renderer
 
 
 @lndhub_ext.get("/")

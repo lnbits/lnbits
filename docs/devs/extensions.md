@@ -15,6 +15,7 @@ cp lnbits/extensions/example lnbits/extensions/mysuperplugin -r # Let's not use 
 cd lnbits/extensions/mysuperplugin
 find . -type f -print0 | xargs -0 sed -i 's/example/mysuperplugin/g' # Change all occurrences of 'example' to your plugin name 'mysuperplugin'.
 ```
+- if you are on macOS and having difficulty with 'sed', consider `brew install gnu-sed` and use 'gsed', without -0 option after xargs.
 
 Going over the example extension's structure:
 * views_api.py: This is where your public API would go. It will be exposed at "$DOMAIN/$PLUGIN/$ROUTE". For example: https://lnbits.com/mysuperplugin/api/v1/tools.

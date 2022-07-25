@@ -7,10 +7,9 @@ from fastapi.exceptions import HTTPException
 from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
+from loguru import logger
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
-
-from loguru import logger
 
 from lnbits.core import db
 from lnbits.core.models import User
@@ -24,6 +23,7 @@ from lnbits.settings import (
     SERVICE_FEE,
 )
 
+from ...helpers import get_valid_extensions
 from ..crud import (
     create_account,
     create_wallet,
@@ -66,6 +66,14 @@ async def extensions(
         raise HTTPException(
             HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
         )
+
+    # check if extension exists
+    if extension_to_enable or extension_to_disable:
+        ext = extension_to_enable or extension_to_disable
+        if ext not in [e.code for e in get_valid_extensions()]:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
+            )
 
     if extension_to_enable:
         logger.info(f"Enabling extension: {extension_to_enable} for user {user.id}")
@@ -113,7 +121,7 @@ async def wallet(
 
     if not user_id:
         user = await get_user((await create_account()).id)
-        logger.info(f"Created new account for user {user.id}")
+        logger.info(f"Create user {user.id}")
     else:
         user = await get_user(user_id)
         if not user:
@@ -140,7 +148,7 @@ async def wallet(
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
-    logger.info(f"Access wallet {wallet_name} of user {user.id}")
+    logger.debug(f"Access wallet {wallet_name}{'of user '+ user.id if user else ''}")
     wallet = user.get_wallet(wallet_id)
     if not wallet:
         return template_renderer().TemplateResponse(
