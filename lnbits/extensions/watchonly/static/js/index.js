@@ -2,6 +2,7 @@ const watchOnly = async () => {
   Vue.component(VueQrcode.name, VueQrcode)
 
   await walletConfig('static/components/wallet-config/wallet-config.html')
+  await walletList('static/components/wallet-list/wallet-list.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -14,7 +15,7 @@ const watchOnly = async () => {
     data: function () {
       return {
         DUST_LIMIT: 546,
-        filter: '',
+        filter: '', // todo: remove?
 
         scan: {
           scanning: false,
@@ -32,7 +33,7 @@ const watchOnly = async () => {
             receive_gap_limit: 20,
             change_gap_limit: 5
           },
-          DEFAULT_RECEIVE_GAP_LIMIT: 20,
+
           show: false
         },
 
@@ -63,17 +64,14 @@ const watchOnly = async () => {
           psbtSent: false
         },
 
-        formDialog: {
-          show: false,
-          data: {}
-        },
-
         qrCodeDialog: {
           show: false,
           data: null
         },
         ...tables,
-        ...tableData
+        ...tableData,
+
+        walletAccounts: []
       }
     },
 
@@ -81,74 +79,6 @@ const watchOnly = async () => {
       //################### CONFIG ###################
 
       //################### WALLETS ###################
-      getWalletName: function (walletId) {
-        const wallet = this.walletAccounts.find(wl => wl.id === walletId)
-        return wallet ? wallet.title : 'unknown'
-      },
-      addWalletAccount: async function () {
-        const wallet = this.g.user.wallets[0]
-        const data = _.omit(this.formDialog.data, 'wallet')
-        await this.createWalletAccount(wallet, data)
-      },
-      createWalletAccount: async function (wallet, data) {
-        try {
-          const response = await LNbits.api.request(
-            'POST',
-            '/watchonly/api/v1/wallet',
-            wallet.adminkey,
-            data
-          )
-          this.walletAccounts.push(mapWalletAccount(response.data))
-          this.formDialog.show = false
-
-          await this.refreshWalletAccounts()
-          await this.refreshAddresses()
-
-          if (!this.payment.changeWallett) {
-            this.payment.changeWallet = this.walletAccounts[0]
-            this.selectChangeAddress(this.payment.changeWallet)
-          }
-        } catch (error) {
-          LNbits.utils.notifyApiError(error)
-        }
-      },
-      deleteWalletAccount: function (walletAccountId) {
-        LNbits.utils
-          .confirmDialog(
-            'Are you sure you want to delete this watch only wallet?'
-          )
-          .onOk(async () => {
-            try {
-              await LNbits.api.request(
-                'DELETE',
-                '/watchonly/api/v1/wallet/' + walletAccountId,
-                this.g.user.wallets[0].adminkey
-              )
-              this.walletAccounts = _.reject(this.walletAccounts, function (
-                obj
-              ) {
-                return obj.id === walletAccountId
-              })
-              await this.refreshWalletAccounts()
-              await this.refreshAddresses()
-              if (
-                this.payment.changeWallet &&
-                this.payment.changeWallet.id === walletAccountId
-              ) {
-                this.payment.changeWallet = this.walletAccounts[0]
-                this.selectChangeAddress(this.payment.changeWallet)
-              }
-              await this.scanAddressWithAmount()
-            } catch (error) {
-              this.$q.notify({
-                type: 'warning',
-                message:
-                  'Error while deleting wallet account. Please try again.',
-                timeout: 10000
-              })
-            }
-          })
-      },
       getAddressesForWallet: async function (walletId) {
         try {
           const {data} = await LNbits.api.request(
@@ -167,41 +97,17 @@ const watchOnly = async () => {
         }
         return []
       },
-      getWatchOnlyWallets: async function () {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            '/watchonly/api/v1/wallet',
-            this.g.user.wallets[0].inkey
-          )
-          return data
-        } catch (error) {
-          this.$q.notify({
-            type: 'warning',
-            message: 'Failed to fetch wallets.',
-            timeout: 10000
-          })
-          LNbits.utils.notifyApiError(error)
-        }
-        return []
+      getWalletName: function (walletId) {
+        const wallet = this.walletAccounts.find(wl => wl.id === walletId)
+        return wallet ? wallet.title : 'unknown'
       },
-      refreshWalletAccounts: async function () {
-        const wallets = await this.getWatchOnlyWallets()
-        this.walletAccounts = wallets.map(w => mapWalletAccount(w))
-      },
-      getAmmountForWallet: function (walletId) {
-        const amount = this.addresses.data
-          .filter(a => a.wallet === walletId)
-          .reduce((t, a) => t + a.amount || 0, 0)
-        return this.satBtc(amount)
-      },
-
       //################### ADDRESSES ###################
 
       refreshAddresses: async function () {
-        const wallets = await this.getWatchOnlyWallets()
+        // const wallets = await this.getWatchOnlyWallets() todo: revisit
+        // const wallets =
         this.addresses.data = []
-        for (const {id, type} of wallets) {
+        for (const {id, type} of this.walletAccounts) {
           const newAddresses = await this.getAddressesForWallet(id)
           const uniqueAddresses = newAddresses.filter(
             newAddr =>
@@ -218,8 +124,7 @@ const watchOnly = async () => {
             a.gapLimitExceeded =
               !a.isChange &&
               a.addressIndex >
-                lastAcctiveAddress.addressIndex +
-                  this.config.DEFAULT_RECEIVE_GAP_LIMIT
+                lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
           })
           this.addresses.data.push(...uniqueAddresses)
         }
@@ -294,33 +199,6 @@ const watchOnly = async () => {
             (!selectedWalletId || a.wallet === selectedWalletId)
         )
         return addresses
-      },
-      openGetFreshAddressDialog: async function (walletId) {
-        const {data} = await LNbits.api.request(
-          'GET',
-          `/watchonly/api/v1/address/${walletId}`,
-          this.g.user.wallets[0].inkey
-        )
-        const addressData = mapAddressesData(data)
-
-        addressData.note = `Shared on ${currentDateTime()}`
-        const lastAcctiveAddress =
-          this.addresses.data
-            .filter(
-              a =>
-                a.wallet === addressData.wallet && !a.isChange && a.hasActivity
-            )
-            .pop() || {}
-        addressData.gapLimitExceeded =
-          !addressData.isChange &&
-          addressData.addressIndex >
-            lastAcctiveAddress.addressIndex +
-              this.config.DEFAULT_RECEIVE_GAP_LIMIT
-
-        this.openQrCodeDialog(addressData)
-        const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
-        wallet.address_no = addressData.addressIndex
-        await this.refreshAddresses()
       },
 
       //################### ADDRESS HISTORY ###################
@@ -1158,11 +1036,7 @@ const watchOnly = async () => {
       },
 
       //################### OTHER ###################
-      closeFormDialog: function () {
-        this.formDialog.data = {
-          is_unique: false
-        }
-      },
+
       openQrCodeDialog: function (addressData) {
         this.currentAddress = addressData
         this.addresses.note = addressData.note || ''
@@ -1176,13 +1050,27 @@ const watchOnly = async () => {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this.config.data.sats_denominated)
       },
-      getAccountDescription: function (accountType) {
-        return getAccountDescription(accountType)
+      updateAccounts: async function (accounts) {
+        this.walletAccounts = accounts
+        await this.refreshAddresses()
+
+        if (this.payment.changeWallet) {
+          const changeAccount = this.walletAccounts.find(
+            w => w.id === this.payment.changeWallet.id
+          )
+          // change account deleted
+          if (!changeAccount) {
+            this.payment.changeWallet = this.walletAccounts[0]
+            this.selectChangeAddress(this.payment.changeWallet)
+          }
+        }
+      },
+      handleNewReceiveAddress: function (addressData) {
+        this.openQrCodeDialog(addressData)
       }
     },
     created: async function () {
       if (this.g.user.wallets.length) {
-        await this.refreshWalletAccounts()
         await this.refreshAddresses()
         await this.scanAddressWithAmount()
       }

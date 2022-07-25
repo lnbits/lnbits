@@ -1,35 +1,4 @@
 const tables = {
-  walletsTable: {
-    columns: [
-      {
-        name: 'new',
-        align: 'left',
-        label: ''
-      },
-      {
-        name: 'title',
-        align: 'left',
-        label: 'Title',
-        field: 'title'
-      },
-      {
-        name: 'amount',
-        align: 'left',
-        label: 'Amount'
-      },
-      {
-        name: 'type',
-        align: 'left',
-        label: 'Type',
-        field: 'type'
-      },
-      {name: 'id', align: 'left', label: 'ID', field: 'id'}
-    ],
-    pagination: {
-      rowsPerPage: 10
-    },
-    filter: ''
-  },
   utxosTable: {
     columns: [
       {
@@ -225,7 +194,7 @@ const tables = {
 }
 
 const tableData = {
-  walletAccounts: [],
+  // walletAccounts: [], // todo: remove?
   addresses: {
     show: false,
     data: [],
