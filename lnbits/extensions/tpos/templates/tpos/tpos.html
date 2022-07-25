@@ -308,7 +308,9 @@
       },
       sat: function () {
         if (!this.exchangeRate) return 0
-        return Math.ceil((this.amount / this.exchangeRate) * 100000000)
+        return Math.ceil(
+          ((this.amount - this.tipAmount) / this.exchangeRate) * 100000000
+        )
       },
       tipAmountSat: function () {
         if (!this.exchangeRate) return 0
@@ -423,10 +425,9 @@
         '{{ tpos.tip_options | tojson }}' == 'null'
           ? null
           : JSON.parse('{{ tpos.tip_options }}')
-      console.log(typeof this.tip_options, this.tip_options)
       setInterval(function () {
         getRates()
-      }, 20000)
+      }, 120000)
     }
   })
 </script>
