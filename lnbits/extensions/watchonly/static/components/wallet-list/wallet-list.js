@@ -92,14 +92,6 @@ async function walletList(path) {
               })
               await this.refreshWalletAccounts()
 
-              if (
-                this.payment.changeWallet &&
-                this.payment.changeWallet.id === walletAccountId
-              ) {
-                this.payment.changeWallet = this.walletAccounts[0]
-                this.selectChangeAddress(this.payment.changeWallet)
-              }
-              await this.scanAddressWithAmount()
             } catch (error) {
               this.$q.notify({
                 type: 'warning',
@@ -172,7 +164,6 @@ async function walletList(path) {
         const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
         wallet.address_no = addressData.addressIndex
         this.$emit('new-receive-address', addressData)
-        this.$emit('accounts-update', this.walletAccounts)
       }
     },
     created: async function () {
