@@ -67,9 +67,9 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 
         if request.headers.get("accept") and "text/html" in request.headers["accept"]:
             return template_renderer().TemplateResponse(
-            "error.html",
-            {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
-        )
+                "error.html",
+                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+            )
 
         return JSONResponse(
             status_code=HTTPStatus.NO_CONTENT,
@@ -184,9 +184,9 @@ def register_exception_handlers(app: FastAPI):
 
         if request.headers.get("accept") and "text/html" in request.headers["accept"]:
             return template_renderer().TemplateResponse(
-            "error.html",
-            {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
-        )
+                "error.html",
+                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+            )
 
         return JSONResponse(
             status_code=HTTPStatus.NO_CONTENT,
