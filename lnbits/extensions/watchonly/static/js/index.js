@@ -6,7 +6,7 @@ const watchOnly = async () => {
   await addressList('static/components/address-list/address-list.html')
   await history('static/components/history/history.html')
   await utxoList('static/components/utxo-list/utxo-list.html')
-  await fees('static/components/fee-rate/fee-rate.html')
+  await feeRate('static/components/fee-rate/fee-rate.html')
   await payment('static/components/payment/payment.html')
 
   Vue.filter('reverse', function (value) {
