@@ -48,14 +48,6 @@ const tableData = {
     changeAddress: {},
     changeAmount: 0,
 
-    feeRate: 1,
-    recommededFees: {
-      fastestFee: 1,
-      halfHourFee: 1,
-      hourFee: 1,
-      economyFee: 1,
-      minimumFee: 1
-    },
     fee: 0,
     txSize: 0,
     tx: null,

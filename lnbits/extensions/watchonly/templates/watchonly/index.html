@@ -500,7 +500,6 @@
             class="bg-dark text-white shadow-2"
           >
             <q-tab name="destination" label="Send To"></q-tab>
-            <q-tab name="fees" label="Fees"></q-tab>
             <q-tab name="coinControl" label="Coin Control"></q-tab>
           </q-tabs>
           <q-tab-panels v-model="paymentTab">
@@ -596,6 +595,7 @@
                       </q-table>
                     </div>
                   </div>
+
                   <!-- <div class="row items-center no-wrap q-mb-md">
                     <div class="col-12">
                       <q-table
@@ -660,78 +660,29 @@
     -->
                 </q-card-section>
               </q-card>
+              <div class="row items-center no-wrap q-mb-md q-pt-lg">
+                <div class="col-12">
+                  <q-toggle
+                    label="Custom Fee"
+                    color="secodary"
+                    v-model="showCustomFee"
+                  ></q-toggle>
+                </div>
+              </div>
+              <q-card v-show="showCustomFee">
+                <q-card-section>
+                  <div class="row items-center no-wrap q-mb-md q-pt-md">
+                    <div class="col-12">
+                      <fees
+                        :totalfee="feeValue"
+                        @update:fee-rate="handleFeeRateChanged"
+                      ></fees>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
             </q-tab-panel>
-            <q-tab-panel name="fees">
-              <q-card
-                ><q-card-section>
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-2 q-pr-lg">Fee Rate:</div>
-                    <div class="col-3 q-pr-lg">
-                      <q-input
-                        filled
-                        dense
-                        v-model.number="payment.feeRate"
-                        :rules="[val => !!val || 'Field is required']"
-                        type="number"
-                        label="sats/vbyte"
-                      ></q-input>
-                    </div>
-                    <div class="col-7">
-                      <q-slider
-                        v-model="payment.feeRate"
-                        color="orange"
-                        markers
-                        snap
-                        label
-                        label-always
-                        :label-value="getFeeRateLabel(payment.feeRate)"
-                        :min="1"
-                        :max="payment.recommededFees.fastestFee"
-                      />
-                    </div>
-                  </div>
-                  <div
-                    v-if="payment.feeRate < payment.recommededFees.hourFee || payment.feeRate > payment.recommededFees.fastestFee"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-2 q-pr-lg"></div>
-                    <div class="col-10 q-pr-lg">
-                      <q-badge
-                        v-if="payment.feeRate < payment.recommededFees.hourFee"
-                        color="pink"
-                        size="lg"
-                      >
-                        Warning! The fee is too low. The transaction might take
-                        a long time to confirm.
-                      </q-badge>
-                      <q-badge
-                        v-if="payment.feeRate > payment.recommededFees.fastestFee"
-                        color="pink"
-                      >
-                        Warning! The fee is too high. You might be overpaying
-                        for this transaction.
-                      </q-badge>
-                    </div>
-                  </div>
 
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-2 q-pr-lg">Fee:</div>
-                    <div class="col-3 q-pr-lg">{{computeFee()}} sats</div>
-                    <div class="col-7 q-pr-lg">
-                      <q-btn
-                        outline
-                        dense
-                        size="md"
-                        icon="refresh"
-                        color="grey"
-                        @click="refreshRecommendedFees()"
-                        >Refresh Fee Rates</q-btn
-                      >
-                    </div>
-                  </div>
-                </q-card-section></q-card
-              >
-            </q-tab-panel>
             <q-tab-panel name="coinControl">
               <utxo-list
                 :utxos="utxos.data"
@@ -998,6 +949,7 @@
 <script src="{{ url_for('watchonly_static', path='components/address-list/address-list.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/history/history.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/utxo-list/utxo-list.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='components/fees/fees.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/payment/payment.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}

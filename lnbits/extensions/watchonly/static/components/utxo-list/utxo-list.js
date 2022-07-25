@@ -80,8 +80,10 @@ async function utxoList(path) {
     },
 
     computed: {
-      columns: function() {
-        return this.utxosTable.columns.filter(c => c.selectable ? this.selectable : true)
+      columns: function () {
+        return this.utxosTable.columns.filter(c =>
+          c.selectable ? this.selectable : true
+        )
       }
     },
 
