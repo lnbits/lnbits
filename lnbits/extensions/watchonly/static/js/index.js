@@ -1053,6 +1053,7 @@ const watchOnly = async () => {
       updateAccounts: async function (accounts) {
         this.walletAccounts = accounts
         await this.refreshAddresses()
+        await this.scanAddressWithAmount()
 
         if (this.payment.changeWallet) {
           const changeAccount = this.walletAccounts.find(
