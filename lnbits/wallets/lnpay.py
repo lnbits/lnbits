@@ -1,16 +1,18 @@
-import json
 import asyncio
-from fastapi.exceptions import HTTPException
-import httpx
-from os import getenv
+import json
 from http import HTTPStatus
-from typing import Optional, Dict, AsyncGenerator
+from os import getenv
+from typing import AsyncGenerator, Dict, Optional
+
+import httpx
+from fastapi.exceptions import HTTPException
+from loguru import logger
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
 
@@ -127,7 +129,7 @@ class LNPayWallet(Wallet):
         try:
             data = json.loads(text)
         except json.decoder.JSONDecodeError:
-            print(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
+            logger.error(f"got something wrong on lnpay webhook endpoint: {text[:200]}")
             data = None
         if (
             type(data) is not dict

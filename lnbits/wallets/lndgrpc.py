@@ -1,27 +1,30 @@
 imports_ok = True
 try:
-    from google import protobuf
     import grpc
+    from google import protobuf
 except ImportError:  # pragma: nocover
     imports_ok = False
 
 
-import binascii
 import base64
+import binascii
 import hashlib
 from os import environ, error, getenv
-from typing import Optional, Dict, AsyncGenerator
-from .macaroon import load_macaroon, AESCipher
+from typing import AsyncGenerator, Dict, Optional
+
+from loguru import logger
+
+from .macaroon import AESCipher, load_macaroon
 
 if imports_ok:
     import lnbits.wallets.lnd_grpc_files.lightning_pb2 as ln
     import lnbits.wallets.lnd_grpc_files.lightning_pb2_grpc as lnrpc
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
 
@@ -187,6 +190,8 @@ class LndWallet(Wallet):
                 checking_id = stringify_checking_id(i.r_hash)
                 yield checking_id
         except error:
-            print(error)
+            logger.error(error)
 
-        print("lost connection to lnd InvoiceSubscription, please restart lnbits.")
+        logger.error(
+            "lost connection to lnd InvoiceSubscription, please restart lnbits."
+        )

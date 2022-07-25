@@ -1,12 +1,15 @@
-import json
-import hmac
 import hashlib
-from lnbits.helpers import url_for
+import hmac
+import json
+from sqlite3 import Row
+from typing import Dict, List, NamedTuple, Optional
+
 from ecdsa import SECP256k1, SigningKey  # type: ignore
 from lnurl import encode as lnurl_encode  # type: ignore
-from typing import List, NamedTuple, Optional, Dict
-from sqlite3 import Row
+from loguru import logger
 from pydantic import BaseModel
+
+from lnbits.helpers import url_for
 from lnbits.settings import WALLET
 
 
@@ -142,10 +145,12 @@ class Payment(BaseModel):
             status = await WALLET.get_invoice_status(self.checking_id)
 
         if self.is_out and status.failed:
-            print(f" - deleting outgoing failed payment {self.checking_id}: {status}")
+            logger.info(
+                f" - deleting outgoing failed payment {self.checking_id}: {status}"
+            )
             await self.delete()
         elif not status.pending:
-            print(
+            logger.info(
                 f" - marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
             )
             await self.set_pending(status.pending)

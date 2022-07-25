@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import lnurlpayout, CreateLnurlPayoutData
+from .models import CreateLnurlPayoutData, lnurlpayout
 
 
 async def create_lnurlpayout(

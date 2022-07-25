@@ -1,13 +1,11 @@
 from base64 import b64decode
-from fastapi.param_functions import Security
-
-from fastapi.security.api_key import APIKeyHeader
 
 from fastapi import Request, status
+from fastapi.param_functions import Security
+from fastapi.security.api_key import APIKeyHeader
 from starlette.exceptions import HTTPException
 
 from lnbits.decorators import WalletTypeInfo, get_key_type  # type: ignore
-
 
 api_key_header_auth = APIKeyHeader(
     name="AUTHORIZATION",

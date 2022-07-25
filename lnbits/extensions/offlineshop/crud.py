@@ -1,9 +1,10 @@
 from typing import List, Optional
 
 from lnbits.db import SQLITE
+
 from . import db
+from .models import Item, Shop
 from .wordlists import animals
-from .models import Shop, Item
 
 
 async def create_shop(*, wallet_id: str) -> int:

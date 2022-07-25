@@ -1,21 +1,23 @@
 import asyncio
-from pydoc import describe
-import httpx
-import json
 import base64
+import json
 from os import getenv
-from typing import Optional, Dict, AsyncGenerator
+from pydoc import describe
+from typing import AsyncGenerator, Dict, Optional
+
+import httpx
+from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
-from .macaroon import load_macaroon, AESCipher
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
+from .macaroon import AESCipher, load_macaroon
 
 
 class LndRestWallet(Wallet):
@@ -191,5 +193,7 @@ class LndRestWallet(Wallet):
             except (OSError, httpx.ConnectError, httpx.ReadError):
                 pass
 
-            print("lost connection to lnd invoices stream, retrying in 5 seconds")
+            logger.error(
+                "lost connection to lnd invoices stream, retrying in 5 seconds"
+            )
             await asyncio.sleep(5)

@@ -1,6 +1,8 @@
 import asyncio
-import httpx
 from typing import List
+
+import httpx
+from loguru import logger
 
 from lnbits.tasks import register_invoice_listener
 
@@ -20,7 +22,7 @@ async def register_task_listeners():
 async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
     while True:
         payment = await invoice_paid_queue.get()
-
+        logger.debug("received invoice paid event")
         # send information to sse channel
         await dispatch_invoice_listener(payment)
 
@@ -44,7 +46,7 @@ async def dispatch_invoice_listener(payment: Payment):
         try:
             send_channel.put_nowait(payment)
         except asyncio.QueueFull:
-            print("removing sse listener", send_channel)
+            logger.debug("removing sse listener", send_channel)
             api_invoice_listeners.remove(send_channel)
 
 
@@ -52,6 +54,7 @@ async def dispatch_webhook(payment: Payment):
     async with httpx.AsyncClient() as client:
         data = payment.dict()
         try:
+            logger.debug("sending webhook", payment.webhook)
             r = await client.post(payment.webhook, json=data, timeout=40)
             await mark_webhook_sent(payment, r.status_code)
         except (httpx.ConnectError, httpx.RequestError):
