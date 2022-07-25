@@ -26,6 +26,8 @@ LNBits Quick Vouchers allows you to easily create a batch of LNURLw's QR codes t
    - on details you can print the vouchers\
      ![printable vouchers](https://i.imgur.com/2xLHbob.jpg)
    - every printed LNURLw QR code is unique, it can only be used once
+3. Bonus: you can use an LNbits themed voucher, or use a custom one. There's a _template.svg_ file in `static/images` folder if you want to create your own.\
+   ![voucher](https://i.imgur.com/qyQoHi3.jpg)
 
 #### Advanced
 

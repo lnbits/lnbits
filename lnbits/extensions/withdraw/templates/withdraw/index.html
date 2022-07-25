@@ -221,6 +221,32 @@
           <q-item tag="label" class="rounded-borders">
             <q-item-section avatar>
               <q-checkbox
+                v-model="formDialog.data.use_custom"
+                color="primary"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Use a custom voucher design </q-item-label>
+              <q-item-label caption
+                >You can use an LNbits voucher design or a custom
+                one</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-input
+          v-if="formDialog.data.use_custom"
+          filled
+          dense
+          v-model="formDialog.data.custom_url"
+          type="text"
+          label="Custom design .png (optional)"
+          hint="Enter a URL if you want to use a custom design or leave blank for showing only the QR"
+        ></q-input>
+        <q-list>
+          <q-item tag="label" class="rounded-borders">
+            <q-item-section avatar>
+              <q-checkbox
                 v-model="formDialog.data.is_unique"
                 color="primary"
               ></q-checkbox>
@@ -302,6 +328,32 @@
           max="250"
           :default="1"
           label="Number of vouchers"
+        ></q-input>
+        <q-list>
+          <q-item tag="label" class="rounded-borders">
+            <q-item-section avatar>
+              <q-checkbox
+                v-model="simpleformDialog.data.use_custom"
+                color="primary"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Use a custom voucher design </q-item-label>
+              <q-item-label caption
+                >You can use an LNbits voucher design or a custom
+                one</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-input
+          v-if="simpleformDialog.data.use_custom"
+          filled
+          dense
+          v-model="simpleformDialog.data.custom_url"
+          type="text"
+          label="Custom design .png (optional)"
+          hint="Enter a URL if you want to use a custom design or leave blank for showing only the QR"
         ></q-input>
 
         <div class="row q-mt-lg">
