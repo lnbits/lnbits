@@ -74,7 +74,6 @@ async function addressList(path) {
       }
     },
 
-
     methods: {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this['sats_denominated'])
