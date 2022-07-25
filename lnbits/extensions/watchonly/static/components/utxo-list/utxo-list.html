@@ -1,18 +1,18 @@
 <q-card>
   <q-card-section>
     <div class="row items-center no-wrap q-mb-md">
-      <!-- <div v-if="payment.show" class="col-3 q-pr-lg">
+      <div v-if="selectable" class="col-3 q-pr-lg">
         <q-select
           filled
           dense
           emit-value
-          v-model="payment.utxoSelectionMode"
-          :options="payment.utxoSelectionModes"
+          v-model="utxoSelectionMode"
+          :options="utxoSelectionModes"
           label="Selection Mode"
           @input="applyUtxoSelectionMode"
         ></q-select>
       </div>
-      <div v-if="payment.show" class="col-1 q-pr-lg">
+      <div v-if="selectable" class="col-1 q-pr-lg">
         <q-btn
           outline
           icon="refresh"
@@ -20,9 +20,9 @@
           @click="applyUtxoSelectionMode"
           class="q-ml-sm"
         ></q-btn>
-      </div> -->
-      <!-- <div v-if="payment.show" class="col-5 q-pr-lg"></div> -->
-      <div class="col-9 q-pr-lg"></div>
+      </div>
+      <div v-if="selectable" class="col-5 q-pr-lg"></div>
+      <div v-if="!selectable" class="col-9 q-pr-lg"></div>
       <div class="col-3 float-right">
         <q-input
           borderless
@@ -43,7 +43,7 @@
       dense
       :data="utxos"
       row-key="id"
-      :columns="utxosTable.columns"
+      :columns="columns"
       :pagination.sync="utxosTable.pagination"
       :filter="utxosTable.filter"
     >
@@ -60,7 +60,7 @@
             />
           </q-td>
 
-          <q-td key="selected" :props="props">
+          <q-td v-if="selectable" key="selected" :props="props">
             <div>
               <q-checkbox v-model="props.row.selected"></q-checkbox>
             </div>
@@ -133,10 +133,9 @@
       <template v-slot:bottom-row>
         <q-tr>
           <q-td colspan="100%">
-            <div class="row items-center no-wrap q-mb-md">
-              
+            <div class="row items-center no-wrap q-mb-md q-pt-lg">
               <div class="col-12">
-                <div >
+                <div>
                   <span class="text-weight-bold">Selected Amount: </span>
 
                   <q-badge class="text-subtitle2 q-ml-lg" color="green"

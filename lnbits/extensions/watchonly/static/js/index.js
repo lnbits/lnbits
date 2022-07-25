@@ -6,6 +6,7 @@ const watchOnly = async () => {
   await addressList('static/components/address-list/address-list.html')
   await history('static/components/history/history.html')
   await utxoList('static/components/utxo-list/utxo-list.html')
+  await payment('static/components/payment/payment.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -29,6 +30,7 @@ const watchOnly = async () => {
         currentAddress: null,
 
         tab: 'addresses',
+        paymentTab: 'destination',
 
         config: {
           data: {
@@ -79,7 +81,8 @@ const watchOnly = async () => {
         history: [],
 
         showAddress: false,
-        addressNote: ''
+        addressNote: '',
+        showPayment: false
       }
     },
 
@@ -279,8 +282,9 @@ const watchOnly = async () => {
           ) || {}
       },
       goToPaymentView: async function () {
-        this.payment.show = true
-        this.tab = 'utxos'
+        // this.payment.show = true
+        this.showPayment = true
+        // this.tab = 'utxos'
         await this.initPaymentData()
       },
       sendMaxToAddress: function (paymentAddress = {}) {
@@ -879,37 +883,6 @@ const watchOnly = async () => {
           .filter(u => u.selected)
           .reduce((t, a) => t + (a.amount || 0), 0)
         return total
-      },
-      applyUtxoSelectionMode: function () {
-        const payedAmount = this.getTotalPaymentAmount()
-        const mode = this.payment.utxoSelectionMode
-        this.utxos.data.forEach(u => (u.selected = false))
-        const isManual = mode === 'Manual'
-        if (isManual || !payedAmount) return
-
-        const isSelectAll = mode === 'Select All'
-        if (isSelectAll || payedAmount >= this.utxos.total) {
-          this.utxos.data.forEach(u => (u.selected = true))
-          return
-        }
-        const isSmallerFirst = mode === 'Smaller Inputs First'
-        const isLargerFirst = mode === 'Larger Inputs First'
-
-        let selectedUtxos = this.utxos.data.slice()
-        if (isSmallerFirst || isLargerFirst) {
-          const sortFn = isSmallerFirst
-            ? (a, b) => a.amount - b.amount
-            : (a, b) => b.amount - a.amount
-          selectedUtxos.sort(sortFn)
-        } else {
-          // default to random order
-          selectedUtxos = _.shuffle(selectedUtxos)
-        }
-        selectedUtxos.reduce((total, utxo) => {
-          utxo.selected = total < payedAmount
-          total += utxo.amount
-          return total
-        }, 0)
       },
 
       //################### MEMPOOL API ###################

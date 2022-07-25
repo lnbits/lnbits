@@ -40,12 +40,20 @@
         </div>
         <div class="col-3 q-pr-md">
           <q-btn
+            v-if="!showPayment"
             unelevated
             color="secondary"
             class="btn-full"
             @click="goToPaymentView"
-            :disabled="scan.scanning == true"
             >New Payment</q-btn
+          >
+          <q-btn
+            v-if="showPayment"
+            outline
+            color="gray"
+            class="btn-full"
+            @click="showPayment = false"
+            >Discard Payment</q-btn
           >
         </div>
       </div>
@@ -61,7 +69,7 @@
     </q-card>
 
     <q-card>
-      <q-card-section>
+      <q-card-section v-show="!showPayment">
         <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
           <q-tab name="addresses" label="Addresses"></q-tab>
           <q-tab name="history" label="History"></q-tab>
@@ -89,23 +97,418 @@
             ></history>
           </q-tab-panel>
           <q-tab-panel name="utxos">
-            <div class="row items-center no-wrap q-mb-md">
+            <utxo-list
+              :utxos="utxos.data"
+              :mempool_endpoint="config.data.mempool_endpoint"
+              :sats-denominated="config.data.sats_denominated"
+            ></utxo-list>
+            <!-- <div v-if="payment.show" class="row items-center no-wrap q-mb-md">
               <div class="col">
                 <q-toggle
-                  label="New Payment"
+                  label="Show Advanced"
                   color="secodary"
-                  v-model="payment.show"
-                  @input="initPaymentData()"
+                  v-model="payment.showAdvanced"
                 ></q-toggle>
               </div>
-              <div class="col-auto"></div>
-            </div>
+            </div> -->
 
-            <q-form @submit="createPsbt" class="q-gutter-md">
-              <q-card v-if="payment.show">
+            <q-card v-if="payment.show"
+              ><q-card-section>
+                <div class="row items-center no-wrap q-mb-md">
+                  <div class="col-3 q-pr-lg">
+                    <q-btn
+                      unelevated
+                      color="secondary"
+                      type="submit"
+                      class="btn-full"
+                      >Check Tx</q-btn
+                    >
+                  </div>
+                  <div class="col-9">
+                    <q-input v-model="payment.psbtBase64" filled />
+                  </div>
+                </div>
+                <q-separator
+                  v-if="payment.psbtBase64"
+                  class="q-mb-md"
+                ></q-separator>
+                <div
+                  v-if="payment.psbtBase64"
+                  class="row items-center no-wrap q-mb-md"
+                >
+                  <div class="col-3 q-pr-lg">
+                    <q-btn-dropdown
+                      class="btn-full"
+                      color="secondary"
+                      label="Sign With"
+                    >
+                      <q-list>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          @click="payment.signMode = 'serial-port'"
+                        >
+                          <q-item-section>
+                            <q-item-label>Serial Port Device</q-item-label>
+                            <q-item-label caption
+                              >Connect via Serial Port and sign.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+
+                        <q-item clickable disabled v-close-popup>
+                          <q-item-section>
+                            <q-item-label>Animated QR Code</q-item-label>
+                            <q-item-label caption
+                              >Share and Scan using animated QR
+                              codes.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-btn-dropdown>
+                  </div>
+                  <div class="col-9">
+                    <q-option-group
+                      v-model="payment.signMode"
+                      :options="payment.signModes"
+                      color="primary"
+                      inline
+                    ></q-option-group>
+                  </div>
+                </div>
+                <q-separator
+                  v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                  class="q-mb-md"
+                ></q-separator>
+                <div
+                  v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                  class="row items-center no-wrap q-mb-md q-mt-lg"
+                >
+                  <div class="col-3 q-pr-lg">
+                    <q-btn
+                      v-if="!serial.selectedPort"
+                      @click="openSerialPort()"
+                      unelevated
+                      color="secondary"
+                      class="btn-full"
+                      >Connect</q-btn
+                    >
+                    <q-btn
+                      v-if="serial.selectedPort"
+                      @click="closeSerialPort()"
+                      outline
+                      color="gray"
+                      class="btn-full"
+                      >Disconnect</q-btn
+                    >
+                  </div>
+                  <div class="col-3">
+                    <q-toggle
+                      label="Advanced"
+                      disabled
+                      color="secodary float-left"
+                      v-model="serial.showAdvancedConfig"
+                    ></q-toggle>
+                  </div>
+                  <div class="col-6"></div>
+                </div>
+                <q-separator
+                  v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
+                  class="q-mb-md"
+                ></q-separator>
+                <div
+                  v-if="serial.selectedPort && payment.psbtBase64 && payment.signMode === 'serial-port'"
+                  class="row items-center no-wrap q-mb-md q-mt-lg"
+                >
+                  <div class="col-3 q-pr-lg">
+                    <q-btn-dropdown
+                      split
+                      class="btn-full"
+                      color="secondary"
+                      :label="hww.authenticated ? 'Sign Tx' : 'Login'"
+                      @click="hwwExecuteDefaultCommand()"
+                    >
+                      <q-list>
+                        <q-item
+                          v-if="!hww.authenticated"
+                          clickable
+                          v-close-popup
+                          @click="hwwShowPasswordDialog()"
+                        >
+                          <q-item-section>
+                            <q-item-label>Login</q-item-label>
+                            <q-item-label caption
+                              >Enter password for Hardware Wallet.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+
+                        <q-item
+                          v-if="hww.authenticated"
+                          clickable
+                          v-close-popup
+                          @click="hwwLogout()"
+                        >
+                          <q-item-section>
+                            <q-item-label>Logout</q-item-label>
+                            <q-item-label caption
+                              >Clear password for HWW.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                        <q-item
+                          :disabled="!hww.authenticated"
+                          clickable
+                          v-close-popup
+                          @click="hwwSendPsbt()"
+                        >
+                          <q-item-section>
+                            <q-item-label>Sign</q-item-label>
+                            <q-item-label caption
+                              >Sign transaction on Hardware Wallet</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                        <q-item
+                          clickable
+                          v-close-popup
+                          @click="hwwShowRestoreDialog()"
+                        >
+                          <q-item-section>
+                            <q-item-label>Restore</q-item-label>
+                            <q-item-label caption
+                              >Restore wallet from existing word
+                              list.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                        <q-item
+                          :disabled="!hww.authenticated"
+                          clickable
+                          v-close-popup
+                          @click="hwwShowSeed()"
+                        >
+                          <q-item-section>
+                            <q-item-label>Show Seed</q-item-label>
+                            <q-item-label caption
+                              >Show seed on the Hardware Wallet
+                              display.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                        <q-item
+                          @click="hwwShowWipeDialog()"
+                          clickable
+                          v-close-popup
+                        >
+                          <q-item-section>
+                            <q-item-label>Wipe</q-item-label>
+                            <q-item-label caption
+                              >Clean-up the wallet. New random
+                              seed.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                        <q-item @click="hwwHelp()" clickable v-close-popup>
+                          <q-item-section>
+                            <q-item-label>Help</q-item-label>
+                            <q-item-label caption
+                              >View available comands.</q-item-label
+                            >
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-btn-dropdown>
+                  </div>
+                  <div class="col-3">
+                    <q-toggle
+                      label="Show Console"
+                      color="secodary float-left"
+                      v-model="hww.showConsole"
+                    ></q-toggle>
+                  </div>
+                  <div class="col-3">
+                    <q-spinner
+                      v-if="hww.sendingPsbt == true"
+                      color="primary"
+                      size="2.55em"
+                    ></q-spinner>
+                  </div>
+                  <div class="col-3"></div>
+                </div>
+                <div
+                  v-if="hww.showConsole"
+                  class="row items-center no-wrap q-mb-md"
+                >
+                  <div class="col-3 q-pr-lg"></div>
+                  <div class="col-9">
+                    <q-input
+                      for="watchonly-serial-port-data-input"
+                      v-model="serial.receivedData"
+                      filled
+                      type="textarea"
+                    />
+                  </div>
+                </div>
+                <q-separator
+                  v-if="hww.authenticated"
+                  class="q-mb-md"
+                ></q-separator>
+                <div
+                  v-if="hww.authenticated && hww.psbtSent"
+                  class="row items-center no-wrap q-mb-md"
+                >
+                  <div class="col-3 q-pr-lg">
+                    <q-btn
+                      @click="hwwSignPsbt()"
+                      unelevated
+                      color="green"
+                      class="btn-full"
+                      >Confirm
+                      <q-spinner
+                        v-if="hww.signingPsbt == true"
+                        color="primary"
+                      ></q-spinner>
+                    </q-btn>
+                  </div>
+                  <div class="col-3">
+                    <q-toggle
+                      v-if="payment.psbtBase64Signed"
+                      label="Show Signed Psbt"
+                      color="secodary float-left"
+                      v-model="hww.showSignedPsbt"
+                    ></q-toggle>
+                  </div>
+                  <div class="col-6">
+                    <q-badge
+                      color="yellow"
+                      text-color="black"
+                      multi-line
+                      class="text-subtitle2"
+                      >Check transaction data on the Hardware Wallet
+                      display</q-badge
+                    >
+                  </div>
+                </div>
+                <div
+                  v-if="hww.showSignedPsbt"
+                  class="row items-center no-wrap q-mb-md"
+                >
+                  <div class="col-3 q-pr-lg"></div>
+
+                  <div class="col-9">
+                    <q-input
+                      v-model="payment.psbtBase64Signed"
+                      filled
+                      readonly
+                    />
+                  </div>
+                </div>
+                <q-separator
+                  v-if="payment.signedTx"
+                  class="q-mb-md"
+                ></q-separator>
+                <div
+                  v-if="payment.psbtBase64Signed"
+                  class="row items-center no-wrap q-mb-md"
+                >
+                  <div class="col-3 q-pr-lg">
+                    <q-btn
+                      v-if="payment.signedTx"
+                      @click="broadcastTransaction()"
+                      unelevated
+                      color="secondary"
+                      class="btn-full"
+                      >Send Payment</q-btn
+                    >
+                  </div>
+                  <div class="col-9">
+                    <span class="text-subtitle2">Transaction Details</span>
+                    <q-separator></q-separator>
+                  </div>
+                </div>
+                <div
+                  v-if="payment.signedTx"
+                  class="row items-center no-wrap q-mb-md"
+                >
+                  <div class="col-3 q-pr-lg"></div>
+                  <div class="col-9">
+                    <div class="row items-center no-wrap q-mb-sm">
+                      <div class="col-3 q-pr-lg">Version</div>
+                      <div class="col-9">{{payment.signedTx.version}}</div>
+                    </div>
+                    <div class="row items-center no-wrap q-mb-sm">
+                      <div class="col-3 q-pr-lg">Locktime</div>
+                      <div class="col-9">{{payment.signedTx.locktime}}</div>
+                    </div>
+                    <div class="row items-center no-wrap q-mb-sm">
+                      <div class="col-3 q-pr-lg">Fee</div>
+                      <div class="col-9">
+                        <q-badge color="orange"
+                          >{{satBtc(payment.signedTx.fee)}}
+                        </q-badge>
+                      </div>
+                    </div>
+                    <q-separator class="q-mb-lg"></q-separator>
+                    <span class="text-subtitle2">Outputs</span>
+                    <q-separator class="q-mb-lg"></q-separator>
+                    <div
+                      v-for="out in payment.signedTx.outputs"
+                      class="row items-center no-wrap q-mb-sm"
+                    >
+                      <div class="col-3 q-pr-lg">
+                        <q-badge color="orange">{{satBtc(out.amount)}}</q-badge>
+                      </div>
+
+                      <div class="col-9">
+                        <q-badge outline color="blue">{{out.address}}</q-badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <q-separator
+                  v-if="payment.sentTxId"
+                  class="q-mb-lg"
+                ></q-separator>
+                <div
+                  v-if="payment.sentTxId"
+                  class="row items-center no-wrap q-mb-sm"
+                >
+                  <div class="col-3">Transaction Id</div>
+                  <div class="col-9">
+                    <a
+                      style="color: unset"
+                      :href="config.data.mempool_endpoint + '/tx/' + payment.sentTxId"
+                      target="_blank"
+                    >
+                      {{payment.sentTxId}}</a
+                    >
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-tab-panel>
+        </q-tab-panels>
+      </q-card-section>
+      <q-card-section v-show="showPayment">
+        <q-form @submit="createPsbt" class="q-gutter-md">
+          <q-tabs
+            v-model="paymentTab"
+            no-caps
+            class="bg-dark text-white shadow-2"
+          >
+            <q-tab name="destination" label="Send To"></q-tab>
+            <q-tab name="fees" label="Fees"></q-tab>
+            <q-tab name="coinControl" label="Coin Control"></q-tab>
+          </q-tabs>
+          <q-tab-panels v-model="paymentTab">
+            <q-tab-panel name="destination">
+              <q-card>
                 <q-card-section>
                   <div class="row items-center no-wrap q-mb-md">
-                    <div class="col">
+                    <div class="col-12">
                       <q-table
                         flat
                         dense
@@ -193,6 +596,53 @@
                       </q-table>
                     </div>
                   </div>
+                  <!-- <div class="row items-center no-wrap q-mb-md">
+                    <div class="col-12">
+                      <q-table
+                        :columns="summaryTable.columns"
+                        :data="summary.data"
+                        hide-bottom
+                      >
+                        <template v-slot:body="props">
+                          <q-tr :props="props">
+                            <q-td key="totalInputs" :props="props">
+                              <q-badge class="text-subtitle2" color="green">
+                                {{satBtc(getTotalSelectedUtxoAmount())}}
+                              </q-badge>
+                            </q-td>
+                            <q-td key="totalOutputs" :props="props">
+                              <q-badge class="text-subtitle2" color="blue">
+                                {{satBtc(getTotalPaymentAmount())}}
+                              </q-badge>
+                            </q-td>
+                            <q-td key="fees" :props="props">
+                              <q-badge class="text-subtitle2" color="orange">
+                                {{satBtc(computeFee())}}
+                              </q-badge>
+                            </q-td>
+                            <q-td key="change" :props="props">
+                              <q-badge
+                                v-if="payment.changeAmount >= 0"
+                                class="text-subtitle2"
+                                color="green"
+                              >
+                                {{payment.changeAmount ?
+                                satBtc(payment.changeAmount): 'no change'}}
+                              </q-badge>
+                              <q-badge
+                                v-if="payment.changeAmount > 0 && payment.changeAmount < DUST_LIMIT"
+                                color="red"
+                              >
+                                Below dust limit. Will be used as feee.
+                              </q-badge>
+                            </q-td>
+                          </q-tr>
+                        </template>
+                      </q-table>
+                    </div>
+                  </div> -->
+
+                  <!--               
                   <div
                     v-if="payment.changeAmount < 0"
                     class="row items-center no-wrap q-mb-md"
@@ -207,50 +657,13 @@
                       </q-badge>
                     </div>
                   </div>
+    -->
                 </q-card-section>
               </q-card>
-              <utxo-list
-                :utxos="utxos.data"
-                :mempool_endpoint="config.data.mempool_endpoint"
-                :sats-denominated="config.data.sats_denominated"
-              ></utxo-list>
-              <div v-if="payment.show" class="row items-center no-wrap q-mb-md">
-                <div class="col">
-                  <q-toggle
-                    label="Show Advanced"
-                    color="secodary"
-                    v-model="payment.showAdvanced"
-                  ></q-toggle>
-                </div>
-              </div>
-              <q-card v-show="payment.show && payment.showAdvanced"
+            </q-tab-panel>
+            <q-tab-panel name="fees">
+              <q-card
                 ><q-card-section>
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-2 q-pr-lg">Change Account:</div>
-                    <div class="col-3 q-pr-lg">
-                      <q-select
-                        filled
-                        dense
-                        emit-value
-                        v-model="payment.changeWallet"
-                        :options="walletAccounts"
-                        @input="selectChangeAddress"
-                        :rules="[val => !!val || 'Field is required']"
-                        label="Wallet Account"
-                      ></q-select>
-                    </div>
-                    <div class="col-7">
-                      <q-input
-                        filled
-                        dense
-                        readonly
-                        v-model.trim="payment.changeAddress.address"
-                        :rules="[val => !!val || 'Field is required']"
-                        type="text"
-                        label="Change Address"
-                      ></q-input>
-                    </div>
-                  </div>
                   <div class="row items-center no-wrap q-mb-md">
                     <div class="col-2 q-pr-lg">Fee Rate:</div>
                     <div class="col-3 q-pr-lg">
@@ -318,438 +731,44 @@
                   </div>
                 </q-card-section></q-card
               >
-              <q-card v-if="payment.show"
-                ><q-card-section>
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col">
-                      <q-table
-                        :columns="summaryTable.columns"
-                        :data="summary.data"
-                        hide-bottom
-                      >
-                        <template v-slot:body="props">
-                          <q-tr :props="props">
-                            <q-td key="totalInputs" :props="props">
-                              <q-badge class="text-subtitle2" color="green">
-                                {{satBtc(getTotalSelectedUtxoAmount())}}
-                              </q-badge>
-                            </q-td>
-                            <q-td key="totalOutputs" :props="props">
-                              <q-badge class="text-subtitle2" color="blue">
-                                {{satBtc(getTotalPaymentAmount())}}
-                              </q-badge>
-                            </q-td>
-                            <q-td key="fees" :props="props">
-                              <q-badge class="text-subtitle2" color="orange">
-                                {{satBtc(computeFee())}}
-                              </q-badge>
-                            </q-td>
-                            <q-td key="change" :props="props">
-                              <q-badge
-                                v-if="payment.changeAmount >= 0"
-                                class="text-subtitle2"
-                                color="green"
-                              >
-                                {{payment.changeAmount ?
-                                satBtc(payment.changeAmount): 'no change'}}
-                              </q-badge>
-                              <q-badge
-                                v-if="payment.changeAmount > 0 && payment.changeAmount < DUST_LIMIT"
-                                color="red"
-                              >
-                                Below dust limit. Will be used as feee.
-                              </q-badge>
-                            </q-td>
-                          </q-tr>
-                        </template>
-                      </q-table>
-                    </div>
-                  </div>
-
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-3 q-pr-lg">
-                      <q-btn
-                        unelevated
-                        color="secondary"
-                        type="submit"
-                        class="btn-full"
-                        >Check Tx</q-btn
-                      >
-                    </div>
-                    <div class="col-9">
-                      <q-input v-model="payment.psbtBase64" filled />
-                    </div>
-                  </div>
-                  <q-separator
-                    v-if="payment.psbtBase64"
-                    class="q-mb-md"
-                  ></q-separator>
-                  <div
-                    v-if="payment.psbtBase64"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg">
-                      <q-btn-dropdown
-                        class="btn-full"
-                        color="secondary"
-                        label="Sign With"
-                      >
-                        <q-list>
-                          <q-item
-                            clickable
-                            v-close-popup
-                            @click="payment.signMode = 'serial-port'"
-                          >
-                            <q-item-section>
-                              <q-item-label>Serial Port Device</q-item-label>
-                              <q-item-label caption
-                                >Connect via Serial Port and sign.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-
-                          <q-item clickable disabled v-close-popup>
-                            <q-item-section>
-                              <q-item-label>Animated QR Code</q-item-label>
-                              <q-item-label caption
-                                >Share and Scan using animated QR
-                                codes.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-btn-dropdown>
-                    </div>
-                    <div class="col-9">
-                      <q-option-group
-                        v-model="payment.signMode"
-                        :options="payment.signModes"
-                        color="primary"
-                        inline
-                      ></q-option-group>
-                    </div>
-                  </div>
-                  <q-separator
-                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
-                    class="q-mb-md"
-                  ></q-separator>
-                  <div
-                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
-                    class="row items-center no-wrap q-mb-md q-mt-lg"
-                  >
-                    <div class="col-3 q-pr-lg">
-                      <q-btn
-                        v-if="!serial.selectedPort"
-                        @click="openSerialPort()"
-                        unelevated
-                        color="secondary"
-                        class="btn-full"
-                        >Connect</q-btn
-                      >
-                      <q-btn
-                        v-if="serial.selectedPort"
-                        @click="closeSerialPort()"
-                        outline
-                        color="gray"
-                        class="btn-full"
-                        >Disconnect</q-btn
-                      >
-                    </div>
-                    <div class="col-3">
-                      <q-toggle
-                        label="Advanced"
-                        disabled
-                        color="secodary float-left"
-                        v-model="serial.showAdvancedConfig"
-                      ></q-toggle>
-                    </div>
-                    <div class="col-6"></div>
-                  </div>
-                  <q-separator
-                    v-if="payment.psbtBase64 && payment.signMode === 'serial-port'"
-                    class="q-mb-md"
-                  ></q-separator>
-                  <div
-                    v-if="serial.selectedPort && payment.psbtBase64 && payment.signMode === 'serial-port'"
-                    class="row items-center no-wrap q-mb-md q-mt-lg"
-                  >
-                    <div class="col-3 q-pr-lg">
-                      <q-btn-dropdown
-                        split
-                        class="btn-full"
-                        color="secondary"
-                        :label="hww.authenticated ? 'Sign Tx' : 'Login'"
-                        @click="hwwExecuteDefaultCommand()"
-                      >
-                        <q-list>
-                          <q-item
-                            v-if="!hww.authenticated"
-                            clickable
-                            v-close-popup
-                            @click="hwwShowPasswordDialog()"
-                          >
-                            <q-item-section>
-                              <q-item-label>Login</q-item-label>
-                              <q-item-label caption
-                                >Enter password for Hardware
-                                Wallet.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-
-                          <q-item
-                            v-if="hww.authenticated"
-                            clickable
-                            v-close-popup
-                            @click="hwwLogout()"
-                          >
-                            <q-item-section>
-                              <q-item-label>Logout</q-item-label>
-                              <q-item-label caption
-                                >Clear password for HWW.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item
-                            :disabled="!hww.authenticated"
-                            clickable
-                            v-close-popup
-                            @click="hwwSendPsbt()"
-                          >
-                            <q-item-section>
-                              <q-item-label>Sign</q-item-label>
-                              <q-item-label caption
-                                >Sign transaction on Hardware
-                                Wallet</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item
-                            clickable
-                            v-close-popup
-                            @click="hwwShowRestoreDialog()"
-                          >
-                            <q-item-section>
-                              <q-item-label>Restore</q-item-label>
-                              <q-item-label caption
-                                >Restore wallet from existing word
-                                list.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item
-                            :disabled="!hww.authenticated"
-                            clickable
-                            v-close-popup
-                            @click="hwwShowSeed()"
-                          >
-                            <q-item-section>
-                              <q-item-label>Show Seed</q-item-label>
-                              <q-item-label caption
-                                >Show seed on the Hardware Wallet
-                                display.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item
-                            @click="hwwShowWipeDialog()"
-                            clickable
-                            v-close-popup
-                          >
-                            <q-item-section>
-                              <q-item-label>Wipe</q-item-label>
-                              <q-item-label caption
-                                >Clean-up the wallet. New random
-                                seed.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                          <q-item @click="hwwHelp()" clickable v-close-popup>
-                            <q-item-section>
-                              <q-item-label>Help</q-item-label>
-                              <q-item-label caption
-                                >View available comands.</q-item-label
-                              >
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-btn-dropdown>
-                    </div>
-                    <div class="col-3">
-                      <q-toggle
-                        label="Show Console"
-                        color="secodary float-left"
-                        v-model="hww.showConsole"
-                      ></q-toggle>
-                    </div>
-                    <div class="col-3">
-                      <q-spinner
-                        v-if="hww.sendingPsbt == true"
-                        color="primary"
-                        size="2.55em"
-                      ></q-spinner>
-                    </div>
-                    <div class="col-3"></div>
-                  </div>
-                  <div
-                    v-if="hww.showConsole"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg"></div>
-                    <div class="col-9">
-                      <q-input
-                        for="watchonly-serial-port-data-input"
-                        v-model="serial.receivedData"
-                        filled
-                        type="textarea"
-                      />
-                    </div>
-                  </div>
-                  <q-separator
-                    v-if="hww.authenticated"
-                    class="q-mb-md"
-                  ></q-separator>
-                  <div
-                    v-if="hww.authenticated && hww.psbtSent"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg">
-                      <q-btn
-                        @click="hwwSignPsbt()"
-                        unelevated
-                        color="green"
-                        class="btn-full"
-                        >Confirm
-                        <q-spinner
-                          v-if="hww.signingPsbt == true"
-                          color="primary"
-                        ></q-spinner>
-                      </q-btn>
-                    </div>
-                    <div class="col-3">
-                      <q-toggle
-                        v-if="payment.psbtBase64Signed"
-                        label="Show Signed Psbt"
-                        color="secodary float-left"
-                        v-model="hww.showSignedPsbt"
-                      ></q-toggle>
-                    </div>
-                    <div class="col-6">
-                      <q-badge
-                        color="yellow"
-                        text-color="black"
-                        multi-line
-                        class="text-subtitle2"
-                        >Check transaction data on the Hardware Wallet
-                        display</q-badge
-                      >
-                    </div>
-                  </div>
-                  <div
-                    v-if="hww.showSignedPsbt"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg"></div>
-
-                    <div class="col-9">
-                      <q-input
-                        v-model="payment.psbtBase64Signed"
-                        filled
-                        readonly
-                      />
-                    </div>
-                  </div>
-                  <q-separator
-                    v-if="payment.signedTx"
-                    class="q-mb-md"
-                  ></q-separator>
-                  <div
-                    v-if="payment.psbtBase64Signed"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg">
-                      <q-btn
-                        v-if="payment.signedTx"
-                        @click="broadcastTransaction()"
-                        unelevated
-                        color="secondary"
-                        class="btn-full"
-                        >Send Payment</q-btn
-                      >
-                    </div>
-                    <div class="col-9">
-                      <span class="text-subtitle2">Transaction Details</span>
-                      <q-separator></q-separator>
-                    </div>
-                  </div>
-                  <div
-                    v-if="payment.signedTx"
-                    class="row items-center no-wrap q-mb-md"
-                  >
-                    <div class="col-3 q-pr-lg"></div>
-                    <div class="col-9">
-                      <div class="row items-center no-wrap q-mb-sm">
-                        <div class="col-3 q-pr-lg">Version</div>
-                        <div class="col-9">{{payment.signedTx.version}}</div>
-                      </div>
-                      <div class="row items-center no-wrap q-mb-sm">
-                        <div class="col-3 q-pr-lg">Locktime</div>
-                        <div class="col-9">{{payment.signedTx.locktime}}</div>
-                      </div>
-                      <div class="row items-center no-wrap q-mb-sm">
-                        <div class="col-3 q-pr-lg">Fee</div>
-                        <div class="col-9">
-                          <q-badge color="orange"
-                            >{{satBtc(payment.signedTx.fee)}}
-                          </q-badge>
-                        </div>
-                      </div>
-                      <q-separator class="q-mb-lg"></q-separator>
-                      <span class="text-subtitle2">Outputs</span>
-                      <q-separator class="q-mb-lg"></q-separator>
-                      <div
-                        v-for="out in payment.signedTx.outputs"
-                        class="row items-center no-wrap q-mb-sm"
-                      >
-                        <div class="col-3 q-pr-lg">
-                          <q-badge color="orange"
-                            >{{satBtc(out.amount)}}</q-badge
-                          >
-                        </div>
-
-                        <div class="col-9">
-                          <q-badge outline color="blue"
-                            >{{out.address}}</q-badge
-                          >
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <q-separator
-                    v-if="payment.sentTxId"
-                    class="q-mb-lg"
-                  ></q-separator>
-                  <div
-                    v-if="payment.sentTxId"
-                    class="row items-center no-wrap q-mb-sm"
-                  >
-                    <div class="col-3">Transaction Id</div>
-                    <div class="col-9">
-                      <a
-                        style="color: unset"
-                        :href="config.data.mempool_endpoint + '/tx/' + payment.sentTxId"
-                        target="_blank"
-                      >
-                        {{payment.sentTxId}}</a
-                      >
-                    </div>
-                  </div>
-                </q-card-section>
-              </q-card>
-            </q-form>
-          </q-tab-panel>
-        </q-tab-panels>
+            </q-tab-panel>
+            <q-tab-panel name="coinControl">
+              <utxo-list
+                :utxos="utxos.data"
+                :selectable="true"
+                :payed-amount="getTotalPaymentAmount()"
+                :mempool_endpoint="config.data.mempool_endpoint"
+                :sats-denominated="config.data.sats_denominated"
+              ></utxo-list>
+              <div class="row items-center no-wrap q-mb-md q-pt-lg">
+                <div class="col-2 q-pr-lg">Change Account:</div>
+                <div class="col-3 q-pr-lg">
+                  <q-select
+                    filled
+                    dense
+                    emit-value
+                    v-model="payment.changeWallet"
+                    :options="walletAccounts"
+                    @input="selectChangeAddress"
+                    :rules="[val => !!val || 'Field is required']"
+                    label="Wallet Account"
+                  ></q-select>
+                </div>
+                <div class="col-7">
+                  <q-input
+                    filled
+                    dense
+                    readonly
+                    v-model.trim="payment.changeAddress.address"
+                    :rules="[val => !!val || 'Field is required']"
+                    type="text"
+                    label="Change Address"
+                  ></q-input>
+                </div>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+        </q-form>
       </q-card-section>
     </q-card>
   </div>
@@ -979,5 +998,6 @@
 <script src="{{ url_for('watchonly_static', path='components/address-list/address-list.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/history/history.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/utxo-list/utxo-list.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='components/payment/payment.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}

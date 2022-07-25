@@ -4,7 +4,7 @@ async function addressList(path) {
     name: 'address-list',
     template,
 
-    props: ['accounts', 'mempool_endpoint', 'inkey'],
+    props: ['accounts', 'mempool_endpoint', 'inkey', 'sats_denominated'],
     watch: {
       immediate: true,
       accounts(newVal, oldVal) {

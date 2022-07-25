@@ -64,14 +64,7 @@ const tableData = {
     signedTx: null,
     signedTxHex: null,
     sentTxId: null,
-    utxoSelectionModes: [
-      'Manual',
-      'Random',
-      'Select All',
-      'Smaller Inputs First',
-      'Larger Inputs First'
-    ],
-    utxoSelectionMode: 'Manual',
+
     signModes: [
       {
         label: 'Serial Port Device',
