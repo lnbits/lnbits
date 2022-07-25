@@ -6,6 +6,7 @@ const watchOnly = async () => {
   await addressList('static/components/address-list/address-list.html')
   await history('static/components/history/history.html')
   await utxoList('static/components/utxo-list/utxo-list.html')
+  await fees('static/components/fees/fees.html')
   await payment('static/components/payment/payment.html')
 
   Vue.filter('reverse', function (value) {
@@ -82,7 +83,9 @@ const watchOnly = async () => {
 
         showAddress: false,
         addressNote: '',
-        showPayment: false
+        showPayment: false,
+        showCustomFee: false,
+        feeValue: 0
       }
     },
 
@@ -238,10 +241,10 @@ const watchOnly = async () => {
           masterpub_fingerprint: walletAcount.fingerprint
         }
       },
-      computeFee: function () {
+      computeFee: function (feeRate) {
         const tx = this.createTx()
         this.payment.txSize = Math.round(txSize(tx))
-        return this.payment.feeRate * this.payment.txSize
+        return feeRate * this.payment.txSize
       },
       deletePaymentAddress: function (v) {
         const index = this.payment.data.indexOf(v)
@@ -257,18 +260,9 @@ const watchOnly = async () => {
         this.payment.changeWallet = this.walletAccounts[0]
         this.selectChangeAddress(this.payment.changeWallet)
 
-        await this.refreshRecommendedFees()
         this.payment.feeRate = this.payment.recommededFees.halfHourFee
       },
-      getFeeRateLabel: function (feeRate) {
-        const fees = this.payment.recommededFees
-        if (feeRate >= fees.fastestFee)
-          return `High Priority (${feeRate} sat/vB)`
-        if (feeRate >= fees.halfHourFee)
-          return `Medium Priority (${feeRate} sat/vB)`
-        if (feeRate >= fees.hourFee) return `Low Priority (${feeRate} sat/vB)`
-        return `No Priority (${feeRate} sat/vB)`
-      },
+
       addPaymentAddress: function () {
         this.payment.data.push({address: '', amount: undefined})
       },
@@ -300,7 +294,7 @@ const watchOnly = async () => {
       createPsbt: async function () {
         const wallet = this.g.user.wallets[0]
         try {
-          this.computeFee()
+          this.computeFee(this.payment.feeRate)
           const tx = this.createTx()
           txSize(tx)
           for (const input of tx.inputs) {
@@ -824,7 +818,6 @@ const watchOnly = async () => {
               h => h.address !== addrData.address
             )
 
-            console.log('### addressHistory', addressHistory)
             // add new entries
             this.history.push(...addressHistory)
             this.history.sort((a, b) => (!a.height ? -1 : b.height - a.height))
@@ -899,14 +892,6 @@ const watchOnly = async () => {
         return this.addressHistoryFromTxs(addrData, addressTxs)
       },
 
-      refreshRecommendedFees: async function () {
-        const {
-          bitcoin: {fees: feesAPI}
-        } = mempoolJS()
-
-        const fn = async () => feesAPI.getFeesRecommended()
-        this.payment.recommededFees = await retryWithDelay(fn)
-      },
       getAddressTxsUtxoDelayed: async function (address) {
         const {
           bitcoin: {addresses: addressesAPI}
@@ -974,6 +959,10 @@ const watchOnly = async () => {
       handleAddressesUpdated: async function (addresses) {
         this.addresses = addresses
         await this.scanAddressWithAmount()
+      },
+      handleFeeRateChanged: function (newFeeRate) {
+        console.log('### newFeeRate', newFeeRate)
+        this.feeValue = this.computeFee(newFeeRate)
       }
     },
     created: async function () {
