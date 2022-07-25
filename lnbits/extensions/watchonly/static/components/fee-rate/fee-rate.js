@@ -7,7 +7,7 @@ async function fees(path) {
     props: ['totalfee', 'sats_denominated'],
     watch: {
       immediate: true,
-      'totalfee': function(newVal, oldVal) {
+      totalfee: function (newVal, oldVal) {
         console.log('### ', newVal, oldVal)
       }
     },
