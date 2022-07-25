@@ -30,7 +30,7 @@ async def create_tpos(wallet_id: str, data: CreateTposData) -> TPoS:
 
 async def get_tpos(tpos_id: str) -> Optional[TPoS]:
     row = await db.fetchone("SELECT * FROM tpos.tposs WHERE id = ?", (tpos_id,))
-    return TPoS.from_row(row) if row else None
+    return TPoS(**row) if row else None
 
 
 async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
@@ -42,7 +42,7 @@ async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
         f"SELECT * FROM tpos.tposs WHERE wallet IN ({q})", (*wallet_ids,)
     )
 
-    return [TPoS.from_row(row) for row in rows]
+    return [TPoS(**row) for row in rows]
 
 
 async def delete_tpos(tpos_id: str) -> None:
