@@ -91,7 +91,6 @@ async function walletList(path) {
                 return obj.id === walletAccountId
               })
               await this.refreshWalletAccounts()
-
             } catch (error) {
               this.$q.notify({
                 type: 'warning',
