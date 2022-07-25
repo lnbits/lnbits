@@ -122,8 +122,8 @@ api_key_query = APIKeyQuery(
 
 async def get_key_type(
     r: Request,
-    api_key_header: str = Security(api_key_header), #type: ignore
-    api_key_query: str = Security(api_key_query) #type: ignore
+    api_key_header: str = Security(api_key_header),  # type: ignore
+    api_key_query: str = Security(api_key_query),  # type: ignore
 ) -> WalletTypeInfo:
     # 0: admin
     # 1: invoice
@@ -180,8 +180,8 @@ async def get_key_type(
 
 async def require_admin_key(
     r: Request,
-    api_key_header: str = Security(api_key_header), #type: ignore
-    api_key_query: str = Security(api_key_query) #type: ignore
+    api_key_header: str = Security(api_key_header),  # type: ignore
+    api_key_query: str = Security(api_key_query),  # type: ignore
 ):
     token = api_key_header if api_key_header else api_key_query
 
@@ -199,8 +199,8 @@ async def require_admin_key(
 
 async def require_invoice_key(
     r: Request,
-    api_key_header: str = Security(api_key_header), #type: ignore
-    api_key_query: str = Security(api_key_query) #type: ignore
+    api_key_header: str = Security(api_key_header),  # type: ignore
+    api_key_query: str = Security(api_key_query),  # type: ignore
 ):
     token = api_key_header if api_key_header else api_key_query
 

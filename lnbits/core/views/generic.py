@@ -55,9 +55,9 @@ async def home(request: Request, lightning: str = None):
 )
 async def extensions(
     request: Request,
-    user: User = Depends(check_user_exists), #type: ignore
-    enable: str = Query(None), #type: ignore
-    disable: str = Query(None), #type: ignore
+    user: User = Depends(check_user_exists),  # type: ignore
+    enable: str = Query(None),  # type: ignore
+    disable: str = Query(None),  # type: ignore
 ):
     extension_to_enable = enable
     extension_to_disable = disable
@@ -88,7 +88,7 @@ async def extensions(
 
     # Update user as his extensions have been updated
     if extension_to_enable or extension_to_disable:
-        user = await get_user(user.id) #type: ignore
+        user = await get_user(user.id)  # type: ignore
 
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
@@ -108,12 +108,11 @@ just **user_id**: return the first user wallet or create one if none found (with
 nothing: create everything<br>
 """,
 )
-
 async def wallet(
-    request: Request = Query(None), #type: ignore
-    nme: Optional[str] = Query(None), #type: ignore
-    usr: Optional[UUID4] = Query(None), #type: ignore
-    wal: Optional[UUID4] = Query(None), #type: ignore
+    request: Request = Query(None),  # type: ignore
+    nme: Optional[str] = Query(None),  # type: ignore
+    usr: Optional[UUID4] = Query(None),  # type: ignore
+    wal: Optional[UUID4] = Query(None),  # type: ignore
 ):
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
