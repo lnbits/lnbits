@@ -279,7 +279,7 @@ class CreateLNURLData(BaseModel):
 
 @core_app.post("/api/v1/payments/lnurl")
 async def api_payments_pay_lnurl(
-    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(require_admin_key)
+    data: CreateLNURLData, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     domain = urlparse(data.callback).netloc
 
@@ -305,12 +305,6 @@ async def api_payments_pay_lnurl(
             detail=f"{domain} said: '{params.get('reason', '')}'",
         )
 
-    if not params.get("pr"):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} did not return a payment request.",
-        )
-
     invoice = bolt11.decode(params["pr"])
     if invoice.amount_msat != data.amount:
         raise HTTPException(
@@ -318,11 +312,11 @@ async def api_payments_pay_lnurl(
             detail=f"{domain} returned an invalid invoice. Expected {data.amount} msat, got {invoice.amount_msat}.",
         )
 
-    if invoice.description_hash != data.description_hash:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
-        )
+    #  if invoice.description_hash != data.description_hash:
+    #      raise HTTPException(
+    #          status_code=HTTPStatus.BAD_REQUEST,
+    #          detail=f"{domain} returned an invalid invoice. Expected description_hash == {data.description_hash}, got {invoice.description_hash}.",
+    #      )
 
     extra = {}
 
