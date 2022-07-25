@@ -88,7 +88,7 @@ async def extensions(
 
     # Update user as his extensions have been updated
     if extension_to_enable or extension_to_disable:
-        user = await get_user(user.id)
+        user = await get_user(user.id) #type: ignore
 
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
@@ -152,8 +152,8 @@ async def wallet(
         )
 
     logger.debug(f"Access wallet {wallet_name}{'of user '+ user.id if user else ''}")
-    wallet = user.get_wallet(wallet_id)
-    if not wallet:
+    userwallet = user.get_wallet(wallet_id)
+    if not userwallet:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
@@ -163,7 +163,7 @@ async def wallet(
         {
             "request": request,
             "user": user.dict(),
-            "wallet": wallet.dict(),
+            "wallet": userwallet.dict(),
             "service_fee": service_fee,
             "web_manifest": f"/manifest/{user.id}.webmanifest",
         },
