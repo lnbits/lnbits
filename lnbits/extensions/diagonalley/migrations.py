@@ -1,23 +1,5 @@
 async def m001_initial(db):
     """
-    Initial products table.
-    """
-    await db.execute(
-        """
-        CREATE TABLE diagonalley.products (
-            id TEXT PRIMARY KEY,
-            stall TEXT NOT NULL,
-            product TEXT NOT NULL,
-            categories TEXT,
-            description TEXT,
-            image TEXT,
-            price INTEGER NOT NULL,
-            quantity INTEGER NOT NULL
-        );
-    """
-    )
-
-    """
     Initial stalls table.
     """
     await db.execute(
@@ -30,6 +12,25 @@ async def m001_initial(db):
             privatekey TEXT,
             relays TEXT,
             shippingzones TEXT NOT NULL
+        );
+    """
+    )
+
+    """
+    Initial products table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE diagonalley.products (
+            id TEXT PRIMARY KEY,
+            stall TEXT NOT NULL REFERENCES {db.references_schema}stalls (id),
+            product TEXT NOT NULL,
+            categories TEXT,
+            description TEXT,
+            image TEXT,
+            price INTEGER NOT NULL,
+            quantity INTEGER NOT NULL,
+            rating INTEGER NOT NULL
         );
     """
     )
@@ -54,12 +55,10 @@ async def m001_initial(db):
     await db.execute(
         """
         CREATE TABLE diagonalley.orders (
-            id TEXT PRIMARY KEY,
+            id {db.serial_primary_key},
             productid TEXT NOT NULL,
             usr TEXT NOT NULL,
             pubkey TEXT NOT NULL,
-            product TEXT NOT NULL,
-            quantity INTEGER NOT NULL,
             shippingzone INTEGER NOT NULL,
             address TEXT NOT NULL,
             email TEXT NOT NULL,
@@ -72,3 +71,19 @@ async def m001_initial(db):
         );
     """
     )
+
+    """
+    Initial order details table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE diagonalley.order_details (
+            id TEXT PRIMARY KEY,
+            orderid INTEGER NOT NULL REFERENCES {db.references_schema}orders (id)
+            productid TEXT NOT NULL REFERENCES {db.references_schema}products (id),
+            quantity INTEGER NOT NULL,
+            total INTEGER NOT NULL 
+        );
+    """
+    )
+    

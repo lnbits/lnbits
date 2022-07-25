@@ -59,7 +59,7 @@
               color="primary"
               icon-right="checkout"
               label="Checkout"
-              @click="placeOrder"
+              @click="checkoutDialog.show = true"
             />
           </div>
         </q-menu>
@@ -69,7 +69,7 @@
 </div>
 <div class="row q-col-gutter-md">
   <div
-    class="col-xs-12 col-sm-6 col-lg-4"
+    class="col-xs-12 col-sm-6 col-md-4 col-lg-3"
     v-for="item in filterProducts"
     :key="item.id"
   >
@@ -87,6 +87,7 @@
       <q-card-section class="q-pb-xs q-pt-md">
         <q-btn
           round
+          :disabled="item.quantity < 1"
           color="primary"
           icon="shopping_cart"
           size="lg"
@@ -112,7 +113,7 @@
       <q-card-section class="q-py-sm">
         <div>
           <div class="text-caption text-green-8 text-weight-bolder">
-            Special Price
+            {{ item.stall }}
           </div>
           <span class="text-h6">{{ item.price }} sats</span
           ><span class="q-ml-sm text-grey-6"
@@ -152,6 +153,68 @@
       {% endraw %}
     </q-card>
   </div>
+  <!-- CHECKOUT DIALOG -->
+  <q-dialog v-model="checkoutDialog.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="placeOrder" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.username"
+          label="Name *optional"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.address_1"
+          label="Address (line 1)"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="checkoutDialog.data.address_2"
+          label="Address (line 2)"
+        ></q-input>
+        <q-input
+          v-model="checkoutDialog.data.email"
+          filled
+          dense
+          type="email"
+          label="Email"
+        />
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="checkoutDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Product</q-btn
+          >
+
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="checkoutDialog.data.price == null
+              || checkoutDialog.data.product == null
+              || checkoutDialog.data.description == null
+              || checkoutDialog.data.quantity == null"
+            type="submit"
+            >Create Product</q-btn
+          >
+
+          <q-btn
+            v-close-popup
+            flat
+            @click="checkoutDialog = {show: false, data: {}}"
+            color="grey"
+            class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %}
 <script>
@@ -168,7 +231,11 @@
           size: 0,
           products: new Map()
         },
-        cartMenu: []
+        cartMenu: [],
+        checkoutDialog: {
+          show: false,
+          data: {}
+        }
       }
     },
     computed: {
@@ -199,26 +266,41 @@
             price: item.price
           })
         }
-        this.cart.total += item.price
-        this.cart.size++
         this.cart.products = prod
-        this.cartMenu = Array.from(prod, item => {
+        this.updateCart(item.price)
+      },
+      removeFromCart() {},
+      updateCart(price) {
+        this.cart.total += price
+        this.cart.size++
+        this.cartMenu = Array.from(this.cart.products, item => {
           return {id: item[0], ...item[1]}
         })
         console.log(this.cartMenu)
+      },
+      placeOrder() {
+        // productid: str = Query(...)
+        // stall: str = Query(...)
+        // product: str = Query(...)
+        // quantity: int = Query(..., ge=1)
+        // shippingzone: int = Query(...)
+        // address: str = Query(...)
+        // email: str = Query(...)
+        // invoiceid: str = Query(...)
+        return
       }
-    },
-    placeOrder() {
-      return
     },
     created() {
       this.products = JSON.parse('{{ products | tojson }}')
+      let stall_ids = new Set()
+      this.products.map(p => stall_ids.add(p.stall))
+
+      console.log(stall_ids)
     }
   })
 </script>
 <style scoped>
   .card--product {
-    background: pink;
   }
 </style>
 {% endblock %}
