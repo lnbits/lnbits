@@ -259,9 +259,10 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
                 open_time,
                 used,
                 usescsv,
-                webhook_url
+                webhook_url,
+                custom_url,
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL);
         """
         insert_to_pg(q, res.fetchall())
         # WITHDRAW HASH CHECK
