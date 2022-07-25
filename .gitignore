@@ -15,7 +15,7 @@ __pycache__
 .webassets-cache
 htmlcov
 test-reports
-tests/data
+tests/data/*.sqlite3
 
 *.swo
 *.swp

@@ -167,7 +167,10 @@
         <div class="text-center">
           <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
           <h5 class="q-mt-none">
-            {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+            {% raw %}{{ fsat }}
+            <small>sat</small>
+            <span style="font-size: 0.75rem">( + {{ tipAmountSat }} tip)</span>
+            {% endraw %}
           </h5>
         </div>
         <div class="row q-mt-lg">
@@ -310,7 +313,6 @@
         return Math.ceil((this.tipAmount / this.exchangeRate) * 100000000)
       },
       fsat: function () {
-        console.log('sat', this.sat, LNbits.utils.formatSat(this.sat))
         return LNbits.utils.formatSat(this.sat)
       }
     },
@@ -362,7 +364,6 @@
       showInvoice: function () {
         var self = this
         var dialog = this.invoiceDialog
-        console.log(this.sat, this.tposId)
         axios
           .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
             params: {
