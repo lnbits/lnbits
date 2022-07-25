@@ -54,8 +54,8 @@
                 ></q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ (col.name == 'tip_options' ? JSON.parse(col.value).join(", ")
-                : col.value) }}
+                {{ (col.name == 'tip_options' && col.value ?
+                JSON.parse(col.value).join(", ") : col.value) }}
               </q-td>
               <q-td auto-width>
                 <q-btn
