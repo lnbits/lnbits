@@ -5,6 +5,7 @@ const watchOnly = async () => {
   await walletList('static/components/wallet-list/wallet-list.html')
   await addressList('static/components/address-list/address-list.html')
   await history('static/components/history/history.html')
+  await utxoList('static/components/utxo-list/utxo-list.html')
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
@@ -795,7 +796,7 @@ const watchOnly = async () => {
         this.utxos.data = []
         this.utxos.total = 0
         this.history = []
-        console.log('### scanAddressWithAmount1',  this.addresses)
+        console.log('### scanAddressWithAmount1', this.addresses)
         const addresses = this.addresses.filter(a => a.hasActivity)
         console.log('### scanAddressWithAmount2', addresses)
         await this.updateUtxosForAddresses(addresses)
@@ -872,6 +873,7 @@ const watchOnly = async () => {
         )
         this.updateAmountForAddress(addressData, addressTotal)
       },
+      // todo: move/dedup
       getTotalSelectedUtxoAmount: function () {
         const total = this.utxos.data
           .filter(u => u.selected)
