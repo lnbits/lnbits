@@ -14,11 +14,9 @@ async function payment(path) {
     watch: {
       immediate: true,
       accounts() {
-        console.log('### watch accounts', newVal)
         this.updateChangeAddress()
       },
-      addresses(newVal) {
-        console.log('### watch addresses', newVal)
+      addresses() {
         this.updateChangeAddress()
       }
     },
@@ -144,12 +142,11 @@ async function payment(path) {
           // change account deleted
           if (!changeAccount) {
             this.changeWallet = this.accounts[0]
-            this.selectChangeAddress(this.changeWallet)
           }
         } else {
           this.changeWallet = this.accounts[0]
-          this.selectChangeAddress(this.changeWallet)
         }
+        this.selectChangeAddress(this.changeWallet)
       },
       getTotalPaymentAmount: function () {
         return this.sendToList.reduce((t, a) => t + (a.amount || 0), 0)
