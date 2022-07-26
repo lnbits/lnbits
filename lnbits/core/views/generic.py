@@ -218,7 +218,7 @@ async def lnurl_full_withdraw_callback(request: Request):
 
 
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
-async def deletewallet(request: Request, wal=Query(...), usr=Query(...)):
+async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):  # type: ignore
     user = await get_user(usr)
     assert user is not None
     user_wallet_ids = [u.id for u in user.wallets]
