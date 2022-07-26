@@ -784,24 +784,6 @@ const watchOnly = async () => {
           })
         return retryWithDelay(fn)
       },
-      fetchTxHex: async function (txId) {
-        const {
-          bitcoin: {transactions: transactionsAPI}
-        } = mempoolJS()
-
-        try {
-          const response = await transactionsAPI.getTxHex({txid: txId})
-          return response
-        } catch (error) {
-          this.$q.notify({
-            type: 'warning',
-            message: `Failed to fetch transaction details for tx id: '${txId}'`,
-            timeout: 10000
-          })
-          LNbits.utils.notifyApiError(error)
-          throw error
-        }
-      },
 
       //################### OTHER ###################
 

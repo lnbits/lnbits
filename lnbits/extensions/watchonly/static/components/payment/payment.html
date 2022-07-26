@@ -1,6 +1,5 @@
 <div>
-  <q-form @submit="createPsbt" class="q-gutter-md">
-    <!-- {{addresses}} -->
+  <q-form @submit="checkAndSend" class="q-gutter-md">
     <q-tabs v-model="paymentTab" no-caps class="bg-dark text-white shadow-2">
       <q-tab name="destination" label="Send To"></q-tab>
       <q-tab name="coinControl" label="Coin Select"></q-tab>
@@ -17,7 +16,6 @@
               :sats-denominated="sats_denominated"
               @update:outputs="handleOutputsChange"
             ></send-to>
-
           </q-card-section>
         </q-card>
 
@@ -178,11 +176,13 @@
             <q-btn
               unelevated
               :disabled="changeAmount < 0"
+              label="Check & Send"
               color="green"
               type="submit"
               class="btn-full"
-              >Check & Send</q-btn
             >
+              <q-spinner v-if="showChecking" color="primary"></q-spinner
+            ></q-btn>
           </div>
           <div class="col-9">
             <q-badge

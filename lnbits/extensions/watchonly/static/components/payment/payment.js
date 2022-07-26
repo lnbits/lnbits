@@ -9,7 +9,8 @@ async function payment(path) {
       'addresses',
       'utxos',
       'mempool_endpoint',
-      'sats_denominated'
+      'sats_denominated',
+      'adminkey'
     ],
     watch: {
       immediate: true,
@@ -24,12 +25,15 @@ async function payment(path) {
     data: function () {
       return {
         DUST_LIMIT: 546,
+        tx: null,
+        psbtBase64: null,
         paymentTab: 'destination',
         sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
         changeAddress: {},
         showCustomFee: false,
         showCoinSelect: false,
+        showChecking: false,
         showChange: false,
         feeRate: 1
       }
@@ -71,25 +75,35 @@ async function payment(path) {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this['sats_denominated'])
       },
-      createPsbt: async function () {
-        const wallet = this.g.user.wallets[0]
+      checkAndSend: async function () {
         try {
-          // this.computeFee(this.feeRate)
-          const tx = this.createTx()
-          // txSize(tx)
-          for (const input of tx.inputs) {
+          console.log('### this.checkAndSend')
+          this.showChecking = true
+          await this.createPsbt()
+        } catch (error) {
+        } finally {
+          this.showChecking = false
+        }
+      },
+      createPsbt: async function () {
+        try {
+          console.log('### this.createPsbt')
+          this.tx = this.createTx()
+          for (const input of this.tx.inputs) {
             input.tx_hex = await this.fetchTxHex(input.tx_id)
           }
 
-          this.payment.tx = tx
+          const changeOutput = this.tx.outputs.find(o => o.branch_index === 1)
+          if (changeOutput) changeOutput.amount = this.changeAmount
+
           const {data} = await LNbits.api.request(
             'POST',
             '/watchonly/api/v1/psbt',
-            wallet.adminkey,
-            tx
+            this.adminkey,
+            this.tx
           )
 
-          this.payment.psbtBase64 = data
+          this.psbtBase64 = data
         } catch (err) {
           LNbits.utils.notifyApiError(err)
         }
@@ -97,7 +111,6 @@ async function payment(path) {
       createTx: function (excludeChange = false) {
         const tx = {
           fee_rate: this.feeRate,
-          // tx_size: this.payment.txSize, ???
           masterpubs: this.accounts.map(w => ({
             public_key: w.masterpub,
             fingerprint: w.fingerprint
@@ -121,10 +134,9 @@ async function payment(path) {
             tx.outputs.push(change)
           }
         }
-        // Only sort by amount on UI level (no lib for address decode)
-        // Should sort by scriptPubKey (as byte array) on the backend
-        // todo: just shuffle
-        tx.outputs.sort((a, b) => a.amount - b.amount)
+        tx.tx_size = Math.round(txSize(tx))
+        tx.inputs = _.shuffle(tx.inputs)
+        tx.outputs = _.shuffle(tx.outputs)
 
         return tx
       },
@@ -135,8 +147,8 @@ async function payment(path) {
 
         return {
           address: change.address,
-          addressIndex: change.addressIndex,
-          addressIndex: change.addressIndex,
+          address_index: change.addressIndex,
+          branch_index: change.isChange ? 1 : 0,
           masterpub_fingerprint: walletAcount.fingerprint
         }
       },
@@ -160,6 +172,24 @@ async function payment(path) {
           this.changeWallet = this.accounts[0]
         }
         this.selectChangeAddress(this.changeWallet)
+      },
+      fetchTxHex: async function (txId) {
+        const {
+          bitcoin: {transactions: transactionsAPI}
+        } = mempoolJS() // todo: hostname
+
+        try {
+          const response = await transactionsAPI.getTxHex({txid: txId})
+          return response
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: `Failed to fetch transaction details for tx id: '${txId}'`,
+            timeout: 10000
+          })
+          LNbits.utils.notifyApiError(error)
+          throw error
+        }
       },
       handleOutputsChange: function () {
         this.$refs.utxoList.refreshUtxoSelection(this.totalPayedAmount)
