@@ -96,7 +96,7 @@ async function utxoList(path) {
         return wallet ? wallet.title : 'unknown'
       },
       getTotalSelectedUtxoAmount: function () {
-        const total = this.utxos
+        const total = (this.utxos || [])
           .filter(u => u.selected)
           .reduce((t, a) => t + (a.amount || 0), 0)
         return total
