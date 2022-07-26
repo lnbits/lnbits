@@ -53,13 +53,12 @@ class KeyChecker(SecurityBase):
             # FIXME: Find another way to validate the key. A fetch from DB should be avoided here.
             #        Also, we should not return the wallet here - thats silly.
             #        Possibly store it in a Redis DB
-            wallet = await get_wallet_for_key(key_value, self._key_type)
-            if not wallet:
+            self.wallet = await get_wallet_for_key(key_value, self._key_type)
+            if not self.wallet:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
                     detail="Invalid key or expired key.",
                 )
-            self.wallet = wallet
 
         except KeyError:
             raise HTTPException(
