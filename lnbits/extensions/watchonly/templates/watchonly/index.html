@@ -27,7 +27,7 @@
             class="btn-full"
             color="secondary"
             @click="scanAllAddresses"
-            :disabled="scan.scanning == true"
+            :disabled="scan.scanning == true || showPayment"
             >Scan Blockchain</q-btn
           >
         </div>
