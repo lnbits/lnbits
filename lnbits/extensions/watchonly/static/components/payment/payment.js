@@ -28,7 +28,6 @@ async function payment(path) {
         sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
         changeAddress: {},
-        changeAmount: 0,
         showCustomFee: false,
         showCoinSelect: false,
         showChange: false,
@@ -52,6 +51,14 @@ async function payment(path) {
         return this.utxos
           .filter(utxo => utxo.selected)
           .reduce((t, a) => t + (a.amount || 0), 0)
+      },
+      changeAmount: function () {
+        return Math.max(
+          0,
+          this.selectedAmount -
+            this.totalPayedAmount -
+            this.feeRate * this.txSizeNoChange
+        )
       },
       balance: function () {
         return this.utxos.reduce((t, a) => t + (a.amount || 0), 0)
@@ -109,12 +116,9 @@ async function payment(path) {
           amount: out.amount
         }))
 
-        if (excludeChange) {
-          this.changeAmount = 0
-        } else {
+        if (!excludeChange) {
           const change = this.createChangeOutput()
-          this.changeAmount = change.amount // todo: compute separately
-          if (change.amount >= this.DUST_LIMIT) {
+          if (this.changeAmount >= this.DUST_LIMIT) {
             tx.outputs.push(change)
           }
         }
@@ -127,14 +131,11 @@ async function payment(path) {
       },
       createChangeOutput: function () {
         const change = this.changeAddress
-        // const inputAmount = this.getTotalSelectedUtxoAmount() // todo: set amount separately
-        // const payedAmount = this.getTotalPaymentAmount()
         const walletAcount =
           this.accounts.find(w => w.id === change.wallet) || {}
 
         return {
           address: change.address,
-          // amount: inputAmount - payedAmount - this.feeValue,
           addressIndex: change.addressIndex,
           addressIndex: change.addressIndex,
           masterpub_fingerprint: walletAcount.fingerprint
