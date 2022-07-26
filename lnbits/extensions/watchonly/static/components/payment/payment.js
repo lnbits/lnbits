@@ -53,11 +53,10 @@ async function payment(path) {
           .reduce((t, a) => t + (a.amount || 0), 0)
       },
       changeAmount: function () {
-        return Math.max(
-          0,
+        return (
           this.selectedAmount -
-            this.totalPayedAmount -
-            this.feeRate * this.txSizeNoChange
+          this.totalPayedAmount -
+          this.feeRate * this.txSizeNoChange
         )
       },
       balance: function () {

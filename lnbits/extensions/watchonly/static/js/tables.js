@@ -31,10 +31,6 @@ const tableData = {
     total: 0
   },
   payment: {
-    data: [{address: '', amount: undefined}], // todo: remove
-
-    changeAmount: 0,
-
     fee: 0,
     txSize: 0,
     tx: null,
