@@ -1,0 +1,234 @@
+<div>
+  <q-btn-dropdown
+    split
+    unelevated
+    color="primary"
+    icon="usb"
+    :text-color="selectedPort ? 'orange' : 'white'"
+    @click="openSerialPort"
+  >
+    <q-list>
+      <q-item v-if="!selectedPort" clickable v-close-popup>
+        <q-item-section >
+          <q-item-label>Configure</q-item-label>
+          <q-item-label caption
+            >Set the Serial Port communication parameters</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+
+      <q-item
+        v-if="!hww.authenticated"
+        clickable
+        v-close-popup
+        @click="hwwShowPasswordDialog()"
+      >
+        <q-item-section v-if="selectedPort">
+          <q-item-label>Login</q-item-label>
+          <q-item-label caption
+            >Enter password for Hardware Wallet.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+
+      <q-item
+        v-if="hww.authenticated"
+        clickable
+        v-close-popup
+        @click="hwwLogout()"
+      >
+        <q-item-section>
+          <q-item-label>Logout</q-item-label>
+          <q-item-label caption>Clear password for HWW.</q-item-label>
+        </q-item-section>
+      </q-item>
+
+      <q-item
+        v-if="selectedPort"
+        clickable
+        v-close-popup
+        @click="hwwShowRestoreDialog()"
+      >
+        <q-item-section>
+          <q-item-label>Restore</q-item-label>
+          <q-item-label caption
+            >Restore wallet from existing word list.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="hww.authenticated"
+        clickable
+        v-close-popup
+        @click="hwwShowSeed()"
+      >
+        <q-item-section>
+          <q-item-label>Show Seed</q-item-label>
+          <q-item-label caption
+            >Show seed on the Hardware Wallet display.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="selectedPort"
+        @click="hwwShowWipeDialog()"
+        clickable
+        v-close-popup
+      >
+        <q-item-section>
+          <q-item-label>Wipe</q-item-label>
+          <q-item-label caption
+            >Clean-up the wallet. New random seed.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item v-if="selectedPort" @click="hwwHelp()" clickable v-close-popup>
+        <q-item-section>
+          <q-item-label>Help</q-item-label>
+          <q-item-label caption>View available comands.</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item v-if="selectedPort" clickable v-close-popup>
+        <q-item-section>
+          <q-item-label>Console</q-item-label>
+          <q-item-label caption
+            >Show the serial port communication messages</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+    </q-list>
+  </q-btn-dropdown>
+  <q-dialog v-model="hww.showPasswordDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwLogin" class="q-gutter-md">
+        <span>Enter password for Hardware Wallet (8 numbers/letters)</span>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.password"
+          type="password"
+          label="Password"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!selectedPort"
+            type="submit"
+            >Login</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="hww.showWipeDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwWipe" class="q-gutter-md">
+        <q-badge color="pink" text-color="black">
+          This action will remove all data from the Hardware Wallet. Please
+          create a back-up for the seed!
+        </q-badge>
+        <span>Enter new password for Hardware Wallet (8 numbers/letters)</span>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.password"
+          type="password"
+          label="Password"
+        ></q-input>
+        <q-badge color="pink" text-color="black">
+          This action cannot be reversed!
+        </q-badge>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!selectedPort"
+            type="submit"
+            >Wipe</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="hww.showRestoreDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwRestore" class="q-gutter-md">
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          For test purposes only. Do not enter word list with real funds!!!
+        </q-badge>
+        <br /><br /><br />
+        <span>Enter new word list separated by space</span>
+        <q-input
+          v-model.trim="hww.mnemonic"
+          filled
+          :type="hww.showMnemonic ? 'text' : 'password'"
+          filled
+          dense
+          hint="Word List"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showMnemonic = !hww.showMnemonic"
+            />
+          </template>
+        </q-input>
+        <br />
+        <span>Enter new password (8 numbers/letters)</span>
+        <q-input
+          v-model.trim="hww.password"
+          filled
+          :type="hww.showPassword ? 'text' : 'password'"
+          filled
+          dense
+          hint="New Password"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showPassword ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showPassword = !hww.showPassword"
+            />
+          </template>
+        </q-input>
+        <br /><br />
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          For test purposes only. Do not enter word list with real funds.
+        </q-badge>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!selectedPort"
+            type="submit"
+            >Restore</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
