@@ -20,6 +20,7 @@ async function sendTo(path) {
 
     data: function () {
       return {
+        DUST_LIMIT: 546,
         amount: 0,
         paymentTable: {
           columns: [

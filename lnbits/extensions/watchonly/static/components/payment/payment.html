@@ -9,7 +9,6 @@
       <q-tab-panel name="destination">
         <q-card>
           <q-card-section>
-            {{sendToList}}
             <send-to
               :data.sync="sendToList"
               :tx:size="txSizeNoChange"
@@ -79,25 +78,52 @@
   -->
           </q-card-section>
         </q-card>
-        <div class="row items-center no-wrap q-mb-md q-pt-lg">
-          <div class="col-12">
-            <q-toggle
-              label="Custom Fee"
-              color="secodary"
-              v-model="showCustomFee"
-            ></q-toggle>
-          </div>
-        </div>
-        <q-card v-show="showCustomFee">
+
+        <q-card class="q-mt-lg">
           <q-card-section>
-            <div class="row items-center no-wrap q-mb-md q-pt-md">
+            <div class="row items-center no-wrap">
+              <div class="col-4">
+                <q-toggle
+                  label="Custom Fee"
+                  color="secodary"
+                  class="float-left"
+                  v-model="showCustomFee"
+                ></q-toggle>
+              </div>
+
+              <div class="col-8">
+                <div class="float-right">
+                  <span>Fee:</span>
+                  <span class="text-subtitle2 q-ml-md">
+                    {{satBtc(feeValue)}}
+                  </span>
+                  <span class="q-ml-lg">Fee Rate:</span>
+                  <span class="text-subtitle2 q-ml-md">
+                    {{feeRate}} sats/vbyte</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-show="showCustomFee"
+              class="row items-center no-wrap q-mt-md"
+            >
               <div class="col-12">
-                {{feeRate}}
+                <q-separator class="q-mb-md"></q-separator>
                 <fee-rate :totalfee="feeValue" :rate.sync="feeRate"></fee-rate>
               </div>
             </div>
           </q-card-section>
         </q-card>
+        <div class="row items-center no-wrap q-mb-md q-pt-lg">
+          <div class="col-3">
+            <q-btn unelevated color="green" type="submit" class="btn-full"
+              >Check & Send</q-btn
+            >
+          </div>
+          <div class="col-9"></div>
+        </div>
       </q-tab-panel>
 
       <q-tab-panel name="coinControl">
