@@ -108,11 +108,11 @@ async function utxoList(path) {
           this.utxos.forEach(u => (u.selected = true))
           return
         }
-
-        const payedAmount = this['payed-amount']
+        console.log('### applyUtxoSelectionMode')
+        
         this.utxos.forEach(u => (u.selected = false))
         const isManual = mode === 'Manual'
-        if (isManual || !payedAmount) return
+        if (isManual || !this.payedAmount) return
 
         const isSmallerFirst = mode === 'Smaller Inputs First'
         const isLargerFirst = mode === 'Larger Inputs First'
@@ -128,7 +128,7 @@ async function utxoList(path) {
           selectedUtxos = _.shuffle(selectedUtxos)
         }
         selectedUtxos.reduce((total, utxo) => {
-          utxo.selected = total < payedAmount
+          utxo.selected = total < this.payedAmount
           total += utxo.amount
           return total
         }, 0)
