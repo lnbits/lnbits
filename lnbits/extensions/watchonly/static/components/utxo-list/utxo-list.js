@@ -111,7 +111,6 @@ async function utxoList(path) {
         this.applyUtxoSelectionMode()
       },
       applyUtxoSelectionMode: function () {
-        console.log('### this.utxoSelectAmount', this.utxoSelectAmount)
         const mode = this.utxoSelectionMode
         const isSelectAll = mode === 'Select All'
         if (isSelectAll) {
@@ -119,9 +118,10 @@ async function utxoList(path) {
           return
         }
 
-        this.utxos.forEach(u => (u.selected = false))
         const isManual = mode === 'Manual'
         if (isManual || !this.utxoSelectAmount) return
+
+        this.utxos.forEach(u => (u.selected = false))
 
         const isSmallerFirst = mode === 'Smaller Inputs First'
         const isLargerFirst = mode === 'Larger Inputs First'
