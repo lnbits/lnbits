@@ -10,6 +10,9 @@ const watchOnly = async () => {
   await sendTo('static/components/send-to/send-to.html')
   await payment('static/components/payment/payment.html')
 
+  //emplate static/components/payment/payment.html
+  //lnbits/extensions/watchonly/static/components/payment/payment.html
+
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
     return value.slice().reverse()
@@ -32,7 +35,6 @@ const watchOnly = async () => {
         currentAddress: null,
 
         tab: 'addresses',
-        paymentTab: 'destination',
 
         config: {
           data: {
@@ -84,24 +86,7 @@ const watchOnly = async () => {
 
         showAddress: false,
         addressNote: '',
-        showPayment: false,
-        showCustomFee: false,
-        feeRate: 1,
-        sendToList: []
-      }
-    },
-
-    computed: {
-      txSize: function() {
-        const tx = this.createTx()
-        return Math.round(txSize(tx))
-      },
-      txSizeNoChange: function() {
-        const tx = this.createTx(true)
-        return Math.round(txSize(tx))
-      },
-      feeValue: function(){
-        return this.feeRate * this.txSize
+        showPayment: false
       }
     },
 
@@ -205,58 +190,6 @@ const watchOnly = async () => {
       },
 
       //################### PAYMENT ###################
-      createTx: function (excludeChange = false) {
-        const tx = {
-          fee_rate: this.feeRate,
-          tx_size: this.payment.txSize,
-          masterpubs: this.walletAccounts.map(w => ({
-            public_key: w.masterpub,
-            fingerprint: w.fingerprint
-          }))
-        }
-        tx.inputs = this.utxos.data
-          .filter(utxo => utxo.selected)
-          .map(mapUtxoToPsbtInput)
-          .sort((a, b) =>
-            a.tx_id < b.tx_id ? -1 : a.tx_id > b.tx_id ? 1 : a.vout - b.vout
-          )
-
-        tx.outputs = this.sendToList.map(out => ({
-          address: out.address,
-          amount: out.amount
-        }))
-
-        if (excludeChange) {
-          this.payment.changeAmount = 0
-        } else {
-          const change = this.createChangeOutput()
-          this.payment.changeAmount = change.amount
-          if (change.amount >= this.DUST_LIMIT) {
-            tx.outputs.push(change)
-          }
-        }
-        // Only sort by amount on UI level (no lib for address decode)
-        // Should sort by scriptPubKey (as byte array) on the backend
-        // todo: just shuffle
-        tx.outputs.sort((a, b) => a.amount - b.amount)
-
-        return tx
-      },
-      createChangeOutput: function () {
-        const change = this.payment.changeAddress
-        // const inputAmount = this.getTotalSelectedUtxoAmount() // todo: set amount separately
-        // const payedAmount = this.getTotalPaymentAmount()
-        const walletAcount =
-          this.walletAccounts.find(w => w.id === change.wallet) || {}
-
-        return {
-          address: change.address,
-          // amount: inputAmount - payedAmount - this.feeValue,
-          addressIndex: change.addressIndex,
-          addressIndex: change.addressIndex,
-          masterpub_fingerprint: walletAcount.fingerprint
-        }
-      },
 
       initPaymentData: async function () {
         if (!this.payment.show) return
@@ -265,19 +198,8 @@ const watchOnly = async () => {
         this.payment.showAdvanced = false
         this.payment.changeWallet = this.walletAccounts[0]
         this.selectChangeAddress(this.payment.changeWallet)
-
-        this.payment.feeRate = this.payment.recommededFees.halfHourFee
       },
 
-      getTotalPaymentAmount: function () {
-        return this.payment.data.reduce((t, a) => t + (a.amount || 0), 0)
-      },
-      selectChangeAddress: function (wallet = {}) {
-        this.payment.changeAddress =
-          this.addresses.find(
-            a => a.wallet === wallet.id && a.isChange && !a.hasActivity
-          ) || {}
-      },
       goToPaymentView: async function () {
         // this.payment.show = true
         this.showPayment = true
@@ -286,29 +208,7 @@ const watchOnly = async () => {
       },
 
       //################### PSBT ###################
-      createPsbt: async function () {
-        const wallet = this.g.user.wallets[0]
-        try {
-          // this.computeFee(this.feeRate)
-          const tx = this.createTx()
-          // txSize(tx)
-          for (const input of tx.inputs) {
-            input.tx_hex = await this.fetchTxHex(input.tx_id)
-          }
 
-          this.payment.tx = tx
-          const {data} = await LNbits.api.request(
-            'POST',
-            '/watchonly/api/v1/psbt',
-            wallet.adminkey,
-            tx
-          )
-
-          this.payment.psbtBase64 = data
-        } catch (err) {
-          LNbits.utils.notifyApiError(err)
-        }
-      },
       extractTxFromPsbt: async function (psbtBase64) {
         const wallet = this.g.user.wallets[0]
         try {
@@ -789,9 +689,7 @@ const watchOnly = async () => {
         this.utxos.data = []
         this.utxos.total = 0
         this.history = []
-        console.log('### scanAddressWithAmount1', this.addresses)
         const addresses = this.addresses.filter(a => a.hasActivity)
-        console.log('### scanAddressWithAmount2', addresses)
         await this.updateUtxosForAddresses(addresses)
       },
       scanAddress: async function (addressData) {
@@ -954,7 +852,7 @@ const watchOnly = async () => {
       handleAddressesUpdated: async function (addresses) {
         this.addresses = addresses
         await this.scanAddressWithAmount()
-      },
+      }
     },
     created: async function () {
       if (this.g.user.wallets.length) {
