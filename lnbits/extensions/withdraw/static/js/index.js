@@ -140,6 +140,11 @@ new Vue({
         id: this.formDialog.data.wallet
       })
       var data = _.omit(this.formDialog.data, 'wallet')
+
+      if (!data.use_custom) {
+        data.custom_url = null
+      }
+
       if (data.use_custom && !data?.custom_url) {
         data.custom_url = CUSTOM_URL
       }
@@ -167,6 +172,10 @@ new Vue({
       data.min_withdrawable = data.max_withdrawable
       data.title = 'vouchers'
       data.is_unique = true
+
+      if (!data.use_custom) {
+        data.custom_url = null
+      }
 
       if (data.use_custom && !data?.custom_url) {
         data.custom_url = '/static/images/default_voucher.png'
