@@ -163,7 +163,7 @@ async function payment(path) {
         this.selectChangeAddress(this.changeWallet)
       },
       handleOutputsChange: function () {
-        this.$refs.utxoList.applyUtxoSelectionMode()
+        this.$refs.utxoList.refreshUtxoSelection(this.totalPayedAmount)
       },
       getTotalPaymentAmount: function () {
         return this.sendToList.reduce((t, a) => t + (a.amount || 0), 0)

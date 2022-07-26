@@ -9,7 +9,7 @@
           v-model="utxoSelectionMode"
           :options="utxoSelectionModes"
           label="Selection Mode"
-          @input="applyUtxoSelectionMode"
+          @input="updateUtxoSelection"
         ></q-select>
       </div>
       <div v-if="selectable" class="col-1 q-pr-lg">
@@ -17,7 +17,7 @@
           outline
           icon="refresh"
           color="grey"
-          @click="applyUtxoSelectionMode"
+          @click="updateUtxoSelection"
           class="q-ml-sm"
         ></q-btn>
       </div>
@@ -125,23 +125,6 @@
                 >
                   {{props.row.txId}}</a
                 >
-              </div>
-            </div>
-          </q-td>
-        </q-tr>
-      </template>
-      <template v-slot:bottom-row>
-        <q-tr>
-          <q-td colspan="100%">
-            <div class="row items-center no-wrap q-mb-md q-pt-lg">
-              <div class="col-12">
-                <div>
-                  <span class="text-weight-bold">Selected Amount: </span>
-
-                  <q-badge class="text-subtitle2 q-ml-lg" color="green"
-                    >{{satBtc(getTotalSelectedUtxoAmount())}}
-                  </q-badge>
-                </div>
               </div>
             </div>
           </q-td>
