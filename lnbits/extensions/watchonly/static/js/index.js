@@ -23,7 +23,6 @@ const watchOnly = async () => {
     mixins: [windowMixin],
     data: function () {
       return {
-        DUST_LIMIT: 546,
         filter: '', // todo: remove?
 
         scan: {
@@ -832,15 +831,10 @@ const watchOnly = async () => {
       },
       showAddressDetails: function (addressData) {
         this.openQrCodeDialog(addressData)
-      },
-      handleAddressesUpdated: async function (addresses) {
-        this.addresses = addresses
-        await this.scanAddressWithAmount()
       }
     },
     created: async function () {
       if (this.g.user.wallets.length) {
-        // await this.$refs.addressList.refreshAddresses()
         await this.scanAddressWithAmount()
       }
     }

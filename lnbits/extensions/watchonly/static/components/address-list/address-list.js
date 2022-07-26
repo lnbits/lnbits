@@ -4,7 +4,13 @@ async function addressList(path) {
     name: 'address-list',
     template,
 
-    props: ['accounts', 'mempool_endpoint', 'inkey', 'sats_denominated'],
+    props: [
+      'data',
+      'accounts',
+      'mempool_endpoint',
+      'inkey',
+      'sats_denominated'
+    ],
     watch: {
       immediate: true,
       accounts(newVal, oldVal) {
@@ -13,11 +19,19 @@ async function addressList(path) {
         }
       }
     },
+    computed: {
+      addresses: {
+        get: function () {
+          return this.data
+        },
+        set: function (value) {
+          this.$emit('update:data', value)
+        }
+      }
+    },
     data: function () {
       return {
-        addresses: [],
         show: false,
-        data: [],
         history: [],
         selectedWallet: null,
         note: '',

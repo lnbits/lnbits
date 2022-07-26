@@ -23,6 +23,7 @@ async function payment(path) {
 
     data: function () {
       return {
+        DUST_LIMIT: 546,
         paymentTab: 'destination',
         sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
