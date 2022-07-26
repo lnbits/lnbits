@@ -80,11 +80,9 @@ class FakeWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = decode(bolt11)
-        # TODO: no data here?
-        data: Dict = {"privkey": "missing"}
         if (
-            invoice.checking_id is not None
-            and invoice.checking_id[6:] == data["privkey"][:6]
+            hasattr(invoice, "checking_id")
+            and invoice.checking_id[6:] == data["privkey"][:6]  # type: ignore
         ):
             return PaymentResponse(True, invoice.payment_hash, 0)
         else:
