@@ -41,6 +41,7 @@ class KeyChecker(SecurityBase):
                 name="X-API-KEY",
                 description="Wallet API Key - HEADER",
             )
+        self.wallet = None  # type: ignore
         self.model: APIKey = key
 
     async def __call__(self, request: Request):
@@ -53,7 +54,7 @@ class KeyChecker(SecurityBase):
             # FIXME: Find another way to validate the key. A fetch from DB should be avoided here.
             #        Also, we should not return the wallet here - thats silly.
             #        Possibly store it in a Redis DB
-            self.wallet = await get_wallet_for_key(key_value, self._key_type)
+            self.wallet = await get_wallet_for_key(key_value, self._key_type)  # type: ignore
             if not self.wallet:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
@@ -100,9 +101,9 @@ class WalletAdminKeyChecker(KeyChecker):
 
 class WalletTypeInfo:
     wallet_type: int
-    wallet: Union[Wallet, None]
+    wallet: Wallet
 
-    def __init__(self, wallet_type: int, wallet: Union[Wallet, None]) -> None:
+    def __init__(self, wallet_type: int, wallet: Wallet) -> None:
         self.wallet_type = wallet_type
         self.wallet = wallet
 
@@ -137,8 +138,7 @@ async def get_key_type(
     try:
         admin_checker = WalletAdminKeyChecker(api_key=token)
         await admin_checker.__call__(r)
-        wallet = WalletTypeInfo(0, admin_checker.wallet)
-        assert wallet.wallet is not None
+        wallet = WalletTypeInfo(0, admin_checker.wallet)  # type: ignore
         if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
             LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
         ):
@@ -157,9 +157,7 @@ async def get_key_type(
     try:
         invoice_checker = WalletInvoiceKeyChecker(api_key=token)
         await invoice_checker.__call__(r)
-        wallet = WalletTypeInfo(1, invoice_checker.wallet)
-        # FIXME: wallet.wallet can be None here
-        assert wallet.wallet is not None
+        wallet = WalletTypeInfo(1, invoice_checker.wallet)  # type: ignore
         if (LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS) and (
             LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS
         ):
@@ -171,7 +169,7 @@ async def get_key_type(
         if e.status_code == HTTPStatus.BAD_REQUEST:
             raise
         if e.status_code == HTTPStatus.UNAUTHORIZED:
-            return WalletTypeInfo(2, None)
+            return WalletTypeInfo(2, None)  # type: ignore
     except:
         raise
     return wallet
