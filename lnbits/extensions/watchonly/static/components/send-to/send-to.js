@@ -48,12 +48,14 @@ async function sendTo(path) {
       },
       addPaymentAddress: function () {
         this.dataLocal.push({address: '', amount: undefined})
+        this.handleOutputsChange()
       },
       deletePaymentAddress: function (v) {
         const index = this.dataLocal.indexOf(v)
         if (index !== -1) {
           this.dataLocal.splice(index, 1)
         }
+        this.handleOutputsChange()
       },
 
       sendMaxToAddress: function (paymentAddress = {}) {
@@ -65,6 +67,10 @@ async function sendTo(path) {
           0,
           inputAmount - payedAmount - feeValue
         )
+        this.handleOutputsChange()
+      },
+      handleOutputsChange: function () {
+        this.$emit('update:outputs')
       },
       getTotalPaymentAmount: function () {
         return this.dataLocal.reduce((t, a) => t + (a.amount || 0), 0)
