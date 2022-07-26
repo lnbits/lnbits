@@ -10,7 +10,7 @@ async function payment(path) {
     data: function () {
       return {
         paymentTab: 'destination',
-        sendToList: [],
+        sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
         changeAddress: {},
         changeAmount: 0,

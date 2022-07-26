@@ -12,7 +12,7 @@ async function sendTo(path) {
           return this.data
         },
         set: function (value) {
-          console.log('### computed update data')
+          console.log('### computed update data', value)
           this.$emit('update:data', value)
         }
       }
@@ -64,7 +64,7 @@ async function sendTo(path) {
     },
 
     created: async function () {
-      this.dataLocal = [{address: '', amount: undefined}]
+      
     }
   })
 }
