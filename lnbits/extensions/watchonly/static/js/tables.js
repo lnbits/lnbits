@@ -1,16 +1,4 @@
 const tables = {
-  paymentTable: {
-    columns: [
-      {
-        name: 'data',
-        align: 'left'
-      }
-    ],
-    pagination: {
-      rowsPerPage: 10
-    },
-    filter: ''
-  },
   summaryTable: {
     columns: [
       {
@@ -43,7 +31,7 @@ const tableData = {
     total: 0
   },
   payment: {
-    data: [{address: '', amount: undefined}],
+    data: [{address: '', amount: undefined}], // todo: remove
     changeWallet: null,
     changeAddress: {},
     changeAmount: 0,

@@ -1,20 +1,30 @@
 async function feeRate(path) {
   const template = await loadTemplateAsync(path)
-  Vue.component('fees', {
-    name: 'fees',
+  Vue.component('fee-rate', {
+    name: 'fee-rate',
     template,
 
-    props: ['totalfee', 'sats_denominated'],
+    props: ['rate', 'totalfee', 'sats_denominated'],
     watch: {
       immediate: true,
       totalfee: function (newVal, oldVal) {
         console.log('### ', newVal, oldVal)
       }
     },
+    computed: {
+      feeRate: {
+        get: function () {
+          return this['rate']
+        },
+        set: function (value) {
+          console.log('### computed update rate')
+          this.$emit('update:rate', +value)
+        }
+      }
+    },
 
     data: function () {
       return {
-        feeRate: 1,
         recommededFees: {
           fastestFee: 1,
           halfHourFee: 1,
@@ -29,10 +39,7 @@ async function feeRate(path) {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this['sats_denominated'])
       },
-      feeRateChanged: function (newFeeRate) {
-        console.log('### value', newFeeRate)
-        this.$emit('update:fee-rate', +newFeeRate)
-      },
+
       refreshRecommendedFees: async function () {
         const {
           bitcoin: {fees: feesAPI}
@@ -56,7 +63,6 @@ async function feeRate(path) {
       console.log('### created fees ')
       await this.refreshRecommendedFees()
       this.feeRate = this.recommededFees.halfHourFee
-      this.feeRateChanged(this.recommededFees.halfHourFee)
     }
   })
 }
