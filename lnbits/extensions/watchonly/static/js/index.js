@@ -117,6 +117,7 @@ const watchOnly = async () => {
             }
           }
 
+          // todo: account deleted
           await LNbits.api.request(
             'PUT',
             `/watchonly/api/v1/address/${addressData.id}`,
@@ -194,16 +195,10 @@ const watchOnly = async () => {
       initPaymentData: async function () {
         if (!this.payment.show) return
         await this.$refs.addressList.refreshAddresses()
-
-        this.payment.showAdvanced = false
-        this.payment.changeWallet = this.walletAccounts[0]
-        this.selectChangeAddress(this.payment.changeWallet)
       },
 
       goToPaymentView: async function () {
-        // this.payment.show = true
         this.showPayment = true
-        // this.tab = 'utxos'
         await this.initPaymentData()
       },
 
@@ -834,17 +829,6 @@ const watchOnly = async () => {
         this.walletAccounts = accounts
         // await this.refreshAddressesxx() // todo: automatic now?
         await this.scanAddressWithAmount()
-
-        if (this.payment.changeWallet) {
-          const changeAccount = this.walletAccounts.find(
-            w => w.id === this.payment.changeWallet.id
-          )
-          // change account deleted
-          if (!changeAccount) {
-            this.payment.changeWallet = this.walletAccounts[0]
-            this.selectChangeAddress(this.payment.changeWallet)
-          }
-        }
       },
       showAddressDetails: function (addressData) {
         this.openQrCodeDialog(addressData)

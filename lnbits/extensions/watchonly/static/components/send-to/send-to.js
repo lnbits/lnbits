@@ -63,8 +63,6 @@ async function sendTo(path) {
       }
     },
 
-    created: async function () {
-      
-    }
+    created: async function () {}
   })
 }

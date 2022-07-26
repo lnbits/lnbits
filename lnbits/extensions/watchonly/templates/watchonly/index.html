@@ -493,7 +493,11 @@
         </q-tab-panels>
       </q-card-section>
       <q-card-section v-show="showPayment">
-        <payment :accounts="walletAccounts" :utxos="utxos"></payment>
+        <payment
+          :accounts="walletAccounts"
+          :addresses="addresses"
+          :utxos="utxos"
+        ></payment>
       </q-card-section>
     </q-card>
   </div>

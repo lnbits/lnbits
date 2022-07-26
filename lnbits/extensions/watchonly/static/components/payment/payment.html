@@ -1,20 +1,21 @@
 <div>
-    <q-form @submit="createPsbt" class="q-gutter-md">
-      <q-tabs v-model="paymentTab" no-caps class="bg-dark text-white shadow-2">
-        <q-tab name="destination" label="Send To"></q-tab>
-        <q-tab name="coinControl" label="Coin Control"></q-tab>
-      </q-tabs>
-      <q-tab-panels v-model="paymentTab">
-        <q-tab-panel name="destination">
-          <q-card>
-            <q-card-section>
-              {{sendToList}}
-              <send-to
-                :data.sync="sendToList"
-                :tx:size="txSizeNoChange"
-                :sats-denominated="sats_denominated"
-              ></send-to>
-              <!-- <div class="row items-center no-wrap q-mb-md">
+  <q-form @submit="createPsbt" class="q-gutter-md">
+    <!-- {{addresses}} -->
+    <q-tabs v-model="paymentTab" no-caps class="bg-dark text-white shadow-2">
+      <q-tab name="destination" label="Send To"></q-tab>
+      <q-tab name="coinControl" label="Coin Control"></q-tab>
+    </q-tabs>
+    <q-tab-panels v-model="paymentTab">
+      <q-tab-panel name="destination">
+        <q-card>
+          <q-card-section>
+            {{sendToList}}
+            <send-to
+              :data.sync="sendToList"
+              :tx:size="txSizeNoChange"
+              :sats-denominated="sats_denominated"
+            ></send-to>
+            <!-- <div class="row items-center no-wrap q-mb-md">
                 <div class="col-12">
                   <q-table
                     :columns="summaryTable.columns"
@@ -59,8 +60,8 @@
                   </q-table>
                 </div>
               </div> -->
-  
-              <!--               
+
+            <!--               
               <div
                 v-if="payment.changeAmount < 0"
                 class="row items-center no-wrap q-mb-md"
@@ -76,65 +77,68 @@
                 </div>
               </div>
   -->
-            </q-card-section>
-          </q-card>
-          <div class="row items-center no-wrap q-mb-md q-pt-lg">
-            <div class="col-12">
-              <q-toggle
-                label="Custom Fee"
-                color="secodary"
-                v-model="showCustomFee"
-              ></q-toggle>
-            </div>
+          </q-card-section>
+        </q-card>
+        <div class="row items-center no-wrap q-mb-md q-pt-lg">
+          <div class="col-12">
+            <q-toggle
+              label="Custom Fee"
+              color="secodary"
+              v-model="showCustomFee"
+            ></q-toggle>
           </div>
-          <q-card v-show="showCustomFee">
-            <q-card-section>
-              <div class="row items-center no-wrap q-mb-md q-pt-md">
-                <div class="col-12">
-                  {{feeRate}}
-                  <fee-rate :totalfee="feeValue" :rate.sync="feeRate"></fee-rate>
-                </div>
+        </div>
+        <q-card v-show="showCustomFee">
+          <q-card-section>
+            <div class="row items-center no-wrap q-mb-md q-pt-md">
+              <div class="col-12">
+                {{feeRate}}
+                <fee-rate :totalfee="feeValue" :rate.sync="feeRate"></fee-rate>
               </div>
-            </q-card-section>
-          </q-card>
-        </q-tab-panel>
-  
-        <q-tab-panel name="coinControl">
-          <utxo-list
-            :utxos="utxos.data"
-            :selectable="true"
-            :payed-amount="getTotalPaymentAmount()"
-            :mempool_endpoint="mempool_endpoint"
-            :sats-denominated="sats_denominated"
-          ></utxo-list>
-          <div class="row items-center no-wrap q-mb-md q-pt-lg">
-            <div class="col-2 q-pr-lg">Change Account:</div>
-            <div class="col-3 q-pr-lg">
-              <q-select
-                filled
-                dense
-                emit-value
-                v-model="changeWallet"
-                :options="accounts"
-                @input="selectChangeAddress"
-                :rules="[val => !!val || 'Field is required']"
-                label="Wallet Account"
-              ></q-select>
             </div>
-            <div class="col-7">
-              <q-input
-                filled
-                dense
-                readonly
-                v-model.trim="changeAddress.address"
-                :rules="[val => !!val || 'Field is required']"
-                type="text"
-                label="Change Address"
-              ></q-input>
+          </q-card-section>
+        </q-card>
+      </q-tab-panel>
+
+      <q-tab-panel name="coinControl">
+        <q-card class="q-mb-lg">
+          <q-card-section>
+            <div class="row items-center no-wrap">
+              <div class="col-2 q-pr-lg">Change Account:</div>
+              <div class="col-3 q-pr-lg">
+                <q-select
+                  filled
+                  dense
+                  emit-value
+                  v-model="changeWallet"
+                  :options="accounts"
+                  @input="selectChangeAddress"
+                  :rules="[val => !!val || 'Field is required']"
+                  label="Wallet Account"
+                ></q-select>
+              </div>
+              <div class="col-7">
+                <q-input
+                  filled
+                  dense
+                  readonly
+                  v-model.trim="changeAddress.address"
+                  :rules="[val => !!val || 'Field is required']"
+                  type="text"
+                  label="Change Address"
+                ></q-input>
+              </div>
             </div>
-          </div>
-        </q-tab-panel>
-      </q-tab-panels>
-    </q-form>
-  </div>
-  
+          </q-card-section>
+        </q-card>
+        <utxo-list
+          :utxos="utxos.data"
+          :selectable="true"
+          :payed-amount="getTotalPaymentAmount()"
+          :mempool_endpoint="mempool_endpoint"
+          :sats-denominated="sats_denominated"
+        ></utxo-list>
+      </q-tab-panel>
+    </q-tab-panels>
+  </q-form>
+</div>

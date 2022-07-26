@@ -1,11 +1,27 @@
 async function payment(path) {
   const t = await loadTemplateAsync(path)
-  console.log('### template', path, t)
   Vue.component('payment', {
     name: 'payment',
     template: t,
 
-    props: ['accounts', 'utxos', 'mempool_endpoint', 'sats_denominated'],
+    props: [
+      'accounts',
+      'addresses',
+      'utxos',
+      'mempool_endpoint',
+      'sats_denominated'
+    ],
+    watch: {
+      immediate: true,
+      accounts() {
+        console.log('### watch accounts', newVal)
+        this.updateChangeAddress()
+      },
+      addresses(newVal) {
+        console.log('### watch addresses', newVal)
+        this.updateChangeAddress()
+      }
+    },
 
     data: function () {
       return {
@@ -112,11 +128,28 @@ async function payment(path) {
           masterpub_fingerprint: walletAcount.fingerprint
         }
       },
-      selectChangeAddress: function (wallet = {}) {
+      selectChangeAddress: function (account) {
+        console.log('### selectChangeAddress', account)
+        if (!account) this.changeAddress = ''
         this.changeAddress =
           this.addresses.find(
-            a => a.wallet === wallet.id && a.isChange && !a.hasActivity
+            a => a.wallet === account.id && a.isChange && !a.hasActivity
           ) || {}
+      },
+      updateChangeAddress: function () {
+        if (this.changeWallet) {
+          const changeAccount = (this.accounts || []).find(
+            w => w.id === this.changeWallet.id
+          )
+          // change account deleted
+          if (!changeAccount) {
+            this.changeWallet = this.accounts[0]
+            this.selectChangeAddress(this.changeWallet)
+          }
+        } else {
+          this.changeWallet = this.accounts[0]
+          this.selectChangeAddress(this.changeWallet)
+        }
       },
       getTotalPaymentAmount: function () {
         return this.sendToList.reduce((t, a) => t + (a.amount || 0), 0)
