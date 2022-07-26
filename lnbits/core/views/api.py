@@ -308,7 +308,7 @@ async def api_payments_pay_lnurl(
                 timeout=40,
             )
             if r.is_error:
-                raise httpx.ConnectError("LNURL Callback Connection Error")
+                raise httpx.ConnectError("LNURL callback connection error")
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
