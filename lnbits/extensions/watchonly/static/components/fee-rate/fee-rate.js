@@ -4,20 +4,14 @@ async function feeRate(path) {
     name: 'fee-rate',
     template,
 
-    props: ['rate', 'totalfee', 'sats_denominated'],
-    watch: {
-      immediate: true,
-      totalfee: function (newVal, oldVal) {
-        console.log('### ', newVal, oldVal)
-      }
-    },
+    props: ['rate', 'fee-value', 'sats_denominated'],
+
     computed: {
       feeRate: {
         get: function () {
           return this['rate']
         },
         set: function (value) {
-          console.log('### computed update rate')
           this.$emit('update:rate', +value)
         }
       }
@@ -60,7 +54,6 @@ async function feeRate(path) {
     },
 
     created: async function () {
-      console.log('### created fees ')
       await this.refreshRecommendedFees()
       this.feeRate = this.recommededFees.halfHourFee
     }

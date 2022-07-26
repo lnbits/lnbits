@@ -108,7 +108,6 @@ async function utxoList(path) {
           this.utxos.forEach(u => (u.selected = true))
           return
         }
-        console.log('### applyUtxoSelectionMode')
         
         this.utxos.forEach(u => (u.selected = false))
         const isManual = mode === 'Manual'
