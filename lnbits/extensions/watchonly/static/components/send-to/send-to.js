@@ -4,7 +4,13 @@ async function sendTo(path) {
     name: 'send-to',
     template,
 
-    props: ['data', 'tx-size', 'total-amount', 'fee-rate', 'sats_denominated'],
+    props: [
+      'data',
+      'tx-size',
+      'selected-amount',
+      'fee-rate',
+      'sats_denominated'
+    ],
 
     computed: {
       dataLocal: {
@@ -21,7 +27,6 @@ async function sendTo(path) {
     data: function () {
       return {
         DUST_LIMIT: 546,
-        amount: 0,
         paymentTable: {
           columns: [
             {
@@ -50,17 +55,19 @@ async function sendTo(path) {
           this.dataLocal.splice(index, 1)
         }
       },
+
+      sendMaxToAddress: function (paymentAddress = {}) {
+        const feeValue = this.feeRate * this.txSize
+        const inputAmount = this.selectedAmount
+        const currentAmount = Math.max(0, paymentAddress.amount || 0)
+        const payedAmount = this.getTotalPaymentAmount() - currentAmount
+        paymentAddress.amount = Math.max(
+          0,
+          inputAmount - payedAmount - feeValue
+        )
+      },
       getTotalPaymentAmount: function () {
         return this.dataLocal.reduce((t, a) => t + (a.amount || 0), 0)
-      },
-      sendMaxToAddress: function (paymentAddress = {}) {
-        this.amount = 0
-        // const tx = this.createTx(true)
-        // this.payment.txSize = Math.round(txSize(tx))
-        const fee = this['fee-rate'] * this['tx-size']
-        const inputAmount = this['total-amount']
-        const payedAmount = this.getTotalPaymentAmount()
-        paymentAddress.amount = Math.max(0, inputAmount - payedAmount - fee)
       }
     },
 

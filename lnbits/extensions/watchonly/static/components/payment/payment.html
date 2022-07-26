@@ -3,7 +3,7 @@
     <!-- {{addresses}} -->
     <q-tabs v-model="paymentTab" no-caps class="bg-dark text-white shadow-2">
       <q-tab name="destination" label="Send To"></q-tab>
-      <q-tab name="coinControl" label="Coin Control"></q-tab>
+      <q-tab name="coinControl" label="Coin Select"></q-tab>
     </q-tabs>
     <q-tab-panels v-model="paymentTab">
       <q-tab-panel name="destination">
@@ -11,7 +11,9 @@
           <q-card-section>
             <send-to
               :data.sync="sendToList"
-              :tx:size="txSizeNoChange"
+              :fee-rate="feeRate"
+              :tx-size="txSizeNoChange"
+              :selected-amount="selectedAmount"
               :sats-denominated="sats_denominated"
             ></send-to>
             <!-- <div class="row items-center no-wrap q-mb-md">
@@ -158,7 +160,7 @@
           </q-card-section>
         </q-card>
         <utxo-list
-          :utxos="utxos.data"
+          :utxos="utxos"
           :selectable="true"
           :payed-amount="getTotalPaymentAmount()"
           :mempool_endpoint="mempool_endpoint"

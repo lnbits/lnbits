@@ -497,8 +497,9 @@
         <payment
           :accounts="walletAccounts"
           :addresses="addresses"
-          :utxos="utxos"
+          :utxos="utxos.data"
         ></payment>
+        <!-- todo: no more utxos.data -->
       </q-card-section>
     </q-card>
   </div>

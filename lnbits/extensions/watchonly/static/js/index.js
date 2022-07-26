@@ -759,13 +759,6 @@ const watchOnly = async () => {
         )
         this.updateAmountForAddress(addressData, addressTotal)
       },
-      // todo: move/dedup
-      getTotalSelectedUtxoAmount: function () {
-        const total = this.utxos.data
-          .filter(u => u.selected)
-          .reduce((t, a) => t + (a.amount || 0), 0)
-        return total
-      },
 
       //################### MEMPOOL API ###################
       getAddressTxsDelayed: async function (addrData) {

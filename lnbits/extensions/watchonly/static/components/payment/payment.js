@@ -45,6 +45,11 @@ async function payment(path) {
       },
       feeValue: function () {
         return this.feeRate * this.txSize
+      },
+      selectedAmount: function () {
+        return this.utxos
+          .filter(utxo => utxo.selected)
+          .reduce((t, a) => t + (a.amount || 0), 0)
       }
     },
 
@@ -84,7 +89,7 @@ async function payment(path) {
             fingerprint: w.fingerprint
           }))
         }
-        tx.inputs = this.utxos.data
+        tx.inputs = this.utxos
           .filter(utxo => utxo.selected)
           .map(mapUtxoToPsbtInput)
           .sort((a, b) =>
