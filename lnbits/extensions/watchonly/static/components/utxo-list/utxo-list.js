@@ -102,22 +102,22 @@ async function utxoList(path) {
         return total
       },
       applyUtxoSelectionMode: function () {
+        const mode = this.utxoSelectionMode
         const isSelectAll = mode === 'Select All'
         if (isSelectAll) {
-          this.utxos.data.forEach(u => (u.selected = true))
+          this.utxos.forEach(u => (u.selected = true))
           return
         }
 
         const payedAmount = this['payed-amount']
-        const mode = this.payment.utxoSelectionMode
-        this.utxos.data.forEach(u => (u.selected = false))
+        this.utxos.forEach(u => (u.selected = false))
         const isManual = mode === 'Manual'
         if (isManual || !payedAmount) return
 
         const isSmallerFirst = mode === 'Smaller Inputs First'
         const isLargerFirst = mode === 'Larger Inputs First'
 
-        let selectedUtxos = this.utxos.data.slice()
+        let selectedUtxos = this.utxos.slice()
         if (isSmallerFirst || isLargerFirst) {
           const sortFn = isSmallerFirst
             ? (a, b) => a.amount - b.amount
