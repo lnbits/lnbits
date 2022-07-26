@@ -7,6 +7,7 @@ const watchOnly = async () => {
   await history('static/components/history/history.html')
   await utxoList('static/components/utxo-list/utxo-list.html')
   await feeRate('static/components/fee-rate/fee-rate.html')
+  await sendTo('static/components/send-to/send-to.html')
   await payment('static/components/payment/payment.html')
 
   Vue.filter('reverse', function (value) {
@@ -85,7 +86,22 @@ const watchOnly = async () => {
         addressNote: '',
         showPayment: false,
         showCustomFee: false,
-        feeValue: 0
+        feeRate: 1,
+        sendToList: []
+      }
+    },
+
+    computed: {
+      txSize: function() {
+        const tx = this.createTx()
+        return Math.round(txSize(tx))
+      },
+      txSizeNoChange: function() {
+        const tx = this.createTx(true)
+        return Math.round(txSize(tx))
+      },
+      feeValue: function(){
+        return this.feeRate * this.txSize
       }
     },
 
@@ -191,7 +207,7 @@ const watchOnly = async () => {
       //################### PAYMENT ###################
       createTx: function (excludeChange = false) {
         const tx = {
-          fee_rate: this.payment.feeRate,
+          fee_rate: this.feeRate,
           tx_size: this.payment.txSize,
           masterpubs: this.walletAccounts.map(w => ({
             public_key: w.masterpub,
@@ -205,7 +221,7 @@ const watchOnly = async () => {
             a.tx_id < b.tx_id ? -1 : a.tx_id > b.tx_id ? 1 : a.vout - b.vout
           )
 
-        tx.outputs = this.payment.data.map(out => ({
+        tx.outputs = this.sendToList.map(out => ({
           address: out.address,
           amount: out.amount
         }))
@@ -221,37 +237,27 @@ const watchOnly = async () => {
         }
         // Only sort by amount on UI level (no lib for address decode)
         // Should sort by scriptPubKey (as byte array) on the backend
+        // todo: just shuffle
         tx.outputs.sort((a, b) => a.amount - b.amount)
 
         return tx
       },
       createChangeOutput: function () {
         const change = this.payment.changeAddress
-        const fee = this.payment.feeRate * this.payment.txSize
-        const inputAmount = this.getTotalSelectedUtxoAmount()
-        const payedAmount = this.getTotalPaymentAmount()
+        // const inputAmount = this.getTotalSelectedUtxoAmount() // todo: set amount separately
+        // const payedAmount = this.getTotalPaymentAmount()
         const walletAcount =
           this.walletAccounts.find(w => w.id === change.wallet) || {}
 
         return {
           address: change.address,
-          amount: inputAmount - payedAmount - fee,
+          // amount: inputAmount - payedAmount - this.feeValue,
           addressIndex: change.addressIndex,
           addressIndex: change.addressIndex,
           masterpub_fingerprint: walletAcount.fingerprint
         }
       },
-      computeFee: function (feeRate) {
-        const tx = this.createTx()
-        this.payment.txSize = Math.round(txSize(tx))
-        return feeRate * this.payment.txSize
-      },
-      deletePaymentAddress: function (v) {
-        const index = this.payment.data.indexOf(v)
-        if (index !== -1) {
-          this.payment.data.splice(index, 1)
-        }
-      },
+
       initPaymentData: async function () {
         if (!this.payment.show) return
         await this.$refs.addressList.refreshAddresses()
@@ -263,9 +269,6 @@ const watchOnly = async () => {
         this.payment.feeRate = this.payment.recommededFees.halfHourFee
       },
 
-      addPaymentAddress: function () {
-        this.payment.data.push({address: '', amount: undefined})
-      },
       getTotalPaymentAmount: function () {
         return this.payment.data.reduce((t, a) => t + (a.amount || 0), 0)
       },
@@ -281,22 +284,14 @@ const watchOnly = async () => {
         // this.tab = 'utxos'
         await this.initPaymentData()
       },
-      sendMaxToAddress: function (paymentAddress = {}) {
-        paymentAddress.amount = 0
-        const tx = this.createTx(true)
-        this.payment.txSize = Math.round(txSize(tx))
-        const fee = this.payment.feeRate * this.payment.txSize
-        const inputAmount = this.getTotalSelectedUtxoAmount()
-        const payedAmount = this.getTotalPaymentAmount()
-        paymentAddress.amount = Math.max(0, inputAmount - payedAmount - fee)
-      },
+
       //################### PSBT ###################
       createPsbt: async function () {
         const wallet = this.g.user.wallets[0]
         try {
-          this.computeFee(this.payment.feeRate)
+          // this.computeFee(this.feeRate)
           const tx = this.createTx()
-          txSize(tx)
+          // txSize(tx)
           for (const input of tx.inputs) {
             input.tx_hex = await this.fetchTxHex(input.tx_id)
           }
@@ -960,10 +955,6 @@ const watchOnly = async () => {
         this.addresses = addresses
         await this.scanAddressWithAmount()
       },
-      handleFeeRateChanged: function (newFeeRate) {
-        console.log('### newFeeRate', newFeeRate)
-        this.feeValue = this.computeFee(newFeeRate)
-      }
     },
     created: async function () {
       if (this.g.user.wallets.length) {

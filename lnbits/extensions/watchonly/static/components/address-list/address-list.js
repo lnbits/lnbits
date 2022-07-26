@@ -158,7 +158,6 @@ async function addressList(path) {
 
     created: async function () {
       await this.refreshAddresses()
-      // this.$emit('update:addresses', this.addresses)
     }
   })
 }

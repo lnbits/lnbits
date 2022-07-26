@@ -506,96 +506,12 @@
             <q-tab-panel name="destination">
               <q-card>
                 <q-card-section>
-                  <div class="row items-center no-wrap q-mb-md">
-                    <div class="col-12">
-                      <q-table
-                        flat
-                        dense
-                        hide-header
-                        :data="payment.data"
-                        :columns="paymentTable.columns"
-                        :pagination.sync="paymentTable.pagination"
-                      >
-                        <template v-slot:body="props">
-                          <q-tr :props="props">
-                            <div class="row no-wrap">
-                              <div class="col-1">
-                                <q-btn
-                                  flat
-                                  dense
-                                  size="l"
-                                  @click="deletePaymentAddress(props.row)"
-                                  icon="cancel"
-                                  color="pink"
-                                  class="q-mt-sm"
-                                ></q-btn>
-                              </div>
-                              <div class="col-7 q-pr-lg">
-                                <q-input
-                                  filled
-                                  dense
-                                  v-model.trim="props.row.address"
-                                  type="text"
-                                  label="Address"
-                                  :rules="[val => !!val || 'Field is required']"
-                                ></q-input>
-                              </div>
-                              <div class="col-3 q-pr-lg">
-                                <q-input
-                                  filled
-                                  dense
-                                  v-model.number="props.row.amount"
-                                  type="number"
-                                  step="1"
-                                  label="Amount (sats)"
-                                  :rules="[val => !!val || 'Field is required', val => +val > DUST_LIMIT || 'Amount to small (below dust limit)'] "
-                                ></q-input>
-                              </div>
-                              <div class="col-1">
-                                <q-btn
-                                  outline
-                                  color="grey"
-                                  @click="sendMaxToAddress(props.row)"
-                                  >Max</q-btn
-                                >
-                              </div>
-                            </div>
-                          </q-tr>
-                        </template>
-                        <template v-slot:bottom-row>
-                          <q-tr>
-                            <q-td colspan="100%">
-                              <div class="row items-center no-wrap">
-                                <div class="col-3 q-pr-lg">
-                                  <q-btn
-                                    outline
-                                    color="grey"
-                                    @click="addPaymentAddress"
-                                    >Add Send Address</q-btn
-                                  >
-                                </div>
-                                <div class="col-4 q-pr-lg"></div>
-                                <div class="col-5">
-                                  <div class="float-right">
-                                    <span class="text-weight-bold"
-                                      >Payed Amount:
-                                    </span>
-                                    <q-badge
-                                      class="text-subtitle2 q-ml-lg"
-                                      color="blue"
-                                    >
-                                      {{satBtc(getTotalPaymentAmount())}}
-                                    </q-badge>
-                                  </div>
-                                </div>
-                              </div>
-                            </q-td>
-                          </q-tr>
-                        </template>
-                      </q-table>
-                    </div>
-                  </div>
-
+                  {{sendToList}}
+                  <send-to
+                    :data.sync="sendToList"
+                    :tx:size="txSizeNoChange"
+                    :sats-denominated="config.data.sats_denominated"
+                  ></send-to>
                   <!-- <div class="row items-center no-wrap q-mb-md">
                     <div class="col-12">
                       <q-table
@@ -617,7 +533,7 @@
                             </q-td>
                             <q-td key="fees" :props="props">
                               <q-badge class="text-subtitle2" color="orange">
-                                {{satBtc(computeFee())}}
+                                {{satBtc(feeValue)}}
                               </q-badge>
                             </q-td>
                             <q-td key="change" :props="props">
@@ -673,10 +589,11 @@
                 <q-card-section>
                   <div class="row items-center no-wrap q-mb-md q-pt-md">
                     <div class="col-12">
-                      <fees
+                      {{feeRate}}
+                      <fee-rate
                         :totalfee="feeValue"
-                        @update:fee-rate="handleFeeRateChanged"
-                      ></fees>
+                        :rate.sync="feeRate"
+                      ></fee-rate>
                     </div>
                   </div>
                 </q-card-section>
@@ -950,6 +867,7 @@
 <script src="{{ url_for('watchonly_static', path='components/history/history.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/utxo-list/utxo-list.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/fee-rate/fee-rate.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='components/send-to/send-to.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='components/payment/payment.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}

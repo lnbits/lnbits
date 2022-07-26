@@ -9,7 +9,6 @@
         :rules="[val => !!val || 'Field is required']"
         type="number"
         label="sats/vbyte"
-        @input="feeRateChanged"
       ></q-input>
     </div>
     <div class="col-7">
@@ -23,7 +22,6 @@
         :label-value="getFeeRateLabel(feeRate)"
         :min="1"
         :max="recommededFees.fastestFee"
-        @input="feeRateChanged"
       />
     </div>
   </div>
