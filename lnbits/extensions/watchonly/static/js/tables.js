@@ -32,8 +32,7 @@ const tableData = {
   },
   payment: {
     data: [{address: '', amount: undefined}], // todo: remove
-    changeWallet: null,
-    changeAddress: {},
+
     changeAmount: 0,
 
     fee: 0,
