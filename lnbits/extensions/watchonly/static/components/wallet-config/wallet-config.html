@@ -1,12 +1,7 @@
 <div>
   <q-card>
     <div class="row items-center no-wrap q-mb-md">
-      <div class="col-11">
-        <div class="row justify-center q-gutter-x-md items-center">
-          <div class="text-h3 q-pa-sm">{{satBtc(total)}}</div>
-        </div>
-      </div>
-      <div class="col-1">
+      <div class="col-2 q-ml-lg">
         <q-btn
           unelevated
           @click="config.show = true"
@@ -14,6 +9,14 @@
           icon="settings"
         >
         </q-btn>
+      </div>
+      <div class="col-8">
+        <div class="row justify-center q-gutter-x-md items-center">
+          <div class="text-h3">{{satBtc(total)}}</div>
+        </div>
+      </div>
+      <div class="col-2 float-right">
+        <serial-signer></serial-signer>
       </div>
     </div>
   </q-card>

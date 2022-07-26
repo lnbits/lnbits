@@ -110,7 +110,7 @@ const ACCOUNT_TYPES = {
 
 const getAccountDescription = type => ACCOUNT_TYPES[type] || 'nonstandard'
 
-const readFromSerialPort = serial => {
+const readFromSerialPort = reader => {
   let partialChunk
   let fulliness = []
 
@@ -123,7 +123,7 @@ const readFromSerialPort = serial => {
       partialChunk = undefined
     }
     while (true) {
-      const {value, done} = await serial.reader.read()
+      const {value, done} = await reader.read()
       console.log('### serial read', value)
       if (value) {
         const values = value.split(separator)
