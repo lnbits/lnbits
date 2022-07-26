@@ -53,7 +53,7 @@
             color="gray"
             class="btn-full"
             @click="showPayment = false"
-            >Discard Payment</q-btn
+            >Back</q-btn
           >
         </div>
       </div>
@@ -85,6 +85,7 @@
               :sats-denominated="config.data.sats_denominated"
               @scan:address="scanAddress"
               @show-address-details="showAddressDetails"
+              @update:addresses="initUtxos"
               :inkey="g.user.wallets[0].inkey"
             >
             </address-list>

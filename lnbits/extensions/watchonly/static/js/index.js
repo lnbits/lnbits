@@ -85,7 +85,8 @@ const watchOnly = async () => {
 
         showAddress: false,
         addressNote: '',
-        showPayment: false
+        showPayment: false,
+        fetchedUtxos: false
       }
     },
 
@@ -684,6 +685,7 @@ const watchOnly = async () => {
         this.utxos.total = 0
         this.history = []
         const addresses = this.addresses.filter(a => a.hasActivity)
+        console.log('### scanAddressWithAmount', this.addresses, addresses)
         await this.updateUtxosForAddresses(addresses)
       },
       scanAddress: async function (addressData) {
@@ -831,6 +833,13 @@ const watchOnly = async () => {
       },
       showAddressDetails: function (addressData) {
         this.openQrCodeDialog(addressData)
+      },
+      initUtxos: function (addresses) {
+        if (!this.fetchedUtxos && addresses.length) {
+          this.fetchedUtxos = true
+          this.addresses = addresses
+          this.scanAddressWithAmount()
+        }
       }
     },
     created: async function () {
