@@ -685,7 +685,6 @@ const watchOnly = async () => {
         this.utxos.total = 0
         this.history = []
         const addresses = this.addresses.filter(a => a.hasActivity)
-        console.log('### scanAddressWithAmount', this.addresses, addresses)
         await this.updateUtxosForAddresses(addresses)
       },
       scanAddress: async function (addressData) {

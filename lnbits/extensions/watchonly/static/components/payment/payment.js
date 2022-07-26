@@ -133,7 +133,6 @@ async function payment(path) {
         }
       },
       selectChangeAddress: function (account) {
-        console.log('### selectChangeAddress', account)
         if (!account) this.changeAddress = ''
         this.changeAddress =
           this.addresses.find(
