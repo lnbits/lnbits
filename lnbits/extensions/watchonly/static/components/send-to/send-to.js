@@ -67,7 +67,6 @@ async function sendTo(path) {
           0,
           inputAmount - payedAmount - feeValue
         )
-        this.handleOutputsChange()
       },
       handleOutputsChange: function () {
         this.$emit('update:outputs')

@@ -75,7 +75,8 @@ async function utxoList(path) {
           'Smaller Inputs First',
           'Larger Inputs First'
         ],
-        utxoSelectionMode: 'Random'
+        utxoSelectionMode: 'Random',
+        utxoSelectAmount: 0
       }
     },
 
@@ -101,7 +102,16 @@ async function utxoList(path) {
           .reduce((t, a) => t + (a.amount || 0), 0)
         return total
       },
+      refreshUtxoSelection: function (totalPayedAmount) {
+        this.utxoSelectAmount = totalPayedAmount
+        this.applyUtxoSelectionMode()
+      },
+      updateUtxoSelection: function () {
+        this.utxoSelectAmount = this.payedAmount
+        this.applyUtxoSelectionMode()
+      },
       applyUtxoSelectionMode: function () {
+        console.log('### this.utxoSelectAmount', this.utxoSelectAmount)
         const mode = this.utxoSelectionMode
         const isSelectAll = mode === 'Select All'
         if (isSelectAll) {
@@ -111,11 +121,10 @@ async function utxoList(path) {
 
         this.utxos.forEach(u => (u.selected = false))
         const isManual = mode === 'Manual'
-        if (isManual || !this.payedAmount) return
+        if (isManual || !this.utxoSelectAmount) return
 
         const isSmallerFirst = mode === 'Smaller Inputs First'
         const isLargerFirst = mode === 'Larger Inputs First'
-
         let selectedUtxos = this.utxos.slice()
         if (isSmallerFirst || isLargerFirst) {
           const sortFn = isSmallerFirst
@@ -127,7 +136,7 @@ async function utxoList(path) {
           selectedUtxos = _.shuffle(selectedUtxos)
         }
         selectedUtxos.reduce((total, utxo) => {
-          utxo.selected = total < this.payedAmount
+          utxo.selected = total < this.utxoSelectAmount
           total += utxo.amount
           return total
         }, 0)
