@@ -30,6 +30,8 @@ async function payment(path) {
         changeAddress: {},
         changeAmount: 0,
         showCustomFee: false,
+        showCoinSelect: false,
+        showChange: false,
         feeRate: 1
       }
     },
@@ -50,6 +52,12 @@ async function payment(path) {
         return this.utxos
           .filter(utxo => utxo.selected)
           .reduce((t, a) => t + (a.amount || 0), 0)
+      },
+      balance: function () {
+        return this.utxos.reduce((t, a) => t + (a.amount || 0), 0)
+      },
+      totalPayedAmount: function () {
+        return this.sendToList.reduce((t, a) => t + (a.amount || 0), 0)
       }
     },
 

@@ -108,7 +108,7 @@ async function utxoList(path) {
           this.utxos.forEach(u => (u.selected = true))
           return
         }
-        
+
         this.utxos.forEach(u => (u.selected = false))
         const isManual = mode === 'Manual'
         if (isManual || !this.payedAmount) return

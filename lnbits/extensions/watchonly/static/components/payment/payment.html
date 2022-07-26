@@ -32,7 +32,7 @@
                         </q-td>
                         <q-td key="totalOutputs" :props="props">
                           <q-badge class="text-subtitle2" color="blue">
-                            {{satBtc(getTotalPaymentAmount())}}
+                            {{satBtc(totalPayedAmount)}}
                           </q-badge>
                         </q-td>
                         <q-td key="fees" :props="props">
@@ -86,7 +86,7 @@
             <div class="row items-center no-wrap">
               <div class="col-4">
                 <q-toggle
-                  label="Custom Fee"
+                  label="Show Custom Fee"
                   color="secodary"
                   class="float-left"
                   v-model="showCustomFee"
@@ -95,14 +95,14 @@
 
               <div class="col-8">
                 <div class="float-right">
-                  <span>Fee:</span>
-                  <span class="text-subtitle2 q-ml-md">
-                    {{satBtc(feeValue)}}
-                  </span>
-                  <span class="q-ml-lg">Fee Rate:</span>
+                  <span >Fee Rate:</span>
                   <span class="text-subtitle2 q-ml-md">
                     {{feeRate}} sats/vbyte</span
                   >
+                  <span class="q-ml-lg">Fee:</span>
+                  <span class="text-subtitle2 q-ml-md">
+                    {{satBtc(feeValue)}}
+                  </span>
                 </div>
               </div>
             </div>
@@ -118,6 +118,107 @@
             </div>
           </q-card-section>
         </q-card>
+
+        <q-card class="q-mt-lg">
+          <q-card-section>
+            <div class="row items-center no-wrap">
+              <div class="col-4">
+                <q-toggle
+                  label="Show Coin Select"
+                  color="secodary"
+                  class="float-left"
+                  v-model="showCoinSelect"
+                ></q-toggle>
+              </div>
+
+              <div class="col-8">
+                <div class="float-right">
+                  <span>Balance:</span>
+                  <span class="text-subtitle2 q-ml-md">
+                    {{satBtc(balance)}}
+                  </span>
+                  <span class="q-ml-lg">Selected:</span>
+                  <span class="text-subtitle2 q-ml-md">
+                    {{satBtc(selectedAmount)}}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-show="showCoinSelect"
+              class="row items-center no-wrap q-mt-md"
+            >
+              <div class="col-12">
+                <q-separator class="q-mb-md"></q-separator>
+                <utxo-list
+                  :utxos="utxos"
+                  :selectable="true"
+                  :payed-amount="totalPayedAmount"
+                  :mempool_endpoint="mempool_endpoint"
+                  :sats-denominated="sats_denominated"
+                ></utxo-list>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
+        <q-card class="q-mt-lg">
+          <q-card-section>
+            <div class="row items-center no-wrap">
+              <div class="col-4">
+                <q-toggle
+                  label="Show Change"
+                  color="secodary"
+                  class="float-left"
+                  v-model="showChange"
+                ></q-toggle>
+              </div>
+
+              <div class="col-8">
+                <div class="float-right">
+                  <span>Change:</span>
+                  <span class="text-subtitle2 q-ml-md">
+                    {{satBtc(balance)}}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div v-show="showChange" class="row items-center no-wrap q-mt-md">
+              <div class="col-12">
+                <q-separator class="q-mb-md"></q-separator>
+                <div class="row items-center no-wrap">
+                  <div class="col-2 q-pr-lg">Change Account:</div>
+                  <div class="col-3 q-pr-lg">
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      v-model="changeWallet"
+                      :options="accounts"
+                      @input="selectChangeAddress"
+                      :rules="[val => !!val || 'Field is required']"
+                      label="Wallet Account"
+                    ></q-select>
+                  </div>
+                  <div class="col-7">
+                    <q-input
+                      filled
+                      dense
+                      readonly
+                      v-model.trim="changeAddress.address"
+                      :rules="[val => !!val || 'Field is required']"
+                      type="text"
+                      label="Change Address"
+                    ></q-input>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+
         <div class="row items-center no-wrap q-mb-md q-pt-lg">
           <div class="col-3">
             <q-btn unelevated color="green" type="submit" class="btn-full"
@@ -130,42 +231,8 @@
 
       <q-tab-panel name="coinControl">
         <q-card class="q-mb-lg">
-          <q-card-section>
-            <div class="row items-center no-wrap">
-              <div class="col-2 q-pr-lg">Change Account:</div>
-              <div class="col-3 q-pr-lg">
-                <q-select
-                  filled
-                  dense
-                  emit-value
-                  v-model="changeWallet"
-                  :options="accounts"
-                  @input="selectChangeAddress"
-                  :rules="[val => !!val || 'Field is required']"
-                  label="Wallet Account"
-                ></q-select>
-              </div>
-              <div class="col-7">
-                <q-input
-                  filled
-                  dense
-                  readonly
-                  v-model.trim="changeAddress.address"
-                  :rules="[val => !!val || 'Field is required']"
-                  type="text"
-                  label="Change Address"
-                ></q-input>
-              </div>
-            </div>
-          </q-card-section>
+          <q-card-section> </q-card-section>
         </q-card>
-        <utxo-list
-          :utxos="utxos"
-          :selectable="true"
-          :payed-amount="getTotalPaymentAmount()"
-          :mempool_endpoint="mempool_endpoint"
-          :sats-denominated="sats_denominated"
-        ></utxo-list>
       </q-tab-panel>
     </q-tab-panels>
   </q-form>
