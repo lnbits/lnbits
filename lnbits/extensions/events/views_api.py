@@ -133,7 +133,8 @@ async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
 
             if not ticket:
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND, detail=f"Event could not be fetched."
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail=f"Event could not be fetched.",
                 )
 
             return {"paid": True, "ticket_id": ticket.id}
