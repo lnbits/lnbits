@@ -10,12 +10,11 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import invoices_ext, invoices_renderer
-
 from .crud import (
     get_invoice,
     get_invoice_items,
-    get_invoice_total,
     get_invoice_payments,
+    get_invoice_total,
     get_payments_total,
 )
 

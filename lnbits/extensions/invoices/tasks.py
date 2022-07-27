@@ -7,12 +7,12 @@ from lnbits.tasks import internal_invoice_queue, register_invoice_listener
 
 from .crud import (
     create_invoice_payment,
-    update_invoice_internal,
     get_invoice,
     get_invoice_items,
-    get_invoice_total,
     get_invoice_payments,
+    get_invoice_total,
     get_payments_total,
+    update_invoice_internal,
 )
 
 
