@@ -1,7 +1,7 @@
 # flake8: noqa
 
-from .cln import CoreLightningWallet
-from .cln import CoreLightningWallet as CLightningWallet  # legacy .env support
+from .cln import CoreLightningWallet  # legacy .env support
+from .cln import CoreLightningWallet as CLightningWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
 from .lnbits import LNbitsWallet
