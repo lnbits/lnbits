@@ -79,10 +79,6 @@ async function payment(path) {
       checkAndSend: async function () {
         this.showChecking = true
         try {
-          console.log(
-            '### this.checkAndSend',
-            this.serialSignerRef.isConnected()
-          )
           if (!this.serialSignerRef.isConnected()) {
             await this.serialSignerRef.openSerialPort()
             return
@@ -93,9 +89,16 @@ async function payment(path) {
           }
 
           await this.createPsbt()
+
+          if (this.psbtBase64) {
+            await this.serialSignerRef.hwwSendPsbt(this.psbtBase64)
+          }
+
+          console.log('### hwwSendPsbt')
         } catch (error) {
         } finally {
           this.showChecking = false
+          this.psbtBase64 = null
         }
       },
       createPsbt: async function () {
