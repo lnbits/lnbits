@@ -28,6 +28,9 @@ async function payment(path) {
         DUST_LIMIT: 546,
         tx: null,
         psbtBase64: null,
+        signedTx: null,
+        sentTxId: null,
+        signedTxId: null,
         paymentTab: 'destination',
         sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
@@ -228,14 +231,13 @@ async function payment(path) {
       },
       broadcastTransaction: async function () {
         try {
-          const wallet = this.g.user.wallets[0]
           const {data} = await LNbits.api.request(
             'POST',
             '/watchonly/api/v1/tx',
-            wallet.adminkey,
-            {tx_hex: this.payment.signedTxHex}
+            this.adminkey,
+            {tx_hex: this.signedTxHex}
           )
-          this.payment.sentTxId = data
+          this.sentTxId = data
 
           this.$q.notify({
             type: 'positive',
@@ -244,15 +246,10 @@ async function payment(path) {
             timeout: 10000
           })
 
-          this.hww.psbtSent = false
-          this.payment.psbtBase64Signed = null
-          this.payment.signedTxHex = null
-          this.payment.signedTx = null
-          this.payment.psbtBase64 = null
-
-          await this.scanAddressWithAmount()
+          // await this.scanAddressWithAmount()
+          // todo: event
         } catch (error) {
-          this.payment.sentTxId = null
+          this.sentTxId = null
           this.$q.notify({
             type: 'warning',
             message: 'Failed to broadcast!',
