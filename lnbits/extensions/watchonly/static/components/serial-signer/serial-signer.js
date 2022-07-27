@@ -271,19 +271,10 @@ async function serialSigner(path) {
           })
         }
       },
-      hwwExecuteDefaultCommand: function () {
-        if (this.hww.authenticated) {
-          this.hwwSendPsbt()
-        } else {
-          this.hwwShowPasswordDialog()
-        }
-      },
-      hwwSendPsbt: async function () {
+      hwwSendPsbt: async function (psbtBase64) {
         try {
           this.hww.sendingPsbt = true
-          await this.writer.write(
-            COMMAND_SEND_PSBT + ' ' + this.payment.psbtBase64 + '\n'
-          )
+          await this.writer.write(COMMAND_SEND_PSBT + ' ' + psbtBase64 + '\n')
           this.$q.notify({
             type: 'positive',
             message: 'Data sent to serial port device!',
