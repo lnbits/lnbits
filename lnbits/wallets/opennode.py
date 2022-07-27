@@ -1,20 +1,22 @@
 import asyncio
-
-from fastapi.exceptions import HTTPException
-from lnbits.helpers import url_for
 import hmac
-import httpx
 from http import HTTPStatus
 from os import getenv
-from typing import Optional, AsyncGenerator
+from typing import AsyncGenerator, Optional
+
+import httpx
+from fastapi.exceptions import HTTPException
+from loguru import logger
+
+from lnbits.helpers import url_for
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
-    Wallet,
+    StatusResponse,
     Unsupported,
+    Wallet,
 )
 
 
@@ -83,7 +85,7 @@ class OpenNodeWallet(Wallet):
                 f"{self.endpoint}/v2/withdrawals",
                 headers=self.auth,
                 json={"type": "ln", "address": bolt11},
-                timeout=180,
+                timeout=None,
             )
 
         if r.is_error:
@@ -139,7 +141,7 @@ class OpenNodeWallet(Wallet):
         x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
         x.update(charge_id.encode("ascii"))
         if x.hexdigest() != data["hashed_order"]:
-            print("invalid webhook, not from opennode")
+            logger.error("invalid webhook, not from opennode")
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         await self.queue.put(charge_id)

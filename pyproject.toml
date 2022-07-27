@@ -1,0 +1,70 @@
+[tool.poetry]
+name = "lnbits"
+version = "0.1.0"
+description = ""
+authors = ["matthewcroughan <matt@croughan.sh>"]
+
+[tool.poetry.build]
+generate-setup-file = false
+script = "build.py"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aiofiles = "0.7.0"
+asgiref = "3.4.1"
+attrs = "21.2.0"
+bech32 = "1.2.0"
+bitstring = "3.1.9"
+cerberus = "1.3.4"
+certifi = "2021.5.30"
+charset-normalizer = "2.0.6"
+click = "8.0.1"
+ecdsa = "0.17.0"
+embit = "0.4.9"
+environs = "9.3.3"
+fastapi = "0.78.0"
+h11 = "0.12.0"
+httpcore = "0.13.7"
+httptools = "0.2.0"
+httpx = "0.19.0"
+idna = "3.2"
+importlib-metadata = "4.8.1"
+jinja2 = "3.0.1"
+lnurl = "0.3.6"
+markupsafe = "2.0.1"
+marshmallow = "3.13.0"
+outcome = "1.1.0"
+psycopg2-binary = "2.9.1"
+pycryptodomex = "3.14.1"
+pydantic = "1.8.2"
+pypng = "0.0.21"
+pyqrcode = "1.2.1"
+pyscss = "1.3.7"
+python-dotenv = "0.19.0"
+pyyaml = "5.4.1"
+represent = "1.6.0.post0"
+rfc3986 = "1.5.0"
+secp256k1 = "0.14.0"
+shortuuid = "1.0.1"
+six = "1.16.0"
+sniffio = "1.2.0"
+sqlalchemy = "1.3.23"
+sqlalchemy-aio = "0.16.0"
+sse-starlette = "0.6.2"
+typing-extensions = "3.10.0.2"
+uvicorn = "0.18.1"
+uvloop = "0.16.0"
+watchgod = "0.7"
+websockets = "10.0"
+zipp = "3.5.0"
+loguru = "0.5.3"
+cffi = "1.15.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+lnbits = "lnbits.server:main"

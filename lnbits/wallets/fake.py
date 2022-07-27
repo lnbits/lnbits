@@ -1,26 +1,31 @@
 import asyncio
-import json
-import httpx
-from os import getenv
-from datetime import datetime, timedelta
-from typing import Optional, Dict, AsyncGenerator
-import random
-import string
-from lnbits.helpers import urlsafe_short_hash
 import hashlib
-from ..bolt11 import encode, decode
+import random
+from datetime import datetime
+from os import getenv
+from typing import AsyncGenerator, Dict, Optional
+
+from environs import Env  # type: ignore
+from loguru import logger
+
+from lnbits.helpers import urlsafe_short_hash
+
+from ..bolt11 import decode, encode
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
+
+env = Env()
+env.read_env()
 
 
 class FakeWallet(Wallet):
     async def status(self) -> StatusResponse:
-        print(
+        logger.info(
             "FakeWallet funding source is for using LNbits as a centralised, stand-alone payment system with brrrrrr."
         )
         return StatusResponse(None, float("inf"))
@@ -31,7 +36,9 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        secret = getenv("FAKE_WALLET_SECRET")
+        # we set a default secret since FakeWallet is used for internal=True invoices
+        # and the user might not have configured a secret yet
+        secret = env.str("FAKE_WALLET_SECTRET", default="ToTheMoon1")
         data: Dict = {
             "out": False,
             "amount": amount,
@@ -84,10 +91,10 @@ class FakeWallet(Wallet):
             )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        return PaymentStatus(False)
+        return PaymentStatus(None)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        return PaymentStatus(False)
+        return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue = asyncio.Queue(0)

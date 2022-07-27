@@ -1,8 +1,9 @@
 from typing import List, Optional, Union
 
 from lnbits.db import SQLITE
+
 from . import db
-from .models import PayLink, CreatePayLinkData
+from .models import CreatePayLinkData, PayLink
 
 
 async def create_pay_link(data: CreatePayLinkData, wallet_id: str) -> PayLink:
