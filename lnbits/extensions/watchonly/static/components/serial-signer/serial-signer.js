@@ -37,9 +37,9 @@ async function serialSigner(path) {
 
     methods: {
       openSerialPort: async function () {
-        if (!this.checkSerialPortSupported()) return
-        if (this.selectedPort) return
-        console.log('### openSerialPort', this.selectedPort)
+        if (!this.checkSerialPortSupported()) return false
+        if (this.selectedPort) return true
+
         try {
           navigator.serial.addEventListener('connect', event => {
             console.log('### navigator.serial event: connected!', event)
@@ -65,6 +65,7 @@ async function serialSigner(path) {
           )
 
           this.writer = textEncoder.writable.getWriter()
+          return true
         } catch (error) {
           this.selectedPort = null
           this.$q.notify({
@@ -73,6 +74,7 @@ async function serialSigner(path) {
             caption: `${error}`,
             timeout: 10000
           })
+          return false
         }
       },
       closeSerialPort: async function () {
@@ -302,11 +304,6 @@ async function serialSigner(path) {
           this.hww.psbtSent = false
           this.hww.signingPsbt = true
           await this.writer.write(COMMAND_SIGN_PSBT + '\n')
-          this.$q.notify({
-            type: 'positive',
-            message: 'PSBT signed!',
-            timeout: 5000
-          })
         } catch (error) {
           this.$q.notify({
             type: 'warning',

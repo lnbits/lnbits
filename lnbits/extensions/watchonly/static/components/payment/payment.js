@@ -83,7 +83,8 @@ async function payment(path) {
         this.showChecking = true
         try {
           if (!this.serialSignerRef.isConnected()) {
-            await this.serialSignerRef.openSerialPort()
+            const portOpen = await this.serialSignerRef.openSerialPort()
+            if (!portOpen) return
           }
           if (!this.serialSignerRef.isAuthenticated()) {
             await this.serialSignerRef.hwwShowPasswordDialog()
