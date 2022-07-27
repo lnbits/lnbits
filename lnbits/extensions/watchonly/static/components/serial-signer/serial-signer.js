@@ -12,7 +12,7 @@ async function serialSigner(path) {
         writer: null,
         readableStreamClosed: null,
         reader: null,
-        showAdvancedConfig: false,
+
         receivedData: '',
         config: {},
         hww: {
