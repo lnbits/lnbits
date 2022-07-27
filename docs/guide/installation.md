@@ -12,9 +12,28 @@ You can choose between two python package managers, `venv` and `pipenv`. Both ar
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
-## Option 1: pipenv
+## Option 1: poetry
 
-You can also use Pipenv to manage your python packages. 
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+
+curl -sSL https://install.python-poetry.org | python3 -
+poetry install 
+
+# You may need to install python 3.9, update your python following this guide https://linuxize.com/post/how-to-install-python-3-9-on-ubuntu-20-04/
+
+ mkdir data && cp .env.example .env
+``` 
+
+#### Running the server
+    
+```sh
+poetry run lnbits
+# To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
+```
+
+## Option 2: pipenv
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -44,7 +63,7 @@ pipenv run python -m uvicorn lnbits.__main__:app --port 5000 --host 0.0.0.0
 Add the flag `--reload` for development (includes hot-reload).
 
 
-## Option 2: venv
+## Option 3: venv
 
 Download this repo and install the dependencies:
 
