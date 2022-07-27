@@ -5,7 +5,7 @@
     color="primary"
     icon="usb"
     :text-color="selectedPort ? hww.authenticated ? 'green' : 'orange' : 'white'"
-    @click="toggleSerialPortConection"
+    @click="openSerialPort"
   >
     <q-list>
       <q-item v-if="!selectedPort" clickable v-close-popup>
@@ -40,6 +40,17 @@
         <q-item-section>
           <q-item-label>Logout</q-item-label>
           <q-item-label caption>Clear password for HWW.</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="!selectedPort"
+        clickable
+        v-close-popup
+        @click="openSerialPort()"
+      >
+        <q-item-section>
+          <q-item-label>Connect</q-item-label>
+          <q-item-label caption>Connect Serial Port device.</q-item-label>
         </q-item-section>
       </q-item>
       <q-item
