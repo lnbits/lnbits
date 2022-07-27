@@ -82,7 +82,7 @@ class LntxbotWallet(Wallet):
                 f"{self.endpoint}/payinvoice",
                 headers=self.auth,
                 json={"invoice": bolt11},
-                timeout=100,
+                timeout=None,
             )
 
         if "error" in r.json():
