@@ -84,9 +84,7 @@ const watchOnly = async () => {
         showAddress: false,
         addressNote: '',
         showPayment: false,
-        fetchedUtxos: false,
-        signedTx: null,
-        signedTxHex: null
+        fetchedUtxos: false
       }
     },
 
