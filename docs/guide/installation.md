@@ -8,7 +8,7 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between two python package managers, `venv` and `pipenv`. Both are fine but if you don't know what you're doing, just go for the first option.
+You can choose between four package managers, `poetry`, `pipenv`, `venv` and `nix`.
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
