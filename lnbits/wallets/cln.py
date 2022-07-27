@@ -9,6 +9,7 @@ import time
 from functools import partial, wraps
 from os import getenv
 from typing import AsyncGenerator, Optional
+from loguru import logger
 
 from lnbits import bolt11 as lnbits_bolt11
 
@@ -97,6 +98,8 @@ class CoreLightningWallet(Wallet):
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
+        except Exception as e:
+            return InvoiceResponse(False, label, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
@@ -110,7 +113,7 @@ class CoreLightningWallet(Wallet):
         try:
             wrapped = async_wrap(_pay_invoice)
             r = await wrapped(self.ln, payload)
-        except RpcError as exc:
+        except Exception as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
         fee_msat = r["msatoshi_sent"] - r["msatoshi"]
@@ -140,7 +143,13 @@ class CoreLightningWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
-            wrapped = async_wrap(_paid_invoices_stream)
-            paid = await wrapped(self.ln, self.last_pay_index)
-            self.last_pay_index = paid["pay_index"]
-            yield paid["label"]
+            try:
+                wrapped = async_wrap(_paid_invoices_stream)
+                paid = await wrapped(self.ln, self.last_pay_index)
+                self.last_pay_index = paid["pay_index"]
+                yield paid["label"]
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
