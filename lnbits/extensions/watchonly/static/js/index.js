@@ -273,36 +273,6 @@ const watchOnly = async () => {
       },
       //################### SERIAL PORT ###################
 
-      closeSerialPort: async function () {
-        try {
-          console.log('### closeSerialPort', this.serial.selectedPort)
-          if (this.serial.writer) this.serial.writer.close()
-          if (this.serial.writableStreamClosed)
-            await this.serial.writableStreamClosed
-          if (this.serial.reader) this.serial.reader.cancel()
-          if (this.serial.readableStreamClosed)
-            await this.serial.readableStreamClosed.catch(() => {
-              /* Ignore the error */
-            })
-          if (this.serial.selectedPort) await this.serial.selectedPort.close()
-          this.serial.selectedPort = null
-          this.$q.notify({
-            type: 'positive',
-            message: 'Serial port disconnected!',
-            timeout: 5000
-          })
-        } catch (error) {
-          this.serial.selectedPort = null
-          console.log('### error', error)
-          this.$q.notify({
-            type: 'warning',
-            message: 'Cannot close serial port!',
-            caption: `${error}`,
-            timeout: 10000
-          })
-        }
-      },
-
       sharePsbtWithAnimatedQRCode: async function () {
         console.log('### sharePsbtWithAnimatedQRCode')
       },

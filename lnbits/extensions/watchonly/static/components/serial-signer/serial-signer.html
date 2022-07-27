@@ -5,7 +5,7 @@
     color="primary"
     icon="usb"
     :text-color="selectedPort ? 'orange' : 'white'"
-    @click="openSerialPort"
+    @click="toggleSerialPortConection"
   >
     <q-list>
       <q-item v-if="!selectedPort" clickable v-close-popup>
