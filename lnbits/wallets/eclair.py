@@ -97,7 +97,7 @@ class EclairWallet(Wallet):
                 f"{self.url}/payinvoice",
                 headers=self.auth,
                 data={"invoice": bolt11, "blocking": True},
-                timeout=40,
+                timeout=None,
             )
 
         if "error" in r.json():
