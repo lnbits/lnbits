@@ -17,7 +17,7 @@ mypy: $(shell find lnbits -name "*.py")
 	./venv/bin/mypy lnbits/core
 	./venv/bin/mypy lnbits/extensions/*
 
-isort: $(shell find lnbits -name "*.py") 
+isort: $(shell find lnbits -name "*.py")
 	./venv/bin/isort --profile black lnbits
 
 checkprettier: $(shell find lnbits -name "*.js" -name ".html")
@@ -36,7 +36,6 @@ requirements.txt: Pipfile.lock
 	cat Pipfile.lock | jq -r '.default | map_values(.version) | to_entries | map("\(.key)\(.value)") | join("\n")' > requirements.txt
 
 test:
-	rm -rf ./tests/data
 	mkdir -p ./tests/data
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
@@ -45,14 +44,12 @@ test:
 	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
 test-real-wallet:
-	rm -rf ./tests/data
 	mkdir -p ./tests/data
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
-	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests	
+	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
 test-pipenv:
-	rm -rf ./tests/data
 	mkdir -p ./tests/data
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \

@@ -12,7 +12,7 @@ db = Database("ext_jukebox")
 jukebox_static_files = [
     {
         "path": "/jukebox/static",
-        "app": StaticFiles(directory="lnbits/extensions/jukebox/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/jukebox/static")]),
         "name": "jukebox_static",
     }
 ]

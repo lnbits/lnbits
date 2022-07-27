@@ -88,7 +88,7 @@ class LNbitsWallet(Wallet):
                 url=f"{self.endpoint}/api/v1/payments",
                 headers=self.key,
                 json={"out": True, "bolt11": bolt11},
-                timeout=100,
+                timeout=None,
             )
         ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
 

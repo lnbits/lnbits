@@ -84,7 +84,7 @@ class LNPayWallet(Wallet):
                 f"{self.endpoint}/wallet/{self.wallet_key}/withdraw",
                 headers=self.auth,
                 json={"payment_request": bolt11},
-                timeout=180,
+                timeout=None,
             )
 
         try:
