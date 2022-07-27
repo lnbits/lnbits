@@ -51,14 +51,10 @@ class CoreLightningWallet(Wallet):
         self.rpc = getenv("CLIGHTNING_RPC")
         self.ln = LightningRpc(self.rpc)
 
-        # check description_hash support from v0.11.0
-        self.supports_description_hash = False
-        try:
-            answer = self.ln.help("invoicewithdescriptionhash")
-            if "deschashonly" in answer["help"][0]["command"]:
-                self.supports_description_hash = True
-        except:
-            pass
+        # check if description_hash is supported (from CLN>=v0.11.0)
+        self.supports_description_hash = (
+            "deschashonly" in self.ln.help("invoice")["help"][0]["command"]
+        )
 
         # check last payindex so we can listen from that point on
         self.last_pay_index = 0
@@ -88,16 +84,16 @@ class CoreLightningWallet(Wallet):
         msat = amount * 1000
 
         try:
-            if description_hash:
-                if not self.supports_description_hash:
-                    raise Unsupported("description_hash")
-
-                params = [msat, label, description_hash.hex()]
-                r = self.ln.call("invoicewithdescriptionhash", params)
-                return InvoiceResponse(True, label, r["bolt11"], "")
-            else:
-                r = self.ln.invoice(msat, label, memo, exposeprivatechannels=True)
-                return InvoiceResponse(True, label, r["bolt11"], "")
+            if description_hash and not self.supports_description_hash:
+                raise Unsupported("description_hash")
+            r = self.ln.invoice(
+                msat,
+                label,
+                memo,
+                exposeprivatechannels=True,
+                deschashonly=description_hash,
+            )
+            return InvoiceResponse(True, label, r["bolt11"], "")
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, label, None, error_message)
