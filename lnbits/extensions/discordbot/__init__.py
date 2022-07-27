@@ -9,7 +9,7 @@ db = Database("ext_discordbot")
 discordbot_static_files = [
     {
         "path": "/discordbot/static",
-        "app": StaticFiles(directory="lnbits/extensions/discordbot/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/discordbot/static")]),
         "name": "discordbot_static",
     }
 ]
