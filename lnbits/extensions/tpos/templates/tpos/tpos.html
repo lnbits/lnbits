@@ -167,7 +167,12 @@
         <div class="text-center">
           <h3 class="q-my-md">{% raw %}{{ famount }}{% endraw %}</h3>
           <h5 class="q-mt-none">
-            {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
+            {% raw %}{{ fsat }}
+            <small>sat</small>
+            <span v-show="tip_options" style="font-size: 0.75rem"
+              >( + {{ tipAmountSat }} tip)</span
+            >
+            {% endraw %}
           </h5>
         </div>
         <div class="row q-mt-lg">
@@ -272,7 +277,7 @@
       return {
         tposId: '{{ tpos.id }}',
         currency: '{{ tpos.currency }}',
-        tip_options: JSON.parse('{{ tpos.tip_options }}'),
+        tip_options: null,
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
@@ -303,14 +308,15 @@
       },
       sat: function () {
         if (!this.exchangeRate) return 0
-        return Math.ceil((this.amount / this.exchangeRate) * 100000000)
+        return Math.ceil(
+          ((this.amount - this.tipAmount) / this.exchangeRate) * 100000000
+        )
       },
       tipAmountSat: function () {
         if (!this.exchangeRate) return 0
         return Math.ceil((this.tipAmount / this.exchangeRate) * 100000000)
       },
       fsat: function () {
-        console.log('sat', this.sat, LNbits.utils.formatSat(this.sat))
         return LNbits.utils.formatSat(this.sat)
       }
     },
@@ -350,7 +356,7 @@
         this.showInvoice()
       },
       submitForm: function () {
-        if (this.tip_options.length) {
+        if (this.tip_options) {
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -362,7 +368,6 @@
       showInvoice: function () {
         var self = this
         var dialog = this.invoiceDialog
-        console.log(this.sat, this.tposId)
         axios
           .post('/tpos/api/v1/tposs/' + this.tposId + '/invoices', null, {
             params: {
@@ -416,9 +421,13 @@
     created: function () {
       var getRates = this.getRates
       getRates()
+      this.tip_options =
+        '{{ tpos.tip_options | tojson }}' == 'null'
+          ? null
+          : JSON.parse('{{ tpos.tip_options }}')
       setInterval(function () {
         getRates()
-      }, 20000)
+      }, 120000)
     }
   })
 </script>

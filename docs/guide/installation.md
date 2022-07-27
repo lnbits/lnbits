@@ -8,13 +8,32 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between two python package managers, `venv` and `pipenv`. Both are fine but if you don't know what you're doing, just go for the first option.
+You can choose between four package managers, `poetry`, `pipenv`, `venv` and `nix`.
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
-## Option 1: pipenv
+## Option 1: poetry
 
-You can also use Pipenv to manage your python packages. 
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+
+curl -sSL https://install.python-poetry.org | python3 -
+poetry install 
+
+# You may need to install python 3.9, update your python following this guide https://linuxize.com/post/how-to-install-python-3-9-on-ubuntu-20-04/
+
+ mkdir data && cp .env.example .env
+``` 
+
+#### Running the server
+    
+```sh
+poetry run lnbits
+# To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
+```
+
+## Option 2: pipenv
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -44,9 +63,7 @@ pipenv run python -m uvicorn lnbits.__main__:app --port 5000 --host 0.0.0.0
 Add the flag `--reload` for development (includes hot-reload).
 
 
-## Option 2: venv
-
-Download this repo and install the dependencies:
+## Option 3: venv
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
@@ -67,12 +84,32 @@ mkdir data && cp .env.example .env
 
 If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
 
+## Option 4: Nix
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+# Install nix, modern debian distros usually already include
+sh <(curl -L https://nixos.org/nix/install) --daemon
+
+nix build .#lnbits 
+mkdir data
+
+```
+
+#### Running the server
+
+```sh
+# .env variables are currently passed when running
+LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
+```
+
 ### Troubleshooting
 
 Problems installing? These commands have helped us install LNbits. 
 
 ```sh
-sudo apt install pkg-config libffi-dev libpq-dev setuptools 
+sudo apt install pkg-config libffi-dev libpq-dev
 
 # if the secp256k1 build fails:
 # if you used pipenv (option 1)

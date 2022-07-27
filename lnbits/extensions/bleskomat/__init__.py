@@ -9,7 +9,7 @@ db = Database("ext_bleskomat")
 bleskomat_static_files = [
     {
         "path": "/bleskomat/static",
-        "app": StaticFiles(directory="lnbits/extensions/bleskomat/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/bleskomat/static")]),
         "name": "bleskomat_static",
     }
 ]

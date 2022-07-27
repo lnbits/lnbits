@@ -26,7 +26,6 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     # now we make some special internal transfers (from no one to the receiver)
     tpos = await get_tpos(payment.extra.get("tposId"))
-
     tipAmount = payment.extra.get("tipAmount")
 
     if tipAmount is None:
@@ -34,6 +33,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         return
 
     tipAmount = tipAmount * 1000
+    amount = payment.amount - tipAmount
 
     # mark the original payment with one extra key, "splitted"
     # (this prevents us from doing this process again and it's informative)
@@ -41,13 +41,13 @@ async def on_invoice_paid(payment: Payment) -> None:
     await core_db.execute(
         """
         UPDATE apipayments
-        SET extra = ?, amount = amount - ?
+        SET extra = ?, amount = ?
         WHERE hash = ?
           AND checking_id NOT LIKE 'internal_%'
         """,
         (
             json.dumps(dict(**payment.extra, tipSplitted=True)),
-            tipAmount,
+            amount,
             payment.payment_hash,
         ),
     )
@@ -60,7 +60,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         payment_request="",
         payment_hash=payment.payment_hash,
         amount=tipAmount,
-        memo=payment.memo,
+        memo=f"Tip for {payment.memo}",
         pending=False,
         extra={"tipSplitted": True},
     )

@@ -38,8 +38,6 @@ else:
     pgport = LNBITS_DATABASE_URL.split("@")[1].split(":")[1].split("/")[0]
     pgschema = ""
 
-print(pgdb, pguser, pgpswd, pghost, pgport, pgschema)
-
 
 def get_sqlite_cursor(sqdb) -> sqlite3:
     consq = sqlite3.connect(sqdb)
@@ -99,8 +97,14 @@ def insert_to_pg(query, data):
     for d in data:
         try:
             cursor.execute(query, d)
-        except:
-            raise ValueError(f"Failed to insert {d}")
+        except Exception as e:
+            if args.ignore_errors:
+                print(e)
+                print(f"Failed to insert {d}")
+            else:
+                print("query:", query)
+                print("data:", d)
+                raise ValueError(f"Failed to insert {d}")
     connection.commit()
 
     cursor.close()
@@ -256,9 +260,11 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
                 k1,
                 open_time,
                 used,
-                usescsv
+                usescsv,
+                webhook_url,
+                custom_url
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # WITHDRAW HASH CHECK
@@ -316,8 +322,8 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         # TPOSS
         res = sq.execute("SELECT * FROM tposs;")
         q = f"""
-            INSERT INTO tpos.tposs (id, wallet, name, currency)
-            VALUES (%s, %s, %s, %s);
+            INSERT INTO tpos.tposs (id, wallet, name, currency, tip_wallet, tip_options)
+            VALUES (%s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     elif schema == "tipjar":
@@ -512,12 +518,13 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
                 wallet,
                 url,
                 memo,
+                description,
                 amount,
                 time,
                 remembers,
-                extra
+                extras
             )
-            VALUES (%s, %s, %s, %s, %s, to_timestamp(%s), %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s), %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     elif schema == "offlineshop":
@@ -543,15 +550,15 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         # lnurldevice
         res = sq.execute("SELECT * FROM lnurldevices;")
         q = f"""
-            INSERT INTO lnurldevice.lnurldevices (id, key, title, wallet, currency, device, profit)
-            VALUES (%s, %s, %s, %s, %s, %s, %s);
+            INSERT INTO lnurldevice.lnurldevices (id, key, title, wallet, currency, device, profit, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, to_timestamp(%s));
         """
         insert_to_pg(q, res.fetchall())
         # lnurldevice PAYMENT
         res = sq.execute("SELECT * FROM lnurldevicepayment;")
         q = f"""
-            INSERT INTO lnurldevice.lnurldevicepayment (id, deviceid, payhash, payload, pin, sats)
-            VALUES (%s, %s, %s, %s, %s, %s);
+            INSERT INTO lnurldevice.lnurldevicepayment (id, deviceid, payhash, payload, pin, sats, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s));
         """
         insert_to_pg(q, res.fetchall())
     elif schema == "lnurlp":
@@ -710,36 +717,69 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
     sq.close()
 
 
-parser = argparse.ArgumentParser(description="Migrate data from SQLite to PostgreSQL")
+parser = argparse.ArgumentParser(
+    description="LNbits migration tool for migrating data from SQLite to PostgreSQL"
+)
 parser.add_argument(
-    dest="sqlite_file",
+    dest="sqlite_path",
     const=True,
     nargs="?",
-    help="SQLite DB to migrate from",
-    default="data/database.sqlite3",
+    help=f"SQLite DB folder *or* single extension db file to migrate. Default: {sqfolder}",
+    default=sqfolder,
     type=str,
 )
 parser.add_argument(
-    "-i",
-    "--dont-ignore-missing",
-    help="Error if migration is missing for an extension.",
+    "-e",
+    "--extensions-only",
+    help="Migrate only extensions",
     required=False,
     default=False,
-    const=True,
-    nargs="?",
-    type=bool,
+    action="store_true",
 )
+
+parser.add_argument(
+    "-s",
+    "--skip-missing",
+    help="Error if migration is missing for an extension",
+    required=False,
+    default=False,
+    action="store_true",
+)
+
+parser.add_argument(
+    "-i",
+    "--ignore-errors",
+    help="Don't error if migration fails",
+    required=False,
+    default=False,
+    action="store_true",
+)
+
 args = parser.parse_args()
 
-print(args)
+print("Selected path: ", args.sqlite_path)
 
-check_db_versions(args.sqlite_file)
-migrate_core(args.sqlite_file)
+if os.path.isdir(args.sqlite_path):
+    file = os.path.join(args.sqlite_path, "database.sqlite3")
+    check_db_versions(file)
+    if not args.extensions_only:
+        print(f"Migrating: {file}")
+        migrate_core(file)
 
-files = os.listdir(sqfolder)
+if os.path.isdir(args.sqlite_path):
+    files = [
+        os.path.join(args.sqlite_path, file) for file in os.listdir(args.sqlite_path)
+    ]
+else:
+    files = [args.sqlite_path]
+
 for file in files:
-    path = f"data/{file}"
-    if file.startswith("ext_"):
-        schema = file.replace("ext_", "").split(".")[0]
-        print(f"Migrating: {schema}")
-        migrate_ext(path, schema, ignore_missing=not args.dont_ignore_missing)
+    filename = os.path.basename(file)
+    if filename.startswith("ext_"):
+        schema = filename.replace("ext_", "").split(".")[0]
+        print(f"Migrating: {file}")
+        migrate_ext(
+            file,
+            schema,
+            ignore_missing=args.skip_missing,
+        )

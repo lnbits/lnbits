@@ -85,7 +85,7 @@ class OpenNodeWallet(Wallet):
                 f"{self.endpoint}/v2/withdrawals",
                 headers=self.auth,
                 json={"type": "ln", "address": bolt11},
-                timeout=180,
+                timeout=None,
             )
 
         if r.is_error:

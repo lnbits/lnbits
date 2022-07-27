@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -19,17 +19,11 @@ jobs:
           docker build -t lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
-          source docker-scripts.sh
-          lnbits-regtest-start
-          echo "sleeping 60 seconds"
-          sleep 60
-          echo "continue"
-          lnbits-regtest-init
-          bitcoin-cli-sim -generate 1
-          lncli-sim 1 listpeers
+          chmod +x ./tests
+          ./tests
           sudo chmod -R a+rwx .
       - name: Install dependencies
-        env: 
+        env:
           VIRTUAL_ENV: ./venv
           PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
@@ -37,7 +31,7 @@ jobs:
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pylightning
-          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock      
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:
           PYTHONUNBUFFERED: 1
@@ -54,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -66,17 +60,11 @@ jobs:
           docker build -t lnbits-legend .
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
-          source docker-scripts.sh
-          lnbits-regtest-start
-          echo "sleeping 60 seconds"
-          sleep 60
-          echo "continue"
-          lnbits-regtest-init
-          bitcoin-cli-sim -generate 1
-          lncli-sim 1 listpeers
+          chmod +x ./tests
+          ./tests
           sudo chmod -R a+rwx .
       - name: Install dependencies
-        env: 
+        env:
           VIRTUAL_ENV: ./venv
           PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
         run: |
@@ -84,7 +72,7 @@ jobs:
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
           ./venv/bin/pip install pylightning
-          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock      
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:
           PYTHONUNBUFFERED: 1
