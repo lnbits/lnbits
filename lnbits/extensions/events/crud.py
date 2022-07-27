@@ -16,7 +16,7 @@ async def create_ticket(
         INSERT INTO events.ticket (id, wallet, event, name, email, registered, paid)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (payment_hash, wallet, event, name, email, False, False),
+        (payment_hash, wallet, event, name, email, False, True),
     )
 
     ticket = await get_ticket(payment_hash)

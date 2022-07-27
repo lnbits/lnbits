@@ -1,14 +1,18 @@
 import asyncio
 import importlib
+import logging
 import sys
 import traceback
 import warnings
+from http import HTTPStatus
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 
 import lnbits.settings
 from lnbits.core.tasks import register_task_listeners
@@ -39,10 +43,21 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     """Create application factory.
     :param config_object: The configuration object to use.
     """
-    app = FastAPI()
-    app.mount("/static", StaticFiles(directory="lnbits/static"), name="static")
+    configure_logger()
+
+    app = FastAPI(
+        title="LNbits API",
+        description="API for LNbits, the free and open source bitcoin wallet and accounts system with plugins.",
+        license_info={
+            "name": "MIT License",
+            "url": "https://raw.githubusercontent.com/lnbits/lnbits-legend/main/LICENSE",
+        },
+    )
+    app.mount("/static", StaticFiles(packages=[("lnbits", "static")]), name="static")
     app.mount(
-        "/core/static", StaticFiles(directory="lnbits/core/static"), name="core_static"
+        "/core/static",
+        StaticFiles(packages=[("lnbits.core", "static")]),
+        name="core_static",
     )
 
     origins = ["*"]
@@ -58,15 +73,19 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
-        return template_renderer().TemplateResponse(
-            "error.html",
-            {"request": request, "err": f"`{exc.errors()}` is not a valid UUID."},
-        )
+        # Only the browser sends "text/html" request
+        # not fail proof, but everything else get's a JSON response
 
-        # return HTMLResponse(
-        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        #     content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
-        # )
+        if "text/html" in request.headers["accept"]:
+            return template_renderer().TemplateResponse(
+                "error.html",
+                {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
+            )
+
+        return JSONResponse(
+            status_code=HTTPStatus.NO_CONTENT,
+            content={"detail": exc.errors()},
+        )
 
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     # app.add_middleware(ASGIProxyFix)
@@ -88,14 +107,14 @@ def check_funding_source(app: FastAPI) -> None:
             error_message, balance = await WALLET.status()
             if not error_message:
                 break
-            warnings.warn(
-                f"  × The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+            logger.error(
+                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                 RuntimeWarning,
             )
-            print("Retrying connection to backend in 5 seconds...")
+            logger.info("Retrying connection to backend in 5 seconds...")
             await asyncio.sleep(5)
-        print(
-            f"  ✔️ {WALLET.__class__.__name__} seems to be connected and with a balance of {balance} msat."
+        logger.info(
+            f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
 
 
@@ -118,9 +137,10 @@ def register_routes(app: FastAPI) -> None:
                 for s in ext_statics:
                     app.mount(s["path"], s["app"], s["name"])
 
+            logger.trace(f"adding route for extension {ext_module}")
             app.include_router(ext_route)
         except Exception as e:
-            print(str(e))
+            logger.error(str(e))
             raise ImportError(
                 f"Please make sure that the extension `{ext.code}` follows conventions."
             )
@@ -167,10 +187,53 @@ def register_async_tasks(app):
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def basic_error(request: Request, err):
-        print("handled error", traceback.format_exc())
+        logger.error("handled error", traceback.format_exc())
+        logger.error("ERROR:", err)
         etype, _, tb = sys.exc_info()
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
-        return template_renderer().TemplateResponse(
-            "error.html", {"request": request, "err": err}
+
+        if "text/html" in request.headers["accept"]:
+            return template_renderer().TemplateResponse(
+                "error.html", {"request": request, "err": err}
+            )
+
+        return JSONResponse(
+            status_code=HTTPStatus.NO_CONTENT,
+            content={"detail": err},
         )
+
+
+def configure_logger() -> None:
+    logger.remove()
+    log_level: str = "DEBUG" if lnbits.settings.DEBUG else "INFO"
+    formatter = Formatter()
+    logger.add(sys.stderr, level=log_level, format=formatter.format)
+
+    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
+
+
+class Formatter:
+    def __init__(self):
+        self.padding = 0
+        self.minimal_fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level}</level> | <level>{message}</level>\n"
+        if lnbits.settings.DEBUG:
+            self.fmt: str = "<green>{time:YYYY-MM-DD HH:mm:ss.SS}</green> | <level>{level: <4}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | <level>{message}</level>\n"
+        else:
+            self.fmt: str = self.minimal_fmt
+
+    def format(self, record):
+        function = "{function}".format(**record)
+        if function == "emit":  # uvicorn logs
+            return self.minimal_fmt
+        return self.fmt
+
+
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        logger.log(level, record.getMessage())

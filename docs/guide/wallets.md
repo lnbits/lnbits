@@ -17,7 +17,6 @@ A backend wallet can be configured using the following LNbits environment variab
 ### CLightning
 
 Using this wallet requires the installation of the `pylightning` Python package.
-If you want to use LNURLp you should use SparkWallet because of an issue with description_hash and CLightning.
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **CLightningWallet**
 - `CLIGHTNING_RPC`: /file/path/lightning-rpc

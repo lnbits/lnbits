@@ -1,8 +1,8 @@
 from sqlite3 import Row
+from typing import Optional
 
 from fastapi.param_functions import Query
 from pydantic import BaseModel
-from typing import Optional
 
 
 class CreateUserData(BaseModel):
@@ -10,6 +10,7 @@ class CreateUserData(BaseModel):
     wallet_name: str = Query(...)
     admin_id: str = Query(...)
     discord_id: str = Query("")
+
 
 class CreateUserWallet(BaseModel):
     user_id: str = Query(...)
@@ -22,6 +23,7 @@ class Users(BaseModel):
     name: str
     admin: str
     discord_id: str
+
 
 class Wallets(BaseModel):
     id: str

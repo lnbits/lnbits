@@ -60,7 +60,7 @@ async def api_link_retrieve(
         raise HTTPException(
             detail="Not your withdraw link.", status_code=HTTPStatus.FORBIDDEN
         )
-    return {**link, **{"lnurl": link.lnurl(request)}}
+    return {**link.dict(), **{"lnurl": link.lnurl(request)}}
 
 
 @withdraw_ext.post("/api/v1/links", status_code=HTTPStatus.CREATED)
@@ -72,10 +72,8 @@ async def api_link_create_or_update(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
     if data.uses > 250:
-        raise HTTPException(
-            detail="250 uses max.", status_code=HTTPStatus.BAD_REQUEST
-        )
-   
+        raise HTTPException(detail="250 uses max.", status_code=HTTPStatus.BAD_REQUEST)
+
     if data.min_withdrawable < 1:
         raise HTTPException(
             detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST

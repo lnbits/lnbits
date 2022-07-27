@@ -1,5 +1,7 @@
 import asyncio
 
+from loguru import logger
+
 from lnbits.core.models import Payment
 from lnbits.extensions.satspay.crud import check_address_balance, get_charge
 from lnbits.tasks import register_invoice_listener
@@ -17,13 +19,13 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if "charge" != payment.extra.get("tag"):
+    if payment.extra.get("tag") != "charge":
         # not a charge invoice
         return
 
     charge = await get_charge(payment.memo)
     if not charge:
-        print("this should never happen", payment)
+        logger.error("this should never happen", payment)
         return
 
     await payment.set_pending(False)

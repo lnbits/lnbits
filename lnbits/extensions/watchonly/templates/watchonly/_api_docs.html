@@ -20,6 +20,7 @@
     label="API info"
     :content-inset-level="0.5"
   >
+    <q-btn flat label="Swagger API" type="a" href="../docs#/watchonly"></q-btn>
     <q-expansion-item group="api" dense expand-separator label="List wallets">
       <q-card>
         <q-card-section>
@@ -37,8 +38,8 @@
           <code>[&lt;wallets_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}api/v1/wallet -H "X-Api-Key: {{
-            user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url }}watchonly/api/v1/wallet -H
+            "X-Api-Key: {{ user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -66,8 +67,9 @@
           <code>[&lt;wallet_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}api/v1/wallet/&lt;wallet_id&gt;
-            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url
+            }}watchonly/api/v1/wallet/&lt;wallet_id&gt; -H "X-Api-Key: {{
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -89,9 +91,10 @@
           <code>[&lt;wallet_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X POST {{ request.base_url }}api/v1/wallet -d '{"title":
-            &lt;string&gt;, "masterpub": &lt;string&gt;}' -H "Content-type:
-            application/json" -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
+            >curl -X POST {{ request.base_url }}watchonly/api/v1/wallet -d
+            '{"title": &lt;string&gt;, "masterpub": &lt;string&gt;}' -H
+            "Content-type: application/json" -H "X-Api-Key: {{
+            user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -116,7 +119,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X DELETE {{ request.base_url
-            }}api/v1/wallet/&lt;wallet_id&gt; -H "X-Api-Key: {{
+            }}watchonly/api/v1/wallet/&lt;wallet_id&gt; -H "X-Api-Key: {{
             user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
@@ -142,7 +145,7 @@
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
             >curl -X GET {{ request.base_url
-            }}api/v1/addresses/&lt;wallet_id&gt; -H "X-Api-Key: {{
+            }}watchonly/api/v1/addresses/&lt;wallet_id&gt; -H "X-Api-Key: {{
             user.wallets[0].inkey }}"
           </code>
         </q-card-section>
@@ -173,8 +176,9 @@
           <code>[&lt;address_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}api/v1/address/&lt;wallet_id&gt;
-            -H "X-Api-Key: {{ user.wallets[0].inkey }}"
+            >curl -X GET {{ request.base_url
+            }}watchonly/api/v1/address/&lt;wallet_id&gt; -H "X-Api-Key: {{
+            user.wallets[0].inkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -202,8 +206,8 @@
           <code>[&lt;mempool_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X GET {{ request.base_url }}api/v1/mempool -H "X-Api-Key: {{
-            user.wallets[0].adminkey }}"
+            >curl -X GET {{ request.base_url }}watchonly/api/v1/mempool -H
+            "X-Api-Key: {{ user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
@@ -233,9 +237,9 @@
           <code>[&lt;mempool_object&gt;, ...]</code>
           <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
           <code
-            >curl -X PUT {{ request.base_url }}api/v1/mempool -d '{"endpoint":
-            &lt;string&gt;}' -H "Content-type: application/json" -H "X-Api-Key:
-            {{ user.wallets[0].adminkey }}"
+            >curl -X PUT {{ request.base_url }}watchonly/api/v1/mempool -d
+            '{"endpoint": &lt;string&gt;}' -H "Content-type: application/json"
+            -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
           </code>
         </q-card-section>
       </q-card>
