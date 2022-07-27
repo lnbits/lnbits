@@ -10,6 +10,7 @@ async function payment(path) {
       'utxos',
       'mempool_endpoint',
       'sats_denominated',
+      'serial-signer-ref',
       'adminkey'
     ],
     watch: {
@@ -76,9 +77,21 @@ async function payment(path) {
         return satOrBtc(val, showUnit, this['sats_denominated'])
       },
       checkAndSend: async function () {
+        this.showChecking = true
         try {
-          console.log('### this.checkAndSend')
-          this.showChecking = true
+          console.log(
+            '### this.checkAndSend',
+            this.serialSignerRef.isConnected()
+          )
+          if (!this.serialSignerRef.isConnected()) {
+            await this.serialSignerRef.openSerialPort()
+            return
+          }
+          if (!this.serialSignerRef.isAuthenticated()) {
+            await this.serialSignerRef.hwwShowPasswordDialog()
+            return
+          }
+
           await this.createPsbt()
         } catch (error) {
         } finally {
