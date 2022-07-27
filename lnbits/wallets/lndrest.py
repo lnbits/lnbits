@@ -243,10 +243,8 @@ class LndRestWallet(Wallet):
 
                             payment_hash = base64.b64decode(inv["r_hash"]).hex()
                             yield payment_hash
-            except (OSError, httpx.ConnectError, httpx.ReadError):
-                pass
-
-            logger.error(
-                "lost connection to lnd invoices stream, retrying in 5 seconds"
-            )
-            await asyncio.sleep(5)
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)

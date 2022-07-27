@@ -276,10 +276,8 @@ class LndWallet(Wallet):
 
                     checking_id = stringify_checking_id(i.r_hash)
                     yield checking_id
-            except error:
-                logger.error(error)
-
-            logger.error(
-                "lost connection to lnd InvoiceSubscription, retrying in 5 seconds"
-            )
-            await asyncio.sleep(5)
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
