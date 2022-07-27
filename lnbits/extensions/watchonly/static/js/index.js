@@ -21,8 +21,6 @@ const watchOnly = async () => {
     mixins: [windowMixin],
     data: function () {
       return {
-        filter: '', // todo: remove?
-
         scan: {
           scanning: false,
           scanCount: 0,
@@ -41,33 +39,6 @@ const watchOnly = async () => {
           },
 
           show: false
-        },
-
-        serial: {
-          selectedPort: null,
-          writableStreamClosed: null,
-          writer: null,
-          readableStreamClosed: null,
-          reader: null,
-          showAdvancedConfig: false,
-          receivedData: '',
-          config: {}
-        },
-
-        hww: {
-          password: null,
-          showPassword: false,
-          mnemonic: null,
-          showMnemonic: false,
-          authenticated: false,
-          showPasswordDialog: false,
-          showWipeDialog: false,
-          showRestoreDialog: false,
-          showConsole: false,
-          showSignedPsbt: false,
-          sendingPsbt: false,
-          signingPsbt: false,
-          psbtSent: false
         },
 
         qrCodeDialog: {
@@ -89,16 +60,6 @@ const watchOnly = async () => {
     },
 
     methods: {
-      //################### CONFIG ###################
-
-      //################### WALLETS ###################
-
-      getWalletName: function (walletId) {
-        const wallet = this.walletAccounts.find(wl => wl.id === walletId)
-        return wallet ? wallet.title : 'unknown'
-      },
-      //################### ADDRESSES ###################
-
       updateAmountForAddress: async function (addressData, amount = 0) {
         try {
           const wallet = this.g.user.wallets[0]
@@ -183,9 +144,6 @@ const watchOnly = async () => {
               el.amount + sameTxItems.reduce((t, e) => (t += e.amount || 0), 0)
             el.sameTxItems = sameTxItems
           })
-      },
-      showAddressHistoryDetails: function (addressHistory) {
-        addressHistory.expanded = true
       },
 
       //################### PAYMENT ###################
@@ -355,9 +313,6 @@ const watchOnly = async () => {
         this[`${tab}Table`].filter = value
       },
 
-      satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this.config.data.sats_denominated)
-      },
       updateAccounts: async function (accounts) {
         this.walletAccounts = accounts
         // await this.refreshAddressesxx() // todo: automatic now?
