@@ -8,7 +8,10 @@
       :adminkey="g.user.wallets[0].adminkey"
     >
       <template v-slot:serial>
-        <serial-signer ref="serialSigner"></serial-signer>
+        <serial-signer
+          ref="serialSigner"
+          @signed:psbt="updateSignedPsbt"
+        ></serial-signer>
       </template>
     </wallet-config>
 
@@ -113,6 +116,7 @@
     </q-card>
     <div class="q-pt-sm">
       <payment
+        ref="paymentRef"
         v-show="showPayment"
         :accounts="walletAccounts"
         :addresses="addresses"

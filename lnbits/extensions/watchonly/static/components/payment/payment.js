@@ -92,6 +92,7 @@ async function payment(path) {
 
           if (this.psbtBase64) {
             await this.serialSignerRef.hwwSendPsbt(this.psbtBase64)
+            await this.serialSignerRef.isSendingPsbt()
           }
 
           console.log('### hwwSendPsbt')
@@ -188,6 +189,77 @@ async function payment(path) {
           this.changeWallet = this.accounts[0]
         }
         this.selectChangeAddress(this.changeWallet)
+      },
+      updateSignedPsbt: async function (psbtBase64) {
+        console.log('### payment updateSignedPsbt psbtBase64', psbtBase64)
+
+        const data = await this.extractTxFromPsbt(psbtBase64)
+        if (data) {
+          this.signedTx = JSON.parse(data.tx_json)
+          this.signedTxHex = data.tx_hex
+        } else {
+          this.signedTx = null
+          this.signedTxHex = null
+        }
+      },
+      extractTxFromPsbt: async function (psbtBase64) {
+        console.log('### extractTxFromPsbt psbtBase64', psbtBase64)
+        try {
+          const {data} = await LNbits.api.request(
+            'PUT',
+            '/watchonly/api/v1/psbt/extract',
+            this.adminkey,
+            {
+              psbtBase64,
+              inputs: this.tx.inputs
+            }
+          )
+          console.log('### extractTxFromPsbt data', data)
+          return data
+        } catch (error) {
+          console.log('### error', error)
+          this.$q.notify({
+            type: 'warning',
+            message: 'Cannot finalize PSBT!',
+            timeout: 10000
+          })
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      broadcastTransaction: async function () {
+        try {
+          const wallet = this.g.user.wallets[0]
+          const {data} = await LNbits.api.request(
+            'POST',
+            '/watchonly/api/v1/tx',
+            wallet.adminkey,
+            {tx_hex: this.payment.signedTxHex}
+          )
+          this.payment.sentTxId = data
+
+          this.$q.notify({
+            type: 'positive',
+            message: 'Transaction broadcasted!',
+            caption: `${data}`,
+            timeout: 10000
+          })
+
+          this.hww.psbtSent = false
+          this.payment.psbtBase64Signed = null
+          this.payment.signedTxHex = null
+          this.payment.signedTx = null
+          this.payment.psbtBase64 = null
+
+          await this.scanAddressWithAmount()
+        } catch (error) {
+          this.payment.sentTxId = null
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to broadcast!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
       },
       fetchTxHex: async function (txId) {
         const {
