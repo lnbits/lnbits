@@ -50,7 +50,7 @@ class CoreLightningWallet(Wallet):
                 "The `pyln-client` library must be installed to use `CoreLightningWallet`."
             )
 
-        self.rpc = getenv("CLIGHTNING_RPC")
+        self.rpc = getenv("CORELIGHTNING_RPC") or getenv("CLIGHTNING_RPC")
         self.ln = LightningRpc(self.rpc)
 
         # check if description_hash is supported (from CLN>=v0.11.0)
