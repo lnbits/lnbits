@@ -107,6 +107,13 @@ async function serialSigner(path) {
         }
       },
 
+      isConnected: function () {
+        return !!this.selectedPort
+      },
+      isAuthenticated: function () {
+        return this.hww.authenticated
+      },
+
       checkSerialPortSupported: function () {
         if (!navigator.serial) {
           this.$q.notify({

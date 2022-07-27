@@ -273,9 +273,6 @@ const watchOnly = async () => {
       },
       //################### SERIAL PORT ###################
 
-      sharePsbtWithAnimatedQRCode: async function () {
-        console.log('### sharePsbtWithAnimatedQRCode')
-      },
       //################### HARDWARE WALLET ###################
 
       //################### UTXOs ###################
