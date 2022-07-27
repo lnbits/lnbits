@@ -34,6 +34,13 @@ async function serialSigner(path) {
     },
 
     methods: {
+      toggleSerialPortConection: async function () {
+        if (!this.selectedPort) {
+          this.openSerialPort()
+        } else {
+          this.closeSerialPort()
+        }
+      },
       openSerialPort: async function () {
         if (!this.checkSerialPortSupported()) return
         console.log('### openSerialPort', this.selectedPort)
@@ -72,6 +79,34 @@ async function serialSigner(path) {
           })
         }
       },
+      closeSerialPort: async function () {
+        try {
+          if (this.writer) this.writer.close()
+          if (this.writableStreamClosed) await this.writableStreamClosed
+          if (this.reader) this.reader.cancel()
+          if (this.readableStreamClosed)
+            await this.readableStreamClosed.catch(() => {
+              /* Ignore the error */
+            })
+          if (this.selectedPort) await this.selectedPort.close()
+          this.selectedPort = null
+          this.$q.notify({
+            type: 'positive',
+            message: 'Serial port disconnected!',
+            timeout: 5000
+          })
+        } catch (error) {
+          this.selectedPort = null
+          console.log('### error', error)
+          this.$q.notify({
+            type: 'warning',
+            message: 'Cannot close serial port!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+
       checkSerialPortSupported: function () {
         if (!navigator.serial) {
           this.$q.notify({
