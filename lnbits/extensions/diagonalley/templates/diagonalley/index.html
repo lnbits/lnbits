@@ -170,13 +170,13 @@
     </q-card>
   </q-dialog>
   <!-- SHOP DIALOG -->
-  <q-dialog v-model="shopDialog.show" position="top">
+  <q-dialog v-model="marketDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="sendShopFormData" class="q-gutter-md">
         <q-toggle
         label="Activate shop"
         color="primary"
-        v-model="shopDialog.data.activate"
+        v-model="marketDialog.data.activate"
       ></q-toggle>
         <q-select
           filled
@@ -185,11 +185,11 @@
           emit-value
           :options="stalls.map(s => ({label: s.name, value: s.id}))"
           label="Stalls"
-          v-model.trim="shopDialog.data.stalls"
+          v-model.trim="marketDialog.data.stalls"
         ></q-select>
         <div class="row q-mt-lg">
           <q-btn
-            v-if="shopDialog.data.id"
+            v-if="marketDialog.data.id"
             unelevated
             color="primary"
             type="submit"
@@ -199,13 +199,13 @@
             v-else
             unelevated
             color="primary"
-            :disable="shopDialog.data.activate == null
-              || shopDialog.data.stalls == null"
+            :disable="marketDialog.data.activate == null
+              || marketDialog.data.stalls == null"
             type="submit"
             >Launch</q-btn
           >
 
-          <q-btn v-close-popup flat @click="resetDialog('shopDialog')" color="grey" class="q-ml-auto"
+          <q-btn v-close-popup flat @click="resetDialog('marketDialog')" color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
         </div>
@@ -924,7 +924,7 @@ new Vue({
         show: false,
         data: {countries:[]}
       },
-      shopDialog: {
+      marketDialog: {
         show: false,
         data: {activate: false}
       },
@@ -1410,16 +1410,14 @@ new Vue({
       this.shopDialog.show = true
     },
     sendShopFormData: function () {
-      if (this.shopDialog.data.id) {
-      } else {
-        var data = {
-          countries: this.shopDialog.data.countries,
-          cost: this.shopDialog.data.cost
-        }
-      }
+      let data = {...this.marketDialog.data}
 
-      if (this.shopDialog.data.id) {
-        this.updateZone(this.shopDialog.data)
+      if(!data.usr) {
+        data.usr = this.g.user.id
+      }
+      
+      if (data.id) {
+        this.updateZone(data)
       } else {
         this.createZone(data)
       }
@@ -1448,24 +1446,22 @@ new Vue({
           LNbits.utils.notifyApiError(error)
         })
     },
-    createShop: function (data) {
-      console.log('cuntywoo')
+    createShop(data) {
+      console.log('data')
       LNbits.api
         .request(
           'POST',
-          '/diagonalley/api/v1/shops',
-          _.findWhere(self.g.user.wallets, {
-            id: self.shopDialog.data.wallet
-          }).inkey,
+          '/diagonalley/api/v1/markets',
+          this.g.user.wallets[0].inkey,
           data
         )
-        .then(function (response) {
-          self.shops.push(mapShops(response.data))
-          self.shopDialog.show = false
-          self.shopDialog.data = {}
+        .then((response) => {
+          this.shops.push(mapShops(response.data))
+          this.shopDialog.show = false
+          this.shopDialog.data = {}
           data = {}
         })
-        .catch(function (error) {
+        .catch((error) => {
           LNbits.utils.notifyApiError(error)
         })
     },
