@@ -30,7 +30,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pylightning
+          ./venv/bin/pip install pyln-client
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:
@@ -71,7 +71,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pylightning
+          ./venv/bin/pip install pyln-client
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:

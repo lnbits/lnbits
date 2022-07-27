@@ -17,7 +17,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
 # Install c-lightning specific deps
-RUN pip install pylightning
+RUN pip install pyln-client
 
 # Install LND specific deps
 RUN pip install lndgrpc
