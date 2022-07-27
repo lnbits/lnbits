@@ -24,11 +24,13 @@ async function serialSigner(path) {
           showPasswordDialog: false,
           showWipeDialog: false,
           showRestoreDialog: false,
+          showConfirmationDialog: false,
           showConsole: false,
           showSignedPsbt: false,
           sendingPsbt: false,
           signingPsbt: false,
-          psbtSent: false
+          psbtSent: false,
+          psbtSentResolve: null
         }
       }
     },
@@ -112,6 +114,12 @@ async function serialSigner(path) {
       },
       isAuthenticated: function () {
         return this.hww.authenticated
+      },
+      isSendingPsbt: async function () {
+        if (!this.hww.sendingPsbt) return false
+        return new Promise(resolve => {
+          this.psbtSentResolve = resolve
+        })
       },
 
       checkSerialPortSupported: function () {
@@ -281,6 +289,7 @@ async function serialSigner(path) {
             timeout: 5000
           })
         } catch (error) {
+          this.hww.sendingPsbt = false
           this.$q.notify({
             type: 'warning',
             message: 'Failed to send data to serial port!',
@@ -292,9 +301,11 @@ async function serialSigner(path) {
       handleSendPsbtResponse: function (res = '') {
         this.hww.psbtSent = true
         this.hww.sendingPsbt = false
+        this.psbtSentResolve()
       },
       hwwSignPsbt: async function () {
         try {
+          this.hww.psbtSent = false
           this.hww.signingPsbt = true
           await this.writer.write(COMMAND_SIGN_PSBT + '\n')
           this.$q.notify({
@@ -407,6 +418,9 @@ async function serialSigner(path) {
           this.hww.password = null
           this.hww.showPassword = false
         }
+      },
+      updateSignedPsbt: async function (value) {
+        this.$emit('signed:psbt', value)
       }
     },
     created: async function () {}

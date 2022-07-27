@@ -124,7 +124,6 @@ const readFromSerialPort = reader => {
     }
     while (true) {
       const {value, done} = await reader.read()
-      console.log('### serial read', value)
       if (value) {
         const values = value.split(separator)
         // found one or more separators

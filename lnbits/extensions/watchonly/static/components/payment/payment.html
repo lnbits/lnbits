@@ -186,8 +186,13 @@
           </q-list>
         </q-btn-dropdown>
       </div>
+
       <div class="col-9">
-        <q-spinner v-if="showChecking" color="primary"></q-spinner>
+        <q-spinner
+          v-if="showChecking"
+          size="2.55em"
+          color="primary"
+        ></q-spinner>
         <q-badge
           v-if="changeAmount < 0"
           class="text-subtitle2 float-right"

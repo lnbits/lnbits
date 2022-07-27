@@ -84,7 +84,9 @@ const watchOnly = async () => {
         showAddress: false,
         addressNote: '',
         showPayment: false,
-        fetchedUtxos: false
+        fetchedUtxos: false,
+        signedTx: null,
+        signedTxHex: null
       }
     },
 
@@ -202,75 +204,11 @@ const watchOnly = async () => {
 
       //################### PSBT ###################
 
-      extractTxFromPsbt: async function (psbtBase64) {
-        const wallet = this.g.user.wallets[0]
-        try {
-          const {data} = await LNbits.api.request(
-            'PUT',
-            '/watchonly/api/v1/psbt/extract',
-            wallet.adminkey,
-            {
-              psbtBase64,
-              inputs: this.payment.tx.inputs
-            }
-          )
-          return data
-        } catch (error) {
-          this.$q.notify({
-            type: 'warning',
-            message: 'Cannot finalize PSBT!',
-            timeout: 10000
-          })
-          LNbits.utils.notifyApiError(error)
-        }
+      updateSignedPsbt: async function (psbtBase64) {
+        console.log('### updateSignedPsbt psbtBase64', psbtBase64)
+        this.$refs.paymentRef.updateSignedPsbt(psbtBase64)
       },
-      updateSignedPsbt: async function (value) {
-        this.payment.psbtBase64Signed = value
 
-        const data = await this.extractTxFromPsbt(this.payment.psbtBase64Signed)
-        if (data) {
-          this.payment.signedTx = JSON.parse(data.tx_json)
-          this.payment.signedTxHex = data.tx_hex
-        } else {
-          this.payment.signedTx = null
-          this.payment.signedTxHex = null
-        }
-      },
-      broadcastTransaction: async function () {
-        try {
-          const wallet = this.g.user.wallets[0]
-          const {data} = await LNbits.api.request(
-            'POST',
-            '/watchonly/api/v1/tx',
-            wallet.adminkey,
-            {tx_hex: this.payment.signedTxHex}
-          )
-          this.payment.sentTxId = data
-
-          this.$q.notify({
-            type: 'positive',
-            message: 'Transaction broadcasted!',
-            caption: `${data}`,
-            timeout: 10000
-          })
-
-          this.hww.psbtSent = false
-          this.payment.psbtBase64Signed = null
-          this.payment.signedTxHex = null
-          this.payment.signedTx = null
-          this.payment.psbtBase64 = null
-
-          await this.scanAddressWithAmount()
-        } catch (error) {
-          this.payment.sentTxId = null
-          this.$q.notify({
-            type: 'warning',
-            message: 'Failed to broadcast!',
-            caption: `${error}`,
-            timeout: 10000
-          })
-        }
-      },
       //################### SERIAL PORT ###################
 
       //################### HARDWARE WALLET ###################
