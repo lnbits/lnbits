@@ -12,6 +12,7 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
+    Market,
     Orders,
     Products,
     Stalls,
@@ -261,3 +262,27 @@ async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orde
 
 async def delete_diagonalley_order(order_id: str) -> None:
     await db.execute("DELETE FROM diagonalley.orders WHERE id = ?", (order_id,))
+
+### Market/Marketplace
+
+async def get_diagonalley_markets(user: str) -> List[Market]:
+    rows = await db.fetchall(
+        'SELECT * FROM diagonalley.markets WHERE usr = ?', (user,)
+    )
+    return [Market(**row) for row in rows]
+
+
+async def get_diagonalley_market(market_id: str) -> Optional[Market]:
+    row = await db.fetchone(
+        'SELECT * FROM diagonalley.markets WHERE id = ?', (market_id,)
+    )
+    Market(**row) if row else None
+
+
+async def get_diagonalley_market_stalls(market_id: str):
+    rows = await db.fetchall(
+        "SELECT * FROM diagonalley.market_stalls WHERE marketid = ?", (market_id,)
+    )
+    return [Stalls(**row) for row in rows]
+
+

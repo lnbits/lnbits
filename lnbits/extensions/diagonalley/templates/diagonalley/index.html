@@ -816,7 +816,7 @@ new Vue({
           {
             name: 'stall',
             align: 'left',
-            label: 'Stall',
+            label: 'Store',
             field: 'stall'
           },
           {
@@ -1384,23 +1384,21 @@ new Vue({
       LNbits.utils.exportCSV(this.zonesTable.columns, this.zones)
     },
     ////////////////////////////////////////
-    //////////////////SHOP//////////////////
+    //////////////////MARKET//////////////////
     ////////////////////////////////////////
-    getShops: function () {
-      var self = this
-
+    getMarkets(){
       LNbits.api
         .request(
           'GET',
-          '/diagonalley/api/v1/shops?all_wallets=true',
+          '/diagonalley/api/v1/markets',
           this.g.user.wallets[0].inkey
         )
-        .then(function (response) {
+        .then((response) => {
           if (response.data) {
-            self.shops = response.data.map(mapShops)
+            this.shops = response.data.map(mapShops)
           }
         })
-        .catch(function (error) {
+        .catch((error) => {
             LNbits.utils.notifyApiError(error)
           })
     },
@@ -1451,7 +1449,6 @@ new Vue({
         })
     },
     createShop: function (data) {
-      var self = this
       console.log('cuntywoo')
       LNbits.api
         .request(
@@ -1591,6 +1588,7 @@ new Vue({
       this.getProducts()
       this.getZones()
       this.getOrders()
+      this.getMarkets()
       this.customerKeys = [
         'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
         'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from fastapi.param_functions import Query
 from pydantic import BaseModel
@@ -81,3 +81,13 @@ class Orders(BaseModel):
     paid: bool
     shipped: bool
     time: int
+
+class CreateMarket(BaseModel):
+    usr: str = Query(...)
+    name: str = Query(None)
+    stalls: List[str] = Query(...)
+
+class Market(BaseModel):
+    id: str
+    usr: str
+    name: Optional[str]

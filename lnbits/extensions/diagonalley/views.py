@@ -38,3 +38,21 @@ async def display(request: Request, stall_id):
             "products": [product.dict() for product in products]
         },
     )
+
+@diagonalley_ext.get("/{market_id}", response_class=HTMLResponse)
+async def display(request: Request, stall_id):
+    stalls = await get_diagonalley_stall(stall_id)
+    products = await get_diagonalley_products(stall_id)
+
+    if not stall:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
+        )
+    return diagonalley_renderer().TemplateResponse(
+        "diagonalley/stall.html",
+        {
+            "request": request,
+            "stall": stall.dict(),
+            "products": [product.dict() for product in products]
+        },
+    )

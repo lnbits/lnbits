@@ -25,6 +25,8 @@ from .crud import (
     delete_diagonalley_product,
     delete_diagonalley_stall,
     delete_diagonalley_zone,
+    get_diagonalley_market,
+    get_diagonalley_markets,
     get_diagonalley_order,
     get_diagonalley_orders,
     get_diagonalley_product,
@@ -38,6 +40,7 @@ from .crud import (
     update_diagonalley_zone,
 )
 from .models import (
+    CreateMarket,
     Orders,
     Products,
     Stalls,
@@ -383,3 +386,39 @@ async def api_diagonalley_stall_order(
         ),
     )
     return {"checking_id": checking_id, "payment_request": payment_request}
+
+
+##
+# MARKETS
+##
+
+@diagonalley_ext.get("/api/v1/markets")
+async def api_diagonalley_orders(
+    wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    try:
+        return [market.dict() for market in await get_diagonalley_markets(wallet.wallet.user)]
+    except:
+        return {"message": "We could not retrieve the markets."}
+
+@diagonalley_ext.post("/api/v1/markets")
+@diagonalley_ext.put("/api/v1/markets/{market_id}")
+async def api_diagonalley_stall_create(
+    data: CreateMarket,
+    market_id: str = None,
+    wallet: WalletTypeInfo = Depends(require_invoice_key),
+):
+
+    if market_id:
+        market = await get_diagonalley_market(market_id)
+        if not market:
+            return {"message": "Market does not exist."}
+
+        if market.usr != wallet.wallet.user:
+            return {"message": "Not your market."}
+
+        market = await update_diagonalley_market(market_id, **data.dict())
+    else:
+        market = await create_diagonalley_market(data=data)
+
+    return market.dict()

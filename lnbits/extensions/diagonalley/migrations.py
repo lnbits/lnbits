@@ -86,4 +86,30 @@ async def m001_initial(db):
         );
     """
     )
+
+    """
+    Initial market table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE diagonalley.markets (
+            id TEXT PRIMARY KEY,
+            usr TEXT NOT NULL,
+            name TEXT
+        );
+    """
+    )
+
+    """
+    Initial market stalls table.
+    """
+    await db.execute(
+        """
+        CREATE TABLE diagonalley.market_stalls (
+            id TEXT PRIMARY KEY,
+            marketid TEXT NOT NULL REFERENCES {db.references_schema}markets (id),
+            stallid TEXT NOT NULL REFERENCES {db.references_schema}stalls (id)
+        );
+    """
+    )
     
