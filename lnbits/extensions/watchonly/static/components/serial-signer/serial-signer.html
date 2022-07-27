@@ -99,7 +99,12 @@
           <q-item-label caption>View available comands.</q-item-label>
         </q-item-section>
       </q-item>
-      <q-item v-if="selectedPort" clickable v-close-popup>
+      <q-item
+        v-if="selectedPort"
+        @click="showConsole = true"
+        clickable
+        v-close-popup
+      >
         <q-item-section>
           <q-item-label>Console</q-item-label>
           <q-item-label caption
@@ -199,6 +204,26 @@
       </q-form>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="showConsole" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-input
+        filled
+        dense
+        for="serial-port-console"
+        v-model.trim="receivedData"
+        type="textarea"
+        rows="25"
+        cols="200"
+        label="Console"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="hww.showRestoreDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwRestore" class="q-gutter-md">

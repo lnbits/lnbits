@@ -12,9 +12,9 @@ async function serialSigner(path) {
         writer: null,
         readableStreamClosed: null,
         reader: null,
-
         receivedData: '',
         config: {},
+
         hww: {
           password: null,
           showPassword: false,
@@ -25,13 +25,13 @@ async function serialSigner(path) {
           showWipeDialog: false,
           showRestoreDialog: false,
           showConfirmationDialog: false,
-          showConsole: false,
           showSignedPsbt: false,
           sendingPsbt: false,
           signingPsbt: false,
           psbtSent: false,
           psbtSentResolve: null
-        }
+        },
+        showConsole: false
       }
     },
 
@@ -179,9 +179,7 @@ async function serialSigner(path) {
       },
       updateSerialPortConsole: function (value) {
         this.receivedData += value + '\n'
-        const textArea = document.getElementById(
-          'watchonly-serial-port-data-input'
-        )
+        const textArea = document.getElementById('serial-port-console')
         if (textArea) textArea.scrollTop = textArea.scrollHeight
       },
       hwwShowPasswordDialog: async function () {
