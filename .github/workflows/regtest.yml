@@ -43,6 +43,53 @@ jobs:
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
+  LndWallet:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup Regtest
+        run: |
+          docker build -t lnbits-legend .
+          git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
+          cd docker
+          source docker-scripts.sh
+          lnbits-regtest-start
+          echo "sleeping 60 seconds"
+          sleep 60
+          echo "continue"
+          lnbits-regtest-init
+          bitcoin-cli-sim -generate 1
+          lncli-sim 1 listpeers
+          sudo chmod -R a+rwx .
+      - name: Install dependencies
+        env: 
+          VIRTUAL_ENV: ./venv
+          PATH: ${{ env.VIRTUAL_ENV }}/bin:${{ env.PATH }}
+        run: |
+          python -m venv ${{ env.VIRTUAL_ENV }}
+          ./venv/bin/python -m pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install grpcio protobuf
+          ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock      
+      - name: Run tests
+        env:
+          PYTHONUNBUFFERED: 1
+          PORT: 5123
+          LNBITS_DATA_FOLDER: ./data
+          LNBITS_BACKEND_WALLET_CLASS: LndWallet
+          LND_GRPC_ENDPOINT: localhost
+          LND_GRPC_PORT: 10009
+          LND_GRPC_CERT: docker/data/lnd-1/data/chain/bitcoin/regtest/admin.macaroon
+        run: |
+          sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
+          make test-real-wallet          
   CLightningWallet:
     runs-on: ubuntu-latest
     strategy:
