@@ -181,7 +181,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
 
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
-        if hasattr(data, "lnurl_balance_check"):
+        if "lnurl_balance_check" in data:
             assert (
                 data.lnurl_balance_check is not None
             ), "lnurl_balance_check is required"
