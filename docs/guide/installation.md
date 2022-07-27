@@ -65,8 +65,6 @@ Add the flag `--reload` for development (includes hot-reload).
 
 ## Option 3: venv
 
-Download this repo and install the dependencies:
-
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
@@ -85,6 +83,26 @@ mkdir data && cp .env.example .env
 ```
 
 If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
+
+## Option 4: Nix
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend/
+# Install nix, modern debian distros usually already include
+sh <(curl -L https://nixos.org/nix/install) --daemon
+
+nix build .#lnbits 
+mkdir data
+
+```
+
+#### Running the server
+
+```sh
+# .env variables are currently passed when running
+LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
+```
 
 ### Troubleshooting
 
