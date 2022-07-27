@@ -36,13 +36,9 @@ async function serialSigner(path) {
     },
 
     methods: {
-      toggleSerialPortConection: async function () {
-        if (!this.selectedPort) {
-          this.openSerialPort()
-        }
-      },
       openSerialPort: async function () {
         if (!this.checkSerialPortSupported()) return
+        if (this.selectedPort) return
         console.log('### openSerialPort', this.selectedPort)
         try {
           navigator.serial.addEventListener('connect', event => {
