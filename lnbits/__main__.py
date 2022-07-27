@@ -4,7 +4,7 @@ import uvloop
 from loguru import logger
 from starlette.requests import Request
 
-from .commands import bundle_vendored, migrate_databases, transpile_scss
+from .commands import migrate_databases
 from .settings import (
     DEBUG,
     HOST,
@@ -19,8 +19,6 @@ from .settings import (
 uvloop.install()
 
 asyncio.create_task(migrate_databases())
-transpile_scss()
-bundle_vendored()
 
 from .app import create_app
 

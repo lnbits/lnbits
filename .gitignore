@@ -35,3 +35,6 @@ coverage.xml
 node_modules
 lnbits/static/bundle.*
 docker
+
+# Nix
+*result*
