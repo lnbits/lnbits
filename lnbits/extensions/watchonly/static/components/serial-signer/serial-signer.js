@@ -37,8 +37,6 @@ async function serialSigner(path) {
       toggleSerialPortConection: async function () {
         if (!this.selectedPort) {
           this.openSerialPort()
-        } else {
-          this.closeSerialPort()
         }
       },
       openSerialPort: async function () {
@@ -104,6 +102,8 @@ async function serialSigner(path) {
             caption: `${error}`,
             timeout: 10000
           })
+        } finally {
+          this.hww.authenticated = false
         }
       },
 

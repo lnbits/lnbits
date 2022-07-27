@@ -18,12 +18,12 @@
       </q-item>
 
       <q-item
-        v-if="!hww.authenticated"
+        v-if="selectedPort && !hww.authenticated"
         clickable
         v-close-popup
         @click="hwwShowPasswordDialog()"
       >
-        <q-item-section v-if="selectedPort">
+        <q-item-section>
           <q-item-label>Login</q-item-label>
           <q-item-label caption
             >Enter password for Hardware Wallet.</q-item-label
@@ -40,6 +40,17 @@
         <q-item-section>
           <q-item-label>Logout</q-item-label>
           <q-item-label caption>Clear password for HWW.</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="selectedPort"
+        clickable
+        v-close-popup
+        @click="closeSerialPort()"
+      >
+        <q-item-section>
+          <q-item-label>Disconnect</q-item-label>
+          <q-item-label caption>Disconnect from Serial Port.</q-item-label>
         </q-item-section>
       </q-item>
 
