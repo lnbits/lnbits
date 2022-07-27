@@ -43,6 +43,7 @@ async function serialSigner(path) {
           })
 
           navigator.serial.addEventListener('disconnect', () => {
+            console.log('### navigator.serial event: disconnected!', event)
             this.hww.authenticated = false
             this.$q.notify({
               type: 'warning',

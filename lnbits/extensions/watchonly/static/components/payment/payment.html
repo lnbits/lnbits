@@ -157,7 +157,8 @@
 
     <div class="row items-center no-wrap q-mb-md q-pt-lg">
       <div class="col-3">
-        <q-btn
+        <q-btn-dropdown
+          split
           unelevated
           :disabled="changeAmount < 0"
           label="Check & Send"
@@ -165,10 +166,28 @@
           type="submit"
           class="btn-full"
         >
-          <q-spinner v-if="showChecking" color="primary"></q-spinner
-        ></q-btn>
+          <q-list>
+            <q-item :disabled="changeAmount < 0" clickable v-close-popup>
+              <q-item-section>
+                <q-item-label>Serial Port</q-item-label>
+                <q-item-label caption>
+                  Sign using a Serial Port device</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+            <q-item clickable disabled v-close-popup>
+              <q-item-section>
+                <q-item-label>Share PSBT</q-item-label>
+                <q-item-label caption
+                  >Share the PSBT as text or Animated QR Code</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
       </div>
       <div class="col-9">
+        <q-spinner v-if="showChecking" color="primary"></q-spinner>
         <q-badge
           v-if="changeAmount < 0"
           class="text-subtitle2 float-right"
