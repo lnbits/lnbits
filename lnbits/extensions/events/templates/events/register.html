@@ -133,7 +133,10 @@
         var self = this
 
         LNbits.api
-          .request('GET', '/events/api/v1/register/ticket/' + res)
+          .request(
+            'GET',
+            '/events/api/v1/register/ticket/' + res.split('//')[1]
+          )
           .then(function (response) {
             self.$q.notify({
               type: 'positive',

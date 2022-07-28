@@ -97,8 +97,8 @@ async def api_tickets(
     return [ticket.dict() for ticket in await get_tickets(wallet_ids)]
 
 
-@events_ext.post("/api/v1/tickets/{event_id}/{sats}")
-async def api_ticket_make_ticket(event_id, sats, data: CreateTicket):
+@events_ext.get("/api/v1/tickets/{event_id}")
+async def api_ticket_make_ticket(event_id):
     event = await get_event(event_id)
     if not event:
         raise HTTPException(
@@ -107,37 +107,36 @@ async def api_ticket_make_ticket(event_id, sats, data: CreateTicket):
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=event.wallet,
-            amount=int(sats),
+            amount=event.price_per_ticket,
             memo=f"{event_id}",
             extra={"tag": "events"},
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
-    ticket = await create_ticket(
-        payment_hash=payment_hash,
-        wallet=event.wallet,
-        event=event_id,
-        name=data.name,
-        email=data.email,
-    )
-
-    if not ticket:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Event could not be fetched."
-        )
-
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
 
-@events_ext.get("/api/v1/tickets/{payment_hash}")
-async def api_ticket_send_ticket(payment_hash):
-    ticket = await get_ticket(payment_hash)
-
+@events_ext.post("/api/v1/tickets/{event_id}/{payment_hash}")
+async def api_ticket_send_ticket(event_id, payment_hash, data: CreateTicket):
+    event = await get_event(event_id)
     try:
         status = await api_payment(payment_hash)
         if status["paid"]:
-            await set_ticket_paid(payment_hash=payment_hash)
+            ticket = await create_ticket(
+                payment_hash=payment_hash,
+                wallet=event.wallet,
+                event=event_id,
+                name=data.name,
+                email=data.email,
+            )
+
+            if not ticket:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail=f"Event could not be fetched.",
+                )
+
             return {"paid": True, "ticket_id": ticket.id}
     except Exception:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Not paid")

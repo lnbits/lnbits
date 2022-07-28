@@ -106,6 +106,8 @@ class Payment(BaseModel):
 
     @property
     def tag(self) -> Optional[str]:
+        if self.extra is None:
+            return ""
         return self.extra.get("tag")
 
     @property

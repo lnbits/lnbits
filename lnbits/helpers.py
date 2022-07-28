@@ -34,7 +34,7 @@ class ExtensionManager:
 
     @property
     def extensions(self) -> List[Extension]:
-        output = []
+        output: List[Extension] = []
 
         if "all" in self._disabled:
             return output
