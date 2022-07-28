@@ -5,30 +5,12 @@ async function addressList(path) {
     template,
 
     props: [
-      'data',
+      'addresses',
       'accounts',
       'mempool_endpoint',
       'inkey',
       'sats-denominated'
     ],
-    watch: {
-      immediate: true,
-      accounts(newVal, oldVal) {
-        if ((newVal || []).length !== (oldVal || []).length) {
-          this.refreshAddresses() // todo await
-        }
-      }
-    },
-    computed: {
-      addresses: {
-        get: function () {
-          return this.data
-        },
-        set: function (value) {
-          this.$emit('update:data', value)
-        }
-      }
-    },
     data: function () {
       return {
         show: false,
@@ -119,49 +101,8 @@ async function addressList(path) {
         )
         return fAddresses
       },
-      getAddressesForWallet: async function (walletId) {
-        try {
-          const {data} = await LNbits.api.request(
-            'GET',
-            '/watchonly/api/v1/addresses/' + walletId,
-            this.inkey
-          )
-          return data.map(mapAddressesData)
-        } catch (err) {
-          this.$q.notify({
-            type: 'warning',
-            message: `Failed to fetch addresses for wallet with id ${walletId}.`,
-            timeout: 10000
-          })
-          LNbits.utils.notifyApiError(err)
-        }
-        return []
-      },
-      refreshAddresses: async function () {
-        if (!this.accounts) return
-        this.addresses = []
-        for (const {id, type} of this.accounts) {
-          const newAddresses = await this.getAddressesForWallet(id)
-          const uniqueAddresses = newAddresses.filter(
-            newAddr => !this.addresses.find(a => a.address === newAddr.address)
-          )
 
-          const lastAcctiveAddress =
-            uniqueAddresses.filter(a => !a.isChange && a.hasActivity).pop() ||
-            {}
-
-          uniqueAddresses.forEach(a => {
-            a.expanded = false
-            a.accountType = type
-            a.gapLimitExceeded =
-              !a.isChange &&
-              a.addressIndex >
-                lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
-          })
-          this.addresses.push(...uniqueAddresses)
-        }
-        this.$emit('update:addresses', this.addresses)
-      },
+    
       scanAddress: async function (addressData) {
         this.$emit('scan:address', addressData)
       },
@@ -171,7 +112,7 @@ async function addressList(path) {
     },
 
     created: async function () {
-      await this.refreshAddresses()
+      
     }
   })
 }

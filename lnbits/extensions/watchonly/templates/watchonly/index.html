@@ -87,7 +87,7 @@
           <q-tab-panel name="addresses">
             <address-list
               ref="addressList"
-              :data.sync="addresses"
+              :addresses="addresses"
               :accounts="walletAccounts"
               :mempool_endpoint="config.data.mempool_endpoint"
               :sats-denominated="config.data.sats_denominated"
