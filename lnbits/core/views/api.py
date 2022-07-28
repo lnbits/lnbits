@@ -3,7 +3,7 @@ import hashlib
 import json
 from binascii import unhexlify
 from http import HTTPStatus
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
@@ -185,7 +185,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             assert (
                 data.lnurl_balance_check is not None
             ), "lnurl_balance_check is required"
-            save_balance_check(wallet.id, data.lnurl_balance_check)
+            await save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
             try:
@@ -248,7 +248,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData: CreateInvoiceData = Body(...),
+    invoiceData: CreateInvoiceData = Body(...),  # type: ignore
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -291,7 +291,7 @@ async def api_payments_pay_lnurl(
                 timeout=40,
             )
             if r.is_error:
-                raise httpx.ConnectError
+                raise httpx.ConnectError("LNURL callback connection error")
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -354,7 +354,7 @@ async def subscribe(request: Request, wallet: Wallet):
     logger.debug("adding sse listener", payment_queue)
     api_invoice_listeners.append(payment_queue)
 
-    send_queue: asyncio.Queue[tuple[str, Payment]] = asyncio.Queue(0)
+    send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
@@ -393,16 +393,13 @@ async def api_payments_sse(
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = None
-    try:
-        if X_Api_Key.extra:
-            logger.warning("No key")
-    except:
-        wallet = await get_wallet_for_key(X_Api_Key)
+    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None
+
+    # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
+    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
-    )  # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
-    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
+    )
     if payment is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
@@ -612,8 +609,8 @@ class ConversionData(BaseModel):
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
     if data.from_ == "sat":
-        output["sats"] = int(data.amount)
         output["BTC"] = data.amount / 100000000
+        output["sats"] = int(data.amount)
         for currency in data.to.split(","):
             output[currency.strip().upper()] = await satoshis_amount_as_fiat(
                 data.amount, currency.strip()
