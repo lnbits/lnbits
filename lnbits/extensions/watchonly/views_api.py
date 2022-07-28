@@ -13,17 +13,16 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.watchonly import watchonly_ext
 
 from .crud import (
+    create_fresh_addresses,
     create_watch_wallet,
     delete_addresses_for_wallet,
     delete_watch_wallet,
     get_addresses,
     get_config,
     get_fresh_address,
-    create_fresh_addresses,
-    update_address,
-    delete_addresses_for_wallet,
     get_watch_wallet,
     get_watch_wallets,
+    update_address,
     update_watch_wallet,
 )
 from .helpers import parse_key
