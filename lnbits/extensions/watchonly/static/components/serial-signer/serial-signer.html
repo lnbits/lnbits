@@ -230,7 +230,12 @@
             </q-btn>
           </div>
           <div class="col-3">
-            <q-btn v-close-popup flat color="grey" class="float-right"
+            <q-btn
+              @click="cancelOperation"
+              v-close-popup
+              flat
+              color="grey"
+              class="float-right"
               >Cancel</q-btn
             >
           </div>

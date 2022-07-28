@@ -239,6 +239,18 @@ async function serialSigner(path) {
         }
         await this.writer.write(COMMAND_CONFIRM_NEXT + '\n')
       },
+      cancelOperation: async function () {
+        try {
+          await this.writer.write(COMMAND_CANCEL + '\n')
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to send cancel!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
       hwwLogin: async function () {
         try {
           await this.writer.write(
