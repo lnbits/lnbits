@@ -488,7 +488,8 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
             )
 
         try:
-            tag = data["tag"]
+            tag = data.get("tag")
+            params.update(**data)
             if tag == "channelRequest":
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
@@ -498,10 +499,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                         "message": "unsupported",
                     },
                 )
-
-            params.update(**data)
-
-            if tag == "withdrawRequest":
+            elif tag == "withdrawRequest":
                 params.update(kind="withdraw")
                 params.update(fixed=data["minWithdrawable"] == data["maxWithdrawable"])
 
@@ -519,8 +517,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     query=urlencode(qs, doseq=True)
                 )
                 params.update(callback=urlunparse(parsed_callback))
-
-            if tag == "payRequest":
+            elif tag == "payRequest":
                 params.update(kind="pay")
                 params.update(fixed=data["minSendable"] == data["maxSendable"])
 
@@ -538,8 +535,8 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                         params.update(image=data_uri)
                     if k == "text/email" or k == "text/identifier":
                         params.update(targetUser=v)
-
                 params.update(commentAllowed=data.get("commentAllowed", 0))
+
         except KeyError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
