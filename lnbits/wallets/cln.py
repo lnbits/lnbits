@@ -96,6 +96,7 @@ class CoreLightningWallet(Wallet):
                 if description_hash
                 else False,  # we can't pass None here
             )
+            print(r)
             if r.get("code") < 0:
                 raise Exception(r.get("message"))
 
