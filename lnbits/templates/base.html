@@ -6,8 +6,8 @@
     <link rel="stylesheet" type="text/css" href="{{ url }}" />
     {% endfor %}
     <!---->
-    <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
-    {% block styles %}{% endblock %}
+    {{ "/static/css/base.css"|cachebust_css|safe }} {% block styles %}{%
+    endblock %}
     <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <meta charset="utf-8" />
     <meta

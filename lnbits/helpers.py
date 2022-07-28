@@ -185,6 +185,11 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
 
     t.env.filters["cachebust_js"] = cachebust_js
 
+    def cachebust_css(filename):
+        return "<link rel=\"stylesheet\" type=\"text/css\" href=\"{0}\" />".format(cachebust(filename))
+
+    t.env.filters["cachebust_css"] = cachebust_css
+
     def cachebust_ext_js(filename):
         return "<script src=\"{0}\"></script>".format(cachebust(filename=filename, is_extension=True))
 

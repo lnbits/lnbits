@@ -2,9 +2,8 @@
 <!---->
 {% from "macros.jinja" import window_vars with context %}
 <!---->
-{% block scripts %} {{ window_vars(user, wallet) }}
-{{ "/core/static/js/wallet.js"|cachebust_js|safe }}
-{% endblock %}
+{% block scripts %} {{ window_vars(user, wallet) }} {{
+"/core/static/js/wallet.js"|cachebust_js|safe }} {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
 <!---->
