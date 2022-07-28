@@ -9,6 +9,7 @@ from lnurl import (  # type: ignore
     LnurlPayActionResponse,
     LnurlPayResponse,
 )
+from loguru import logger
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
@@ -38,13 +39,12 @@ async def lnurl_response(username: str, domain: str, request: Request):
         "maxSendable": 1000000000,
     }
 
-    print("RESP", resp)
+    logger.debug("RESP", resp)
     return resp
 
 
 @lnaddress_ext.get("/lnurl/cb/{address_id}", name="lnaddress.lnurl_callback")
 async def lnurl_callback(address_id, amount: int = Query(...)):
-    print("PING")
     address = await get_address(address_id)
     if not address:
         return LnurlErrorResponse(reason=f"Address not found").dict()

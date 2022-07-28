@@ -381,10 +381,10 @@
       getTickets: function () {
         var self = this
         LNbits.api
-        .request(
-          'GET',
-          '/events/api/v1/tickets?all_wallets=true',
-          this.g.user.wallets[0].inkey
+          .request(
+            'GET',
+            '/events/api/v1/tickets?all_wallets=true',
+            this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             console.log(response)

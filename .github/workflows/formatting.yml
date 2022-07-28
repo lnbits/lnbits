@@ -2,9 +2,9 @@ name: formatting
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   black:
@@ -15,9 +15,22 @@ jobs:
       - run: python3 -m venv venv
       - run: ./venv/bin/pip install black
       - run: make checkblack
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: sudo apt-get install python3-venv
+      - run: python3 -m venv venv
+      - run: ./venv/bin/pip install isort
+      - run: make checkisort
+            
   prettier:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: npm install
-      - run: make checkprettier
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: sudo apt-get install python3-venv
+      - run: python3 -m venv venv
+      - run: npm install prettier
+      - run: ./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js

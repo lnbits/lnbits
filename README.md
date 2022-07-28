@@ -7,13 +7,13 @@ LNbits
 
 ![Lightning network wallet](https://i.imgur.com/EHvK6Lq.png)
 
-# LNbits v0.3 BETA, free and open-source lightning-network wallet/accounts system
+# LNbits v0.9 BETA, free and open-source lightning-network wallet/accounts system
 
 (Join us on [https://t.me/lnbits](https://t.me/lnbits))
 
 (LNbits is beta, for responsible disclosure of any concerns please contact lnbits@pm.me)
 
-Use [lnbits.com](https://lnbits.com), or run your own LNbits server!
+Use [legend.lnbits.com](https://legend.lnbits.com), or run your own LNbits server!
 
 LNbits is a very simple Python server that sits on top of any funding source, and can be used as:
 
@@ -33,7 +33,7 @@ LNbits is inspired by all the great work of [opennode.com](https://www.opennode.
 
 ## Running LNbits
 
-See the [install guide](docs/devs/installation.md) for details on installation and setup.
+See the [install guide](docs/guide/installation.md) for details on installation and setup.
 
 ## LNbits as an account system
 
@@ -67,7 +67,7 @@ Wallets can be easily generated and given out to people at events (one click mul
 
 ## Tip us
 
-If you like this project and might even use or extend it, why not [send some tip love](https://lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
+If you like this project and might even use or extend it, why not [send some tip love](https://legend.lnbits.com/paywall/GAqKguK5S8f6w5VNjS9DfK)!
 
 
 [docs]: https://lnbits.org/

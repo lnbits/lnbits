@@ -1,30 +1,26 @@
 import base64
 import hashlib
+import hmac
 from http import HTTPStatus
+from io import BytesIO
 from typing import Optional
 
-from embit import bech32
-from embit import compact
-import base64
-from io import BytesIO
-import hmac
-
+from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.services import create_invoice
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from lnbits.core.views.api import pay_invoice
-
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from . import lnurldevice_ext
 from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
-    update_lnurldevicepayment,
     get_lnurlpayload,
+    update_lnurldevicepayment,
 )
 
 
@@ -150,7 +146,7 @@ async def lnurl_v1_params(
             "defaultDescription": device.title,
         }
     price_msat = int(price_msat * ((device.profit / 100) + 1) / 1000)
-    print(price_msat)
+
     lnurldevicepayment = await create_lnurldevicepayment(
         deviceid=device.id,
         payload=p,
@@ -204,7 +200,7 @@ async def lnurl_callback(
             extra={"tag": "withdraw"},
         )
         return {"status": "OK"}
-    print(lnurldevicepayment.sats)
+
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,
         amount=lnurldevicepayment.sats / 1000,

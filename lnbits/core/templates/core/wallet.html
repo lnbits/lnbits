@@ -4,7 +4,6 @@
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="/core/static/js/wallet.js"></script>
-<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" />
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
@@ -706,11 +705,10 @@
 
     <q-tab icon="photo_camera" label="Scan" @click="showCamera"> </q-tab>
   </q-tabs>
-  {% if service_fee > 0 %}
-  <div ref="disclaimer"></div>
+
   <q-dialog v-model="disclaimerDialog.show">
     <q-card class="q-pa-lg">
-      <h6 class="q-my-md text-deep-purple">Warning</h6>
+      <h6 class="q-my-md text-primary">Warning</h6>
       <p>
         Login functionality to be released in v0.2, for now,
         <strong
@@ -720,10 +718,10 @@
       </p>
       <p>
         This service is in BETA, and we hold no responsibility for people losing
-        access to funds. To encourage you to run your own LNbits installation,
-        any balance on {% raw %}{{ disclaimerDialog.location.host }}{% endraw %}
-        will incur a charge of
-        <strong>{{ service_fee }}% service fee</strong> per week.
+        access to funds. {% if service_fee > 0 %} To encourage you to run your
+        own LNbits installation, any balance on {% raw %}{{
+        disclaimerDialog.location.host }}{% endraw %} will incur a charge of
+        <strong>{{ service_fee }}% service fee</strong> per week. {% endif %}
       </p>
       <div class="row q-mt-lg">
         <q-btn
@@ -738,5 +736,5 @@
       </div>
     </q-card>
   </q-dialog>
-  {% endif %} {% endblock %}
+  {% endblock %}
 </div>

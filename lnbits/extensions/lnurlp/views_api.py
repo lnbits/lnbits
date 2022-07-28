@@ -73,13 +73,10 @@ async def api_link_retrieve(
 @lnurlp_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
     data: CreatePayLinkData,
+    request: Request,
     link_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-    if data.min < 1:
-        raise HTTPException(
-            detail="Min must be more than 1.", status_code=HTTPStatus.BAD_REQUEST
-        )
 
     if data.min > data.max:
         raise HTTPException(
@@ -87,11 +84,17 @@ async def api_link_create_or_update(
         )
 
     if data.currency == None and (
-        round(data.min) != data.min or round(data.max) != data.max
+        round(data.min) != data.min or round(data.max) != data.max or data.min < 1
     ):
         raise HTTPException(
             detail="Must use full satoshis.", status_code=HTTPStatus.BAD_REQUEST
         )
+
+    # database only allows int4 entries for min and max. For fiat currencies,
+    # we multiply by data.fiat_base_multiplier (usually 100) to save the value in cents.
+    if data.currency and data.fiat_base_multiplier:
+        data.min *= data.fiat_base_multiplier
+        data.max *= data.fiat_base_multiplier
 
     if "success_url" in data and data.success_url[:8] != "https://":
         raise HTTPException(
@@ -115,7 +118,7 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-    return {**link.dict(), "lnurl": link.lnurl}
+    return {**link.dict(), "lnurl": link.lnurl(request)}
 
 
 @lnurlp_ext.delete("/api/v1/links/{link_id}")

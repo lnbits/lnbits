@@ -1,14 +1,17 @@
+import base64
+import getpass
+from hashlib import md5
+
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-import base64
-from hashlib import md5
-import getpass
+from loguru import logger
 
 BLOCK_SIZE = 16
-import getpass 
+import getpass
+
 
 def load_macaroon(macaroon: str) -> str:
-    """Returns hex version of a macaroon encoded in base64 or the file path. 
+    """Returns hex version of a macaroon encoded in base64 or the file path.
 
     :param macaroon: Macaroon encoded in base64 or file path.
     :type macaroon: str
@@ -29,6 +32,7 @@ def load_macaroon(macaroon: str) -> str:
             pass
     return macaroon
 
+
 class AESCipher(object):
     """This class is compatible with crypto-js/aes.js
 
@@ -39,6 +43,7 @@ class AESCipher(object):
         AES.decrypt(encrypted, password).toString(Utf8);
 
     """
+
     def __init__(self, key=None, description=""):
         self.key = key
         self.description = description + " "
@@ -46,7 +51,6 @@ class AESCipher(object):
     def pad(self, data):
         length = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
         return data + (chr(length) * length).encode()
-
 
     def unpad(self, data):
         return data[: -(data[-1] if type(data[-1]) == int else ord(data[-1]))]
@@ -69,11 +73,10 @@ class AESCipher(object):
             final_key += key
         return final_key[:output]
 
-    def decrypt(self, encrypted: str) -> str:
-        """Decrypts a string using AES-256-CBC.
-        """
+    def decrypt(self, encrypted: str) -> str:  # type: ignore
+        """Decrypts a string using AES-256-CBC."""
         passphrase = self.passphrase
-        encrypted = base64.b64decode(encrypted)
+        encrypted = base64.b64decode(encrypted)  # type: ignore
         assert encrypted[0:8] == b"Salted__"
         salt = encrypted[8:16]
         key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
@@ -81,7 +84,7 @@ class AESCipher(object):
         iv = key_iv[32:]
         aes = AES.new(key, AES.MODE_CBC, iv)
         try:
-            return self.unpad(aes.decrypt(encrypted[16:])).decode()
+            return self.unpad(aes.decrypt(encrypted[16:])).decode()  # type: ignore
         except UnicodeDecodeError:
             raise ValueError("Wrong passphrase")
 
@@ -92,12 +95,15 @@ class AESCipher(object):
         key = key_iv[:32]
         iv = key_iv[32:]
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return base64.b64encode(b"Salted__" + salt + aes.encrypt(self.pad(message))).decode()
+        return base64.b64encode(
+            b"Salted__" + salt + aes.encrypt(self.pad(message))
+        ).decode()
+
 
 # if this file is executed directly, ask for a macaroon and encrypt it
 if __name__ == "__main__":
     macaroon = input("Enter macaroon: ")
     macaroon = load_macaroon(macaroon)
     macaroon = AESCipher(description="encryption").encrypt(macaroon.encode())
-    print("Encrypted macaroon:")
-    print(macaroon)
+    logger.info("Encrypted macaroon:")
+    logger.info(macaroon)

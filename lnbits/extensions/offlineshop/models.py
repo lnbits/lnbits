@@ -1,14 +1,15 @@
-import json
 import base64
 import hashlib
+import json
 from collections import OrderedDict
+from typing import Dict, List, Optional
 
-from typing import Optional, List, Dict
 from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
 from pydantic import BaseModel
 from starlette.requests import Request
+
 from .helpers import totp
 
 shop_counters: Dict = {}

@@ -480,12 +480,11 @@
             updatedData
           )
           .then(function (response) {
-            self.lnurldeviceLinks = _.reject(
-              self.lnurldeviceLinks,
-              function (obj) {
-                return obj.id === updatedData.id
-              }
-            )
+            self.lnurldeviceLinks = _.reject(self.lnurldeviceLinks, function (
+              obj
+            ) {
+              return obj.id === updatedData.id
+            })
             self.lnurldeviceLinks.push(maplnurldevice(response.data))
             self.formDialoglnurldevice.show = false
             self.clearFormDialoglnurldevice()
