@@ -99,12 +99,12 @@ class CoreLightningWallet(Wallet):
             if r.get("code") < 0:
                 raise Exception(r.get("message"))
 
-            return InvoiceResponse(True, label, r["bolt11"], "")
+            return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
-            return InvoiceResponse(False, label, None, error_message)
+            return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
-            return InvoiceResponse(False, label, None, str(e))
+            return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
@@ -122,14 +122,15 @@ class CoreLightningWallet(Wallet):
             return PaymentResponse(False, None, 0, None, str(exc))
 
         fee_msat = r["msatoshi_sent"] - r["msatoshi"]
-        preimage = r["payment_preimage"]
-        return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
+        return PaymentResponse(
+            True, r["payment_hash"], fee_msat, r["payment_preimage"], None
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        r = self.ln.listinvoices(checking_id)
+        r = self.ln.listinvoices(payment_hash=checking_id)
         if not r["invoices"]:
             return PaymentStatus(False)
-        if r["invoices"][0]["label"] == checking_id:
+        if r["invoices"][0]["payment_hash"] == checking_id:
             return PaymentStatus(r["invoices"][0]["status"] == "paid")
         raise KeyError("supplied an invalid checking_id")
 
