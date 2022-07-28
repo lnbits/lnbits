@@ -4,8 +4,6 @@ title: Basic installation
 nav_order: 2
 ---
 
-
-
 # Basic installation
 
 You can choose between four package managers, `poetry`, `nix` and `venv`.
