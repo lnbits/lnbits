@@ -704,7 +704,7 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         insert_to_pg(q, res.fetchall())
     elif schema == "scrub":
         # SCRUB LINKS
-        res = sq.execute("SELECT * FROM scrub.scrub_links;")
+        res = sq.execute("SELECT * FROM scrub;")
         q = f"""
             INSERT INTO scrub.scrub_links (
             id,
