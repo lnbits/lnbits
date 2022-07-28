@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
-%} {% block scripts %} {{ window_vars(user) }}
-<script src="/withdraw/static/js/index.js"></script>
-{% endblock %} {% block page %}
+%} {% block scripts %} {{ window_vars(user) }} {{
+"/withdraw/static/js/index.js"|cachebust_ext_js|safe }} {% endblock %} {% block
+page %}
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
