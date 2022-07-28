@@ -1,9 +1,8 @@
-import psycopg2
-import sqlite3
-import os
 import argparse
+import os
+import sqlite3
 
-
+import psycopg2
 from environs import Env  # type: ignore
 
 env = Env()
