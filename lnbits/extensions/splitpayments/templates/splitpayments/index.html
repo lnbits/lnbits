@@ -95,6 +95,5 @@
     </q-card>
   </div>
 </div>
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="/splitpayments/static/js/index.js"></script>
-{% endblock %}
+{% endblock %} {% block scripts %} {{ window_vars(user) }} {{
+"/splitpayments/static/js/index.js"|cachebust_ext_js|safe }} {% endblock %}
