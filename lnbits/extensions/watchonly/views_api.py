@@ -15,19 +15,16 @@ from lnbits.extensions.watchonly import watchonly_ext
 from .crud import (
     create_config,
     create_fresh_addresses,
-    create_mempool,
     create_watch_wallet,
     delete_addresses_for_wallet,
     delete_watch_wallet,
     get_addresses,
     get_config,
     get_fresh_address,
-    get_mempool,
     get_watch_wallet,
     get_watch_wallets,
     update_address,
     update_config,
-    update_mempool,
     update_watch_wallet,
 )
 from .helpers import parse_key
@@ -281,23 +278,3 @@ async def api_get_config(w: WalletTypeInfo = Depends(get_key_type)):
     if not config:
         config = await create_config(user=w.wallet.user)
     return config.dict()
-
-
-#############################MEMPOOL##########################
-
-### TODO: fix statspay dependcy and remove
-@watchonly_ext.put("/api/v1/mempool")
-async def api_update_mempool(
-    endpoint: str = Query(...), w: WalletTypeInfo = Depends(require_admin_key)
-):
-    mempool = await update_mempool(**{"endpoint": endpoint}, user=w.wallet.user)
-    return mempool.dict()
-
-
-### TODO: fix statspay dependcy and remove
-@watchonly_ext.get("/api/v1/mempool")
-async def api_get_mempool(w: WalletTypeInfo = Depends(require_admin_key)):
-    mempool = await get_mempool(w.wallet.user)
-    if not mempool:
-        mempool = await create_mempool(user=w.wallet.user)
-    return mempool.dict()

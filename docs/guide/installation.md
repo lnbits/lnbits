@@ -64,6 +64,8 @@ python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 # create the data folder and the .env file
 mkdir data && cp .env.example .env
+# build the static files
+./venv/bin/python build.py
 ```
 
 #### Running the server
