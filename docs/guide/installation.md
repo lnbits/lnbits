@@ -8,7 +8,7 @@ nav_order: 2
 
 # Basic installation
 
-You can choose between four package managers, `poetry`, `pipenv`, `venv` and `nix`.
+You can choose between four package managers, `poetry`, `nix` and `venv`.
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
@@ -33,35 +33,25 @@ poetry run lnbits
 # To change port/host pass 'poetry run lnbits --port 9000 --host 0.0.0.0'
 ```
 
-## Option 2: pipenv
+## Option 2: Nix
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
+# Modern debian distros usually include Nix, however you can install with:
+# 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
 
-sudo apt update && sudo apt install -y pipenv
-pipenv install --dev
-# pipenv --python 3.9 install --dev (if you wish to use a version of Python higher than 3.7)
-pipenv shell
-# pipenv --python 3.9 shell (if you wish to use a version of Python higher than 3.7)
+nix build .#lnbits 
+mkdir data
 
-# If any of the modules fails to install, try checking and upgrading your setupTool module
-# pip install -U setuptools wheel
-
-# install libffi/libpq in case "pipenv install" fails
-# sudo apt-get install -y libffi-dev libpq-dev
-
- mkdir data && cp .env.example .env
-``` 
-
-#### Running the server
-    
-```sh
-pipenv run python -m uvicorn lnbits.__main__:app --port 5000 --host 0.0.0.0
 ```
 
-Add the flag `--reload` for development (includes hot-reload).
+#### Running the server
 
+```sh
+# .env variables are currently passed when running
+LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
+```
 
 ## Option 3: venv
 
@@ -83,26 +73,6 @@ mkdir data && cp .env.example .env
 ```
 
 If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
-
-## Option 4: Nix
-
-```sh
-git clone https://github.com/lnbits/lnbits-legend.git
-cd lnbits-legend/
-# Modern debian distros usually include Nix, however you can install with:
-# 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
-
-nix build .#lnbits 
-mkdir data
-
-```
-
-#### Running the server
-
-```sh
-# .env variables are currently passed when running
-LNBITS_DATA_FOLDER=data LNBITS_BACKEND_WALLET_CLASS=LNbitsWallet LNBITS_ENDPOINT=https://legend.lnbits.com LNBITS_KEY=7b1a78d6c78f48b09a202f2dcb2d22eb ./result/bin/lnbits --port 9000
-```
 
 ### Troubleshooting
 
