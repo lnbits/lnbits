@@ -158,7 +158,9 @@
       <q-form @submit="hwwSignPsbt" class="q-gutter-md">
         <div class="row q-mt-lg">
           <div class="col-12">
-            <span>Check data on the display of the hardware device.</span>
+            <q-badge class="text-subtitle2" color="yellow" text-color="black">
+              <span>Check data on the display of the hardware device.</span>
+            </q-badge>
           </div>
         </div>
         <div v-if="tx">
@@ -167,6 +169,13 @@
               <span class="text-subtitle2"
                 >Output {{hww.confirm.outputIndex}}</span
               >
+              <q-badge
+                v-if="tx.outputs[hww.confirm.outputIndex].branch_index === 1"
+                color="orange"
+                text-color="black"
+              >
+                <span>change</span>
+              </q-badge>
             </div>
           </div>
           <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
@@ -207,7 +216,7 @@
         <div class="row q-mt-lg">
           <div class="col-6">
             <q-btn
-              v-if="hww.confirm.confirmed"
+              v-if="hww.confirm.showFee"
               unelevated
               color="green"
               :disable="!selectedPort"
@@ -224,7 +233,7 @@
               color="secondary"
               label="Next"
               class="float-left"
-              v-if="!hww.confirm.confirmed"
+              v-if="!hww.confirm.showFee"
               @click="hwwConfirmNext"
             >
             </q-btn>
