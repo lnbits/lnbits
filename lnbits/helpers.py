@@ -163,8 +163,12 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         )
     )
 
-    def cachebust(filename):
-        file_path = os.path.join('lnbits/', filename[1:])
+    def cachebust(filename, is_extension=False):
+        if(is_extension):
+            file_path = os.path.join('lnbits/extensions/', filename[1:])
+        else:
+            file_path = os.path.join('lnbits/', filename[1:])
+
         try:
             # get the file's md5 hash
             hash_md5 = md5()
@@ -178,7 +182,13 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
 
     def cachebust_js(filename):
         return "<script src=\"{0}\"></script>".format(cachebust(filename))
+
     t.env.filters["cachebust_js"] = cachebust_js
+
+    def cachebust_ext_js(filename):
+        return "<script src=\"{0}\"></script>".format(cachebust(filename=filename, is_extension=True))
+
+    t.env.filters["cachebust_ext_js"] = cachebust_ext_js
 
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
