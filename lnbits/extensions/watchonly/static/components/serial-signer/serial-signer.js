@@ -4,7 +4,7 @@ async function serialSigner(path) {
     name: 'serial-signer',
     template: t,
 
-    props: [],
+    props: ['sats-denominated'],
     data: function () {
       return {
         selectedPort: null,
