@@ -150,7 +150,7 @@ const watchOnly = async () => {
 
       initPaymentData: async function () {
         if (!this.payment.show) return
-        await this.$refs.addressList.refreshAddresses()
+        await this.refreshAddresses()
       },
 
       goToPaymentView: async function () {
@@ -171,7 +171,7 @@ const watchOnly = async () => {
 
       //################### UTXOs ###################
       scanAllAddresses: async function () {
-        await this.$refs.addressList.refreshAddresses()
+        await this.refreshAddresses()
         this.history = []
         let addresses = this.addresses
         this.utxos.data = []
@@ -181,7 +181,7 @@ const watchOnly = async () => {
         for (let i = 0; i < 1000 && addresses.length; i++) {
           await this.updateUtxosForAddresses(addresses)
           const oldAddresses = this.addresses.slice()
-          await this.$refs.addressList.refreshAddresses()
+          await this.refreshAddresses()
           const newAddresses = this.addresses.slice()
           // check if gap addresses have been extended
           addresses = newAddresses.filter(
@@ -210,6 +210,50 @@ const watchOnly = async () => {
           message: 'Address Rescanned',
           timeout: 10000
         })
+      },
+      refreshAddresses: async function () {
+        if (!this.walletAccounts) return
+        this.addresses = []
+        for (const {id, type} of this.walletAccounts) {
+          const newAddresses = await this.getAddressesForWallet(id)
+          const uniqueAddresses = newAddresses.filter(
+            newAddr => !this.addresses.find(a => a.address === newAddr.address)
+          )
+
+          const lastAcctiveAddress =
+            uniqueAddresses.filter(a => !a.isChange && a.hasActivity).pop() ||
+            {}
+
+          uniqueAddresses.forEach(a => {
+            a.expanded = false
+            a.accountType = type
+            a.gapLimitExceeded =
+              !a.isChange &&
+              a.addressIndex >
+                lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+          })
+          this.addresses.push(...uniqueAddresses)
+        }
+        console.log('### refreshAddresses', this.addresses)
+        this.$emit('update:addresses', this.addresses)
+      },
+      getAddressesForWallet: async function (walletId) {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/watchonly/api/v1/addresses/' + walletId,
+            this.g.user.wallets[0].inkey
+          )
+          return data.map(mapAddressesData)
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: `Failed to fetch addresses for wallet with id ${walletId}.`,
+            timeout: 10000
+          })
+          LNbits.utils.notifyApiError(error)
+        }
+        return []
       },
       updateUtxosForAddresses: async function (addresses = []) {
         this.scan = {scanning: true, scanCount: addresses.length, scanIndex: 0}
@@ -315,7 +359,7 @@ const watchOnly = async () => {
 
       updateAccounts: async function (accounts) {
         this.walletAccounts = accounts
-        // await this.refreshAddressesxx() // todo: automatic now?
+        await this.refreshAddresses()
         await this.scanAddressWithAmount()
       },
       showAddressDetails: function (addressData) {
@@ -331,6 +375,7 @@ const watchOnly = async () => {
     },
     created: async function () {
       if (this.g.user.wallets.length) {
+        await this.refreshAddresses()
         await this.scanAddressWithAmount()
       }
     }
