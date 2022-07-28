@@ -97,7 +97,7 @@ class CoreLightningWallet(Wallet):
                 else False,  # we can't pass None here
             )
             print(r)
-            if r.get("code") < 0:
+            if r.get("code") and r.get("code") < 0:
                 raise Exception(r.get("message"))
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
