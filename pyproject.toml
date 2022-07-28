@@ -9,7 +9,7 @@ generate-setup-file = false
 script = "build.py"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.7"
 aiofiles = "0.8.0"
 asgiref = "3.4.1"
 attrs = "21.2.0"
