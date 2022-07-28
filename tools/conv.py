@@ -704,6 +704,19 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
             VALUES (%s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
+    elif schema == "scrub":
+        # SCRUB LINKS
+        res = sq.execute("SELECT * FROM scrub_links;")
+        q = f"""
+            INSERT INTO scrub.scrub_links (
+            id,
+            wallet,
+            description,
+            payoraddress
+        )
+	        VALUES (%s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
     else:
         print(f"❌ Not implemented: {schema}")
         sq.close()
