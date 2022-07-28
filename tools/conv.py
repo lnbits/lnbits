@@ -539,8 +539,8 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         # ITEMS
         res = sq.execute("SELECT * FROM items;")
         q = f"""
-            INSERT INTO offlineshop.items (shop, id, name, description, image, enabled, price, unit)
-            VALUES (%s, %s, %s, %s, %s, %s::boolean, %s, %s);
+            INSERT INTO offlineshop.items (shop, id, name, description, image, enabled, price, unit, fiat_base_multiplier)
+            VALUES (%s, %s, %s, %s, %s, %s::boolean, %s, %s, %s);
         """
         items = res.fetchall()
         insert_to_pg(q, items)

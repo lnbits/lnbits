@@ -52,14 +52,20 @@ async def set_method(shop: int, method: str, wordlist: str = "") -> Optional[Sho
 
 
 async def add_item(
-    shop: int, name: str, description: str, image: Optional[str], price: int, unit: str
+    shop: int,
+    name: str,
+    description: str,
+    image: Optional[str],
+    price: int,
+    unit: str,
+    fiat_base_multiplier: int,
 ) -> int:
     result = await db.execute(
         """
-        INSERT INTO offlineshop.items (shop, name, description, image, price, unit)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO offlineshop.items (shop, name, description, image, price, unit, fiat_base_multiplier)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (shop, name, description, image, price, unit),
+        (shop, name, description, image, price, unit, fiat_base_multiplier),
     )
     return result._result_proxy.lastrowid
 
@@ -72,6 +78,7 @@ async def update_item(
     image: Optional[str],
     price: int,
     unit: str,
+    fiat_base_multiplier: int,
 ) -> int:
     await db.execute(
         """
@@ -80,10 +87,11 @@ async def update_item(
           description = ?,
           image = ?,
           price = ?,
-          unit = ?
+          unit = ?,
+          fiat_base_multiplier = ?
         WHERE shop = ? AND id = ?
         """,
-        (name, description, image, price, unit, shop, item_id),
+        (name, description, image, price, unit, fiat_base_multiplier, shop, item_id),
     )
     return item_id
 
@@ -92,12 +100,12 @@ async def get_item(id: int) -> Optional[Item]:
     row = await db.fetchone(
         "SELECT * FROM offlineshop.items WHERE id = ?  LIMIT 1", (id,)
     )
-    return Item(**dict(row)) if row else None
+    return Item.from_row(row) if row else None
 
 
 async def get_items(shop: int) -> List[Item]:
     rows = await db.fetchall("SELECT * FROM offlineshop.items WHERE shop = ?", (shop,))
-    return [Item(**dict(row)) for row in rows]
+    return [Item.from_row(row) for row in rows]
 
 
 async def delete_item_from_shop(shop: int, item_id: int):
