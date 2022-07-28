@@ -647,7 +647,9 @@ new Vue({
     getAddressTxsDelayed: async function (addrData) {
       const {
         bitcoin: {addresses: addressesAPI}
-      } = mempoolJS()
+      } = mempoolJS({
+        hostname: new URL(this.config.data.mempool_endpoint).hostname
+      })
 
       const fn = async () =>
         addressesAPI.getAddressTxs({
@@ -660,7 +662,9 @@ new Vue({
     refreshRecommendedFees: async function () {
       const {
         bitcoin: {fees: feesAPI}
-      } = mempoolJS()
+      } = mempoolJS({
+        hostname: new URL(this.config.data.mempool_endpoint).hostname
+      })
 
       const fn = async () => feesAPI.getFeesRecommended()
       this.payment.recommededFees = await retryWithDelay(fn)
@@ -668,7 +672,9 @@ new Vue({
     getAddressTxsUtxoDelayed: async function (address) {
       const {
         bitcoin: {addresses: addressesAPI}
-      } = mempoolJS()
+      } = mempoolJS({
+        hostname: new URL(this.config.data.mempool_endpoint).hostname
+      })
 
       const fn = async () =>
         addressesAPI.getAddressTxsUtxo({
@@ -679,7 +685,9 @@ new Vue({
     fetchTxHex: async function (txId) {
       const {
         bitcoin: {transactions: transactionsAPI}
-      } = mempoolJS()
+      } = mempoolJS({
+        hostname: new URL(this.config.data.mempool_endpoint).hostname
+      })
 
       try {
         const response = await transactionsAPI.getTxHex({txid: txId})
