@@ -109,18 +109,15 @@ async def pay_invoice(
             raise ValueError("Amount in invoice is too high.")
 
         # put all parameters that don't change here
-        PaymentKwargs = TypedDict(
-            "PaymentKwargs",
-            {
-                "wallet_id": str,
-                "payment_request": str,
-                "payment_hash": str,
-                "amount": int,
-                "memo": str,
-                "extra": Optional[Dict],
-            },
-        )
-        payment_kwargs: PaymentKwargs = dict(
+        class PaymentKwargs(TypedDict):
+            wallet_id: str
+            payment_request: str
+            payment_hash: str
+            amount: int
+            memo: str
+            extra: Optional[Dict]
+
+        payment_kwargs: PaymentKwargs = PaymentKwargs(
             wallet_id=wallet_id,
             payment_request=payment_request,
             payment_hash=invoice.payment_hash,
@@ -272,6 +269,7 @@ async def perform_lnurlauth(
     cb = urlparse(callback)
 
     k1 = unhexlify(parse_qs(cb.query)["k1"][0])
+
     key = wallet.wallet.lnurlauth_key(cb.netloc)
 
     def int_to_bytes_suitable_der(x: int) -> bytes:

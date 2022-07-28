@@ -66,7 +66,7 @@ async def webhook_handler():
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
-internal_invoice_queue = asyncio.Queue(0)
+internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 
 
 async def internal_invoice_listener():
