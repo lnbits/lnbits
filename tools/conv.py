@@ -1,9 +1,8 @@
-import psycopg2
-import sqlite3
-import os
 import argparse
+import os
+import sqlite3
 
-
+import psycopg2
 from environs import Env  # type: ignore
 
 env = Env()
@@ -701,6 +700,19 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
             INSERT INTO discordbot.wallets(
             id, admin, name, "user", adminkey, inkey)
             VALUES (%s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+    elif schema == "scrub":
+        # SCRUB LINKS
+        res = sq.execute("SELECT * FROM scrub.scrub_links;")
+        q = f"""
+            INSERT INTO scrub.scrub_links (
+            id,
+            wallet,
+            description,
+            payoraddress
+        )
+	        VALUES (%s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     else:
