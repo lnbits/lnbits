@@ -317,6 +317,5 @@
     </q-card>
   </q-dialog>
 </div>
-{% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="/livestream/static/js/index.js"></script>
-{% endblock %}
+{% endblock %} {% block scripts %} {{ window_vars(user) }} {{
+"/livestream/static/js/index.js"|cachebust_ext_js|safe }} {% endblock %}
