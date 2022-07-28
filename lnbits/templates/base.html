@@ -223,8 +223,8 @@
     <script src="{{ url }}"></script>
     {% endfor %}
     <!---->
-    <script src="/static/js/base.js"></script>
-    <script src="/static/js/components.js"></script>
+    <script src="{{ "/static/js/base.js"|cachebust }}"></script>
+    <script src="{{ "/static/js/components.js"|cachebust }}"></script>
     <script type="text/javascript">
       const themes = {{ LNBITS_THEME_OPTIONS  | tojson }}
       const LNBITS_DENOMINATION = {{ LNBITS_DENOMINATION   | tojson}}

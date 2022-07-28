@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+from hashlib import md5
 from typing import Any, List, NamedTuple, Optional
 
 import jinja2
@@ -161,6 +162,21 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
             ["lnbits/templates", "lnbits/core/templates", *additional_folders]
         )
     )
+
+    def cachebust(filename):
+        file_path = os.path.join('lnbits/', filename[1:])
+        try:
+            # get the file's md5 hash
+            hash_md5 = md5()
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
+            file_hash = hash_md5.hexdigest()[-6:]
+            return "{0}?v={1}".format(filename, file_hash)
+        except OSError:
+            return filename
+
+    t.env.filters["cachebust"] = cachebust
 
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
