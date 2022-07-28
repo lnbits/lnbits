@@ -3,6 +3,7 @@ import json
 import os
 from hashlib import md5
 from typing import Any, List, NamedTuple, Optional
+from collections.abc import MutableMapping
 
 import jinja2
 import shortuuid  # type: ignore
@@ -10,7 +11,6 @@ import shortuuid  # type: ignore
 import lnbits.settings as settings
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
-
 
 class Extension(NamedTuple):
     code: str
@@ -22,6 +22,50 @@ class Extension(NamedTuple):
     contributors: Optional[List[str]] = None
     hidden: bool = False
 
+from collections.abc import MutableMapping
+
+
+class StaticFilesHashCache(MutableMapping):
+    """
+    A dictionary for caching the hashes of static file assets
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.store = dict()
+        self.update(dict(*args, **kwargs))  # use the free update to set keys
+
+    def get_hash(self, file_path):
+        """
+        Get the file hash value from the cache dict if it exists, otherwise put it in there
+        :param file_path: The path of the file to get a hash for
+        :return: A shortened hash of the file
+        """
+        if (self.get(file_path) is None):
+            hash_md5 = md5()
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
+            hash_md5 = hash_md5.hexdigest()[-6:]
+            self[file_path] = hash_md5
+        return self.get(file_path)
+
+    def __getitem__(self, key):
+        return self.store[self._keytransform(key)]
+
+    def __setitem__(self, key, value):
+        self.store[self._keytransform(key)] = value
+
+    def __delitem__(self, key):
+        del self.store[self._keytransform(key)]
+
+    def __iter__(self):
+        return iter(self.store)
+
+    def __len__(self):
+        return len(self.store)
+
+    def _keytransform(self, key):
+        return key
 
 class ExtensionManager:
     def __init__(self):
@@ -155,6 +199,7 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     url = f"{base}{endpoint}{url_params}"
     return url
 
+static_files_hash_cache = StaticFilesHashCache()
 
 def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t = Jinja2Templates(
@@ -164,18 +209,14 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     )
 
     def cachebust(filename, is_extension=False):
+
         if(is_extension):
             file_path = os.path.join('lnbits/extensions/', filename[1:])
         else:
             file_path = os.path.join('lnbits/', filename[1:])
 
         try:
-            # get the file's md5 hash
-            hash_md5 = md5()
-            with open(file_path, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    hash_md5.update(chunk)
-            file_hash = hash_md5.hexdigest()[-6:]
+            file_hash = static_files_hash_cache.get_hash(file_path)
             return "{0}?v={1}".format(filename, file_hash)
         except OSError:
             return filename
