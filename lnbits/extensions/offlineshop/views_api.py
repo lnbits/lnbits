@@ -73,6 +73,7 @@ async def api_add_or_update_item(
             data.image,
             data.price,
             data.unit,
+            data.fiat_base_multiplier,
         )
         return HTMLResponse(status_code=HTTPStatus.CREATED)
     else:
