@@ -384,5 +384,5 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
-<script src="/jukebox/static/js/index.js"></script>
+{{ "/jukebox/static/js/index.js"|cachebust_ext_js|safe }}
 {% endblock %}
