@@ -29,10 +29,10 @@ async function serialSigner(path) {
           sendingPsbt: false,
           signingPsbt: false,
           psbtSentResolve: null,
+          loginResolve: null,
           confirm: {
             outputIndex: 0,
-            showFee: false,
-            confirmed: false
+            showFee: false
           }
         },
         tx: null, // todo: move to hww
@@ -122,6 +122,13 @@ async function serialSigner(path) {
       isAuthenticated: function () {
         return this.hww.authenticated
       },
+      isAuthenticating: function () {
+        if (this.isAuthenticated()) return false
+        return new Promise(resolve => {
+          this.loginResolve = resolve
+        })
+      },
+
       isSendingPsbt: async function () {
         if (!this.hww.sendingPsbt) return false
         return new Promise(resolve => {
@@ -229,10 +236,6 @@ async function serialSigner(path) {
         }
       },
       hwwConfirmNext: async function () {
-        if (this.hww.confirm.showFee === true) {
-          this.hww.confirm.confirmed = true
-          return
-        }
         this.hww.confirm.outputIndex += 1
         if (this.hww.confirm.outputIndex >= this.tx.outputs.length) {
           this.hww.confirm.showFee = true
@@ -271,6 +274,7 @@ async function serialSigner(path) {
       },
       handleLoginResponse: function (res = '') {
         this.hww.authenticated = res.trim() === '1'
+        this.loginResolve(this.hww.authenticated)
         if (this.hww.authenticated) {
           this.$q.notify({
             type: 'positive',
@@ -333,8 +337,7 @@ async function serialSigner(path) {
         this.hww.showConfirmationDialog = true
         this.hww.confirm = {
           outputIndex: 0,
-          showFee: false,
-          confirmed: false
+          showFee: false
         }
         this.hww.sendingPsbt = false
         this.psbtSentResolve()

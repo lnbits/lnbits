@@ -88,7 +88,8 @@ async function payment(path) {
           }
           if (!this.serialSignerRef.isAuthenticated()) {
             await this.serialSignerRef.hwwShowPasswordDialog()
-            return
+            const authenticated = await this.serialSignerRef.isAuthenticating()
+            if (!authenticated) return
           }
 
           await this.createPsbt()
