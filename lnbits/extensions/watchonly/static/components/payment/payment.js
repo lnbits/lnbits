@@ -39,6 +39,7 @@ async function payment(path) {
         showCoinSelect: false,
         showChecking: false,
         showChange: false,
+        showPsbt: false,
         feeRate: 1
       }
     },
@@ -103,18 +104,34 @@ async function payment(path) {
             await this.serialSignerRef.hwwSendPsbt(this.psbtBase64, txData)
             await this.serialSignerRef.isSendingPsbt()
           }
-
-          console.log('### hwwSendPsbt')
         } catch (error) {
-          console.error(error)
           this.$q.notify({
             type: 'warning',
             message: 'Cannot check and sign PSBT!',
+            caption: `${error}`,
             timeout: 10000
           })
         } finally {
           this.showChecking = false
           this.psbtBase64 = null
+        }
+      },
+      showPsbtDialog: async function () {
+        try {
+          const valid = await this.$refs.paymentFormRef.validate()
+          if (!valid) return
+
+          const data = await this.createPsbt()
+          if (data) {
+            this.showPsbt = true
+          }
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to create PSBT!',
+            caption: `${error}`,
+            timeout: 10000
+          })
         }
       },
       createPsbt: async function () {
@@ -136,6 +153,7 @@ async function payment(path) {
           )
 
           this.psbtBase64 = data
+          return data
         } catch (err) {
           LNbits.utils.notifyApiError(err)
         }
