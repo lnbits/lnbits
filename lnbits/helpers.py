@@ -207,7 +207,7 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         t.env.globals["VENDORED_JS"] = map(url_for_vendored, get_js_vendored())
         t.env.globals["VENDORED_CSS"] = map(url_for_vendored, get_css_vendored())
     else:
-        t.env.globals["VENDORED_JS"] = ["/static/bundle.js"]
-        t.env.globals["VENDORED_CSS"] = ["/static/bundle.css"]
+        t.env.globals["VENDORED_JS"] = [cachebust("/static/bundle.js")]
+        t.env.globals["VENDORED_CSS"] = [cachebust("/static/bundle.css")]
 
     return t
