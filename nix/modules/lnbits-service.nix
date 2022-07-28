@@ -3,7 +3,7 @@
 let
   defaultUser = "lnbits";
   cfg = config.services.lnbits;
-  inherit (lib) mkOption mkIf types optionalAttrs;
+  inherit (lib) mkOption mkIf types optionalAttrs literalExpression;
 in
 
 {
@@ -25,6 +25,7 @@ in
       };
       package = mkOption {
         type = types.package;
+        defaultText = literalExpression "pkgs.lnbits";
         default = pkgs.lnbits;
         description = ''
           The lnbits package to use.
