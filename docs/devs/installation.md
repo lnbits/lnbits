@@ -8,7 +8,7 @@ nav_order: 1
 # Installation
 
 This guide has been moved to the [installation guide](../guide/installation.md). 
-To install the developer packages, use `pipenv install --dev`.
+To install the developer packages for running tests etc before pr'ing, use `./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock black mypy isort`.
 
 ## Notes:
 
