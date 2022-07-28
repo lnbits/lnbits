@@ -28,14 +28,23 @@ async function serialSigner(path) {
           showSignedPsbt: false,
           sendingPsbt: false,
           signingPsbt: false,
-          psbtSent: false,
-          psbtSentResolve: null
+          psbtSentResolve: null,
+          confirm: {
+            outputIndex: 0,
+            showFee: false,
+            confirmed: false
+          }
         },
+        tx: null, // todo: move to hww
+
         showConsole: false
       }
     },
 
     methods: {
+      satBtc(val, showUnit = true) {
+        return satOrBtc(val, showUnit, this.satsDenominated)
+      },
       openSerialPort: async function () {
         if (!this.checkSerialPortSupported()) return false
         if (this.selectedPort) return true
@@ -219,6 +228,17 @@ async function serialSigner(path) {
           })
         }
       },
+      hwwConfirmNext: async function () {
+        if (this.hww.confirm.showFee === true) {
+          this.hww.confirm.confirmed = true
+          return
+        }
+        this.hww.confirm.outputIndex += 1
+        if (this.hww.confirm.outputIndex >= this.tx.outputs.length) {
+          this.hww.confirm.showFee = true
+        }
+        await this.writer.write(COMMAND_CONFIRM_NEXT + '\n')
+      },
       hwwLogin: async function () {
         try {
           await this.writer.write(
@@ -275,8 +295,10 @@ async function serialSigner(path) {
           })
         }
       },
-      hwwSendPsbt: async function (psbtBase64) {
+      hwwSendPsbt: async function (psbtBase64, tx) {
         try {
+          console.log('### hwwSendPsbt tx', tx)
+          this.tx = tx
           this.hww.sendingPsbt = true
           await this.writer.write(COMMAND_SEND_PSBT + ' ' + psbtBase64 + '\n')
           this.$q.notify({
@@ -295,13 +317,19 @@ async function serialSigner(path) {
         }
       },
       handleSendPsbtResponse: function (res = '') {
-        this.hww.psbtSent = true
+        this.hww.confirm.outputIndex = 0
+        this.hww.showConfirmationDialog = true
+        this.hww.confirm = {
+          outputIndex: 0,
+          showFee: false,
+          confirmed: false
+        }
         this.hww.sendingPsbt = false
         this.psbtSentResolve()
       },
       hwwSignPsbt: async function () {
         try {
-          this.hww.psbtSent = false
+          this.hww.showConfirmationDialog = false
           this.hww.signingPsbt = true
           await this.writer.write(COMMAND_SIGN_PSBT + '\n')
         } catch (error) {

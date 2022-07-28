@@ -7,6 +7,7 @@ const COMMAND_HELP = '/help'
 const COMMAND_WIPE = '/wipe'
 const COMMAND_SEED = '/seed'
 const COMMAND_RESTORE = '/restore'
+const COMMAND_CONFIRM_NEXT = '/confirm-next'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
 

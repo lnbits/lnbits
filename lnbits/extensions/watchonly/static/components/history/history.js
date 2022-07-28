@@ -4,7 +4,7 @@ async function history(path) {
     name: 'history',
     template,
 
-    props: ['history', 'mempool_endpoint', 'sats_denominated'],
+    props: ['history', 'mempool_endpoint', 'sats-denominated'],
     data: function () {
       return {
         historyTable: {
@@ -73,7 +73,7 @@ async function history(path) {
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this['sats_denominated'])
+        return satOrBtc(val, showUnit, this.satsDenominated)
       },
       getFilteredAddressesHistory: function () {
         return this.history.filter(a => (!a.isChange || a.sent) && !a.isSubItem)

@@ -9,7 +9,7 @@ async function payment(path) {
       'addresses',
       'utxos',
       'mempool_endpoint',
-      'sats_denominated',
+      'sats-denominated',
       'serial-signer-ref',
       'adminkey'
     ],
@@ -77,7 +77,7 @@ async function payment(path) {
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this['sats_denominated'])
+        return satOrBtc(val, showUnit, this.satsDenominated)
       },
       checkAndSend: async function () {
         this.showChecking = true
@@ -94,12 +94,23 @@ async function payment(path) {
           await this.createPsbt()
 
           if (this.psbtBase64) {
-            await this.serialSignerRef.hwwSendPsbt(this.psbtBase64)
+            const txData = {
+              outputs: this.tx.outputs,
+              feeRate: this.tx.fee_rate,
+              feeValue: this.feeValue
+            }
+            await this.serialSignerRef.hwwSendPsbt(this.psbtBase64, txData)
             await this.serialSignerRef.isSendingPsbt()
           }
 
           console.log('### hwwSendPsbt')
         } catch (error) {
+          console.error(error)
+          this.$q.notify({
+            type: 'warning',
+            message: 'Cannot check and sign PSBT!',
+            timeout: 10000
+          })
         } finally {
           this.showChecking = false
           this.psbtBase64 = null

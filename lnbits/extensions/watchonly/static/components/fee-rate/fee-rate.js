@@ -4,7 +4,7 @@ async function feeRate(path) {
     name: 'fee-rate',
     template,
 
-    props: ['rate', 'fee-value', 'sats_denominated'],
+    props: ['rate', 'fee-value', 'sats-denominated'],
 
     computed: {
       feeRate: {
@@ -31,7 +31,7 @@ async function feeRate(path) {
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this['sats_denominated'])
+        return satOrBtc(val, showUnit, this.satsDenominated)
       },
 
       refreshRecommendedFees: async function () {

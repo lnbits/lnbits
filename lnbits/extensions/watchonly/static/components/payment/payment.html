@@ -7,7 +7,7 @@
           :fee-rate="feeRate"
           :tx-size="txSizeNoChange"
           :selected-amount="selectedAmount"
-          :sats-denominated="sats_denominated"
+          :sats-denominated="satsDenominated"
           @update:outputs="handleOutputsChange"
         ></send-to>
       </q-card-section>
@@ -79,7 +79,7 @@
               :selectable="true"
               :payed-amount="totalPayedAmount"
               :mempool_endpoint="mempool_endpoint"
-              :sats-denominated="sats_denominated"
+              :sats-denominated="satsDenominated"
             ></utxo-list>
           </div>
         </div>
@@ -160,7 +160,7 @@
         <q-btn-dropdown
           split
           unelevated
-          :disabled="changeAmount < 0"
+          :disabled="changeAmount < 0 || showChecking"
           label="Check & Send"
           color="green"
           type="submit"
