@@ -488,7 +488,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
             )
 
         try:
-            tag = data.get("tag")
+            tag: str = data.get("tag")
             params.update(**data)
             if tag == "channelRequest":
                 raise HTTPException(
