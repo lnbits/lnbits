@@ -84,7 +84,6 @@ class CoreLightningWallet(Wallet):
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
         msat = amount * 1000
-
         try:
             if description_hash and not self.supports_description_hash:
                 raise Unsupported("description_hash")
@@ -93,8 +92,13 @@ class CoreLightningWallet(Wallet):
                 label,
                 memo,
                 exposeprivatechannels=True,
-                deschashonly=description_hash,
+                deschashonly=description_hash
+                if description_hash
+                else False,  # we can't pass None here
             )
+            if r.get("code") < 0:
+                raise Exception(r.get("message"))
+
             return InvoiceResponse(True, label, r["bolt11"], "")
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
