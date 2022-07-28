@@ -9,7 +9,7 @@ async function utxoList(path) {
       'accounts',
       'selectable',
       'payed-amount',
-      'sats_denominated',
+      'sats-denominated',
       'mempool_endpoint'
     ],
 
@@ -90,7 +90,7 @@ async function utxoList(path) {
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this['sats_denominated'])
+        return satOrBtc(val, showUnit, this.satsDenominated)
       },
       getWalletName: function (walletId) {
         const wallet = (this.accounts || []).find(wl => wl.id === walletId)

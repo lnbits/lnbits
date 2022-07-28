@@ -9,7 +9,7 @@ async function sendTo(path) {
       'tx-size',
       'selected-amount',
       'fee-rate',
-      'sats_denominated'
+      'sats-denominated'
     ],
 
     computed: {
@@ -44,7 +44,7 @@ async function sendTo(path) {
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this['sats_denominated'])
+        return satOrBtc(val, showUnit, this.satsDenominated)
       },
       addPaymentAddress: function () {
         this.dataLocal.push({address: '', amount: undefined})

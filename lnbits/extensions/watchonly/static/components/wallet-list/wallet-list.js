@@ -50,7 +50,7 @@ async function walletList(path) {
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this['sats_denominated'])
+        return satOrBtc(val, showUnit, this.satsDenominated)
       },
 
       addWalletAccount: async function () {

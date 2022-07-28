@@ -153,29 +153,87 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="hww.psbtSent" position="top">
+  <q-dialog v-model="hww.showConfirmationDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwSignPsbt" class="q-gutter-md">
         <div class="row q-mt-lg">
           <div class="col-12">
-            <span>Check transaction on your hardware device</span>
+            <span>Check data on your hardware device.</span>
           </div>
         </div>
-
+        <div v-if="tx">
+          <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-12">
+              <span class="text-subtitle2"
+                >Output {{hww.confirm.outputIndex}}</span
+              >
+            </div>
+          </div>
+          <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Address:</span>
+            </div>
+            <div class="col-9">
+              <span>{{tx.outputs[hww.confirm.outputIndex].address}}</span>
+            </div>
+          </div>
+          <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Amount:</span>
+            </div>
+            <div class="col-9">
+              <span
+                >{{satBtc(tx.outputs[hww.confirm.outputIndex].amount)}}</span
+              >
+            </div>
+          </div>
+          <div v-if="hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Fee: </span>
+            </div>
+            <div class="col-9">
+              <span>{{satBtc(tx.feeValue)}}</span>
+            </div>
+          </div>
+          <div v-if="hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Fee Rate:</span>
+            </div>
+            <div class="col-9">
+              <span>{{tx.feeRate}} sats/vbyte</span>
+            </div>
+          </div>
+        </div>
         <div class="row q-mt-lg">
-          <!-- todo: disable until all data is confirmed -->
-          <q-btn
-            unelevated
-            color="green"
-            :disable="!selectedPort"
-            type="submit"
-            label="Confirm"
-          >
-            <q-spinner v-if="hww.signingPsbt" color="primary"></q-spinner>
-          </q-btn>
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
+          <div class="col-6">
+            <q-btn
+              v-if="hww.confirm.confirmed"
+              unelevated
+              color="green"
+              :disable="!selectedPort"
+              type="submit"
+              class="float-left"
+              label="Confirm"
+            >
+              <q-spinner v-if="hww.signingPsbt" color="primary"></q-spinner>
+            </q-btn>
+          </div>
+          <div class="col-3">
+            <q-btn
+              unelevated
+              color="secondary"
+              label="Next"
+              class="float-left"
+              v-if="!hww.confirm.confirmed"
+              @click="hwwConfirmNext"
+            >
+            </q-btn>
+          </div>
+          <div class="col-3">
+            <q-btn v-close-popup flat color="grey" class="float-right"
+              >Cancel</q-btn
+            >
+          </div>
         </div>
       </q-form>
     </q-card>
