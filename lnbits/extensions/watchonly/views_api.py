@@ -1,39 +1,37 @@
 from http import HTTPStatus
 
+from embit import script
+from embit.descriptor import Descriptor, Key
+from embit.ec import PublicKey
+from embit.psbt import PSBT, DerivationPath
+from embit.transaction import Transaction, TransactionInput, TransactionOutput
 from fastapi import Query, Request
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
-
-from embit.descriptor import Descriptor, Key
-from embit.psbt import PSBT, DerivationPath
-from embit.ec import PublicKey
-from embit.transaction import Transaction, TransactionInput, TransactionOutput
-from embit import script
 
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.extensions.watchonly import watchonly_ext
 
 from .crud import (
+    create_config,
+    create_fresh_addresses,
     create_mempool,
     create_watch_wallet,
+    delete_addresses_for_wallet,
     delete_watch_wallet,
     get_addresses,
+    get_config,
     get_fresh_address,
-    create_fresh_addresses,
-    update_address,
-    delete_addresses_for_wallet,
     get_mempool,
     get_watch_wallet,
     get_watch_wallets,
+    update_address,
+    update_config,
     update_mempool,
     update_watch_wallet,
-    create_config,
-    get_config,
-    update_config,
 )
-from .models import CreateWallet, CreatePsbt, Config, WalletAccount
 from .helpers import parse_key
-
+from .models import Config, CreatePsbt, CreateWallet, WalletAccount
 
 ###################WALLETS#############################
 
