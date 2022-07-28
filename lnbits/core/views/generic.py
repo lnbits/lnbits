@@ -148,7 +148,9 @@ async def wallet(
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
-    logger.debug(f"Access wallet {wallet_name}{'of user '+ user.id if user else ''}")
+    logger.debug(
+        f"Access wallet {wallet_name if wallet_name is not None else ''} {'of user '+ user.id if user else ''}"
+    )
     wallet = user.get_wallet(wallet_id)
     if not wallet:
         return template_renderer().TemplateResponse(
