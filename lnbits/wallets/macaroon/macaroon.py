@@ -73,10 +73,10 @@ class AESCipher(object):
             final_key += key
         return final_key[:output]
 
-    def decrypt(self, encrypted: str) -> str:
+    def decrypt(self, encrypted: str) -> str:  # type: ignore
         """Decrypts a string using AES-256-CBC."""
         passphrase = self.passphrase
-        encrypted = base64.b64decode(encrypted)
+        encrypted = base64.b64decode(encrypted)  # type: ignore
         assert encrypted[0:8] == b"Salted__"
         salt = encrypted[8:16]
         key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
@@ -84,7 +84,7 @@ class AESCipher(object):
         iv = key_iv[32:]
         aes = AES.new(key, AES.MODE_CBC, iv)
         try:
-            return self.unpad(aes.decrypt(encrypted[16:])).decode()
+            return self.unpad(aes.decrypt(encrypted[16:])).decode()  # type: ignore
         except UnicodeDecodeError:
             raise ValueError("Wrong passphrase")
 
