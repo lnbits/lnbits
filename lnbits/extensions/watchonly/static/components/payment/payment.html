@@ -1,5 +1,5 @@
 <div>
-  <q-form @submit="checkAndSend" class="q-gutter-md">
+  <q-form @submit="checkAndSend" ref="paymentFormRef" class="q-gutter-md">
     <q-card class="q-mt-lg">
       <q-card-section>
         <send-to
@@ -175,7 +175,7 @@
                 >
               </q-item-section>
             </q-item>
-            <q-item clickable disabled v-close-popup>
+            <q-item @click="showPsbtDialog" clickable v-close-popup>
               <q-item-section>
                 <q-item-label>Share PSBT</q-item-label>
                 <q-item-label caption
@@ -204,4 +204,21 @@
       </div>
     </div>
   </q-form>
+  <q-dialog v-model="showPsbt" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-input
+        filled
+        dense
+        v-model.trim="psbtBase64"
+        type="textarea"
+        rows="25"
+        cols="200"
+        label="PSBT"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 </div>
