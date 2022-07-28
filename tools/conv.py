@@ -1,9 +1,8 @@
-import psycopg2
-import sqlite3
-import os
 import argparse
+import os
+import sqlite3
 
-
+import psycopg2
 from environs import Env  # type: ignore
 
 env = Env()
@@ -284,22 +283,24 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
                 masterpub,
                 title,
                 address_no,
-                balance
+                balance,
+                type,
+                fingerprint
             )
-            VALUES (%s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # ADDRESSES
         res = sq.execute("SELECT * FROM addresses;")
         q = f"""
-            INSERT INTO watchonly.addresses (id, address, wallet, amount)
-            VALUES (%s, %s, %s, %s);
+            INSERT INTO watchonly.addresses (id, address, wallet, amount, branch_index, address_index, has_activity, note)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::boolean, %s);
         """
         insert_to_pg(q, res.fetchall())
-        # MEMPOOL
-        res = sq.execute("SELECT * FROM mempool;")
+        # CONFIG
+        res = sq.execute("SELECT * FROM config;")
         q = f"""
-            INSERT INTO watchonly.mempool ("user", endpoint)
+            INSERT INTO watchonly.config ("user", json_data)
             VALUES (%s, %s);
         """
         insert_to_pg(q, res.fetchall())
@@ -540,8 +541,8 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         # ITEMS
         res = sq.execute("SELECT * FROM items;")
         q = f"""
-            INSERT INTO offlineshop.items (shop, id, name, description, image, enabled, price, unit)
-            VALUES (%s, %s, %s, %s, %s, %s::boolean, %s, %s);
+            INSERT INTO offlineshop.items (shop, id, name, description, image, enabled, price, unit, fiat_base_multiplier)
+            VALUES (%s, %s, %s, %s, %s, %s::boolean, %s, %s, %s);
         """
         items = res.fetchall()
         insert_to_pg(q, items)
@@ -701,6 +702,19 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
             INSERT INTO discordbot.wallets(
             id, admin, name, "user", adminkey, inkey)
             VALUES (%s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+    elif schema == "scrub":
+        # SCRUB LINKS
+        res = sq.execute("SELECT * FROM scrub_links;")
+        q = f"""
+            INSERT INTO scrub.scrub_links (
+            id,
+            wallet,
+            description,
+            payoraddress
+        )
+	        VALUES (%s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     else:

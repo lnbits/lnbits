@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 from collections import OrderedDict
+from sqlite3 import Row
 from typing import Dict, List, Optional
 
 from lnurl import encode as lnurl_encode  # type: ignore
@@ -87,8 +88,16 @@ class Item(BaseModel):
     description: str
     image: Optional[str]
     enabled: bool
-    price: int
+    price: float
     unit: str
+    fiat_base_multiplier: int
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Item":
+        data = dict(row)
+        if data["unit"] != "sat" and data["fiat_base_multiplier"]:
+            data["price"] /= data["fiat_base_multiplier"]
+        return cls(**data)
 
     def lnurl(self, req: Request) -> str:
         return lnurl_encode(req.url_for("offlineshop.lnurl_response", item_id=self.id))
