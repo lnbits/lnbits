@@ -96,17 +96,17 @@ class CoreLightningWallet(Wallet):
                 if description_hash
                 else False,  # we can't pass None here
             )
-            print(r)
+
             if r.get("code") and r.get("code") < 0:
                 raise Exception(r.get("message"))
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
-            print("RPC error:", error_message)
+            logger.error("RPC error:", error_message)
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
-            print("error:", e)
+            logger.error("error:", e)
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
