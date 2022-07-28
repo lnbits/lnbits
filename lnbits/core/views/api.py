@@ -3,20 +3,20 @@ import hashlib
 import json
 from binascii import unhexlify
 from http import HTTPStatus
+from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
-from fastapi import Depends, Header, Query, Request
 import pyqrcode
-from io import BytesIO
-from starlette.responses import HTMLResponse, StreamingResponse
+from fastapi import Depends, Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
 from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
@@ -624,6 +624,7 @@ async def api_fiat_as_sats(data: ConversionData):
         output["sats"] = await fiat_amount_as_satoshis(data.amount, data.from_)
         output["BTC"] = output["sats"] / 100000000
         return output
+
 
 @core_app.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
 async def img(request: Request, data):
