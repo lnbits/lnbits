@@ -105,6 +105,7 @@ class CoreLightningWallet(Wallet):
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
+            print(e)
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
