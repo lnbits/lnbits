@@ -82,10 +82,10 @@ Problems installing? These commands have helped us install LNbits.
 sudo apt install pkg-config libffi-dev libpq-dev
 
 # if the secp256k1 build fails:
-# if you used pipenv (option 1)
-pipenv install setuptools wheel 
-# if you used venv (option 2)
+# if you used venv
 ./venv/bin/pip install setuptools wheel 
+# if you used poetry
+poetry add setuptools wheel 
 # build essentials for debian/ubuntu
 sudo apt install python3-dev gcc build-essential
 ```
