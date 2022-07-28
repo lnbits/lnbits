@@ -176,7 +176,9 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
         except OSError:
             return filename
 
-    t.env.filters["cachebust"] = cachebust
+    def cachebust_js(filename):
+        return "<script src=\"{0}\"></script>".format(cachebust(filename))
+    t.env.filters["cachebust_js"] = cachebust_js
 
     if settings.LNBITS_AD_SPACE:
         t.env.globals["AD_SPACE"] = settings.LNBITS_AD_SPACE
