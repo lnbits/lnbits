@@ -156,7 +156,7 @@ class CoreLightningWallet(Wallet):
                 wrapped = async_wrap(_paid_invoices_stream)
                 paid = await wrapped(self.ln, self.last_pay_index)
                 self.last_pay_index = paid["pay_index"]
-                yield paid["label"]
+                yield paid["payment_hash"]
             except Exception as exc:
                 logger.error(
                     f"lost connection to cln invoices stream: '{exc}', retrying in 5 seconds"
