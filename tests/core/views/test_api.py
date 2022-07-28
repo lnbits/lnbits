@@ -12,6 +12,7 @@ from lnbits.core.views.api import api_payments_create_invoice, CreateInvoiceData
 
 from ...helpers import get_random_invoice_data
 
+
 # check if the client is working
 @pytest.mark.asyncio
 async def test_core_views_generic(client):
