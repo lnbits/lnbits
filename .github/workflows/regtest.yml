@@ -18,6 +18,7 @@ jobs:
         run: |
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
+          git checkout removelnbits
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
@@ -58,6 +59,7 @@ jobs:
         run: |
           git clone https://github.com/lnbits/legend-regtest-enviroment.git docker
           cd docker
+          git checkout removelnbits
           chmod +x ./tests
           ./tests
           sudo chmod -R a+rwx .
