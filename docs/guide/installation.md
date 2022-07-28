@@ -90,7 +90,7 @@ If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 # Install nix, modern debian distros usually already include
-sh <(curl -L https://nixos.org/nix/install) --daemon
+# otherwise run 'sh <(curl -L https://nixos.org/nix/install) --daemon', or use setup here https://nixos.org/download.html#nix-verify-installation
 
 nix build .#lnbits 
 mkdir data
