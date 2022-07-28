@@ -261,7 +261,7 @@ window.LNbits = {
         return data
       }
     },
-    exportCSV: function (columns, data) {
+    exportCSV: function (columns, data, fileName) {
       var wrapCsvValue = function (val, formatFn) {
         var formatted = formatFn !== void 0 ? formatFn(val) : val
 
@@ -295,7 +295,7 @@ window.LNbits = {
         .join('\r\n')
 
       var status = Quasar.utils.exportFile(
-        'table-export.csv',
+        `${fileName || 'table-export'}.csv`,
         content,
         'text/csv'
       )

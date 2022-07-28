@@ -5,10 +5,9 @@ on: [push, pull_request]
 jobs:
   check:
     runs-on: ubuntu-latest
-    if: ${{ 'false' == 'true' }} # skip mypy for now
     steps:
       - uses: actions/checkout@v1
       - uses: jpetrucciani/mypy-check@master
         with:
           mypy_flags: '--install-types --non-interactive'
-          path: lnbits
+          path: 'lnbits'

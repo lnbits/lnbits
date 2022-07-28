@@ -3,10 +3,12 @@ import hashlib
 import json
 from binascii import unhexlify
 from http import HTTPStatus
-from typing import Dict, List, Optional, Union
+from io import BytesIO
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, parse_qs, urlencode, urlparse, urlunparse
 
 import httpx
+import pyqrcode
 from fastapi import Depends, Header, Query, Request
 from fastapi.exceptions import HTTPException
 from fastapi.params import Body
@@ -14,6 +16,7 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import Field
 from sse_starlette.sse import EventSourceResponse
+from starlette.responses import HTMLResponse, StreamingResponse
 
 from lnbits import bolt11, lnurl
 from lnbits.core.models import Payment, Wallet
@@ -185,7 +188,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
             assert (
                 data.lnurl_balance_check is not None
             ), "lnurl_balance_check is required"
-            save_balance_check(wallet.id, data.lnurl_balance_check)
+            await save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
             try:
@@ -248,7 +251,7 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 )
 async def api_payments_create(
     wallet: WalletTypeInfo = Depends(require_invoice_key),
-    invoiceData: CreateInvoiceData = Body(...),
+    invoiceData: CreateInvoiceData = Body(...),  # type: ignore
 ):
     if invoiceData.out is True and wallet.wallet_type == 0:
         if not invoiceData.bolt11:
@@ -291,7 +294,7 @@ async def api_payments_pay_lnurl(
                 timeout=40,
             )
             if r.is_error:
-                raise httpx.ConnectError
+                raise httpx.ConnectError("LNURL callback connection error")
         except (httpx.ConnectError, httpx.RequestError):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
@@ -354,7 +357,7 @@ async def subscribe(request: Request, wallet: Wallet):
     logger.debug("adding sse listener", payment_queue)
     api_invoice_listeners.append(payment_queue)
 
-    send_queue: asyncio.Queue[tuple[str, Payment]] = asyncio.Queue(0)
+    send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
     async def payment_received() -> None:
         while True:
@@ -393,16 +396,13 @@ async def api_payments_sse(
 async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
     # We use X_Api_Key here because we want this call to work with and without keys
     # If a valid key is given, we also return the field "details", otherwise not
-    wallet = None
-    try:
-        if X_Api_Key.extra:
-            logger.warning("No key")
-    except:
-        wallet = await get_wallet_for_key(X_Api_Key)
+    wallet = await get_wallet_for_key(X_Api_Key) if type(X_Api_Key) == str else None
+
+    # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
+    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
-    )  # we have to specify the wallet id here, because postgres and sqlite return internal payments in different order
-    # and get_standalone_payment otherwise just fetches the first one, causing unpredictable results
+    )
     if payment is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
@@ -488,7 +488,8 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
             )
 
         try:
-            tag = data["tag"]
+            tag: str = data.get("tag")
+            params.update(**data)
             if tag == "channelRequest":
                 raise HTTPException(
                     status_code=HTTPStatus.BAD_REQUEST,
@@ -498,10 +499,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                         "message": "unsupported",
                     },
                 )
-
-            params.update(**data)
-
-            if tag == "withdrawRequest":
+            elif tag == "withdrawRequest":
                 params.update(kind="withdraw")
                 params.update(fixed=data["minWithdrawable"] == data["maxWithdrawable"])
 
@@ -519,8 +517,7 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                     query=urlencode(qs, doseq=True)
                 )
                 params.update(callback=urlunparse(parsed_callback))
-
-            if tag == "payRequest":
+            elif tag == "payRequest":
                 params.update(kind="pay")
                 params.update(fixed=data["minSendable"] == data["maxSendable"])
 
@@ -538,8 +535,8 @@ async def api_lnurlscan(code: str, wallet: WalletTypeInfo = Depends(get_key_type
                         params.update(image=data_uri)
                     if k == "text/email" or k == "text/identifier":
                         params.update(targetUser=v)
-
                 params.update(commentAllowed=data.get("commentAllowed", 0))
+
         except KeyError as exc:
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
@@ -612,8 +609,8 @@ class ConversionData(BaseModel):
 async def api_fiat_as_sats(data: ConversionData):
     output = {}
     if data.from_ == "sat":
-        output["sats"] = int(data.amount)
         output["BTC"] = data.amount / 100000000
+        output["sats"] = int(data.amount)
         for currency in data.to.split(","):
             output[currency.strip().upper()] = await satoshis_amount_as_fiat(
                 data.amount, currency.strip()
@@ -624,3 +621,24 @@ async def api_fiat_as_sats(data: ConversionData):
         output["sats"] = await fiat_amount_as_satoshis(data.amount, data.from_)
         output["BTC"] = output["sats"] / 100000000
         return output
+
+
+@core_app.get("/api/v1/qrcode/{data}", response_class=StreamingResponse)
+async def img(request: Request, data):
+    qr = pyqrcode.create(data)
+    stream = BytesIO()
+    qr.svg(stream, scale=3)
+    stream.seek(0)
+
+    async def _generator(stream: BytesIO):
+        yield stream.getvalue()
+
+    return StreamingResponse(
+        _generator(stream),
+        headers={
+            "Content-Type": "image/svg+xml",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
