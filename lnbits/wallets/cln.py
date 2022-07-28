@@ -88,11 +88,11 @@ class CoreLightningWallet(Wallet):
             if description_hash and not self.supports_description_hash:
                 raise Unsupported("description_hash")
             r = self.ln.invoice(
-                msat,
-                label,
-                memo,
+                msatoshi=msat,
+                label=label,
+                description=description_hash.hex() if description_hash else memo,
                 exposeprivatechannels=True,
-                deschashonly=description_hash
+                deschashonly=True
                 if description_hash
                 else False,  # we can't pass None here
             )
