@@ -113,7 +113,7 @@ async def create_wallet(
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    await (conn or db).execute(
+    return await (conn or db).execute(
         """
         UPDATE wallets SET
             name = ?

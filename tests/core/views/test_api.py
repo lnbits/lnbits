@@ -1,6 +1,7 @@
 import pytest
 import pytest_asyncio
 from lnbits.core.crud import get_wallet
+from lnbits.core.views.api import api_payment
 
 from ...helpers import get_random_invoice_data
 
@@ -155,3 +156,26 @@ async def test_decode_invoice(client, invoice):
     )
     assert response.status_code < 300
     assert response.json()["payment_hash"] == invoice["payment_hash"]
+
+
+# check api_payment() internal function call (NOT API): payment status
+@pytest.mark.asyncio
+async def test_api_payment_without_key(invoice):
+    # check the payment status
+    response = await api_payment(invoice["payment_hash"])
+    assert type(response) == dict
+    assert response["paid"] == True
+    # no key, that's why no "details"
+    assert "details" not in response
+
+
+# check api_payment() internal function call (NOT API): payment status
+@pytest.mark.asyncio
+async def test_api_payment_with_key(invoice, inkey_headers_from):
+    # check the payment status
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert type(response) == dict
+    assert response["paid"] == True
+    assert "details" in response
