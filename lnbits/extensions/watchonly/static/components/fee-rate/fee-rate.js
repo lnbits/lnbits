@@ -4,7 +4,7 @@ async function feeRate(path) {
     name: 'fee-rate',
     template,
 
-    props: ['rate', 'fee-value', 'sats-denominated'],
+    props: ['rate', 'fee-value', 'sats-denominated', 'mempool-endpoint'],
 
     computed: {
       feeRate: {
@@ -37,7 +37,9 @@ async function feeRate(path) {
       refreshRecommendedFees: async function () {
         const {
           bitcoin: {fees: feesAPI}
-        } = mempoolJS()
+        } = mempoolJS({
+          hostname: new URL(this.mempoolEndpoint).hostname
+        })
 
         const fn = async () => feesAPI.getFeesRecommended()
         this.recommededFees = await retryWithDelay(fn)

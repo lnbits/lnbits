@@ -89,7 +89,7 @@
               ref="addressList"
               :addresses="addresses"
               :accounts="walletAccounts"
-              :mempool_endpoint="config.data.mempool_endpoint"
+              :mempool-endpoint="config.data.mempool_endpoint"
               :sats-denominated="config.data.sats_denominated"
               @scan:address="scanAddress"
               @show-address-details="showAddressDetails"
@@ -101,14 +101,14 @@
           <q-tab-panel name="history">
             <history
               :history="history"
-              :mempool_endpoint="config.data.mempool_endpoint"
+              :mempool-endpoint="config.data.mempool_endpoint"
               :sats-denominated="config.data.sats_denominated"
             ></history>
           </q-tab-panel>
           <q-tab-panel name="utxos">
             <utxo-list
               :utxos="utxos.data"
-              :mempool_endpoint="config.data.mempool_endpoint"
+              :mempool-endpoint="config.data.mempool_endpoint"
               :sats-denominated="config.data.sats_denominated"
             ></utxo-list>
           </q-tab-panel>
@@ -116,12 +116,14 @@
       </q-card-section>
     </q-card>
     <div class="q-pt-sm">
+      {{config.data.mempool_endpoint}}
       <payment
         ref="paymentRef"
         v-show="showPayment"
         :accounts="walletAccounts"
         :addresses="addresses"
         :utxos="utxos.data"
+        :mempool-endpoint="config.data.mempool_endpoint"
         :adminkey="g.user.wallets[0].adminkey"
         :serial-signer-ref="$refs.serialSigner"
       ></payment>
