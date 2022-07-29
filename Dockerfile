@@ -1,5 +1,10 @@
-FROM acaratti/pypoet:3.9
+FROM python:3.9-slim
+RUN apt-get update
+RUN apt-get install -y curl
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:$PATH"
 COPY . .
+RUN poetry config virtualenvs.create false
 RUN poetry install --no-dev --no-root
 WORKDIR /app
 COPY lnbits /app/lnbits
