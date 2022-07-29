@@ -51,6 +51,15 @@
           label="Change Gap Limit"
         ></q-input>
 
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="config.data.network"
+          :options="networOptions"
+          label="Network"
+        ></q-select>
+
         <q-toggle
           :label="config.data.sats_denominated ? 'sats denominated' : 'BTC denominated'"
           color="secodary"

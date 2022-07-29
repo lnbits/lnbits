@@ -4,7 +4,7 @@ async function history(path) {
     name: 'history',
     template,
 
-    props: ['history', 'mempool_endpoint', 'sats-denominated'],
+    props: ['history', 'mempool-endpoint', 'sats-denominated'],
     data: function () {
       return {
         historyTable: {

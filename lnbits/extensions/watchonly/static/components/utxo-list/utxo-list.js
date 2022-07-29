@@ -10,7 +10,7 @@ async function utxoList(path) {
       'selectable',
       'payed-amount',
       'sats-denominated',
-      'mempool_endpoint'
+      'mempool-endpoint'
     ],
 
     data: function () {

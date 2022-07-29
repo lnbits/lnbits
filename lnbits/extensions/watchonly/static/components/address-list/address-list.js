@@ -7,7 +7,7 @@ async function addressList(path) {
     props: [
       'addresses',
       'accounts',
-      'mempool_endpoint',
+      'mempool-endpoint',
       'inkey',
       'sats-denominated'
     ],

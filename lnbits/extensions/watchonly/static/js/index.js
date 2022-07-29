@@ -323,7 +323,9 @@ const watchOnly = async () => {
       getAddressTxsDelayed: async function (addrData) {
         const {
           bitcoin: {addresses: addressesAPI}
-        } = mempoolJS()
+        } = mempoolJS({
+          hostname: new URL(this.config.data.mempool_endpoint).hostname
+        })
 
         const fn = async () =>
           addressesAPI.getAddressTxs({
@@ -336,7 +338,9 @@ const watchOnly = async () => {
       getAddressTxsUtxoDelayed: async function (address) {
         const {
           bitcoin: {addresses: addressesAPI}
-        } = mempoolJS()
+        } = mempoolJS({
+          hostname: new URL(this.config.data.mempool_endpoint).hostname
+        })
 
         const fn = async () =>
           addressesAPI.getAddressTxsUtxo({

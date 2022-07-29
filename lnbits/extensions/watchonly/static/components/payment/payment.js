@@ -8,7 +8,7 @@ async function payment(path) {
       'accounts',
       'addresses',
       'utxos',
-      'mempool_endpoint',
+      'mempool-endpoint',
       'sats-denominated',
       'serial-signer-ref',
       'adminkey'
@@ -291,7 +291,9 @@ async function payment(path) {
       fetchTxHex: async function (txId) {
         const {
           bitcoin: {transactions: transactionsAPI}
-        } = mempoolJS() // todo: hostname
+        } = mempoolJS({
+          hostname: new URL(this.mempoolEndpoint).hostname
+        })
 
         try {
           const response = await transactionsAPI.getTxHex({txid: txId})

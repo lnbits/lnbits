@@ -82,7 +82,7 @@
           <a
             v-if="!props.row.sameTxItems"
             style="color: unset"
-            :href="mempool_endpoint + '/address/' + props.row.address"
+            :href="mempoolEndpoint + '/address/' + props.row.address"
             target="_blank"
           >
             {{props.row.address}}</a
@@ -106,7 +106,7 @@
             <div class="col-10 q-pr-lg">
               <a
                 style="color: unset"
-                :href="mempool_endpoint + '/tx/' + props.row.txId"
+                :href="mempoolEndpoint + '/tx/' + props.row.txId"
                 target="_blank"
               >
                 {{props.row.txId}}</a
