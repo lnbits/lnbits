@@ -102,7 +102,6 @@ async function addressList(path) {
         return fAddresses
       },
 
-    
       scanAddress: async function (addressData) {
         this.$emit('scan:address', addressData)
       },
@@ -111,8 +110,6 @@ async function addressList(path) {
       }
     },
 
-    created: async function () {
-      
-    }
+    created: async function () {}
   })
 }

@@ -156,13 +156,6 @@
   <q-dialog v-model="hww.showConfirmationDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwSignPsbt" class="q-gutter-md">
-        <div class="row q-mt-lg">
-          <div class="col-12">
-            <q-badge class="text-subtitle2" color="yellow" text-color="black">
-              <span>Check data on the display of the hardware device.</span>
-            </q-badge>
-          </div>
-        </div>
         <div v-if="tx">
           <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
             <div class="col-12">
@@ -211,6 +204,13 @@
             <div class="col-9">
               <span>{{tx.feeRate}} sats/vbyte</span>
             </div>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col-12">
+            <q-badge class="text-subtitle2" color="yellow" text-color="black">
+              <span>Check data on the display of the hardware device.</span>
+            </q-badge>
           </div>
         </div>
         <div class="row q-mt-lg">
