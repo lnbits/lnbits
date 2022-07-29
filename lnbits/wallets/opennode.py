@@ -65,7 +65,7 @@ class OpenNodeWallet(Wallet):
                 json={
                     "amount": amount,
                     "description": memo or "",
-                    "callback_url": url_for("/webhook_listener", _external=True),
+                    # "callback_url": url_for("/webhook_listener", _external=True),
                 },
                 timeout=40,
             )
