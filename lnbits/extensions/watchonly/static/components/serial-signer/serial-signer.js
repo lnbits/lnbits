@@ -7,6 +7,7 @@ async function serialSigner(path) {
     props: ['sats-denominated'],
     data: function () {
       return {
+        network: 'Mainnet', // todo: hardcoded for now
         selectedPort: null,
         writableStreamClosed: null,
         writer: null,
@@ -166,7 +167,6 @@ async function serialSigner(path) {
                 this.handleSerialPortResponse(value)
                 this.updateSerialPortConsole(value)
               }
-              console.log('### startSerialPortReading DONE', done)
               if (done) return
             }
           } catch (error) {
@@ -178,7 +178,6 @@ async function serialSigner(path) {
             })
           }
         }
-        console.log('### startSerialPortReading port', port)
       },
       handleSerialPortResponse: function (value) {
         const msg = value.split(' ')
@@ -189,7 +188,7 @@ async function serialSigner(path) {
         else if (msg[0] == COMMAND_SEND_PSBT)
           this.handleSendPsbtResponse(msg[1])
         else if (msg[0] == COMMAND_WIPE) this.handleWipeResponse(msg[1])
-        else console.log('### handleSerialPortResponse', value)
+        else console.log('### console', value)
       },
       updateSerialPortConsole: function (value) {
         this.receivedData += value + '\n'
@@ -274,7 +273,10 @@ async function serialSigner(path) {
       },
       handleLoginResponse: function (res = '') {
         this.hww.authenticated = res.trim() === '1'
-        this.loginResolve(this.hww.authenticated)
+        if (this.loginResolve) {
+          this.loginResolve(this.hww.authenticated)
+        }
+
         if (this.hww.authenticated) {
           this.$q.notify({
             type: 'positive',
@@ -302,6 +304,7 @@ async function serialSigner(path) {
         }
       },
       handleLogoutResponse: function (res = '') {
+        console.log('###handleLogoutResponse ', res)
         this.hww.authenticated = !(res.trim() === '1')
         if (this.hww.authenticated) {
           this.$q.notify({
@@ -316,7 +319,9 @@ async function serialSigner(path) {
           console.log('### hwwSendPsbt tx', tx)
           this.tx = tx
           this.hww.sendingPsbt = true
-          await this.writer.write(COMMAND_SEND_PSBT + ' ' + psbtBase64 + '\n')
+          await this.writer.write(
+            COMMAND_SEND_PSBT + ' ' + this.network + ' ' + psbtBase64 + '\n'
+          )
           this.$q.notify({
             type: 'positive',
             message: 'Data sent to serial port device!',
