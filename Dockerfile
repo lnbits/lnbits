@@ -42,4 +42,7 @@ ENV LNBITS_HOST="0.0.0.0"
 
 EXPOSE 5000
 
+# build static files
+RUN python build.py
+
 CMD ["sh", "-c", "uvicorn lnbits.__main__:app --port $LNBITS_PORT --host $LNBITS_HOST"]
