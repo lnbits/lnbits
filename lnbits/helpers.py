@@ -1,9 +1,9 @@
 import glob
 import json
 import os
+from collections.abc import MutableMapping
 from hashlib import md5
 from typing import Any, List, NamedTuple, Optional
-from collections.abc import MutableMapping
 
 import jinja2
 import shortuuid  # type: ignore
@@ -11,6 +11,7 @@ import shortuuid  # type: ignore
 import lnbits.settings as settings
 from lnbits.jinja2_templating import Jinja2Templates
 from lnbits.requestvars import g
+
 
 class Extension(NamedTuple):
     code: str
@@ -21,6 +22,7 @@ class Extension(NamedTuple):
     icon: Optional[str] = None
     contributors: Optional[List[str]] = None
     hidden: bool = False
+
 
 from collections.abc import MutableMapping
 
@@ -40,7 +42,7 @@ class StaticFilesHashCache(MutableMapping):
         :param file_path: The path of the file to get a hash for
         :return: A shortened hash of the file
         """
-        if (self.get(file_path) is None):
+        if self.get(file_path) is None:
             hash_md5 = md5()
             with open(file_path, "rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
@@ -63,6 +65,7 @@ class StaticFilesHashCache(MutableMapping):
 
     def __len__(self):
         return len(self.store)
+
 
 class ExtensionManager:
     def __init__(self):
@@ -196,7 +199,9 @@ def url_for(endpoint: str, external: Optional[bool] = False, **params: Any) -> s
     url = f"{base}{endpoint}{url_params}"
     return url
 
+
 static_files_hash_cache = StaticFilesHashCache()
+
 
 def template_renderer(additional_folders: List = []) -> Jinja2Templates:
     t = Jinja2Templates(
@@ -207,10 +212,10 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
 
     def cachebust(filename, is_extension=False):
 
-        if(is_extension):
-            file_path = os.path.join('lnbits/extensions/', filename[1:])
+        if is_extension:
+            file_path = os.path.join("lnbits/extensions/", filename[1:])
         else:
-            file_path = os.path.join('lnbits/', filename[1:])
+            file_path = os.path.join("lnbits/", filename[1:])
 
         try:
             file_hash = static_files_hash_cache.get_hash(file_path)
@@ -219,17 +224,21 @@ def template_renderer(additional_folders: List = []) -> Jinja2Templates:
             return filename
 
     def cachebust_js(filename):
-        return "<script src=\"{0}\"></script>".format(cachebust(filename))
+        return '<script src="{0}"></script>'.format(cachebust(filename))
 
     t.env.filters["cachebust_js"] = cachebust_js
 
     def cachebust_css(filename):
-        return "<link rel=\"stylesheet\" type=\"text/css\" href=\"{0}\" />".format(cachebust(filename))
+        return '<link rel="stylesheet" type="text/css" href="{0}" />'.format(
+            cachebust(filename)
+        )
 
     t.env.filters["cachebust_css"] = cachebust_css
 
     def cachebust_ext_js(filename):
-        return "<script src=\"{0}\"></script>".format(cachebust(filename=filename, is_extension=True))
+        return '<script src="{0}"></script>'.format(
+            cachebust(filename=filename, is_extension=True)
+        )
 
     t.env.filters["cachebust_ext_js"] = cachebust_ext_js
 
