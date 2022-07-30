@@ -188,15 +188,6 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
     assert "details" in response
 
 
-# @pytest.mark.asyncio
-# async def test_create_invoice_with_description_hash(from_wallet):
-#     data = await get_random_invoice_data()
-#     data["description_hash"] = "0x" + sha256("test").hexdigest()
-#     invoiceData = CreateInvoiceData(**data)
-#     invoice = await api_payments_create_invoice(invoiceData, from_wallet)
-#     return invoice
-
-
 # check POST /api/v1/payments: invoice creation for internal payments only
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
@@ -211,10 +202,4 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     invoice_bolt11 = bolt11.decode(invoice["payment_request"])
     assert invoice_bolt11.description_hash == descr_hash
     assert invoice_bolt11.description is None
-    assert response.status_code == 201
-    assert "payment_hash" in invoice
-    assert len(invoice["payment_hash"]) == 64
-    assert "payment_request" in invoice
-    assert "checking_id" in invoice
-    assert len(invoice["checking_id"])
     return invoice
