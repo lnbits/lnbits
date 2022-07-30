@@ -192,9 +192,9 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
-    descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
-    # descr_hash = "asdasdasd"
-    # descr_hash_test = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    # descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    descr_hash = "asdasdasd"
+    descr_hash_test = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
     data["description_hash"] = descr_hash
 
     response = await client.post(
@@ -202,6 +202,6 @@ async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     )
     invoice = response.json()
     invoice_bolt11 = bolt11.decode(invoice["payment_request"])
-    assert invoice_bolt11.description_hash == descr_hash
+    assert invoice_bolt11.description_hash == descr_hash_test
     assert invoice_bolt11.description is None
     return invoice
