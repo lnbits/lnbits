@@ -68,6 +68,17 @@ mkdir data && cp .env.example .env
 ./venv/bin/python build.py
 ```
 
+## Option 4: Docker
+
+```sh
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend
+docker build -t lnbits-legend .
+cp .env.example .env
+mkdir data
+docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
+```
+
 #### Running the server
 
 ```sh
