@@ -1,7 +1,7 @@
 import asyncio
 import pytest_asyncio
 
-from httpx import AsyncClient
+from httpx import Client, AsyncClient
 from lnbits.app import create_app
 from lnbits.commands import migrate_databases
 from lnbits.settings import HOST, PORT
@@ -122,12 +122,11 @@ async def adminkey_headers_to(to_wallet):
 
 @pytest_asyncio.fixture(scope="session")
 async def invoice(to_wallet):
-    wallet = to_wallet
     data = await get_random_invoice_data()
     invoiceData = CreateInvoiceData(**data)
     stuff_lock = asyncio.Lock()
     async with stuff_lock:
-        invoice = await api_payments_create_invoice(invoiceData, wallet)
-    await asyncio.sleep(1)
+        invoice = await api_payments_create_invoice(invoiceData, to_wallet)
+    # await asyncio.sleep(1)
     yield invoice
     del invoice

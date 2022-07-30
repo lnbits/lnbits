@@ -1,7 +1,14 @@
 import pytest
 import pytest_asyncio
+
+import hashlib
+from binascii import hexlify
+
+from lnbits import bolt11
 from lnbits.core.crud import get_wallet
 from lnbits.core.views.api import api_payment
+
+from lnbits.core.views.api import api_payments_create_invoice, CreateInvoiceData
 
 from ...helpers import get_random_invoice_data
 
@@ -179,3 +186,35 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
     assert type(response) == dict
     assert response["paid"] == True
     assert "details" in response
+
+
+# @pytest.mark.asyncio
+# async def test_create_invoice_with_description_hash(from_wallet):
+#     data = await get_random_invoice_data()
+#     data["description_hash"] = "0x" + sha256("test").hexdigest()
+#     invoiceData = CreateInvoiceData(**data)
+#     invoice = await api_payments_create_invoice(invoiceData, from_wallet)
+#     return invoice
+
+
+# check POST /api/v1/payments: invoice creation for internal payments only
+@pytest.mark.asyncio
+async def test_create_invoice_with_description_hash(client, inkey_headers_to):
+    data = await get_random_invoice_data()
+    descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    data["description_hash"] = descr_hash
+
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    invoice = response.json()
+    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
+    assert invoice_bolt11.description_hash == descr_hash
+    assert invoice_bolt11.description is None
+    assert response.status_code == 201
+    assert "payment_hash" in invoice
+    assert len(invoice["payment_hash"]) == 64
+    assert "payment_request" in invoice
+    assert "checking_id" in invoice
+    assert len(invoice["checking_id"])
+    return invoice
