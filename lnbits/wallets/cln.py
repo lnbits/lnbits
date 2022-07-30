@@ -6,8 +6,6 @@ except ImportError:  # pragma: nocover
 import asyncio
 import random
 import time
-from binascii import hexlify
-
 from functools import partial, wraps
 from os import getenv
 from typing import AsyncGenerator, Optional
@@ -92,7 +90,7 @@ class CoreLightningWallet(Wallet):
             r = self.ln.invoice(
                 msatoshi=msat,
                 label=label,
-                description=hexlify(description_hash) if description_hash else memo,
+                description=description_hash.hex() if description_hash else memo,
                 exposeprivatechannels=True,
                 deschashonly=True
                 if description_hash
