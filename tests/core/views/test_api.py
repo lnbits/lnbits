@@ -193,6 +193,8 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
     descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    # descr_hash = "asdasdasd"
+    # descr_hash_test = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
     data["description_hash"] = descr_hash
 
     response = await client.post(
