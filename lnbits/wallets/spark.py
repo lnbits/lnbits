@@ -5,6 +5,7 @@ from os import getenv
 from typing import AsyncGenerator, Optional
 
 import httpx
+import hashlib
 from loguru import logger
 
 from .base import (
@@ -101,7 +102,7 @@ class SparkWallet(Wallet):
                 r = await self.invoicewithdescriptionhash(
                     msatoshi=amount * 1000,
                     label=label,
-                    description_hash=description_hash.hex(),
+                    description_hash=hashlib.sha256(description_hash).hexdigest(),
                 )
             else:
                 r = await self.invoice(

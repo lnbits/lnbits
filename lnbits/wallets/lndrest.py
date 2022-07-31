@@ -5,6 +5,7 @@ from os import getenv
 from pydoc import describe
 from typing import AsyncGenerator, Dict, Optional
 
+import hashlib
 import httpx
 from loguru import logger
 
@@ -75,9 +76,9 @@ class LndRestWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {"value": amount, "private": True}
         if description_hash:
-            data["description_hash"] = base64.b64encode(description_hash).decode(
-                "ascii"
-            )
+            data["description_hash"] = base64.b64encode(
+                hashlib.sha256(description_hash).digest()
+            ).decode("ascii")
         else:
             data["memo"] = memo or ""
 

@@ -132,7 +132,9 @@ class LndWallet(Wallet):
         params: Dict = {"value": amount, "expiry": 600, "private": True}
 
         if description_hash:
-            params["description_hash"] = description_hash  # as bytes directly
+            params["description_hash"] = base64.b64encode(
+                hashlib.sha256(description_hash).digest()
+            )  # as bytes directly
         else:
             params["memo"] = memo or ""
 

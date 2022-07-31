@@ -90,9 +90,7 @@ async def lnurl_callback(
         wallet_id=ls.wallet,
         amount=int(amount_received / 1000),
         memo=await track.fullname(),
-        description_hash=hashlib.sha256(
-            (await track.lnurlpay_metadata()).encode("utf-8")
-        ).digest(),
+        description_hash=(await track.lnurlpay_metadata()).encode("utf-8"),
         extra={"tag": "livestream", "track": track.id, "comment": comment},
     )
 
