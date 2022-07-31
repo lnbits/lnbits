@@ -188,7 +188,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
     assert "details" in response
 
 
-# check POST /api/v1/payments: invoice creation for internal payments only
+# check POST /api/v1/payments: invoice creation with a description hash
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
