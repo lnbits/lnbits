@@ -4,6 +4,7 @@ from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
+import hashlib
 from loguru import logger
 
 from .base import (
@@ -59,7 +60,7 @@ class LNbitsWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
         else:
             data["memo"] = memo or ""
 
