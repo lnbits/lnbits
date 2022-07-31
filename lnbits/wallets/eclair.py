@@ -6,6 +6,7 @@ from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
+import hashlib
 from loguru import logger
 
 # TODO: https://github.com/lnbits/lnbits-legend/issues/764
@@ -72,7 +73,7 @@ class EclairWallet(Wallet):
 
         data: Dict = {"amountMsat": amount * 1000}
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
         else:
             data["description"] = memo or ""
 
