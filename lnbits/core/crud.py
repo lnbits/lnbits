@@ -3,8 +3,8 @@ import json
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
-from loguru import logger
 
+from loguru import logger
 
 from lnbits import bolt11
 from lnbits.db import COCKROACH, POSTGRES, Connection
