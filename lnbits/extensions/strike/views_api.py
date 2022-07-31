@@ -25,15 +25,15 @@ async def api_create_config(data: CreateConfiguration):
 
     client = StrikeApiClient()
     profile = await client.get_profile(data.handle)
-    if(profile is None):
+    if(not profile):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Strike account with handle {data.handle} doesn't exist")
 
-    if(profile.currencies is None):
+    if(not profile.currencies):
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=f"Strike account with handle {data.handle} has no currency configured")
 
     default_currency = filter(lambda item: item.isDefaultCurrency == True and item.isAvailable == True, profile.currencies)
 
-    if(default_currency is None):
+    if(not default_currency):
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=f"Strike account with handle {data.handle} has no default and available currency")
 
     try:
@@ -42,11 +42,6 @@ async def api_create_config(data: CreateConfiguration):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return config.dict()
-
-
-async def user_from_wallet(wallet: WalletTypeInfo = Depends(get_key_type)):
-    return wallet.wallet.user
-
 
 @strike_ext.get("/api/v1/configurations")
 async def api_get_configurations(wallet: WalletTypeInfo = Depends(get_key_type)):
