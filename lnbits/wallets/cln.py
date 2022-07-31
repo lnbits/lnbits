@@ -86,7 +86,6 @@ class CoreLightningWallet(Wallet):
         label = "lbl{}".format(random.random())
         msat = amount * 1000
         try:
-<<<<<<< HEAD:lnbits/wallets/cln.py
             if description_hash and not self.supports_description_hash:
                 raise Unsupported("description_hash")
             r = self.ln.invoice(
@@ -105,18 +104,6 @@ class CoreLightningWallet(Wallet):
                 raise Exception(r.get("message"))
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
-=======
-            if description_hash:
-                if not self.supports_description_hash:
-                    raise Unsupported("description_hash")
-
-                params = [msat, label, hashlib.sha256(description_hash).hexdigest()]
-                r = self.ln.call("invoicewithdescriptionhash", params)
-                return InvoiceResponse(True, label, r["bolt11"], "")
-            else:
-                r = self.ln.invoice(msat, label, memo, exposeprivatechannels=True)
-                return InvoiceResponse(True, label, r["bolt11"], "")
->>>>>>> invoice/refactor_description_hash:lnbits/wallets/clightning.py
         except RpcError as exc:
             error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
             logger.error("RPC error:", error_message)
