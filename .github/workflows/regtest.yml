@@ -43,6 +43,10 @@ jobs:
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml            
   LndWallet:
     runs-on: ubuntu-latest
     strategy:
@@ -85,6 +89,10 @@ jobs:
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml          
   CLightningWallet:
     runs-on: ubuntu-latest
     strategy:
@@ -123,3 +131,7 @@ jobs:
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
