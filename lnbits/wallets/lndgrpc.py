@@ -11,6 +11,7 @@ import binascii
 import hashlib
 from os import environ, error, getenv
 from typing import AsyncGenerator, Dict, Optional
+from grpc import RpcError
 
 from loguru import logger
 
@@ -121,6 +122,8 @@ class LndWallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
+        except RpcError as exc:
+            return StatusResponse(str(exc._details), 0)
         except Exception as exc:
             return StatusResponse(str(exc), 0)
 
@@ -180,46 +183,6 @@ class LndWallet(Wallet):
         resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
         if resp.settled:
             return PaymentStatus(True)
-
-        return PaymentStatus(None)
-
-    async def get_payment_status_legacy(self, checking_id: str) -> PaymentStatus:
-        """
-        This routine uses ListPayments and then checks whether the payment_hash is in this list.
-        This is a very bad way to check payments. routerpc.TrackPaymentV2 allows a direct
-        lookup of the payment_hash.
-        """
-        try:
-            r_hash = parse_checking_id(checking_id)
-            if len(r_hash) != 32:
-                raise binascii.Error
-        except binascii.Error:
-            # this may happen if we switch between backend wallets
-            # that use different checking_id formats
-            return PaymentStatus(None)
-
-        # for some reason our checking_ids are in base64 but the payment hashes
-        # returned here are in hex, lnd is weird
-        checking_id = checking_id.replace("_", "/")
-        checking_id = base64.b64decode(checking_id).hex()
-
-        resp = await self.rpc.ListPayments(
-            ln.ListPaymentsRequest(
-                include_incomplete=True, max_payments=20, reversed=True
-            )
-        )
-
-        # HTLCAttempt.HTLCStatus:
-        # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
-        statuses = {
-            0: None,  # IN_FLIGHT
-            1: True,  # "SUCCEEDED"
-            2: False,  # "SUCCEEDED"
-        }
-
-        for payment in resp.payments:
-            if payment.payment_hash == checking_id:
-                return PaymentStatus(statuses[payment.htlcs[-1].status])
 
         return PaymentStatus(None)
 

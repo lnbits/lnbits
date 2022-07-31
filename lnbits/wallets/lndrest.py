@@ -141,42 +141,6 @@ class LndRestWallet(Wallet):
 
         return PaymentStatus(True)
 
-    async def get_payment_status_legacy(self, checking_id: str) -> PaymentStatus:
-        """
-        This routine uses /v1/payments and then checks whether the payment_hash is in this list.
-        This is a very bad way to check payments. /v2/router/track allows a direct
-        lookup of the payment_hash.
-        """
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.get(
-                url=f"{self.endpoint}/v1/payments",
-                headers=self.auth,
-                params={"max_payments": "20", "reversed": True},
-            )
-
-        if r.is_error:
-            return PaymentStatus(None)
-
-        # check payment.status:
-        # https://api.lightning.community/rest/index.html?python#peersynctype
-        statuses = {
-            "UNKNOWN": None,
-            "IN_FLIGHT": None,
-            "SUCCEEDED": True,
-            "FAILED": False,
-        }
-
-        # for some reason our checking_ids are in base64 but the payment hashes
-        # returned here are in hex, lnd is weird
-        checking_id = checking_id.replace("_", "/")
-        checking_id = base64.b64decode(checking_id).hex()
-
-        for p in r.json()["payments"]:
-            if p["payment_hash"] == checking_id:
-                return PaymentStatus(statuses[p["status"]])
-
-        return PaymentStatus(None)
-
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
