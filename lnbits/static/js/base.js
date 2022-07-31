@@ -212,7 +212,7 @@ window.LNbits = {
         message: msg,
         ok: {
           flat: true,
-          color: 'orange'
+          color: 'secondary'
         },
         cancel: {
           flat: true,

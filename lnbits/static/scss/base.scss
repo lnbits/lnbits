@@ -8,7 +8,7 @@ $themes: (
     'autumn': ( primary: #b7763a, secondary: #b07927, dark: #34291f, info: #463f33, marginal-bg: #342a1f, marginal-text: rgb(255, 255, 255)), 
     'flamingo': ( primary: #d11d53, secondary: #db3e6d, dark: #803a45, info: #ec7599, marginal-bg: #803a45, marginal-text: rgb(255, 255, 255)), 
     'monochrome': ( primary: #494949, secondary: #6b6b6b, dark: #000, info: rgb(39, 39, 39), marginal-bg: #000, marginal-text: rgb(255, 255, 255)),
-    'strike': ( primary: #CCFF00, secondary: #1A1A1A, dark: #000, info: #1A1A1A, marginal-bg: #1A1A1A, marginal-text: #1A1A1A)
+    'strike': ( primary: #CCFF00, secondary: #a4c910, dark: #000, info: #1A1A1A, marginal-bg: #1A1A1A, marginal-text: #1A1A1A)
     );
 @each $theme,
 $colors in $themes {
@@ -40,6 +40,12 @@ $colors in $themes {
             }
             [data-theme='#{$theme}'] .q-loading-bar {
                 background: $color !important;
+            }
+            [data-theme='#{$theme}'] main a:not(.inherit) {
+                color: $color;
+            }
+            [data-theme='#{$theme}'] main a:hover {
+                color: var(--q-color-primary);
             }
         }
         @if $name=='secondary' {
@@ -93,7 +99,7 @@ $colors in $themes {
     --q-color-positive: #2AD544;
 }
 
-[data-theme='strike'] .q-btn.bg-primary, .q-checkbox__svg, .q-tabs, .bg-accent {
+[data-theme='strike'] .q-btn.bg-primary, .q-btn.bg-secondary, .q-badge.bg-secondary, .q-checkbox__svg, .q-tabs, .bg-accent {
     color: #0a0a0a !important;
 }
 
