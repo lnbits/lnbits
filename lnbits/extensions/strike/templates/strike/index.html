@@ -35,7 +35,6 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <!-- <q-th auto-width></q-th> -->
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 <strong>{{ col.label }}</strong>
               </q-th>
@@ -44,20 +43,15 @@
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <!-- <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="send"
-                  :color="($q.dark.isActive) ? 'grey-8' : 'grey-6'"
-                  type="a"
-                  :href="props.row.displayUrl"
-                  target="_blank"
-                ></q-btn>
-              </q-td> -->
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
+                <template v-if="col.name == 'handle'">
+                  <a :href="'https://strike.me/' + col.value">
+                    {{ col.value }}
+                  </a>
+                </template>
+                <template v-else>
+                  {{ col.value }}
+                </template>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -149,16 +143,6 @@
 
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
-              </q-td>
-              <!-- <q-td auto-width>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="deleteForward(props.row.id)"
-                  icon="cancel"
-                  color="pink"
-                ></q-btn> -->
               </q-td>
             </q-tr>
           </template>
@@ -254,12 +238,6 @@
         forwards: [],
         configTable: {
           columns: [
-            // {
-            //   name: 'id',
-            //   align: 'left',
-            //   label: 'ID',
-            //   field: 'id'
-            // },
             {
               name: 'handle',
               align: 'left',

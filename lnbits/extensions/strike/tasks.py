@@ -1,6 +1,7 @@
 import asyncio
 
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException
 
 from lnbits.core.models import Payment
 from lnbits.core.services import pay_invoice
@@ -44,11 +45,12 @@ async def on_invoice_paid(payment: Payment) -> None:
     
     try:
         success = await forward_payment(config, forward, payment)
-    except Exception as e:
+    except (HTTPException, Exception) as e:
+        error_message = e.detail if e.detail else str(e)
         forward.status = 'fail'
-        forward.status_info = f'Error: {str(e)}'
+        forward.status_info = f'Error: {error_message}'
         await update_forward(forward)
-        print(f'Strike - forwarding to {config.handle} failed, error: {e}')
+        print(f'Strike - forwarding to {config.handle} failed, error: {error_message}')
         return
 
     if(success):
