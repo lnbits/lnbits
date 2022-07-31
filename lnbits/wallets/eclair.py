@@ -1,12 +1,12 @@
 import asyncio
 import base64
+import hashlib
 import json
 import urllib.parse
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
-import hashlib
 from loguru import logger
 
 # TODO: https://github.com/lnbits/lnbits-legend/issues/764
