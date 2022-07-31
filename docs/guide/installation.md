@@ -68,6 +68,14 @@ mkdir data && cp .env.example .env
 ./venv/bin/python build.py
 ```
 
+#### Running the server
+
+```sh
+./venv/bin/uvicorn lnbits.__main__:app --port 5000
+```
+
+If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
+
 ## Option 4: Docker
 
 ```sh
@@ -78,14 +86,6 @@ cp .env.example .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
-
-#### Running the server
-
-```sh
-./venv/bin/uvicorn lnbits.__main__:app --port 5000
-```
-
-If you want to host LNbits on the internet, run with the option `--host 0.0.0.0`. 
 
 ### Troubleshooting
 
