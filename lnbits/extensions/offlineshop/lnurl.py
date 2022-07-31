@@ -73,9 +73,7 @@ async def lnurl_callback(request: Request, item_id: int):
             wallet_id=shop.wallet,
             amount=int(amount_received / 1000),
             memo=item.name,
-            description_hash=hashlib.sha256(
-                (await item.lnurlpay_metadata()).encode("utf-8")
-            ).digest(),
+            description_hash=(await item.lnurlpay_metadata()).encode("utf-8"),
             extra={"tag": "offlineshop", "item": item.id},
         )
     except Exception as exc:

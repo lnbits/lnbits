@@ -87,9 +87,7 @@ async def api_lnurl_callback(request: Request, link_id):
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo=link.description,
-        description_hash=hashlib.sha256(
-            link.lnurlpay_metadata.encode("utf-8")
-        ).digest(),
+        description_hash=link.lnurlpay_metadata.encode("utf-8"),
         extra={
             "tag": "lnurlp",
             "link": link.id,
