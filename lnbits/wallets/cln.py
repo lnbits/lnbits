@@ -90,7 +90,9 @@ class CoreLightningWallet(Wallet):
             r = self.ln.invoice(
                 msatoshi=msat,
                 label=label,
-                description="asdasdasd" if description_hash else memo,
+                description=description_hash.decode("utf-8")
+                if description_hash
+                else memo,
                 exposeprivatechannels=True,
                 deschashonly=True
                 if description_hash
