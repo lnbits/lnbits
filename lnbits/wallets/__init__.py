@@ -1,9 +1,9 @@
 # flake8: noqa
 
+from .cliche import ClicheWallet
 from .clightning import CLightningWallet
 from .eclair import EclairWallet
 from .fake import FakeWallet
-from .cliche import ClicheWallet
 from .lnbits import LNbitsWallet
 from .lndrest import LndRestWallet
 from .lnpay import LNPayWallet
