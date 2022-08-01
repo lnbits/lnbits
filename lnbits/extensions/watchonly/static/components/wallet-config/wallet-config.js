@@ -16,12 +16,10 @@ async function walletConfig(path) {
     computed: {
       config: {
         get() {
-          console.log('### get config', this.internalConfig)
           return this.internalConfig
         },
         set(value) {
           value.isLoaded = true
-          console.log('### set config', this.internalConfig)
           this.internalConfig = JSON.parse(JSON.stringify(value))
           this.$emit(
             'update:config-data',
