@@ -18,13 +18,15 @@ async function walletList(path) {
         address: {},
         formDialog: {
           show: false,
-          addressType: {
-            label: 'Pay-to-witness-pubkey-hash scripts (P2WPKH)',
-            value: 'wpkh'
-          },
+
+          addressType: 'wpkh',
           useSerialPort: false,
-          data: {}
+          data: {
+            title: '',
+            masterpub: ''
+          }
         },
+        accountPath: '',
         filter: '',
         addressTypeOptions: [
           {
@@ -103,6 +105,17 @@ async function walletList(path) {
       },
       createWalletAccount: async function (data) {
         try {
+          if (this.formDialog.useSerialPort) {
+            const {xpub, fingerprint} = await this.fetchXpubFromHww()
+            if (!xpub) return
+            const path = this.accountPath.substring(2)
+            const outputType = this.formDialog.addressType
+            if (outputType === 'sh') {
+              data.masterpub = `${outputType}(wpkh([${fingerprint}/${path}]${xpub}/{0,1}/*))`
+            } else {
+              data.masterpub = `${outputType}([${fingerprint}/${path}]${xpub}/{0,1}/*)`
+            }
+          }
           const response = await LNbits.api.request(
             'POST',
             '/watchonly/api/v1/wallet',
@@ -116,6 +129,20 @@ async function walletList(path) {
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
+      },
+      fetchXpubFromHww: async function () {
+        const error = findAccountPathIssues(this.accountPath)
+        if (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Invalid derivation path.',
+            caption: error,
+            timeout: 10000
+          })
+          return
+        }
+        await this.serialSignerRef.hwwXpub(this.accountPath)
+        return await this.serialSignerRef.isFetchingXpub()
       },
       deleteWalletAccount: function (walletAccountId) {
         LNbits.utils
@@ -214,7 +241,6 @@ async function walletList(path) {
         this.formDialog.useSerialPort = false
       },
       getXpubFromDevice: async function () {
-        this.handleAddressTypeChanged('wpkh')
         try {
           if (!this.serialSignerRef.isConnected()) {
             const portOpen = await this.serialSignerRef.openSerialPort()
@@ -239,12 +265,13 @@ async function walletList(path) {
       handleAddressTypeChanged: function (value) {
         const addressType =
           this.addressTypeOptions.find(t => t.value === value) || {}
-        this.formDialog.data.accountPath = addressType.path
+        this.accountPath = addressType.path
       }
     },
     created: async function () {
       if (this.inkey) {
         await this.refreshWalletAccounts()
+        this.handleAddressTypeChanged('wpkh')
       }
     }
   })
