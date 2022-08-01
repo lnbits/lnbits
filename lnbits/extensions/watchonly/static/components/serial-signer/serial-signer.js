@@ -338,14 +338,34 @@ async function serialSigner(path) {
         }
       },
       handleSendPsbtResponse: function (res = '') {
-        this.hww.confirm.outputIndex = 0
-        this.hww.showConfirmationDialog = true
-        this.hww.confirm = {
-          outputIndex: 0,
-          showFee: false
+        try {
+          const psbtOK = res.trim() === '1'
+          if (!psbtOK) {
+            this.$q.notify({
+              type: 'warning',
+              message: 'Failed to send PSBT!',
+              caption: `${res}`,
+              timeout: 10000
+            })
+            return
+          }
+          this.hww.confirm.outputIndex = 0
+          this.hww.showConfirmationDialog = true
+          this.hww.confirm = {
+            outputIndex: 0,
+            showFee: false
+          }
+          this.hww.sendingPsbt = false
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to send PSBT!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        } finally {
+          this.psbtSentResolve()
         }
-        this.hww.sendingPsbt = false
-        this.psbtSentResolve()
       },
       hwwSignPsbt: async function () {
         try {
