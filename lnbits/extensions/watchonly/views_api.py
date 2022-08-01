@@ -233,8 +233,9 @@ async def api_psbt_create(
             descriptors[masterpub.fingerprint] = parse_key(masterpub.public_key)
 
         inputs_extra = []
-        bip32_derivations = {}
+       
         for i, inp in enumerate(data.inputs):
+            bip32_derivations = {}
             descriptor = descriptors[inp.masterpub_fingerprint][0]
             d = descriptor.derive(inp.address_index, inp.branch_index)
             for k in d.keys:
@@ -291,6 +292,7 @@ async def api_psbt_extract_tx(
         if not final_psbt:
             raise ValueError("PSBT cannot be finalized!")
         res.tx_hex = final_psbt.to_string()
+        print('### hex', res.tx_hex)
 
         transaction = Transaction.from_string(res.tx_hex)
         tx = {

@@ -31,15 +31,7 @@ const watchOnly = async () => {
 
         tab: 'addresses',
 
-        config: {
-          data: {
-            mempool_endpoint: 'https://mempool.space',
-            receive_gap_limit: 20,
-            change_gap_limit: 5
-          },
-
-          show: false
-        },
+        config: {sats_denominated: true},
 
         qrCodeDialog: {
           show: false,
@@ -56,6 +48,16 @@ const watchOnly = async () => {
         addressNote: '',
         showPayment: false,
         fetchedUtxos: false
+      }
+    },
+    computed: {
+      mempoolHostname() {
+        if (!this.config.isLoaded) return
+        const hostname = new URL(this.config.mempool_endpoint).hostname
+        if (this.config.network === 'testnet') {
+          hostname += '/testnet'
+        }
+        return hostname
       }
     },
 
@@ -321,31 +323,32 @@ const watchOnly = async () => {
 
       //################### MEMPOOL API ###################
       getAddressTxsDelayed: async function (addrData) {
-        const {
-          bitcoin: {addresses: addressesAPI}
-        } = mempoolJS({
-          hostname: new URL(this.config.data.mempool_endpoint).hostname
-        })
-
-        const fn = async () =>
-          addressesAPI.getAddressTxs({
+        const fn = async () => {
+          const {
+            bitcoin: {addresses: addressesAPI}
+          } = mempoolJS({
+            hostname: this.mempoolHostname
+          })
+          return addressesAPI.getAddressTxs({
             address: addrData.address
           })
+        }
         const addressTxs = await retryWithDelay(fn)
         return this.addressHistoryFromTxs(addrData, addressTxs)
       },
 
       getAddressTxsUtxoDelayed: async function (address) {
-        const {
-          bitcoin: {addresses: addressesAPI}
-        } = mempoolJS({
-          hostname: new URL(this.config.data.mempool_endpoint).hostname
-        })
+        const fn = async () => {
+          const {
+            bitcoin: {addresses: addressesAPI}
+          } = mempoolJS({
+            hostname: this.mempoolHostname
+          })
 
-        const fn = async () =>
-          addressesAPI.getAddressTxsUtxo({
+          return addressesAPI.getAddressTxsUtxo({
             address
           })
+        }
         return retryWithDelay(fn)
       },
 

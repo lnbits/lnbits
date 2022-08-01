@@ -2,7 +2,6 @@
   <q-form @submit="checkAndSend" ref="paymentFormRef" class="q-gutter-md">
     <q-card class="q-mt-lg">
       <q-card-section>
-       
         <send-to
           :data.sync="sendToList"
           :fee-rate="feeRate"
@@ -42,7 +41,11 @@
         <div v-show="showCustomFee" class="row items-center no-wrap q-mt-md">
           <div class="col-12">
             <q-separator class="q-mb-md"></q-separator>
-            <fee-rate :fee-value="feeValue" :rate.sync="feeRate" :mempool-endpoint="mempoolEndpoint"></fee-rate>
+            <fee-rate
+              :fee-value="feeValue"
+              :rate.sync="feeRate"
+              :mempool-endpoint="mempoolEndpoint"
+            ></fee-rate>
           </div>
         </div>
       </q-card-section>

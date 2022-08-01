@@ -4,13 +4,13 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <wallet-config
       :total="utxos.total"
-      :config="config"
+      :config-data.sync="config"
       :adminkey="g.user.wallets[0].adminkey"
     >
       <template v-slot:serial>
         <serial-signer
           ref="serialSigner"
-          :sats-denominated="config.data.sats_denominated"
+          :sats-denominated="config.sats_denominated"
           @signed:psbt="updateSignedPsbt"
         ></serial-signer>
       </template>
@@ -19,7 +19,7 @@
     <wallet-list
       :adminkey="g.user.wallets[0].adminkey"
       :inkey="g.user.wallets[0].inkey"
-      :sats-denominated="config.data.sats_denominated"
+      :sats-denominated="config.sats_denominated"
       :addresses="addresses"
       @accounts-update="updateAccounts"
       @new-receive-address="showAddressDetails"
@@ -76,7 +76,7 @@
       </div>
     </q-card>
 
-    <q-card>
+    <q-card v-if="config.isLoaded">
       <q-card-section v-show="!showPayment">
         <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
           <q-tab name="addresses" label="Addresses"></q-tab>
@@ -89,8 +89,8 @@
               ref="addressList"
               :addresses="addresses"
               :accounts="walletAccounts"
-              :mempool-endpoint="config.data.mempool_endpoint"
-              :sats-denominated="config.data.sats_denominated"
+              :mempool-endpoint="mempoolHostname"
+              :sats-denominated="config.sats_denominated"
               @scan:address="scanAddress"
               @show-address-details="showAddressDetails"
               @update:addresses="initUtxos"
@@ -101,29 +101,28 @@
           <q-tab-panel name="history">
             <history
               :history="history"
-              :mempool-endpoint="config.data.mempool_endpoint"
-              :sats-denominated="config.data.sats_denominated"
+              :mempool-endpoint="mempoolHostname"
+              :sats-denominated="config.sats_denominated"
             ></history>
           </q-tab-panel>
           <q-tab-panel name="utxos">
             <utxo-list
               :utxos="utxos.data"
-              :mempool-endpoint="config.data.mempool_endpoint"
-              :sats-denominated="config.data.sats_denominated"
+              :mempool-endpoint="mempoolHostname"
+              :sats-denominated="config.sats_denominated"
             ></utxo-list>
           </q-tab-panel>
         </q-tab-panels>
       </q-card-section>
     </q-card>
-    <div class="q-pt-sm">
-      {{config.data.mempool_endpoint}}
+    <div v-if="config.isLoaded" class="q-pt-sm">
       <payment
         ref="paymentRef"
         v-show="showPayment"
         :accounts="walletAccounts"
         :addresses="addresses"
         :utxos="utxos.data"
-        :mempool-endpoint="config.data.mempool_endpoint"
+        :mempool-endpoint="mempoolHostname"
         :adminkey="g.user.wallets[0].adminkey"
         :serial-signer-ref="$refs.serialSigner"
       ></payment>
@@ -168,7 +167,7 @@
           size="ms"
           icon="launch"
           type="a"
-          :href="config.mempool_endpoint + '/address/' + currentAddress.address"
+          :href="mempoolHostname + '/address/' + currentAddress.address"
           target="_blank"
         ></q-btn>
       </p>

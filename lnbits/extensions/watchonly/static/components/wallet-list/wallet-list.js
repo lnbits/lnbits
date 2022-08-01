@@ -14,7 +14,6 @@ async function walletList(path) {
           data: {}
         },
         filter: '',
-        networOptions: ['Mainnet', 'Testnet'],
         walletsTable: {
           columns: [
             {
