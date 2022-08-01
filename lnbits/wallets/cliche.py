@@ -64,9 +64,7 @@ class ClicheWallet(Wallet):
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
             error_message = data["error"]["message"]
-            return InvoiceResponse(
-                False, checking_id, payment_request, error_message
-            )
+            return InvoiceResponse(False, checking_id, payment_request, error_message)
 
         if data.get("result") is not None:
             checking_id, payment_request = (
@@ -74,7 +72,9 @@ class ClicheWallet(Wallet):
                 data["result"]["invoice"],
             )
         else:
-            return InvoiceResponse(False, checking_id, payment_request, "Could not get payment hash")
+            return InvoiceResponse(
+                False, checking_id, payment_request, "Could not get payment hash"
+            )
 
         return InvoiceResponse(True, checking_id, payment_request, error_message)
 
