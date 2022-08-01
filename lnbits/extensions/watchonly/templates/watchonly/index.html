@@ -23,6 +23,7 @@
       :sats-denominated="config.sats_denominated"
       :network="config.network"
       :addresses="addresses"
+      :serial-signer-ref="$refs.serialSigner"
       @accounts-update="updateAccounts"
       @new-receive-address="showAddressDetails"
     >

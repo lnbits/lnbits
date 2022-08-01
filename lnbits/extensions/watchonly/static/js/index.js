@@ -329,7 +329,7 @@ const watchOnly = async () => {
           hostname: this.mempoolHostname
         })
         const fn = async () => {
-          if (!accounts.find(w => (w.id === addrData.wallet))) return []
+          if (!accounts.find(w => w.id === addrData.wallet)) return []
           return addressesAPI.getAddressTxs({
             address: addrData.address
           })

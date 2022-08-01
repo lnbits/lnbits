@@ -3,9 +3,32 @@
     <q-card-section>
       <div class="row items-center no-wrap q-mb-md">
         <div class="col">
-          <q-btn unelevated color="primary" @click="formDialog.show = true"
-            >Add Wallet Account
-          </q-btn>
+          <q-btn-dropdown
+            split
+            unelevated
+            label="Add Wallet Account"
+            color="primary"
+            @click="showAddAccountDialog"
+          >
+            <q-list>
+              <q-item @click="showAddAccountDialog" clickable v-close-popup>
+                <q-item-section>
+                  <q-item-label>New Account</q-item-label>
+                  <q-item-label caption
+                    >Enter account Xpub or Descriptor</q-item-label
+                  >
+                </q-item-section>
+              </q-item>
+              <q-item @click="getXpubFromDevice" clickable v-close-popup>
+                <q-item-section>
+                  <q-item-label>From Hardware Device</q-item-label>
+                  <q-item-label caption>
+                    Get Xpub from a Hardware Device</q-item-label
+                  >
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         </div>
 
         <div class="col-auto q-pr-lg"></div>
@@ -158,8 +181,8 @@
           type="text"
           label="Title"
         ></q-input>
-
         <q-input
+          v-if="!formDialog.useSerialPort"
           filled
           type="textarea"
           v-model="formDialog.data.masterpub"
@@ -167,13 +190,33 @@
           autogrow
           label="Account Extended Public Key; xpub, ypub, zpub; Bitcoin Descriptor"
         ></q-input>
+        <q-select
+          v-if="formDialog.useSerialPort"
+          filled
+          dense
+          emit-value
+          v-model="formDialog.addressType"
+          :options="addressTypeOptions"
+          label="Address Type"
+          @input="handleAddressTypeChanged"
+        ></q-select>
+
+        <q-input
+          v-if="formDialog.useSerialPort"
+          filled
+          type="text"
+          v-model="formDialog.data.accountPath"
+          height="50px"
+          autogrow
+          label="Account Path"
+        ></q-input>
 
         <div class="row q-mt-lg">
           <q-btn
             unelevated
             color="primary"
             :disable="
-                formDialog.data.masterpub == null ||
+                (formDialog.data.masterpub == null && formDialog.data.accountPath == null)||
                 formDialog.data.title == null"
             type="submit"
             >Add Watch-Only Account</q-btn
