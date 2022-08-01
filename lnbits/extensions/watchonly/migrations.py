@@ -77,6 +77,16 @@ async def m004_create_config_table(db):
         );"""
     )
 
+
+async def m005_add_network_column_to_wallets(db):
+    """
+    Add network' column to the 'wallets' table
+    """
+
+    await db.execute(
+        "ALTER TABLE watchonly.wallets ADD COLUMN network TEXT DEFAULT 'Mainnet';"
+    )
+
     ### TODO: fix statspay dependcy first
     # await db.execute(
     #     "DROP TABLE watchonly.wallets;"

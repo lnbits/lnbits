@@ -49,12 +49,17 @@ from .helpers import parse_key
 
 
 @watchonly_ext.get("/api/v1/wallet")
-async def api_wallets_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_wallets_retrieve(
+    network: str = Query("Mainnet"), wallet: WalletTypeInfo = Depends(get_key_type)
+):
 
     try:
-        return [wallet.dict() for wallet in await get_watch_wallets(wallet.wallet.user)]
+        return [
+            wallet.dict()
+            for wallet in await get_watch_wallets(wallet.wallet.user, network)
+        ]
     except:
-        return ""
+        return []
 
 
 @watchonly_ext.get("/api/v1/wallet/{wallet_id}")
@@ -76,7 +81,13 @@ async def api_wallet_create_or_update(
     data: CreateWallet, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
-        (descriptor, _) = parse_key(data.masterpub)
+        (descriptor, network) = parse_key(data.masterpub)
+        if data.network != network["name"]:
+            raise ValueError(
+                "Account network error.  This account is for '{}'".format(
+                    network["name"]
+                )
+            )
 
         new_wallet = WalletAccount(
             id="none",
@@ -87,9 +98,10 @@ async def api_wallet_create_or_update(
             title=data.title,
             address_no=-1,  # so fresh address on empty wallet can get address with index 0
             balance=0,
+            network=network["name"],
         )
 
-        wallets = await get_watch_wallets(w.wallet.user)
+        wallets = await get_watch_wallets(w.wallet.user, network["name"])
         existing_wallet = next(
             (ew for ew in wallets if ew.fingerprint == new_wallet.fingerprint), None
         )
@@ -233,7 +245,7 @@ async def api_psbt_create(
             descriptors[masterpub.fingerprint] = parse_key(masterpub.public_key)
 
         inputs_extra = []
-       
+
         for i, inp in enumerate(data.inputs):
             bip32_derivations = {}
             descriptor = descriptors[inp.masterpub_fingerprint][0]
@@ -292,7 +304,6 @@ async def api_psbt_extract_tx(
         if not final_psbt:
             raise ValueError("PSBT cannot be finalized!")
         res.tx_hex = final_psbt.to_string()
-        print('### hex', res.tx_hex)
 
         transaction = Transaction.from_string(res.tx_hex)
         tx = {

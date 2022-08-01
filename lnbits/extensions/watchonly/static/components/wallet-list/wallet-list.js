@@ -4,7 +4,7 @@ async function walletList(path) {
     name: 'wallet-list',
     template,
 
-    props: ['adminkey', 'inkey', 'sats-denominated', 'addresses'],
+    props: ['adminkey', 'inkey', 'sats-denominated', 'addresses', 'network'],
     data: function () {
       return {
         walletAccounts: [],
@@ -47,6 +47,15 @@ async function walletList(path) {
         }
       }
     },
+    watch: {
+      immediate: true,
+      async network(newNet, oldNet) {
+        console.log('### newNet, oldNet', newNet, oldNet)
+        if (newNet !== oldNet) {
+          await this.refreshWalletAccounts()
+        }
+      }
+    },
 
     methods: {
       satBtc(val, showUnit = true) {
@@ -55,6 +64,7 @@ async function walletList(path) {
 
       addWalletAccount: async function () {
         const data = _.omit(this.formDialog.data, 'wallet')
+        data.network = this.network
         await this.createWalletAccount(data)
       },
       createWalletAccount: async function (data) {
@@ -106,7 +116,7 @@ async function walletList(path) {
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            '/watchonly/api/v1/wallet',
+            `/watchonly/api/v1/wallet/?network=${this.network}`,
             this.inkey
           )
           return data

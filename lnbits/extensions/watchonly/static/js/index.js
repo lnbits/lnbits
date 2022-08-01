@@ -47,14 +47,15 @@ const watchOnly = async () => {
         showAddress: false,
         addressNote: '',
         showPayment: false,
-        fetchedUtxos: false
+        fetchedUtxos: false,
+        network: null
       }
     },
     computed: {
-      mempoolHostname() {
+      mempoolHostname: function () {
         if (!this.config.isLoaded) return
-        const hostname = new URL(this.config.mempool_endpoint).hostname
-        if (this.config.network === 'testnet') {
+        let hostname = new URL(this.config.mempool_endpoint).hostname
+        if (this.config.network === 'Testnet') {
           hostname += '/testnet'
         }
         return hostname

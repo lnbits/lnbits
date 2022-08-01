@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class CreateWallet(BaseModel):
     masterpub: str = Query("")
     title: str = Query("")
+    network: str = "Mainnet"
 
 
 class WalletAccount(BaseModel):
