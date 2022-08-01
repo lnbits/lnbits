@@ -9,17 +9,17 @@ Backend wallets
 ===============
 
 LNbits can run on top of many lightning-network funding sources. Currently there is support for
-CLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularily.
+CoreLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularily.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
 
-### CLightning
+### CoreLightning
 
 Using this wallet requires the installation of the `pylightning` Python package.
 
-- `LNBITS_BACKEND_WALLET_CLASS`: **CLightningWallet**
-- `CLIGHTNING_RPC`: /file/path/lightning-rpc
+- `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
+- `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
 ### Spark (c-lightning)
 

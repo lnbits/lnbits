@@ -29,7 +29,7 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pylightning
+          ./venv/bin/pip install pyln-client
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:
@@ -93,7 +93,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml          
-  CLightningWallet:
+  CoreLightningWallet:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -119,15 +119,15 @@ jobs:
           python -m venv ${{ env.VIRTUAL_ENV }}
           ./venv/bin/python -m pip install --upgrade pip
           ./venv/bin/pip install -r requirements.txt
-          ./venv/bin/pip install pylightning
+          ./venv/bin/pip install pyln-client
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         env:
           PYTHONUNBUFFERED: 1
           PORT: 5123
           LNBITS_DATA_FOLDER: ./data
-          LNBITS_BACKEND_WALLET_CLASS: CLightningWallet
-          CLIGHTNING_RPC: ./docker/data/clightning-1/regtest/lightning-rpc
+          LNBITS_BACKEND_WALLET_CLASS: CoreLightningWallet
+          CORELIGHTNING_RPC: ./docker/data/clightning-1/regtest/lightning-rpc
         run: |
           sudo chmod -R a+rwx . && rm -rf ./data && mkdir -p ./data
           make test-real-wallet
