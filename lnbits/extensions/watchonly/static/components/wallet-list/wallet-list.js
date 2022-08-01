@@ -4,16 +4,51 @@ async function walletList(path) {
     name: 'wallet-list',
     template,
 
-    props: ['adminkey', 'inkey', 'sats-denominated', 'addresses', 'network'],
+    props: [
+      'adminkey',
+      'inkey',
+      'sats-denominated',
+      'addresses',
+      'network',
+      'serial-signer-ref'
+    ],
     data: function () {
       return {
         walletAccounts: [],
         address: {},
         formDialog: {
           show: false,
+          addressType: {
+            label: 'Pay-to-witness-pubkey-hash scripts (P2WPKH)',
+            value: 'wpkh'
+          },
+          useSerialPort: false,
           data: {}
         },
         filter: '',
+        addressTypeOptions: [
+          {
+            label: 'Pay-to-pubkey-hash scripts (P2PKH)',
+            value: 'pkh',
+            path: "m/44'/0'/0'"
+          },
+          {
+            label: 'Pay-to-witness-pubkey-hash scripts (P2WPKH)',
+            value: 'wpkh',
+            path: "m/84'/0'/0'"
+          },
+          {
+            label: 'Pay-to-script-hash scripts (P2SH-P2WPKH)',
+            value: 'sh',
+            path: "m/49'/0'/0'"
+          },
+          {
+            label: 'Pay-to-taproot outputs (P2TR)',
+            value: 'tr',
+            path: "m/86'/0'/0'"
+          }
+        ],
+
         walletsTable: {
           columns: [
             {
@@ -173,6 +208,38 @@ async function walletList(path) {
         const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
         wallet.address_no = addressData.addressIndex
         this.$emit('new-receive-address', addressData)
+      },
+      showAddAccountDialog: function() {
+        this.formDialog.show = true
+        this.formDialog.useSerialPort = false
+      },
+      getXpubFromDevice: async function () {
+        this.handleAddressTypeChanged('wpkh')
+        try {
+          if (!this.serialSignerRef.isConnected()) {
+            const portOpen = await this.serialSignerRef.openSerialPort()
+            if (!portOpen) return
+          }
+          if (!this.serialSignerRef.isAuthenticated()) {
+            await this.serialSignerRef.hwwShowPasswordDialog()
+            const authenticated = await this.serialSignerRef.isAuthenticating()
+            if (!authenticated) return
+          }
+          this.formDialog.show = true
+          this.formDialog.useSerialPort = true
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Cannot fetch Xpub!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+      handleAddressTypeChanged: function (value) {
+        const addressType =
+          this.addressTypeOptions.find(t => t.value === value) || {}
+        this.formDialog.data.accountPath = addressType.path
       }
     },
     created: async function () {
