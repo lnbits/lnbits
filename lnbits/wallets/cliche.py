@@ -61,7 +61,7 @@ class ClicheWallet(Wallet):
         payment_request = None
         error_message = None
         try:
-            if data["error"]["message"]:
+            if data.get("error") is not None and data["error"].get("message"):
                 logger.error(data["error"]["message"])
                 error_message = data["error"]["message"]
                 return InvoiceResponse(
