@@ -4,7 +4,6 @@ import os
 import re
 import warnings
 
-import click
 from loguru import logger
 
 from .core import db as core_db
@@ -19,12 +18,9 @@ from .helpers import (
 from .settings import LNBITS_PATH
 
 
-@click.command("migrate")
 def db_migrate():
     asyncio.create_task(migrate_databases())
 
-
-@click.command("assets")
 def handle_assets():
     transpile_scss()
     bundle_vendored()

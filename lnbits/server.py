@@ -1,18 +1,15 @@
-import click
+import argparse
 import uvicorn
+from loguru import logger
 
-
-@click.command()
-@click.option("--port", default="5000", help="Port to run LNBits on")
-@click.option("--host", default="127.0.0.1", help="Host to run LNBits on")
-def main(port, host):
+parser = argparse.ArgumentParser()
+parser.add_argument("--port", default="5000", help="Port to run LNBits on")
+parser.add_argument("--host", default="127.0.0.1", help="Host to run LNBits on")
+def main():
     """Launched with `poetry run lnbits` at root level"""
-    uvicorn.run("lnbits.__main__:app", port=port, host=host)
-
+    args = parser.parse_args()
+    logger.debug(args.port)
+    uvicorn.run("lnbits.__main__:app", port=args.port, host=args.host)
 
 if __name__ == "__main__":
     main()
-
-# def main():
-#    """Launched with `poetry run start` at root level"""
-#    uvicorn.run("lnbits.__main__:app")
