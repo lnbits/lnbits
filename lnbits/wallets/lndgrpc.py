@@ -5,6 +5,7 @@ try:
 except ImportError:  # pragma: nocover
     imports_ok = False
 
+import time
 import asyncio
 import base64
 import binascii
@@ -157,18 +158,31 @@ class LndWallet(Wallet):
         return InvoiceResponse(True, checking_id, payment_request, None)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-        fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
-        req = ln.SendRequest(payment_request=bolt11, fee_limit=fee_limit_fixed)
-        resp = await self.rpc.SendPaymentSync(req)
+        # fee_limit_fixed = ln.FeeLimit(fixed=fee_limit_msat // 1000)
+        req = router.SendPaymentRequest(
+            payment_request=bolt11,
+            fee_limit_msat=fee_limit_msat,
+            timeout_seconds=30,
+            no_inflight_updates=True,
+        )
+        try:
+            resp = await self.routerpc.SendPaymentV2(req).read()
+            print(resp)
+        except RpcError as exc:
+            return PaymentResponse(False, "", 0, None, exc._details)
+        except Exception as exc:
+            return PaymentResponse(False, "", 0, None, str(exc))
 
-        if resp.payment_error:
-            return PaymentResponse(False, "", 0, None, resp.payment_error)
+        checking_id = resp.payment_hash
 
-        r_hash = hashlib.sha256(resp.payment_preimage).digest()
-        checking_id = stringify_checking_id(r_hash)
-        fee_msat = resp.payment_route.total_fees_msat
-        preimage = resp.payment_preimage.hex()
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        if resp.status == 0:
+            return PaymentResponse(None, checking_id, fee_limit_msat, None, None)
+        elif resp.status == 1:
+            fee_msat = resp.htlcs[-1].route.total_fees_msat
+            preimage = resp.payment_preimage
+            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        elif resp.status == 2:
+            return PaymentResponse(False, checking_id, 0, None, resp.failure_reason)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -216,7 +230,7 @@ class LndWallet(Wallet):
         statuses = {
             0: None,  # IN_FLIGHT
             1: True,  # "SUCCEEDED"
-            2: False,  # "SUCCEEDED"
+            2: False,  # "FAILED"
         }
 
         try:
