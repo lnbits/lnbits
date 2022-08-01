@@ -292,7 +292,7 @@ async function payment(path) {
         const {
           bitcoin: {transactions: transactionsAPI}
         } = mempoolJS({
-          hostname: new URL(this.mempoolEndpoint).hostname
+          hostname: this.mempoolEndpoint
         })
 
         try {

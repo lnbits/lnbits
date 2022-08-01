@@ -4,24 +4,51 @@ async function walletConfig(path) {
     name: 'wallet-config',
     template: t,
 
-    props: ['total', 'config', 'adminkey'],
+    props: ['total', 'config-data', 'adminkey'],
     data: function () {
-      return {}
+      return {
+        networOptions: ['Mainnet', 'Testnet'],
+        internalConfig: {
+          mempool_endpoint: 'https://mempool.space',
+          receive_gap_limit: 20,
+          change_gap_limit: 5
+        },
+        show: false
+      }
+    },
+
+    computed: {
+      config: {
+        get() {
+          console.log('### get config', this.internalConfig)
+          return this.internalConfig
+        },
+        set(value) {
+          value.isLoaded = true
+          console.log('### set config', this.internalConfig)
+          this.internalConfig = JSON.parse(JSON.stringify(value))
+          this.$emit(
+            'update:config-data',
+            JSON.parse(JSON.stringify(this.internalConfig))
+          )
+        }
+      }
     },
 
     methods: {
       satBtc(val, showUnit = true) {
-        return satOrBtc(val, showUnit, this.config.data.sats_denominated)
+        return satOrBtc(val, showUnit, this.config.sats_denominated)
       },
       updateConfig: async function () {
         try {
-          await LNbits.api.request(
+          const {data} = await LNbits.api.request(
             'PUT',
             '/watchonly/api/v1/config',
             this.adminkey,
-            this.config.data
+            this.config
           )
-          this.config.show = false
+          this.show = false
+          this.config = data
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }
@@ -33,7 +60,7 @@ async function walletConfig(path) {
             '/watchonly/api/v1/config',
             this.adminkey
           )
-          this.config.data = data
+          this.config = data
         } catch (error) {
           LNbits.utils.notifyApiError(error)
         }

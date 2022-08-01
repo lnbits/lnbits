@@ -35,13 +35,14 @@ async function feeRate(path) {
       },
 
       refreshRecommendedFees: async function () {
-        const {
-          bitcoin: {fees: feesAPI}
-        } = mempoolJS({
-          hostname: new URL(this.mempoolEndpoint).hostname
-        })
-
-        const fn = async () => feesAPI.getFeesRecommended()
+        const fn = async () => {
+          const {
+            bitcoin: {fees: feesAPI}
+          } = mempoolJS({
+            hostname: this.mempoolEndpoint
+          })
+          return feesAPI.getFeesRecommended()
+        }
         this.recommededFees = await retryWithDelay(fn)
       },
       getFeeRateLabel: function (feeRate) {
