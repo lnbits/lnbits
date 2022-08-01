@@ -421,7 +421,13 @@
         this.formDialog = {
           show: false,
           fixedAmount: true,
-          data: {}
+          data: {
+            haircut: 0,
+            min_bet: 10,
+            max_bet: 1000,
+            currency: 'satoshis',
+            comment_chars: 0
+          }
         }
       },
       updatePayLink(wallet, data) {
