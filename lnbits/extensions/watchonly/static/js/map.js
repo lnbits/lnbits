@@ -66,15 +66,14 @@ const mapAddressDataToUtxo = (wallet, addressData, utxo) => ({
   selected: false
 })
 
-const mapWalletAccount = function (obj) {
-  obj._data = _.clone(obj)
-  obj.date = obj.time
-    ? Quasar.utils.date.formatDate(
-        new Date(obj.time * 1000),
-        'YYYY-MM-DD HH:mm'
-      )
-    : ''
-  obj.label = obj.title // for drop-downs
-  obj.expanded = false
-  return obj
+const mapWalletAccount = function (o) {
+  return Object.assign({}, o, {
+    date: o.time
+      ? Quasar.utils.date.formatDate(
+          new Date(o.time * 1000),
+          'YYYY-MM-DD HH:mm'
+        )
+      : '',
+    expanded: false
+  })
 }

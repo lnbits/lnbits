@@ -164,7 +164,6 @@ const watchOnly = async () => {
       //################### PSBT ###################
 
       updateSignedPsbt: async function (psbtBase64) {
-        console.log('### updateSignedPsbt psbtBase64', psbtBase64)
         this.$refs.paymentRef.updateSignedPsbt(psbtBase64)
       },
 
@@ -237,7 +236,6 @@ const watchOnly = async () => {
           })
           this.addresses.push(...uniqueAddresses)
         }
-        console.log('### refreshAddresses', this.addresses)
         this.$emit('update:addresses', this.addresses)
       },
       getAddressesForWallet: async function (walletId) {
@@ -324,12 +322,14 @@ const watchOnly = async () => {
 
       //################### MEMPOOL API ###################
       getAddressTxsDelayed: async function (addrData) {
+        const accounts = this.walletAccounts
+        const {
+          bitcoin: {addresses: addressesAPI}
+        } = mempoolJS({
+          hostname: this.mempoolHostname
+        })
         const fn = async () => {
-          const {
-            bitcoin: {addresses: addressesAPI}
-          } = mempoolJS({
-            hostname: this.mempoolHostname
-          })
+          if (!accounts.find(w => (w.id === addrData.wallet))) return []
           return addressesAPI.getAddressTxs({
             address: addrData.address
           })
@@ -339,13 +339,15 @@ const watchOnly = async () => {
       },
 
       getAddressTxsUtxoDelayed: async function (address) {
-        const fn = async () => {
-          const {
-            bitcoin: {addresses: addressesAPI}
-          } = mempoolJS({
-            hostname: this.mempoolHostname
-          })
+        const endpoint = this.mempoolHostname
+        const {
+          bitcoin: {addresses: addressesAPI}
+        } = mempoolJS({
+          hostname: endpoint
+        })
 
+        const fn = async () => {
+          if (endpoint !== this.mempoolHostname) return []
           return addressesAPI.getAddressTxsUtxo({
             address
           })

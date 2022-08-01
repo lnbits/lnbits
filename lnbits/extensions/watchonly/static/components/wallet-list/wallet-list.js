@@ -50,7 +50,6 @@ async function walletList(path) {
     watch: {
       immediate: true,
       async network(newNet, oldNet) {
-        console.log('### newNet, oldNet', newNet, oldNet)
         if (newNet !== oldNet) {
           await this.refreshWalletAccounts()
         }
@@ -131,6 +130,7 @@ async function walletList(path) {
         return []
       },
       refreshWalletAccounts: async function () {
+        this.walletAccounts = []
         const wallets = await this.getWatchOnlyWallets()
         this.walletAccounts = wallets.map(w => mapWalletAccount(w))
         this.$emit('accounts-update', this.walletAccounts)
