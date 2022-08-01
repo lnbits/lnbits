@@ -209,7 +209,7 @@ async function walletList(path) {
         wallet.address_no = addressData.addressIndex
         this.$emit('new-receive-address', addressData)
       },
-      showAddAccountDialog: function() {
+      showAddAccountDialog: function () {
         this.formDialog.show = true
         this.formDialog.useSerialPort = false
       },
