@@ -47,9 +47,10 @@ class ClicheWallet(Wallet):
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         if description_hash:
+            description_hash_hashed = hashlib.sha256(description_hash).hexdigest()
             ws = create_connection(self.endpoint)
             ws.send(
-                f"create-invoice --msatoshi {amount*1000} --description_hash {description_hash.hex()}"
+                f"create-invoice --msatoshi {amount*1000} --description_hash {description_hash_hashed}"
             )
             r = ws.recv()
         else:
