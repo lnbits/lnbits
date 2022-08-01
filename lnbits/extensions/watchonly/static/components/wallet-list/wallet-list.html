@@ -205,7 +205,7 @@
           v-if="formDialog.useSerialPort"
           filled
           type="text"
-          v-model="formDialog.data.accountPath"
+          v-model="accountPath"
           height="50px"
           autogrow
           label="Account Path"
@@ -216,7 +216,7 @@
             unelevated
             color="primary"
             :disable="
-                (formDialog.data.masterpub == null && formDialog.data.accountPath == null)||
+                (formDialog.data.masterpub == null && accountPath == null)||
                 formDialog.data.title == null"
             type="submit"
             >Add Watch-Only Account</q-btn

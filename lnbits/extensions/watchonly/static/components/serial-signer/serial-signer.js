@@ -29,8 +29,9 @@ async function serialSigner(path) {
           showSignedPsbt: false,
           sendingPsbt: false,
           signingPsbt: false,
-          psbtSentResolve: null,
           loginResolve: null,
+          psbtSentResolve: null,
+          xpubResolve: null,
           confirm: {
             outputIndex: 0,
             showFee: false
@@ -105,7 +106,6 @@ async function serialSigner(path) {
           })
         } catch (error) {
           this.selectedPort = null
-          console.log('### error', error)
           this.$q.notify({
             type: 'warning',
             message: 'Cannot close serial port!',
@@ -137,6 +137,12 @@ async function serialSigner(path) {
         })
       },
 
+      isFetchingXpub: async function () {
+        return new Promise(resolve => {
+          this.xpubResolve = resolve
+        })
+      },
+
       checkSerialPortSupported: function () {
         if (!navigator.serial) {
           this.$q.notify({
@@ -162,7 +168,6 @@ async function serialSigner(path) {
           try {
             while (true) {
               const {value, done} = await readStringUntil('\n')
-              console.log('### value', value)
               if (value) {
                 this.handleSerialPortResponse(value)
                 this.updateSerialPortConsole(value)
@@ -180,15 +185,31 @@ async function serialSigner(path) {
         }
       },
       handleSerialPortResponse: function (value) {
-        const msg = value.split(' ')
-        if (msg[0] == COMMAND_SIGN_PSBT) this.handleSignResponse(msg[1])
-        else if (msg[0] == COMMAND_PASSWORD) this.handleLoginResponse(msg[1])
-        else if (msg[0] == COMMAND_PASSWORD_CLEAR)
-          this.handleLogoutResponse(msg[1])
-        else if (msg[0] == COMMAND_SEND_PSBT)
-          this.handleSendPsbtResponse(msg[1])
-        else if (msg[0] == COMMAND_WIPE) this.handleWipeResponse(msg[1])
-        else console.log('### console', value)
+        const command = value.split(' ')[0]
+        const commandData = value.substring(command.length).trim()
+
+        switch (command) {
+          case COMMAND_SIGN_PSBT:
+            this.handleSignResponse(commandData)
+            break
+          case COMMAND_PASSWORD:
+            this.handleLoginResponse(commandData)
+            break
+          case COMMAND_PASSWORD_CLEAR:
+            this.handleLogoutResponse(commandData)
+            break
+          case COMMAND_SEND_PSBT:
+            this.handleSendPsbtResponse(commandData)
+            break
+          case COMMAND_WIPE:
+            this.handleWipeResponse(commandData)
+            break
+          case COMMAND_XPUB:
+            this.handleXpubResponse(commandData)
+            break
+          default:
+            console.log('### console', value)
+        }
       },
       updateSerialPortConsole: function (value) {
         this.receivedData += value + '\n'
@@ -304,7 +325,6 @@ async function serialSigner(path) {
         }
       },
       handleLogoutResponse: function (res = '') {
-        console.log('###handleLogoutResponse ', res)
         this.hww.authenticated = !(res.trim() === '1')
         if (this.hww.authenticated) {
           this.$q.notify({
@@ -316,7 +336,6 @@ async function serialSigner(path) {
       },
       hwwSendPsbt: async function (psbtBase64, tx) {
         try {
-          console.log('### hwwSendPsbt tx', tx)
           this.tx = tx
           this.hww.sendingPsbt = true
           await this.writer.write(
@@ -427,7 +446,6 @@ async function serialSigner(path) {
       },
       handleWipeResponse: function (res = '') {
         const wiped = res.trim() === '1'
-        console.log('### wiped', wiped)
         if (wiped) {
           this.$q.notify({
             type: 'positive',
@@ -442,6 +460,36 @@ async function serialSigner(path) {
             timeout: 10000
           })
         }
+      },
+      hwwXpub: async function (path) {
+        try {
+          await this.writer.write(
+            COMMAND_XPUB + ' ' + this.network + ' ' + path + '\n'
+          )
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to fetch XPub!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+      handleXpubResponse: function (res = '') {
+        const args = res.trim().split(' ')
+        if (args.length < 3 || args[0].trim() !== '1') {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to fetch XPub!',
+            caption: `${res}`,
+            timeout: 10000
+          })
+          this.xpubResolve({})
+          return
+        }
+        const xpub = args[1].trim()
+        const fingerprint = args[2].trim()
+        this.xpubResolve({xpub, fingerprint})
       },
       hwwShowSeed: async function () {
         try {

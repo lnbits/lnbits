@@ -9,6 +9,7 @@ const COMMAND_SEED = '/seed'
 const COMMAND_RESTORE = '/restore'
 const COMMAND_CONFIRM_NEXT = '/confirm-next'
 const COMMAND_CANCEL = '/cancel'
+const COMMAND_XPUB = '/xpub'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
 
@@ -170,4 +171,13 @@ function loadTemplateAsync(path) {
   })
 
   return result
+}
+
+function findAccountPathIssues(path = '') {
+  const p = path.split('/')
+  if (p[0] !== 'm') return "Path must start with 'm/'"
+  for (let i = 1; i < p.length; i++) {
+    if (p[i].endsWith('')) p[i] = p[i].substring(0, p[i].length - 1)
+    if (isNaN(p[i])) return `${p[i]} is not a valid value`
+  }
 }
