@@ -49,7 +49,7 @@ class ClicheWallet(Wallet):
         if description_hash:
             ws = create_connection(self.endpoint)
             ws.send(
-                f"create-invoice --msatoshi {amount*1000} --description_hash {description_hash.decode()}"
+                f"create-invoice --msatoshi {amount*1000} --description_hash {description_hash.hex()}"
             )
             r = ws.recv()
         else:
