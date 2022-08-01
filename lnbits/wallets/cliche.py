@@ -72,10 +72,9 @@ class ClicheWallet(Wallet):
                 data["result"]["payment_hash"],
                 data["result"]["invoice"],
             )
-            return InvoiceResponse(True, checking_id, payment_request, error_message)
+        return InvoiceResponse(True, checking_id, payment_request, error_message)
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
-
         ws = create_connection(self.endpoint)
         ws.send(f"pay-invoice --invoice {bolt11}")
         r = ws.recv()
@@ -89,7 +88,7 @@ class ClicheWallet(Wallet):
                 return PaymentResponse(False, None, 0, error_message)
         except:
             checking_id = data["result"]["payment_hash"]
-            return PaymentResponse(True, checking_id, 0, error_message)
+        return PaymentResponse(True, checking_id, 0, error_message)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
@@ -102,7 +101,7 @@ class ClicheWallet(Wallet):
                 return PaymentStatus(None)
         except:
             statuses = {"pending": None, "complete": True, "failed": False}
-            return PaymentStatus(statuses[data["result"]["status"]])
+        return PaymentStatus(statuses[data["result"]["status"]])
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)
@@ -115,7 +114,7 @@ class ClicheWallet(Wallet):
                 return PaymentStatus(None)
         except:
             statuses = {"pending": None, "complete": True, "failed": False}
-            return PaymentStatus(statuses[data["result"]["status"]])
+        return PaymentStatus(statuses[data["result"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         try:
