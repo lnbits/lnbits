@@ -4,6 +4,7 @@ except ImportError:  # pragma: nocover
     LightningRpc = None
 
 import asyncio
+import hashlib
 import random
 import time
 from functools import partial, wraps
@@ -94,7 +95,7 @@ class CLightningWallet(Wallet):
                 if not self.supports_description_hash:
                     raise Unsupported("description_hash")
 
-                params = [msat, label, description_hash.hex()]
+                params = [msat, label, hashlib.sha256(description_hash).hexdigest()]
                 r = self.ln.call("invoicewithdescriptionhash", params)
                 return InvoiceResponse(True, label, r["bolt11"], "")
             else:
