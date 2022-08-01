@@ -118,7 +118,17 @@ class ClicheWallet(Wallet):
             return PaymentStatus(statuses[data["result"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue: asyncio.Queue = asyncio.Queue(0)
-        while True:
-            value = await self.queue.get()
-            yield value
+        try:
+            ws = await create_connection(self.endpoint)
+            while True:
+                r = await ws.recv()
+                data = json.loads(r)
+                try:
+                    if data["result"]["status"]:
+                        yield data["result"]["payment_hash"]
+                except:
+                    continue
+        except:
+            pass
+            logger.error("lost connection to cliche's websocket, retrying in 5 seconds")
+            await asyncio.sleep(5)
