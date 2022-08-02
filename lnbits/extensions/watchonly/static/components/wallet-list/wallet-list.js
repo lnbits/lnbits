@@ -28,6 +28,7 @@ async function walletList(path) {
         },
         accountPath: '',
         filter: '',
+        showCreating: false,
         addressTypeOptions: [
           {
             label: 'Pay-to-pubkey-hash scripts (P2PKH)',
@@ -39,7 +40,7 @@ async function walletList(path) {
             label: 'Pay-to-witness-pubkey-hash scripts (P2WPKH)',
             value: 'wpkh',
             pathMainnet: "m/84'/0'/0'",
-            pathTestnet: "m/84'/1'/0'",
+            pathTestnet: "m/84'/1'/0'"
           },
           {
             label: 'Pay-to-script-hash scripts (P2SH-P2WPKH)',
@@ -103,9 +104,11 @@ async function walletList(path) {
       },
 
       addWalletAccount: async function () {
+        this.showCreating = true
         const data = _.omit(this.formDialog.data, 'wallet')
         data.network = this.network
         await this.createWalletAccount(data)
+        this.showCreating = false
       },
       createWalletAccount: async function (data) {
         try {
@@ -119,6 +122,7 @@ async function walletList(path) {
             } else {
               data.masterpub = `${outputType}([${fingerprint}/${path}]${xpub}/{0,1}/*)`
             }
+            console.log('###  data.masterpub', data.masterpub)
           }
           const response = await LNbits.api.request(
             'POST',

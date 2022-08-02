@@ -215,12 +215,14 @@
           <q-btn
             unelevated
             color="primary"
+            label="Add Watch-Only Account"
             :disable="
                 (formDialog.data.masterpub == null && accountPath == null)||
-                formDialog.data.title == null"
+                formDialog.data.title == null || showCreating"
             type="submit"
-            >Add Watch-Only Account</q-btn
           >
+          </q-btn>
+          <q-spinner v-if="showCreating" color="primary" size="2em"></q-spinner>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >

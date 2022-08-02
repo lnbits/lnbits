@@ -462,7 +462,10 @@ async function serialSigner(path) {
       },
       hwwXpub: async function (path) {
         try {
-          console.log('### hwwXpub', COMMAND_XPUB + ' ' + this.network + ' ' + path)
+          console.log(
+            '### hwwXpub',
+            COMMAND_XPUB + ' ' + this.network + ' ' + path
+          )
           await this.writer.write(
             COMMAND_XPUB + ' ' + this.network + ' ' + path + '\n'
           )
