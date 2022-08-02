@@ -30,7 +30,7 @@ poetry install
 
 mkdir data 
 cp .env.example .env
-sudo nano .env # and set funding source
+sudo nano .env # set funding source
 
 
 ``` 
