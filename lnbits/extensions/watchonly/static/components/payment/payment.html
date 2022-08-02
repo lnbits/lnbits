@@ -225,4 +225,86 @@
       </div>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="showFinalTx" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <div class="row items-center no-wrap q-mb-sm">
+        <div class="col-12">
+          <span class="text-subtitle1">Transaction Details</span>
+        </div>
+      </div>
+      <q-separator class="q-mb-lg"></q-separator>
+      <div v-if="signedTx" class="row items-center no-wrap q-mb-md">
+        <div class="col-12">
+          <div class="row items-center no-wrap q-mb-sm">
+            <div class="col-3 q-pr-lg">Version</div>
+            <div class="col-9">{{signedTx.version}}</div>
+          </div>
+          <div class="row items-center no-wrap q-mb-sm">
+            <div class="col-3 q-pr-lg">Locktime</div>
+            <div class="col-9">{{signedTx.locktime}}</div>
+          </div>
+          <div class="row items-center no-wrap q-mb-sm">
+            <div class="col-3 q-pr-lg">Fee</div>
+            <div class="col-9">
+              <q-badge color="orange">{{satBtc(signedTx.fee)}} </q-badge>
+            </div>
+          </div>
+          <q-separator class="q-mb-lg"></q-separator>
+          <span class="text-subtitle2">Outputs</span>
+          <q-separator class="q-mb-lg"></q-separator>
+          <div
+            v-for="out in signedTx.outputs"
+            class="row items-center no-wrap q-mb-sm"
+          >
+            <div class="col-3 q-pr-lg">
+              <q-badge color="orange">{{satBtc(out.amount)}}</q-badge>
+            </div>
+
+            <div class="col-9">
+              <q-badge outline color="blue">{{out.address}}</q-badge>
+            </div>
+          </div>
+        </div>
+      </div>
+      <q-separator class="q-mb-lg"></q-separator>
+      <div class="row q-mt-lg">
+        <div class="col-12">
+          <q-input
+            filled
+            dense
+            v-model.trim="signedTxHex"
+            type="textarea"
+            cols="300"
+            rows="1"
+            label="Signed Tx Hex"
+          ></q-input>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <div class="col-12">
+          <q-input
+            filled
+            dense
+            v-model.trim="psbtBase64Signed"
+            ype="textarea"
+            cols="300"
+            rows="1"
+            label="PSBT"
+          ></q-input>
+        </div>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          unelevated
+          color="secondary"
+          class="float-left"
+          @click="broadcastTransaction"
+          >Send</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 </div>

@@ -31,6 +31,8 @@ async function serialSigner(path) {
           loginResolve: null,
           psbtSentResolve: null,
           xpubResolve: null,
+          seedWordPosition: 1,
+          showSeedDialog: false,
           confirm: {
             outputIndex: 0,
             showFee: false
@@ -402,13 +404,11 @@ async function serialSigner(path) {
       handleSignResponse: function (res = '') {
         this.hww.signingPsbt = false
         this.updateSignedPsbt(res)
-        if (this.hww.authenticated) {
-          this.$q.notify({
-            type: 'positive',
-            message: 'Transaction Signed',
-            timeout: 10000
-          })
-        }
+        this.$q.notify({
+          type: 'positive',
+          message: 'Transaction Signed',
+          timeout: 10000
+        })
       },
       hwwHelp: async function () {
         try {
@@ -496,7 +496,11 @@ async function serialSigner(path) {
       },
       hwwShowSeed: async function () {
         try {
-          await this.writer.write(COMMAND_SEED + '\n')
+          this.hww.showSeedDialog = true
+          this.hww.seedWordPosition = 1
+          await this.writer.write(
+            COMMAND_SEED + ' ' + this.hww.seedWordPosition + '\n'
+          )
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -504,6 +508,31 @@ async function serialSigner(path) {
             caption: `${error}`,
             timeout: 10000
           })
+        }
+      },
+      showNextSeedWord: async function () {
+        this.hww.seedWordPosition++
+        await this.writer.write(
+          COMMAND_SEED + ' ' + this.hww.seedWordPosition + '\n'
+        )
+      },
+      showPrevSeedWord: async function () {
+        this.hww.seedWordPosition = Math.max(1, this.hww.seedWordPosition - 1)
+        console.log('### this.hww.seedWordPosition', this.hww.seedWordPosition)
+        await this.writer.write(
+          COMMAND_SEED + ' ' + this.hww.seedWordPosition + '\n'
+        )
+      },
+      handleShowSeedResponse: function (res = '') {
+        const args = res.trim().split(' ')
+        if (args.length < 2 || args[0].trim() !== '1') {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to show seed!',
+            caption: `${res}`,
+            timeout: 10000
+          })
+          return
         }
       },
       hwwRestore: async function () {
@@ -529,6 +558,7 @@ async function serialSigner(path) {
           this.hww.showPassword = false
         }
       },
+
       updateSignedPsbt: async function (value) {
         this.$emit('signed:psbt', value)
       }

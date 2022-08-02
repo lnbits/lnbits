@@ -28,6 +28,7 @@ async function payment(path) {
         DUST_LIMIT: 546,
         tx: null,
         psbtBase64: null,
+        psbtBase64Signed: null,
         signedTx: null,
         sentTxId: null,
         signedTxId: null,
@@ -40,6 +41,7 @@ async function payment(path) {
         showChecking: false,
         showChange: false,
         showPsbt: false,
+        showFinalTx: false,
         feeRate: 1
       }
     },
@@ -224,15 +226,23 @@ async function payment(path) {
         this.selectChangeAddress(this.changeWallet)
       },
       updateSignedPsbt: async function (psbtBase64) {
-        console.log('### payment updateSignedPsbt psbtBase64', psbtBase64)
+        try {
+          this.showChecking = true
+          this.psbtBase64Signed = psbtBase64
 
-        const data = await this.extractTxFromPsbt(psbtBase64)
-        if (data) {
-          this.signedTx = JSON.parse(data.tx_json)
-          this.signedTxHex = data.tx_hex
-        } else {
-          this.signedTx = null
-          this.signedTxHex = null
+          console.log('### payment updateSignedPsbt psbtBase64', psbtBase64)
+
+          const data = await this.extractTxFromPsbt(psbtBase64)
+          this.showFinalTx = true
+          if (data) {
+            this.signedTx = JSON.parse(data.tx_json)
+            this.signedTxHex = data.tx_hex
+          } else {
+            this.signedTx = null
+            this.signedTxHex = null
+          }
+        } finally {
+          this.showChecking = false
         }
       },
       extractTxFromPsbt: async function (psbtBase64) {
@@ -286,6 +296,8 @@ async function payment(path) {
             caption: `${error}`,
             timeout: 10000
           })
+        } finally {
+          this.showFinalTx = false
         }
       },
       fetchTxHex: async function (txId) {
