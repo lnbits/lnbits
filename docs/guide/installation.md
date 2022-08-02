@@ -29,7 +29,8 @@ poetry env use python3.9
 poetry install 
 
 mkdir data 
-cp .env.example .env # 'sudo nano .env' and set funding source
+cp .env.example .env
+sudo nano .env # and set funding source
 
 
 ``` 
