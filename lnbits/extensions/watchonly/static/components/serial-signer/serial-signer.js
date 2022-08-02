@@ -440,6 +440,7 @@ async function serialSigner(path) {
           })
         } finally {
           this.hww.password = null
+          this.hww.confirmedPassword = null
           this.hww.showPassword = false
         }
       },
@@ -555,6 +556,7 @@ async function serialSigner(path) {
           this.hww.mnemonic = null
           this.hww.showMnemonic = false
           this.hww.password = null
+          this.hww.confirmedPassword = null
           this.hww.showPassword = false
         }
       },
