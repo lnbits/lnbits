@@ -307,6 +307,36 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="hww.showSeedDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <span>Check word at position {{hww.seedWordPosition}} on display</span>
+
+      <div class="row q-mt-lg">
+        <div class="col-4">
+          <q-btn
+            v-if="hww.seedWordPosition!== 1"
+            unelevated
+            color="primary"
+            @click="showPrevSeedWord"
+            >Prev</q-btn
+          >
+        </div>
+        <div class="col-4">
+          <q-btn
+            v-if="hww.seedWordPosition!== 24"
+            unelevated
+            color="primary"
+            @click="showNextSeedWord"
+            >Next</q-btn
+          >
+        </div>
+        <div class="col-4">
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+        </div>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="hww.showRestoreDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwRestore" class="q-gutter-md">
