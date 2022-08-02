@@ -18,6 +18,7 @@ By default, LNbits will use SQLite as its database. You can also use PostgreSQL 
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
+# for making sure python 3.9 is installed, skip if installed
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
