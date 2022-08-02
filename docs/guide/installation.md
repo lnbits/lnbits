@@ -19,6 +19,7 @@ git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
 curl -sSL https://install.python-poetry.org | python3 -
+poetry env use python3.9
 poetry install 
 
 # You may need to install python 3.9, update your python following this guide https://linuxize.com/post/how-to-install-python-3-9-on-ubuntu-20-04/
