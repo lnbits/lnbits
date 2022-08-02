@@ -10,6 +10,7 @@
       <template v-slot:serial>
         <serial-signer
           ref="serialSigner"
+          :network="config.network"
           :sats-denominated="config.sats_denominated"
           @signed:psbt="updateSignedPsbt"
         ></serial-signer>
