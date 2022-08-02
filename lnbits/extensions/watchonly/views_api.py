@@ -103,7 +103,14 @@ async def api_wallet_create_or_update(
 
         wallets = await get_watch_wallets(w.wallet.user, network["name"])
         existing_wallet = next(
-            (ew for ew in wallets if ew.fingerprint == new_wallet.fingerprint), None
+            (
+                ew
+                for ew in wallets
+                if ew.fingerprint == new_wallet.fingerprint
+                and ew.network == new_wallet.network
+                and ew.masterpub == new_wallet.masterpub
+            ),
+            None,
         )
         if existing_wallet:
             raise ValueError(
