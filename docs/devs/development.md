@@ -18,6 +18,7 @@ Tests
 This project has unit tests that help prevent regressions. Before you can run the tests, you must install a few dependencies:
 ```bash
 poetry install
+npm i
 ```
 
 Then to run the tests:
@@ -33,4 +34,9 @@ make format
 Run mypy checks:
 ```bash
 poetry run mypy
+```
+
+Run everything:
+```bash
+make all
 ```
