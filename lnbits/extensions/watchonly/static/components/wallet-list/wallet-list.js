@@ -32,22 +32,26 @@ async function walletList(path) {
           {
             label: 'Pay-to-pubkey-hash scripts (P2PKH)',
             value: 'pkh',
-            path: "m/44'/0'/0'"
+            pathMainnet: "m/44'/0'/0'",
+            pathTestnet: "m/44'/1'/0'"
           },
           {
             label: 'Pay-to-witness-pubkey-hash scripts (P2WPKH)',
             value: 'wpkh',
-            path: "m/84'/0'/0'"
+            pathMainnet: "m/84'/0'/0'",
+            pathTestnet: "m/84'/1'/0'",
           },
           {
             label: 'Pay-to-script-hash scripts (P2SH-P2WPKH)',
             value: 'sh',
-            path: "m/49'/0'/0'"
+            pathMainnet: "m/49'/0'/0'",
+            pathTestnet: "m/49'/1'/0'"
           },
           {
             label: 'Pay-to-taproot outputs (P2TR)',
             value: 'tr',
-            path: "m/86'/0'/0'"
+            pathMainnet: "m/86'/0'/0'",
+            pathTestnet: "m/86'/1'/0'"
           }
         ],
 
@@ -265,7 +269,7 @@ async function walletList(path) {
       handleAddressTypeChanged: function (value) {
         const addressType =
           this.addressTypeOptions.find(t => t.value === value) || {}
-        this.accountPath = addressType.path
+        this.accountPath = addressType[`path${this.network}`]
       }
     },
     created: async function () {

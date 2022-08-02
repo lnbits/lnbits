@@ -4,10 +4,9 @@ async function serialSigner(path) {
     name: 'serial-signer',
     template: t,
 
-    props: ['sats-denominated'],
+    props: ['sats-denominated', 'network'],
     data: function () {
       return {
-        network: 'Mainnet', // todo: hardcoded for now
         selectedPort: null,
         writableStreamClosed: null,
         writer: null,
@@ -463,6 +462,7 @@ async function serialSigner(path) {
       },
       hwwXpub: async function (path) {
         try {
+          console.log('### hwwXpub', COMMAND_XPUB + ' ' + this.network + ' ' + path)
           await this.writer.write(
             COMMAND_XPUB + ' ' + this.network + ' ' + path + '\n'
           )
