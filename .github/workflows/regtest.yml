@@ -63,6 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
+          poetry add pyln-client
       - name: Run tests
         env:
           PYTHONUNBUFFERED: 1
