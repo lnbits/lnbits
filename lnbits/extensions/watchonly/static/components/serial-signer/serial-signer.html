@@ -268,6 +268,14 @@
           type="password"
           label="Password"
         ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.confirmedPassword"
+          type="password"
+          label="Confirm Password"
+        ></q-input>
         <q-badge color="pink" text-color="black">
           This action cannot be reversed!
         </q-badge>
@@ -276,7 +284,7 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="!selectedPort"
+            :disable="!hww.password || hww.password.length < 8 || (hww.password !== hww.confirmedPassword)"
             type="submit"
             >Wipe</q-btn
           >
@@ -356,7 +364,7 @@
           :type="hww.showMnemonic ? 'text' : 'password'"
           filled
           dense
-          hint="Word List"
+          label="Word List"
         >
           <template v-slot:append>
             <q-icon
@@ -374,7 +382,7 @@
           :type="hww.showPassword ? 'text' : 'password'"
           filled
           dense
-          hint="New Password"
+          label="New Password"
         >
           <template v-slot:append>
             <q-icon
@@ -384,6 +392,14 @@
             />
           </template>
         </q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.confirmedPassword"
+          type="password"
+          label="Confirm Password"
+        ></q-input>
         <br /><br />
         <q-badge
           color="pink"
@@ -391,14 +407,23 @@
           class="text-subtitle2"
           multi-line
         >
-          For test purposes only. Do not enter word list with real funds.
+          For test purposes only. Do not enter word list with real funds!!!
+        </q-badge>
+        <q-separator></q-separator>
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          ALL existing data on the Hardware Device will be lost.
         </q-badge>
 
         <div class="row q-mt-lg">
           <q-btn
             unelevated
             color="primary"
-            :disable="!selectedPort"
+            :disable="!hww.mnemonic || !hww.password || hww.password.length < 8 || (hww.password !== hww.confirmedPassword)"
             type="submit"
             >Restore</q-btn
           >

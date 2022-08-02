@@ -286,8 +286,8 @@ async function payment(path) {
             timeout: 10000
           })
 
-          // await this.scanAddressWithAmount()
-          // todo: event
+          // todo: event rescan with amount
+          // todo: display tx id
         } catch (error) {
           this.sentTxId = null
           this.$q.notify({
