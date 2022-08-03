@@ -1,10 +1,10 @@
-import warnings
-import subprocess
 import glob
 import os
+import subprocess
+import warnings
 from os import path
-from typing import Any, List, NamedTuple, Optional
 from pathlib import Path
+from typing import Any, List, NamedTuple, Optional
 
 LNBITS_PATH = path.dirname(path.realpath(__file__)) + "/lnbits"
 
