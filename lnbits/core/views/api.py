@@ -247,8 +247,6 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 
 @core_app.post(
     "/api/v1/payments",
-    # deprecated=True,
-    # description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(

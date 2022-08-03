@@ -34,12 +34,15 @@ async def display(request: Request, charge_id: str):
     wallet = await get_wallet(charge.lnbitswallet)
     onchainwallet_config = await get_config(charge.user)
     inkey = wallet.inkey if wallet else None
+    mempool_endpoint = (
+        onchainwallet_config.mempool_endpoint if onchainwallet_config else None
+    )
     return satspay_renderer().TemplateResponse(
         "satspay/display.html",
         {
             "request": request,
             "charge_data": charge.dict(),
             "wallet_inkey": inkey,
-            "mempool_endpoint": onchainwallet_config.mempool_endpoint,
+            "mempool_endpoint": mempool_endpoint,
         },
     )
