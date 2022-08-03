@@ -10,7 +10,8 @@ async function utxoList(path) {
       'selectable',
       'payed-amount',
       'sats-denominated',
-      'mempool-endpoint'
+      'mempool-endpoint',
+      'filter'
     ],
 
     data: function () {
@@ -65,8 +66,7 @@ async function utxoList(path) {
           ],
           pagination: {
             rowsPerPage: 10
-          },
-          filter: ''
+          }
         },
         utxoSelectionModes: [
           'Manual',

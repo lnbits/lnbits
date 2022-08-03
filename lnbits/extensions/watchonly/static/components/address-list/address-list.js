@@ -107,6 +107,9 @@ async function addressList(path) {
       },
       showAddressDetails: function (addressData) {
         this.$emit('show-address-details', addressData)
+      },
+      searchInTab: function (tab, value) {
+        this.$emit('search:tab', {tab, value})
       }
     },
 

@@ -28,7 +28,7 @@
           borderless
           dense
           debounce="300"
-          v-model="utxosTable.filter"
+          v-model="filter"
           placeholder="Search"
         >
           <template v-slot:append>
@@ -45,7 +45,7 @@
       row-key="id"
       :columns="columns"
       :pagination.sync="utxosTable.pagination"
-      :filter="utxosTable.filter"
+      :filter="filter"
     >
       <template v-slot:body="props">
         <q-tr :props="props">

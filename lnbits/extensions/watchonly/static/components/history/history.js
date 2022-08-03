@@ -4,7 +4,7 @@ async function history(path) {
     name: 'history',
     template,
 
-    props: ['history', 'mempool-endpoint', 'sats-denominated'],
+    props: ['history', 'mempool-endpoint', 'sats-denominated', 'filter'],
     data: function () {
       return {
         historyTable: {
@@ -65,8 +65,7 @@ async function history(path) {
           ],
           pagination: {
             rowsPerPage: 0
-          },
-          filter: ''
+          }
         }
       }
     },
