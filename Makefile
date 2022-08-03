@@ -39,12 +39,12 @@ test-real-wallet:
 	PYTHONUNBUFFERED=1 \
 	poetry run pytest
 
-test-pipenv:
+test-venv:
 	LNBITS_BACKEND_WALLET_CLASS="FakeWallet" \
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
-	poetry run pytest
+	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
 bak:
 	# LNBITS_DATABASE_URL=postgres://postgres:postgres@0.0.0.0:5432/postgres
