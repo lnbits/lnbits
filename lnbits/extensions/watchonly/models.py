@@ -59,6 +59,7 @@ class TransactionInput(BaseModel):
     branch_index: int
     address_index: int
     masterpub_fingerprint: str
+    wallet: str
     tx_hex: str
 
 
@@ -68,9 +69,11 @@ class TransactionOutput(BaseModel):
     branch_index: int = None
     address_index: int = None
     masterpub_fingerprint: str = None
+    wallet: str = None
 
 
 class MasterPublicKey(BaseModel):
+    id: str
     public_key: str
     fingerprint: str
 

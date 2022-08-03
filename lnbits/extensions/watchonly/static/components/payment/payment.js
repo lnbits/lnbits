@@ -30,6 +30,7 @@ async function payment(path) {
         psbtBase64: null,
         psbtBase64Signed: null,
         signedTx: null,
+        signedTxHex: null,
         sentTxId: null,
         signedTxId: null,
         paymentTab: 'destination',
@@ -164,6 +165,7 @@ async function payment(path) {
         const tx = {
           fee_rate: this.feeRate,
           masterpubs: this.accounts.map(w => ({
+            id: w.id,
             public_key: w.masterpub,
             fingerprint: w.fingerprint
           }))
@@ -201,7 +203,8 @@ async function payment(path) {
           address: change.address,
           address_index: change.addressIndex,
           branch_index: change.isChange ? 1 : 0,
-          masterpub_fingerprint: walletAcount.fingerprint
+          masterpub_fingerprint: walletAcount.fingerprint,
+          wallet: walletAcount.id
         }
       },
       selectChangeAddress: function (account) {

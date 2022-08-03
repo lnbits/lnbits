@@ -249,13 +249,13 @@ async def api_psbt_create(
 
         descriptors = {}
         for _, masterpub in enumerate(data.masterpubs):
-            descriptors[masterpub.fingerprint] = parse_key(masterpub.public_key)
+            descriptors[masterpub.id] = parse_key(masterpub.public_key)
 
         inputs_extra = []
 
         for i, inp in enumerate(data.inputs):
             bip32_derivations = {}
-            descriptor = descriptors[inp.masterpub_fingerprint][0]
+            descriptor = descriptors[inp.wallet][0]
             d = descriptor.derive(inp.address_index, inp.branch_index)
             for k in d.keys:
                 bip32_derivations[PublicKey.parse(k.sec())] = DerivationPath(
@@ -272,15 +272,15 @@ async def api_psbt_create(
         psbt = PSBT(tx)
 
         for i, inp in enumerate(inputs_extra):
-            print("### ", psbt.inputs[i].bip32_derivations)
             psbt.inputs[i].bip32_derivations = inp["bip32_derivations"]
             psbt.inputs[i].non_witness_utxo = inp.get("non_witness_utxo", None)
+            print("### ", inp.get("non_witness_utxo", None))
 
         outputs_extra = []
         bip32_derivations = {}
         for i, out in enumerate(data.outputs):
             if out.branch_index == 1:
-                descriptor = descriptors[out.masterpub_fingerprint][0]
+                descriptor = descriptors[out.wallet][0]
                 d = descriptor.derive(out.address_index, out.branch_index)
                 for k in d.keys:
                     bip32_derivations[PublicKey.parse(k.sec())] = DerivationPath(
@@ -341,12 +341,15 @@ async def api_tx_broadcast(
                 "Cannot broadcast transaction. Mempool endpoint not defined!"
             )
 
+        endpoint = config.mempool_endpoint if config.network == 'Mainnet' else config.mempool_endpoint + '/testnet'
         async with httpx.AsyncClient() as client:
-            r = await client.post(config.mempool_endpoint + "/api/tx", data=data.tx_hex)
+            r = await client.post(endpoint + "/api/tx", data=data.tx_hex)
             tx_id = r.text
+            print('### broadcast tx_id: ', tx_id)
             return tx_id
         # return "0f0f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0.mock.transaction.id"
     except Exception as e:
+        print('### broadcast error: ', str(e))
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
