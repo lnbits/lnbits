@@ -18,46 +18,54 @@
             <h5 class="text-subtitle1 q-my-none">Charges</h5>
           </div>
 
-          <div class="col-auto">
+          <div class="col q-pr-lg">
             <q-input
               borderless
               dense
               debounce="300"
               v-model="filter"
               placeholder="Search"
+              class="float-right"
             >
               <template v-slot:append>
                 <q-icon name="search"></q-icon>
               </template>
             </q-input>
-            <q-btn flat color="grey" @click="exportchargeCSV"
-              >Export to CSV</q-btn
-            >
+          </div>
+          <div class="col-auto">
+            <q-btn outline color="grey" label="...">
+              <q-menu auto-close>
+                <q-list style="min-width: 100px">
+                  <q-item clickable>
+                    <q-item-section @click="exportchargeCSV"
+                      >Export to CSV</q-item-section
+                    >
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
           </div>
         </div>
         <q-table
           flat
           dense
-          :data="ChargeLinks"
+          :data="chargeLinks"
           row-key="id"
-          :columns="ChargesTable.columns"
-          :pagination.sync="ChargesTable.pagination"
+          :columns="chargesTable.columns"
+          :pagination.sync="chargesTable.pagination"
           :filter="filter"
         >
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th auto-width></q-th>
-
-              <q-th
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
-              >
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>{{ col.label }}</div>
-              </q-th>
+              <q-th auto-width>Status </q-th>
+              <q-th auto-width>Title</q-th>
+              <q-th auto-width>Time Left (hh:mm)</q-th>
+              <q-th auto-width>Time To Pay (hh:mm)</q-th>
+              <q-th auto-width>Amount To Pay</q-th>
+              <q-th auto-width>Balance</q-th>
+              <q-th auto-width>Pending Balance</q-th>
+              <q-th auto-width>Onchain Address</q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
@@ -66,73 +74,179 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-btn
-                  unelevated
+                  size="sm"
+                  color="accent"
+                  round
                   dense
-                  size="xs"
-                  icon="link"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
+                  @click="props.row.expanded= !props.row.expanded"
+                  :icon="props.row.expanded? 'remove' : 'add'"
+                />
+              </q-td>
+
+              <q-td auto-width>
+                <q-badge
+                  v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
+                  color="red"
+                >
+                  <a
+                    :href="props.row.displayUrl"
+                    target="_blank"
+                    style="color: unset; text-decoration: none"
+                    >expired</a
+                  >
+                </q-badge>
+
+                <q-badge
+                  v-else-if="props.row.balance >= props.row.amount"
+                  color="green"
+                >
+                  <a
+                    :href="props.row.displayUrl"
+                    target="_blank"
+                    style="color: unset; text-decoration: none"
+                    >paid</a
+                  >
+                </q-badge>
+
+                <q-badge v-else color="blue"
+                  ><a
+                    :href="props.row.displayUrl"
+                    target="_blank"
+                    style="color: unset; text-decoration: none"
+                    >waiting</a
+                  >
+                </q-badge>
+              </q-td>
+              <q-td key="description" :props="props" :class="">
+                <a
                   :href="props.row.displayUrl"
                   target="_blank"
+                  style="color: unset; text-decoration: none"
+                  >{{props.row.description}}</a
                 >
-                  <q-tooltip> Payment link </q-tooltip>
-                </q-btn>
               </q-td>
-              <q-td auto-width>
-                <q-btn
-                  v-if="props.row.time_elapsed && props.row.balance < props.row.amount"
-                  unelevated
-                  flat
-                  dense
-                  size="xs"
-                  icon="error"
-                  :color="($q.dark.isActive) ? 'red' : 'red'"
+              <q-td key="timeLeft" :props="props" :class="">
+                <div>{{props.row.timeLeft}}</div>
+                <q-linear-progress
+                  v-if="props.row.timeLeft"
+                  :value="props.row.progress"
+                  color="secondary"
                 >
-                  <q-tooltip> Time elapsed </q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  v-else-if="props.row.balance >= props.row.amount"
-                  unelevated
-                  flat
-                  dense
-                  size="xs"
-                  icon="check"
-                  :color="($q.dark.isActive) ? 'green' : 'green'"
-                >
-                  <q-tooltip> PAID! </q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  v-else
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="cached"
-                  flat
-                  :color="($q.dark.isActive) ? 'blue' : 'blue'"
-                >
-                  <q-tooltip> Processing </q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="deleteChargeLink(props.row.id)"
-                  icon="cancel"
-                  color="pink"
-                >
-                  <q-tooltip> Delete charge </q-tooltip>
-                </q-btn>
+                </q-linear-progress>
               </q-td>
-              <q-td
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
-              >
-                <div v-if="col.name == 'id'"></div>
-                <div v-else>{{ col.value }}</div>
+              <q-td key="time to pay" :props="props" :class="">
+                <div>{{props.row.time}}</div>
+              </q-td>
+              <q-td key="amount" :props="props" :class="">
+                <div>{{props.row.amount}}</div>
+              </q-td>
+              <q-td key="balance" :props="props" :class="">
+                <div>{{props.row.balance}}</div>
+              </q-td>
+              <q-td key="pendingBalance" :props="props" :class="">
+                <div>
+                  {{props.row.pendingBalance ? props.row.pendingBalance : ''}}
+                </div>
+              </q-td>
+              <q-td key="onchain address" :props="props" :class="">
+                <a
+                  :href="props.row.displayUrl"
+                  target="_blank"
+                  style="color: unset; text-decoration: none"
+                  >{{props.row.onchainaddress}}</a
+                >
+              </q-td>
+            </q-tr>
+            <q-tr v-show="props.row.expanded" :props="props">
+              <q-td colspan="100%">
+                <div
+                  v-if="props.row.onchainwallet"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">Onchain Wallet:</div>
+                  <div class="col-4 q-pr-lg">
+                    {{getOnchainWalletName(props.row.onchainwallet)}}
+                  </div>
+                </div>
+                <div
+                  v-if="props.row.lnbitswallet"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">LNbits Wallet:</div>
+                  <div class="col-4 q-pr-lg">
+                    {{getLNbitsWalletName(props.row.lnbitswallet)}}
+                  </div>
+                </div>
+
+                <div
+                  v-if="props.row.completelink || props.row.completelinktext"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">Completed Link:</div>
+                  <div class="col-4 q-pr-lg">
+                    <a
+                      :href="props.row.completelink"
+                      target="_blank"
+                      style="color: unset; text-decoration: none"
+                      >{{props.row.completelinktext ||
+                      props.row.completelink}}</a
+                    >
+                  </div>
+                </div>
+                <div
+                  v-if="props.row.webhook"
+                  class="row items-center q-mt-md q-mb-lg"
+                >
+                  <div class="col-2 q-pr-lg">Webhook:</div>
+                  <div class="col-4 q-pr-lg">
+                    <a
+                      :href="props.row.webhook"
+                      target="_blank"
+                      style="color: unset; text-decoration: none"
+                      >{{props.row.webhook || props.row.webhook}}</a
+                    >
+                  </div>
+                </div>
+                <div class="row items-center q-mt-md q-mb-lg">
+                  <div class="col-2 q-pr-lg">ID:</div>
+                  <div class="col-4 q-pr-lg">{{props.row.id}}</div>
+                </div>
+                <div class="row items-center q-mt-md q-mb-lg">
+                  <div class="col-2 q-pr-lg"></div>
+                  <div class="col-6 q-pr-lg">
+                    <q-btn
+                      unelevated
+                      color="gray"
+                      outline
+                      type="a"
+                      :href="props.row.displayUrl"
+                      target="_blank"
+                      class="float-left q-mr-lg"
+                      >Details</q-btn
+                    >
+                    <q-btn
+                      unelevated
+                      color="gray"
+                      outline
+                      type="a"
+                      @click="refreshBalance(props.row)"
+                      target="_blank"
+                      class="float-left"
+                      >Refresh Balance</q-btn
+                    >
+                  </div>
+                  <div class="col-4 q-pr-lg">
+                    <q-btn
+                      unelevated
+                      color="pink"
+                      icon="cancel"
+                      @click="deleteChargeLink(props.row.id)"
+                      >Delete</q-btn
+                    >
+                  </div>
+                  <div class="col-4"></div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
               </q-td>
             </q-tr>
           </template>
@@ -155,11 +269,7 @@
       </q-card-section>
     </q-card>
   </div>
-  <q-dialog
-    v-model="formDialogCharge.show"
-    position="top"
-    @hide="closeFormDialog"
-  >
+  <q-dialog v-model="formDialogCharge.show" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormDataCharge" class="q-gutter-md">
         <q-input
@@ -225,7 +335,8 @@
             <div v-else>
               <q-checkbox :value="false" label="Onchain" disabled>
                 <q-tooltip>
-                  Watch-Only extension MUST be activated and have a wallet
+                  Onchain Wallet (watch-only) extension MUST be activated and
+                  have a wallet
                 </q-tooltip>
               </q-checkbox>
             </div>
@@ -245,7 +356,7 @@
             filled
             dense
             emit-value
-            v-model="formDialogCharge.data.onchainwallet"
+            v-model="onchainwallet"
             :options="walletLinks"
             label="Onchain Wallet"
           />
@@ -283,25 +394,11 @@
 <!-- lnbits/static/vendor
 <script src="/vendor/vue-qrcode@1.0.2/vue-qrcode.min.js"></script> -->
 <style></style>
+<!-- todo: use config mempool -->
+<script src="https://mempool.space/mempool.js"></script>
+<script src="{{ url_for('satspay_static', path='js/utils.js') }}"></script>
 <script>
   Vue.component(VueQrcode.name, VueQrcode)
-
-  var mapCharge = obj => {
-    obj._data = _.clone(obj)
-    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
-    obj.time = obj.time + 'mins'
-
-    if (obj.time_elapsed) {
-      obj.date = 'Time elapsed'
-    } else {
-      obj.date = Quasar.utils.date.formatDate(
-        new Date((obj.theTime - 3600) * 1000),
-        'HH:mm:ss'
-      )
-    }
-    obj.displayUrl = ['/satspay/', obj.id].join('')
-    return obj
-  }
 
   new Vue({
     el: '#vue',
@@ -309,23 +406,16 @@
     data: function () {
       return {
         filter: '',
-        watchonlyactive: false,
         balance: null,
-        checker: null,
         walletLinks: [],
-        ChargeLinks: [],
-        ChargeLinksObj: [],
+        chargeLinks: [],
         onchainwallet: '',
-        currentaddress: '',
-        Addresses: {
-          show: false,
-          data: null
-        },
+        rescanning: false,
         mempool: {
           endpoint: ''
         },
 
-        ChargesTable: {
+        chargesTable: {
           columns: [
             {
               name: 'theId',
@@ -340,10 +430,10 @@
               field: 'description'
             },
             {
-              name: 'timeleft',
+              name: 'timeLeft',
               align: 'left',
               label: 'Time left',
-              field: 'date'
+              field: 'timeLeft'
             },
             {
               name: 'time to pay',
@@ -362,6 +452,12 @@
               align: 'left',
               label: 'Balance',
               field: 'balance'
+            },
+            {
+              name: 'pendingBalance',
+              align: 'left',
+              label: 'Pending Balance',
+              field: 'pendingBalance'
             },
             {
               name: 'onchain address',
@@ -392,172 +488,218 @@
             rowsPerPage: 10
           }
         },
-        formDialog: {
-          show: false,
-          data: {}
-        },
+
         formDialogCharge: {
           show: false,
           data: {
+            onchain: false,
+            onchainwallet: '',
+            lnbits: false,
+            description: '',
+            time: null,
+            amount: null
+          }
+        }
+      }
+    },
+    methods: {
+      cancelCharge: function (data) {
+        this.formDialogCharge.data.description = ''
+        this.formDialogCharge.data.onchainwallet = ''
+        this.formDialogCharge.data.lnbitswallet = ''
+        this.formDialogCharge.data.time = null
+        this.formDialogCharge.data.amount = null
+        this.formDialogCharge.data.webhook = ''
+        this.formDialogCharge.data.completelink = ''
+        this.formDialogCharge.show = false
+      },
+
+      getWalletLinks: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/watchonly/api/v1/wallet',
+            this.g.user.wallets[0].inkey
+          )
+          this.walletLinks = data.map(w => ({
+            id: w.id,
+            label: w.title + ' - ' + w.id
+          }))
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+
+      getWalletConfig: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/watchonly/api/v1/config',
+            this.g.user.wallets[0].inkey
+          )
+          this.mempool.endpoint = data.mempool_endpoint
+          const url = new URL(this.mempool.endpoint)
+          this.mempool.hostname = url.hostname
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      getOnchainWalletName: function (walletId) {
+        const wallet = this.walletLinks.find(w => w.id === walletId)
+        if (!wallet) return 'unknown'
+        return wallet.label
+      },
+      getLNbitsWalletName: function (walletId) {
+        const wallet = this.g.user.walletOptions.find(w => w.value === walletId)
+        if (!wallet) return 'unknown'
+        return wallet.label
+      },
+
+      getCharges: async function () {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/satspay/api/v1/charges',
+            this.g.user.wallets[0].inkey
+          )
+          this.chargeLinks = data.map(c =>
+            mapCharge(
+              c,
+              this.chargeLinks.find(old => old.id === c.id)
+            )
+          )
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        }
+      },
+      sendFormDataCharge: function () {
+        const wallet = this.g.user.wallets[0].inkey
+        const data = this.formDialogCharge.data
+        data.amount = parseInt(data.amount)
+        data.time = parseInt(data.time)
+        data.onchainwallet = this.onchainwallet?.id
+        this.createCharge(wallet, data)
+      },
+      refreshActiveChargesBalance: async function () {
+        try {
+          const activeLinkIds = this.chargeLinks
+            .filter(c => !c.paid && !c.time_elapsed && !c.hasStaleBalance)
+            .map(c => c.id)
+            .join(',')
+          if (activeLinkIds) {
+            await LNbits.api.request(
+              'GET',
+              '/satspay/api/v1/charges/balance/' + activeLinkIds,
+              'filla'
+            )
+          }
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
+        } finally {
+          await this.getCharges()
+        }
+      },
+      refreshBalance: async function (charge) {
+        try {
+          const {data} = await LNbits.api.request(
+            'GET',
+            '/satspay/api/v1/charge/balance/' + charge.id,
+            'filla'
+          )
+          charge.balance = data.balance
+        } catch (error) {}
+      },
+      rescanOnchainAddresses: async function () {
+        if (this.rescanning) return
+        this.rescanning = true
+
+        const {
+          bitcoin: {addresses: addressesAPI}
+        } = mempoolJS({hostname: this.mempool.hostname})
+
+        try {
+          const onchainActiveCharges = this.chargeLinks.filter(
+            c => c.onchainaddress && !c.paid && !c.time_elapsed
+          )
+          for (const charge of onchainActiveCharges) {
+            const fn = async () =>
+              addressesAPI.getAddressTxsUtxo({
+                address: charge.onchainaddress
+              })
+
+            const utxos = await retryWithDelay(fn)
+            const newBalance = utxos.reduce((t, u) => t + u.value, 0)
+
+            charge.pendingBalance = utxos
+              .filter(u => !u.status.confirmed)
+              .reduce((t, u) => t + u.value, 0)
+
+            charge.hasStaleBalance = charge.balance === newBalance
+          }
+        } catch (error) {
+          console.error(error)
+        } finally {
+          this.rescanning = false
+        }
+      },
+      createCharge: async function (wallet, data) {
+        try {
+          const resp = await LNbits.api.request(
+            'POST',
+            '/satspay/api/v1/charge',
+            wallet,
+            data
+          )
+
+          this.chargeLinks.unshift(mapCharge(resp.data))
+          this.formDialogCharge.show = false
+          this.formDialogCharge.data = {
             onchain: false,
             lnbits: false,
             description: '',
             time: null,
             amount: null
           }
-        },
-        qrCodeDialog: {
-          show: false,
-          data: null
+        } catch (error) {
+          LNbits.utils.notifyApiError(error)
         }
-      }
-    },
-    methods: {
-      cancelCharge: function (data) {
-        var self = this
-        self.formDialogCharge.data.description = ''
-        self.formDialogCharge.data.onchainwallet = ''
-        self.formDialogCharge.data.lnbitswallet = ''
-        self.formDialogCharge.data.time = null
-        self.formDialogCharge.data.amount = null
-        self.formDialogCharge.data.webhook = ''
-        self.formDialogCharge.data.completelink = ''
-        self.formDialogCharge.show = false
-      },
-
-      getWalletLinks: function () {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/wallet',
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            for (i = 0; i < response.data.length; i++) {
-              self.walletLinks.push(response.data[i].id)
-            }
-            return
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      closeFormDialog: function () {
-        this.formDialog.data = {
-          is_unique: false
-        }
-      },
-      openQrCodeDialog: function (linkId) {
-        var self = this
-        var getAddresses = this.getAddresses
-        getAddresses(linkId)
-        self.current = linkId
-        self.Addresses.show = true
-      },
-      getCharges: function () {
-        var self = this
-        var getAddressBalance = this.getAddressBalance
-
-        LNbits.api
-          .request(
-            'GET',
-            '/satspay/api/v1/charges',
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            self.ChargeLinks = response.data.map(mapCharge)
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      sendFormDataCharge: function () {
-        var self = this
-        var wallet = this.g.user.wallets[0].inkey
-        var data = this.formDialogCharge.data
-        data.amount = parseInt(data.amount)
-        data.time = parseInt(data.time)
-        this.createCharge(wallet, data)
-      },
-      timerCount: function () {
-        self = this
-        var refreshIntervalId = setInterval(function () {
-          for (i = 0; i < self.ChargeLinks.length - 1; i++) {
-            if (self.ChargeLinks[i]['paid'] == 'True') {
-              setTimeout(function () {
-                LNbits.api
-                  .request(
-                    'GET',
-                    '/satspay/api/v1/charges/balance/' +
-                      self.ChargeLinks[i]['id'],
-                    'filla'
-                  )
-                  .then(function (response) {})
-              }, 2000)
-            }
-          }
-          self.getCharges()
-        }, 20000)
-      },
-      createCharge: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request('POST', '/satspay/api/v1/charge', wallet, data)
-          .then(function (response) {
-            self.ChargeLinks.push(mapCharge(response.data))
-            self.formDialogCharge.show = false
-            self.formDialogCharge.data = {
-              onchain: false,
-              lnbits: false,
-              description: '',
-              time: null,
-              amount: null
-            }
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
       },
 
       deleteChargeLink: function (chargeId) {
-        var self = this
-        var link = _.findWhere(this.ChargeLinks, {id: chargeId})
+        const link = _.findWhere(this.chargeLinks, {id: chargeId})
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
+          .onOk(async () => {
+            try {
+              const response = await LNbits.api.request(
                 'DELETE',
                 '/satspay/api/v1/charge/' + chargeId,
-                self.g.user.wallets[0].adminkey
+                this.g.user.wallets[0].adminkey
               )
-              .then(function (response) {
-                self.ChargeLinks = _.reject(self.ChargeLinks, function (obj) {
-                  return obj.id === chargeId
-                })
+
+              this.chargeLinks = _.reject(this.chargeLinks, function (obj) {
+                return obj.id === chargeId
               })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
+            } catch (error) {
+              LNbits.utils.notifyApiError(error)
+            }
           })
       },
       exportchargeCSV: function () {
-        var self = this
-        LNbits.utils.exportCSV(self.ChargesTable.columns, this.ChargeLinks)
+        LNbits.utils.exportCSV(
+          this.chargesTable.columns,
+          this.chargeLinks,
+          'charges'
+        )
       }
     },
-    created: function () {
-      console.log(this.g.user)
-      var self = this
-      var getCharges = this.getCharges
-      getCharges()
-      var getWalletLinks = this.getWalletLinks
-      getWalletLinks()
-      var timerCount = this.timerCount
-      timerCount()
+    created: async function () {
+      await this.getCharges()
+      await this.getWalletLinks()
+      await this.getWalletConfig()
+      setInterval(() => this.refreshActiveChargesBalance(), 10 * 2000)
+      await this.rescanOnchainAddresses()
+      setInterval(() => this.rescanOnchainAddresses(), 10 * 1000)
     }
   })
 </script>

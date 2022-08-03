@@ -1,6 +1,13 @@
-import psycopg2
-import sqlite3
+import argparse
 import os
+import sqlite3
+
+import psycopg2
+from environs import Env  # type: ignore
+
+env = Env()
+env.read_env()
+
 # Python script to migrate an LNbits SQLite DB to Postgres
 # All credits to @Fritz446 for the awesome work
 
@@ -10,13 +17,25 @@ import os
 
 # Change these values as needed
 
+
 sqfolder = "data/"
-pgdb = "lnbits"
-pguser = "postgres"
-pgpswd = "yourpassword"
-pghost = "localhost"
-pgport = "5432"
-pgschema = ""
+
+LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
+if LNBITS_DATABASE_URL is None:
+    pgdb = "lnbits"
+    pguser = "lnbits"
+    pgpswd = "postgres"
+    pghost = "localhost"
+    pgport = "5432"
+    pgschema = ""
+else:
+    # parse postgres://lnbits:postgres@localhost:5432/lnbits
+    pgdb = LNBITS_DATABASE_URL.split("/")[-1]
+    pguser = LNBITS_DATABASE_URL.split("@")[0].split(":")[-2][2:]
+    pgpswd = LNBITS_DATABASE_URL.split("@")[0].split(":")[-1]
+    pghost = LNBITS_DATABASE_URL.split("@")[1].split(":")[0]
+    pgport = LNBITS_DATABASE_URL.split("@")[1].split(":")[1].split("/")[0]
+    pgschema = ""
 
 
 def get_sqlite_cursor(sqdb) -> sqlite3:
@@ -34,8 +53,6 @@ def get_postgres_cursor():
 def check_db_versions(sqdb):
     sqlite = get_sqlite_cursor(sqdb)
     dblite = dict(sqlite.execute("SELECT * FROM dbversions;").fetchall())
-    if "lnurlpos" in dblite:
-        del dblite["lnurlpos"]
     sqlite.close()
 
     postgres = get_postgres_cursor()
@@ -79,8 +96,14 @@ def insert_to_pg(query, data):
     for d in data:
         try:
             cursor.execute(query, d)
-        except:
-            raise ValueError(f"Failed to insert {d}")
+        except Exception as e:
+            if args.ignore_errors:
+                print(e)
+                print(f"Failed to insert {d}")
+            else:
+                print("query:", query)
+                print("data:", d)
+                raise ValueError(f"Failed to insert {d}")
     connection.commit()
 
     cursor.close()
@@ -127,9 +150,14 @@ def migrate_core(sqlite_db_file):
     print("Migrated: core")
 
 
-def migrate_ext(sqlite_db_file, schema):
-    sq = get_sqlite_cursor(sqlite_db_file)
+def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
 
+    # skip this file it has been moved to ext_lnurldevices.sqlite3
+    if sqlite_db_file == "data/ext_lnurlpos.sqlite3":
+        return
+
+    print(f"Migrating {sqlite_db_file}.{schema}")
+    sq = get_sqlite_cursor(sqlite_db_file)
     if schema == "bleskomat":
         # BLESKOMAT LNURLS
         res = sq.execute("SELECT * FROM bleskomat_lnurls;")
@@ -231,9 +259,11 @@ def migrate_ext(sqlite_db_file, schema):
                 k1,
                 open_time,
                 used,
-                usescsv
+                usescsv,
+                webhook_url,
+                custom_url
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # WITHDRAW HASH CHECK
@@ -253,22 +283,24 @@ def migrate_ext(sqlite_db_file, schema):
                 masterpub,
                 title,
                 address_no,
-                balance
+                balance,
+                type,
+                fingerprint
             )
-            VALUES (%s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # ADDRESSES
         res = sq.execute("SELECT * FROM addresses;")
         q = f"""
-            INSERT INTO watchonly.addresses (id, address, wallet, amount)
-            VALUES (%s, %s, %s, %s);
+            INSERT INTO watchonly.addresses (id, address, wallet, amount, branch_index, address_index, has_activity, note)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::boolean, %s);
         """
         insert_to_pg(q, res.fetchall())
-        # MEMPOOL
-        res = sq.execute("SELECT * FROM mempool;")
+        # CONFIG
+        res = sq.execute("SELECT * FROM config;")
         q = f"""
-            INSERT INTO watchonly.mempool ("user", endpoint)
+            INSERT INTO watchonly.config ("user", json_data)
             VALUES (%s, %s);
         """
         insert_to_pg(q, res.fetchall())
@@ -291,8 +323,8 @@ def migrate_ext(sqlite_db_file, schema):
         # TPOSS
         res = sq.execute("SELECT * FROM tposs;")
         q = f"""
-            INSERT INTO tpos.tposs (id, wallet, name, currency)
-            VALUES (%s, %s, %s, %s);
+            INSERT INTO tpos.tposs (id, wallet, name, currency, tip_wallet, tip_options)
+            VALUES (%s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     elif schema == "tipjar":
@@ -487,12 +519,13 @@ def migrate_ext(sqlite_db_file, schema):
                 wallet,
                 url,
                 memo,
+                description,
                 amount,
                 time,
                 remembers,
-                extra
+                extras
             )
-            VALUES (%s, %s, %s, %s, %s, to_timestamp(%s), %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s), %s, %s);
         """
         insert_to_pg(q, res.fetchall())
     elif schema == "offlineshop":
@@ -508,24 +541,24 @@ def migrate_ext(sqlite_db_file, schema):
         # ITEMS
         res = sq.execute("SELECT * FROM items;")
         q = f"""
-            INSERT INTO offlineshop.items (shop, id, name, description, image, enabled, price, unit)
-            VALUES (%s, %s, %s, %s, %s, %s::boolean, %s, %s);
+            INSERT INTO offlineshop.items (shop, id, name, description, image, enabled, price, unit, fiat_base_multiplier)
+            VALUES (%s, %s, %s, %s, %s, %s::boolean, %s, %s, %s);
         """
         items = res.fetchall()
         insert_to_pg(q, items)
         fix_id("offlineshop.items_id_seq", items)
-    elif schema == "lnurlpos":
-        # LNURLPOSS
-        res = sq.execute("SELECT * FROM lnurlposs;")
+    elif schema == "lnurlpos" or schema == "lnurldevice":
+        # lnurldevice
+        res = sq.execute("SELECT * FROM lnurldevices;")
         q = f"""
-            INSERT INTO lnurlpos.lnurlposs (id, key, title, wallet, currency, timestamp)
-            VALUES (%s, %s, %s, %s, %s, to_timestamp(%s));
+            INSERT INTO lnurldevice.lnurldevices (id, key, title, wallet, currency, device, profit, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, to_timestamp(%s));
         """
         insert_to_pg(q, res.fetchall())
-        # LNURLPOS PAYMENT
-        res = sq.execute("SELECT * FROM lnurlpospayment;")
+        # lnurldevice PAYMENT
+        res = sq.execute("SELECT * FROM lnurldevicepayment;")
         q = f"""
-            INSERT INTO lnurlpos.lnurlpospayment (id, posid, payhash, payload, pin, sats, timestamp)
+            INSERT INTO lnurldevice.lnurldevicepayment (id, deviceid, payhash, payload, pin, sats, timestamp)
             VALUES (%s, %s, %s, %s, %s, %s, to_timestamp(%s));
         """
         insert_to_pg(q, res.fetchall())
@@ -545,9 +578,10 @@ def migrate_ext(sqlite_db_file, schema):
                 success_url,
                 currency,
                 comment_chars,
-                max
+                max,
+                fiat_base_multiplier
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         pay_links = res.fetchall()
         insert_to_pg(q, pay_links)
@@ -636,22 +670,130 @@ def migrate_ext(sqlite_db_file, schema):
         tracks = res.fetchall()
         insert_to_pg(q, tracks)
         fix_id("livestream.tracks_id_seq", tracks)
+    elif schema == "lnaddress":
+        # DOMAINS
+        res = sq.execute("SELECT * FROM domain;")
+        q = f"""
+            INSERT INTO lnaddress.domain(
+	        id, wallet, domain, webhook, cf_token, cf_zone_id, cost, "time")
+	        VALUES (%s, %s, %s, %s, %s, %s, %s, to_timestamp(%s));
+        """
+        insert_to_pg(q, res.fetchall())
+        # ADDRESSES
+        res = sq.execute("SELECT * FROM address;")
+        q = f"""
+            INSERT INTO lnaddress.address(
+            id, wallet, domain, email, username, wallet_key, wallet_endpoint, sats, duration, paid, "time")
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::boolean, to_timestamp(%s));
+        """
+        insert_to_pg(q, res.fetchall())
+    elif schema == "discordbot":
+        # USERS
+        res = sq.execute("SELECT * FROM users;")
+        q = f"""
+            INSERT INTO discordbot.users(
+	        id, name, admin, discord_id)
+	        VALUES (%s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+        # WALLETS
+        res = sq.execute("SELECT * FROM wallets;")
+        q = f"""
+            INSERT INTO discordbot.wallets(
+            id, admin, name, "user", adminkey, inkey)
+            VALUES (%s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+    elif schema == "scrub":
+        # SCRUB LINKS
+        res = sq.execute("SELECT * FROM scrub_links;")
+        q = f"""
+            INSERT INTO scrub.scrub_links (
+            id,
+            wallet,
+            description,
+            payoraddress
+        )
+	        VALUES (%s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
     else:
-        print(f"Not implemented: {schema}")
+        print(f"❌ Not implemented: {schema}")
         sq.close()
+
+        if ignore_missing == False:
+            raise Exception(
+                f"Not implemented: {schema}. Use --ignore-missing to skip missing extensions."
+            )
         return
 
-    print(f"Migrated: {schema}")
+    print(f"✅ Migrated: {schema}")
     sq.close()
 
 
-check_db_versions("data/database.sqlite3")
-migrate_core("data/database.sqlite3")
+parser = argparse.ArgumentParser(
+    description="LNbits migration tool for migrating data from SQLite to PostgreSQL"
+)
+parser.add_argument(
+    dest="sqlite_path",
+    const=True,
+    nargs="?",
+    help=f"SQLite DB folder *or* single extension db file to migrate. Default: {sqfolder}",
+    default=sqfolder,
+    type=str,
+)
+parser.add_argument(
+    "-e",
+    "--extensions-only",
+    help="Migrate only extensions",
+    required=False,
+    default=False,
+    action="store_true",
+)
 
-files = os.listdir(sqfolder)
+parser.add_argument(
+    "-s",
+    "--skip-missing",
+    help="Error if migration is missing for an extension",
+    required=False,
+    default=False,
+    action="store_true",
+)
+
+parser.add_argument(
+    "-i",
+    "--ignore-errors",
+    help="Don't error if migration fails",
+    required=False,
+    default=False,
+    action="store_true",
+)
+
+args = parser.parse_args()
+
+print("Selected path: ", args.sqlite_path)
+
+if os.path.isdir(args.sqlite_path):
+    file = os.path.join(args.sqlite_path, "database.sqlite3")
+    check_db_versions(file)
+    if not args.extensions_only:
+        print(f"Migrating: {file}")
+        migrate_core(file)
+
+if os.path.isdir(args.sqlite_path):
+    files = [
+        os.path.join(args.sqlite_path, file) for file in os.listdir(args.sqlite_path)
+    ]
+else:
+    files = [args.sqlite_path]
+
 for file in files:
-    path = f"data/{file}"
-    if file.startswith("ext_"):
-        schema = file.replace("ext_", "").split(".")[0]
-        print(f"Migrating: {schema}")
-        migrate_ext(path, schema)
+    filename = os.path.basename(file)
+    if filename.startswith("ext_"):
+        schema = filename.replace("ext_", "").split(".")[0]
+        print(f"Migrating: {file}")
+        migrate_ext(
+            file,
+            schema,
+            ignore_missing=args.skip_missing,
+        )

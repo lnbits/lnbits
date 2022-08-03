@@ -1,7 +1,8 @@
 import asyncio
-from typing import Callable, NamedTuple
+from typing import Callable, List, NamedTuple
 
 import httpx
+from loguru import logger
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
@@ -71,6 +72,7 @@ currencies = {
     "IMP": "Isle of Man Pound",
     "INR": "Indian Rupee",
     "IQD": "Iraqi Dinar",
+    "IRT": "Iranian Toman",
     "ISK": "Icelandic Króna",
     "JEP": "Jersey Pound",
     "JMD": "Jamaican Dollar",
@@ -179,6 +181,12 @@ class Provider(NamedTuple):
 
 
 exchange_rate_providers = {
+    "exir": Provider(
+        "Exir",
+        "exir.io",
+        "https://api.exir.io/v1/ticker?symbol={from}-{to}",
+        lambda data, replacements: data["last"],
+    ),
     "bitfinex": Provider(
         "Bitfinex",
         "bitfinex.com",
@@ -219,10 +227,10 @@ async def btc_price(currency: str) -> float:
         "TO": currency.upper(),
         "to": currency.lower(),
     }
-    rates = []
-    tasks = []
+    rates: List[float] = []
+    tasks: List[asyncio.Task] = []
 
-    send_channel = asyncio.Queue()
+    send_channel: asyncio.Queue = asyncio.Queue()
 
     async def controller():
         failures = 0
@@ -273,7 +281,7 @@ async def btc_price(currency: str) -> float:
     if not rates:
         return 9999999999
     elif len(rates) == 1:
-        print("Warning could only fetch one Bitcoin price.")
+        logger.warning("Could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 

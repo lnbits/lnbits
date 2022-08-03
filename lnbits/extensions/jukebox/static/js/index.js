@@ -3,9 +3,9 @@
 Vue.component(VueQrcode.name, VueQrcode)
 
 var mapJukebox = obj => {
-  if(obj.sp_device){
+  if (obj.sp_device) {
     obj._data = _.clone(obj)
-   
+
     obj.sp_id = obj._data.id
     obj.device = obj._data.sp_device.split('-')[0]
     playlists = obj._data.sp_playlists.split(',')
@@ -17,11 +17,9 @@ var mapJukebox = obj => {
     obj.playlist = playlistsar.join()
     console.log(obj)
     return obj
-  }
-  else {
+  } else {
     return
   }
-  
 }
 
 new Vue({
@@ -87,14 +85,14 @@ new Vue({
       var link = _.findWhere(this.JukeboxLinks, {id: linkId})
 
       this.qrCodeDialog.data = _.clone(link)
-    
+
       this.qrCodeDialog.data.url =
         window.location.protocol + '//' + window.location.host
       this.qrCodeDialog.show = true
     },
     getJukeboxes() {
       self = this
-      
+
       LNbits.api
         .request(
           'GET',
@@ -103,8 +101,7 @@ new Vue({
         )
         .then(function (response) {
           self.JukeboxLinks = response.data.map(function (obj) {
-
-                return mapJukebox(obj)
+            return mapJukebox(obj)
           })
           console.log(self.JukeboxLinks)
         })
@@ -154,7 +151,7 @@ new Vue({
     submitSpotifyKeys() {
       self = this
       self.jukeboxDialog.data.user = self.g.user.id
-      
+
       LNbits.api
         .request(
           'POST',

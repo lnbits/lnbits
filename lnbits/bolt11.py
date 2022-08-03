@@ -1,15 +1,16 @@
-import bitstring  # type: ignore
-import re
 import hashlib
-from typing import List, NamedTuple, Optional
-from bech32 import bech32_encode, bech32_decode, CHARSET
-from ecdsa import SECP256k1, VerifyingKey  # type: ignore
-from ecdsa.util import sigdecode_string  # type: ignore
-from binascii import unhexlify
+import re
 import time
+from binascii import unhexlify
 from decimal import Decimal
+from typing import List, NamedTuple, Optional
+
+import bitstring  # type: ignore
 import embit
 import secp256k1
+from bech32 import CHARSET, bech32_decode, bech32_encode
+from ecdsa import SECP256k1, VerifyingKey  # type: ignore
+from ecdsa.util import sigdecode_string  # type: ignore
 
 
 class Route(NamedTuple):
@@ -60,7 +61,7 @@ def decode(pr: str) -> Invoice:
     invoice = Invoice()
 
     # decode the amount from the hrp
-    m = re.search("[^\d]+", hrp[2:])
+    m = re.search(r"[^\d]+", hrp[2:])
     if m:
         amountstr = hrp[2 + m.end() :]
         if amountstr != "":
@@ -165,7 +166,7 @@ def lnencode(addr, privkey):
     if addr.amount:
         amount = Decimal(str(addr.amount))
         # We can only send down to millisatoshi.
-        if amount * 10 ** 12 % 10:
+        if amount * 10**12 % 10:
             raise ValueError(
                 "Cannot encode {}: too many decimal places".format(addr.amount)
             )
@@ -270,7 +271,7 @@ class LnAddr(object):
 def shorten_amount(amount):
     """Given an amount in bitcoin, shorten it"""
     # Convert to pico initially
-    amount = int(amount * 10 ** 12)
+    amount = int(amount * 10**12)
     units = ["p", "n", "u", "m", ""]
     for unit in units:
         if amount % 1000 == 0:
@@ -289,13 +290,13 @@ def _unshorten_amount(amount: str) -> int:
     # * `u` (micro): multiply by 0.000001
     # * `n` (nano): multiply by 0.000000001
     # * `p` (pico): multiply by 0.000000000001
-    units = {"p": 10 ** 12, "n": 10 ** 9, "u": 10 ** 6, "m": 10 ** 3}
+    units = {"p": 10**12, "n": 10**9, "u": 10**6, "m": 10**3}
     unit = str(amount)[-1]
 
     # BOLT #11:
     # A reader SHOULD fail if `amount` contains a non-digit, or is followed by
     # anything except a `multiplier` in the table above.
-    if not re.fullmatch("\d+[pnum]?", str(amount)):
+    if not re.fullmatch(r"\d+[pnum]?", str(amount)):
         raise ValueError("Invalid amount '{}'".format(amount))
 
     if unit in units:
@@ -348,9 +349,9 @@ def _trim_to_bytes(barr):
 
 def _readable_scid(short_channel_id: int) -> str:
     return "{blockheight}x{transactionindex}x{outputindex}".format(
-        blockheight=((short_channel_id >> 40) & 0xffffff),
-        transactionindex=((short_channel_id >> 16) & 0xffffff),
-        outputindex=(short_channel_id & 0xffff),
+        blockheight=((short_channel_id >> 40) & 0xFFFFFF),
+        transactionindex=((short_channel_id >> 16) & 0xFFFFFF),
+        outputindex=(short_channel_id & 0xFFFF),
     )
 
 

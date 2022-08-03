@@ -10,4 +10,4 @@ jobs:
       - uses: jpetrucciani/mypy-check@master
         with:
           mypy_flags: '--install-types --non-interactive'
-          path: lnbits
+          path: 'lnbits'

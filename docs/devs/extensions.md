@@ -15,6 +15,7 @@ cp lnbits/extensions/example lnbits/extensions/mysuperplugin -r # Let's not use 
 cd lnbits/extensions/mysuperplugin
 find . -type f -print0 | xargs -0 sed -i 's/example/mysuperplugin/g' # Change all occurrences of 'example' to your plugin name 'mysuperplugin'.
 ```
+- if you are on macOS and having difficulty with 'sed', consider `brew install gnu-sed` and use 'gsed', without -0 option after xargs.
 
 Going over the example extension's structure:
 * views_api.py: This is where your public API would go. It will be exposed at "$DOMAIN/$PLUGIN/$ROUTE". For example: https://lnbits.com/mysuperplugin/api/v1/tools.
@@ -27,17 +28,15 @@ Going over the example extension's structure:
 Adding new dependencies
 -----------------------
 
-If for some reason your extensions needs a new python package to work, you can add a new package using Pipenv:
+If for some reason your extensions needs a new python package to work, you can add a new package using `venv`, or `poerty`:
 
 ```sh
-$ pipenv install new_package_name
+$ poetry add <package>
+# or
+$ ./venv/bin/pip install <package>
 ```
 
-This will create a new entry in the `Pipenv` file.
 **But we need an extra step to make sure LNbits doesn't break in production.**
-All tests and deployments should run against the `requirements.txt` file so every time a new package is added
-it is necessary to run the Pipenv `lock` command and manually update the requirements file:
+Dependencies need to be added to `pyproject.toml` and `requirements.txt`, then tested by running on `venv` and `poetry`.
+`nix` compatability can be tested with `nix build .#checks.x86_64-linux.vmTest`.
 
-```sh
-$ pipenv lock -r
-```

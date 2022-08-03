@@ -54,8 +54,7 @@ async def api_paywall_delete(
 
 @paywall_ext.post("/api/v1/paywalls/invoice/{paywall_id}")
 async def api_paywall_create_invoice(
-    data: CreatePaywallInvoice,
-    paywall_id: str = Query(None)
+    data: CreatePaywallInvoice, paywall_id: str = Query(None)
 ):
     paywall = await get_paywall(paywall_id)
     if data.amount < paywall.amount:
@@ -78,7 +77,9 @@ async def api_paywall_create_invoice(
 
 
 @paywall_ext.post("/api/v1/paywalls/check_invoice/{paywall_id}")
-async def api_paywal_check_invoice(data: CheckPaywallInvoice, paywall_id: str = Query(None)):
+async def api_paywal_check_invoice(
+    data: CheckPaywallInvoice, paywall_id: str = Query(None)
+):
     paywall = await get_paywall(paywall_id)
     payment_hash = data.payment_hash
     if not paywall:

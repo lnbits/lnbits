@@ -8,19 +8,17 @@ nav_order: 3
 Backend wallets
 ===============
 
-LNbits can run on top of many lightning-network funding sources. Currently there is support for
-CLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularly.
+LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
 
-### CLightning
+### CoreLightning
 
 Using this wallet requires the installation of the `pylightning` Python package.
-If you want to use LNURLp you should use SparkWallet because of an issue with description_hash and CLightning.
 
-- `LNBITS_BACKEND_WALLET_CLASS`: **CLightningWallet**
-- `CLIGHTNING_RPC`: /file/path/lightning-rpc
+- `LNBITS_BACKEND_WALLET_CLASS`: **CoreLightningWallet**
+- `CORELIGHTNING_RPC`: /file/path/lightning-rpc
 
 ### Spark (c-lightning)
 
@@ -31,7 +29,7 @@ If you want to use LNURLp you should use SparkWallet because of an issue with de
 ### LND (REST)
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LndRestWallet**
-- `LND_REST_ENDPOINT`: ip_address
+- `LND_REST_ENDPOINT`: http://10.147.17.230:8080/
 - `LND_REST_CERT`: /file/path/tls.cert
 - `LND_REST_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
 

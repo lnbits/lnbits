@@ -41,6 +41,7 @@
                 {{ col.label }}
               </q-th>
               <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
@@ -73,6 +74,17 @@
                   unelevated
                   dense
                   size="xs"
+                  icon="reorder"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="'/withdraw/csv/' + props.row.id"
+                  target="_blank"
+                  ><q-tooltip> csv list </q-tooltip></q-btn
+                >
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
                   icon="visibility"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
@@ -81,6 +93,11 @@
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
+              </q-td>
+              <q-td>
+                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
+                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
+                </q-icon>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -166,6 +183,7 @@
           dense
           v-model.number="formDialog.data.uses"
           type="number"
+          max="250"
           :default="1"
           label="Amount of uses *"
         ></q-input>
@@ -191,6 +209,40 @@
             </q-select>
           </div>
         </div>
+        <q-input
+          filled
+          dense
+          v-model="formDialog.data.webhook_url"
+          type="text"
+          label="Webhook URL (optional)"
+          hint="A URL to be called whenever this link gets used."
+        ></q-input>
+        <q-list>
+          <q-item tag="label" class="rounded-borders">
+            <q-item-section avatar>
+              <q-checkbox
+                v-model="formDialog.data.use_custom"
+                color="primary"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Use a custom voucher design </q-item-label>
+              <q-item-label caption
+                >You can use an LNbits voucher design or a custom
+                one</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-input
+          v-if="formDialog.data.use_custom"
+          filled
+          dense
+          v-model="formDialog.data.custom_url"
+          type="text"
+          label="Custom design .png (optional)"
+          hint="Enter a URL if you want to use a custom design or leave blank for showing only the QR"
+        ></q-input>
         <q-list>
           <q-item tag="label" class="rounded-borders">
             <q-item-section avatar>
@@ -201,9 +253,8 @@
             </q-item-section>
             <q-item-section>
               <q-item-label
-                >Use unique withdraw QR codes to reduce
-                `assmilking`</q-item-label
-              >
+                >Use unique withdraw QR codes to reduce `assmilking`
+              </q-item-label>
               <q-item-label caption
                 >This is recommended if you are sharing the links on social
                 media or print QR codes.</q-item-label
@@ -274,8 +325,35 @@
           dense
           v-model.number="simpleformDialog.data.uses"
           type="number"
+          max="250"
           :default="1"
           label="Number of vouchers"
+        ></q-input>
+        <q-list>
+          <q-item tag="label" class="rounded-borders">
+            <q-item-section avatar>
+              <q-checkbox
+                v-model="simpleformDialog.data.use_custom"
+                color="primary"
+              ></q-checkbox>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Use a custom voucher design </q-item-label>
+              <q-item-label caption
+                >You can use an LNbits voucher design or a custom
+                one</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <q-input
+          v-if="simpleformDialog.data.use_custom"
+          filled
+          dense
+          v-model="simpleformDialog.data.custom_url"
+          type="text"
+          label="Custom design .png (optional)"
+          hint="Enter a URL if you want to use a custom design or leave blank for showing only the QR"
         ></q-input>
 
         <div class="row q-mt-lg">
@@ -343,6 +421,13 @@
           @click="copyText(qrCodeDialog.data.withdraw_url, 'Link copied to clipboard!')"
           >Shareable link</q-btn
         >
+        <q-btn
+          outline
+          color="grey"
+          icon="nfc"
+          @click="writeNfcTag(qrCodeDialog.data.lnurl)"
+          :disable="nfcTagWriting"
+        ></q-btn>
         <q-btn
           outline
           color="grey"
