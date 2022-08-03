@@ -281,7 +281,13 @@
       </q-card-section>
       {% endraw %}
       <q-card-actions align="right">
-        <q-btn flat label="CLOSE" color="primary" v-close-popup />
+        <q-btn
+          flat
+          label="CLOSE"
+          color="primary"
+          v-close-popup
+          @click="resetForm"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -371,6 +377,9 @@
       }
     },
     methods: {
+      resetForm() {
+        this.formDialog.data = {flatrate: false}
+      },
       getTickets: function () {
         var self = this
 
@@ -463,7 +472,7 @@
           .then(function (response) {
             self.forms.push(mapLNTicket(response.data))
             self.formDialog.show = false
-            self.formDialog.data = {}
+            self.resetForm()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -497,7 +506,7 @@
             })
             self.forms.push(mapLNTicket(response.data))
             self.formDialog.show = false
-            self.formDialog.data = {}
+            self.resetForm()
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)

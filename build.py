@@ -101,15 +101,5 @@ def build():
     bundle_vendored()
 
 
-#    root = Path("lnbits/static/foo")
-#    root.mkdir(parents=True)
-#    root.joinpath("example.css").write_text("")
-
 if __name__ == "__main__":
     build()
-
-# def build(setup_kwargs):
-#    """Build """
-#    transpile_scss()
-#    bundle_vendored()
-#    subprocess.run(["ls", "-la", "./lnbits/static"])

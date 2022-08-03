@@ -4,8 +4,6 @@ title: Basic installation
 nav_order: 2
 ---
 
-
-
 # Basic installation
 
 You can choose between four package managers, `poetry`, `nix` and `venv`.
@@ -18,13 +16,23 @@ By default, LNbits will use SQLite as its database. You can also use PostgreSQL 
 git clone https://github.com/lnbits/lnbits-legend.git
 cd lnbits-legend/
 
-# You may need to install python 3.9, update your python following this guide https://linuxize.com/post/how-to-install-python-3-9-on-ubuntu-20-04/
+# for making sure python 3.9 is installed, skip if installed
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt install python3.9
 
 curl -sSL https://install.python-poetry.org | python3 -
+export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
+poetry env use python3.9
 poetry install --no-dev
 
- mkdir data && cp .env.example .env
-```
+mkdir data 
+cp .env.example .env
+sudo nano .env # set funding source
+
+
+``` 
 
 #### Running the server
 
