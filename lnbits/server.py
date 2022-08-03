@@ -1,6 +1,8 @@
-import uvicorn
-import click
 import time
+
+import click
+import uvicorn
+
 from lnbits.settings import HOST, PORT
 
 
@@ -12,8 +14,8 @@ from lnbits.settings import HOST, PORT
 )
 @click.option("--port", default=PORT, help="Port to listen on")
 @click.option("--host", default=HOST, help="Host to run LNBits on")
-@click.option("--ssl-keyfile", default=None, help="SSL keyfile")
-@click.option("--ssl-certfile", default=None, help="SSL certificate")
+@click.option("--ssl-keyfile", default=None, help="Path to SSL keyfile")
+@click.option("--ssl-certfile", default=None, help="Path to SSL certificate")
 @click.pass_context
 def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str):
     """Launched with `poetry run lnbits` at root level"""
