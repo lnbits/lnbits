@@ -341,15 +341,19 @@ async def api_tx_broadcast(
                 "Cannot broadcast transaction. Mempool endpoint not defined!"
             )
 
-        endpoint = config.mempool_endpoint if config.network == 'Mainnet' else config.mempool_endpoint + '/testnet'
+        endpoint = (
+            config.mempool_endpoint
+            if config.network == "Mainnet"
+            else config.mempool_endpoint + "/testnet"
+        )
         async with httpx.AsyncClient() as client:
             r = await client.post(endpoint + "/api/tx", data=data.tx_hex)
             tx_id = r.text
-            print('### broadcast tx_id: ', tx_id)
+            print("### broadcast tx_id: ", tx_id)
             return tx_id
         # return "0f0f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0.mock.transaction.id"
     except Exception as e:
-        print('### broadcast error: ', str(e))
+        print("### broadcast error: ", str(e))
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
