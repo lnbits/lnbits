@@ -1,18 +1,13 @@
-import click
 import uvicorn
+from lnbits.settings import HOST, PORT
 
 
-@click.command()
-@click.option("--port", default="5000", help="Port to run LNBits on")
-@click.option("--host", default="127.0.0.1", help="Host to run LNBits on")
-def main(port, host):
+def main():
     """Launched with `poetry run lnbits` at root level"""
-    uvicorn.run("lnbits.__main__:app", port=port, host=host)
+    config = uvicorn.Config("lnbits.__main__:app", port=PORT, host=HOST)
+    server = uvicorn.Server(config)
+    server.run()
 
 
 if __name__ == "__main__":
     main()
-
-# def main():
-#    """Launched with `poetry run start` at root level"""
-#    uvicorn.run("lnbits.__main__:app")
