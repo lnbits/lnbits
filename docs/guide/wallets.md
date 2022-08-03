@@ -8,8 +8,7 @@ nav_order: 3
 Backend wallets
 ===============
 
-LNbits can run on top of many lightning-network funding sources. Currently there is support for
-CoreLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularily.
+LNbits can run on top of many lightning-network funding sources. Currently there is support for CoreLightning, LND, LNbits, LNPay, lntxbot and OpenNode, with more being added regularly.
 
 A backend wallet can be configured using the following LNbits environment variables:
 
@@ -26,22 +25,6 @@ Using this wallet requires the installation of the `pylightning` Python package.
 - `LNBITS_BACKEND_WALLET_CLASS`: **SparkWallet**
 - `SPARK_URL`: http://10.147.17.230:9737/rpc
 - `SPARK_TOKEN`: secret_access_key
-
-### LND (gRPC)
-
-Using this wallet requires the installation of the `grpcio` and `protobuf` Python packages.
-
-- `LNBITS_BACKEND_WALLET_CLASS`: **LndWallet**
-- `LND_GRPC_ENDPOINT`: ip_address
-- `LND_GRPC_PORT`: port
-- `LND_GRPC_CERT`: /file/path/tls.cert
-- `LND_GRPC_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
-
-You can also use an AES-encrypted macaroon (more info) instead by using
-
-- `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
-
-To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroon.py`.
 
 ### LND (REST)
 
