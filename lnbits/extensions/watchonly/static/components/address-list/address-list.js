@@ -110,6 +110,9 @@ async function addressList(path) {
       },
       searchInTab: function (tab, value) {
         this.$emit('search:tab', {tab, value})
+      },
+      updateNoteForAddress: async function (addressData, note) {
+        this.$emit('update:note', {addressId: addressData.id, note})
       }
     },
 

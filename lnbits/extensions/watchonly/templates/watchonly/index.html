@@ -99,6 +99,7 @@
               @show-address-details="showAddressDetails"
               @update:addresses="initUtxos"
               @search:tab="searchInTab"
+              @update:note="updateNoteForAddress"
               :inkey="g.user.wallets[0].inkey"
             >
             </address-list>
@@ -200,7 +201,7 @@
           outline
           v-close-popup
           color="grey"
-          @click="updateNoteForAddress(currentAddress, addressNote)"
+          @click="updateNoteForAddress({addressId: currentAddress.id, note: addressNote})"
           class="q-ml-sm"
           >Save Note</q-btn
         >
