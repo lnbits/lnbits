@@ -19,7 +19,7 @@ from lnbits.settings import HOST, PORT
 @click.pass_context
 def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str):
     """Launched with `poetry run lnbits` at root level"""
-    # this ugly beast parses all command line arguments and passes them to the uvicorn server
+    # this beautiful beast parses all command line arguments and passes them to the uvicorn server
     d = dict(
         [
             (
