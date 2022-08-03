@@ -74,6 +74,7 @@ const mapWalletAccount = function (o) {
           'YYYY-MM-DD HH:mm'
         )
       : '',
+    label: o.title,
     expanded: false
   })
 }
