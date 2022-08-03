@@ -43,7 +43,6 @@ const mapUtxoToPsbtInput = utxo => ({
   address: utxo.address,
   branch_index: utxo.isChange ? 1 : 0,
   address_index: utxo.addressIndex,
-  masterpub_fingerprint: utxo.masterpubFingerprint,
   wallet: utxo.wallet,
   accountType: utxo.accountType,
   txHex: ''
