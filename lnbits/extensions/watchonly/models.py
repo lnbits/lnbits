@@ -27,16 +27,6 @@ class WalletAccount(BaseModel):
         return cls(**dict(row))
 
 
-### TODO: fix statspay dependcy and remove
-class Mempool(BaseModel):
-    user: str
-    endpoint: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Mempool":
-        return cls(**dict(row))
-
-
 class Address(BaseModel):
     id: str
     address: str
