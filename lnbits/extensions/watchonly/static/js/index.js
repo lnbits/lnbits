@@ -98,17 +98,17 @@ const watchOnly = async () => {
           LNbits.utils.notifyApiError(err)
         }
       },
-      updateNoteForAddress: async function (addressData, note) {
+      updateNoteForAddress: async function ({addressId, note}) {
         try {
           const wallet = this.g.user.wallets[0]
           await LNbits.api.request(
             'PUT',
-            `/watchonly/api/v1/address/${addressData.id}`,
+            `/watchonly/api/v1/address/${addressId}`,
             wallet.adminkey,
-            {note: addressData.note}
+            {note}
           )
           const updatedAddress =
-            this.addresses.find(a => a.id === addressData.id) || {}
+            this.addresses.find(a => a.id === addressId) || {}
           updatedAddress.note = note
         } catch (err) {
           LNbits.utils.notifyApiError(err)
