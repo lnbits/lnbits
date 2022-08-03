@@ -43,11 +43,13 @@ const watchOnly = async () => {
         walletAccounts: [],
         addresses: [],
         history: [],
+        historyFilter: '',
 
         showAddress: false,
         addressNote: '',
         showPayment: false,
         fetchedUtxos: false,
+        utxosFilter: '',
         network: null
       }
     },
@@ -362,9 +364,9 @@ const watchOnly = async () => {
         this.addressNote = addressData.note || ''
         this.showAddress = true
       },
-      searchInTab: function (tab, value) {
+      searchInTab: function ({tab, value}) {
         this.tab = tab
-        this[`${tab}Table`].filter = value
+        this[`${tab}Filter`] = value
       },
 
       updateAccounts: async function (accounts) {

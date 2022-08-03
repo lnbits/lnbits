@@ -6,7 +6,7 @@
         borderless
         dense
         debounce="300"
-        v-model="historyTable.filter"
+        v-model="filter"
         placeholder="Search"
         class="float-right"
       >
@@ -38,7 +38,7 @@
     virtual-scroll
     :columns="historyTable.columns"
     :pagination.sync="historyTable.pagination"
-    :filter="historyTable.filter"
+    :filter="filter"
   >
     <template v-slot:body="props">
       <q-tr :props="props">

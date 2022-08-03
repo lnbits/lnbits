@@ -98,6 +98,7 @@
               @scan:address="scanAddress"
               @show-address-details="showAddressDetails"
               @update:addresses="initUtxos"
+              @search:tab="searchInTab"
               :inkey="g.user.wallets[0].inkey"
             >
             </address-list>
@@ -107,6 +108,7 @@
               :history="history"
               :mempool-endpoint="mempoolHostname"
               :sats-denominated="config.sats_denominated"
+              :filter="historyFilter"
             ></history>
           </q-tab-panel>
           <q-tab-panel name="utxos">
@@ -115,6 +117,7 @@
               :mempool-endpoint="mempoolHostname"
               :accounts="walletAccounts"
               :sats-denominated="config.sats_denominated"
+              :filter="utxosFilter"
             ></utxo-list>
           </q-tab-panel>
         </q-tab-panels>
