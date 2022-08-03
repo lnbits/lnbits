@@ -203,7 +203,6 @@ async function payment(path) {
           address: change.address,
           address_index: change.addressIndex,
           branch_index: change.isChange ? 1 : 0,
-          masterpub_fingerprint: walletAcount.fingerprint,
           wallet: walletAcount.id
         }
       },
