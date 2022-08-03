@@ -7,6 +7,6 @@ WORKDIR /app
 COPY . .
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-dev --no-root
-RUN poetry run python3 build.py
+RUN poetry run python build.py
 EXPOSE 5000
 CMD ["poetry", "run", "lnbits"]
