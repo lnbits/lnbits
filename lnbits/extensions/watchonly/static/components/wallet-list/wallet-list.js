@@ -185,7 +185,7 @@ async function walletList(path) {
         try {
           const {data} = await LNbits.api.request(
             'GET',
-            `/watchonly/api/v1/wallet/?network=${this.network}`,
+            `/watchonly/api/v1/wallet?network=${this.network}`,
             this.inkey
           )
           return data

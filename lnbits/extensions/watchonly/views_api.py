@@ -3,7 +3,6 @@ from http import HTTPStatus
 
 import httpx
 from embit import finalizer, script
-from embit.descriptor import Descriptor, Key
 from embit.ec import PublicKey
 from embit.psbt import PSBT, DerivationPath
 from embit.transaction import Transaction, TransactionInput, TransactionOutput
