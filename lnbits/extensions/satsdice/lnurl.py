@@ -77,9 +77,7 @@ async def api_lnurlp_callback(
         wallet_id=link.wallet,
         amount=int(amount_received / 1000),
         memo="Satsdice bet",
-        description_hash=hashlib.sha256(
-            link.lnurlpay_metadata.encode("utf-8")
-        ).digest(),
+        description_hash=link.lnurlpay_metadata.encode("utf-8"),
         extra={"tag": "satsdice", "link": link.id, "comment": "comment"},
     )
 

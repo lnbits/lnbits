@@ -3,36 +3,36 @@
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
-      <q-card-section>
-        {% raw %}
-        <q-btn unelevated color="primary" @click="formDialog.show = true"
-          >New wallet
-        </q-btn>
-        <q-btn unelevated color="primary" icon="edit">
-          <div class="cursor-pointer">
-            <q-tooltip> Point to another Mempool </q-tooltip>
-            {{ this.mempool.endpoint }}
-            <q-popup-edit v-model="mempool.endpoint">
-              <q-input color="accent" v-model="mempool.endpoint"> </q-input>
-              <center>
-                <q-btn flat dense @click="updateMempool()" v-close-popup
-                  >set</q-btn
-                >
-                <q-btn flat dense v-close-popup>cancel</q-btn>
-              </center>
-            </q-popup-edit>
+      {% raw %}
+      <div class="row items-center no-wrap q-mb-md">
+        <div class="col-11">
+          <div class="row justify-center q-gutter-x-md items-center">
+            <div class="text-h3 q-pa-sm">{{satBtc(utxos.total)}}</div>
           </div>
-        </q-btn>
-      </q-card-section>
+        </div>
+        <div class="col-1">
+          <q-btn
+            unelevated
+            @click="config.show = true"
+            color="primary"
+            icon="settings"
+          >
+          </q-btn>
+        </div>
+      </div>
     </q-card>
 
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Wallets</h5>
+            <q-btn unelevated color="primary" @click="formDialog.show = true"
+              >Add Wallet Account
+            </q-btn>
           </div>
-          <div class="col-auto">
+
+          <div class="col-auto q-pr-lg"></div>
+          <div class="col-auto q-pl-lg">
             <q-input
               borderless
               dense
@@ -49,10 +49,10 @@
         <q-table
           flat
           dense
-          :data="walletLinks"
+          :data="walletAccounts"
           row-key="id"
-          :columns="WalletsTable.columns"
-          :pagination.sync="WalletsTable.pagination"
+          :columns="walletsTable.columns"
+          :pagination.sync="walletsTable.pagination"
           :filter="filter"
         >
           <template v-slot:header="props">
@@ -73,31 +73,97 @@
             <q-tr :props="props">
               <q-td auto-width>
                 <q-btn
-                  unelevated
+                  size="sm"
+                  color="accent"
+                  round
                   dense
-                  size="xs"
-                  icon="dns"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openQrCodeDialog(props.row.id)"
-                >
-                  <q-tooltip> Adresses </q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  dense
-                  size="xs"
-                  @click="deleteWalletLink(props.row.id)"
-                  icon="cancel"
-                  color="pink"
-                ></q-btn>
+                  @click="props.row.expanded= !props.row.expanded"
+                  :icon="props.row.expanded? 'remove' : 'add'"
+                />
               </q-td>
-              <q-td
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
-              >
-                {{ col.value }}
+              <q-td key="new">
+                <q-badge
+                  size="lg"
+                  color="secondary"
+                  class="q-mr-md cursor-pointer"
+                  @click="openGetFreshAddressDialog(props.row.id)"
+                >
+                  New Receive Address
+                </q-badge>
+              </q-td>
+
+              <q-td key="title" :props="props" :class="">
+                <div>{{props.row.title}}</div>
+              </q-td>
+              <q-td key="amount" :props="props" :class="">
+                <div>{{getAmmountForWallet(props.row.id)}}</div>
+              </q-td>
+              <q-td key="type" :props="props" :class="">
+                <div>{{props.row.type}}</div>
+              </q-td>
+              <q-td key="id" :props="props" :class="">
+                <div>{{props.row.id}}</div>
+              </q-td>
+            </q-tr>
+            <q-tr v-show="props.row.expanded" :props="props">
+              <q-td colspan="100%">
+                <div class="row items-center q-mt-md q-mb-lg">
+                  <div class="col-2 q-pr-lg"></div>
+                  <div class="col-4 q-pr-lg">
+                    <q-btn
+                      unelevated
+                      color="secondary"
+                      @click="openGetFreshAddressDialog(props.row.id)"
+                      >New Receive Address</q-btn
+                    >
+                  </div>
+                  <div class="col-4">
+                    {{getAccountDescription(props.row.type)}}
+                  </div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
+
+                <div class="row items-center no-wrap q-mb-md">
+                  <div class="col-2 q-pr-lg">Master Pubkey:</div>
+                  <div class="col-8">
+                    <q-input
+                      v-model="props.row.masterpub"
+                      filled
+                      readonly
+                      type="textarea"
+                    />
+                  </div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
+                <div class="row items-center no-wrap q-mb-md">
+                  <div class="col-2 q-pr-lg">Last Address Index:</div>
+                  <div class="col-8">
+                    <span v-if="props.row.address_no >= 0"
+                      >{{props.row.address_no}}</span
+                    >
+                    <span v-if="props.row.address_no < 0">none</span>
+                  </div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
+                <div class="row items-center no-wrap q-mb-md">
+                  <div class="col-2 q-pr-lg">Fingerprint:</div>
+                  <div class="col-8">{{props.row.fingerprint}}</div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
+                <div class="row items-center q-mt-md q-mb-lg">
+                  <div class="col-2 q-pr-lg"></div>
+                  <div class="col-4 q-pr-lg">
+                    <q-btn
+                      unelevated
+                      color="pink"
+                      icon="cancel"
+                      @click="deleteWalletAccount(props.row.id)"
+                      >Delete</q-btn
+                    >
+                  </div>
+                  <div class="col-4"></div>
+                  <div class="col-2 q-pr-lg"></div>
+                </div>
               </q-td>
             </q-tr>
           </template>
@@ -106,70 +172,862 @@
     </q-card>
 
     <q-card>
-      <div class="row justify-center q-gutter-x-md items-center">
-        <div class="text-h3 q-pa-sm">{{satBtc(utxos.total)}}</div>
-        <q-btn flat @click="utxos.sats = !utxos.sats">
-          {{utxos.sats ? ' sats' : ' BTC'}}</q-btn
-        >
+      <div class="row q-pt-sm q-pb-sm items-center no-wrap q-mb-md">
+        <div class="col q-ml-lg">
+          <q-btn
+            unelevated
+            color="secondary"
+            @click="scanAllAddresses"
+            :disabled="scan.scanning == true"
+            >Scan Blockchain</q-btn
+          >
+          <q-spinner
+            v-if="scan.scanning == true"
+            color="primary"
+            size="2.55em"
+          ></q-spinner>
+        </div>
+        <div class="col-auto q-mr-md">
+          <q-btn
+            unelevated
+            color="secondary"
+            @click="goToPaymentView"
+            :disabled="scan.scanning == true"
+            >Make Payment</q-btn
+          >
+        </div>
+      </div>
+
+      <div v-if="scan.scanning == true">
+        <q-linear-progress
+          :value="scan.scanIndex / scan.scanCount"
+          size="10px"
+          color="primary"
+          class="q-mt-sm"
+        ></q-linear-progress>
       </div>
     </q-card>
 
     <q-card>
       <q-card-section>
-        <div class="row items-center no-wrap q-mb-md">
-          <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Transactions</h5>
-          </div>
-          <div class="col-auto">
-            <q-input
-              borderless
+        <q-tabs v-model="tab" no-caps class="bg-dark text-white shadow-2">
+          <q-tab name="addresses" label="Addresses"></q-tab>
+          <q-tab name="history" label="History"></q-tab>
+          <q-tab name="utxos" label="Coins"></q-tab>
+        </q-tabs>
+        <q-tab-panels v-model="tab">
+          <q-tab-panel name="addresses">
+            <div class="row items-center no-wrap q-mb-md">
+              <div class="col q-pr-lg">
+                <q-select
+                  filled
+                  clearable
+                  dense
+                  emit-value
+                  v-model="addresses.selectedWallet"
+                  :options="walletAccounts"
+                  label="Wallet Account"
+                ></q-select>
+              </div>
+              <div class="col q-pr-lg">
+                <q-select
+                  filled
+                  clearable
+                  dense
+                  emit-value
+                  multiple
+                  :options="addresses.filterOptions"
+                  v-model="addresses.filterValues"
+                  :options="walletAccounts"
+                  label="Filter"
+                ></q-select>
+              </div>
+              <div class="col-auto">
+                <q-input
+                  borderless
+                  dense
+                  debounce="300"
+                  v-model="addressesTable.filter"
+                  placeholder="Search"
+                >
+                  <template v-slot:append>
+                    <q-icon name="search"></q-icon>
+                  </template>
+                </q-input>
+              </div>
+            </div>
+            <q-table
+              style="height: 400px"
+              flat
               dense
-              debounce="300"
-              v-model="TxosTable.filter"
-              placeholder="Search"
+              :data="getFilteredAddresses()"
+              row-key="id"
+              virtual-scroll
+              :columns="addressesTable.columns"
+              :pagination.sync="addressesTable.pagination"
+              :filter="addressesTable.filter"
             >
-              <template v-slot:append>
-                <q-icon name="search"></q-icon>
+              <template v-slot:body="props">
+                <q-tr :props="props">
+                  <q-td auto-width>
+                    <q-btn
+                      size="sm"
+                      color="accent"
+                      round
+                      dense
+                      @click="props.row.expanded= !props.row.expanded"
+                      :icon="props.row.expanded? 'remove' : 'add'"
+                    />
+                  </q-td>
+
+                  <q-td key="address" :props="props">
+                    <div>
+                      <a
+                        style="color: unset"
+                        :href="config.data.mempool_endpoint + '/address/' + props.row.address"
+                        target="_blank"
+                      >
+                        {{props.row.address}}</a
+                      >
+                      <q-badge
+                        v-if="props.row.branch_index === 1"
+                        color="orange"
+                        class="q-mr-md"
+                        outline
+                      >
+                        change
+                      </q-badge>
+                      <q-btn
+                        v-if="props.row.gapLimitExceeded"
+                        color="yellow"
+                        icon="warning"
+                        title="Gap Limit Exceeded"
+                        @click="props.row.expanded= !props.row.expanded"
+                        outline
+                        class="q-ml-md"
+                        size="xs"
+                      >
+                      </q-btn>
+                    </div>
+                  </q-td>
+
+                  <q-td
+                    key="amount"
+                    :props="props"
+                    :class="props.row.amount > 0 ? 'text-green-13 text-weight-bold' : ''"
+                  >
+                    <div>{{satBtc(props.row.amount)}}</div>
+                  </q-td>
+
+                  <q-td key="note" :props="props" :class="">
+                    <div>{{props.row.note}}</div>
+                  </q-td>
+                  <q-td key="wallet" :props="props" :class="">
+                    <div>{{getWalletName(props.row.wallet)}}</div>
+                  </q-td>
+                </q-tr>
+                <q-tr v-show="props.row.expanded" :props="props">
+                  <q-td colspan="100%">
+                    <div class="row items-center q-mt-md q-mb-lg">
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-4 q-pr-lg">
+                        <q-btn
+                          unelevated
+                          dense
+                          size="md"
+                          icon="qr_code"
+                          :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                          @click="openQrCodeDialog(props.row)"
+                          >QR Code</q-btn
+                        >
+                      </div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          dense
+                          size="md"
+                          icon="refresh"
+                          color="grey"
+                          @click="scanAddress(props.row)"
+                          >Rescan</q-btn
+                        >
+                      </div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          dense
+                          size="md"
+                          icon="history"
+                          color="grey"
+                          @click="searchInTab('history', props.row.address)"
+                          >History</q-btn
+                        >
+                      </div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          dense
+                          size="md"
+                          color="grey"
+                          @click="searchInTab('utxos', props.row.address)"
+                          >View Coins</q-btn
+                        >
+                      </div>
+                    </div>
+
+                    <div class="row items-center no-wrap q-mb-md">
+                      <div class="col-2 q-pr-lg">Note:</div>
+                      <div class="col-8 q-pr-lg">
+                        <q-input
+                          filled
+                          dense
+                          v-model.trim="props.row.note"
+                          type="text"
+                          label="Note"
+                        ></q-input>
+                      </div>
+                      <div class="col-2 q-pr-lg">
+                        <q-btn
+                          outline
+                          color="grey"
+                          @click="updateNoteForAddress(props.row, props.row.note)"
+                          >Update</q-btn
+                        >
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="props.row.error"
+                      class="row items-center no-wrap q-mb-md"
+                    >
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-10 q-pr-lg">
+                        <q-badge color="red">{{props.row.error}}</q-badge>
+                      </div>
+                    </div>
+                    <div
+                      v-if="props.row.gapLimitExceeded"
+                      class="row items-center no-wrap q-mb-md"
+                    >
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-10 q-pr-lg">
+                        <q-badge color="yellow" text-color="black"
+                          >Gap limit of 20 addresses exceeded. Other wallets
+                          might not detect funds at this address.</q-badge
+                        >
+                      </div>
+                    </div>
+                  </q-td>
+                </q-tr>
               </template>
-            </q-input>
-          </div>
-        </div>
-        <q-table
-          flat
-          dense
-          :data="utxos.data"
-          row-key="txid"
-          :columns="TxosTable.columns"
-          :pagination.sync="TxosTable.pagination"
-          :filter="TxosTable.filter"
-        >
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
+            </q-table>
+          </q-tab-panel>
+          <q-tab-panel name="history">
+            <div class="row items-center no-wrap q-mb-md">
+              <div class="col q-pr-lg"></div>
+              <div class="col q-pr-lg">
+                <q-input
+                  borderless
+                  dense
+                  debounce="300"
+                  v-model="historyTable.filter"
+                  placeholder="Search"
+                  class="float-right"
+                >
+                  <template v-slot:append>
+                    <q-icon name="search"></q-icon>
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-auto">
+                <q-btn outline color="grey" label="...">
+                  <q-menu auto-close>
+                    <q-list style="min-width: 100px">
+                      <q-item clickable>
+                        <q-item-section @click="exportHistoryToCSV"
+                          >Export to CSV</q-item-section
+                        >
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </div>
+            </div>
+            <q-table
+              style="height: 400px"
+              flat
+              dense
+              :data="getFilteredAddressesHistory()"
+              row-key="id"
+              virtual-scroll
+              :columns="historyTable.columns"
+              :pagination.sync="historyTable.pagination"
+              :filter="historyTable.filter"
+            >
+              <template v-slot:body="props">
+                <q-tr :props="props">
+                  <q-td auto-width>
+                    <q-btn
+                      size="sm"
+                      color="accent"
+                      round
+                      dense
+                      @click="props.row.expanded = !props.row.expanded"
+                      :icon="props.row.expanded ? 'remove' : 'add'"
+                    />
+                  </q-td>
+
+                  <q-td key="status" :props="props">
+                    <q-badge
+                      v-if="props.row.sent"
+                      @click="props.row.expanded = !props.row.expanded"
+                      color="orange"
+                      class="q-mr-md cursor-pointer"
+                    >
+                      {{props.row.confirmed ? 'Sent' : 'Sending...'}}
+                    </q-badge>
+                    <q-badge
+                      v-if="props.row.received"
+                      @click="props.row.expanded = !props.row.expanded"
+                      color="green"
+                      class="q-mr-md cursor-pointer"
+                    >
+                      {{props.row.confirmed ? 'Received' : 'Receiving...'}}
+                    </q-badge>
+                  </q-td>
+                  <q-td
+                    key="amount"
+                    :props="props"
+                    :class="props.row.amount && props.row.received > 0 ? 'text-green-13 text-weight-bold' : ''"
+                  >
+                    <div>
+                      {{satBtc(props.row.totalAmount || props.row.amount)}}
+                    </div>
+                  </q-td>
+                  <q-td key="address" :props="props">
+                    <a
+                      v-if="!props.row.sameTxItems"
+                      style="color: unset"
+                      :href="config.data.mempool_endpoint + '/address/' + props.row.address"
+                      target="_blank"
+                    >
+                      {{props.row.address}}</a
+                    >
+                    <q-badge
+                      v-if="props.row.sameTxItems"
+                      @click="props.row.expanded = !props.row.expanded"
+                      outline
+                      color="blue"
+                      class="cursor-pointer"
+                    >
+                      ...
+                    </q-badge>
+                  </q-td>
+                  <q-td key="date" :props="props"> {{ props.row.date }} </q-td>
+                </q-tr>
+                <q-tr v-show="props.row.expanded" :props="props">
+                  <q-td colspan="100%">
+                    <div class="row items-center no-wrap q-mb-md">
+                      <div class="col-2 q-pr-lg">Transaction Id</div>
+                      <div class="col-10 q-pr-lg">
+                        <a
+                          style="color: unset"
+                          :href="config.data.mempool_endpoint + '/tx/' + props.row.txId"
+                          target="_blank"
+                        >
+                          {{props.row.txId}}</a
+                        >
+                      </div>
+                    </div>
+                    <div
+                      v-if="props.row.sameTxItems"
+                      class="row items-center no-wrap q-mb-md"
+                    >
+                      <div class="col-2 q-pr-lg">UTXOs</div>
+                      <div class="col-4 q-pr-lg">
+                        {{satBtc(props.row.amount)}}
+                      </div>
+                      <div class="col-6 q-pr-lg">{{props.row.address}}</div>
+                    </div>
+                    <div
+                      v-for="s in props.row.sameTxItems || []"
+                      class="row items-center no-wrap q-mb-md"
+                    >
+                      <div class="col-2 q-pr-lg"></div>
+                      <div class="col-4 q-pr-lg">{{satBtc(s.amount)}}</div>
+                      <div class="col-6 q-pr-lg">{{s.address}}</div>
+                    </div>
+                    <div class="row items-center no-wrap q-mb-md">
+                      <div class="col-2 q-pr-lg">Fee</div>
+                      <div class="col-4 q-pr-lg">{{satBtc(props.row.fee)}}</div>
+                    </div>
+                    <div class="row items-center no-wrap q-mb-md">
+                      <div class="col-2 q-pr-lg">Block Height</div>
+                      <div class="col-4 q-pr-lg">{{props.row.height}}</div>
+                    </div>
+                  </q-td>
+                </q-tr>
+              </template>
+            </q-table>
+          </q-tab-panel>
+          <q-tab-panel name="utxos">
+            <div class="row items-center no-wrap q-mb-md">
+              <div class="col">
+                <q-toggle
+                  label="Make Payment"
+                  color="secodary"
+                  v-model="payment.show"
+                  @input="initPaymentData()"
+                ></q-toggle>
+              </div>
+              <div class="col-auto"></div>
+            </div>
+
+            <q-form @submit="createPsbt" class="q-gutter-md">
+              <q-card v-if="payment.show">
+                <q-card-section>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col">
+                      <q-table
+                        flat
+                        dense
+                        hide-header
+                        :data="payment.data"
+                        :columns="paymentTable.columns"
+                        :pagination.sync="paymentTable.pagination"
+                      >
+                        <template v-slot:body="props">
+                          <q-tr :props="props">
+                            <div class="row no-wrap">
+                              <div class="col-1">
+                                <q-btn
+                                  flat
+                                  dense
+                                  size="l"
+                                  @click="deletePaymentAddress(props.row)"
+                                  icon="cancel"
+                                  color="pink"
+                                  class="q-mt-sm"
+                                ></q-btn>
+                              </div>
+                              <div class="col-7 q-pr-lg">
+                                <q-input
+                                  filled
+                                  dense
+                                  v-model.trim="props.row.address"
+                                  type="text"
+                                  label="Address"
+                                  :rules="[val => !!val || 'Field is required']"
+                                ></q-input>
+                              </div>
+                              <div class="col-3 q-pr-lg">
+                                <q-input
+                                  filled
+                                  dense
+                                  v-model.number="props.row.amount"
+                                  type="number"
+                                  step="1"
+                                  label="Amount (sats)"
+                                  :rules="[val => !!val || 'Field is required', val => +val > DUST_LIMIT || 'Amount to small (below dust limit)'] "
+                                ></q-input>
+                              </div>
+                              <div class="col-1">
+                                <q-btn
+                                  outline
+                                  color="grey"
+                                  @click="sendMaxToAddress(props.row)"
+                                  >Max</q-btn
+                                >
+                              </div>
+                            </div>
+                          </q-tr>
+                        </template>
+                        <template v-slot:bottom-row>
+                          <q-tr>
+                            <q-td colspan="100%">
+                              <div class="row items-center no-wrap">
+                                <div class="col-3 q-pr-lg">
+                                  <q-btn
+                                    outline
+                                    color="grey"
+                                    @click="addPaymentAddress"
+                                    >Add Send Address</q-btn
+                                  >
+                                </div>
+                                <div class="col-4 q-pr-lg"></div>
+                                <div class="col-5">
+                                  <div class="float-right">
+                                    <span class="text-weight-bold"
+                                      >Payed Amount:
+                                    </span>
+                                    <q-badge
+                                      class="text-subtitle2 q-ml-lg"
+                                      color="blue"
+                                    >
+                                      {{satBtc(getTotalPaymentAmount())}}
+                                    </q-badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </q-td>
+                          </q-tr>
+                        </template>
+                      </q-table>
+                    </div>
+                  </div></q-card-section
+                >
+              </q-card>
+              <q-card>
+                <q-card-section>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div v-if="payment.show" class="col-3 q-pr-lg">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        v-model="payment.utxoSelectionMode"
+                        :options="payment.utxoSelectionModes"
+                        label="Selection Mode"
+                        @input="applyUtxoSelectionMode"
+                      ></q-select>
+                    </div>
+                    <div v-if="payment.show" class="col-1 q-pr-lg">
+                      <q-btn
+                        outline
+                        icon="refresh"
+                        color="grey"
+                        @click="applyUtxoSelectionMode"
+                        class="q-ml-sm"
+                      ></q-btn>
+                    </div>
+                    <div v-if="payment.show" class="col-5 q-pr-lg"></div>
+                    <div v-if="!payment.show" class="col-9 q-pr-lg"></div>
+                    <div class="col-3 float-right">
+                      <q-input
+                        borderless
+                        dense
+                        debounce="300"
+                        v-model="utxosTable.filter"
+                        placeholder="Search"
+                      >
+                        <template v-slot:append>
+                          <q-icon name="search"></q-icon>
+                        </template>
+                      </q-input>
+                    </div>
+                  </div>
+
+                  <q-table
+                    flat
+                    dense
+                    :data="utxos.data"
+                    row-key="id"
+                    :columns="utxosTable.columns"
+                    :pagination.sync="utxosTable.pagination"
+                    :filter="utxosTable.filter"
+                  >
+                    <template v-slot:body="props">
+                      <q-tr :props="props">
+                        <q-td auto-width>
+                          <q-btn
+                            size="sm"
+                            color="accent"
+                            round
+                            dense
+                            @click="props.row.expanded= !props.row.expanded"
+                            :icon="props.row.expanded? 'remove' : 'add'"
+                          />
+                        </q-td>
+
+                        <q-td key="selected" :props="props">
+                          <div>
+                            <q-checkbox
+                              v-model="props.row.selected"
+                            ></q-checkbox>
+                          </div>
+                        </q-td>
+                        <q-td key="status" :props="props">
+                          <div>
+                            <q-badge
+                              v-if="props.row.confirmed"
+                              @click="props.row.expanded = !props.row.expanded"
+                              color="green"
+                              class="q-mr-md cursor-pointer"
+                            >
+                              Confirmed
+                            </q-badge>
+                            <q-badge
+                              v-if="!props.row.confirmed"
+                              @click="props.row.expanded = !props.row.expanded"
+                              color="orange"
+                              class="q-mr-md cursor-pointer"
+                            >
+                              Pending
+                            </q-badge>
+                          </div>
+                        </q-td>
+                        <q-td key="address" :props="props">
+                          <div>
+                            <a
+                              style="color: unset"
+                              :href="config.data.mempool_endpoint + '/address/' + props.row.address"
+                              target="_blank"
+                            >
+                              {{props.row.address}}</a
+                            >
+                            <q-badge
+                              v-if="props.row.isChange"
+                              color="orange"
+                              class="q-mr-md"
+                            >
+                              change
+                            </q-badge>
+                          </div>
+                        </q-td>
+
+                        <q-td
+                          key="amount"
+                          :props="props"
+                          class="text-green-13 text-weight-bold"
+                        >
+                          <div>{{satBtc(props.row.amount)}}</div>
+                        </q-td>
+
+                        <q-td key="date" :props="props">
+                          {{ props.row.date }}
+                        </q-td>
+                        <q-td key="wallet" :props="props" :class="">
+                          <div>{{getWalletName(props.row.wallet)}}</div>
+                        </q-td>
+                      </q-tr>
+                      <q-tr v-show="props.row.expanded" :props="props">
+                        <q-td colspan="100%">
+                          <div class="row items-center q-mb-md">
+                            <div class="col-2 q-pr-lg">Transaction Id</div>
+                            <div class="col-10 q-pr-lg">
+                              <a
+                                style="color: unset"
+                                :href="config.data.mempool_endpoint + '/tx/' + props.row.txId"
+                                target="_blank"
+                              >
+                                {{props.row.txId}}</a
+                              >
+                            </div>
+                          </div>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                    <template v-slot:bottom-row>
+                      <q-tr>
+                        <q-td colspan="100%">
+                          <div class="row items-center no-wrap q-mb-md">
+                            <div class="col-9 q-pr-lg"></div>
+                            <div class="col-3">
+                              <div class="float-right">
+                                <span class="text-weight-bold"
+                                  >Slected Amount:
+                                </span>
+
+                                <q-badge
+                                  class="text-subtitle2 q-ml-lg"
+                                  color="green"
+                                  >{{satBtc(getTotalSelectedUtxoAmount())}}
+                                </q-badge>
+                              </div>
+                            </div>
+                          </div>
+                        </q-td>
+                      </q-tr>
+                    </template>
+                  </q-table>
+                </q-card-section></q-card
               >
-                {{ col.label }}
-              </q-th>
-              <q-th auto-width></q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td
-                v-for="col in props.cols"
-                :key="col.name"
-                :props="props"
-                auto-width
-                :class="col.value == true ? 'text-green-13 text-weight-bold' : ''"
+              <div v-if="payment.show" class="row items-center no-wrap q-mb-md">
+                <div class="col">
+                  <q-toggle
+                    label="Show Advanced"
+                    color="secodary"
+                    v-model="payment.showAdvanced"
+                  ></q-toggle>
+                </div>
+              </div>
+              <q-card v-show="payment.show && payment.showAdvanced"
+                ><q-card-section>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col-2 q-pr-lg">Change Account:</div>
+                    <div class="col-3 q-pr-lg">
+                      <q-select
+                        filled
+                        dense
+                        emit-value
+                        v-model="payment.changeWallet"
+                        :options="walletAccounts"
+                        @input="selectChangeAddress"
+                        :rules="[val => !!val || 'Field is required']"
+                        label="Wallet Account"
+                      ></q-select>
+                    </div>
+                    <div class="col-7">
+                      <q-input
+                        filled
+                        dense
+                        readonly
+                        v-model.trim="payment.changeAddress.address"
+                        :rules="[val => !!val || 'Field is required']"
+                        type="text"
+                        label="Change Address"
+                      ></q-input>
+                    </div>
+                  </div>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col-2 q-pr-lg">Fee Rate:</div>
+                    <div class="col-3 q-pr-lg">
+                      <q-input
+                        filled
+                        dense
+                        v-model.number="payment.feeRate"
+                        :rules="[val => !!val || 'Field is required']"
+                        type="number"
+                        label="sats/vbyte"
+                      ></q-input>
+                    </div>
+                    <div class="col-7">
+                      <q-slider
+                        v-model="payment.feeRate"
+                        color="orange"
+                        markers
+                        snap
+                        label
+                        label-always
+                        :label-value="getFeeRateLabel(payment.feeRate)"
+                        :min="1"
+                        :max="payment.recommededFees.fastestFee"
+                      />
+                    </div>
+                  </div>
+                  <div
+                    v-if="payment.feeRate < payment.recommededFees.hourFee || payment.feeRate > payment.recommededFees.fastestFee"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-2 q-pr-lg"></div>
+                    <div class="col-10 q-pr-lg">
+                      <q-badge
+                        v-if="payment.feeRate < payment.recommededFees.hourFee"
+                        color="pink"
+                        size="lg"
+                      >
+                        Warning! The fee is too low. The transaction might take
+                        a long time to confirm.
+                      </q-badge>
+                      <q-badge
+                        v-if="payment.feeRate > payment.recommededFees.fastestFee"
+                        color="pink"
+                      >
+                        Warning! The fee is too high. You might be overpaying
+                        for this transaction.
+                      </q-badge>
+                    </div>
+                  </div>
+
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col-2 q-pr-lg">Fee:</div>
+                    <div class="col-3 q-pr-lg">{{computeFee()}} sats</div>
+                    <div class="col-7 q-pr-lg">
+                      <q-btn
+                        outline
+                        dense
+                        size="md"
+                        icon="refresh"
+                        color="grey"
+                        @click="refreshRecommendedFees()"
+                        >Refresh Fee Rates</q-btn
+                      >
+                    </div>
+                  </div>
+                </q-card-section></q-card
               >
-                {{ col.name == 'value' ? satBtc(col.value) : col.value }}
-              </q-td>
-            </q-tr>
-          </template>
-        </q-table>
+              <q-card v-if="payment.show"
+                ><q-card-section>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col">
+                      <q-table
+                        :columns="summaryTable.columns"
+                        :data="summary.data"
+                        hide-bottom
+                      >
+                        <template v-slot:body="props">
+                          <q-tr :props="props">
+                            <q-td key="totalInputs" :props="props">
+                              <q-badge class="text-subtitle2" color="green">
+                                {{satBtc(getTotalSelectedUtxoAmount())}}
+                              </q-badge>
+                            </q-td>
+                            <q-td key="totalOutputs" :props="props">
+                              <q-badge class="text-subtitle2" color="blue">
+                                {{satBtc(getTotalPaymentAmount())}}
+                              </q-badge>
+                            </q-td>
+                            <q-td key="fees" :props="props">
+                              <q-badge class="text-subtitle2" color="orange">
+                                {{satBtc(computeFee())}}
+                              </q-badge>
+                            </q-td>
+                            <q-td key="change" :props="props">
+                              <q-badge
+                                v-if="payment.changeAmount >= 0"
+                                class="text-subtitle2"
+                                color="green"
+                              >
+                                {{payment.changeAmount ? payment.changeAmount:
+                                'no change'}}
+                              </q-badge>
+                              <q-badge
+                                v-if="payment.changeAmount > 0 && payment.changeAmount < DUST_LIMIT"
+                                color="red"
+                              >
+                                Below dust limit. Will be used as feee.
+                              </q-badge>
+                            </q-td>
+                          </q-tr>
+                        </template>
+                      </q-table>
+                    </div>
+                  </div>
+                  <div class="row items-center no-wrap q-mb-md">
+                    <div class="col-4 q-pr-lg">
+                      <q-btn unelevated color="secondary" type="submit"
+                        >Create PSBT</q-btn
+                      >
+                    </div>
+                    <div class="col-8">
+                      <q-badge
+                        v-if="payment.changeAmount < 0"
+                        class="text-subtitle2 float-right"
+                        color="yellow"
+                        text-color="black"
+                      >
+                        The payed amount is higher than the selected amount!
+                      </q-badge>
+                    </div>
+                  </div>
+                  <div
+                    v-if="payment.psbtBase64"
+                    class="row items-center no-wrap q-mb-md"
+                  >
+                    <div class="col-12">
+                      <q-input
+                        v-model="payment.psbtBase64"
+                        filled
+                        readonly
+                        type="textarea"
+                      />
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </q-form>
+          </q-tab-panel>
+        </q-tab-panels>
       </q-card-section>
     </q-card>
   </div>
@@ -180,7 +1038,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} Watch Only Extension
+          {{SITE_TITLE}} Onchain Wallet (watch-only) Extension
         </h6>
       </q-card-section>
       <q-card-section class="q-pa-none">
@@ -192,7 +1050,7 @@
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormData" class="q-gutter-md">
+      <q-form @submit="addWalletAccount" class="q-gutter-md">
         <q-input
           filled
           dense
@@ -218,7 +1076,58 @@
                 formDialog.data.masterpub == null ||
                 formDialog.data.title == null"
             type="submit"
-            >Create Watch-only Wallet</q-btn
+            >Add Watch-Only Account</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  <q-dialog v-model="config.show" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="updateConfig" class="q-gutter-md">
+        <q-input
+          filled
+          dense
+          v-model.trim="config.data.mempool_endpoint"
+          type="text"
+          label="Mempool Endpoint"
+        ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.number="config.data.receive_gap_limit"
+          type="number"
+          min="0"
+          label="Receive Gap Limit"
+        ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.number="config.data.change_gap_limit"
+          type="number"
+          min="0"
+          label="Change Gap Limit"
+        ></q-input>
+
+        <q-toggle
+          :label="config.data.sats_denominated ? 'sats denominated' : 'BTC denominated'"
+          color="secodary"
+          v-model="config.data.sats_denominated"
+        ></q-toggle>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="
+            !config.data.mempool_endpoint "
+            type="submit"
+            >Update</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -228,421 +1137,72 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="Addresses.show" position="top">
-    <q-card v-if="Addresses.data" class="q-pa-lg lnbits__dialog-card">
+  <q-dialog v-model="addresses.show" position="top">
+    <q-card v-if="addresses.data" class="q-pa-lg lnbits__dialog-card">
       {% raw %}
-      <h5 class="text-subtitle1 q-my-none">Addresses</h5>
+
+      <h5 class="text-subtitle1 q-my-none">Address Details</h5>
       <q-separator></q-separator><br />
-      <p>
-        <strong>Current:</strong>
-        {{ currentaddress }}
-        <q-btn
-          flat
-          dense
-          size="ms"
-          icon="visibility"
-          type="a"
-          :href="mempool.endpoint + '/address/' + currentaddress"
-          target="_blank"
-        ></q-btn>
-      </p>
+
       <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
         <qrcode
-          :value="currentaddress"
+          v-if="currentAddress"
+          :value="currentAddress.address"
           :options="{width: 800}"
           class="rounded-borders"
         ></qrcode>
       </q-responsive>
-      <p style="word-break: break-all">
-        <q-scroll-area style="height: 200px; max-width: 100%">
-          <q-list bordered v-for="data in Addresses.data.slice().reverse()">
-            <q-item>
-              <q-item-section>{{ data.address }}</q-item-section>
-              <q-btn
-                flat
-                dense
-                size="ms"
-                icon="visibility"
-                type="a"
-                :href="mempool.endpoint + '/address/' + data.address"
-                target="_blank"
-              ></q-btn>
-            </q-item>
-          </q-list>
-        </q-scroll-area>
+      <p v-if="currentAddress">
+        {{ currentAddress.address }}
+        <q-btn
+          flat
+          dense
+          size="ms"
+          icon="launch"
+          type="a"
+          :href="config.mempool_endpoint + '/address/' + currentAddress.address"
+          target="_blank"
+        ></q-btn>
       </p>
-
+      <p v-if="currentAddress">
+        <q-input
+          filled
+          dense
+          v-model.trim="addresses.note"
+          type="text"
+          label="Note"
+        ></q-input>
+      </p>
+      <div v-if="currentAddress && currentAddress.gapLimitExceeded">
+        <q-badge color="yellow" text-color="black"
+          >Gap limit of 20 addresses exceeded. Other wallets might not detect
+          funds at this address.</q-badge
+        >
+      </div>
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn
+          v-if="currentAddress"
           outline
+          v-close-popup
           color="grey"
-          @click="getFreshAddress(current)"
+          @click="updateNoteForAddress(currentAddress, addresses.note)"
           class="q-ml-sm"
-          >Get fresh address</q-btn
+          >Save Note</q-btn
         >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
+      <div class="row q-mt-lg q-gutter-sm"></div>
     </q-card>
   </q-dialog>
   {% endraw %}
 </div>
+
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
+<!-- todo: use endpoint here -->
 <script type="text/javascript" src="https://mempool.space/mempool.js"></script>
-<style></style>
-<script>
-  Vue.component(VueQrcode.name, VueQrcode)
 
-  Vue.filter('reverse', function (value) {
-    // slice to make a copy of array, then reverse the copy
-    return value.slice().reverse()
-  })
-  var locationPath = [
-    window.location.protocol,
-    '//',
-    window.location.hostname,
-    window.location.pathname
-  ].join('')
-
-  var mapWalletLink = function (obj) {
-    obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    return obj
-  }
-  var mapAddresses = function (obj) {
-    obj._data = _.clone(obj)
-    obj.date = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )
-    return obj
-  }
-
-  new Vue({
-    el: '#vue',
-    mixins: [windowMixin],
-    data: function () {
-      return {
-        filter: '',
-        balance: null,
-        checker: null,
-        walletLinks: [],
-        AddressesLinks: [],
-        currentaddress: '',
-        Addresses: {
-          show: false,
-          data: null
-        },
-        utxos: {
-          data: [],
-          total: 0,
-          sats: true
-        },
-        mempool: {
-          endpoint: ''
-        },
-        WalletsTable: {
-          columns: [
-            {name: 'id', align: 'left', label: 'ID', field: 'id'},
-            {
-              name: 'title',
-              align: 'left',
-              label: 'Title',
-              field: 'title'
-            },
-            {
-              name: 'masterpub',
-              align: 'left',
-              label: 'MasterPub',
-              field: 'masterpub'
-            }
-          ],
-          pagination: {
-            rowsPerPage: 10
-          }
-        },
-        TxosTable: {
-          columns: [
-            {
-              name: 'value',
-              align: 'left',
-              label: 'Value',
-              field: 'value',
-              sortable: true
-            },
-            {
-              name: 'confirmed',
-              align: 'center',
-              label: 'Confirmed',
-              field: 'confirmed',
-              sortable: true
-            },
-            {
-              name: 'date',
-              align: 'left',
-              label: 'Date',
-              field: 'date',
-              sortable: true
-            },
-            {
-              name: 'txid',
-              align: 'left',
-              label: 'ID',
-              field: 'txid',
-              sortable: true
-            }
-          ],
-          pagination: {
-            rowsPerPage: 10
-          },
-          uxtosFilter: ''
-        },
-
-        formDialog: {
-          show: false,
-          data: {}
-        },
-
-        qrCodeDialog: {
-          show: false,
-          data: null
-        }
-      }
-    },
-
-    methods: {
-      getAddressDetails: function (address) {
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/mempool/' + address,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            return reponse.data
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      getAddresses: function (walletID) {
-        var self = this
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/addresses/' + walletID,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            self.Addresses.data = response.data
-            self.currentaddress =
-              self.Addresses.data[self.Addresses.data.length - 1].address
-            self.AddressesLinks = response.data.map(function (obj) {
-              return mapAddresses(obj)
-            })
-            self.fetchUtxos()
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      getFreshAddress: function (walletID) {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/address/' + walletID,
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            self.Addresses.data = response.data
-            self.currentaddress =
-              self.Addresses.data[self.Addresses.data.length - 1].address
-          })
-      },
-      getMempool: function () {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/mempool',
-            this.g.user.wallets[0].adminkey
-          )
-          .then(function (response) {
-            self.mempool.endpoint = response.data.endpoint
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-
-      updateMempool: function () {
-        var self = this
-        var wallet = this.g.user.wallets[0]
-        LNbits.api
-          .request(
-            'PUT',
-            '/watchonly/api/v1/mempool',
-            wallet.adminkey,
-            self.mempool
-          )
-          .then(function (response) {
-            self.mempool.endpoint = response.data.endpoint
-            self.walletLinks.push(mapwalletLink(response.data))
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      fetchUtxos: async function () {
-        const {
-          bitcoin: {addresses}
-        } = mempoolJS()
-        const address = this.AddressesLinks.map(x => x.address)
-        const fetchUtxo = async () => {
-          let txs = []
-          // const address = [
-          //   '3Er3w82WqPLL4ew23taUZcFQwbZq6PE9TK',
-          //   '16CwtWRwQYLojaVZZFCgnaM6SQuNefqwrc',
-          //   '1KZB6FqnnMWySk75uvFKuPzHct1tMXHSSR'
-          // ] //test addresses
-          for (add of address) {
-            let addressTxsUtxo = await addresses.getAddressTxsUtxo({
-              address: add
-            })
-            txs = [...txs, ...addressTxsUtxo]
-          }
-          return txs
-        }
-        let utxos = await fetchUtxo()
-        utxos = utxos
-          .reduce((ac, x) => {
-            if (!ac)
-              return [
-                {
-                  txid: x.txid,
-                  confirmed: x.status.confirmed,
-                  value: x.value,
-                  date: moment(x.status?.block_time * 1000).format('LLL'),
-                  sort: x.status?.block_time
-                }
-              ]
-            if (!ac.some(y => y.txid == x.txid))
-              return [
-                ...ac,
-                {
-                  txid: x.txid,
-                  confirmed: x.status.confirmed,
-                  value: x.value,
-                  date: moment(x.status?.block_time * 1000).format('LLL'),
-                  sort: x.status?.block_time
-                }
-              ]
-            return
-          }, [])
-          .sort((a, b) => b.sort - a.sort)
-        let total = utxos.reduce((total, y) => {
-          total += y?.value || 0
-          return total
-        }, 0)
-        this.utxos.data = utxos
-        this.utxos.total = total
-      },
-      getWalletLinks: function () {
-        var self = this
-
-        LNbits.api
-          .request(
-            'GET',
-            '/watchonly/api/v1/wallet',
-            this.g.user.wallets[0].inkey
-          )
-          .then(function (response) {
-            self.walletLinks = response.data.map(function (obj) {
-              self.getAddresses(obj.id)
-              return mapWalletLink(obj)
-            })
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-
-      closeFormDialog: function () {
-        this.formDialog.data = {
-          is_unique: false
-        }
-      },
-      openQrCodeDialog: function (linkId) {
-        var self = this
-        var getAddresses = this.getAddresses
-        this.getAddresses(linkId)
-        self.current = linkId
-        self.Addresses.show = true
-      },
-      sendFormData: function () {
-        var wallet = this.g.user.wallets[0]
-        var data = _.omit(this.formDialog.data, 'wallet')
-        this.createWalletLink(wallet, data)
-      },
-      createWalletLink: function (wallet, data) {
-        var self = this
-
-        LNbits.api
-          .request('POST', '/watchonly/api/v1/wallet', wallet.adminkey, data)
-          .then(function (response) {
-            self.walletLinks.push(mapWalletLink(response.data))
-            self.formDialog.show = false
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      deleteWalletLink: function (linkId) {
-        var self = this
-        var link = _.findWhere(this.walletLinks, {id: linkId})
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/watchonly/api/v1/wallet/' + linkId,
-                self.g.user.wallets[0].adminkey
-              )
-              .then(function (response) {
-                self.walletLinks = _.reject(self.walletLinks, function (obj) {
-                  return obj.id === linkId
-                })
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-      exportCSV: function () {
-        LNbits.utils.exportCSV(this.paywallsTable.columns, this.paywalls)
-      },
-      satBtc(val) {
-        return this.utxos.sats
-          ? LNbits.utils.formatSat(val)
-          : val == 0
-          ? 0.0
-          : (val / 100000000).toFixed(8)
-      }
-    },
-    created: function () {
-      if (this.g.user.wallets.length) {
-        var getMempool = this.getMempool
-        getMempool()
-        var getWalletLinks = this.getWalletLinks
-        getWalletLinks()
-      }
-    }
-  })
-</script>
+<script src="{{ url_for('watchonly_static', path='js/tables.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/map.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/utils.js') }}"></script>
+<script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}

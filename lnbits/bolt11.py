@@ -61,7 +61,7 @@ def decode(pr: str) -> Invoice:
     invoice = Invoice()
 
     # decode the amount from the hrp
-    m = re.search("[^\d]+", hrp[2:])
+    m = re.search(r"[^\d]+", hrp[2:])
     if m:
         amountstr = hrp[2 + m.end() :]
         if amountstr != "":
@@ -296,7 +296,7 @@ def _unshorten_amount(amount: str) -> int:
     # BOLT #11:
     # A reader SHOULD fail if `amount` contains a non-digit, or is followed by
     # anything except a `multiplier` in the table above.
-    if not re.fullmatch("\d+[pnum]?", str(amount)):
+    if not re.fullmatch(r"\d+[pnum]?", str(amount)):
         raise ValueError("Invalid amount '{}'".format(amount))
 
     if unit in units:

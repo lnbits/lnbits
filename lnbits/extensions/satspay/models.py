@@ -1,4 +1,4 @@
-import time
+from datetime import datetime, timedelta
 from sqlite3 import Row
 from typing import Optional
 
@@ -39,11 +39,15 @@ class Charges(BaseModel):
         return cls(**dict(row))
 
     @property
+    def time_left(self):
+        now = datetime.utcnow().timestamp()
+        start = datetime.fromtimestamp(self.timestamp)
+        expiration = (start + timedelta(minutes=self.time)).timestamp()
+        return (expiration - now) / 60
+
+    @property
     def time_elapsed(self):
-        if (self.timestamp + (self.time * 60)) >= time.time():
-            return False
-        else:
-            return True
+        return self.time_left < 0
 
     @property
     def paid(self):

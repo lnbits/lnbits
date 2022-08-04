@@ -169,7 +169,9 @@
           <h5 class="q-mt-none">
             {% raw %}{{ fsat }}
             <small>sat</small>
-            <span style="font-size: 0.75rem">( + {{ tipAmountSat }} tip)</span>
+            <span v-show="tip_options" style="font-size: 0.75rem"
+              >( + {{ tipAmountSat }} tip)</span
+            >
             {% endraw %}
           </h5>
         </div>
@@ -275,7 +277,7 @@
       return {
         tposId: '{{ tpos.id }}',
         currency: '{{ tpos.currency }}',
-        tip_options: JSON.parse('{{ tpos.tip_options }}'),
+        tip_options: null,
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
@@ -306,7 +308,9 @@
       },
       sat: function () {
         if (!this.exchangeRate) return 0
-        return Math.ceil((this.amount / this.exchangeRate) * 100000000)
+        return Math.ceil(
+          ((this.amount - this.tipAmount) / this.exchangeRate) * 100000000
+        )
       },
       tipAmountSat: function () {
         if (!this.exchangeRate) return 0
@@ -352,7 +356,7 @@
         this.showInvoice()
       },
       submitForm: function () {
-        if (this.tip_options.length) {
+        if (this.tip_options) {
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -417,9 +421,13 @@
     created: function () {
       var getRates = this.getRates
       getRates()
+      this.tip_options =
+        '{{ tpos.tip_options | tojson }}' == 'null'
+          ? null
+          : JSON.parse('{{ tpos.tip_options }}')
       setInterval(function () {
         getRates()
-      }, 20000)
+      }, 120000)
     }
   })
 </script>
