@@ -73,11 +73,9 @@ async def lnurl_callback(
         wallet_id=cp.wallet,
         amount=int(amount_received / 1000),
         memo=cp.lnurl_title,
-        description_hash=hashlib.sha256(
-            (
-                LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
-            ).encode("utf-8")
-        ).digest(),
+        description_hash=(
+            LnurlPayMetadata(json.dumps([["text/plain", str(cp.lnurl_title)]]))
+        ).encode("utf-8"),
         extra={"tag": "copilot", "copilotid": cp.id, "comment": comment},
     )
     payResponse = {"pr": payment_request, "routes": []}

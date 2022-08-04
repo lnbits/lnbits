@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 from http import HTTPStatus
 from os import getenv
@@ -54,7 +55,7 @@ class LNPayWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
         else:
             data["memo"] = memo or ""
 
@@ -119,7 +120,7 @@ class LNPayWallet(Wallet):
         return PaymentStatus(statuses[r.json()["settled"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue = asyncio.Queue(0)
+        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
             value = await self.queue.get()
             yield value

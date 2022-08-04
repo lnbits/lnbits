@@ -1,81 +1,16 @@
+import json
 from typing import List, Optional
-
-from embit.descriptor import Descriptor, Key  # type: ignore
-from embit.descriptor.arguments import AllowedDerivation  # type: ignore
-from embit.networks import NETWORKS  # type: ignore
 
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Addresses, Mempool, Wallets
+from .helpers import derive_address, parse_key
+from .models import Address, Config, Mempool, WalletAccount
 
 ##########################WALLETS####################
 
 
-def detect_network(k):
-    version = k.key.version
-    for network_name in NETWORKS:
-        net = NETWORKS[network_name]
-        # not found in this network
-        if version in [net["xpub"], net["ypub"], net["zpub"], net["Zpub"], net["Ypub"]]:
-            return net
-
-
-def parse_key(masterpub: str):
-    """Parses masterpub or descriptor and returns a tuple: (Descriptor, network)
-    To create addresses use descriptor.derive(num).address(network=network)
-    """
-    network = None
-    # probably a single key
-    if "(" not in masterpub:
-        k = Key.from_string(masterpub)
-        if not k.is_extended:
-            raise ValueError("The key is not a master public key")
-        if k.is_private:
-            raise ValueError("Private keys are not allowed")
-        # check depth
-        if k.key.depth != 3:
-            raise ValueError(
-                "Non-standard depth. Only bip44, bip49 and bip84 are supported with bare xpubs. For custom derivation paths use descriptors."
-            )
-        # if allowed derivation is not provided use default /{0,1}/*
-        if k.allowed_derivation is None:
-            k.allowed_derivation = AllowedDerivation.default()
-        # get version bytes
-        version = k.key.version
-        for network_name in NETWORKS:
-            net = NETWORKS[network_name]
-            # not found in this network
-            if version in [net["xpub"], net["ypub"], net["zpub"]]:
-                network = net
-                if version == net["xpub"]:
-                    desc = Descriptor.from_string("pkh(%s)" % str(k))
-                elif version == net["ypub"]:
-                    desc = Descriptor.from_string("sh(wpkh(%s))" % str(k))
-                elif version == net["zpub"]:
-                    desc = Descriptor.from_string("wpkh(%s)" % str(k))
-                break
-        # we didn't find correct version
-        if network is None:
-            raise ValueError("Unknown master public key version")
-    else:
-        desc = Descriptor.from_string(masterpub)
-        if not desc.is_wildcard:
-            raise ValueError("Descriptor should have wildcards")
-        for k in desc.keys:
-            if k.is_extended:
-                net = detect_network(k)
-                if net is None:
-                    raise ValueError(f"Unknown version: {k}")
-                if network is not None and network != net:
-                    raise ValueError("Keys from different networks")
-                network = net
-    return desc, network
-
-
-async def create_watch_wallet(user: str, masterpub: str, title: str) -> Wallets:
-    # check the masterpub is fine, it will raise an exception if not
-    parse_key(masterpub)
+async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
     wallet_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -83,34 +18,44 @@ async def create_watch_wallet(user: str, masterpub: str, title: str) -> Wallets:
             id,
             "user",
             masterpub,
+            fingerprint,
             title,
+            type,
             address_no,
             balance
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        # address_no is -1 so fresh address on empty wallet can get address with index 0
-        (wallet_id, user, masterpub, title, -1, 0),
+        (
+            wallet_id,
+            w.user,
+            w.masterpub,
+            w.fingerprint,
+            w.title,
+            w.type,
+            w.address_no,
+            w.balance,
+        ),
     )
 
     return await get_watch_wallet(wallet_id)
 
 
-async def get_watch_wallet(wallet_id: str) -> Optional[Wallets]:
+async def get_watch_wallet(wallet_id: str) -> Optional[WalletAccount]:
     row = await db.fetchone(
         "SELECT * FROM watchonly.wallets WHERE id = ?", (wallet_id,)
     )
-    return Wallets.from_row(row) if row else None
+    return WalletAccount.from_row(row) if row else None
 
 
-async def get_watch_wallets(user: str) -> List[Wallets]:
+async def get_watch_wallets(user: str) -> List[WalletAccount]:
     rows = await db.fetchall(
         """SELECT * FROM watchonly.wallets WHERE "user" = ?""", (user,)
     )
-    return [Wallets(**row) for row in rows]
+    return [WalletAccount(**row) for row in rows]
 
 
-async def update_watch_wallet(wallet_id: str, **kwargs) -> Optional[Wallets]:
+async def update_watch_wallet(wallet_id: str, **kwargs) -> Optional[WalletAccount]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(
@@ -119,94 +64,177 @@ async def update_watch_wallet(wallet_id: str, **kwargs) -> Optional[Wallets]:
     row = await db.fetchone(
         "SELECT * FROM watchonly.wallets WHERE id = ?", (wallet_id,)
     )
-    return Wallets.from_row(row) if row else None
+    return WalletAccount.from_row(row) if row else None
 
 
 async def delete_watch_wallet(wallet_id: str) -> None:
     await db.execute("DELETE FROM watchonly.wallets WHERE id = ?", (wallet_id,))
 
-    ########################ADDRESSES#######################
+
+########################ADDRESSES#######################
 
 
-async def get_derive_address(wallet_id: str, num: int):
-    wallet = await get_watch_wallet(wallet_id)
-    key = wallet.masterpub
-    desc, network = parse_key(key)
-    return desc.derive(num).address(network=network)
-
-
-async def get_fresh_address(wallet_id: str) -> Optional[Addresses]:
+async def get_fresh_address(wallet_id: str) -> Optional[Address]:
+    # todo: move logic to views_api after satspay refactoring
     wallet = await get_watch_wallet(wallet_id)
 
     if not wallet:
         return None
 
-    address = await get_derive_address(wallet_id, wallet.address_no + 1)
+    wallet_addresses = await get_addresses(wallet_id)
+    receive_addresses = list(
+        filter(
+            lambda addr: addr.branch_index == 0 and addr.has_activity, wallet_addresses
+        )
+    )
+    last_receive_index = (
+        receive_addresses.pop().address_index if receive_addresses else -1
+    )
+    address_index = (
+        last_receive_index
+        if last_receive_index > wallet.address_no
+        else wallet.address_no
+    )
 
-    await update_watch_wallet(wallet_id=wallet_id, address_no=wallet.address_no + 1)
-    masterpub_id = urlsafe_short_hash()
-    await db.execute(
-        """
+    address = await get_address_at_index(wallet_id, 0, address_index + 1)
+
+    if not address:
+        addresses = await create_fresh_addresses(
+            wallet_id, address_index + 1, address_index + 2
+        )
+        address = addresses.pop()
+
+    await update_watch_wallet(wallet_id, **{"address_no": address_index + 1})
+
+    return address
+
+
+async def create_fresh_addresses(
+    wallet_id: str,
+    start_address_index: int,
+    end_address_index: int,
+    change_address=False,
+) -> List[Address]:
+    if start_address_index > end_address_index:
+        return None
+
+    wallet = await get_watch_wallet(wallet_id)
+    if not wallet:
+        return None
+
+    branch_index = 1 if change_address else 0
+
+    for address_index in range(start_address_index, end_address_index):
+        address = await derive_address(wallet.masterpub, address_index, branch_index)
+
+        await db.execute(
+            """
         INSERT INTO watchonly.addresses (
             id,
             address,
             wallet,
-            amount
+            amount,
+            branch_index,
+            address_index
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (masterpub_id, address, wallet_id, 0),
+            (urlsafe_short_hash(), address, wallet_id, 0, branch_index, address_index),
+        )
+
+    # return fresh addresses
+    rows = await db.fetchall(
+        """
+            SELECT * FROM watchonly.addresses 
+            WHERE wallet = ? AND branch_index = ? AND address_index >= ? AND address_index < ?
+            ORDER BY branch_index, address_index
+        """,
+        (wallet_id, branch_index, start_address_index, end_address_index),
     )
 
-    return await get_address(address)
+    return [Address(**row) for row in rows]
 
 
-async def get_address(address: str) -> Optional[Addresses]:
+async def get_address(address: str) -> Optional[Address]:
     row = await db.fetchone(
         "SELECT * FROM watchonly.addresses WHERE address = ?", (address,)
     )
-    return Addresses.from_row(row) if row else None
+    return Address.from_row(row) if row else None
 
 
-async def get_addresses(wallet_id: str) -> List[Addresses]:
-    rows = await db.fetchall(
-        "SELECT * FROM watchonly.addresses WHERE wallet = ?", (wallet_id,)
-    )
-    return [Addresses(**row) for row in rows]
-
-
-######################MEMPOOL#######################
-
-
-async def create_mempool(user: str) -> Optional[Mempool]:
-    await db.execute(
-        """
-        INSERT INTO watchonly.mempool ("user",endpoint)
-        VALUES (?, ?)
-        """,
-        (user, "https://mempool.space"),
-    )
+async def get_address_at_index(
+    wallet_id: str, branch_index: int, address_index: int
+) -> Optional[Address]:
     row = await db.fetchone(
-        """SELECT * FROM watchonly.mempool WHERE "user" = ?""", (user,)
+        """
+            SELECT * FROM watchonly.addresses 
+            WHERE wallet = ? AND branch_index = ? AND address_index = ?
+        """,
+        (
+            wallet_id,
+            branch_index,
+            address_index,
+        ),
     )
-    return Mempool.from_row(row) if row else None
+    return Address.from_row(row) if row else None
 
 
-async def update_mempool(user: str, **kwargs) -> Optional[Mempool]:
+async def get_addresses(wallet_id: str) -> List[Address]:
+    rows = await db.fetchall(
+        """
+            SELECT * FROM watchonly.addresses WHERE wallet = ?
+            ORDER BY branch_index, address_index
+        """,
+        (wallet_id,),
+    )
+
+    return [Address(**row) for row in rows]
+
+
+async def update_address(id: str, **kwargs) -> Optional[Address]:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(
-        f"""UPDATE watchonly.mempool SET {q} WHERE "user" = ?""",
-        (*kwargs.values(), user),
+        f"""UPDATE watchonly.addresses SET {q} WHERE id = ? """,
+        (*kwargs.values(), id),
     )
-    row = await db.fetchone(
-        """SELECT * FROM watchonly.mempool WHERE "user" = ?""", (user,)
-    )
-    return Mempool.from_row(row) if row else None
+    row = await db.fetchone("SELECT * FROM watchonly.addresses WHERE id = ?", (id))
+    return Address.from_row(row) if row else None
 
 
-async def get_mempool(user: str) -> Mempool:
-    row = await db.fetchone(
-        """SELECT * FROM watchonly.mempool WHERE "user" = ?""", (user,)
+async def delete_addresses_for_wallet(wallet_id: str) -> None:
+    await db.execute("DELETE FROM watchonly.addresses WHERE wallet = ?", (wallet_id,))
+
+
+######################CONFIG#######################
+async def create_config(user: str) -> Config:
+    config = Config()
+    await db.execute(
+        """
+        INSERT INTO watchonly.config ("user", json_data)
+        VALUES (?, ?)
+        """,
+        (user, json.dumps(config.dict())),
     )
-    return Mempool.from_row(row) if row else None
+    row = await db.fetchone(
+        """SELECT json_data FROM watchonly.config WHERE "user" = ?""", (user,)
+    )
+    return json.loads(row[0], object_hook=lambda d: Config(**d))
+
+
+async def update_config(config: Config, user: str) -> Optional[Config]:
+    await db.execute(
+        f"""UPDATE watchonly.config SET json_data = ? WHERE "user" = ?""",
+        (json.dumps(config.dict()), user),
+    )
+    row = await db.fetchone(
+        """SELECT json_data FROM watchonly.config WHERE "user" = ?""", (user,)
+    )
+    return json.loads(row[0], object_hook=lambda d: Config(**d))
+
+
+async def get_config(user: str) -> Optional[Config]:
+    row = await db.fetchone(
+        """SELECT json_data FROM watchonly.config WHERE "user" = ?""", (user,)
+    )
+    return json.loads(row[0], object_hook=lambda d: Config(**d)) if row else None

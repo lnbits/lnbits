@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 from os import getenv
 from typing import AsyncGenerator, Dict, Optional
@@ -54,7 +55,7 @@ class LntxbotWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {"amt": str(amount)}
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
         else:
             data["memo"] = memo or ""
 
