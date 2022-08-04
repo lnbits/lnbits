@@ -23,9 +23,9 @@ sqfolder = "data/"
 
 LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 if LNBITS_DATABASE_URL is None:
-    pgdb = "lnbits_db"
+    pgdb = "lnbits"
     pguser = "lnbits"
-    pgpswd = "secret"
+    pgpswd = "postgres"
     pghost = "localhost"
     pgport = "5432"
     pgschema = ""
