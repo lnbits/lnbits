@@ -721,8 +721,8 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
         # INVOICES
         res = sq.execute("SELECT * FROM invoices;")
         q = f"""
-            INSERT INTO invoices.invoices (id, wallet, currency, company_name, first_name, last_name, email, phone, address, time)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            INSERT INTO invoices.invoices (id, wallet, status, currency, company_name, first_name, last_name, email, phone, address, time)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
 
