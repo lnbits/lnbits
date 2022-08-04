@@ -27,12 +27,12 @@ export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the po
 poetry env use python3.9
 poetry install --no-dev
 
-mkdir data 
+mkdir data
 cp .env.example .env
 sudo nano .env # set funding source
 
 
-``` 
+```
 
 #### Running the server
 
@@ -254,9 +254,9 @@ If you want to run LNbits on your Umbrel but want it to be reached through clear
 To install using docker you first need to build the docker image as:
 
 ```
-git clone https://github.com/lnbits/lnbits.git
-cd lnbits/ # ${PWD} referred as <lnbits_repo>
-docker build -t lnbits .
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend
+docker build -t lnbits-legend .
 ```
 
 You can launch the docker in a different directory, but make sure to copy `.env.example` from lnbits there
@@ -267,17 +267,15 @@ cp <lnbits_repo>/.env.example .env
 
 and change the configuration in `.env` as required.
 
-Then create the data directory for the user ID 1000, which is the user that runs the lnbits within the docker container.
-
+Then create the data directory
 ```
 mkdir data
-sudo chown 1000:1000 ./data/
 ```
 
 Then the image can be run as:
 
 ```
-docker run --detach --publish 5000:5000 --name lnbits --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits
+docker run --detach --publish 5000:5000 --name lnbits-legend -e "LNBITS_BACKEND_WALLET_CLASS='FakeWallet'" --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
 
 Finally you can access your lnbits on your machine at port 5000.
