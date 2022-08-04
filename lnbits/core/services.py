@@ -21,8 +21,7 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
-from lnbits.settings import FAKE_WALLET, WALLET
+from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -360,4 +359,4 @@ async def check_invoice_status(
 
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT/100.0))
+    return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))
