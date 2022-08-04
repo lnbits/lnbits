@@ -213,7 +213,7 @@ block page %}
   </div>
 
   <q-dialog v-model="formDialog.show" position="top" @hide="closeFormDialog">
-    <q-card class="q-pa-lg q-pt-xl">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="createPayment" class="q-gutter-md">
         <q-input
           filled
@@ -248,7 +248,7 @@ block page %}
     position="top"
     @hide="closeQrCodeDialog"
   >
-    <q-card class="q-pa-lg q-pt-xl text-center">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
       <a :href="'lightning:' + qrCodeDialog.data.payment_request">
         <q-responsive :ratio="1" class="q-mx-xs">
           <qrcode
