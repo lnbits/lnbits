@@ -1,9 +1,6 @@
 async def m001_initial_invoices(db):
-    await db.execute(
-        f"""
-       CREATE TYPE invoice_status_type AS ENUM('draft', 'open', 'paid', 'canceled');
-   """
-    )
+
+# STATUS COLUMN OPTIONS: 'draft', 'open', 'paid', 'canceled'
 
     await db.execute(
         f"""
@@ -11,7 +8,7 @@ async def m001_initial_invoices(db):
            id TEXT PRIMARY KEY,
            wallet TEXT NOT NULL,
 
-           status invoice_status_type DEFAULT 'draft',
+           status TEXT NOT NULL DEFAULT 'draft',
 
            currency TEXT NOT NULL,
 
