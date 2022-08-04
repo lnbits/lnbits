@@ -68,7 +68,7 @@ async function payment(path) {
         return (
           this.selectedAmount -
           this.totalPayedAmount -
-          this.feeRate * this.txSizeNoChange
+          this.feeRate * this.txSize
         )
       },
       balance: function () {
@@ -184,7 +184,8 @@ async function payment(path) {
 
         if (!excludeChange) {
           const change = this.createChangeOutput()
-          if (this.changeAmount >= this.DUST_LIMIT) {
+          const diffAmount = this.selectedAmount - this.totalPayedAmount
+          if (diffAmount >= this.DUST_LIMIT) {
             tx.outputs.push(change)
           }
         }
