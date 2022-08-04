@@ -1,6 +1,7 @@
 imports_ok = True
 try:
     import grpc
+    from grpc import RpcError
     from google import protobuf
 except ImportError:  # pragma: nocover
     imports_ok = False
@@ -12,7 +13,6 @@ import binascii
 import hashlib
 from os import environ, error, getenv
 from typing import AsyncGenerator, Dict, Optional
-from grpc import RpcError
 
 from loguru import logger
 
@@ -175,14 +175,16 @@ class LndWallet(Wallet):
 
         checking_id = resp.payment_hash
 
-        if resp.status == 0:
+        if resp.status == 0:  # IN FLIGHT
             return PaymentResponse(None, checking_id, fee_limit_msat, None, None)
-        elif resp.status == 1:
+        elif resp.status == 1:  # SUCCEEDED
             fee_msat = resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
             return PaymentResponse(True, checking_id, fee_msat, preimage, None)
-        elif resp.status == 2:
+        elif resp.status == 2:  # FAILED
             return PaymentResponse(False, checking_id, 0, None, resp.failure_reason)
+        else:
+            return PaymentResponse(None, checking_id, 0, None, "Unknown status")
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
