@@ -108,7 +108,9 @@ async def api_get_tips(wallet: WalletTypeInfo = Depends(get_key_type)):
 
 @tipjar_ext.put("/api/v1/tips/{tip_id}")
 async def api_update_tip(
-    data: createTips, wallet: WalletTypeInfo = Depends(get_key_type), tip_id: str = Query(None)
+    data: createTips,
+    wallet: WalletTypeInfo = Depends(get_key_type),
+    tip_id: str = Query(None),
 ):
     """Update a tip with the data given in the request"""
     if tip_id:

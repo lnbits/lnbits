@@ -59,7 +59,9 @@ async def get_bleskomats(wallet_ids: Union[str, List[str]]) -> List[Bleskomat]:
     return [Bleskomat(**row) for row in rows]
 
 
-async def update_bleskomat(bleskomat_id: str, data: CreateBleskomat) -> Optional[Bleskomat]:
+async def update_bleskomat(
+    bleskomat_id: str, data: CreateBleskomat
+) -> Optional[Bleskomat]:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(bleskomat_id)

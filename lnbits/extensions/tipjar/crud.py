@@ -105,9 +105,7 @@ async def update_tip(tip_id: str, data: createTips) -> Tip:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(tip_id)
-    await db.execute(
-        f"UPDATE tipjar.Tips SET {q} WHERE id = ?", (values,)
-    )
+    await db.execute(f"UPDATE tipjar.Tips SET {q} WHERE id = ?", (values,))
     row = await db.fetchone("SELECT * FROM tipjar.Tips WHERE id = ?", (tip_id,))
     assert row, "Newly updated tip couldn't be retrieved"
     return Tip(**row)
@@ -118,9 +116,7 @@ async def update_tipjar(tipjar_id: str, data: createTipJar) -> TipJar:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(tipjar_id)
-    await db.execute(
-        f"UPDATE tipjar.TipJars SET {q} WHERE id = ?", (values,)
-    )
+    await db.execute(f"UPDATE tipjar.TipJars SET {q} WHERE id = ?", (values,))
     row = await db.fetchone("SELECT * FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
     assert row, "Newly updated tipjar couldn't be retrieved"
     return TipJar(**row)

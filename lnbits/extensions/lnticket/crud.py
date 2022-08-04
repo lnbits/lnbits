@@ -135,9 +135,7 @@ async def update_form(form_id: str, data: CreateFormData) -> Forms:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(form_id)
-    await db.execute(
-        f"UPDATE lnticket.form2 SET {q} WHERE id = ?", (values,)
-    )
+    await db.execute(f"UPDATE lnticket.form2 SET {q} WHERE id = ?", (values,))
     row = await db.fetchone("SELECT * FROM lnticket.form2 WHERE id = ?", (form_id,))
     assert row, "Newly updated form couldn't be retrieved"
     return Forms(**row)

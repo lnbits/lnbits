@@ -77,9 +77,7 @@ async def update_pay_link(data: CreatePayLinkData, link_id: int) -> Optional[Pay
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(link_id)
-    await db.execute(
-        f"UPDATE lnurlp.pay_links SET {q} WHERE id = ?", (values,)
-    )
+    await db.execute(f"UPDATE lnurlp.pay_links SET {q} WHERE id = ?", (values,))
     row = await db.fetchone("SELECT * FROM lnurlp.pay_links WHERE id = ?", (link_id,))
     return PayLink.from_row(row) if row else None
 

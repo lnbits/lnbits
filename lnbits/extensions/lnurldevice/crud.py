@@ -39,7 +39,9 @@ async def create_lnurldevice(
     return await get_lnurldevice(lnurldevice_id)
 
 
-async def update_lnurldevice(data: createLnurldevice, lnurldevice_id: str) -> Optional[lnurldevices]:
+async def update_lnurldevice(
+    data: createLnurldevice, lnurldevice_id: str
+) -> Optional[lnurldevices]:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(lnurldevice_id)

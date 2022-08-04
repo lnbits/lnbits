@@ -59,7 +59,8 @@ async def update_watch_wallet(wallet_id: str, **kwargs) -> Optional[WalletAccoun
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
 
     await db.execute(
-        f"UPDATE watchonly.wallets SET address_no = ? WHERE id = ?", (address_no, wallet_id)
+        f"UPDATE watchonly.wallets SET address_no = ? WHERE id = ?",
+        (address_no, wallet_id),
     )
     row = await db.fetchone(
         "SELECT * FROM watchonly.wallets WHERE id = ?", (wallet_id,)

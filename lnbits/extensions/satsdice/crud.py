@@ -77,7 +77,9 @@ async def get_satsdice_pays(wallet_ids: Union[str, List[str]]) -> List[satsdiceL
     return [satsdiceLink(**row) for row in rows]
 
 
-async def update_satsdice_pay(link_id: int, data: CreateSatsDiceLink) -> Optional[satsdiceLink]:
+async def update_satsdice_pay(
+    link_id: int, data: CreateSatsDiceLink
+) -> Optional[satsdiceLink]:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(link_id)

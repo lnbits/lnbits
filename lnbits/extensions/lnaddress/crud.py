@@ -36,9 +36,7 @@ async def update_domain(domain_id: str, data: CreateDomain) -> Domains:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     values = [f"{field[1]}" for field in data]
     values.append(domain_id)
-    await db.execute(
-        f"UPDATE lnaddress.domain SET {q} WHERE id = ?", (values,)
-    )
+    await db.execute(f"UPDATE lnaddress.domain SET {q} WHERE id = ?", (values,))
     row = await db.fetchone("SELECT * FROM lnaddress.domain WHERE id = ?", (domain_id,))
     assert row, "Newly updated domain couldn't be retrieved"
     return Domains(**row)
