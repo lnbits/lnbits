@@ -3,7 +3,7 @@ title: "LNbits docs"
 remote_theme: pmarsceill/just-the-docs
 logo: "/logos/lnbits-full.png"
 search_enabled: true
-url: https://lnbits.org
+url: https://legend.lnbits.org
 aux_links:
   "LNbits on GitHub":
     - "//github.com/lnbits/lnbits"

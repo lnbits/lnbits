@@ -2,22 +2,24 @@ name: formatting
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
-  black:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt-get install python3-venv
-      - run: python3 -m venv venv
-      - run: ./venv/bin/pip install black
-      - run: make checkblack
-  prettier:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm install
-      - run: make checkprettier
+      - uses: abatilo/actions-poetry@v2.1.3
+      - name: Install packages
+        run: poetry install
+      - name: Check black
+        run: make checkblack
+      - name: Check isort
+        run: make checkisort
+      - uses: actions/setup-node@v3
+      - name: Check prettier
+        run: |
+          npm install prettier
+          make checkprettier

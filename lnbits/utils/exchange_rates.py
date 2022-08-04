@@ -1,7 +1,8 @@
 import asyncio
-from typing import Callable, NamedTuple
+from typing import Callable, List, NamedTuple
 
 import httpx
+from loguru import logger
 
 currencies = {
     "AED": "United Arab Emirates Dirham",
@@ -226,10 +227,10 @@ async def btc_price(currency: str) -> float:
         "TO": currency.upper(),
         "to": currency.lower(),
     }
-    rates = []
-    tasks = []
+    rates: List[float] = []
+    tasks: List[asyncio.Task] = []
 
-    send_channel = asyncio.Queue()
+    send_channel: asyncio.Queue = asyncio.Queue()
 
     async def controller():
         failures = 0
@@ -280,7 +281,7 @@ async def btc_price(currency: str) -> float:
     if not rates:
         return 9999999999
     elif len(rates) == 1:
-        print("Warning could only fetch one Bitcoin price.")
+        logger.warning("Could only fetch one Bitcoin price.")
 
     return sum([rate for rate in rates]) / len(rates)
 

@@ -1,14 +1,17 @@
 import asyncio
+import hashlib
 import json
-import httpx
 from os import getenv
-from typing import Optional, Dict, AsyncGenerator
+from typing import AsyncGenerator, Dict, Optional
+
+import httpx
+from loguru import logger
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
 
@@ -57,7 +60,7 @@ class LNbitsWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
         else:
             data["memo"] = memo or ""
 
@@ -86,7 +89,7 @@ class LNbitsWallet(Wallet):
                 url=f"{self.endpoint}/api/v1/payments",
                 headers=self.key,
                 json={"out": True, "bolt11": bolt11},
-                timeout=100,
+                timeout=None,
             )
         ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
 
@@ -144,5 +147,7 @@ class LNbitsWallet(Wallet):
             except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
                 pass
 
-            print("lost connection to lnbits /payments/sse, retrying in 5 seconds")
+            logger.error(
+                "lost connection to lnbits /payments/sse, retrying in 5 seconds"
+            )
             await asyncio.sleep(5)

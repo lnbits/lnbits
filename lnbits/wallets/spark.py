@@ -1,15 +1,18 @@
 import asyncio
+import hashlib
 import json
-import httpx
 import random
 from os import getenv
-from typing import Optional, AsyncGenerator
+from typing import AsyncGenerator, Optional
+
+import httpx
+from loguru import logger
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
+    StatusResponse,
     Wallet,
 )
 
@@ -46,9 +49,16 @@ class SparkWallet(Wallet):
                         self.url + "/rpc",
                         headers={"X-Access": self.token},
                         json={"method": key, "params": params},
-                        timeout=40,
+                        timeout=60 * 60 * 24,
                     )
-            except (OSError, httpx.ConnectError, httpx.RequestError) as exc:
+                    r.raise_for_status()
+            except (
+                OSError,
+                httpx.ConnectError,
+                httpx.RequestError,
+                httpx.HTTPError,
+                httpx.TimeoutException,
+            ) as exc:
                 raise UnknownError("error connecting to spark: " + str(exc))
 
             try:
@@ -92,7 +102,7 @@ class SparkWallet(Wallet):
                 r = await self.invoicewithdescriptionhash(
                     msatoshi=amount * 1000,
                     label=label,
-                    description_hash=description_hash.hex(),
+                    description_hash=hashlib.sha256(description_hash).hexdigest(),
                 )
             else:
                 r = await self.invoice(
@@ -109,7 +119,10 @@ class SparkWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         try:
-            r = await self.pay(bolt11)
+            r = await self.pay(
+                bolt11=bolt11,
+                maxfee=fee_limit_msat,
+            )
         except (SparkError, UnknownError) as exc:
             listpays = await self.listpays(bolt11)
             if listpays:
@@ -129,7 +142,9 @@ class SparkWallet(Wallet):
                 if pay["status"] == "failed":
                     return PaymentResponse(False, None, 0, None, str(exc))
                 elif pay["status"] == "pending":
-                    return PaymentResponse(None, payment_hash, 0, None, None)
+                    return PaymentResponse(
+                        None, payment_hash, fee_limit_msat, None, None
+                    )
                 elif pay["status"] == "complete":
                     r = pay
                     r["payment_preimage"] = pay["preimage"]
@@ -196,8 +211,14 @@ class SparkWallet(Wallet):
                                 data = json.loads(line[5:])
                                 if "pay_index" in data and data.get("status") == "paid":
                                     yield data["label"]
-            except (OSError, httpx.ReadError, httpx.ConnectError, httpx.ReadTimeout):
+            except (
+                OSError,
+                httpx.ReadError,
+                httpx.ConnectError,
+                httpx.ReadTimeout,
+                httpx.HTTPError,
+            ):
                 pass
 
-            print("lost connection to spark /stream, retrying in 5 seconds")
+            logger.error("lost connection to spark /stream, retrying in 5 seconds")
             await asyncio.sleep(5)

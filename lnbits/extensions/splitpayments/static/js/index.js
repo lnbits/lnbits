@@ -105,7 +105,7 @@ new Vue({
       if (currentTotal > 100 && isPercent) {
         let diff = (currentTotal - 100) / (100 - this.targets[index].percent)
         this.targets.forEach((target, t) => {
-          if (t !== index) target.percent -= Math.round(diff * target.percent)
+          if (t !== index) target.percent -= +(diff * target.percent).toFixed(2)
         })
       }
 
@@ -119,7 +119,7 @@ new Vue({
           '/splitpayments/api/v1/targets',
           this.selectedWallet.adminkey,
           {
-            "targets": this.targets
+            targets: this.targets
               .filter(isTargetComplete)
               .map(({wallet, percent, alias}) => ({wallet, percent, alias}))
           }

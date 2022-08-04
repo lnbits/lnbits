@@ -1,5 +1,7 @@
 from typing import AsyncGenerator, Optional
 
+from loguru import logger
+
 from .base import (
     InvoiceResponse,
     PaymentResponse,
@@ -20,7 +22,7 @@ class VoidWallet(Wallet):
         raise Unsupported("")
 
     async def status(self) -> StatusResponse:
-        print(
+        logger.info(
             "This backend does nothing, it is here just as a placeholder, you must configure an actual backend before being able to do anything useful with LNbits."
         )
         return StatusResponse(None, 0)
