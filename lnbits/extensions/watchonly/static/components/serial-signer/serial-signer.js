@@ -22,6 +22,7 @@ async function serialSigner(path) {
           showMnemonic: false,
           authenticated: false,
           showPasswordDialog: false,
+          showConfigDialog: false,
           showWipeDialog: false,
           showRestoreDialog: false,
           showConfirmationDialog: false,
@@ -48,9 +49,19 @@ async function serialSigner(path) {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this.satsDenominated)
       },
-      openSerialPort: async function () {
+      openSerialPortDialog: async function () {
+        await this.openSerialPort()
+      },
+      openSerialPort: async function (config = {baudRate: 9600}) {
         if (!this.checkSerialPortSupported()) return false
-        if (this.selectedPort) return true
+        if (this.selectedPort) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Already connected. Disconnect first!',
+            timeout: 10000
+          })
+          return true
+        }
 
         try {
           navigator.serial.addEventListener('connect', event => {
@@ -68,7 +79,7 @@ async function serialSigner(path) {
           })
           this.selectedPort = await navigator.serial.requestPort()
           // Wait for the serial port to open.
-          await this.selectedPort.open({baudRate: 9600})
+          await this.selectedPort.open(config)
           this.startSerialPortReading()
 
           const textEncoder = new TextEncoderStream()
@@ -88,6 +99,9 @@ async function serialSigner(path) {
           })
           return false
         }
+      },
+      openSerialPortConfig: async function () {
+        this.hww.showConfigDialog = true
       },
       closeSerialPort: async function () {
         try {
@@ -274,6 +288,12 @@ async function serialSigner(path) {
             timeout: 10000
           })
         }
+      },
+      hwwConfigAndConnect: async function () {
+        this.hww.showConfigDialog = false
+        const config = this.$refs.serialPortConfig.getConfig()
+        await this.openSerialPort(config)
+        return true
       },
       hwwLogin: async function () {
         try {

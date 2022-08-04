@@ -5,18 +5,9 @@
     color="primary"
     icon="usb"
     :text-color="selectedPort ? hww.authenticated ? 'green' : 'orange' : 'white'"
-    @click="openSerialPort"
+    @click="openSerialPortDialog"
   >
     <q-list>
-      <q-item v-if="!selectedPort" clickable v-close-popup>
-        <q-item-section>
-          <q-item-label>Configure</q-item-label>
-          <q-item-label caption
-            >Set the Serial Port communication parameters</q-item-label
-          >
-        </q-item-section>
-      </q-item>
-
       <q-item
         v-if="selectedPort && !hww.authenticated"
         clickable
@@ -46,11 +37,13 @@
         v-if="!selectedPort"
         clickable
         v-close-popup
-        @click="openSerialPort"
+        @click="openSerialPortConfig"
       >
         <q-item-section>
           <q-item-label>Connect</q-item-label>
-          <q-item-label caption>Connect Serial Port device.</q-item-label>
+          <q-item-label caption
+            >Set the Serial Port communication parameters.</q-item-label
+          >
         </q-item-section>
       </q-item>
       <q-item
@@ -125,6 +118,27 @@
       </q-item>
     </q-list>
   </q-btn-dropdown>
+
+  <q-dialog v-model="hww.showConfigDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwConfigAndConnect" class="q-gutter-md">
+        <span>Enter Config</span>
+
+        <serial-port-config
+          ref="serialPortConfig"
+          :config="hww.config"
+        ></serial-port-config>
+
+        <div class="row q-mt-lg">
+          <q-btn unelevated color="primary" type="submit">Connect</q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="hww.showPasswordDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwLogin" class="q-gutter-md">

@@ -10,6 +10,9 @@ const watchOnly = async () => {
   await sendTo('static/components/send-to/send-to.html')
   await payment('static/components/payment/payment.html')
   await serialSigner('static/components/serial-signer/serial-signer.html')
+  await serialPortConfig(
+    'static/components/serial-port-config/serial-port-config.html'
+  )
 
   Vue.filter('reverse', function (value) {
     // slice to make a copy of array, then reverse the copy
