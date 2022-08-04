@@ -285,9 +285,10 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
                 address_no,
                 balance,
                 type,
-                fingerprint
+                fingerprint,
+                network
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
         # ADDRESSES
