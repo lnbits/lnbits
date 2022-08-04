@@ -84,7 +84,7 @@ class CoreLightningWallet(Wallet):
         description_hash: Optional[bytes] = None,
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
-        msat = amount * 1000
+        msat: int = int(amount * 1000)
         try:
             if description_hash and not self.supports_description_hash:
                 raise Unsupported("description_hash")
