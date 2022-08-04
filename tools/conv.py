@@ -717,6 +717,30 @@ def migrate_ext(sqlite_db_file, schema, ignore_missing=True):
 	        VALUES (%s, %s, %s, %s);
         """
         insert_to_pg(q, res.fetchall())
+    elif schema == "invoices":
+        # INVOICES
+        res = sq.execute("SELECT * FROM invoices;")
+        q = f"""
+            INSERT INTO invoices.invoices (id, wallet, currency, company_name, first_name, last_name, email, phone, address)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+        """
+        insert_to_pg(q, res.fetchall())
+
+        # INVOICE ITEMS
+        res = sq.execute("SELECT * FROM invoice_items;")
+        q = f"""
+            INSERT INTO invoices.invoice_items (id, invoice_id, description, amount)
+            VALUES (?, ?, ?, ?);
+        """
+        insert_to_pg(q, res.fetchall())
+
+        # PAYMENTS
+        res = sq.execute("SELECT * FROM payments;")
+        q = f"""
+            INSERT INTO invoices.payments (id, invoice_id, amount)
+            VALUES (?, ?, ?);
+        """
+        insert_to_pg(q, res.fetchall())
     else:
         print(f"❌ Not implemented: {schema}")
         sq.close()
