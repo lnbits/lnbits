@@ -423,10 +423,21 @@ async function serialSigner(path) {
       },
       handleSignResponse: function (res = '') {
         this.hww.signingPsbt = false
-        this.updateSignedPsbt(res)
+        const [count, psbt] = res.trim().split(' ')
+        if (!psbt || !count || count.trim() === '0') {
+          this.$q.notify({
+            type: 'warning',
+            message: 'No input signed!',
+            caption: 'Are you using the right seed?',
+            timeout: 10000
+          })
+          return
+        }
+        this.updateSignedPsbt(psbt)
         this.$q.notify({
           type: 'positive',
           message: 'Transaction Signed',
+          message: `Inputs signed: ${count}`,
           timeout: 10000
         })
       },
