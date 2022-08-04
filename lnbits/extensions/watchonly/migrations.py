@@ -87,7 +87,9 @@ async def m005_add_network_column_to_wallets(db):
         "ALTER TABLE watchonly.wallets ADD COLUMN network TEXT DEFAULT 'Mainnet';"
     )
 
-    ### TODO: fix statspay dependcy first
-    # await db.execute(
-    #     "DROP TABLE watchonly.wallets;"
-    # )
+
+async def m006_drop_mempool_table(db):
+    """
+    Mempool data is now part of `config`
+    """
+    await db.execute("DROP TABLE watchonly.mempool;")
