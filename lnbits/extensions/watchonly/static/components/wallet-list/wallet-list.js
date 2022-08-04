@@ -19,7 +19,12 @@ async function walletList(path) {
         formDialog: {
           show: false,
 
-          addressType: [],
+          addressType: {
+            label: 'Segwit (P2WPKH)',
+            id: 'wpkh',
+            pathMainnet: "m/84'/0'/0'",
+            pathTestnet: "m/84'/1'/0'"
+          },
           useSerialPort: false,
           data: {
             title: '',
@@ -32,25 +37,25 @@ async function walletList(path) {
         addressTypeOptions: [
           {
             label: 'Legacy (P2PKH)',
-            value: 'pkh',
+            id: 'pkh',
             pathMainnet: "m/44'/0'/0'",
             pathTestnet: "m/44'/1'/0'"
           },
           {
             label: 'Segwit (P2WPKH)',
-            value: 'wpkh',
+            id: 'wpkh',
             pathMainnet: "m/84'/0'/0'",
             pathTestnet: "m/84'/1'/0'"
           },
           {
             label: 'Wrapped Segwit (P2SH-P2WPKH)',
-            value: 'sh',
+            id: 'sh',
             pathMainnet: "m/49'/0'/0'",
             pathTestnet: "m/49'/1'/0'"
           },
           {
             label: 'Taproot (P2TR)',
-            value: 'tr',
+            id: 'tr',
             pathMainnet: "m/86'/0'/0'",
             pathTestnet: "m/86'/1'/0'"
           }
@@ -116,13 +121,12 @@ async function walletList(path) {
             const {xpub, fingerprint} = await this.fetchXpubFromHww()
             if (!xpub) return
             const path = this.accountPath.substring(2)
-            const outputType = this.formDialog.addressType
+            const outputType = this.formDialog.addressType.id
             if (outputType === 'sh') {
               data.masterpub = `${outputType}(wpkh([${fingerprint}/${path}]${xpub}/{0,1}/*))`
             } else {
               data.masterpub = `${outputType}([${fingerprint}/${path}]${xpub}/{0,1}/*)`
             }
-            console.log('###  data.masterpub', data.masterpub)
           }
           const response = await LNbits.api.request(
             'POST',
@@ -270,16 +274,16 @@ async function walletList(path) {
           })
         }
       },
-      handleAddressTypeChanged: function (value) {
+      handleAddressTypeChanged: function (value = {}) {
         const addressType =
-          this.addressTypeOptions.find(t => t.value === value) || {}
+          this.addressTypeOptions.find(t => t.id === value.id) || {}
         this.accountPath = addressType[`path${this.network}`]
       }
     },
     created: async function () {
       if (this.inkey) {
         await this.refreshWalletAccounts()
-        this.handleAddressTypeChanged('wpkh')
+        this.handleAddressTypeChanged(this.addressTypeOptions[1])
       }
     }
   })
