@@ -6,7 +6,6 @@ try:
 except ImportError:  # pragma: nocover
     imports_ok = False
 
-import time
 import asyncio
 import base64
 import binascii
