@@ -19,7 +19,7 @@ async function walletList(path) {
         formDialog: {
           show: false,
 
-          addressType: 'wpkh',
+          addressType: [],
           useSerialPort: false,
           data: {
             title: '',
@@ -31,25 +31,25 @@ async function walletList(path) {
         showCreating: false,
         addressTypeOptions: [
           {
-            label: 'Pay-to-pubkey-hash scripts (P2PKH)',
+            label: 'Legacy (P2PKH)',
             value: 'pkh',
             pathMainnet: "m/44'/0'/0'",
             pathTestnet: "m/44'/1'/0'"
           },
           {
-            label: 'Pay-to-witness-pubkey-hash scripts (P2WPKH)',
+            label: 'Segwit (P2WPKH)',
             value: 'wpkh',
             pathMainnet: "m/84'/0'/0'",
             pathTestnet: "m/84'/1'/0'"
           },
           {
-            label: 'Pay-to-script-hash scripts (P2SH-P2WPKH)',
+            label: 'Wrapped Segwit (P2SH-P2WPKH)',
             value: 'sh',
             pathMainnet: "m/49'/0'/0'",
             pathTestnet: "m/49'/1'/0'"
           },
           {
-            label: 'Pay-to-taproot outputs (P2TR)',
+            label: 'Taproot (P2TR)',
             value: 'tr',
             pathMainnet: "m/86'/0'/0'",
             pathTestnet: "m/86'/1'/0'"
