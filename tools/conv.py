@@ -127,7 +127,12 @@ def migrate_ext(file: str):
 
 def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
     sq = get_sqlite_cursor(file)
-    tables = sq.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    tables = sq.execute(
+        """
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name not like 'sqlite?_%' escape '?'
+    """
+    ).fetchall()
 
     for table in tables:
         tableName = table[0]
