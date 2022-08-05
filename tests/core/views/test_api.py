@@ -50,6 +50,7 @@ async def test_post_empty_request(client):
     response = await client.post("/api/v1/payments")
     assert response.status_code == 400
 
+
 # check POST /api/v1/payments: invoice creation
 @pytest.mark.asyncio
 async def test_create_invoice(client, inkey_headers_to):
