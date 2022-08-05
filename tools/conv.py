@@ -136,7 +136,6 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
 
         columns = sq.execute(f"PRAGMA table_info({tableName})").fetchall()
         q = build_insert_query(schema, tableName, columns)
-        # print('### q', q)
 
         data = sq.execute(f"SELECT * FROM {tableName};").fetchall()
         insert_to_pg(q, data)
