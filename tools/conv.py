@@ -1,10 +1,10 @@
 import argparse
 import os
 import sqlite3
+from typing import List
 
 import psycopg2
 from environs import Env  # type: ignore
-from typing import List
 
 env = Env()
 env.read_env()
