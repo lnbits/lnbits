@@ -74,7 +74,7 @@ You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnb
 ![image](https://user-images.githubusercontent.com/2951406/177181611-eeeac70c-c245-4b45-b80b-8bbb511f6d1d.png)
 
 - screenshot 2:
-![image](https://user-images.githubusercontent.com/2951406/177331468-f9b43626-548a-4608-b0d0-44007f402404.png)
+![image](https://user-images.githubusercontent.com/2951406/183087898-b91f5243-8ed9-4a14-9e57-7bb4f1fd43ef.png)
 
 - screenshot 3:
 ![image](https://user-images.githubusercontent.com/2951406/177333755-4a9118fb-3eaf-43d6-bc7e-c3d8c80bc61e.png)
