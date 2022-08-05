@@ -45,3 +45,7 @@ SQLite to PostgreSQL migration
 -----------------------
 
 LNbits currently supports SQLite and PostgreSQL databases. There is a migration script `tools/conv.py` that helps users migrate from SQLite to PostgreSQL. This script also copies all extension databases to the new backend.
+
+### Adding mock data to `mock_data.zip`
+
+`mock_data.zip` contains a few lines of sample SQLite data and is used in automated GitHub test to see whether your migration in `conv.py` works. Run your extension and save a few lines of data into a SQLite `your_extension.db` file. Unzip `tests/data/mock_data.zip`, add `your_extension.db` and zip it again. Add the updated `mock_data.zip` to your PR.
