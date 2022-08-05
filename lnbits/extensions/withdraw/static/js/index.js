@@ -70,7 +70,7 @@ new Vue({
         show: false,
         data: {
           is_unique: true,
-          use_custom: true,
+          use_custom: false,
           title: 'Vouchers',
           min_withdrawable: 0,
           wait_time: 1
@@ -125,7 +125,6 @@ new Vue({
       var link = _.findWhere(this.withdrawLinks, {id: linkId})
 
       this.qrCodeDialog.data = _.clone(link)
-      console.log(this.qrCodeDialog.data)
       this.qrCodeDialog.data.url =
         window.location.protocol + '//' + window.location.host
       this.qrCodeDialog.show = true
