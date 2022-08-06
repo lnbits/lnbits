@@ -1,0 +1,7 @@
+# ignore everything but js and html files
+*
+!*.js
+!*.html
+
+# allow subdirectories
+!*/
