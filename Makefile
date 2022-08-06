@@ -18,6 +18,9 @@ mypy:
 isort:
 	poetry run isort .
 
+pre-commit:
+	pre-commit run --all-files
+
 checkprettier: $(shell find lnbits -name "*.js" -name ".html")
 	./node_modules/.bin/prettier --check lnbits/static/js/*.js lnbits/core/static/js/*.js lnbits/extensions/*/templates/*/*.html ./lnbits/core/templates/core/*.html lnbits/templates/*.html lnbits/extensions/*/static/js/*.js lnbits/extensions/*/static/components/*/*.js lnbits/extensions/*/static/components/*/*.html
 
@@ -26,6 +29,11 @@ checkblack:
 
 checkisort:
 	poetry run isort --check-only .
+
+install-pre-commit-hook:
+	@echo "Installing pre-commit hook to git"
+	@echo "Uninstall the hook with pre-commit uninstall"
+	pre-commit install
 
 test:
 	BOLTZ_NETWORK="regtest" \

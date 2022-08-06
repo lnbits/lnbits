@@ -155,7 +155,7 @@ async def update_invoice_items(
             updated_items.append(item.id)
             await db.execute(
                 """
-                UPDATE invoices.invoice_items 
+                UPDATE invoices.invoice_items
                 SET description = ?, amount = ?
                 WHERE id = ?
                 """,
@@ -169,7 +169,7 @@ async def update_invoice_items(
 
     await db.execute(
         f"""
-        DELETE FROM invoices.invoice_items 
+        DELETE FROM invoices.invoice_items
         WHERE invoice_id = ?
         AND id NOT IN ({placeholders})
         """,

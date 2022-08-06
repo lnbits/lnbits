@@ -17,7 +17,7 @@ So the goal of the extension is to allow the owner of a domain to sell subdomain
 3. Get Cloudflare zone-ID for your domain
    <img src="https://i.imgur.com/xOgapHr.png">
 4. Get Cloudflare API TOKEN
-   <img src="https://i.imgur.com/BZbktTy.png">  
+   <img src="https://i.imgur.com/BZbktTy.png">
    <img src="https://i.imgur.com/YDZpW7D.png">
 5. Open the LNBits subdomains extension and register your domain
 6. Click on the button in the table to open the public form that was generated for your domain

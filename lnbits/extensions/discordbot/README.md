@@ -9,12 +9,12 @@ The intended usage of this extension is to connect it to a specifically designed
 ## Setup
 This bot can target [lnbits.com](https://lnbits.com) or a self hosted instance.
 
-To setup and run the bot instructions are located [here](https://github.com/chrislennon/lnbits-discord-bot#installation) 
+To setup and run the bot instructions are located [here](https://github.com/chrislennon/lnbits-discord-bot#installation)
 
 ## Usage
 This bot will allow users to interact with it in the following ways [full command list](https://github.com/chrislennon/lnbits-discord-bot#commands):
 
-`/create` Will create a wallet for the Discord user 
+`/create` Will create a wallet for the Discord user
   - (currently limiting 1 Discord user == 1 LNbits user == 1 user wallet)
 
 ![create](https://imgur.com/CWdDusE.png)

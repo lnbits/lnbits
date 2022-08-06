@@ -27,7 +27,7 @@ You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnb
    -  will scan addresses for all wallet accounts
  - the search is done on the client-side (using the `mempool.space` API). `mempool.space` has a limit on the number of req/sec, therefore it is expected for the scanning to start fast, but slow down as more HTTP requests have to be retried
  - addresses can also be rescanned individually form the `Address Details` section (`Addresses` tab) of each address
- 
+
 ### New Receive Address
  - the `New Receive Address` button show the user the NEXT un-used address
    - un-used means funds have not already been sent to that address AND the address has not already been shared
@@ -83,5 +83,3 @@ You can now use this wallet on the LNBits [SatsPayServer](https://github.com/lnb
 
 - screenshot 4:
 ![image](https://user-images.githubusercontent.com/2951406/177337474-bfcf7a7c-501a-4ebb-916e-ca391e63f6a7.png)
-
-

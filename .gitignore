@@ -36,5 +36,8 @@ node_modules
 lnbits/static/bundle.*
 docker
 
+# Wakatime project file
+.wakatime-project
+
 # Nix
 *result*

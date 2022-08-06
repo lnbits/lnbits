@@ -174,11 +174,12 @@ async function walletList(path) {
                 '/watchonly/api/v1/wallet/' + walletAccountId,
                 this.adminkey
               )
-              this.walletAccounts = _.reject(this.walletAccounts, function (
-                obj
-              ) {
-                return obj.id === walletAccountId
-              })
+              this.walletAccounts = _.reject(
+                this.walletAccounts,
+                function (obj) {
+                  return obj.id === walletAccountId
+                }
+              )
               await this.refreshWalletAccounts()
             } catch (error) {
               this.$q.notify({

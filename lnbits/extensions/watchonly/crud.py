@@ -150,7 +150,7 @@ async def create_fresh_addresses(
     # return fresh addresses
     rows = await db.fetchall(
         """
-            SELECT * FROM watchonly.addresses 
+            SELECT * FROM watchonly.addresses
             WHERE wallet = ? AND branch_index = ? AND address_index >= ? AND address_index < ?
             ORDER BY branch_index, address_index
         """,
@@ -172,7 +172,7 @@ async def get_address_at_index(
 ) -> Optional[Address]:
     row = await db.fetchone(
         """
-            SELECT * FROM watchonly.addresses 
+            SELECT * FROM watchonly.addresses
             WHERE wallet = ? AND branch_index = ? AND address_index = ?
         """,
         (
