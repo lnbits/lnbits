@@ -31,6 +31,7 @@ class CreateInvoiceData(BaseModel):
     class Config:
         use_enum_values = True
 
+
 class UpdateInvoiceItemData(BaseModel):
     id: Optional[str]
     description: str
