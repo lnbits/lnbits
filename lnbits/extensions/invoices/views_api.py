@@ -41,6 +41,10 @@ async def api_invoices(
 @invoices_ext.get("/api/v1/invoice/{invoice_id}", status_code=HTTPStatus.OK)
 async def api_invoice(invoice_id: str):
     invoice = await get_invoice(invoice_id)
+    if not invoice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Invoice does not exist."
+        )
     invoice_items = await get_invoice_items(invoice_id)
     invoice_dict = invoice.dict()
     invoice_dict["items"] = invoice_items
