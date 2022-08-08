@@ -182,7 +182,7 @@ async def pay_invoice(
             payment_request, fee_reserve_msat
         )
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.ok and payment.checking_id and payment.preimage:
+        if payment.checking_id:
             logger.debug(f"creating final payment {payment.checking_id}")
             async with db.connect() as conn:
                 await create_payment(

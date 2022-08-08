@@ -171,8 +171,6 @@ class LndWallet(Wallet):
         except Exception as exc:
             return PaymentResponse(False, "", 0, None, str(exc))
 
-        checking_id = resp.payment_hash
-
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {
             0: None,  # NON_EXISTENT
@@ -181,12 +179,14 @@ class LndWallet(Wallet):
             3: False,  # FAILED
         }
 
-        if resp.status in [0, 1]:  # IN FLIGHT
-            fee_msat = fee_limit_msat  # reserve
+        if resp.status in [0, 1, 3]:
+            fee_msat = 0
             preimage = ""
+            checking_id = ""
         elif resp.status == 2:  # SUCCEEDED
             fee_msat = resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
+            checking_id = resp.payment_hash
         return PaymentResponse(
             statuses[resp.status], checking_id, fee_msat, preimage, None
         )
@@ -210,10 +210,7 @@ class LndWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
-        It blocks until the payment is either settled or failed.
         """
-        # TODO: remove
-        BLOCKING = True
         try:
             r_hash = parse_checking_id(checking_id)
             if len(r_hash) != 32:
@@ -242,11 +239,10 @@ class LndWallet(Wallet):
 
         try:
             async for payment in resp:
-                if BLOCKING and payment.htlcs[-1].status == 0:  # IN_FLIGHT
-                    logger.debug("payment is in flight, checking again in 1 second")
-                    await asyncio.sleep(1)
-                    continue
-
+                # if BLOCKING and payment.htlcs[-1].status == 0:  # IN_FLIGHT
+                #     logger.debug("payment is in flight, checking again in 1 second")
+                #     await asyncio.sleep(1)
+                #     continue
                 return PaymentStatus(statuses[payment.htlcs[-1].status])
         except:  # most likely the payment wasn't found
             return PaymentStatus(None)
