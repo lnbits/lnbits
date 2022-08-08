@@ -432,21 +432,29 @@
 
           const ndef = new NDEFReader()
 
+          const readerAbortController = new AbortController();
+          readerAbortController.signal.onabort = event => {
+            console.log("All NFC Read operations have been aborted.");
+          };  
+
           this.nfcTagReading = true
           this.$q.notify({
             message: 'Tap your NFC tag to pay this invoice with LNURLw.'
           })
 
-          ndef.addEventListener('readingerror', () => {
-            self.nfcTagReading = false;
+         return ndef.scan({ signal: readerAbortController.signal }).then(() => {
+            ndef.onreadingerror = () => {
+              self.nfcTagReading = false;
 
-            this.$q.notify({
-              type: 'positive',
-              message: 'There was an error reading this NFC tag.'
-            })
-          })
+              this.$q.notify({
+                type: 'positive',
+                message: 'There was an error reading this NFC tag.'
+              })
 
-          ndef.addEventListener('reading', ({message, serialNumber}) => {
+              readerAbortController.abort()
+            }
+
+            ndef.onreading = ({message}) => { 
               //Decode NDEF data from tag
               const record = message.records[0]
               const textDecoder = new TextDecoder('utf-8')
@@ -460,9 +468,10 @@
                 type: 'positive',
                 message: 'NFC tag read successfully.'
               })
-          })
 
-          ndef.scan()
+              readerAbortController.abort()
+            }
+          })
         } catch (error) {
           this.nfcTagReading = false
           this.$q.notify({

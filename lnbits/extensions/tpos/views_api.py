@@ -101,8 +101,7 @@ async def api_tpos_pay_invoice(
         try:
             r = await client.get(lnurl, follow_redirects=True)
             if r.is_error:
-                # lnurl_response = r.text
-                lnurl_response = "ERROR!"
+                lnurl_response = json.loads(r.text)
             else:
                 resp = json.loads(r.text)
                 if resp["tag"] != "withdrawRequest":
@@ -120,7 +119,6 @@ async def api_tpos_pay_invoice(
                         lnurl_response = "ERROR2!"
                     else:
                         resp2 = json.loads(r2.text)
-                        print(resp2)
                         lnurl_response = "OK"
         except (httpx.ConnectError, httpx.RequestError):
             print("BAD ERROR")
