@@ -76,12 +76,13 @@ async def create_invoice_internal(wallet_id: str, data: CreateInvoiceData) -> In
     invoice_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO invoices.invoices (id, wallet, currency, company_name, first_name, last_name, email, phone, address)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO invoices.invoices (id, wallet, status, currency, company_name, first_name, last_name, email, phone, address)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             invoice_id,
             wallet_id,
+            data.status,
             data.currency,
             data.company_name,
             data.first_name,
