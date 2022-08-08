@@ -174,6 +174,13 @@
             >
             {% endraw %}
           </h5>
+          <q-btn
+            outline
+            color="grey"
+            icon="nfc"
+            @click="readNfcTag()"
+            :disable="nfcTagReading"
+          ></q-btn>
         </div>
         <div class="row q-mt-lg">
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
@@ -281,6 +288,7 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        nfcTagReading: false,
         invoiceDialog: {
           show: false,
           data: null,
@@ -356,7 +364,7 @@
         this.showInvoice()
       },
       submitForm: function () {
-        if (this.tip_options) {
+        if (this.tip_options.length) {
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -408,6 +416,84 @@
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
+          })
+      },
+      readNfcTag: function() {
+        try {
+          const self = this
+
+          if (typeof NDEFReader == 'undefined') {
+            throw {
+              toString: function () {
+                return 'NFC not supported on this device or browser.'
+              }
+            }
+          }
+
+          const ndef = new NDEFReader()
+
+          this.nfcTagReading = true
+          this.$q.notify({
+            message: 'Tap your NFC tag to pay this invoice with LNURLw.'
+          })
+
+          ndef.addEventListener('readingerror', () => {
+            self.nfcTagReading = false;
+
+            this.$q.notify({
+              type: 'positive',
+              message: 'There was an error reading this NFC tag.'
+            })
+          })
+
+          ndef.addEventListener('reading', ({message, serialNumber}) => {
+              //Decode NDEF data from tag
+              const record = message.records[0]
+              const textDecoder = new TextDecoder('utf-8')
+              const lnurl = textDecoder.decode(record.data)
+
+              //User feedback, show loader icon
+              self.nfcTagReading = false;
+              self.payInvoice(lnurl)
+
+              this.$q.notify({
+                type: 'positive',
+                message: 'NFC tag read successfully.'
+              })
+          })
+
+          ndef.scan()
+        } catch (error) {
+          this.nfcTagReading = false
+          this.$q.notify({
+            type: 'negative',
+            message: error
+              ? error.toString()
+              : 'An unexpected error has occurred.'
+          })
+        }
+      },
+      payInvoice: function(lnurl) {
+        const self = this
+
+        return axios
+          .post(
+            '/tpos/api/v1/tposs/' +
+              self.tposId +
+              '/invoices/' +
+              self.invoiceDialog.data.payment_request + 
+              '/pay',
+            {
+              lnurl: lnurl,
+            }, 
+            {
+              body: {
+                lnurl: lnurl,
+              }
+            }
+          )
+          .then(function (response) {
+            console.log(response)
           })
       },
       getRates: function () {

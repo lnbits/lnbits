@@ -1,4 +1,7 @@
 from http import HTTPStatus
+import httpx
+import json
+
 
 from fastapi import Query
 from fastapi.params import Depends
@@ -12,7 +15,7 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import tpos_ext
 from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
-from .models import CreateTposData
+from .models import CreateTposData, PayLnurlWData
 
 
 @tpos_ext.get("/api/v1/tposs", status_code=HTTPStatus.OK)
@@ -77,6 +80,53 @@ async def api_tpos_create_invoice(
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
+
+@tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices/{payment_request}/pay", status_code=HTTPStatus.OK)
+async def api_tpos_pay_invoice(
+    lnurl_data: PayLnurlWData, payment_request: str = None, tpos_id: str = None
+):
+    tpos = await get_tpos(tpos_id)
+
+    #todo!
+    lnurl = lnurl_data.lnurl.replace("lnurlw://", "https://")
+    print("CALLING")
+    print(lnurl)
+
+    if not tpos:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
+        )
+
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(lnurl, follow_redirects=True)
+            if r.is_error:
+                # lnurl_response = r.text
+                lnurl_response = "ERROR!"
+            else:
+                resp = json.loads(r.text)
+                if resp["tag"] != "withdrawRequest":
+                    lnurl_response = "Wrong type"
+                else:
+                    r2 = await client.get(
+                        resp['callback'],
+                        follow_redirects=True,
+                        params={
+                            "k1": resp['k1'],
+                            "pr": payment_request,
+                        }
+                    )
+                    if r2.is_error:
+                        lnurl_response = "ERROR2!"
+                    else:
+                        resp2 = json.loads(r2.text)
+                        print(resp2)
+                        lnurl_response = "OK"
+        except (httpx.ConnectError, httpx.RequestError):
+            print("BAD ERROR")
+            lnurl_response = "Error!"
+
+    return lnurl_response
 
 
 @tpos_ext.get(
