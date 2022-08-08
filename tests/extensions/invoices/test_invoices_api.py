@@ -19,16 +19,20 @@ async def test_create_invoice_valid(client, invoices_wallet):
         "email": "ben@legend.arc",
         "items": [
             {"amount": 2.34, "description": "Item 1"},
-            {"amount": 0.98, "description": "Item 2"}
-        ]
+            {"amount": 0.98, "description": "Item 2"},
+        ],
     }
 
     status = query["status"]
     currency = query["currency"]
     fname = query["first_name"]
-    total = sum(d['amount'] for d in query["items"])
+    total = sum(d["amount"] for d in query["items"])
 
-    response = await client.post("/invoices/api/v1/invoice", json=query, headers={"X-Api-Key": invoices_wallet.inkey})
+    response = await client.post(
+        "/invoices/api/v1/invoice",
+        json=query,
+        headers={"X-Api-Key": invoices_wallet.inkey},
+    )
     assert response.status_code == 201
     data = response.json()
 
@@ -42,11 +46,9 @@ async def test_create_invoice_valid(client, invoices_wallet):
 @pytest.mark.asyncio
 async def test_partial_pay_invoice(client, invoices_wallet, invoice):
     invoice_id = invoice["id"]
-    amount_to_pay = 5 * 100 # mock invoice is 10 USD
+    amount_to_pay = 5 * 100  # mock invoice is 10 USD
 
-    response = await client.post(f"/invoices/api/v1/invoice/{invoice_id}/payments?famount={amount_to_pay}")
+    response = await client.post(
+        f"/invoices/api/v1/invoice/{invoice_id}/payments?famount={amount_to_pay}"
+    )
     assert response.status_code == 201
-    
-
-    
-    
