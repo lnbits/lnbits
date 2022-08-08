@@ -20,15 +20,19 @@ from lnbits.settings import HOST, PORT
 def main(ctx, port: int, host: str, ssl_keyfile: str, ssl_certfile: str):
     """Launched with `poetry run lnbits` at root level"""
     # this beautiful beast parses all command line arguments and passes them to the uvicorn server
-    d = dict(
-        [
-            (
-                item[0].strip("--").replace("-", "_"),
-                int(item[1]) if item[1].isdigit() else item[1],
+    d = dict()
+    for a in ctx.args:
+        item = a.split("=")
+        if len(item) > 1:  # argument like --key=value
+            print(a, item)
+            d[item[0].strip("--").replace("-", "_")] = (
+                int(item[1])  # need to convert to int if it's a number
+                if item[1].isdigit()
+                else item[1]
             )
-            for item in zip(*[iter(ctx.args)] * 2)
-        ]
-    )
+        else:
+            d[a.strip("--")] = True  # argument like --key
+
     config = uvicorn.Config(
         "lnbits.__main__:app",
         port=port,
