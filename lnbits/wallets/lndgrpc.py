@@ -1,8 +1,8 @@
 imports_ok = True
 try:
     import grpc
-    from grpc import RpcError
     from google import protobuf
+    from grpc import RpcError
 except ImportError:  # pragma: nocover
     imports_ok = False
 
@@ -166,7 +166,6 @@ class LndWallet(Wallet):
         )
         try:
             resp = await self.routerpc.SendPaymentV2(req).read()
-            print(resp)
         except RpcError as exc:
             return PaymentResponse(False, "", 0, None, exc._details)
         except Exception as exc:
@@ -174,16 +173,23 @@ class LndWallet(Wallet):
 
         checking_id = resp.payment_hash
 
-        if resp.status == 0:  # IN FLIGHT
-            return PaymentResponse(None, checking_id, fee_limit_msat, None, None)
-        elif resp.status == 1:  # SUCCEEDED
+        # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
+        statuses = {
+            0: None,  # NON_EXISTENT
+            1: None,  # IN_FLIGHT
+            2: True,  # SUCCEEDED
+            3: False,  # FAILED
+        }
+
+        if resp.status in [0, 1]:  # IN FLIGHT
+            fee_msat = fee_limit_msat  # reserve
+            preimage = ""
+        elif resp.status == 2:  # SUCCEEDED
             fee_msat = resp.htlcs[-1].route.total_fees_msat
             preimage = resp.payment_preimage
-            return PaymentResponse(True, checking_id, fee_msat, preimage, None)
-        elif resp.status == 2:  # FAILED
-            return PaymentResponse(False, checking_id, 0, None, resp.failure_reason)
-        else:
-            return PaymentResponse(None, checking_id, 0, None, "Unknown status")
+        return PaymentResponse(
+            statuses[resp.status], checking_id, fee_msat, preimage, None
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:

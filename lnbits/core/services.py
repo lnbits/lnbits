@@ -182,7 +182,7 @@ async def pay_invoice(
             payment_request, fee_reserve_msat
         )
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.checking_id:
+        if payment.ok and payment.checking_id and payment.preimage:
             logger.debug(f"creating final payment {payment.checking_id}")
             async with db.connect() as conn:
                 await create_payment(
@@ -196,7 +196,7 @@ async def pay_invoice(
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
         else:
-            logger.debug(f"backend payment failed, no checking_id {temp_id}")
+            logger.debug(f"backend payment failed")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
