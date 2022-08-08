@@ -26,7 +26,7 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
         (
             card_id,
             wallet_id,
-            data.name,
+            data.card_name,
             data.uid,
             data.counter,
             data.withdraw,

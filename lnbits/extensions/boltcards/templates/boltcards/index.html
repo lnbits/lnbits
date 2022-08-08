@@ -33,27 +33,15 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
+              <q-th auto-width></q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="link"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.displayUrl"
-                  target="_blank"
-                ></q-btn>
-              </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
@@ -84,6 +72,45 @@
         </q-table>
       </q-card-section>
     </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Hits</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCardsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="hits"
+          row-key="id"
+          :columns="hitsTable.columns"
+          :pagination.sync="hitsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
   </div>
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
@@ -98,7 +125,7 @@
       </q-card-section>
     </q-card>
   </div>
-  <q-dialog v-model="cardDialog.show" position="top">
+  <q-dialog v-model="cardDialog.show" position="top" @hide="closeFormDialog">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormData" class="q-gutter-md">
         <q-select
@@ -196,7 +223,6 @@
       'YYYY-MM-DD HH:mm'
     )
 
-    obj.displayUrl = ['/boltcards/', obj.id].join('')
     return obj
   }
 
@@ -206,6 +232,7 @@
     data: function () {
       return {
         cards: [],
+        hits: [],
         withdrawsOptions: [],
         cardDialog: {
           show: false,
@@ -235,6 +262,51 @@
           pagination: {
             rowsPerPage: 10
           }
+        },
+        hitsTable: {
+          columns: [
+            {
+              name: 'card_name',
+              align: 'left',
+              label: 'Card name',
+              field: 'card_name'
+            },
+            {
+              name: 'old_ctr',
+              align: 'left',
+              label: 'Old counter',
+              field: 'old_ctr'
+            },
+            {
+              name: 'new_ctr',
+              align: 'left',
+              label: 'New counter',
+              field: 'new_ctr'
+            },
+            {
+              name: 'date',
+              align: 'left',
+              label: 'Time',
+              field: 'date'
+            },
+            {
+              name: 'ip',
+              align: 'left',
+              label: 'IP',
+              field: 'ip'
+            },
+            {
+              name: 'useragent',
+              align: 'left',
+              label: 'User agent',
+              field: 'useragent'
+            }
+          ],
+          pagination: {
+            rowsPerPage: 10,
+            sortBy: 'date',
+            descending: true
+          }
         }
       }
     },
@@ -255,6 +327,25 @@
             console.log(self.cards)
           })
       },
+      getHits: function () {
+        var self = this
+
+        LNbits.api
+          .request(
+            'GET',
+            '/boltcards/api/v1/hits?all_wallets=true',
+            this.g.user.wallets[0].inkey
+          )
+          .then(function (response) {
+            self.hits = response.data.map(function (obj) {
+              obj.card_name = self.cards.find(
+                d => d.id == obj.card_id
+              ).card_name
+              return mapCards(obj)
+            })
+            console.log(self.hits)
+          })
+      },
       getWithdraws: function () {
         var self = this
 
@@ -273,6 +364,9 @@
             })
             console.log(self.withdraws)
           })
+      },
+      closeFormDialog: function () {
+        this.cardDialog.data = {}
       },
       sendFormData: function () {
         let wallet = _.findWhere(this.g.user.wallets, {
@@ -358,6 +452,7 @@
     created: function () {
       if (this.g.user.wallets.length) {
         this.getCards()
+        this.getHits()
         this.getWithdraws()
       }
     }
