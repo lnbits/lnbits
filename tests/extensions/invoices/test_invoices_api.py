@@ -3,7 +3,7 @@ import pytest_asyncio
 
 from lnbits.core.crud import get_wallet
 from tests.conftest import client, invoice
-from tests.extensions.invoices.conftest import invoices_wallet
+from tests.extensions.invoices.conftest import invoice, invoices_wallet
 from tests.helpers import credit_wallet
 from tests.mocks import WALLET
 
@@ -31,9 +31,22 @@ async def test_create_invoice_valid(client, invoices_wallet):
     response = await client.post("/invoices/api/v1/invoice", json=query, headers={"X-Api-Key": invoices_wallet.inkey})
     assert response.status_code == 201
     data = response.json()
-    
+
     assert data["status"] == status
     assert data["wallet"] == invoices_wallet.id
     assert data["currency"] == currency
     assert data["first_name"] == fname
     assert sum(d["amount"] / 100 for d in data["items"]) == total
+
+
+@pytest.mark.asyncio
+async def test_partial_pay_invoice(client, invoices_wallet, invoice):
+    invoice_id = invoice["id"]
+    amount_to_pay = 5 * 100 # mock invoice is 10 USD
+
+    response = await client.post(f"/invoices/api/v1/invoice/{invoice_id}/payments?famount={amount_to_pay}")
+    assert response.status_code == 201
+    
+
+    
+    
