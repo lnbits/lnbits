@@ -1,3 +1,2 @@
 ignore:
   - "lnbits/wallets/lnd_grpc_files"
-  
