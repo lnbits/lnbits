@@ -25,6 +25,11 @@ jobs:
           ./venv/bin/pip install pytest pytest-asyncio pytest-cov requests mock
       - name: Run tests
         run: make test-venv
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests        
   sqlite:
     runs-on: ubuntu-latest
     strategy:
@@ -45,6 +50,11 @@ jobs:
           poetry install
       - name: Run tests
         run: make test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests        
   postgres:
     runs-on: ubuntu-latest
     services:
@@ -83,3 +93,4 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
+          flags: unittests
