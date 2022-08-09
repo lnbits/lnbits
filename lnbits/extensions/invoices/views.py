@@ -34,11 +34,6 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def index(request: Request, invoice_id: str):
     invoice = await get_invoice(invoice_id)
 
-    if not invoice:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Invoice does not exist."
-        )
-
     invoice_items = await get_invoice_items(invoice_id)
     invoice_total = await get_invoice_total(invoice_items)
 
