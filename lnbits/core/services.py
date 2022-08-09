@@ -198,6 +198,7 @@ async def pay_invoice(
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
                     new_checking_id=payment.checking_id,
+                    conn=conn,
                 )
                 # await create_payment(
                 #     checking_id=payment.checking_id,
@@ -372,7 +373,8 @@ async def check_transaction_status(
         logger.info(
             f"marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
         )
-        await payment.set_pending(status.pending)
+        # await payment.set_pending(status.pending)
+        await payment.update_status(status)
     return status
 
 

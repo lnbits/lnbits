@@ -406,16 +406,34 @@ async def update_payment_status(
 
 async def update_payment_details(
     checking_id: str,
-    pending: bool,
-    fee: int,
+    pending: Optional[bool] = None,
+    fee: Optional[int] = None,
     preimage: Optional[str] = None,
     new_checking_id: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> None:
-    new_checking_id = new_checking_id or checking_id
+
+    set_clause: List[str] = []
+    set_variables: List[Any] = []
+
+    if new_checking_id is not None:
+        set_clause.append("checking_id = ?")
+        set_variables.append(new_checking_id)
+    if pending is not None:
+        set_clause.append("pending = ?")
+        set_variables.append(pending)
+    if fee is not None:
+        set_clause.append("fee = ?")
+        set_variables.append(fee)
+    if preimage is not None:
+        set_clause.append("preimage = ?")
+        set_variables.append(preimage)
+
+    set_variables.append(checking_id)
+
     await (conn or db).execute(
-        "UPDATE apipayments SET checking_id = ?, pending = ?, fee = ?, preimage = ? WHERE checking_id = ?",
-        (new_checking_id, pending, fee, preimage, checking_id),
+        f"UPDATE apipayments SET {', '.join(set_clause)} WHERE checking_id = ?",
+        tuple(set_variables),
     )
     return
 

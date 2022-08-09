@@ -21,6 +21,16 @@ from .base import (
 from .macaroon import AESCipher, load_macaroon
 
 
+def lndrest_hex_to_b64(hex_string: str) -> str:
+    """
+    Why.
+    """
+    b64str = base64.b64encode(bytes.fromhex(hex_string)).decode("ascii")
+    b64str = b64str.replace("/", "_")
+    b64str = b64str.replace("+", "-")  # AAAARGGHHH LND!!!!
+    return b64str
+
+
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
@@ -126,12 +136,6 @@ class LndRestWallet(Wallet):
         return PaymentResponse(True, checking_id, fee_msat, preimage, None)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
-        # convert checking_id from hex to base64
-        try:
-            checking_id = base64.b64encode(bytes.fromhex(checking_id)).decode("ascii")
-        except ValueError:
-            return PaymentStatus(None)
-
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.get(
                 url=f"{self.endpoint}/v1/invoice/{checking_id}", headers=self.auth
@@ -148,16 +152,16 @@ class LndRestWallet(Wallet):
         """
         This routine checks the payment status using routerpc.TrackPaymentV2.
         """
-        # convert checking_id from hex to base64
+        # convert checking_id from hex to base64 and some LND magic
         try:
-            checking_id = base64.b64encode(bytes.fromhex(checking_id)).decode("ascii")
+            checking_id = lndrest_hex_to_b64(checking_id)
         except ValueError:
             return PaymentStatus(None)
 
         url = f"{self.endpoint}/v2/router/track/{checking_id}"
 
         # check payment.status:
-        # https://api.lightning.community/rest/index.html?python#peersynctype
+        # https://api.lightning.community/?python=#paymentpaymentstatus
         statuses = {
             "UNKNOWN": None,
             "IN_FLIGHT": None,
@@ -181,7 +185,11 @@ class LndRestWallet(Wallet):
                             return PaymentStatus(None)
                         payment = line.get("result")
                         if payment is not None and payment.get("status"):
-                            return PaymentStatus(statuses[payment["status"]])
+                            return PaymentStatus(
+                                statuses[payment["status"]],
+                                fee_msat=payment.get("fee_msat"),
+                                preimage=payment.get("payment_preimage"),
+                            )
                         else:
                             return PaymentStatus(None)
                     except:

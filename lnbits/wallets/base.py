@@ -25,6 +25,8 @@ class PaymentResponse(NamedTuple):
 
 class PaymentStatus(NamedTuple):
     paid: Optional[bool] = None
+    fee_msat: Optional[int] = 0
+    preimage: Optional[str] = None
 
     @property
     def pending(self) -> bool:

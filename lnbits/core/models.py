@@ -12,6 +12,10 @@ from pydantic import BaseModel
 from lnbits.helpers import url_for
 from lnbits.settings import WALLET
 
+from lnbits.wallets.base import (
+    PaymentStatus,
+)
+
 
 class Wallet(BaseModel):
     id: str
@@ -132,6 +136,16 @@ class Payment(BaseModel):
             "internal_"
         )
 
+    async def update_status(self, status: PaymentStatus) -> None:
+        from .crud import update_payment_details
+
+        await update_payment_details(
+            checking_id=self.checking_id,
+            pending=status.pending,
+            fee=status.fee_msat,
+            preimage=status.preimage,
+        )
+
     async def set_pending(self, pending: bool) -> None:
         from .crud import update_payment_status
 
@@ -161,7 +175,7 @@ class Payment(BaseModel):
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
             )
-            await self.set_pending(status.pending)
+            await self.update_status(status)
 
     async def delete(self) -> None:
         from .crud import delete_payment
