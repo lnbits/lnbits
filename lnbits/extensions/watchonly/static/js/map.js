@@ -43,7 +43,7 @@ const mapUtxoToPsbtInput = utxo => ({
   address: utxo.address,
   branch_index: utxo.isChange ? 1 : 0,
   address_index: utxo.addressIndex,
-  masterpub_fingerprint: utxo.masterpubFingerprint,
+  wallet: utxo.wallet,
   accountType: utxo.accountType,
   txHex: ''
 })
@@ -66,15 +66,15 @@ const mapAddressDataToUtxo = (wallet, addressData, utxo) => ({
   selected: false
 })
 
-const mapWalletAccount = function (obj) {
-  obj._data = _.clone(obj)
-  obj.date = obj.time
-    ? Quasar.utils.date.formatDate(
-        new Date(obj.time * 1000),
-        'YYYY-MM-DD HH:mm'
-      )
-    : ''
-  obj.label = obj.title // for drop-downs
-  obj.expanded = false
-  return obj
+const mapWalletAccount = function (o) {
+  return Object.assign({}, o, {
+    date: o.time
+      ? Quasar.utils.date.formatDate(
+          new Date(o.time * 1000),
+          'YYYY-MM-DD HH:mm'
+        )
+      : '',
+    label: o.title,
+    expanded: false
+  })
 }

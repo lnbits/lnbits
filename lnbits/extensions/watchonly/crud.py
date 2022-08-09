@@ -4,8 +4,8 @@ from typing import List, Optional
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .helpers import derive_address, parse_key
-from .models import Address, Config, Mempool, WalletAccount
+from .helpers import derive_address
+from .models import Address, Config, WalletAccount
 
 ##########################WALLETS####################
 
@@ -22,9 +22,10 @@ async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
             title,
             type,
             address_no,
-            balance
+            balance,
+            network
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -35,6 +36,7 @@ async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
             w.type,
             w.address_no,
             w.balance,
+            w.network,
         ),
     )
 
@@ -48,9 +50,10 @@ async def get_watch_wallet(wallet_id: str) -> Optional[WalletAccount]:
     return WalletAccount.from_row(row) if row else None
 
 
-async def get_watch_wallets(user: str) -> List[WalletAccount]:
+async def get_watch_wallets(user: str, network: str) -> List[WalletAccount]:
     rows = await db.fetchall(
-        """SELECT * FROM watchonly.wallets WHERE "user" = ?""", (user,)
+        """SELECT * FROM watchonly.wallets WHERE "user" = ? AND network = ?""",
+        (user, network),
     )
     return [WalletAccount(**row) for row in rows]
 
