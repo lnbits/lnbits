@@ -418,7 +418,7 @@
             LNbits.utils.notifyApiError(error)
           })
       },
-      readNfcTag: function() {
+      readNfcTag: function () {
         try {
           const self = this
 
@@ -432,19 +432,19 @@
 
           const ndef = new NDEFReader()
 
-          const readerAbortController = new AbortController();
+          const readerAbortController = new AbortController()
           readerAbortController.signal.onabort = event => {
-            console.log("All NFC Read operations have been aborted.");
-          };  
+            console.log('All NFC Read operations have been aborted.')
+          }
 
           this.nfcTagReading = true
           this.$q.notify({
             message: 'Tap your NFC tag to pay this invoice with LNURLw.'
           })
 
-         return ndef.scan({ signal: readerAbortController.signal }).then(() => {
+          return ndef.scan({signal: readerAbortController.signal}).then(() => {
             ndef.onreadingerror = () => {
-              self.nfcTagReading = false;
+              self.nfcTagReading = false
 
               this.$q.notify({
                 type: 'negative',
@@ -454,21 +454,19 @@
               readerAbortController.abort()
             }
 
-            ndef.onreading = ({message}) => { 
+            ndef.onreading = ({message}) => {
               //Decode NDEF data from tag
               const textDecoder = new TextDecoder('utf-8')
-      
-              const record = message.records.find(
-                (el) => {
-                  const payload = textDecoder.decode(el.data)
-                  return payload.toUpperCase().indexOf("LNURL") !== -1
-                } 
-              )
+
+              const record = message.records.find(el => {
+                const payload = textDecoder.decode(el.data)
+                return payload.toUpperCase().indexOf('LNURL') !== -1
+              })
 
               const lnurl = textDecoder.decode(record.data)
 
               //User feedback, show loader icon
-              self.nfcTagReading = false;
+              self.nfcTagReading = false
               self.payInvoice(lnurl)
 
               this.$q.notify({
@@ -489,7 +487,7 @@
           })
         }
       },
-      payInvoice: function(lnurl) {
+      payInvoice: function (lnurl) {
         const self = this
 
         return axios
@@ -497,14 +495,14 @@
             '/tpos/api/v1/tposs/' +
               self.tposId +
               '/invoices/' +
-              self.invoiceDialog.data.payment_request + 
+              self.invoiceDialog.data.payment_request +
               '/pay',
             {
-              lnurl: lnurl,
-            },
+              lnurl: lnurl
+            }
           )
           .then(response => {
-            if(!response.data.success) {
+            if (!response.data.success) {
               this.$q.notify({
                 type: 'negative',
                 message: response.data.detail

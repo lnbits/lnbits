@@ -47,4 +47,3 @@ async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
 
 async def delete_tpos(tpos_id: str) -> None:
     await db.execute("DELETE FROM tpos.tposs WHERE id = ?", (tpos_id,))
-    

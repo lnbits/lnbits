@@ -24,5 +24,6 @@ class TPoS(BaseModel):
     def from_row(cls, row: Row) -> "TPoS":
         return cls(**dict(row))
 
+
 class PayLnurlWData(BaseModel):
     lnurl: str

@@ -81,7 +81,10 @@ async def api_tpos_create_invoice(
 
     return {"payment_hash": payment_hash, "payment_request": payment_request}
 
-@tpos_ext.post("/api/v1/tposs/{tpos_id}/invoices/{payment_request}/pay", status_code=HTTPStatus.OK)
+
+@tpos_ext.post(
+    "/api/v1/tposs/{tpos_id}/invoices/{payment_request}/pay", status_code=HTTPStatus.OK
+)
 async def api_tpos_pay_invoice(
     lnurl_data: PayLnurlWData, payment_request: str = None, tpos_id: str = None
 ):
@@ -92,9 +95,15 @@ async def api_tpos_pay_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
 
-    lnurl = lnurl_data.lnurl.replace("lnurlw://", "").replace("lightning://", "").replace("LIGHTNING://", "").replace("lightning:", "").replace("LIGHTNING:", "")
-    
-    if(lnurl.lower().startswith("lnurl")):
+    lnurl = (
+        lnurl_data.lnurl.replace("lnurlw://", "")
+        .replace("lightning://", "")
+        .replace("LIGHTNING://", "")
+        .replace("lightning:", "")
+        .replace("LIGHTNING:", "")
+    )
+
+    if lnurl.lower().startswith("lnurl"):
         lnurl = decode_lnurl(lnurl)
     else:
         lnurl = "https://" + lnurl
@@ -110,16 +119,19 @@ async def api_tpos_pay_invoice(
                     lnurl_response = {"success": False, "detail": "Wrong tag type"}
                 else:
                     r2 = await client.get(
-                        resp['callback'],
+                        resp["callback"],
                         follow_redirects=True,
                         params={
-                            "k1": resp['k1'],
+                            "k1": resp["k1"],
                             "pr": payment_request,
-                        }
+                        },
                     )
                     resp2 = r2.json()
                     if r2.is_error:
-                        lnurl_response = {"success": False, "detail": "Error loading callback"}
+                        lnurl_response = {
+                            "success": False,
+                            "detail": "Error loading callback",
+                        }
                     elif resp2["status"] == "ERROR":
                         lnurl_response = {"success": False, "detail": resp2["reason"]}
                     else:
