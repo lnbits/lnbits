@@ -28,6 +28,9 @@ class CreateInvoiceData(BaseModel):
     address: Optional[str]
     items: List[CreateInvoiceItemData]
 
+    class Config:
+        use_enum_values = True
+
 
 class UpdateInvoiceItemData(BaseModel):
     id: Optional[str]

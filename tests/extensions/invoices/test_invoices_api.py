@@ -12,7 +12,7 @@ from tests.mocks import WALLET
 async def test_invoices_unknown_invoice(client):
     response = await client.get("/invoices/pay/123")
     assert response.status == 404
-    
+
 
 @pytest.mark.asyncio
 async def test_invoices_api_create_invoice_valid(client, invoices_wallet):
@@ -39,7 +39,7 @@ async def test_invoices_api_create_invoice_valid(client, invoices_wallet):
         json=query,
         headers={"X-Api-Key": invoices_wallet.inkey},
     )
-    
+
     assert response.status_code == 201
     data = response.json()
 
@@ -59,4 +59,3 @@ async def test_invoices_api_partial_pay_invoice(client, invoices_wallet, invoice
         f"/invoices/api/v1/invoice/{invoice_id}/payments?famount={amount_to_pay}"
     )
     assert response.status_code == 201
-
