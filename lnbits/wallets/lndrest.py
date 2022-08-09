@@ -172,12 +172,6 @@ class LndRestWallet(Wallet):
                             return PaymentStatus(None)
                         payment = line.get("result")
                         if payment is not None and payment.get("status"):
-                            # if BLOCKING and payment["status"] == "IN_FLIGHT":
-                            #     logger.debug(
-                            #         "payment is in flight, checking again in 1 second"
-                            #     )
-                            #     await asyncio.sleep(1)
-                            #     continue
                             return PaymentStatus(statuses[payment["status"]])
                         else:
                             return PaymentStatus(None)

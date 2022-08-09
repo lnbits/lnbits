@@ -239,10 +239,6 @@ class LndWallet(Wallet):
 
         try:
             async for payment in resp:
-                # if BLOCKING and payment.htlcs[-1].status == 0:  # IN_FLIGHT
-                #     logger.debug("payment is in flight, checking again in 1 second")
-                #     await asyncio.sleep(1)
-                #     continue
                 return PaymentStatus(statuses[payment.htlcs[-1].status])
         except:  # most likely the payment wasn't found
             return PaymentStatus(None)
