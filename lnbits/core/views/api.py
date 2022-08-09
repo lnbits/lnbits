@@ -48,7 +48,7 @@ from ..crud import (
 from ..services import (
     InvoiceFailure,
     PaymentFailure,
-    check_invoice_status,
+    check_transaction_status,
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
@@ -123,7 +123,7 @@ async def api_payments(
         offset=offset,
     )
     for payment in pendingPayments:
-        await check_invoice_status(
+        await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
     return await get_payments(
@@ -186,11 +186,6 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.lnurl_callback:
         if data.lnurl_balance_check is not None:
             await save_balance_check(wallet.id, data.lnurl_balance_check)
-        else:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="lnurl_balance_check not set.",
-            )
 
         async with httpx.AsyncClient() as client:
             try:
@@ -407,7 +402,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    await check_invoice_status(payment.wallet_id, payment_hash)
+    await check_transaction_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )
