@@ -1,7 +1,8 @@
+import json
 from http import HTTPStatus
 
-from embit import script
-from embit.descriptor import Descriptor, Key
+import httpx
+from embit import finalizer, script
 from embit.ec import PublicKey
 from embit.psbt import PSBT, DerivationPath
 from embit.transaction import Transaction, TransactionInput, TransactionOutput
@@ -28,18 +29,31 @@ from .crud import (
     update_watch_wallet,
 )
 from .helpers import parse_key
-from .models import Config, CreatePsbt, CreateWallet, WalletAccount
+from .models import (
+    BroadcastTransaction,
+    Config,
+    CreatePsbt,
+    CreateWallet,
+    ExtractPsbt,
+    SignedTransaction,
+    WalletAccount,
+)
 
 ###################WALLETS#############################
 
 
 @watchonly_ext.get("/api/v1/wallet")
-async def api_wallets_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
+async def api_wallets_retrieve(
+    network: str = Query("Mainnet"), wallet: WalletTypeInfo = Depends(get_key_type)
+):
 
     try:
-        return [wallet.dict() for wallet in await get_watch_wallets(wallet.wallet.user)]
+        return [
+            wallet.dict()
+            for wallet in await get_watch_wallets(wallet.wallet.user, network)
+        ]
     except:
-        return ""
+        return []
 
 
 @watchonly_ext.get("/api/v1/wallet/{wallet_id}")
@@ -61,7 +75,13 @@ async def api_wallet_create_or_update(
     data: CreateWallet, w: WalletTypeInfo = Depends(require_admin_key)
 ):
     try:
-        (descriptor, _) = parse_key(data.masterpub)
+        (descriptor, network) = parse_key(data.masterpub)
+        if data.network != network["name"]:
+            raise ValueError(
+                "Account network error.  This account is for '{}'".format(
+                    network["name"]
+                )
+            )
 
         new_wallet = WalletAccount(
             id="none",
@@ -72,11 +92,19 @@ async def api_wallet_create_or_update(
             title=data.title,
             address_no=-1,  # so fresh address on empty wallet can get address with index 0
             balance=0,
+            network=network["name"],
         )
 
-        wallets = await get_watch_wallets(w.wallet.user)
+        wallets = await get_watch_wallets(w.wallet.user, network["name"])
         existing_wallet = next(
-            (ew for ew in wallets if ew.fingerprint == new_wallet.fingerprint), None
+            (
+                ew
+                for ew in wallets
+                if ew.fingerprint == new_wallet.fingerprint
+                and ew.network == new_wallet.network
+                and ew.masterpub == new_wallet.masterpub
+            ),
+            None,
         )
         if existing_wallet:
             raise ValueError(
@@ -215,12 +243,13 @@ async def api_psbt_create(
 
         descriptors = {}
         for _, masterpub in enumerate(data.masterpubs):
-            descriptors[masterpub.fingerprint] = parse_key(masterpub.public_key)
+            descriptors[masterpub.id] = parse_key(masterpub.public_key)
 
         inputs_extra = []
-        bip32_derivations = {}
+
         for i, inp in enumerate(data.inputs):
-            descriptor = descriptors[inp.masterpub_fingerprint][0]
+            bip32_derivations = {}
+            descriptor = descriptors[inp.wallet][0]
             d = descriptor.derive(inp.address_index, inp.branch_index)
             for k in d.keys:
                 bip32_derivations[PublicKey.parse(k.sec())] = DerivationPath(
@@ -239,12 +268,13 @@ async def api_psbt_create(
         for i, inp in enumerate(inputs_extra):
             psbt.inputs[i].bip32_derivations = inp["bip32_derivations"]
             psbt.inputs[i].non_witness_utxo = inp.get("non_witness_utxo", None)
+            print("### ", inp.get("non_witness_utxo", None))
 
         outputs_extra = []
         bip32_derivations = {}
         for i, out in enumerate(data.outputs):
             if out.branch_index == 1:
-                descriptor = descriptors[out.masterpub_fingerprint][0]
+                descriptor = descriptors[out.wallet][0]
                 d = descriptor.derive(out.address_index, out.branch_index)
                 for k in d.keys:
                     bip32_derivations[PublicKey.parse(k.sec())] = DerivationPath(
@@ -258,6 +288,66 @@ async def api_psbt_create(
         return psbt.to_string()
 
     except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+
+
+@watchonly_ext.put("/api/v1/psbt/extract")
+async def api_psbt_extract_tx(
+    data: ExtractPsbt, w: WalletTypeInfo = Depends(require_admin_key)
+):
+    res = SignedTransaction()
+    try:
+        psbt = PSBT.from_base64(data.psbtBase64)
+        for i, inp in enumerate(data.inputs):
+            psbt.inputs[i].non_witness_utxo = Transaction.from_string(inp.tx_hex)
+
+        final_psbt = finalizer.finalize_psbt(psbt)
+        if not final_psbt:
+            raise ValueError("PSBT cannot be finalized!")
+        res.tx_hex = final_psbt.to_string()
+
+        transaction = Transaction.from_string(res.tx_hex)
+        tx = {
+            "locktime": transaction.locktime,
+            "version": transaction.version,
+            "outputs": [],
+            "fee": psbt.fee(),
+        }
+
+        for out in transaction.vout:
+            tx["outputs"].append(
+                {"amount": out.value, "address": out.script_pubkey.address()}
+            )
+        res.tx_json = json.dumps(tx)
+    except Exception as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    return res.dict()
+
+
+@watchonly_ext.post("/api/v1/tx")
+async def api_tx_broadcast(
+    data: BroadcastTransaction, w: WalletTypeInfo = Depends(require_admin_key)
+):
+    try:
+        config = await get_config(w.wallet.user)
+        if not config:
+            raise ValueError(
+                "Cannot broadcast transaction. Mempool endpoint not defined!"
+            )
+
+        endpoint = (
+            config.mempool_endpoint
+            if config.network == "Mainnet"
+            else config.mempool_endpoint + "/testnet"
+        )
+        async with httpx.AsyncClient() as client:
+            r = await client.post(endpoint + "/api/tx", data=data.tx_hex)
+            tx_id = r.text
+            print("### broadcast tx_id: ", tx_id)
+            return tx_id
+        # return "0f0f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0.mock.transaction.id"
+    except Exception as e:
+        print("### broadcast error: ", str(e))
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 

@@ -1,0 +1,451 @@
+<div>
+  <q-btn-dropdown
+    split
+    unelevated
+    color="primary"
+    icon="usb"
+    :text-color="selectedPort ? hww.authenticated ? 'green' : 'orange' : 'white'"
+    @click="openSerialPortDialog"
+  >
+    <q-list>
+      <q-item
+        v-if="selectedPort && !hww.authenticated"
+        clickable
+        v-close-popup
+        @click="hwwShowPasswordDialog()"
+      >
+        <q-item-section>
+          <q-item-label>Login</q-item-label>
+          <q-item-label caption
+            >Enter password for Hardware Wallet.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+
+      <q-item
+        v-if="hww.authenticated"
+        clickable
+        v-close-popup
+        @click="hwwLogout()"
+      >
+        <q-item-section>
+          <q-item-label>Logout</q-item-label>
+          <q-item-label caption>Clear password for HWW.</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="!selectedPort"
+        clickable
+        v-close-popup
+        @click="openSerialPortConfig"
+      >
+        <q-item-section>
+          <q-item-label>Config & Connect</q-item-label>
+          <q-item-label caption
+            >Set the Serial Port communication parameters.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="selectedPort"
+        clickable
+        v-close-popup
+        @click="closeSerialPort()"
+      >
+        <q-item-section>
+          <q-item-label>Disconnect</q-item-label>
+          <q-item-label caption>Disconnect from Serial Port.</q-item-label>
+        </q-item-section>
+      </q-item>
+
+      <q-item
+        v-if="selectedPort"
+        clickable
+        v-close-popup
+        @click="hwwShowRestoreDialog()"
+      >
+        <q-item-section>
+          <q-item-label>Restore</q-item-label>
+          <q-item-label caption
+            >Restore wallet from existing word list.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="hww.authenticated"
+        clickable
+        v-close-popup
+        @click="hwwShowSeed()"
+      >
+        <q-item-section>
+          <q-item-label>Show Seed</q-item-label>
+          <q-item-label caption
+            >Show seed on the Hardware Wallet display.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="selectedPort"
+        @click="hwwShowWipeDialog()"
+        clickable
+        v-close-popup
+      >
+        <q-item-section>
+          <q-item-label>Wipe</q-item-label>
+          <q-item-label caption
+            >Clean-up the wallet. New random seed.</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+      <q-item v-if="selectedPort" @click="hwwHelp()" clickable v-close-popup>
+        <q-item-section>
+          <q-item-label>Help</q-item-label>
+          <q-item-label caption>View available comands.</q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item
+        v-if="selectedPort"
+        @click="showConsole = true"
+        clickable
+        v-close-popup
+      >
+        <q-item-section>
+          <q-item-label>Console</q-item-label>
+          <q-item-label caption
+            >Show the serial port communication messages</q-item-label
+          >
+        </q-item-section>
+      </q-item>
+    </q-list>
+  </q-btn-dropdown>
+
+  <q-dialog v-model="hww.showConfigDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwConfigAndConnect" class="q-gutter-md">
+        <span>Enter Config</span>
+
+        <serial-port-config
+          ref="serialPortConfig"
+          :config="hww.config"
+        ></serial-port-config>
+
+        <div class="row q-mt-lg">
+          <q-btn unelevated color="primary" type="submit">Connect</q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="hww.showPasswordDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwLogin" class="q-gutter-md">
+        <span>Enter password for Hardware Wallet (8 numbers/letters)</span>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.password"
+          type="password"
+          label="Password"
+        ></q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!selectedPort"
+            type="submit"
+            >Login</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="hww.showConfirmationDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwSignPsbt" class="q-gutter-md">
+        <div v-if="tx">
+          <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-12">
+              <span class="text-subtitle2"
+                >Output {{hww.confirm.outputIndex}}</span
+              >
+              <q-badge
+                v-if="tx.outputs[hww.confirm.outputIndex].branch_index === 1"
+                color="orange"
+                text-color="black"
+              >
+                <span>change</span>
+              </q-badge>
+            </div>
+          </div>
+          <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Address:</span>
+            </div>
+            <div class="col-9">
+              <span>{{tx.outputs[hww.confirm.outputIndex].address}}</span>
+            </div>
+          </div>
+          <div v-if="!hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Amount:</span>
+            </div>
+            <div class="col-9">
+              <span
+                >{{satBtc(tx.outputs[hww.confirm.outputIndex].amount)}}</span
+              >
+            </div>
+          </div>
+          <div v-if="hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Fee: </span>
+            </div>
+            <div class="col-9">
+              <span>{{satBtc(tx.feeValue)}}</span>
+            </div>
+          </div>
+          <div v-if="hww.confirm.showFee" class="row q-mt-lg">
+            <div class="col-3">
+              <span>Fee Rate:</span>
+            </div>
+            <div class="col-9">
+              <span>{{tx.feeRate}} sats/vbyte</span>
+            </div>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col-12">
+            <q-badge class="text-subtitle2" color="yellow" text-color="black">
+              <span>Check data on the display of the hardware device.</span>
+            </q-badge>
+          </div>
+        </div>
+        <div class="row q-mt-lg">
+          <div class="col-6">
+            <q-btn
+              v-if="hww.confirm.showFee"
+              unelevated
+              color="green"
+              :disable="!selectedPort"
+              type="submit"
+              class="float-left"
+              label="Confirm"
+            >
+              <q-spinner v-if="hww.signingPsbt" color="primary"></q-spinner>
+            </q-btn>
+          </div>
+          <div class="col-3">
+            <q-btn
+              unelevated
+              color="secondary"
+              label="Next"
+              class="float-left"
+              v-if="!hww.confirm.showFee"
+              @click="hwwConfirmNext"
+            >
+            </q-btn>
+          </div>
+          <div class="col-3">
+            <q-btn
+              @click="cancelOperation"
+              v-close-popup
+              flat
+              color="grey"
+              class="float-right"
+              >Cancel</q-btn
+            >
+          </div>
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="hww.showWipeDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwWipe" class="q-gutter-md">
+        <q-badge color="pink" text-color="black">
+          This action will remove all data from the Hardware Wallet. Please
+          create a back-up for the seed!
+        </q-badge>
+        <span>Enter new password for Hardware Wallet (8 numbers/letters)</span>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.password"
+          type="password"
+          label="Password"
+        ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.confirmedPassword"
+          type="password"
+          label="Confirm Password"
+        ></q-input>
+        <q-badge color="pink" text-color="black">
+          This action cannot be reversed!
+        </q-badge>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!hww.password || hww.password.length < 8 || (hww.password !== hww.confirmedPassword)"
+            type="submit"
+            >Wipe</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="showConsole" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-input
+        filled
+        dense
+        for="serial-port-console"
+        v-model.trim="receivedData"
+        type="textarea"
+        rows="25"
+        cols="200"
+        label="Console"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="hww.showSeedDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <span>Check word at position {{hww.seedWordPosition}} on display</span>
+
+      <div class="row q-mt-lg">
+        <div class="col-4">
+          <q-btn
+            v-if="hww.seedWordPosition!== 1"
+            unelevated
+            color="primary"
+            @click="showPrevSeedWord"
+            >Prev</q-btn
+          >
+        </div>
+        <div class="col-4">
+          <q-btn
+            v-if="hww.seedWordPosition!== 24"
+            unelevated
+            color="primary"
+            @click="showNextSeedWord"
+            >Next</q-btn
+          >
+        </div>
+        <div class="col-4">
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+        </div>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="hww.showRestoreDialog" position="top">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="hwwRestore" class="q-gutter-md">
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          For test purposes only. Do not enter word list with real funds!!!
+        </q-badge>
+        <br /><br /><br />
+        <span>Enter new word list separated by space</span>
+        <q-input
+          v-model.trim="hww.mnemonic"
+          filled
+          :type="hww.showMnemonic ? 'text' : 'password'"
+          filled
+          dense
+          label="Word List"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showMnemonic ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showMnemonic = !hww.showMnemonic"
+            />
+          </template>
+        </q-input>
+        <br />
+        <span>Enter new password (8 numbers/letters)</span>
+        <q-input
+          v-model.trim="hww.password"
+          filled
+          :type="hww.showPassword ? 'text' : 'password'"
+          filled
+          dense
+          label="New Password"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showPassword ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showPassword = !hww.showPassword"
+            />
+          </template>
+        </q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.confirmedPassword"
+          type="password"
+          label="Confirm Password"
+        ></q-input>
+        <br /><br />
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          For test purposes only. Do not enter word list with real funds!!!
+        </q-badge>
+        <q-separator></q-separator>
+        <q-badge
+          color="pink"
+          text-color="black"
+          class="text-subtitle2"
+          multi-line
+        >
+          ALL existing data on the Hardware Device will be lost.
+        </q-badge>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="!hww.mnemonic || !hww.password || hww.password.length < 8 || (hww.password !== hww.confirmedPassword)"
+            type="submit"
+            >Restore</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+</div>
