@@ -1,0 +1,144 @@
+<div>
+  <div class="row items-center no-wrap q-mb-md">
+    <div class="col q-pr-lg"></div>
+    <div class="col q-pr-lg">
+      <q-input
+        borderless
+        dense
+        debounce="300"
+        v-model="filter"
+        placeholder="Search"
+        class="float-right"
+      >
+        <template v-slot:append>
+          <q-icon name="search"></q-icon>
+        </template>
+      </q-input>
+    </div>
+    <div class="col-auto">
+      <q-btn outline color="grey" label="...">
+        <q-menu auto-close>
+          <q-list style="min-width: 100px">
+            <q-item clickable>
+              <q-item-section @click="exportHistoryToCSV"
+                >Export to CSV</q-item-section
+              >
+            </q-item>
+          </q-list>
+        </q-menu>
+      </q-btn>
+    </div>
+  </div>
+  <q-table
+    style="height: 400px"
+    flat
+    dense
+    :data="getFilteredAddressesHistory()"
+    row-key="id"
+    virtual-scroll
+    :columns="historyTable.columns"
+    :pagination.sync="historyTable.pagination"
+    :filter="filter"
+  >
+    <template v-slot:body="props">
+      <q-tr :props="props">
+        <q-td auto-width>
+          <q-btn
+            size="sm"
+            color="accent"
+            round
+            dense
+            @click="props.row.expanded = !props.row.expanded"
+            :icon="props.row.expanded ? 'remove' : 'add'"
+          />
+        </q-td>
+
+        <q-td key="status" :props="props">
+          <q-badge
+            v-if="props.row.sent"
+            @click="props.row.expanded = !props.row.expanded"
+            color="orange"
+            class="q-mr-md cursor-pointer"
+          >
+            {{props.row.confirmed ? 'Sent' : 'Sending...'}}
+          </q-badge>
+          <q-badge
+            v-if="props.row.received"
+            @click="props.row.expanded = !props.row.expanded"
+            color="green"
+            class="q-mr-md cursor-pointer"
+          >
+            {{props.row.confirmed ? 'Received' : 'Receiving...'}}
+          </q-badge>
+        </q-td>
+        <q-td
+          key="amount"
+          :props="props"
+          :class="props.row.amount && props.row.received > 0 ? 'text-green-13 text-weight-bold' : ''"
+        >
+          <div>{{satBtc(props.row.totalAmount || props.row.amount)}}</div>
+        </q-td>
+        <q-td key="address" :props="props">
+          <a
+            v-if="!props.row.sameTxItems"
+            style="color: unset"
+            :href="'https://' + mempoolEndpoint + '/address/' + props.row.address"
+            target="_blank"
+          >
+            {{props.row.address}}</a
+          >
+          <q-badge
+            v-if="props.row.sameTxItems"
+            @click="props.row.expanded = !props.row.expanded"
+            outline
+            color="blue"
+            class="cursor-pointer"
+          >
+            ...
+          </q-badge>
+        </q-td>
+        <q-td key="date" :props="props"> {{ props.row.date }} </q-td>
+      </q-tr>
+      <q-tr v-show="props.row.expanded" :props="props">
+        <q-td colspan="100%">
+          <div class="row items-center no-wrap q-mb-md">
+            <div class="col-2 q-pr-lg">Transaction Id</div>
+            <div class="col-10 q-pr-lg">
+              <a
+                style="color: unset"
+                :href="'https://' +mempoolEndpoint + '/tx/' + props.row.txId"
+                target="_blank"
+              >
+                {{props.row.txId}}</a
+              >
+            </div>
+          </div>
+          <div
+            v-if="props.row.sameTxItems"
+            class="row items-center no-wrap q-mb-md"
+          >
+            <div class="col-2 q-pr-lg">UTXOs</div>
+            <div class="col-4 q-pr-lg">{{satBtc(props.row.amount)}}</div>
+            <div class="col-6 q-pr-lg">{{props.row.address}}</div>
+          </div>
+          <div
+            v-for="s in props.row.sameTxItems || []"
+            class="row items-center no-wrap q-mb-md"
+          >
+            <div class="col-2 q-pr-lg"></div>
+            <div class="col-4 q-pr-lg">{{satBtc(s.amount)}}</div>
+            <div class="col-6 q-pr-lg">{{s.address}}</div>
+          </div>
+          <div class="row items-center no-wrap q-mb-md">
+            <div class="col-2 q-pr-lg">Fee</div>
+            <div class="col-4 q-pr-lg">{{satBtc(props.row.fee)}}</div>
+          </div>
+          <div class="row items-center no-wrap q-mb-md">
+            <div class="col-2 q-pr-lg">Block Height</div>
+            <div class="col-4 q-pr-lg">{{props.row.height}}</div>
+          </div>
+        </q-td>
+      </q-tr>
+    </template>
+  </q-table>
+</div>
