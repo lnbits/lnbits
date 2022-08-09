@@ -447,7 +447,7 @@
               self.nfcTagReading = false;
 
               this.$q.notify({
-                type: 'positive',
+                type: 'negative',
                 message: 'There was an error reading this NFC tag.'
               })
 
@@ -456,8 +456,15 @@
 
             ndef.onreading = ({message}) => { 
               //Decode NDEF data from tag
-              const record = message.records[0]
               const textDecoder = new TextDecoder('utf-8')
+      
+              const record = message.records.find(
+                (el) => {
+                  const payload = textDecoder.decode(el.data)
+                  return payload.toUpperCase().indexOf("LNURL") !== -1
+                } 
+              )
+
               const lnurl = textDecoder.decode(record.data)
 
               //User feedback, show loader icon
@@ -494,15 +501,15 @@
               '/pay',
             {
               lnurl: lnurl,
-            }, 
-            // {
-            //   body: {
-            //     lnurl: lnurl,
-            //   }
-            // }
+            },
           )
-          .then(function (response) {
-            console.log(response)
+          .then(response => {
+            if(!response.data.success) {
+              this.$q.notify({
+                type: 'negative',
+                message: response.data.detail
+              })
+            }
           })
       },
       getRates: function () {

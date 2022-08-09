@@ -1,7 +1,7 @@
 from http import HTTPStatus
 import httpx
-import json
 
+from lnurl import decode as decode_lnurl
 
 from fastapi import Query
 from fastapi.params import Depends
@@ -14,7 +14,7 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import tpos_ext
-from .crud import create_tpos, delete_tpos, get_tpos, get_tposs, bech32_decode
+from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
 from .models import CreateTposData, PayLnurlWData
 
 
@@ -87,30 +87,27 @@ async def api_tpos_pay_invoice(
 ):
     tpos = await get_tpos(tpos_id)
 
-    lnurl = lnurl_data.lnurl.replace("lnurlw://", "").replace("lightning://", "").replace("LIGHTNING://", "").replace("lightning:", "").replace("LIGHTNING:", "")
-    
-    if(lnurl.lower().startswith("lnurl")):
-        lnurl = bech32_decode(lnurl)
-    else:
-        lnurl = "https://" + lnurl
-
-    print('lnurl')
-    print(lnurl)
-
     if not tpos:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="TPoS does not exist."
         )
 
+    lnurl = lnurl_data.lnurl.replace("lnurlw://", "").replace("lightning://", "").replace("LIGHTNING://", "").replace("lightning:", "").replace("LIGHTNING:", "")
+    
+    if(lnurl.lower().startswith("lnurl")):
+        lnurl = decode_lnurl(lnurl)
+    else:
+        lnurl = "https://" + lnurl
+
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(lnurl, follow_redirects=True)
             if r.is_error:
-                lnurl_response = json.loads(r.text)
+                lnurl_response = {"success": False, "detail": "Error loading"}
             else:
-                resp = json.loads(r.text)
+                resp = r.json()
                 if resp["tag"] != "withdrawRequest":
-                    lnurl_response = "Wrong type"
+                    lnurl_response = {"success": False, "detail": "Wrong tag type"}
                 else:
                     r2 = await client.get(
                         resp['callback'],
@@ -120,14 +117,15 @@ async def api_tpos_pay_invoice(
                             "pr": payment_request,
                         }
                     )
+                    resp2 = r2.json()
                     if r2.is_error:
-                        lnurl_response = "ERROR2!"
+                        lnurl_response = {"success": False, "detail": "Error loading callback"}
+                    elif resp2["status"] == "ERROR":
+                        lnurl_response = {"success": False, "detail": resp2["reason"]}
                     else:
-                        resp2 = json.loads(r2.text)
-                        lnurl_response = "OK"
+                        lnurl_response = {"success": True, "detail": resp2}
         except (httpx.ConnectError, httpx.RequestError):
-            print("BAD ERROR")
-            lnurl_response = "Error!"
+            lnurl_response = {"success": False, "detail": "Unexpected error occurred"}
 
     return lnurl_response
 
