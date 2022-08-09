@@ -1,11 +1,10 @@
-import time
 from datetime import datetime
 from http import HTTPStatus
-from http.client import HTTPException
 
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
@@ -33,6 +32,11 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 @invoices_ext.get("/pay/{invoice_id}", response_class=HTMLResponse)
 async def index(request: Request, invoice_id: str):
     invoice = await get_invoice(invoice_id)
+
+    if not invoice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Invoice does not exist."
+        )
 
     invoice_items = await get_invoice_items(invoice_id)
     invoice_total = await get_invoice_total(invoice_items)

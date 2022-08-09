@@ -10,8 +10,8 @@ from tests.mocks import WALLET
 
 @pytest.mark.asyncio
 async def test_invoices_unknown_invoice(client):
-    response = await client.get("/invoices/pay/123")
-    assert response.status == 404
+    response = await client.get("/invoices/pay/u")
+    assert response.json() == {"detail": "Invoice does not exist."}
 
 
 @pytest.mark.asyncio
