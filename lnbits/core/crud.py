@@ -416,7 +416,7 @@ async def update_payment_details(
     set_clause: List[str] = []
     set_variables: List[Any] = []
 
-    if new_checking_id is not None:
+    if new_checking_id != checking_id:
         set_clause.append("checking_id = ?")
         set_variables.append(new_checking_id)
     if pending is not None:

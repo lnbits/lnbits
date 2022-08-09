@@ -200,16 +200,6 @@ async def pay_invoice(
                     new_checking_id=payment.checking_id,
                     conn=conn,
                 )
-                # await create_payment(
-                #     checking_id=payment.checking_id,
-                #     fee=payment.fee_msat,
-                #     preimage=payment.preimage,
-                #     pending=payment.ok == None,
-                #     conn=conn,
-                #     **payment_kwargs,
-                # )
-                # logger.debug(f"deleting temporary payment {temp_id}")
-                # await delete_payment(temp_id, conn=conn)
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.ok == False:
             logger.debug(f"backend sent payment failure")

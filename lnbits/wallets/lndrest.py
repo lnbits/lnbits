@@ -186,7 +186,7 @@ class LndRestWallet(Wallet):
                         payment = line.get("result")
                         if payment is not None and payment.get("status"):
                             return PaymentStatus(
-                                statuses[payment["status"]],
+                                paid=statuses[payment["status"]],
                                 fee_msat=payment.get("fee_msat"),
                                 preimage=payment.get("payment_preimage"),
                             )
