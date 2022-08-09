@@ -186,11 +186,6 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.lnurl_callback:
         if data.lnurl_balance_check is not None:
             await save_balance_check(wallet.id, data.lnurl_balance_check)
-        else:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="lnurl_balance_check not set.",
-            )
 
         async with httpx.AsyncClient() as client:
             try:
