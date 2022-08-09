@@ -28,6 +28,7 @@ from . import db
 from .crud import (
     check_internal,
     create_payment,
+    update_payment_details,
     delete_payment,
     get_wallet,
     get_wallet_payment,
@@ -100,8 +101,8 @@ async def pay_invoice(
     invoice = bolt11.decode(payment_request)
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
-        temp_id = f"temp_{urlsafe_short_hash()}"
-        internal_id = f"internal_{urlsafe_short_hash()}"
+        temp_id = invoice.payment_hash
+        internal_id = f"internal_{invoice.payment_hash}"
 
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
@@ -181,22 +182,36 @@ async def pay_invoice(
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )
+
+        if payment.checking_id != temp_id:
+            logger.error(
+                f"backend sent unexpected checking_id (expected: {temp_id}, got: {payment.checking_id})"
+            )
+
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.ok and payment.checking_id:
-            logger.debug(f"creating final payment {payment.checking_id}")
+        if payment.ok:
+            logger.debug(f"setting payment as not pending {temp_id}")
             async with db.connect() as conn:
-                await create_payment(
-                    checking_id=payment.checking_id,
+                await update_payment_details(
+                    checking_id=temp_id,
+                    pending=False,
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
-                    pending=payment.ok == None,
-                    conn=conn,
-                    **payment_kwargs,
+                    new_checking_id=payment.checking_id,
                 )
-                logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_payment(temp_id, conn=conn)
-        else:
-            logger.debug(f"backend payment failed")
+                # await create_payment(
+                #     checking_id=payment.checking_id,
+                #     fee=payment.fee_msat,
+                #     preimage=payment.preimage,
+                #     pending=payment.ok == None,
+                #     conn=conn,
+                #     **payment_kwargs,
+                # )
+                # logger.debug(f"deleting temporary payment {temp_id}")
+                # await delete_payment(temp_id, conn=conn)
+                logger.debug(f"payment successful {payment.checking_id}")
+        elif payment.ok == False:
+            logger.debug(f"backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
@@ -204,7 +219,8 @@ async def pay_invoice(
                 payment.error_message
                 or "Payment failed, but backend didn't give us an error message."
             )
-        logger.debug(f"payment successful {payment.checking_id}")
+        else:
+            logger.warning(f"payment still in flight: {temp_id}")
     return invoice.payment_hash
 
 

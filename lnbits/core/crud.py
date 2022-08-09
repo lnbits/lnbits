@@ -404,6 +404,22 @@ async def update_payment_status(
     )
 
 
+async def update_payment_details(
+    checking_id: str,
+    pending: bool,
+    fee: int,
+    preimage: Optional[str] = None,
+    new_checking_id: Optional[str] = None,
+    conn: Optional[Connection] = None,
+) -> None:
+    new_checking_id = new_checking_id or checking_id
+    await (conn or db).execute(
+        "UPDATE apipayments SET checking_id = ?, pending = ?, fee = ?, preimage = ? WHERE checking_id = ?",
+        (new_checking_id, pending, fee, preimage, checking_id),
+    )
+    return
+
+
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:
     await (conn or db).execute(
         "DELETE FROM apipayments WHERE checking_id = ?", (checking_id,)
