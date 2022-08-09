@@ -182,7 +182,7 @@ async def pay_invoice(
             payment_request, fee_reserve_msat
         )
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.checking_id:
+        if payment.ok and payment.checking_id:
             logger.debug(f"creating final payment {payment.checking_id}")
             async with db.connect() as conn:
                 await create_payment(
@@ -196,7 +196,7 @@ async def pay_invoice(
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
         else:
-            logger.debug(f"backend payment failed, no checking_id {temp_id}")
+            logger.debug(f"backend payment failed")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
@@ -337,13 +337,16 @@ async def perform_lnurlauth(
             )
 
 
-async def check_invoice_status(
+async def check_transaction_status(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
     payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
     if not payment:
         return PaymentStatus(None)
-    status = await WALLET.get_invoice_status(payment.checking_id)
+    if payment.is_out:
+        status = await WALLET.get_payment_status(payment.checking_id)
+    else:
+        status = await WALLET.get_invoice_status(payment.checking_id)
     if not payment.pending:
         return status
     if payment.is_out and status.failed:
