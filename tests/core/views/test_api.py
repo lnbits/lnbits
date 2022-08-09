@@ -12,7 +12,7 @@ from lnbits.core.views.api import (
     api_payments_create_invoice,
 )
 
-from ...helpers import get_random_invoice_data
+from ...helpers import get_random_invoice_data, is_regtest
 
 
 # check if the client is working
@@ -153,7 +153,11 @@ async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     response = await client.post(
         "/api/v1/payments", json=data, headers=adminkey_headers_from
     )
-    assert response.status_code < 300  # should pass
+    if is_regtest:
+        # no self payments
+        assert response.status_code == 520
+    else:
+        assert response.status_code < 300  # should pass
 
 
 # check POST /api/v1/payments/decode

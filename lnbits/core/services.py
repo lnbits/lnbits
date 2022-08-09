@@ -196,7 +196,7 @@ async def pay_invoice(
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
         else:
-            logger.debug(f"backend payment failed")
+            logger.error(f"backend payment failed")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
