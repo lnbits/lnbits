@@ -48,4 +48,4 @@ LNbits currently supports SQLite and PostgreSQL databases. There is a migration 
 
 ### Adding mock data to `mock_data.zip`
 
-`mock_data.zip` contains a few lines of sample SQLite data and is used in automated GitHub test to see whether your migration in `conv.py` works. Run your extension and save a few lines of data into a SQLite `your_extension.db` file. Unzip `tests/data/mock_data.zip`, add `your_extension.db` and zip it again. Add the updated `mock_data.zip` to your PR.
+`mock_data.zip` contains a few lines of sample SQLite data and is used in automated GitHub test to see whether your migration in `conv.py` works. Run your extension and save a few lines of data into a SQLite `your_extension.sqlite3` file. Unzip `tests/data/mock_data.zip`, add `your_extension.sqlite3` and zip it again. Add the updated `mock_data.zip` to your PR.
