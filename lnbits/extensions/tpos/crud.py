@@ -47,3 +47,22 @@ async def get_tposs(wallet_ids: Union[str, List[str]]) -> List[TPoS]:
 
 async def delete_tpos(tpos_id: str) -> None:
     await db.execute("DELETE FROM tpos.tposs WHERE id = ?", (tpos_id,))
+
+def bech32_decode(bech):
+    """tweaked version of bech32_decode that ignores length limitations"""
+    if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (
+        bech.lower() != bech and bech.upper() != bech
+    ):
+        return
+    bech = bech.lower()
+    device = bech.rfind("1")
+    if device < 1 or device + 7 > len(bech):
+        return
+    if not all(x in bech32.CHARSET for x in bech[device + 1 :]):
+        return
+    hrp = bech[:device]
+    data = [bech32.CHARSET.find(x) for x in bech[device + 1 :]]
+    encoding = bech32.bech32_verify_checksum(hrp, data)
+    if encoding is None:
+        return
+    return bytes(bech32.convertbits(data[:-6], 5, 8, False))

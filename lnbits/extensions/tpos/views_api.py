@@ -14,7 +14,7 @@ from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import tpos_ext
-from .crud import create_tpos, delete_tpos, get_tpos, get_tposs
+from .crud import create_tpos, delete_tpos, get_tpos, get_tposs, bech32_decode
 from .models import CreateTposData, PayLnurlWData
 
 
@@ -87,9 +87,14 @@ async def api_tpos_pay_invoice(
 ):
     tpos = await get_tpos(tpos_id)
 
-    #todo!
-    lnurl = lnurl_data.lnurl.replace("lnurlw://", "https://")
-    print("CALLING")
+    lnurl = lnurl_data.lnurl.replace("lnurlw://", "").replace("lightning://", "").replace("LIGHTNING://", "").replace("lightning:", "").replace("LIGHTNING:", "")
+    
+    if(lnurl.lower().startswith("lnurl")):
+        lnurl = bech32_decode(lnurl)
+    else:
+        lnurl = "https://" + lnurl
+
+    print('lnurl')
     print(lnurl)
 
     if not tpos:
