@@ -18,14 +18,14 @@ async def invoices_wallet():
 
 
 @pytest_asyncio.fixture
-async def invoice(invoices_wallet):
+async def accounting_invoice(invoices_wallet):
     invoice_data = CreateInvoiceData(
         status="open",
         currency="USD",
         company_name="LNBits, Inc",
         first_name="Ben",
         last_name="Arc",
-        items=[{"amount": 10.2, "description": "Item 1"}],
+        items=[{"amount": 10.20, "description": "Item costs 10.20"}],
     )
     invoice = await create_invoice_internal(
         wallet_id=invoices_wallet.id, data=invoice_data

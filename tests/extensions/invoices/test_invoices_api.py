@@ -2,8 +2,14 @@ import pytest
 import pytest_asyncio
 
 from lnbits.core.crud import get_wallet
-from tests.conftest import client, inkey_headers_from, invoice
-from tests.extensions.invoices.conftest import invoice, invoices_wallet
+from tests.conftest import (
+    adminkey_headers_from,
+    adminkey_headers_to,
+    client,
+    inkey_headers_from,
+    invoice,
+)
+from tests.extensions.invoices.conftest import accounting_invoice, invoices_wallet
 from tests.helpers import credit_wallet
 from tests.mocks import WALLET
 
@@ -51,11 +57,39 @@ async def test_invoices_api_create_invoice_valid(client, invoices_wallet):
 
 
 @pytest.mark.asyncio
-async def test_invoices_api_partial_pay_invoice(client, invoices_wallet, invoice):
-    invoice_id = invoice["id"]
-    amount_to_pay = 5 * 100  # mock invoice is 10 USD
+async def test_invoices_api_partial_pay_invoice(client, accounting_invoice, adminkey_headers_to):
+    invoice_id = accounting_invoice["id"]
+    amount_to_pay = 10 * 100  # mock invoice total amount is 10 USD
 
+    # ask for an invoice
     response = await client.post(
         f"/invoices/api/v1/invoice/{invoice_id}/payments?famount={amount_to_pay}"
     )
     assert response.status_code == 201
+    data = response.json()
+    payment_hash = data["payment_hash"]
+
+    # pay the invoice
+    data = {"out": True, "bolt11": data["payment_request"]}
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_to
+    )
+    assert response.status_code < 300
+    assert len(response.json()["payment_hash"]) == 64
+    assert len(response.json()["checking_id"]) > 0
+
+    # check invoice is paid
+    response = await client.get(
+        f"/invoices/api/v1/invoice/{invoice_id}/payments/{payment_hash}"
+    )
+    assert response.status_code == 200
+    assert response.json()["paid"] == True
+
+    # check invoice status
+    response = await client.get(f"/invoices/api/v1/invoice/{invoice_id}")
+    assert response.status_code == 200
+    data = response.json()
+
+    print(data)
+    assert data["status"] == "open"
+
