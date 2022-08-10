@@ -232,16 +232,22 @@ chmod +x mkcert-v*-linux-amd64
 sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 ```
 #### Create certificate
-To create a certificate, first `cd` into your lnbits folder and execute the following command ([more info](https://kifarunix.com/how-to-create-self-signed-ssl-certificate-with-mkcert-on-ubuntu-18-04/))
+To create a certificate, first `cd` into your LNbits folder and execute the following command on Linux:
+```sh
+openssl req -new -newkey rsa:4096 -x509 -sha256 -days 3650 -nodes -out cert.pem -keyout key.pem
+```
+This will create two new files (`key.pem` and `cert.pem `). 
+
+Alternatively, you can use mkcert ([more info](https://kifarunix.com/how-to-create-self-signed-ssl-certificate-with-mkcert-on-ubuntu-18-04/)):
 ```sh
 # add your local IP (192.x.x.x) as well if you want to use it in your local network
 mkcert localhost 127.0.0.1 ::1
 ```
 
-This will create two new files (`localhost-key.pem` and `localhost.pem `) which you can then pass to uvicorn when you start LNbits:
+You can then pass the certificate files to uvicorn when you start LNbits:
 
 ```sh
-./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./localhost-key.pem --ssl-certfile ./localhost.pem
+./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
 ```
 
 
