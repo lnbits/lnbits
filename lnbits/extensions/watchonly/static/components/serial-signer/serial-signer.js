@@ -70,6 +70,7 @@ async function serialSigner(path) {
 
           navigator.serial.addEventListener('disconnect', () => {
             console.log('### navigator.serial event: disconnected!', event)
+            this.selectedPort = null
             this.hww.authenticated = false
             this.$q.notify({
               type: 'warning',
@@ -113,14 +114,12 @@ async function serialSigner(path) {
               /* Ignore the error */
             })
           if (this.selectedPort) await this.selectedPort.close()
-          this.selectedPort = null
           this.$q.notify({
             type: 'positive',
             message: 'Serial port disconnected!',
             timeout: 5000
           })
         } catch (error) {
-          this.selectedPort = null
           this.$q.notify({
             type: 'warning',
             message: 'Cannot close serial port!',
@@ -128,6 +127,7 @@ async function serialSigner(path) {
             timeout: 10000
           })
         } finally {
+          this.selectedPort = null
           this.hww.authenticated = false
         }
       },
@@ -442,8 +442,47 @@ async function serialSigner(path) {
         })
       },
       hwwHelp: async function () {
+        const sharedSecret =
+          'f96c85875055a5586688fea4cf7c4a2bd9541ffcf34f9d663d97e0cf2f6af4af'
+        const sharedSecretBytes = hexToBytes(sharedSecret)
+        console.log('### sharedSecret', sharedSecret)
+        const key = await window.crypto.subtle.importKey(
+          'raw',
+          sharedSecretBytes,
+          {
+            name: 'AES-CBC',
+            length: 256
+          },
+          true,
+          ['encrypt', 'decrypt']
+        )
+        // d2b9e5e3ff8945236455424e9e25590b8264f13c7484862cca4f5b7b8bf8f1686d218b4f1aacdc27a1df71fa4b530adfd6c8cae6bd926d3f8be8ff55ee4358d1a32569e9f5263ffae7d0eaf413788498
+        // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        // 6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710
+        // 8f13a7763f021d7701f4100631f6c3d80576fcd0e3718b2594ceb7b910ceed29a334d1019dd6f0ffdba5b6be8c11637d6124d7adbd29c88af13800cb1f980f7d
+
+        const message =
+          'TextMustBe16ByteTextMustBe16ByteTextMustBe16ByteTextMustBe16Byte'
+        const encoded = asciiToUint8Array(message)
+        const encrypted = await encryptMessage(key, encoded)
+        const encryptedHex = bytesToHex(encrypted)
+        console.log('### encrypted hex: ', encryptedHex)
+
+        const encryptedHex2 = await encryptMessage2(sharedSecretBytes, message)
+        console.log('### encryptedHex2', encryptedHex2)
+
+        const decrypted = await decryptMessage(key, encrypted)
+        console.log(
+          '### decrypted hex: ',
+          bytesToHex(new Uint8Array(decrypted))
+        )
+        console.log(
+          '### decrypted ascii: ',
+          new TextDecoder().decode(new Uint8Array(decrypted))
+        )
+
         try {
-          await this.writer.write(COMMAND_HELP + '\n')
+          await this.writer.write(COMMAND_HELP + ' ' + encryptedHex + '\n')
           this.$q.notify({
             type: 'positive',
             message: 'Check display or console for details!',
