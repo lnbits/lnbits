@@ -127,7 +127,7 @@ class LndRestWallet(Wallet):
 
         if r.is_error or r.json().get("payment_error"):
             error_message = r.json().get("payment_error") or r.text
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
         checking_id = base64.b64decode(data["payment_hash"]).hex()

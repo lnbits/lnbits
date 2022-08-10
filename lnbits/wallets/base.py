@@ -18,7 +18,7 @@ class PaymentResponse(NamedTuple):
     # when ok is None it means we don't know if this succeeded
     ok: Optional[bool] = None
     checking_id: Optional[str] = None  # payment_hash, rcp_id
-    fee_msat: int = 0
+    fee_msat: Optional[int] = None
     preimage: Optional[str] = None
     error_message: Optional[str] = None
 
