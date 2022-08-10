@@ -46,8 +46,16 @@ async def api_invoice(invoice_id: str):
             status_code=HTTPStatus.NOT_FOUND, detail="Invoice does not exist."
         )
     invoice_items = await get_invoice_items(invoice_id)
+    
+    invoice_payments = await get_invoice_payments(invoice_id)
+    payments_total = await get_payments_total(invoice_payments)
+
+    logger.debug(f"INVOICE PAYMENTS {invoice_payments}, invoice id: {invoice_id}")
+    logger.debug(f"PAYMENTS TOTAL {payments_total}, invoice id: {invoice_id}")
+    
     invoice_dict = invoice.dict()
     invoice_dict["items"] = invoice_items
+    invoice_dict["payments"] = payments_total
     return invoice_dict
 
 
