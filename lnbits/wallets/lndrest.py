@@ -21,16 +21,6 @@ from .base import (
 from .macaroon import AESCipher, load_macaroon
 
 
-def lndrest_hex_to_b64(hex_string: str) -> str:
-    """
-    Why.
-    """
-    b64str = base64.b64encode(bytes.fromhex(hex_string)).decode("ascii")
-    b64str = b64str.replace("/", "_")
-    b64str = b64str.replace("+", "-")  # AAAARGGHHH LND!!!!
-    return b64str
-
-
 class LndRestWallet(Wallet):
     """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
 
@@ -154,7 +144,9 @@ class LndRestWallet(Wallet):
         """
         # convert checking_id from hex to base64 and some LND magic
         try:
-            checking_id = lndrest_hex_to_b64(checking_id)
+            checking_id = base64.urlsafe_b64encode(bytes.fromhex(checking_id)).decode(
+                "ascii"
+            )
         except ValueError:
             return PaymentStatus(None)
 
