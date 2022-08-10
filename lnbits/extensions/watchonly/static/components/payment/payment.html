@@ -1,0 +1,312 @@
+<div>
+  <q-form @submit="checkAndSend" ref="paymentFormRef" class="q-gutter-md">
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <send-to
+          :data.sync="sendToList"
+          :fee-rate="feeRate"
+          :tx-size="txSizeNoChange"
+          :selected-amount="selectedAmount"
+          :sats-denominated="satsDenominated"
+          @update:outputs="handleOutputsChange"
+        ></send-to>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <div class="row items-center no-wrap">
+          <div class="col-4">
+            <q-toggle
+              label="Show Custom Fee"
+              color="secodary"
+              class="float-left"
+              v-model="showCustomFee"
+            ></q-toggle>
+          </div>
+
+          <div class="col-8">
+            <div class="float-right">
+              <span>Fee Rate:</span>
+              <span class="text-subtitle2 q-ml-md">
+                {{feeRate}} sats/vbyte</span
+              >
+              <span class="q-ml-lg">Fee:</span>
+              <span class="text-subtitle2 q-ml-md"> {{satBtc(feeValue)}} </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-show="showCustomFee" class="row items-center no-wrap q-mt-md">
+          <div class="col-12">
+            <q-separator class="q-mb-md"></q-separator>
+            <fee-rate
+              :fee-value="feeValue"
+              :rate.sync="feeRate"
+              :mempool-endpoint="mempoolEndpoint"
+              :sats-denominated="satsDenominated"
+            ></fee-rate>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <div class="row items-center no-wrap">
+          <div class="col-4">
+            <q-toggle
+              label="Show Coin Select"
+              color="secodary"
+              class="float-left"
+              v-model="showCoinSelect"
+            ></q-toggle>
+          </div>
+
+          <div class="col-8">
+            <div class="float-right">
+              <span>Balance:</span>
+              <span class="text-subtitle2 q-ml-md"> {{satBtc(balance)}} </span>
+              <span class="q-ml-lg">Selected:</span>
+              <span class="text-subtitle2 q-ml-md">
+                {{satBtc(selectedAmount)}}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-show="showCoinSelect" class="row items-center no-wrap q-mt-md">
+          <div class="col-12">
+            <q-separator class="q-mb-md"></q-separator>
+            <utxo-list
+              ref="utxoList"
+              :utxos="utxos"
+              :selectable="true"
+              :payed-amount="totalPayedAmount"
+              :mempool-endpoint="mempoolEndpoint"
+              :sats-denominated="satsDenominated"
+              :accounts="accounts"
+            ></utxo-list>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <q-card class="q-mt-lg">
+      <q-card-section>
+        <div class="row items-center no-wrap">
+          <div class="col-4">
+            <q-toggle
+              label="Show Change"
+              color="secodary"
+              class="float-left"
+              v-model="showChange"
+            ></q-toggle>
+          </div>
+
+          <div class="col-4">
+            <q-badge
+              v-if="changeAmount > 0 && changeAmount < DUST_LIMIT"
+              class="text-subtitle2 float-right"
+              color="yellow"
+              text-color="black"
+            >
+              Below dust limit. Will be used as fee.
+            </q-badge>
+          </div>
+          <div class="col-4">
+            <div class="float-right">
+              <span>Change:</span>
+              <span v-if="changeAmount < 0" class="text-subtitle2 q-ml-md">
+                {{satBtc(0)}}
+              </span>
+              <span v-if="changeAmount >= 0" class="text-subtitle2 q-ml-md">
+                {{satBtc(changeAmount)}}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-show="showChange" class="row items-center no-wrap q-mt-md">
+          <div class="col-12">
+            <q-separator class="q-mb-md"></q-separator>
+            <div class="row items-center no-wrap">
+              <div class="col-2 q-pr-lg">Change Account:</div>
+              <div class="col-3 q-pr-lg">
+                <q-select
+                  filled
+                  dense
+                  emit-value
+                  v-model="changeWallet"
+                  :options="accounts"
+                  @input="selectChangeAddress"
+                  :rules="[val => !!val || 'Field is required']"
+                  label="Wallet Account"
+                ></q-select>
+              </div>
+              <div class="col-7">
+                <q-input
+                  filled
+                  dense
+                  readonly
+                  v-model.trim="changeAddress.address"
+                  :rules="[val => !!val || 'Field is required']"
+                  type="text"
+                  label="Change Address"
+                ></q-input>
+              </div>
+            </div>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+
+    <div class="row items-center no-wrap q-mb-md q-pt-lg">
+      <div class="col-3">
+        <q-btn-dropdown
+          split
+          unelevated
+          :disabled="changeAmount < 0 || showChecking"
+          label="Check & Send"
+          color="green"
+          type="submit"
+          class="btn-full"
+        >
+          <q-list>
+            <q-item :disabled="changeAmount < 0" clickable v-close-popup>
+              <q-item-section>
+                <q-item-label>Serial Port</q-item-label>
+                <q-item-label caption>
+                  Sign using a Serial Port device</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+            <q-item @click="showPsbtDialog" clickable v-close-popup>
+              <q-item-section>
+                <q-item-label>Share PSBT</q-item-label>
+                <q-item-label caption
+                  >Share the PSBT as text or Animated QR Code</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+      </div>
+
+      <div class="col-9">
+        <q-spinner
+          v-if="showChecking"
+          size="2.55em"
+          color="primary"
+        ></q-spinner>
+        <q-badge
+          v-if="changeAmount < 0"
+          class="text-subtitle2 float-right"
+          color="yellow"
+          text-color="black"
+        >
+          The payed amount is higher than the selected amount!
+        </q-badge>
+      </div>
+    </div>
+  </q-form>
+  <q-dialog v-model="showPsbt" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-input
+        filled
+        dense
+        v-model.trim="psbtBase64"
+        type="textarea"
+        rows="25"
+        cols="200"
+        label="PSBT"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="showFinalTx" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <div class="row items-center no-wrap q-mb-sm">
+        <div class="col-12">
+          <span class="text-subtitle1">Transaction Details</span>
+        </div>
+      </div>
+      <q-separator class="q-mb-lg"></q-separator>
+      <div v-if="signedTx" class="row items-center no-wrap q-mb-md">
+        <div class="col-12">
+          <div class="row items-center no-wrap q-mb-sm">
+            <div class="col-3 q-pr-lg">Version</div>
+            <div class="col-9">{{signedTx.version}}</div>
+          </div>
+          <div class="row items-center no-wrap q-mb-sm">
+            <div class="col-3 q-pr-lg">Locktime</div>
+            <div class="col-9">{{signedTx.locktime}}</div>
+          </div>
+          <div class="row items-center no-wrap q-mb-sm">
+            <div class="col-3 q-pr-lg">Fee</div>
+            <div class="col-9">
+              <q-badge color="orange">{{satBtc(signedTx.fee)}} </q-badge>
+            </div>
+          </div>
+          <q-separator class="q-mb-lg"></q-separator>
+          <span class="text-subtitle2">Outputs</span>
+          <q-separator class="q-mb-lg"></q-separator>
+          <div
+            v-for="out in signedTx.outputs"
+            class="row items-center no-wrap q-mb-sm"
+          >
+            <div class="col-3 q-pr-lg">
+              <q-badge color="orange">{{satBtc(out.amount)}}</q-badge>
+            </div>
+
+            <div class="col-9">
+              <q-badge outline color="blue">{{out.address}}</q-badge>
+            </div>
+          </div>
+        </div>
+      </div>
+      <q-separator class="q-mb-lg"></q-separator>
+      <div class="row q-mt-lg">
+        <div class="col-12">
+          <q-input
+            filled
+            dense
+            v-model.trim="signedTxHex"
+            type="textarea"
+            cols="300"
+            rows="1"
+            label="Signed Tx Hex"
+          ></q-input>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <div class="col-12">
+          <q-input
+            filled
+            dense
+            v-model.trim="psbtBase64Signed"
+            ype="textarea"
+            cols="300"
+            rows="1"
+            label="PSBT"
+          ></q-input>
+        </div>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn
+          unelevated
+          color="secondary"
+          class="float-left"
+          @click="broadcastTransaction"
+          >Send</q-btn
+        >
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>

@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import hashlib
 import json
 import urllib.parse
 from os import getenv
@@ -72,7 +73,7 @@ class EclairWallet(Wallet):
 
         data: Dict = {"amountMsat": amount * 1000}
         if description_hash:
-            data["description_hash"] = description_hash.hex()
+            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
         else:
             data["description"] = memo or ""
 

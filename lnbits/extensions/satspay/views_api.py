@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 import httpx
-from fastapi import Query
 from fastapi.params import Depends
 from starlette.exceptions import HTTPException
 
@@ -31,7 +30,12 @@ async def api_charge_create(
     data: CreateCharge, wallet: WalletTypeInfo = Depends(require_invoice_key)
 ):
     charge = await create_charge(user=wallet.wallet.user, data=data)
-    return charge.dict()
+    return {
+        **charge.dict(),
+        **{"time_elapsed": charge.time_elapsed},
+        **{"time_left": charge.time_left},
+        **{"paid": charge.paid},
+    }
 
 
 @satspay_ext.put("/api/v1/charge/{charge_id}")
@@ -51,6 +55,7 @@ async def api_charges_retrieve(wallet: WalletTypeInfo = Depends(get_key_type)):
             {
                 **charge.dict(),
                 **{"time_elapsed": charge.time_elapsed},
+                **{"time_left": charge.time_left},
                 **{"paid": charge.paid},
             }
             for charge in await get_charges(wallet.wallet.user)
@@ -73,6 +78,7 @@ async def api_charge_retrieve(
     return {
         **charge.dict(),
         **{"time_elapsed": charge.time_elapsed},
+        **{"time_left": charge.time_left},
         **{"paid": charge.paid},
     }
 
@@ -93,9 +99,18 @@ async def api_charge_delete(charge_id, wallet: WalletTypeInfo = Depends(get_key_
 #############################BALANCE##########################
 
 
-@satspay_ext.get("/api/v1/charges/balance/{charge_id}")
-async def api_charges_balance(charge_id):
+@satspay_ext.get("/api/v1/charges/balance/{charge_ids}")
+async def api_charges_balance(charge_ids):
+    charge_id_list = charge_ids.split(",")
+    charges = []
+    for charge_id in charge_id_list:
+        charge = await api_charge_balance(charge_id)
+        charges.append(charge)
+    return charges
 
+
+@satspay_ext.get("/api/v1/charge/balance/{charge_id}")
+async def api_charge_balance(charge_id):
     charge = await check_address_balance(charge_id)
 
     if not charge:
@@ -125,23 +140,9 @@ async def api_charges_balance(charge_id):
                 )
             except AssertionError:
                 charge.webhook = None
-    return charge.dict()
-
-
-#############################MEMPOOL##########################
-
-
-@satspay_ext.put("/api/v1/mempool")
-async def api_update_mempool(
-    endpoint: str = Query(...), wallet: WalletTypeInfo = Depends(get_key_type)
-):
-    mempool = await update_mempool(endpoint, user=wallet.wallet.user)
-    return mempool.dict()
-
-
-@satspay_ext.route("/api/v1/mempool")
-async def api_get_mempool(wallet: WalletTypeInfo = Depends(get_key_type)):
-    mempool = await get_mempool(wallet.wallet.user)
-    if not mempool:
-        mempool = await create_mempool(user=wallet.wallet.user)
-    return mempool.dict()
+    return {
+        **charge.dict(),
+        **{"time_elapsed": charge.time_elapsed},
+        **{"time_left": charge.time_left},
+        **{"paid": charge.paid},
+    }

@@ -48,7 +48,7 @@ from ..crud import (
 from ..services import (
     InvoiceFailure,
     PaymentFailure,
-    check_invoice_status,
+    check_transaction_status,
     create_invoice,
     pay_invoice,
     perform_lnurlauth,
@@ -123,7 +123,7 @@ async def api_payments(
         offset=offset,
     )
     for payment in pendingPayments:
-        await check_invoice_status(
+        await check_transaction_status(
             wallet_id=payment.wallet_id, payment_hash=payment.payment_hash
         )
     return await get_payments(
@@ -184,10 +184,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
 
     lnurl_response: Union[None, bool, str] = None
     if data.lnurl_callback:
-        if "lnurl_balance_check" in data:
-            assert (
-                data.lnurl_balance_check is not None
-            ), "lnurl_balance_check is required"
+        if data.lnurl_balance_check is not None:
             await save_balance_check(wallet.id, data.lnurl_balance_check)
 
         async with httpx.AsyncClient() as client:
@@ -245,8 +242,6 @@ async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
 
 @core_app.post(
     "/api/v1/payments",
-    # deprecated=True,
-    # description="DEPRECATED. Use /api/v2/TBD and /api/v2/TBD instead",
     status_code=HTTPStatus.CREATED,
 )
 async def api_payments_create(
@@ -407,7 +402,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment does not exist."
         )
-    await check_invoice_status(payment.wallet_id, payment_hash)
+    await check_transaction_status(payment.wallet_id, payment_hash)
     payment = await get_standalone_payment(
         payment_hash, wallet_id=wallet.id if wallet else None
     )

@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import hashlib
 import json
 from os import getenv
 from pydoc import describe
@@ -75,9 +76,9 @@ class LndRestWallet(Wallet):
     ) -> InvoiceResponse:
         data: Dict = {"value": amount, "private": True}
         if description_hash:
-            data["description_hash"] = base64.b64encode(description_hash).decode(
-                "ascii"
-            )
+            data["description_hash"] = base64.b64encode(
+                hashlib.sha256(description_hash).digest()
+            ).decode("ascii")
         else:
             data["memo"] = memo or ""
 
@@ -141,15 +142,10 @@ class LndRestWallet(Wallet):
         return PaymentStatus(True)
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
-        async with httpx.AsyncClient(verify=self.cert) as client:
-            r = await client.get(
-                url=f"{self.endpoint}/v1/payments",
-                headers=self.auth,
-                params={"max_payments": "20", "reversed": True},
-            )
-
-        if r.is_error:
-            return PaymentStatus(None)
+        """
+        This routine checks the payment status using routerpc.TrackPaymentV2.
+        """
+        url = f"{self.endpoint}/v2/router/track/{checking_id}"
 
         # check payment.status:
         # https://api.lightning.community/rest/index.html?python#peersynctype
@@ -160,14 +156,27 @@ class LndRestWallet(Wallet):
             "FAILED": False,
         }
 
-        # for some reason our checking_ids are in base64 but the payment hashes
-        # returned here are in hex, lnd is weird
-        checking_id = checking_id.replace("_", "/")
-        checking_id = base64.b64decode(checking_id).hex()
-
-        for p in r.json()["payments"]:
-            if p["payment_hash"] == checking_id:
-                return PaymentStatus(statuses[p["status"]])
+        async with httpx.AsyncClient(
+            timeout=None, headers=self.auth, verify=self.cert
+        ) as client:
+            async with client.stream("GET", url) as r:
+                async for l in r.aiter_lines():
+                    try:
+                        line = json.loads(l)
+                        if line.get("error"):
+                            logger.error(
+                                line["error"]["message"]
+                                if "message" in line["error"]
+                                else line["error"]
+                            )
+                            return PaymentStatus(None)
+                        payment = line.get("result")
+                        if payment is not None and payment.get("status"):
+                            return PaymentStatus(statuses[payment["status"]])
+                        else:
+                            return PaymentStatus(None)
+                    except:
+                        continue
 
         return PaymentStatus(None)
 
@@ -190,10 +199,8 @@ class LndRestWallet(Wallet):
 
                             payment_hash = base64.b64decode(inv["r_hash"]).hex()
                             yield payment_hash
-            except (OSError, httpx.ConnectError, httpx.ReadError):
-                pass
-
-            logger.error(
-                "lost connection to lnd invoices stream, retrying in 5 seconds"
-            )
-            await asyncio.sleep(5)
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to lnd invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
