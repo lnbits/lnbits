@@ -10,6 +10,7 @@ const COMMAND_RESTORE = '/restore'
 const COMMAND_CONFIRM_NEXT = '/confirm-next'
 const COMMAND_CANCEL = '/cancel'
 const COMMAND_XPUB = '/xpub'
+const COMMAND_DH_EXCHANGE = '/dh-exchange'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
 
@@ -184,57 +185,13 @@ function findAccountPathIssues(path = '') {
 
 ///////////////
 let ivHex = '000102030405060708090a0b0c0d0e0f'
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (c = 0; c < hex.length; c += 2)
-    bytes[c / 2] = parseInt(hex.substr(c, 2), 16)
-  return bytes
-}
-function bytesToHex(bytes) {
-  for (var hex = [], i = 0; i < bytes.length; i++) {
-    var current = bytes[i] < 0 ? bytes[i] + 256 : bytes[i]
-    hex.push((current >>> 4).toString(16))
-    hex.push((current & 0xf).toString(16))
-  }
-  return hex.join('')
-}
+
 function asciiToUint8Array(str) {
   var chars = []
   for (var i = 0; i < str.length; ++i) {
     chars.push(str.charCodeAt(i))
   }
   return new Uint8Array(chars)
-}
-async function encryptMessage2(key, text) {
-  console.log('### key', bytesToHex(key))
-  iv = new Uint8Array([
-    0x00,
-    0x01,
-    0x02,
-    0x03,
-    0x04,
-    0x05,
-    0x06,
-    0x07,
-    0x08,
-    0x09,
-    0x0a,
-    0x0b,
-    0x0c,
-    0x0d,
-    0x0e,
-    0x0f
-  ])
-  var textBytes = aesjs.utils.utf8.toBytes(text)
-  console.log('### textBytes2', bytesToHex(textBytes))
-  console.log('### iv', bytesToHex(iv))
-
-  var aesCbc = new aesjs.ModeOfOperation.cbc(key, iv)
-  var encryptedBytes = aesCbc.encrypt(textBytes)
-
-  // To print or store the binary data, you may convert it to hex
-  var encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes)
-  return encryptedHex
 }
 
 async function encryptMessage(key, message) {
@@ -302,38 +259,3 @@ async function decryptMessage(key, ciphertext) {
 
   return decrypted
 }
-
-// TODO: weak: must re-check
-// from https://stackoverflow.com/a/51838635/9014097
-function toStdBase64(input) {
-  input = input.replace(/-/g, '+').replace(/_/g, '/')
-  var pad = input.length % 4
-  if (pad) {
-    input += new Array(5 - pad).join('=')
-  }
-  return input
-}
-
-// TODO: weak: must re-check
-function base64ToHex(str) {
-  const raw = atob(str)
-  let result = ''
-  for (let i = 0; i < raw.length; i++) {
-    const hex = raw.charCodeAt(i).toString(16)
-    result += hex.length === 2 ? hex : '0' + hex
-  }
-  return result.toUpperCase()
-}
-
-function buf2hex(buffer) {
-  // buffer is an ArrayBuffer
-  return [...new Uint8Array(buffer)]
-    .map(x => x.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-// Alice private key
-// 359A8CA1418C49DD26DC7D92C789AC33347F64C6B7789C666098805AF3CC60E5
-
-// Bob private key
-// AB52F1F981F639BD83F884703BC690B10DB709FF48806680A0D3FBC6475E6093
