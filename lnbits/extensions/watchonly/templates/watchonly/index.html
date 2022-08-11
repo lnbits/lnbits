@@ -170,7 +170,17 @@
         ></qrcode>
       </q-responsive>
       <p v-if="currentAddress">
+        <q-btn
+          flat
+          dense
+          size="ms"
+          icon="content_copy"
+          @click="copyText(props.row.address)"
+          class="q-ml-sm"
+        ></q-btn>
+
         {{ currentAddress.address }}
+
         <q-btn
           flat
           dense
