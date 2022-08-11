@@ -4,6 +4,7 @@ import logging
 import sys
 import traceback
 import warnings
+import signal
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
@@ -101,16 +102,27 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
 def check_funding_source(app: FastAPI) -> None:
     @app.on_event("startup")
     async def check_wallet_status():
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+        def signal_handler(signal, frame):
+            logger.debug("killing lnbits, Ctrl+C keyboard interrupt fired.")
+            sys.exit(1)
+
+        signal.signal(signal.SIGINT, signal_handler)
         while True:
-            error_message, balance = await WALLET.status()
-            if not error_message:
-                break
-            logger.error(
-                f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
-                RuntimeWarning,
-            )
-            logger.info("Retrying connection to backend in 5 seconds...")
-            await asyncio.sleep(5)
+            try:
+                error_message, balance = await WALLET.status()
+                if not error_message:
+                    break
+                logger.error(
+                    f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
+                    RuntimeWarning,
+                )
+                logger.info("Retrying connection to backend in 5 seconds...")
+                await asyncio.sleep(5)
+            except:
+                logger.debug("check_wallet_status exited")
+        signal.signal(signal.SIGINT, original_sigint_handler)
         logger.info(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
         )
