@@ -99,6 +99,7 @@ async function walletList(path) {
       async network(newNet, oldNet) {
         if (newNet !== oldNet) {
           await this.refreshWalletAccounts()
+          this.handleAddressTypeChanged(this.addressTypeOptions[1])
         }
       }
     },
