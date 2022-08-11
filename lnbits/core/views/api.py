@@ -349,8 +349,8 @@ async def subscribe(request: Request, wallet: Wallet):
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
-    logger.debug("adding sse listener", payment_queue)
-    api_invoice_listeners.append(payment_queue)
+    logger.debug(f"adding sse listener for wallet: {this_wallet_id}")
+    api_invoice_listeners[this_wallet_id] = payment_queue
 
     send_queue: asyncio.Queue[Tuple[str, Payment]] = asyncio.Queue(0)
 
@@ -358,7 +358,7 @@ async def subscribe(request: Request, wallet: Wallet):
         while True:
             payment: Payment = await payment_queue.get()
             if payment.wallet_id == this_wallet_id:
-                logger.debug("payment receieved", payment)
+                logger.debug("sse listener: payment receieved", payment)
                 await send_queue.put(("payment-received", payment))
 
     asyncio.create_task(payment_received())

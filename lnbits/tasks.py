@@ -2,7 +2,7 @@ import asyncio
 import time
 import traceback
 from http import HTTPStatus
-from typing import Callable, List
+from typing import Callable, List, Dict
 
 from fastapi.exceptions import HTTPException
 from loguru import logger
@@ -48,15 +48,33 @@ async def send_push_promise(a, b) -> None:
     pass
 
 
-invoice_listeners: List[asyncio.Queue] = []
+class SseListenersDict(dict):
+    def __init__(self, name: str = None):
+        self.name = name or "sse_listener"
+
+    def __setitem__(self, key, value):
+        assert key not in self, f"{key} already in {self.name}"
+        assert value not in self.values(), f"{value} already in {self.name}"
+        assert type(key) == str, f"{key} is not a string"
+        assert type(value) == asyncio.Queue, f"{value} is not an asyncio.Queue"
+        logger.debug(f"adding sse listener to {self.name}. len = {len(self)+1}")
+        return dict.__setitem__(self, key, value)
+
+    def __delitem__(self, key):
+        logger.debug(f"removing sse listener from {self.name}. len = {len(self)-1}")
+        return dict.__delitem__(self, key)
 
 
-def register_invoice_listener(send_chan: asyncio.Queue):
+invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
+
+
+def register_invoice_listener(send_chan: asyncio.Queue, name: str = "no_name"):
     """
     A method intended for extensions to call when they want to be notified about
     new invoice payments incoming.
     """
-    invoice_listeners.append(send_chan)
+    logger.debug(f"registering invoice listener {name}")
+    invoice_listeners[name] = send_chan
 
 
 async def webhook_handler():
@@ -72,6 +90,7 @@ internal_invoice_queue: asyncio.Queue = asyncio.Queue(0)
 async def internal_invoice_listener():
     while True:
         checking_id = await internal_invoice_queue.get()
+        logger.info("> got internal payment notification", checking_id)
         asyncio.create_task(invoice_callback_dispatcher(checking_id))
 
 
@@ -117,7 +136,8 @@ async def perform_balance_checks():
 async def invoice_callback_dispatcher(checking_id: str):
     payment = await get_standalone_payment(checking_id, incoming=True)
     if payment and payment.is_in:
-        logger.trace("sending invoice callback for payment", checking_id)
+        logger.debug(f"sending invoice callback for payment {checking_id}")
         await payment.set_pending(False)
-        for send_chan in invoice_listeners:
+        for chan_name, send_chan in invoice_listeners.items():
+            logger.debug(f"sending to chan: {chan_name}")
             await send_chan.put(payment)

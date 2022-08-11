@@ -46,8 +46,8 @@ async def api_public_payment_longpolling(payment_hash):
 
     payment_queue = asyncio.Queue(0)
 
-    logger.debug("adding standalone invoice listener", payment_hash, payment_queue)
-    api_invoice_listeners.append(payment_queue)
+    logger.debug(f"adding standalone invoice listener for hash: {payment_hash}")
+    api_invoice_listeners[payment_hash] = payment_queue
 
     response = None
 

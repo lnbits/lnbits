@@ -1,21 +1,25 @@
 import asyncio
-from typing import List
+from typing import Dict
 
 import httpx
 from loguru import logger
 
-from lnbits.tasks import register_invoice_listener
+from lnbits.tasks import register_invoice_listener, SseListenersDict
+from lnbits.helpers import get_current_extension_name
 
 from . import db
 from .crud import get_balance_notify
 from .models import Payment
 
-api_invoice_listeners: List[asyncio.Queue] = []
+
+api_invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict(
+    "api_invoice_listeners"
+)
 
 
 async def register_task_listeners():
     invoice_paid_queue = asyncio.Queue(5)
-    register_invoice_listener(invoice_paid_queue)
+    register_invoice_listener(invoice_paid_queue, "core/tasks.py")
     asyncio.create_task(wait_for_paid_invoices(invoice_paid_queue))
 
 
@@ -42,12 +46,13 @@ async def wait_for_paid_invoices(invoice_paid_queue: asyncio.Queue):
 
 
 async def dispatch_invoice_listener(payment: Payment):
-    for send_channel in api_invoice_listeners:
+    for chan_name, send_channel in api_invoice_listeners.items():
         try:
+            logger.debug("sending invoice paid event to", chan_name)
             send_channel.put_nowait(payment)
         except asyncio.QueueFull:
-            logger.debug("removing sse listener", send_channel)
-            api_invoice_listeners.remove(send_channel)
+            logger.error(f"removing sse listener {send_channel}:{chan_name}")
+            api_invoice_listeners.pop(chan_name)
 
 
 async def dispatch_webhook(payment: Payment):
