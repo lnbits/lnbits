@@ -33,7 +33,7 @@ async function payment(path) {
         signedTxHex: null,
         sentTxId: null,
         signedTxId: null,
-        paymentTab: 'destination',
+
         sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
         changeAddress: {},
@@ -82,6 +82,17 @@ async function payment(path) {
     methods: {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this.satsDenominated)
+      },
+      clearState: function () {
+        this.psbtBase64 = null
+        this.psbtBase64Signed = null
+        this.signedTx = null
+        this.signedTxHex = null
+        this.signedTxId = null
+        this.sendToList = [{address: '', amount: undefined}]
+        this.showChecking = false
+        this.showPsbt = false
+        this.showFinalTx = false
       },
       checkAndSend: async function () {
         this.showChecking = true
@@ -289,8 +300,8 @@ async function payment(path) {
             timeout: 10000
           })
 
-          // todo: event rescan with amount
-          // todo: display tx id
+          this.clearState()
+          this.$emit('broadcast-done', this.sentTxId)
         } catch (error) {
           this.sentTxId = null
           this.$q.notify({
