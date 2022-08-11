@@ -1,5 +1,6 @@
 import pytest
 import pytest_asyncio
+from loguru import logger
 
 from lnbits.core.crud import get_wallet
 from tests.conftest import (
@@ -58,8 +59,49 @@ async def test_invoices_api_create_invoice_valid(client, invoices_wallet):
 
 @pytest.mark.asyncio
 async def test_invoices_api_partial_pay_invoice(client, accounting_invoice, adminkey_headers_to):
+    logger.debug(f"INV {accounting_invoice['id']}")
     invoice_id = accounting_invoice["id"]
-    amount_to_pay = 10 * 100  # mock invoice total amount is 10 USD
+    amount_to_pay = int(5.05 * 100)  # mock invoice total amount is 10 USD
+    logger.debug(f"AMOUNT: {amount_to_pay}")
+
+    # ask for an invoice
+    response = await client.post(
+        f"/invoices/api/v1/invoice/{invoice_id}/payments?famount={amount_to_pay}"
+    )
+    assert response.status_code < 300
+    data = response.json()
+    logger.debug(f"DATA: {data}")
+    payment_hash = data["payment_hash"]
+
+    # pay the invoice
+    data = {"out": True, "bolt11": data["payment_request"]}
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=adminkey_headers_to
+    )
+    assert response.status_code < 300
+    assert len(response.json()["payment_hash"]) == 64
+    assert len(response.json()["checking_id"]) > 0
+
+    # check invoice is paid
+    response = await client.get(
+        f"/invoices/api/v1/invoice/{invoice_id}/payments/{payment_hash}"
+    )
+    assert response.status_code == 200
+    assert response.json()["paid"] == True
+
+    # check invoice status
+    response = await client.get(f"/invoices/api/v1/invoice/{invoice_id}")
+    assert response.status_code == 200
+    data = response.json()
+
+    print(data)
+    assert data["status"] == "open"
+
+@pytest.mark.asyncio
+async def test_invoices_api_full_pay_invoice(client, accounting_invoice, adminkey_headers_to):
+    invoice_id = accounting_invoice["id"]
+    print(accounting_invoice["id"])
+    amount_to_pay = int(10.20 * 100)
 
     # ask for an invoice
     response = await client.post(
@@ -91,5 +133,5 @@ async def test_invoices_api_partial_pay_invoice(client, accounting_invoice, admi
     data = response.json()
 
     print(data)
-    assert data["status"] == "open"
+    assert data["status"] == "paid"
 
