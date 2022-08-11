@@ -389,6 +389,7 @@ const watchOnly = async () => {
       },
       handleBroadcastSuccess: async function (txId) {
         this.tab = 'history'
+        this.searchInTab({tab: 'history', value: txId})
         this.showPayment = false
         await this.refreshAddresses()
         await this.scanAddressWithAmount()
