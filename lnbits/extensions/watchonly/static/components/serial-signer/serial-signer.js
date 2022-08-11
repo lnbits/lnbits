@@ -69,7 +69,8 @@ async function serialSigner(path) {
           })
 
           navigator.serial.addEventListener('disconnect', () => {
-            console.log('### navigator.serial event: disconnected!', event)
+            console.log('### navigator.serial event: disconnected!')
+            this.selectedPort = null
             this.hww.authenticated = false
             this.$q.notify({
               type: 'warning',
@@ -113,14 +114,13 @@ async function serialSigner(path) {
               /* Ignore the error */
             })
           if (this.selectedPort) await this.selectedPort.close()
-          this.selectedPort = null
+
           this.$q.notify({
             type: 'positive',
             message: 'Serial port disconnected!',
             timeout: 5000
           })
         } catch (error) {
-          this.selectedPort = null
           this.$q.notify({
             type: 'warning',
             message: 'Cannot close serial port!',
@@ -128,6 +128,7 @@ async function serialSigner(path) {
             timeout: 10000
           })
         } finally {
+          this.selectedPort = null
           this.hww.authenticated = false
         }
       },
