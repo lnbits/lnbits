@@ -18,7 +18,6 @@ async function sendTo(path) {
           return this.data
         },
         set: function (value) {
-          console.log('### computed update data', value)
           this.$emit('update:data', value)
         }
       }

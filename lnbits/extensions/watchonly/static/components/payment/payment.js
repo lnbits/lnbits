@@ -150,7 +150,6 @@ async function payment(path) {
       },
       createPsbt: async function () {
         try {
-          console.log('### this.createPsbt')
           this.tx = this.createTx()
           for (const input of this.tx.inputs) {
             input.tx_hex = await this.fetchTxHex(input.tx_id)
@@ -244,8 +243,6 @@ async function payment(path) {
           this.showChecking = true
           this.psbtBase64Signed = psbtBase64
 
-          console.log('### payment updateSignedPsbt psbtBase64', psbtBase64)
-
           const data = await this.extractTxFromPsbt(psbtBase64)
           this.showFinalTx = true
           if (data) {
@@ -260,7 +257,6 @@ async function payment(path) {
         }
       },
       extractTxFromPsbt: async function (psbtBase64) {
-        console.log('### extractTxFromPsbt psbtBase64', psbtBase64)
         try {
           const {data} = await LNbits.api.request(
             'PUT',
@@ -271,13 +267,12 @@ async function payment(path) {
               inputs: this.tx.inputs
             }
           )
-          console.log('### extractTxFromPsbt data', data)
           return data
         } catch (error) {
-          console.log('### error', error)
           this.$q.notify({
             type: 'warning',
             message: 'Cannot finalize PSBT!',
+            caption: `${error}`,
             timeout: 10000
           })
           LNbits.utils.notifyApiError(error)

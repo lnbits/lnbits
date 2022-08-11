@@ -350,7 +350,6 @@ async function serialSigner(path) {
         }
       },
       handleLogoutResponse: function (res = '') {
-        console.log('### handleLogoutResponse', res)
         this.hww.authenticated = !(res.trim() === '1')
         if (this.psbtSentPromise) this.psbtSentPromise.reject()
         if (this.loginPromise) this.loginPromise.reject()
