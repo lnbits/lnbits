@@ -136,6 +136,7 @@
         :adminkey="g.user.wallets[0].adminkey"
         :serial-signer-ref="$refs.serialSigner"
         :sats-denominated="config.sats_denominated"
+        @broadcast-done="handleBroadcastSuccess"
       ></payment>
       <!-- todo: no more utxos.data -->
     </div>
@@ -176,7 +177,7 @@
           dense
           size="ms"
           icon="content_copy"
-          @click="copyText(props.row.address)"
+          @click="copyText(currentAddress.address)"
           class="q-ml-sm"
         ></q-btn>
 
