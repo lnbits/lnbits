@@ -1,10 +1,10 @@
 import asyncio
 import importlib
 import logging
+import signal
 import sys
 import traceback
 import warnings
-import signal
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
