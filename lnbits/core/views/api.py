@@ -344,8 +344,17 @@ async def api_payments_pay_lnurl(
     }
 
 
-async def subscribe(request: Request, wallet: Wallet):
+async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
+    """
+    Subscribe to new invoices for a wallet. Can be wrapped in EventSourceResponse.
+    Listenes invoming payments for a wallet and yields jsons with payment details.
+    """
     this_wallet_id = wallet.id
+    if this_wallet_id in api_invoice_listeners:
+        logger.warning(
+            f"already subscribed to invoices for wallet {this_wallet_id}. skipping."
+        )
+        return
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 
@@ -370,10 +379,8 @@ async def subscribe(request: Request, wallet: Wallet):
             if data:
                 jdata = json.dumps(dict(data.dict(), pending=False))
 
-            # yield dict(id=1, event="this", data="1234")
-            # await asyncio.sleep(2)
             yield dict(data=jdata, event=typ)
-            # yield dict(data=jdata.encode("utf-8"), event=typ.encode("utf-8"))
+
     except asyncio.CancelledError:
         return
 
@@ -383,7 +390,9 @@ async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     return EventSourceResponse(
-        subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
+        subscribe_wallet_invoices(request, wallet.wallet),
+        ping=20,
+        media_type="text/event-stream",
     )
 
 
