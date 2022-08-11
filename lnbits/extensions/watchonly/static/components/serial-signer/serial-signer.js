@@ -29,9 +29,11 @@ async function serialSigner(path) {
           showSignedPsbt: false,
           sendingPsbt: false,
           signingPsbt: false,
-          loginResolve: null,
-          psbtSentResolve: null,
-          xpubResolve: null,
+
+          loginPromise: null,
+          psbtSentPromise: null,
+          xpubPromise: null,
+
           seedWordPosition: 1,
           showSeedDialog: false,
           confirm: {
@@ -141,21 +143,21 @@ async function serialSigner(path) {
       },
       isAuthenticating: function () {
         if (this.isAuthenticated()) return false
-        return new Promise(resolve => {
-          this.loginResolve = resolve
+        return new Promise((resolve, reject) => {
+          this.loginPromise = {resolve, reject}
         })
       },
 
       isSendingPsbt: async function () {
         if (!this.hww.sendingPsbt) return false
-        return new Promise(resolve => {
-          this.psbtSentResolve = resolve
+        return new Promise((resolve, reject) => {
+          this.psbtSentPromise = {resolve, reject}
         })
       },
 
       isFetchingXpub: async function () {
-        return new Promise(resolve => {
-          this.xpubResolve = resolve
+        return new Promise((resolve, reject) => {
+          this.xpubPromise = {resolve, reject}
         })
       },
 
@@ -316,8 +318,9 @@ async function serialSigner(path) {
       },
       handleLoginResponse: function (res = '') {
         this.hww.authenticated = res.trim() === '1'
-        if (this.loginResolve) {
-          this.loginResolve(this.hww.authenticated)
+        if (this.loginPromise) {
+          this.loginPromise.resolve(this.hww.authenticated)
+          this.loginPromise = null
         }
 
         if (this.hww.authenticated) {
@@ -347,7 +350,12 @@ async function serialSigner(path) {
         }
       },
       handleLogoutResponse: function (res = '') {
+        console.log('### handleLogoutResponse', res)
         this.hww.authenticated = !(res.trim() === '1')
+        if (this.psbtSentPromise) this.psbtSentPromise.reject()
+        if (this.loginPromise) this.loginPromise.reject()
+        if (this.xpubPromise) this.xpubPromise.reject()
+
         if (this.hww.authenticated) {
           this.$q.notify({
             type: 'warning',
@@ -405,7 +413,7 @@ async function serialSigner(path) {
             timeout: 10000
           })
         } finally {
-          this.psbtSentResolve()
+          this.psbtSentPromise.resolve()
         }
       },
       hwwSignPsbt: async function () {
@@ -520,12 +528,12 @@ async function serialSigner(path) {
             caption: `${res}`,
             timeout: 10000
           })
-          this.xpubResolve({})
+          this.xpubPromise.resolve({})
           return
         }
         const xpub = args[1].trim()
         const fingerprint = args[2].trim()
-        this.xpubResolve({xpub, fingerprint})
+        this.xpubPromise.resolve({xpub, fingerprint})
       },
       hwwShowSeed: async function () {
         try {
