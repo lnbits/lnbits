@@ -219,7 +219,7 @@ sudo systemctl start lnbits.service
 ## Running behind an apache2 reverse proxy over https
 Install apache2 and enable apache2 mods
 ```sh
-apt-get install apache2
+apt-get install apache2 certbot
 a2enmod headers ssl proxy proxy-http
 ```
 create a ssl certificate with letsencrypt
