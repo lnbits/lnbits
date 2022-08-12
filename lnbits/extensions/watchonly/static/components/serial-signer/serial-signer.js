@@ -201,9 +201,43 @@ async function serialSigner(path) {
           }
         }
       },
-      handleSerialPortResponse: function (value) {
+      handleSerialPortResponse: async function (value) {
         const command = value.split(' ')[0]
         const commandData = value.substring(command.length).trim()
+
+        if (command === COMMAND_DH_EXCHANGE) {
+          this.handleDhExchangeResponse(commandData)
+          return
+        }
+        if (this.dheKey) {
+          try {
+            console.log('### value', value)
+            const messageBin = nobleSecp256k1.utils.hexToBytes(value)
+            try {
+              const xx = await decryptMessage(this.dheKey, messageBin)
+              console.log('### xx: ', xx)
+            } catch (error) {
+              console.log('### error 1', error)
+            }
+
+            try {
+              const decrypted1 = await decryptMessage2(
+                this.sharedSecret,
+                messageBin
+              )
+              
+              console.log(
+                '### decrypted hex 1: ',
+                nobleSecp256k1.utils.bytesToHex(decrypted1)
+              )
+              console.log('### decrypted text 1', new TextDecoder().decode(decrypted1))
+            } catch (error) {
+              console.log('### error 2', error)
+            }
+          } catch (error) {
+            console.log(error)
+          }
+        }
 
         switch (command) {
           case COMMAND_SIGN_PSBT:
@@ -224,11 +258,11 @@ async function serialSigner(path) {
           case COMMAND_XPUB:
             this.handleXpubResponse(commandData)
             break
-          case COMMAND_DH_EXCHANGE:
-            this.handleDhExchangeResponse(commandData)
+          case COMMAND_SEED:
+            this.handleShowSeedResponse(commandData)
             break
           default:
-            console.log('### console', value)
+            console.log('### hww console', value)
         }
       },
       updateSerialPortConsole: function (value) {
@@ -362,7 +396,10 @@ async function serialSigner(path) {
         try {
           this.tx = tx
           this.hww.sendingPsbt = true
-          await this.sendCommandSecure(COMMAND_SEND_PSBT, [this.network, psbtBase64])
+          await this.sendCommandSecure(COMMAND_SEND_PSBT, [
+            this.network,
+            psbtBase64
+          ])
           this.$q.notify({
             type: 'positive',
             message: 'Data sent to serial port device!',
@@ -588,10 +625,10 @@ async function serialSigner(path) {
         }
         const hwwPublicKey = nobleSecp256k1.Point.fromHex('04' + pubKeyHex)
 
-        const sharedSecret = nobleSecp256k1.getSharedSecret(
-          this.decryptionKey,
-          hwwPublicKey
-        ).slice(1, 33)
+        const sharedSecret = nobleSecp256k1
+          .getSharedSecret(this.decryptionKey, hwwPublicKey)
+          .slice(1, 33)
+        this.sharedSecret = sharedSecret
         console.log(
           '### sharedSecret',
           nobleSecp256k1.utils.bytesToHex(sharedSecret)
@@ -612,7 +649,9 @@ async function serialSigner(path) {
           this.hww.showSeedDialog = true
           this.hww.seedWordPosition = 1
 
-          await this.sendCommandSecure(COMMAND_SEED, [this.hww.seedWordPosition])
+          await this.sendCommandSecure(COMMAND_SEED, [
+            this.hww.seedWordPosition
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -632,15 +671,16 @@ async function serialSigner(path) {
       },
       handleShowSeedResponse: function (res = '') {
         const args = res.trim().split(' ')
-        if (args.length < 2 || args[0].trim() !== '1') {
-          this.$q.notify({
-            type: 'warning',
-            message: 'Failed to show seed!',
-            caption: `${res}`,
-            timeout: 10000
-          })
-          return
-        }
+        console.log('### handleShowSeedResponse: ', res)
+        // if (args.length < 2 || args[0].trim() !== '1') {
+        //   this.$q.notify({
+        //     type: 'warning',
+        //     message: 'Failed to show seed!',
+        //     caption: `${res}`,
+        //     timeout: 10000
+        //   })
+        //   return
+        // }
       },
       hwwRestore: async function () {
         try {
@@ -671,10 +711,46 @@ async function serialSigner(path) {
         const message = [command].concat(attrs).join(' ')
 
         const encodedMessage = asciiToUint8Array(message.length + ' ' + message)
+        // const encodedMessageHex =
+        //   '6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710'
+        // const encodedMessage = nobleSecp256k1.utils.hexToBytes(
+        //   encodedMessageHex
+        // )
         const encrypted = await encryptMessage(this.dheKey, encodedMessage)
 
         const encryptedHex = nobleSecp256k1.utils.bytesToHex(encrypted)
         console.log('### encrypted hex: ', encryptedHex)
+
+        /*
+
+        const decrypted = await decryptMessage(this.dheKey, encrypted)
+        console.log(
+          '### decrypted hex 0: ',
+          nobleSecp256k1.utils.bytesToHex(new Uint8Array(decrypted))
+        )
+        const encrypted1 =
+          '8f13a7763f021d7701f4100631f6c3d80576fcd0e3718b2594ceb7b910ceed29a334d1019dd6f0ffdba5b6be8c11637d6124d7adbd29c88af13800cb1f980f7d'
+        const encrypted1Bin = nobleSecp256k1.utils.hexToBytes(encrypted1)
+
+        const decrypted1 = await decryptMessage2(
+          this.sharedSecret,
+          encrypted1Bin
+        )
+        console.log(
+          '### decrypted hex 1: ',
+          nobleSecp256k1.utils.bytesToHex(decrypted1)
+        )
+
+        const encrypted2 =
+          '1e785d2d8cdf930aae61e8f3dbc5637917c1a621f4cdc6857cabbcdf696108d6b831cddce4c9f759e8b8eee2419f4a8f2133bb8893ae8bd251597439a6f4f7b172bd2c9eead0877cbf4cb996ad343330'
+        const encrypted2Bin = nobleSecp256k1.utils.hexToBytes(encrypted2)
+
+        const decrypted2 = await decryptMessage(this.dheKey, encrypted2Bin)
+        console.log(
+          '### decrypted hex 2: ',
+          nobleSecp256k1.utils.bytesToHex(new Uint8Array(decrypted2))
+        )
+        */
 
         await this.writer.write(encryptedHex + '\n')
       }
