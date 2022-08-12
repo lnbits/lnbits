@@ -499,6 +499,7 @@ async function serialSigner(path) {
       },
       hwwHelp: async function () {
         try {
+          await this.sendCommandSecure(COMMAND_HELP)
           this.$q.notify({
             type: 'positive',
             message: 'Check display or console for details!',
