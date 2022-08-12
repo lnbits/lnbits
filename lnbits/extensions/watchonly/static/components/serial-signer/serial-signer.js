@@ -209,6 +209,16 @@ async function serialSigner(path) {
           this.handleDhExchangeResponse(commandData)
           return
         }
+        switch (command) {
+          case COMMAND_DH_EXCHANGE:
+            this.handleDhExchangeResponse(commandData)
+            return
+          case COMMAND_LOG:
+            
+            console.log(`   %c${commandData}`, 'background: #222; color: #bada55')
+            
+            return
+        }
         if (this.dheKey) {
           try {
             console.log('### value', value)
@@ -231,6 +241,9 @@ async function serialSigner(path) {
                 nobleSecp256k1.utils.bytesToHex(decrypted1)
               )
               console.log('### decrypted text 1', new TextDecoder().decode(decrypted1))
+
+              var decryptedText = aesjs.utils.utf8.fromBytes(decrypted1);
+              console.log('### decrypted text utf8 1',decryptedText);
             } catch (error) {
               console.log('### error 2', error)
             }

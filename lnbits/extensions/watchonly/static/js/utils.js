@@ -11,6 +11,7 @@ const COMMAND_CONFIRM_NEXT = '/confirm-next'
 const COMMAND_CANCEL = '/cancel'
 const COMMAND_XPUB = '/xpub'
 const COMMAND_DH_EXCHANGE = '/dh-exchange'
+const COMMAND_LOG = '/log'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
 
