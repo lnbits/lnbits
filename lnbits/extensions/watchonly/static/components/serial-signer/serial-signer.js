@@ -204,8 +204,9 @@ async function serialSigner(path) {
         }
       },
       handleSerialPortResponse: async function (value) {
-        console.log('### extract value', value)
         const {command, commandData} = await this.extractCommand(value)
+        this.logPublicCommandsResponse(command, commandData)
+        
 
         switch (command) {
           case COMMAND_SIGN_PSBT:
@@ -240,6 +241,21 @@ async function serialSigner(path) {
             break
           default:
             console.log(`   %c${value}`, 'background: #222; color: red')
+        }
+      },
+      logPublicCommandsResponse: function(command, commandData){
+        switch (command) {
+          case COMMAND_SIGN_PSBT:
+          case COMMAND_PASSWORD:
+          case COMMAND_PASSWORD_CLEAR:
+          case COMMAND_SEND_PSBT:
+          case COMMAND_WIPE:
+          case COMMAND_XPUB:
+          case COMMAND_DH_EXCHANGE:
+            console.log(
+              `   %c${command} ${commandData}`,
+              'background: #222; color: yellow'
+            )
         }
       },
       updateSerialPortConsole: function (value) {
@@ -463,6 +479,7 @@ async function serialSigner(path) {
             this.decryptionKey
           )
           const publicKeyHex = publicKey.toHex().slice(2)
+          // must not be encrypted
           await this.writer.write(
             COMMAND_DH_EXCHANGE + ' ' + publicKeyHex + '\n'
           )
@@ -532,11 +549,6 @@ async function serialSigner(path) {
       },
       hwwXpub: async function (path) {
         try {
-          console.log(
-            '### hwwXpub',
-            COMMAND_XPUB + ' ' + this.network + ' ' + path
-          )
-
           await this.sendCommandSecure(COMMAND_XPUB, [this.network, path])
         } catch (error) {
           this.$q.notify({
@@ -578,24 +590,11 @@ async function serialSigner(path) {
         }
         const hwwPublicKey = nobleSecp256k1.Point.fromHex('04' + pubKeyHex)
 
-        const sharedSecret = nobleSecp256k1
+        this.sharedSecret = nobleSecp256k1
           .getSharedSecret(this.decryptionKey, hwwPublicKey)
           .slice(1, 33)
-        this.sharedSecret = sharedSecret
-        console.log(
-          '### sharedSecret',
-          nobleSecp256k1.utils.bytesToHex(sharedSecret)
-        )
-        this.dheKey = await window.crypto.subtle.importKey(
-          'raw',
-          sharedSecret,
-          {
-            name: 'AES-CBC',
-            length: 256
-          },
-          true,
-          ['encrypt', 'decrypt']
-        )
+
+
         this.$q.notify({
           type: 'positive',
           message: 'Secure session created!',
