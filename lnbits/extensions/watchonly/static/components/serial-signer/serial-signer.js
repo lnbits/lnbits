@@ -206,7 +206,6 @@ async function serialSigner(path) {
       handleSerialPortResponse: async function (value) {
         const {command, commandData} = await this.extractCommand(value)
         this.logPublicCommandsResponse(command, commandData)
-        
 
         switch (command) {
           case COMMAND_SIGN_PSBT:
@@ -243,7 +242,7 @@ async function serialSigner(path) {
             console.log(`   %c${value}`, 'background: #222; color: red')
         }
       },
-      logPublicCommandsResponse: function(command, commandData){
+      logPublicCommandsResponse: function (command, commandData) {
         switch (command) {
           case COMMAND_SIGN_PSBT:
           case COMMAND_PASSWORD:
@@ -595,7 +594,6 @@ async function serialSigner(path) {
           .getSharedSecret(this.decryptionKey, hwwPublicKey)
           .slice(1, 33)
 
-
         this.$q.notify({
           type: 'positive',
           message: 'Secure session created!',
@@ -666,15 +664,19 @@ async function serialSigner(path) {
       },
 
       sendCommandSecure: async function (command, attrs = []) {
+        console.log('### sendCommandSecure')
         const message = [command].concat(attrs).join(' ')
-
-        const encrypted = await encryptMessage2(
+        const iv = window.crypto.getRandomValues(new Uint8Array(16))
+        const encrypted = await this.encryptMessage(
           this.sharedSecret,
+          iv,
           message.length + ' ' + message
         )
 
         const encryptedHex = nobleSecp256k1.utils.bytesToHex(encrypted)
-        await this.writer.write(encryptedHex + '\n')
+        const encryptedIvHex = nobleSecp256k1.utils.bytesToHex(iv)
+        console.log('### encryptedIvHex', encryptedIvHex)
+        await this.writer.write(encryptedHex + encryptedIvHex + '\n')
       },
       extractCommand: async function (value) {
         const command = value.split(' ')[0]
@@ -695,17 +697,17 @@ async function serialSigner(path) {
       },
       decryptData: async function (value) {
         if (!this.sharedSecret) {
-          this.$q.notify({
-            type: 'warning',
-            message: 'Secure session not established!',
-            timeout: 10000
-          })
           return '/error Secure session not established!'
         }
         try {
-          const messageBytes = nobleSecp256k1.utils.hexToBytes(value)
-          const decrypted1 = await decryptMessage2(
+          const ivSize = 32
+          const messageHex = value.substring(0, value.length - ivSize)
+          const ivHex = value.substring(value.length - ivSize)
+          const messageBytes = nobleSecp256k1.utils.hexToBytes(messageHex)
+          const iv = nobleSecp256k1.utils.hexToBytes(ivHex)
+          const decrypted1 = await this.decryptMessage(
             this.sharedSecret,
+            iv,
             messageBytes
           )
           const data = new TextDecoder().decode(decrypted1)
@@ -724,6 +726,20 @@ async function serialSigner(path) {
           })
           return '/error Failed to decrypt message from device!'
         }
+      },
+      encryptMessage: async function (key, iv, message) {
+        while (message.length % 16 !== 0) message += ' '
+        const encodedMessage = asciiToUint8Array(message)
+      
+        const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv)
+        const encryptedBytes = aesCbc.encrypt(encodedMessage)
+      
+        return encryptedBytes
+      },
+      decryptMessage: async function (key, iv, encryptedBytes) {
+        const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv)
+        const decryptedBytes = aesCbc.decrypt(encryptedBytes)
+        return decryptedBytes
       }
     },
     created: async function () {
