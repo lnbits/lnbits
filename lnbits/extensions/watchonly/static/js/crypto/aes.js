@@ -47,7 +47,7 @@
         if (checkInt(arg.length) && checkInts(arg)) {
             return new Uint8Array(arg);
         }
-
+        console.log('### aes encypt')
         throw new Error('unsupported array-like object');
     }
 
