@@ -49,9 +49,6 @@ async def api_invoice(invoice_id: str):
     
     invoice_payments = await get_invoice_payments(invoice_id)
     payments_total = await get_payments_total(invoice_payments)
-
-    logger.debug(f"INVOICE PAYMENTS {invoice_payments}, invoice id: {invoice_id}")
-    logger.debug(f"PAYMENTS TOTAL {payments_total}, invoice id: {invoice_id}")
     
     invoice_dict = invoice.dict()
     invoice_dict["items"] = invoice_items
@@ -107,7 +104,7 @@ async def api_invoices_create_payment(
         )
 
     price_in_sats = await fiat_amount_as_satoshis(
-        float(famount) / 100, invoice.currency
+        famount / 100, invoice.currency
     )
 
     try:
