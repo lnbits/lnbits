@@ -2,7 +2,8 @@ from enum import Enum
 from sqlite3 import Row
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from fastapi.param_functions import Query
+from pydantic import BaseModel
 
 
 class InvoiceStatusEnum(str, Enum):
@@ -14,7 +15,7 @@ class InvoiceStatusEnum(str, Enum):
 
 class CreateInvoiceItemData(BaseModel):
     description: str
-    amount: float
+    amount: float = Query(..., ge=0.01)
 
 
 class CreateInvoiceData(BaseModel):
@@ -35,7 +36,7 @@ class CreateInvoiceData(BaseModel):
 class UpdateInvoiceItemData(BaseModel):
     id: Optional[str]
     description: str
-    amount: float
+    amount: float = Query(..., ge=0.01)
 
 
 class UpdateInvoiceData(BaseModel):

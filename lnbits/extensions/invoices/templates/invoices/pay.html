@@ -219,6 +219,8 @@ block page %}
           filled
           dense
           v-model.trim="formDialog.data.payment_amount"
+          :rules="[val => val >= 0.01 || 'Minimum amount is 0.01']"
+          min="0.01"
           label="Payment Amount"
           placeholder="4.20"
         >
