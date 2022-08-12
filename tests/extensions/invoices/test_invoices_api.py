@@ -52,7 +52,9 @@ async def test_invoices_api_create_invoice_valid(client, invoices_wallet):
 
 
 @pytest.mark.asyncio
-async def test_invoices_api_partial_pay_invoice(client, accounting_invoice, adminkey_headers_from):
+async def test_invoices_api_partial_pay_invoice(
+    client, accounting_invoice, adminkey_headers_from
+):
     invoice_id = accounting_invoice["id"]
     amount_to_pay = int(5.05 * 100)  # mock invoice total amount is 10 USD
 
@@ -86,6 +88,7 @@ async def test_invoices_api_partial_pay_invoice(client, accounting_invoice, admi
     data = response.json()
 
     assert data["status"] == "open"
+
 
 ####
 #
@@ -130,4 +133,3 @@ async def test_invoices_api_partial_pay_invoice(client, accounting_invoice, admi
 
 #     print(data)
 #     assert data["status"] == "paid"
-
