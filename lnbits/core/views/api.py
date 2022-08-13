@@ -153,7 +153,11 @@ class CreateInvoiceData(BaseModel):
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash:
         description_hash = unhexlify(data.description_hash)
-        unhashed_description = ""
+        unhashed_description = b""
+        memo = ""
+    elif data.unhashed_description:
+        unhashed_description = unhexlify(data.unhashed_description)
+        description_hash = b""
         memo = ""
     else:
         description_hash = b""
@@ -172,6 +176,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 amount=amount,
                 memo=memo,
                 description_hash=description_hash,
+                unhashed_description=unhashed_description,
                 extra=data.extra,
                 webhook=data.webhook,
                 internal=data.internal,

@@ -54,7 +54,7 @@ async def create_invoice(
     amount: int,  # in satoshis
     memo: str,
     description_hash: Optional[bytes] = None,
-    unhashed_description: Optional[str] = None,
+    unhashed_description: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
