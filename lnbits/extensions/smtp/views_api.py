@@ -28,11 +28,13 @@ from .smtp import send_mail, valid_email
 ## EMAILS
 @smtp_ext.get("/api/v1/email")
 async def api_email(
-    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)  # type: ignore
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        if user:
+            wallet_ids = user.wallet_ids
     return [email.dict() for email in await get_emails(wallet_ids)]
 
 
@@ -96,7 +98,9 @@ async def api_smtp_make_email(emailaddress_id, data: CreateEmail):
 
 
 @smtp_ext.delete("/api/v1/email/{email_id}")
-async def api_email_delete(email_id, g: WalletTypeInfo = Depends(get_key_type)):
+async def api_email_delete(
+    email_id, g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
+):
     email = await get_email(email_id)
 
     if not email:
@@ -114,11 +118,14 @@ async def api_email_delete(email_id, g: WalletTypeInfo = Depends(get_key_type)):
 ## EMAILADDRESSES
 @smtp_ext.get("/api/v1/emailaddress")
 async def api_emailaddresses(
-    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(get_key_type),  # type: ignore
+    all_wallets: bool = Query(False),  # type: ignore
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
-        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+        user = await get_user(g.wallet.user)
+        if user:
+            wallet_ids = user.wallet_ids
     return [
         emailaddress.dict() for emailaddress in await get_emailaddresses(wallet_ids)
     ]
@@ -129,7 +136,7 @@ async def api_emailaddresses(
 async def api_emailaddress_create(
     data: CreateEmailaddress,
     emailaddress_id=None,
-    g: WalletTypeInfo = Depends(get_key_type),
+    g: WalletTypeInfo = Depends(get_key_type),  # type: ignore
 ):
     if emailaddress_id:
         emailaddress = await get_emailaddress(emailaddress_id)
@@ -151,7 +158,7 @@ async def api_emailaddress_create(
 
 @smtp_ext.delete("/api/v1/emailaddress/{emailaddress_id}")
 async def api_emailaddress_delete(
-    emailaddress_id, g: WalletTypeInfo = Depends(get_key_type)
+    emailaddress_id, g: WalletTypeInfo = Depends(get_key_type)  # type: ignore
 ):
     emailaddress = await get_emailaddress(emailaddress_id)
 

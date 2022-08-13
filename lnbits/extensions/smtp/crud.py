@@ -131,7 +131,7 @@ async def create_email(payment_hash, wallet, data: CreateEmail) -> Emails:
 
 async def set_email_paid(payment_hash: str) -> Emails:
     email = await get_email(payment_hash)
-    if email.paid == False:
+    if email and email.paid == False:
         await db.execute(
             """
             UPDATE smtp.email

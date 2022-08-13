@@ -3,16 +3,16 @@ from pydantic.main import BaseModel
 
 
 class CreateEmailaddress(BaseModel):
-    wallet: str = Query(...)
-    email: str = Query(...)
-    testemail: str = Query(...)
-    smtp_server: str = Query(...)
-    smtp_user: str = Query(...)
-    smtp_password: str = Query(...)
-    smtp_port: str = Query(...)
-    description: str = Query(...)
+    wallet: str = Query(...)  # type: ignore
+    email: str = Query(...)  # type: ignore
+    testemail: str = Query(...)  # type: ignore
+    smtp_server: str = Query(...)  # type: ignore
+    smtp_user: str = Query(...)  # type: ignore
+    smtp_password: str = Query(...)  # type: ignore
+    smtp_port: str = Query(...)  # type: ignore
+    description: str = Query(...)  # type: ignore
     anonymize: bool
-    cost: int = Query(..., ge=0)
+    cost: int = Query(..., ge=0)  # type: ignore
 
 
 class Emailaddresses(BaseModel):
@@ -30,10 +30,10 @@ class Emailaddresses(BaseModel):
 
 
 class CreateEmail(BaseModel):
-    emailaddress_id: str = Query(...)
-    subject: str = Query(...)
-    receiver: str = Query(...)
-    message: str = Query(...)
+    emailaddress_id: str = Query(...)  # type: ignore
+    subject: str = Query(...)  # type: ignore
+    receiver: str = Query(...)  # type: ignore
+    message: str = Query(...)  # type: ignore
 
 
 class Emails(BaseModel):
