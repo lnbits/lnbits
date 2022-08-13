@@ -65,8 +65,9 @@ async def get_discordbot_users(user_id: str) -> List[Users]:
 
 async def delete_discordbot_user(user_id: str) -> None:
     wallets = await get_discordbot_wallets(user_id)
-    for wallet in wallets:
-        await delete_wallet(user_id=user_id, wallet_id=wallet.id)
+    if wallets:
+        for wallet in wallets:
+            await delete_wallet(user_id=user_id, wallet_id=wallet.id)
 
     await db.execute("DELETE FROM discordbot.users WHERE id = ?", (user_id,))
     await db.execute("""DELETE FROM discordbot.wallets WHERE "user" = ?""", (user_id,))
@@ -98,21 +99,21 @@ async def get_discordbot_wallet(wallet_id: str) -> Optional[Wallets]:
     return Wallets(**row) if row else None
 
 
-async def get_discordbot_wallets(admin_id: str) -> Optional[Wallets]:
+async def get_discordbot_wallets(admin_id: str) -> List[Wallets]:
     rows = await db.fetchall(
         "SELECT * FROM discordbot.wallets WHERE admin = ?", (admin_id,)
     )
     return [Wallets(**row) for row in rows]
 
 
-async def get_discordbot_users_wallets(user_id: str) -> Optional[Wallets]:
+async def get_discordbot_users_wallets(user_id: str) -> List[Wallets]:
     rows = await db.fetchall(
         """SELECT * FROM discordbot.wallets WHERE "user" = ?""", (user_id,)
     )
     return [Wallets(**row) for row in rows]
 
 
-async def get_discordbot_wallet_transactions(wallet_id: str) -> Optional[Payment]:
+async def get_discordbot_wallet_transactions(wallet_id: str) -> List[Payment]:
     return await get_payments(
         wallet_id=wallet_id, complete=True, pending=False, outgoing=True, incoming=True
     )

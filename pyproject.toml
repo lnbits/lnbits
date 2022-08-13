@@ -91,7 +91,6 @@ files = "lnbits"
 exclude = """(?x)(
   ^lnbits/extensions/bleskomat.
     | ^lnbits/extensions/copilot.
-    | ^lnbits/extensions/discordbot.
     | ^lnbits/extensions/events.
     | ^lnbits/extensions/hivemind.
     | ^lnbits/extensions/jukebox.
