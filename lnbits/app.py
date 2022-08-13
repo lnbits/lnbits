@@ -121,7 +121,7 @@ def check_funding_source(app: FastAPI) -> None:
                 logger.info("Retrying connection to backend in 5 seconds...")
                 await asyncio.sleep(5)
             except:
-                logger.debug("check_wallet_status exited")
+                pass
         signal.signal(signal.SIGINT, original_sigint_handler)
         logger.info(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."
