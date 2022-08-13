@@ -54,6 +54,7 @@ async def create_invoice(
     amount: int,  # in satoshis
     memo: str,
     description_hash: Optional[bytes] = None,
+    unhashed_description: Optional[bytes] = None,
     extra: Optional[Dict] = None,
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
@@ -65,7 +66,10 @@ async def create_invoice(
     wallet = FAKE_WALLET if internal else WALLET
 
     ok, checking_id, payment_request, error_message = await wallet.create_invoice(
-        amount=amount, memo=invoice_memo, description_hash=description_hash
+        amount=amount,
+        memo=invoice_memo,
+        description_hash=description_hash,
+        unhashed_description=unhashed_description,
     )
     if not ok:
         raise InvoiceFailure(error_message or "unexpected backend error.")

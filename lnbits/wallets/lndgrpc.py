@@ -134,14 +134,15 @@ class LndWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         params: Dict = {"value": amount, "expiry": 600, "private": True}
-
         if description_hash:
+            params["description_hash"] = description_hash
+        elif unhashed_description:
             params["description_hash"] = hashlib.sha256(
-                description_hash
+                unhashed_description
             ).digest()  # as bytes directly
-
         else:
             params["memo"] = memo or ""
 
