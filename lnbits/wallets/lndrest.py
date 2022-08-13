@@ -73,11 +73,15 @@ class LndRestWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         data: Dict = {"value": amount, "private": True}
         if description_hash:
+            data["description_hash"] = description_hash.hex()
+        elif unhashed_description:
             data["description_hash"] = base64.b64encode(
-                hashlib.sha256(description_hash).digest()
+                hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
         else:
             data["memo"] = memo or ""

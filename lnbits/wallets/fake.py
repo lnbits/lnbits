@@ -35,6 +35,7 @@ class FakeWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         # we set a default secret since FakeWallet is used for internal=True invoices
         # and the user might not have configured a secret yet

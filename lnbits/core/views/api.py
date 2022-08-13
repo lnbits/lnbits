@@ -141,6 +141,7 @@ class CreateInvoiceData(BaseModel):
     memo: Optional[str] = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
+    unhashed_description: Optional[str] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
@@ -152,6 +153,7 @@ class CreateInvoiceData(BaseModel):
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash:
         description_hash = unhexlify(data.description_hash)
+        unhashed_description = ""
         memo = ""
     else:
         description_hash = b""
