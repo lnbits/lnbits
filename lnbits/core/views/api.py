@@ -161,6 +161,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         memo = ""
     else:
         description_hash = b""
+        unhashed_description = b""
         memo = data.memo or LNBITS_SITE_TITLE
     if data.unit == "sat":
         amount = int(data.amount)
