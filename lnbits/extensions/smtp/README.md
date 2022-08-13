@@ -1,4 +1,4 @@
-<h1>Sendmail Extension</h1>
+<h1>SMTP Extension</h1>
 
 This extension allows you to setup a smtp, to offer sending emails with it for a small fee.
 

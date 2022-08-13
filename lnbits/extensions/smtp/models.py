@@ -1,6 +1,7 @@
 from fastapi.params import Query
 from pydantic.main import BaseModel
 
+
 class CreateEmailaddress(BaseModel):
     wallet: str = Query(...)
     email: str = Query(...)
@@ -12,6 +13,7 @@ class CreateEmailaddress(BaseModel):
     description: str = Query(...)
     anonymize: bool
     cost: int = Query(..., ge=0)
+
 
 class Emailaddresses(BaseModel):
     id: str
@@ -26,11 +28,13 @@ class Emailaddresses(BaseModel):
     description: str
     cost: int
 
+
 class CreateEmail(BaseModel):
     emailaddress_id: str = Query(...)
     subject: str = Query(...)
     receiver: str = Query(...)
     message: str = Query(...)
+
 
 class Emails(BaseModel):
     id: str

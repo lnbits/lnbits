@@ -13,27 +13,34 @@
             dense
             v-model.trim="formDialog.data.receiver"
             type="text"
-            label="Receiver"></q-input>
+            label="Receiver"
+          ></q-input>
           <q-input
             filled
             dense
             v-model.trim="formDialog.data.subject"
             type="text"
-            label="Subject"></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="formDialog.data.message"
-          type="textarea"
-          label="Message "></q-input>
+            label="Subject"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.message"
+            type="textarea"
+            label="Message "
+          ></q-input>
           <p>Total cost: {{ cost }} sats</p>
           <div class="row q-mt-lg">
             <q-btn
               unelevated
               color="primary"
               :disable="formDialog.data.receiver == '' || formDialog.data.subject == '' || formDialog.data.message == ''"
-              type="submit">Submit</q-btn>
-            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto">Cancel</q-btn>
+              type="submit"
+              >Submit</q-btn
+            >
+            <q-btn @click="resetForm" flat color="grey" class="q-ml-auto"
+              >Cancel</q-btn
+            >
           </div>
         </q-form>
       </q-card-section>
@@ -85,7 +92,7 @@
           data: {
             subject: '',
             receiver: '',
-            message: '',
+            message: ''
           }
         },
         receive: {
@@ -114,11 +121,11 @@
       Invoice: function () {
         var self = this
         axios
-          .post('/sendmail/api/v1/email/{{ emailaddress_id }}', {
+          .post('/smtp/api/v1/email/{{ emailaddress_id }}', {
             emailaddress_id: '{{ emailaddress_id }}',
             subject: self.formDialog.data.subject,
             receiver: self.formDialog.data.receiver,
-            message: self.formDialog.data.message,
+            message: self.formDialog.data.message
           })
           .then(function (response) {
             self.paymentReq = response.data.payment_request
@@ -137,7 +144,7 @@
 
             paymentChecker = setInterval(function () {
               axios
-                .get('/sendmail/api/v1/email/' + self.paymentCheck)
+                .get('/smtp/api/v1/email/' + self.paymentCheck)
                 .then(function (res) {
                   console.log(res.data)
                   if (res.data.paid) {

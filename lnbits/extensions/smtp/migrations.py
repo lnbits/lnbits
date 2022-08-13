@@ -2,7 +2,7 @@ async def m001_initial(db):
 
     await db.execute(
         f"""
-        CREATE TABLE sendmail.emailaddress (
+        CREATE TABLE smtp.emailaddress (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             email TEXT NOT NULL,
@@ -21,7 +21,7 @@ async def m001_initial(db):
 
     await db.execute(
         f"""
-        CREATE TABLE sendmail.email (
+        CREATE TABLE smtp.email (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
             emailaddress_id TEXT NOT NULL,
