@@ -1,10 +1,9 @@
 from http import HTTPStatus
+
 import httpx
-
-from lnurl import decode as decode_lnurl
-
 from fastapi import Query
 from fastapi.params import Depends
+from lnurl import decode as decode_lnurl
 from loguru import logger
 from starlette.exceptions import HTTPException
 
