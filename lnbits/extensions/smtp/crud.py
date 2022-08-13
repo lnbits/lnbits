@@ -78,9 +78,7 @@ async def get_emailaddress(emailaddress_id: str) -> Optional[Emailaddresses]:
 
 
 async def get_emailaddress_by_email(email: str) -> Optional[Emailaddresses]:
-    row = await db.fetchone(
-        "SELECT * FROM smtp.emailaddress WHERE email = ?", (email,)
-    )
+    row = await db.fetchone("SELECT * FROM smtp.emailaddress WHERE email = ?", (email,))
     return Emailaddresses(**row) if row else None
 
 
@@ -105,9 +103,7 @@ async def get_emailaddresses(wallet_ids: Union[str, List[str]]) -> List[Emailadd
 
 
 async def delete_emailaddress(emailaddress_id: str) -> None:
-    await db.execute(
-        "DELETE FROM smtp.emailaddress WHERE id = ?", (emailaddress_id,)
-    )
+    await db.execute("DELETE FROM smtp.emailaddress WHERE id = ?", (emailaddress_id,))
 
 
 ## create emails
