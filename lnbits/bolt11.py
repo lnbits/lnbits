@@ -216,7 +216,7 @@ def lnencode(addr, privkey):
                 expirybits = expirybits[5:]
             data += tagged("x", expirybits)
         elif k == "h":
-            data += tagged_bytes("h", hashlib.sha256(v.encode("utf-8")).digest())
+            data += tagged_bytes("h", v)
         elif k == "n":
             data += tagged_bytes("n", v)
         else:

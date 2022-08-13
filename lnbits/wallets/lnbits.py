@@ -57,10 +57,13 @@ class LNbitsWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
-            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
+            data["description_hash"] = description_hash.hex()
+        elif unhashed_description:
+            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
         else:
             data["memo"] = memo or ""
 
