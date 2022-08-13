@@ -99,7 +99,7 @@ class CoreLightningWallet(Wallet):
                 else memo,
                 exposeprivatechannels=True,
                 deschashonly=True
-                if description_hash
+                if unhashed_description
                 else False,  # we can't pass None here
             )
 
