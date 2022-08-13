@@ -105,7 +105,7 @@ def check_funding_source(app: FastAPI) -> None:
         original_sigint_handler = signal.getsignal(signal.SIGINT)
 
         def signal_handler(signal, frame):
-            logger.debug("killing lnbits, Ctrl+C keyboard interrupt fired.")
+            logger.debug(f"SIGINT received, terminating LNbits.")
             sys.exit(1)
 
         signal.signal(signal.SIGINT, signal_handler)
