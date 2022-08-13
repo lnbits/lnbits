@@ -12,6 +12,8 @@ from lnbits.core.views.api import (
     api_payments_create_invoice,
 )
 
+from lnbits.settings import wallet_class
+
 from ...helpers import get_random_invoice_data
 
 
@@ -192,6 +194,7 @@ async def test_api_payment_with_key(invoice, inkey_headers_from):
 
 
 # check POST /api/v1/payments: invoice creation with a description hash
+@pytest.mark.skipif(wallet_class.__name__ in ["CoreLightningWallet"])
 @pytest.mark.asyncio
 async def test_create_invoice_with_description_hash(client, inkey_headers_to):
     data = await get_random_invoice_data()
