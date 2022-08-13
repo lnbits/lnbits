@@ -11,7 +11,6 @@ from lnbits.core.views.api import (
     api_payment,
     api_payments_create_invoice,
 )
-
 from lnbits.settings import wallet_class
 
 from ...helpers import get_random_invoice_data
