@@ -15,7 +15,9 @@ templates = Jinja2Templates(directory="templates")
 
 
 @copilot_ext.get("/", response_class=HTMLResponse)
-async def index(request: Request, user: User = Depends(check_user_exists)):
+async def index(
+    request: Request, user: User = Depends(check_user_exists)  # type: ignore
+):
     return copilot_renderer().TemplateResponse(
         "copilot/index.html", {"request": request, "user": user.dict()}
     )
@@ -44,7 +46,7 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket, copilot_id: str):
         await websocket.accept()
-        websocket.id = copilot_id
+        websocket.id = copilot_id  #type: ignore
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
@@ -52,7 +54,7 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: str, copilot_id: str):
         for connection in self.active_connections:
-            if connection.id == copilot_id:
+            if connection.id == copilot_id:  #type: ignore
                 await connection.send_text(message)
 
     async def broadcast(self, message: str):

@@ -10,7 +10,7 @@ from .models import Copilots, CreateCopilotData
 
 async def create_copilot(
     data: CreateCopilotData, inkey: Optional[str] = ""
-) -> Copilots:
+) -> Optional[Copilots]:
     copilot_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -71,15 +71,16 @@ async def update_copilot(
 ) -> Optional[Copilots]:
     q = ", ".join([f"{field[0]} = ?" for field in data])
     items = [f"{field[1]}" for field in data]
-    items.append(copilot_id)
-    await db.execute(f"UPDATE copilot.newer_copilots SET {q} WHERE id = ?", (items))
+    if copilot_id:
+        items.append(copilot_id)
+    await db.execute(f"UPDATE copilot.newer_copilots SET {q} WHERE id = ?", (items,))
     row = await db.fetchone(
         "SELECT * FROM copilot.newer_copilots WHERE id = ?", (copilot_id,)
     )
     return Copilots(**row) if row else None
 
 
-async def get_copilot(copilot_id: str) -> Copilots:
+async def get_copilot(copilot_id: str) -> Optional[Copilots]:
     row = await db.fetchone(
         "SELECT * FROM copilot.newer_copilots WHERE id = ?", (copilot_id,)
     )
