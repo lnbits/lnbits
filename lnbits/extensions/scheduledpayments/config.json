@@ -1,0 +1,6 @@
+{
+  "name": "Scheduled Payments",
+  "short_description": "Schedule recurring payments in the future.",
+  "icon": "schedule",
+  "contributors": ["leesalminen"]
+}

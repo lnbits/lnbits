@@ -1,0 +1,148 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="List Scheduled Payments"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /scheduledpayments/api/v1/schedule</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;schedule_object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url }}scheduledpayments/api/v1/schedule
+          -H "X-Api-Key: &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Get Scheduled Payment"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /scheduledpayments/api/v1/schedule/{schedule_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>&lt;schedule_object&gt;</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url
+          }}scheduledpayments/api/v1/schedule/{schedule_id} -H "X-Api-Key:
+          &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create Scheduled Payment"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">POST</span>
+          /scheduledpayments/api/v1/schedule</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>&lt;schedule_object&gt;</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url }}scheduledpayments/api/v1/schedule
+          -H "X-Api-Key: &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Update Scheduled Payment"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">POST</span>
+          /scheduledpayments/api/v1/schedule/{schedule_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>&lt;schedule_object&gt;</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url }}scheduledpayments/api/v1/schedule
+          -H "X-Api-Key: &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete Scheduled Payment"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">DELETE</span>
+          /scheduledpayments/api/v1/schedule/{schedule_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{success: True}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.base_url
+          }}scheduledpayments/api/v1/schedule/{schedule_id} -H "X-Api-Key:
+          &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>
