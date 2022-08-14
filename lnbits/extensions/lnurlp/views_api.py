@@ -96,7 +96,7 @@ async def api_link_create_or_update(
         data.min *= data.fiat_base_multiplier
         data.max *= data.fiat_base_multiplier
 
-    if data.success_url is not None and data.success_url.startswith("https://"):
+    if data.success_url is not None and not data.success_url.startswith("https://"):
         raise HTTPException(
             detail="Success URL must be secure https://...",
             status_code=HTTPStatus.BAD_REQUEST,
