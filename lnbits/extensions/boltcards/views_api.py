@@ -6,6 +6,7 @@
 # (use httpx just like requests, except instead of response.ok there's only the
 #  response.is_error that is its inverse)
 
+import secrets
 from http import HTTPStatus
 
 from fastapi.params import Depends, Query
@@ -23,10 +24,12 @@ from .crud import (
     delete_card,
     get_all_cards,
     get_card,
+    get_card_by_otp,
     get_cards,
     get_hits,
     update_card,
     update_card_counter,
+    update_card_otp,
 )
 from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
@@ -46,7 +49,7 @@ async def api_cards(
 
 @boltcards_ext.post("/api/v1/cards", status_code=HTTPStatus.CREATED)
 @boltcards_ext.put("/api/v1/cards/{card_id}", status_code=HTTPStatus.OK)
-async def api_link_create_or_update(
+async def api_card_create_or_update(
     #    req: Request,
     data: CreateCardData,
     card_id: str = None,
@@ -69,7 +72,7 @@ async def api_link_create_or_update(
 
 
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
-async def api_link_delete(card_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
+async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
     card = await get_card(card_id)
 
     if not card:
@@ -101,69 +104,17 @@ async def api_hits(
     return [hit.dict() for hit in await get_hits(cards_ids)]
 
 
-# /boltcards/api/v1/scan/?uid=00000000000000&ctr=000000&c=0000000000000000
-@boltcards_ext.get("/api/v1/scan/")
-async def api_scan(uid, ctr, c, request: Request):
-    card = await get_card(uid, id_is_uid=True)
-
-    if card == None:
-        return {"status": "ERROR", "reason": "Unknown card."}
-
-    if (
-        c
-        != getSunMAC(
-            bytes.fromhex(uid), bytes.fromhex(ctr)[::-1], bytes.fromhex(card.file_key)
-        )
-        .hex()
-        .upper()
-    ):
-        print(c)
-        print(
-            getSunMAC(
-                bytes.fromhex(uid),
-                bytes.fromhex(ctr)[::-1],
-                bytes.fromhex(card.file_key),
-            )
-            .hex()
-            .upper()
-        )
-        return {"status": "ERROR", "reason": "CMAC does not check."}
-
-    ctr_int = int(ctr, 16)
-
-    if ctr_int <= card.counter:
-        return {"status": "ERROR", "reason": "This link is already used."}
-
-    await update_card_counter(ctr_int, card.id)
-
-    # gathering some info for hit record
-    ip = request.client.host
-    if request.headers["x-real-ip"]:
-        ip = request.headers["x-real-ip"]
-    elif request.headers["x-forwarded-for"]:
-        ip = request.headers["x-forwarded-for"]
-
-    agent = request.headers["user-agent"] if "user-agent" in request.headers else ""
-
-    await create_hit(card.id, ip, agent, card.counter, ctr_int)
-
-    link = await get_withdraw_link(card.withdraw, 0)
-    return link.lnurl_response(request)
-
-
-# /boltcards/api/v1/scane/?e=00000000000000000000000000000000&c=0000000000000000
-@boltcards_ext.get("/api/v1/scane/")
-async def api_scane(e, c, request: Request):
+# /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
+@boltcards_ext.get("/api/v1/scan")
+async def api_scane(p, c, request: Request):
     card = None
     counter = b""
 
     # since this route is common to all cards I don't know whitch 'meta key' to use
     # so I try one by one until decrypted uid matches
     for cand in await get_all_cards():
-        if cand.meta_key:
-            card_uid, counter = decryptSUN(
-                bytes.fromhex(e), bytes.fromhex(cand.meta_key)
-            )
+        if cand.k1:
+            card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(cand.k1))
 
             if card_uid.hex().upper() == cand.uid:
                 card = cand
@@ -172,9 +123,7 @@ async def api_scane(e, c, request: Request):
     if card == None:
         return {"status": "ERROR", "reason": "Unknown card."}
 
-    if c != getSunMAC(card_uid, counter, bytes.fromhex(card.file_key)).hex().upper():
-        print(c)
-        print(getSunMAC(card_uid, counter, bytes.fromhex(card.file_key)).hex().upper())
+    if c != getSunMAC(card_uid, counter, bytes.fromhex(card.k2)).hex().upper():
         return {"status": "ERROR", "reason": "CMAC does not check."}
 
     ctr_int = int.from_bytes(counter, "little")
@@ -196,3 +145,27 @@ async def api_scane(e, c, request: Request):
 
     link = await get_withdraw_link(card.withdraw, 0)
     return link.lnurl_response(request)
+
+
+# /boltcards/api/v1/auth?a=00000000000000000000000000000000
+@boltcards_ext.get("/api/v1/auth")
+async def api_auth(a, request: Request):
+    if a == "00000000000000000000000000000000":
+        response = {"k0": "0" * 32, "k1": "1" * 32, "k2": "2" * 32}
+        return response
+
+    card = await get_card_by_otp(a)
+
+    if not card:
+        raise HTTPException(
+            detail="Card does not exist.", status_code=HTTPStatus.NOT_FOUND
+        )
+
+    new_otp = secrets.token_hex(16)
+    print(card.otp)
+    print(new_otp)
+    await update_card_otp(new_otp, card.id)
+
+    response = {"k0": card.k0, "k1": card.k1, "k2": card.k2}
+
+    return response

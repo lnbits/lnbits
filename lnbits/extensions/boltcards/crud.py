@@ -1,4 +1,4 @@
-from optparse import Option
+import secrets
 from typing import List, Optional, Union
 
 from lnbits.helpers import urlsafe_short_hash
@@ -18,10 +18,12 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             uid,
             counter,
             withdraw,
-            file_key,
-            meta_key
+            k0,
+            k1,
+            k2,
+            otp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             card_id,
@@ -30,11 +32,13 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             data.uid,
             data.counter,
             data.withdraw,
-            data.file_key,
-            data.meta_key,
+            data.k0,
+            data.k1,
+            data.k2,
+            secrets.token_hex(16),
         ),
     )
-    card = await get_card(card_id, 0)
+    card = await get_card(card_id)
     assert card, "Newly created card couldn't be retrieved"
     return card
 
@@ -69,14 +73,18 @@ async def get_all_cards() -> List[Card]:
     return [Card(**row) for row in rows]
 
 
-async def get_card(card_id: str, id_is_uid: bool = False) -> Optional[Card]:
-    sql = "SELECT * FROM boltcards.cards WHERE {} = ?".format(
-        "uid" if id_is_uid else "id"
-    )
-    row = await db.fetchone(
-        sql,
-        card_id,
-    )
+async def get_card(card_id: str) -> Optional[Card]:
+    row = await db.fetchone("SELECT * FROM boltcards.cards WHERE id = ?", (card_id,))
+    if not row:
+        return None
+
+    card = dict(**row)
+
+    return Card.parse_obj(card)
+
+
+async def get_card_by_otp(otp: str) -> Optional[Card]:
+    row = await db.fetchone("SELECT * FROM boltcards.cards WHERE otp = ?", (otp,))
     if not row:
         return None
 
@@ -93,6 +101,13 @@ async def update_card_counter(counter: int, id: str):
     await db.execute(
         "UPDATE boltcards.cards SET counter = ? WHERE id = ?",
         (counter, id),
+    )
+
+
+async def update_card_otp(otp: str, id: str):
+    await db.execute(
+        "UPDATE boltcards.cards SET otp = ? WHERE id = ?",
+        (otp, id),
     )
 
 
