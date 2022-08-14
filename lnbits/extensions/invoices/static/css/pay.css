@@ -1,0 +1,65 @@
+#invoicePage>.row:first-child>.col-md-6 {
+	display:  flex;
+}
+
+#invoicePage>.row:first-child>.col-md-6>.q-card {
+	flex:  1;
+}
+
+#invoicePage .clear {
+	margin-bottom: 25px;
+}
+
+#printQrCode {
+	display:  none;
+}
+
+@media (min-width: 1024px) {
+	#invoicePage>.row:first-child>.col-md-6:first-child>div {
+		margin-right: 5px;
+	}
+
+	#invoicePage>.row:first-child>.col-md-6:nth-child(2)>div {
+		margin-left: 5px;
+	}
+}
+
+
+@media print {
+	* {
+		color:  black !important;
+	}
+
+	header, button, #payButtonContainer {
+		display:  none !important;
+	}
+
+	main, .q-page-container {
+		padding-top: 0px !important;
+	}
+
+	.q-card {
+		box-shadow:  none !important;
+		border:  1px solid black;
+	}
+
+	.q-item {
+		padding:  5px;
+	}
+
+	.q-card__section {
+		padding:  5px;
+	}
+
+	#printQrCode {
+		display:  block;
+	}
+
+	p {
+		margin-bottom: 0px !important;
+	}
+
+	#invoicePage .clear {
+		margin-bottom: 10px !important;
+	}
+}

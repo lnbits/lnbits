@@ -87,8 +87,10 @@ class CoreLightningWallet(Wallet):
         label = "lbl{}".format(random.random())
         msat: int = int(amount * 1000)
         try:
-            if description_hash:
-                raise Unsupported("description_hash")
+            if description_hash and not unhashed_description:
+                raise Unsupported(
+                    "'description_hash' unsupported by CLN, provide 'unhashed_description'"
+                )
             if unhashed_description and not self.supports_description_hash:
                 raise Unsupported("unhashed_description")
             r = self.ln.invoice(

@@ -21,7 +21,7 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, WALLET
+from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -160,7 +160,7 @@ async def pay_invoice(
             logger.debug("balance is too low, deleting temporary payment")
             if not internal_checking_id and wallet.balance_msat > -fee_reserve_msat:
                 raise PaymentFailure(
-                    f"You must reserve at least 1% ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
+                    f"You must reserve at least ({round(fee_reserve_msat/1000)} sat) to cover potential routing fees."
                 )
             raise PermissionError("Insufficient balance.")
 
@@ -366,4 +366,4 @@ async def check_transaction_status(
 
 # WARN: this same value must be used for balance check and passed to WALLET.pay_invoice(), it may cause a vulnerability if the values differ
 def fee_reserve(amount_msat: int) -> int:
-    return max(2000, int(amount_msat * 0.01))
+    return max(int(RESERVE_FEE_MIN), int(amount_msat * RESERVE_FEE_PERCENT / 100.0))

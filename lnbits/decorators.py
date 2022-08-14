@@ -199,7 +199,13 @@ async def require_invoice_key(
     api_key_header: str = Security(api_key_header),  # type: ignore
     api_key_query: str = Security(api_key_query),  # type: ignore
 ):
-    token = api_key_header if api_key_header else api_key_query
+    token = api_key_header or api_key_query
+
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invoice (or Admin) key required.",
+        )
 
     wallet = await get_key_type(r, token)
 
