@@ -121,7 +121,7 @@ async def api_link_create_or_update(
     return {**link.dict(), "lnurl": link.lnurl(request)}
 
 
-@lnurlp_ext.delete("/api/v1/links/{link_id}")
+@lnurlp_ext.delete("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_pay_link(link_id)
 
@@ -136,7 +136,7 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type
         )
 
     await delete_pay_link(link_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return {"success": True}
 
 
 @lnurlp_ext.get("/api/v1/rate/{currency}", status_code=HTTPStatus.OK)
