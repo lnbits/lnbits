@@ -46,7 +46,7 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket, copilot_id: str):
         await websocket.accept()
-        websocket.id = copilot_id  #type: ignore
+        websocket.id = copilot_id  # type: ignore
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
@@ -54,7 +54,7 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: str, copilot_id: str):
         for connection in self.active_connections:
-            if connection.id == copilot_id:  #type: ignore
+            if connection.id == copilot_id:  # type: ignore
                 await connection.send_text(message)
 
     async def broadcast(self, message: str):
