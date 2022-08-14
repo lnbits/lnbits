@@ -76,7 +76,7 @@ def create_app(config_object="lnbits.settings") -> FastAPI:
         # Only the browser sends "text/html" request
         # not fail proof, but everything else get's a JSON response
 
-        if "text/html" in request.headers["accept"]:
+        if "text/html" in request.headers.get("accept"):
             return template_renderer().TemplateResponse(
                 "error.html",
                 {"request": request, "err": f"{exc.errors()} is not a valid UUID."},
@@ -197,7 +197,7 @@ def register_exception_handlers(app: FastAPI):
         traceback.print_exception(etype, err, tb)
         exc = traceback.format_exc()
 
-        if "text/html" in request.headers["accept"]:
+        if "text/html" in request.headers.get("accept"):
             return template_renderer().TemplateResponse(
                 "error.html", {"request": request, "err": err}
             )
