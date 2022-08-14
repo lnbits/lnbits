@@ -467,14 +467,12 @@
 
               //User feedback, show loader icon
               self.nfcTagReading = false
-              self.payInvoice(lnurl)
+              self.payInvoice(lnurl, readerAbortController)
 
               this.$q.notify({
                 type: 'positive',
                 message: 'NFC tag read successfully.'
               })
-
-              readerAbortController.abort()
             }
           })
         } catch (error) {
@@ -487,7 +485,7 @@
           })
         }
       },
-      payInvoice: function (lnurl) {
+      payInvoice: function (lnurl, readerAbortController) {
         const self = this
 
         return axios
@@ -508,6 +506,8 @@
                 message: response.data.detail
               })
             }
+
+            readerAbortController.abort()
           })
       },
       getRates: function () {
