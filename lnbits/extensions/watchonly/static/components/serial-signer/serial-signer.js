@@ -291,7 +291,7 @@ async function serialSigner(path) {
       hwwShowRestoreDialog: async function () {
         try {
           this.hww.showRestoreDialog = true
-          await this.sendCommandSecure(COMMAND_WIPE)
+          await this.sendCommandSecure(COMMAND_RESTORE)
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -628,15 +628,6 @@ async function serialSigner(path) {
       handleShowSeedResponse: function (res = '') {
         const args = res.trim().split(' ')
         console.log('### handleShowSeedResponse: ', res)
-        // if (args.length < 2 || args[0].trim() !== '1') {
-        //   this.$q.notify({
-        //     type: 'warning',
-        //     message: 'Failed to show seed!',
-        //     caption: `${res}`,
-        //     timeout: 10000
-        //   })
-        //   return
-        // }
       },
       hwwRestore: async function () {
         try {
