@@ -21,6 +21,7 @@ sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt install python3.9
+sudo apt install python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
