@@ -1,20 +1,20 @@
 # Bolt cards (NXP NTAG) Extension
 
-This extension allows you to link your Bolt card with a LNbits instance and use it more securely then just with a static LNURLw on it. A technology called [Secure Unique NFC](https://mishka-scan.com/blog/secure-unique-nfc) is utilized in this workflow. 
+This extension allows you to link your Bolt Card (or other compatible NXP NTAG device) with a LNbits instance and use it in a more secure way than a static LNURLw. A technology called [Secure Unique NFC](https://mishka-scan.com/blog/secure-unique-nfc) is utilized in this workflow. 
 
-**Disclaim:** ***Use this only if you either know what you are doing or are enough reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
+**Disclaimer:** ***Use this only if you either know what you are doing or are a reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
 
-***In order to use this extension you need to be able setup your card.*** That is writting on the URL template pointing to your LNBits instance, configure some SUN (SDM) setting and optionaly changing the card keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [bolt-nfc-android-app](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes.
+***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNBits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [bolt-nfc-android-app](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes.
 
 ## About the keys
 
-Up to five 16bytes keys can be stored on the card, numbered from 00 to 04. In the empty state they all should be set to zeros (00000000000000000000000000000000). For this extension only two keys need to be set:
+Up to five 16-byte keys can be stored on the card, numbered from 00 to 04. In the empty state they all should be set to zeros (00000000000000000000000000000000). For this extension only two keys need to be set:
 
-One for encrypting the card UID and the counter (p parameter), let's called it meta key, key #01or K1.
+One for encrypting the card UID and the counter (p parameter), let's called it meta key, key #01 or K1.
 
 One for calculating CMAC (c parameter), let's called it file key, key #02 or K2.
 
-The key #00, K0 or also auth key is skipped to be use as authentification key. Is not needed by this extension, but can be filled in order to write the keys in cooperation with bolt-nfc-android-app. 
+The key #00, K0 (also know as auth key) is skipped to be use as authentification key. Is not needed by this extension, but can be filled in order to write the keys in cooperation with bolt-nfc-android-app. 
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
