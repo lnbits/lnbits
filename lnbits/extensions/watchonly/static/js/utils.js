@@ -191,4 +191,3 @@ function asciiToUint8Array(str) {
   }
   return new Uint8Array(chars)
 }
-

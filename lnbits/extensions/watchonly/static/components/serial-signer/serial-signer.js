@@ -631,8 +631,10 @@ async function serialSigner(path) {
       },
       hwwRestore: async function () {
         try {
-          await this.sendCommandSecure(COMMAND_RESTORE, [this.hww.mnemonic])
-          await this.sendCommandSecure(COMMAND_PASSWORD, [this.hww.password])
+          await this.sendCommandSecure(COMMAND_RESTORE, [
+            this.hww.password,
+            this.hww.mnemonic
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -721,10 +723,10 @@ async function serialSigner(path) {
       encryptMessage: async function (key, iv, message) {
         while (message.length % 16 !== 0) message += ' '
         const encodedMessage = asciiToUint8Array(message)
-      
+
         const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv)
         const encryptedBytes = aesCbc.encrypt(encodedMessage)
-      
+
         return encryptedBytes
       },
       decryptMessage: async function (key, iv, encryptedBytes) {
