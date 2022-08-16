@@ -668,6 +668,9 @@ new Vue({
       })
     },
     exportCSV: function () {
+      // status is important for export but it is not in paymentsTable
+      // because it is manually added with payment detail link and icons
+      // and would cause duplication in the list
       let columns = this.paymentsTable.columns
       columns.unshift({
         name: 'pending',
