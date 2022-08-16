@@ -13,11 +13,13 @@ from lnbits.settings import WALLET
 from . import db
 from .models import (
     Market,
+    OrderDetail,
     Orders,
     Products,
     Stalls,
     Zones,
     createOrder,
+    createOrderDetails,
     createProduct,
     createStalls,
     createZones,
@@ -208,38 +210,55 @@ async def delete_diagonalley_stall(stall_id: str) -> None:
 ###Orders
 
 
-async def create_diagonalley_order(data: createOrder) -> Orders:
+async def create_diagonalley_order(wallet_id: str, data: createOrder) -> Orders:
 
     order_id = urlsafe_short_hash()
     await db.execute(
         f"""
-            INSERT INTO diagonalley.orders (id, productid, wallet, product,
-            quantity, shippingzone, address, email, invoiceid, paid, shipped)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO diagonalley.orders (id, wallet, shippingzone, address, email, total, invoiceid, paid, shipped)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
         (
             order_id,
-            data.productid,
-            data.wallet,
-            data.product,
-            data.quantity,
+            wallet_id,
             data.shippingzone,
             data.address,
             data.email,
+            data.total,
             data.invoiceid,
             False,
             False,
         ),
     )
-    # if db.type == SQLITE:
-    #     order_id = result._result_proxy.lastrowid
-    # else:
-    #     order_id = result[0]
-
+    
     link = await get_diagonalley_order(order_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
+async def create_diagonalley_order_details(order_id: str, data: List[createOrderDetails]):
+    for item in data:
+        item_id = urlsafe_short_hash()
+        await db.execute(
+            """
+            INSERT INTO diagonalley.order_details (id, orderid, productid, quantity)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                item_id,
+                order_id,
+                item.product_id,
+                item.quantity,
+            ),
+        )
+    order_details = await get_diagonalley_order_details(order_id)
+    return order_details
+
+async def get_diagonalley_order_details(order_id: str) -> List[OrderDetail]:
+    rows = await db.fetchall(
+        f"SELECT * FROM diagonalley.order_details WHERE order_id = ?", (order_id,)
+    )
+
+    return [OrderDetail(**row) for row in rows]
 
 async def get_diagonalley_order(order_id: str) -> Optional[Orders]:
     row = await db.fetchone(
