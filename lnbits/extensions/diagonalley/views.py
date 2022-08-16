@@ -3,11 +3,12 @@ from http import HTTPStatus
 from fastapi import Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException
+from starlette.responses import HTMLResponse
+
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
-from starlette.exceptions import HTTPException
-from starlette.responses import HTMLResponse
 
 from .crud import get_diagonalley_products, get_diagonalley_stall
 
@@ -30,29 +31,33 @@ async def display(request: Request, stall_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
         )
+
+    stall = stall.dict()
+    del stall["privatekey"]
+    
     return diagonalley_renderer().TemplateResponse(
         "diagonalley/stall.html",
         {
             "request": request,
-            "stall": stall.dict(),
+            "stall": stall,
             "products": [product.dict() for product in products]
         },
     )
 
-@diagonalley_ext.get("/{market_id}", response_class=HTMLResponse)
-async def display(request: Request, stall_id):
-    stalls = await get_diagonalley_stall(stall_id)
-    products = await get_diagonalley_products(stall_id)
+# @diagonalley_ext.get("/market/{market_id}", response_class=HTMLResponse)
+# async def display(request: Request, stall_id):
+#     stalls = await get_diagonalley_stall(stall_id)
+#     products = await get_diagonalley_products(stall_id)
 
-    if not stall:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
-        )
-    return diagonalley_renderer().TemplateResponse(
-        "diagonalley/stall.html",
-        {
-            "request": request,
-            "stall": stall.dict(),
-            "products": [product.dict() for product in products]
-        },
-    )
+#     if not stall:
+#         raise HTTPException(
+#             status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
+#         )
+#     return diagonalley_renderer().TemplateResponse(
+#         "diagonalley/stall.html",
+#         {
+#             "request": request,
+#             "stall": stall.dict(),
+#             "products": [product.dict() for product in products]
+#         },
+#     )
