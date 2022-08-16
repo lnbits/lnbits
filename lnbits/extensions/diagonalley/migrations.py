@@ -56,12 +56,12 @@ async def m001_initial(db):
         """
         CREATE TABLE diagonalley.orders (
             id {db.serial_primary_key},
-            productid TEXT NOT NULL,
-            usr TEXT NOT NULL,
-            pubkey TEXT NOT NULL,
+            wallet TEXT NOT NULL,
+            pubkey TEXT,
             shippingzone INTEGER NOT NULL,
             address TEXT NOT NULL,
             email TEXT NOT NULL,
+            total INTEGER NOT NULL,
             invoiceid TEXT NOT NULL,
             paid BOOLEAN NOT NULL,
             shipped BOOLEAN NOT NULL,
@@ -81,8 +81,7 @@ async def m001_initial(db):
             id TEXT PRIMARY KEY,
             orderid INTEGER NOT NULL REFERENCES {db.references_schema}orders (id)
             productid TEXT NOT NULL REFERENCES {db.references_schema}products (id),
-            quantity INTEGER NOT NULL,
-            total INTEGER NOT NULL 
+            quantity INTEGER NOT NULL
         );
     """
     )
