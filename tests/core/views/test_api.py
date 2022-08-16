@@ -49,14 +49,14 @@ async def test_get_wallet_adminkey(client, adminkey_headers_to):
 @pytest.mark.asyncio
 async def test_put_empty_request_expected_admin_keys(client):
     response = await client.put("/api/v1/wallet/newwallet")
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
 # check POST /api/v1/payments: empty request where invoice key is needed
 @pytest.mark.asyncio
 async def test_post_empty_request_expected_invoice_keys(client):
     response = await client.post("/api/v1/payments")
-    assert response.status_code == 400
+    assert response.status_code == 401
 
 
 # check POST /api/v1/payments: invoice creation
