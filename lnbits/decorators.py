@@ -130,10 +130,13 @@ async def get_key_type(
     # 2: invalid
     pathname = r["path"].split("/")[1]
 
-    if not api_key_header and not api_key_query:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    token = api_key_header or api_key_query
 
-    token = api_key_header if api_key_header else api_key_query
+    if not token:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Invoice (or Admin) key required.",
+        )
 
     try:
         admin_checker = WalletAdminKeyChecker(api_key=token)
@@ -180,7 +183,14 @@ async def require_admin_key(
     api_key_header: str = Security(api_key_header),  # type: ignore
     api_key_query: str = Security(api_key_query),  # type: ignore
 ):
-    token = api_key_header if api_key_header else api_key_query
+
+    token = api_key_header or api_key_query
+
+    if not token:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Admin key required.",
+        )
 
     wallet = await get_key_type(r, token)
 
@@ -199,11 +209,12 @@ async def require_invoice_key(
     api_key_header: str = Security(api_key_header),  # type: ignore
     api_key_query: str = Security(api_key_query),  # type: ignore
 ):
+
     token = api_key_header or api_key_query
 
-    if token is None:
+    if not token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail="Invoice (or Admin) key required.",
         )
 
