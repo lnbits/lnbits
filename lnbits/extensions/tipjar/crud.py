@@ -76,10 +76,10 @@ async def get_tipjars(wallet_id: str) -> Optional[list]:
 
 async def delete_tipjar(tipjar_id: int) -> None:
     """Delete a TipJar and all corresponding Tips"""
-    await db.execute("DELETE FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
     rows = await db.fetchall("SELECT * FROM tipjar.Tips WHERE tipjar = ?", (tipjar_id,))
     for row in rows:
         await delete_tip(row["id"])
+    await db.execute("DELETE FROM tipjar.TipJars WHERE id = ?", (tipjar_id,))
 
 
 async def get_tip(tip_id: str) -> Optional[Tip]:
