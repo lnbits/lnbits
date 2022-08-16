@@ -55,11 +55,13 @@ class Zones(BaseModel):
     cost: int
     countries: str
 
+
 class OrderDetail(BaseModel):
     id: str
     order_id: str
     product_id: str
     quantity: int
+
 
 class createOrderDetails(BaseModel):
     product_id: str = Query(...)
@@ -95,10 +97,12 @@ class Orders(BaseModel):
     shipped: bool
     time: int
 
+
 class CreateMarket(BaseModel):
     usr: str = Query(...)
     name: str = Query(None)
     stalls: List[str] = Query(...)
+
 
 class Market(BaseModel):
     id: str

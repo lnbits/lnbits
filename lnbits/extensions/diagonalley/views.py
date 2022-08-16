@@ -34,15 +34,16 @@ async def display(request: Request, stall_id):
 
     stall = stall.dict()
     del stall["privatekey"]
-    
+
     return diagonalley_renderer().TemplateResponse(
         "diagonalley/stall.html",
         {
             "request": request,
             "stall": stall,
-            "products": [product.dict() for product in products]
+            "products": [product.dict() for product in products],
         },
     )
+
 
 # @diagonalley_ext.get("/market/{market_id}", response_class=HTMLResponse)
 # async def display(request: Request, stall_id):

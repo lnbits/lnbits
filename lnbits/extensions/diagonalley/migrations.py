@@ -111,4 +111,3 @@ async def m001_initial(db):
         );
     """
     )
-    

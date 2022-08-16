@@ -230,12 +230,15 @@ async def create_diagonalley_order(wallet_id: str, data: createOrder) -> Orders:
             False,
         ),
     )
-    
+
     link = await get_diagonalley_order(order_id)
     assert link, "Newly created link couldn't be retrieved"
     return link
 
-async def create_diagonalley_order_details(order_id: str, data: List[createOrderDetails]):
+
+async def create_diagonalley_order_details(
+    order_id: str, data: List[createOrderDetails]
+):
     for item in data:
         item_id = urlsafe_short_hash()
         await db.execute(
@@ -253,12 +256,14 @@ async def create_diagonalley_order_details(order_id: str, data: List[createOrder
     order_details = await get_diagonalley_order_details(order_id)
     return order_details
 
+
 async def get_diagonalley_order_details(order_id: str) -> List[OrderDetail]:
     rows = await db.fetchall(
         f"SELECT * FROM diagonalley.order_details WHERE order_id = ?", (order_id,)
     )
 
     return [OrderDetail(**row) for row in rows]
+
 
 async def get_diagonalley_order(order_id: str) -> Optional[Orders]:
     row = await db.fetchone(
@@ -282,18 +287,18 @@ async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orde
 async def delete_diagonalley_order(order_id: str) -> None:
     await db.execute("DELETE FROM diagonalley.orders WHERE id = ?", (order_id,))
 
+
 ### Market/Marketplace
 
+
 async def get_diagonalley_markets(user: str) -> List[Market]:
-    rows = await db.fetchall(
-        'SELECT * FROM diagonalley.markets WHERE usr = ?', (user,)
-    )
+    rows = await db.fetchall("SELECT * FROM diagonalley.markets WHERE usr = ?", (user,))
     return [Market(**row) for row in rows]
 
 
 async def get_diagonalley_market(market_id: str) -> Optional[Market]:
     row = await db.fetchone(
-        'SELECT * FROM diagonalley.markets WHERE id = ?', (market_id,)
+        "SELECT * FROM diagonalley.markets WHERE id = ?", (market_id,)
     )
     Market(**row) if row else None
 
@@ -303,5 +308,3 @@ async def get_diagonalley_market_stalls(market_id: str):
         "SELECT * FROM diagonalley.market_stalls WHERE marketid = ?", (market_id,)
     )
     return [Stalls(**row) for row in rows]
-
-

@@ -1,10 +1,11 @@
 import asyncio
 
 from fastapi import APIRouter
+from starlette.staticfiles import StaticFiles
+
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
-from starlette.staticfiles import StaticFiles
 
 db = Database("ext_diagonalley")
 
@@ -25,6 +26,7 @@ diagonalley_static_files = [
 #                 "error.html", {"request": request, "err": "Ask system admin to enable NostrAdmin!"}
 #             )
 # else:
+
 
 def diagonalley_renderer():
     return template_renderer(["lnbits/extensions/diagonalley/templates"])

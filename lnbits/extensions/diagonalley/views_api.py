@@ -5,6 +5,8 @@ from uuid import uuid4
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
+from starlette.exceptions import HTTPException
+
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
 from lnbits.decorators import (
@@ -13,7 +15,6 @@ from lnbits.decorators import (
     require_admin_key,
     require_invoice_key,
 )
-from starlette.exceptions import HTTPException
 
 from . import db, diagonalley_ext
 from .crud import (
@@ -94,22 +95,22 @@ async def api_diagonalley_products(
 @diagonalley_ext.post("/api/v1/products")
 @diagonalley_ext.put("/api/v1/products/{product_id}")
 async def api_diagonalley_product_create(
-    data: createProduct, product_id = None, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: createProduct, product_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
 
     if product_id:
-        product = await get_diagonalley_product(product_id)        
+        product = await get_diagonalley_product(product_id)
         if not product:
             return {"message": "Withdraw product does not exist."}
-        
-        stall = await get_diagonalley_stall(stall_id = product.stall)
+
+        stall = await get_diagonalley_stall(stall_id=product.stall)
         if stall.wallet != wallet.wallet.id:
             return {"message": "Not your withdraw product."}
 
         product = await update_diagonalley_product(product_id, **data.dict())
     else:
         product = await create_diagonalley_product(data=data)
-    
+
     return product.dict()
 
 
@@ -392,14 +393,17 @@ async def api_diagonalley_stall_order(
 # MARKETS
 ##
 
+
 @diagonalley_ext.get("/api/v1/markets")
-async def api_diagonalley_orders(
-    wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_diagonalley_orders(wallet: WalletTypeInfo = Depends(get_key_type)):
     try:
-        return [market.dict() for market in await get_diagonalley_markets(wallet.wallet.user)]
+        return [
+            market.dict()
+            for market in await get_diagonalley_markets(wallet.wallet.user)
+        ]
     except:
         return {"message": "We could not retrieve the markets."}
+
 
 @diagonalley_ext.post("/api/v1/markets")
 @diagonalley_ext.put("/api/v1/markets/{market_id}")
