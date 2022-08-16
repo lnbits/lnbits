@@ -675,7 +675,11 @@ async function serialSigner(path) {
         const command = value.split(' ')[0]
         const commandData = value.substring(command.length).trim()
 
-        if (command === COMMAND_DH_EXCHANGE || command === COMMAND_LOG)
+        if (
+          command === COMMAND_DH_EXCHANGE ||
+          command === COMMAND_LOG ||
+          command === COMMAND_PASSWORD_CLEAR
+        )
           return {command, commandData}
 
         const decryptedValue = await this.decryptData(value)
