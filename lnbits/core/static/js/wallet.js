@@ -668,19 +668,22 @@ new Vue({
       })
     },
     exportCSV: function () {
-      let columns = this.paymentsTable.columns;
-      columns.unshift({
-        name: 'pending',
-        align: 'left',
-        label: 'Pending',
-        field: 'pending'
-      },{
-        name: 'isPaid',
-        align: 'left',
-        label: 'Paid',
-        field: 'isPaid'
-      });
-      LNbits.utils.exportCSV(columns, this.payments);
+      let columns = this.paymentsTable.columns
+      columns.unshift(
+        {
+          name: 'pending',
+          align: 'left',
+          label: 'Pending',
+          field: 'pending'
+        },
+        {
+          name: 'isPaid',
+          align: 'left',
+          label: 'Paid',
+          field: 'isPaid'
+        }
+      )
+      LNbits.utils.exportCSV(columns, this.payments)
     }
   },
   watch: {
