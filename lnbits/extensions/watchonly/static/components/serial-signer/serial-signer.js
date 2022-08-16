@@ -577,12 +577,28 @@ async function serialSigner(path) {
       },
       handleDhExchangeResponse: async function (res = '') {
         console.log('### handleDhExchangeResponse', res)
-        const [pubKeyHex] = res.trim().split(' ')
-        if (!pubKeyHex) {
+        const [statusCode, data] = res.trim().split(' ')
+        let pubKeyHex, errorMessage, captionMessage
+        switch (statusCode) {
+          case '0':
+            pubKeyHex = data
+            if(!data) errorMessage = 'Failed to exchange DH secret!'
+            break
+          case '1':
+            errorMessage = 'Secure connection can only be established in the first 60 seconds after start-up!'
+            captionMessage = 'Restart and try again'
+            break
+
+          default:
+            errorMessage = 'Unexpected error code'
+            break
+        }
+
+        if (errorMessage) {
           this.$q.notify({
             type: 'warning',
-            message: 'Failed to exchange DH secret!',
-            caption: `${res}`,
+            message: errorMessage,
+            caption: captionMessage || '',
             timeout: 10000
           })
 
