@@ -112,9 +112,9 @@
 
       <q-card-section class="q-py-sm">
         <div>
-          <div class="text-caption text-green-8 text-weight-bolder">
-            {{ item.stall }}
-          </div>
+          <!-- <div class="text-caption text-green-8 text-weight-bolder">
+            {{ stall.name }}
+          </div> -->
           <span class="text-h6">{{ item.price }} sats</span
           ><span class="q-ml-sm text-grey-6"
             >BTC {{ (item.price / 1e8).toFixed(8) }}</span
@@ -155,7 +155,7 @@
   </div>
   <!-- CHECKOUT DIALOG -->
   <q-dialog v-model="checkoutDialog.show" position="top">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="placeOrder" class="q-gutter-md">
         <q-input
           filled
@@ -181,26 +181,15 @@
           dense
           type="email"
           label="Email"
-        />
+        ></q-input>
         <div class="row q-mt-lg">
           <q-btn
-            v-if="checkoutDialog.data.id"
             unelevated
             color="primary"
+            :disable="checkoutDialog.data.address_1 == null
+              || checkoutDialog.data.email == null"
             type="submit"
-            >Update Product</q-btn
-          >
-
-          <q-btn
-            v-else
-            unelevated
-            color="primary"
-            :disable="checkoutDialog.data.price == null
-              || checkoutDialog.data.product == null
-              || checkoutDialog.data.description == null
-              || checkoutDialog.data.quantity == null"
-            type="submit"
-            >Create Product</q-btn
+            >Checkout</q-btn
           >
 
           <q-btn
@@ -224,6 +213,7 @@
     mixins: [windowMixin],
     data: function () {
       return {
+        stall: null,
         products: [],
         searchText: null,
         cart: {
@@ -291,11 +281,13 @@
       }
     },
     created() {
+      this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = JSON.parse('{{ products | tojson }}')
-      let stall_ids = new Set()
-      this.products.map(p => stall_ids.add(p.stall))
 
-      console.log(stall_ids)
+      //let stall_ids = new Set()
+      //this.products.map(p => stall_ids.add(p.stall))
+
+      console.log(this.stall)
     }
   })
 </script>
