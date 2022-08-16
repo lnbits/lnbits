@@ -56,7 +56,7 @@ async def test_put_empty_request_expected_admin_keys(client):
 @pytest.mark.asyncio
 async def test_post_empty_request_expected_invoice_keys(client):
     response = await client.post("/api/v1/payments")
-    assert response.status_code == 401
+    assert response.status_code == 400
 
 
 # check POST /api/v1/payments: invoice creation
