@@ -1,0 +1,113 @@
+{% extends "print.html" %} {% block page %}
+
+<div class="row">
+  <div class="" id="vue">
+    {% for page in link %}
+    <page size="A4" id="pdfprint">
+      {% for one in page %}
+      <div class="wrapper">
+        <img src="{{custom_url}}" alt="..." />
+        <span>{{ amt }} sats</span>
+        <div class="lnurlw">
+          <qrcode
+            :value="theurl + '/?lightning={{one}}'"
+            :options="{width: 95, margin: 1}"
+          ></qrcode>
+        </div>
+      </div>
+      {% endfor %}
+    </page>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %} {% block styles %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400');
+  body {
+    background: rgb(204, 204, 204);
+  }
+  page {
+    background: white;
+    display: block;
+    margin: 0 auto;
+    margin-bottom: 0.5cm;
+    box-shadow: 0 0 0.5cm rgba(0, 0, 0, 0.5);
+  }
+  page[size='A4'] {
+    width: 21cm;
+    height: 29.7cm;
+  }
+  .wrapper {
+    position: relative;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    width: fit-content;
+  }
+  .wrapper span {
+    display: block;
+    position: absolute;
+    font-family: 'Inter';
+    font-size: 0.75rem;
+    color: #fff;
+    top: calc(3.2mm + 1rem);
+    right: calc(4mm + 1rem);
+  }
+  .wrapper img {
+    display: block;
+    width: 187mm;
+    height: auto;
+  }
+
+  .wrapper .lnurlw {
+    display: block;
+    position: absolute;
+    top: calc(7.3mm + 1rem);
+    left: calc(7.5mm + 1rem);
+    transform: rotate(45deg);
+  }
+
+  @media print {
+    body,
+    page {
+      margin: 0px !important;
+      box-shadow: none !important;
+    }
+    .q-page,
+    .wrapper {
+      padding: 0px !important;
+    }
+    .wrapper span {
+      top: 3mm;
+      right: 4mm;
+    }
+    .wrapper .lnurlw {
+      display: block;
+      position: absolute;
+      top: 7.3mm;
+      left: 7.5mm;
+      transform: rotate(45deg);
+    }
+  }
+</style>
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    data: function () {
+      return {
+        theurl: location.protocol + '//' + location.host,
+        printDialog: {
+          show: true,
+          data: null
+        },
+        links: []
+      }
+    },
+    created() {
+      this.links = '{{ link | tojson }}'
+    }
+  })
+</script>
+{% endblock %}

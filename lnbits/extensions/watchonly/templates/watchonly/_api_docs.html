@@ -1,247 +1,27 @@
 <q-card>
   <q-card-section>
     <p>
-      Watch Only extension uses mempool.space<br />
+      Onchain Wallet (watch-only) extension uses mempool.space<br />
       For use with "account Extended Public Key"
       <a href="https://iancoleman.io/bip39/">https://iancoleman.io/bip39/</a>
       <small>
         <br />Created by,
-        <a target="_blank" href="https://github.com/arcbtc">Ben Arc</a> (using,
-        <a target="_blank" href="https://github.com/diybitcoinhardware/embit"
+        <a target="_blank" class="text-white" href="https://github.com/arcbtc"
+          >Ben Arc</a
+        >
+        (using,
+        <a
+          target="_blank"
+          class="text-white"
+          href="https://github.com/diybitcoinhardware/embit"
           >Embit</a
         ></small
       >)
+      <br />
+      <br />
+      <a target="_blank" href="/docs#/watchonly" class="text-white"
+        >Swagger REST API Documentation</a
+      >
     </p>
   </q-card-section>
-
-  <q-expansion-item
-    group="extras"
-    icon="swap_vertical_circle"
-    label="API info"
-    :content-inset-level="0.5"
-  >
-    <q-expansion-item group="api" dense expand-separator label="List wallets">
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-blue">GET</span> /watchonly/api/v1/wallet</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 200 OK (application/json)
-          </h5>
-          <code>[&lt;wallets_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X GET {{ request.base_url }}watchonly/api/v1/wallet -H
-            "X-Api-Key: {{ user.wallets[0].inkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
-      label="Get wallet details"
-    >
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-blue">GET</span>
-            /watchonly/api/v1/wallet/&lt;wallet_id&gt;</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 201 CREATED (application/json)
-          </h5>
-          <code>[&lt;wallet_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X GET {{ request.base_url
-            }}watchonly/api/v1/wallet/&lt;wallet_id&gt; -H "X-Api-Key: {{
-            user.wallets[0].inkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-    <q-expansion-item group="api" dense expand-separator label="Create wallet">
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-green">POST</span> /watchonly/api/v1/wallet</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 201 CREATED (application/json)
-          </h5>
-          <code>[&lt;wallet_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X POST {{ request.base_url }}watchonly/api/v1/wallet -d
-            '{"title": &lt;string&gt;, "masterpub": &lt;string&gt;}' -H
-            "Content-type: application/json" -H "X-Api-Key: {{
-            user.wallets[0].adminkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
-      label="Delete wallet"
-      class="q-pb-md"
-    >
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-pink">DELETE</span>
-            /watchonly/api/v1/wallet/&lt;wallet_id&gt;</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">Returns 204 NO CONTENT</h5>
-          <code></code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X DELETE {{ request.base_url
-            }}watchonly/api/v1/wallet/&lt;wallet_id&gt; -H "X-Api-Key: {{
-            user.wallets[0].adminkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-
-    <q-expansion-item group="api" dense expand-separator label="List addresses">
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-blue">GET</span>
-            /watchonly/api/v1/addresses/&lt;wallet_id&gt;</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 200 OK (application/json)
-          </h5>
-          <code>[&lt;address_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X GET {{ request.base_url
-            }}watchonly/api/v1/addresses/&lt;wallet_id&gt; -H "X-Api-Key: {{
-            user.wallets[0].inkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
-      label="Get fresh address"
-      class="q-pb-md"
-    >
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-blue">GET</span>
-            /watchonly/api/v1/address/&lt;wallet_id&gt;</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 200 OK (application/json)
-          </h5>
-          <code>[&lt;address_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X GET {{ request.base_url
-            }}watchonly/api/v1/address/&lt;wallet_id&gt; -H "X-Api-Key: {{
-            user.wallets[0].inkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
-      label="Get mempool.space details"
-    >
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-blue">GET</span> /watchonly/api/v1/mempool</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 200 OK (application/json)
-          </h5>
-          <code>[&lt;mempool_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X GET {{ request.base_url }}watchonly/api/v1/mempool -H
-            "X-Api-Key: {{ user.wallets[0].adminkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-
-    <q-expansion-item
-      group="api"
-      dense
-      expand-separator
-      label="Update mempool.space"
-      class="q-pb-md"
-    >
-      <q-card>
-        <q-card-section>
-          <code
-            ><span class="text-green">POST</span>
-            /watchonly/api/v1/mempool</code
-          >
-          <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-          <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Body (application/json)
-          </h5>
-          <h5 class="text-caption q-mt-sm q-mb-none">
-            Returns 201 CREATED (application/json)
-          </h5>
-          <code>[&lt;mempool_object&gt;, ...]</code>
-          <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-          <code
-            >curl -X PUT {{ request.base_url }}watchonly/api/v1/mempool -d
-            '{"endpoint": &lt;string&gt;}' -H "Content-type: application/json"
-            -H "X-Api-Key: {{ user.wallets[0].adminkey }}"
-          </code>
-        </q-card-section>
-      </q-card>
-    </q-expansion-item>
-  </q-expansion-item>
 </q-card>

@@ -12,7 +12,7 @@ db = Database("ext_copilot")
 copilot_static_files = [
     {
         "path": "/copilot/static",
-        "app": StaticFiles(directory="lnbits/extensions/copilot/static"),
+        "app": StaticFiles(packages=[("lnbits", "extensions/copilot/static")]),
         "name": "copilot_static",
     }
 ]

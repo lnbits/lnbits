@@ -15,7 +15,7 @@ __pycache__
 .webassets-cache
 htmlcov
 test-reports
-tests/data
+tests/data/*.sqlite3
 
 *.swo
 *.swp
@@ -31,6 +31,10 @@ venv
 
 __bundle__
 
+coverage.xml
 node_modules
 lnbits/static/bundle.*
 docker
+
+# Nix
+*result*

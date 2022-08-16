@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import random
 from os import getenv
@@ -92,6 +93,8 @@ class SparkWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         label = "lbs{}".format(random.random())
         checking_id = label
@@ -102,6 +105,12 @@ class SparkWallet(Wallet):
                     msatoshi=amount * 1000,
                     label=label,
                     description_hash=description_hash.hex(),
+                )
+            elif unhashed_description:
+                r = await self.invoicewithdescriptionhash(
+                    msatoshi=amount * 1000,
+                    label=label,
+                    description_hash=hashlib.sha256(unhashed_description).hexdigest(),
                 )
             else:
                 r = await self.invoice(

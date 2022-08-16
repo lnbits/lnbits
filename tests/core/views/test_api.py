@@ -1,8 +1,20 @@
+import hashlib
+from binascii import hexlify
+
 import pytest
 import pytest_asyncio
+
+from lnbits import bolt11
 from lnbits.core.crud import get_wallet
+from lnbits.core.views.api import (
+    CreateInvoiceData,
+    api_payment,
+    api_payments_create_invoice,
+)
+from lnbits.settings import wallet_class
 
 from ...helpers import get_random_invoice_data
+
 
 # check if the client is working
 @pytest.mark.asyncio
@@ -11,11 +23,33 @@ async def test_core_views_generic(client):
     assert response.status_code == 200
 
 
-# check GET /api/v1/wallet: wallet info
+# check GET /api/v1/wallet with inkey: wallet info, no balance
 @pytest.mark.asyncio
-async def test_get_wallet(client, inkey_headers_to):
+async def test_get_wallet_inkey(client, inkey_headers_to):
     response = await client.get("/api/v1/wallet", headers=inkey_headers_to)
-    assert response.status_code < 300
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert "balance" in result
+    assert "id" not in result
+
+
+# check GET /api/v1/wallet with adminkey: wallet info with balance
+@pytest.mark.asyncio
+async def test_get_wallet_adminkey(client, adminkey_headers_to):
+    response = await client.get("/api/v1/wallet", headers=adminkey_headers_to)
+    assert response.status_code == 200
+    result = response.json()
+    assert "name" in result
+    assert "balance" in result
+    assert "id" in result
+
+
+# check POST /api/v1/payments: empty request
+@pytest.mark.asyncio
+async def test_post_empty_request(client):
+    response = await client.post("/api/v1/payments")
+    assert response.status_code == 401
 
 
 # check POST /api/v1/payments: invoice creation
@@ -140,3 +174,65 @@ async def test_decode_invoice(client, invoice):
     )
     assert response.status_code < 300
     assert response.json()["payment_hash"] == invoice["payment_hash"]
+
+
+# check api_payment() internal function call (NOT API): payment status
+@pytest.mark.asyncio
+async def test_api_payment_without_key(invoice):
+    # check the payment status
+    response = await api_payment(invoice["payment_hash"])
+    assert type(response) == dict
+    assert response["paid"] == True
+    # no key, that's why no "details"
+    assert "details" not in response
+
+
+# check api_payment() internal function call (NOT API): payment status
+@pytest.mark.asyncio
+async def test_api_payment_with_key(invoice, inkey_headers_from):
+    # check the payment status
+    response = await api_payment(
+        invoice["payment_hash"], inkey_headers_from["X-Api-Key"]
+    )
+    assert type(response) == dict
+    assert response["paid"] == True
+    assert "details" in response
+
+
+# check POST /api/v1/payments: invoice creation with a description hash
+@pytest.mark.skipif(
+    wallet_class.__name__ in ["CoreLightningWallet"],
+    reason="wallet does not support description_hash",
+)
+@pytest.mark.asyncio
+async def test_create_invoice_with_description_hash(client, inkey_headers_to):
+    data = await get_random_invoice_data()
+    descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    data["description_hash"] = descr_hash
+
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    invoice = response.json()
+
+    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
+    assert invoice_bolt11.description_hash == descr_hash
+    assert invoice_bolt11.description is None
+    return invoice
+
+
+@pytest.mark.asyncio
+async def test_create_invoice_with_unhashed_description(client, inkey_headers_to):
+    data = await get_random_invoice_data()
+    descr_hash = hashlib.sha256("asdasdasd".encode("utf-8")).hexdigest()
+    data["unhashed_description"] = "asdasdasd".encode("utf-8").hex()
+
+    response = await client.post(
+        "/api/v1/payments", json=data, headers=inkey_headers_to
+    )
+    invoice = response.json()
+
+    invoice_bolt11 = bolt11.decode(invoice["payment_request"])
+    assert invoice_bolt11.description_hash == descr_hash
+    assert invoice_bolt11.description is None
+    return invoice

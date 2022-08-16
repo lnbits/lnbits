@@ -54,8 +54,10 @@ class OpenNodeWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
-        if description_hash:
+        if description_hash or unhashed_description:
             raise Unsupported("description_hash")
 
         async with httpx.AsyncClient() as client:
@@ -65,7 +67,7 @@ class OpenNodeWallet(Wallet):
                 json={
                     "amount": amount,
                     "description": memo or "",
-                    "callback_url": url_for("/webhook_listener", _external=True),
+                    # "callback_url": url_for("/webhook_listener", _external=True),
                 },
                 timeout=40,
             )
@@ -85,7 +87,7 @@ class OpenNodeWallet(Wallet):
                 f"{self.endpoint}/v2/withdrawals",
                 headers=self.auth,
                 json={"type": "ln", "address": bolt11},
-                timeout=180,
+                timeout=None,
             )
 
         if r.is_error:
@@ -127,7 +129,7 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue = asyncio.Queue(0)
+        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
             value = await self.queue.get()
             yield value

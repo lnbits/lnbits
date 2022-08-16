@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Optional
 
+from fastapi import Query
 from fastapi.params import Depends
 from lnurl.exceptions import InvalidUrl as LnurlInvalidUrl
 from pydantic.main import BaseModel
@@ -34,7 +35,6 @@ async def api_shop_from_wallet(
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
     items = await get_items(shop.id)
-
     try:
         return {
             **shop.dict(),
@@ -51,8 +51,9 @@ class CreateItemsData(BaseModel):
     name: str
     description: str
     image: Optional[str]
-    price: int
+    price: float
     unit: str
+    fiat_base_multiplier: int = Query(100, ge=1)
 
 
 @offlineshop_ext.post("/api/v1/offlineshop/items")
@@ -61,9 +62,18 @@ async def api_add_or_update_item(
     data: CreateItemsData, item_id=None, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
     shop = await get_or_create_shop_by_wallet(wallet.wallet.id)
+    if data.unit != "sat":
+        data.price = data.price * 100
     if item_id == None:
+
         await add_item(
-            shop.id, data.name, data.description, data.image, data.price, data.unit
+            shop.id,
+            data.name,
+            data.description,
+            data.image,
+            data.price,
+            data.unit,
+            data.fiat_base_multiplier,
         )
         return HTMLResponse(status_code=HTTPStatus.CREATED)
     else:
@@ -75,6 +85,7 @@ async def api_add_or_update_item(
             data.image,
             data.price,
             data.unit,
+            data.fiat_base_multiplier,
         )
 
 
