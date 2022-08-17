@@ -132,7 +132,7 @@ class Payment(BaseModel):
 
     @property
     def is_uncheckable(self) -> bool:
-        return self.checking_id.startswith("temp_") or self.checking_id.startswith(
+        return self.checking_id.startswith(  # before: or self.checking_id.startswith("temp_")
             "internal_"
         )
 
@@ -151,9 +151,9 @@ class Payment(BaseModel):
 
         await update_payment_status(self.checking_id, pending)
 
-    async def check_pending(self) -> None:
+    async def check_pending(self) -> PaymentStatus:
         if self.is_uncheckable:
-            return
+            return PaymentStatus(None)
 
         logger.debug(
             f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
@@ -175,7 +175,11 @@ class Payment(BaseModel):
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
             )
+            logger.debug(
+                f"update_status (overwrite payment with status)\npayment:{self}\nstatus:{status}"
+            )
             await self.update_status(status)
+        return status
 
     async def delete(self) -> None:
         from .crud import delete_payment

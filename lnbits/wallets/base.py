@@ -25,7 +25,7 @@ class PaymentResponse(NamedTuple):
 
 class PaymentStatus(NamedTuple):
     paid: Optional[bool] = None
-    fee_msat: Optional[int] = 0
+    fee_msat: Optional[int] = None
     preimage: Optional[str] = None
 
     @property
