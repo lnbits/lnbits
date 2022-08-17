@@ -4,57 +4,56 @@ import json
 import httpx
 
 from lnbits.core import db as core_db
-from lnbits.core.models import Podcastment
+from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_Podcast_pod
-
+from .crud import get_Podcast
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
     register_invoice_listener(invoice_queue)
 
     while True:
-        Podcastment = await invoice_queue.get()
-        await on_invoice_paid(Podcastment)
+        Payment = await invoice_queue.get()
+        await on_invoice_paid(Payment)
 
 
-async def on_invoice_paid(Podcastment: Podcastment) -> None:
-    if Podcastment.extra.get("tag") != "podcast":
-        # not an podcast invoice
+async def on_invoice_paid(Payment: Payment) -> None:
+    if Payment.extra.get("tag") != "Payment":
+        # not an Payment invoice
         return
 
-    if Podcastment.extra.get("wh_status"):
+    if Payment.extra.get("wh_status"):
         # this webhook has already been sent
         return
 
-    Podcast = await get_Podcast_pod(Podcastment.extra.get("pod", -1))
-    if Podcast and Podcast.webhook_url:
+    Payment = await get_payment(Payment.extra.get("pod", -1))
+    if Payment and Payment.webhook_url:
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.post(
-                    Podcast.webhook_url,
+                    Payment.webhook_url,
                     json={
-                        "Podcastment_hash": Podcastment.Podcastment_hash,
-                        "Podcastment_request": Podcastment.bolt11,
-                        "amount": Podcastment.amount,
-                        "comment": Podcastment.extra.get("comment"),
-                        "podcast": Podcast.id,
+                        "Payment_hash": Payment.Payment_hash,
+                        "Payment_request": Payment.bolt11,
+                        "amount": Payment.amount,
+                        "comment": Payment.extra.get("comment"),
+                        "Payment": Payment.id,
                     },
                     timeout=40,
                 )
-                await mark_webhook_sent(Podcastment, r.status_code)
+                await mark_webhook_sent(Payment, r.status_code)
             except (httpx.ConnectError, httpx.RequestError):
-                await mark_webhook_sent(Podcastment, -1)
+                await mark_webhook_sent(Payment, -1)
 
 
-async def mark_webhook_sent(Podcastment: Podcastment, status: int) -> None:
-    Podcastment.extra["wh_status"] = status
+async def mark_webhook_sent(Payment: Payment, status: int) -> None:
+    Payment.extra["wh_status"] = status
 
     await core_db.execute(
         """
-        UPDATE apiPodcastments SET extra = ?
+        UPDATE apiPayments SET extra = ?
         WHERE hash = ?
         """,
-        (json.dumps(Podcastment.extra), Podcastment.Podcastment_hash),
+        (json.dumps(Payment.extra), Payment.Payment_hash),
     )

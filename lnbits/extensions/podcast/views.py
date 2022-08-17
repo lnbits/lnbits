@@ -10,7 +10,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import podcast_ext, podcast_renderer
-from .crud import get_Podcast_pod
+from .crud import get_Podcast
 
 templates = Jinja2Templates(directory="templates")
 
@@ -24,7 +24,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 @podcast_ext.get("/{pod_id}", response_class=HTMLResponse)
 async def display(request: Request, pod_id):
-    pod = await get_Podcast_pod(pod_id)
+    pod = await get_Podcast(pod_id)
     if not pod:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Podcast pod does not exist."
@@ -35,7 +35,7 @@ async def display(request: Request, pod_id):
 
 @podcast_ext.get("/print/{pod_id}", response_class=HTMLResponse)
 async def print_qr(request: Request, pod_id):
-    pod = await get_Podcast_pod(pod_id)
+    pod = await get_Podcast(pod_id)
     if not pod:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Podcast pod does not exist."

@@ -40,7 +40,7 @@ async def api_pods(
     try:
         return [
             {**pod.dict(), "lnurl": pod.lnurl(req)}
-            for pod in await get_Podcast_pods(wallet_ids)
+            for pod in await get_Podcasts(wallet_ids)
         ]
 
     except LnurlInvalidUrl:
@@ -54,7 +54,7 @@ async def api_pods(
 async def api_pod_retrieve(
     r: Request, pod_id, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
-    pod = await get_Podcast_pod(pod_id)
+    pod = await get_Podcast(pod_id)
 
     if not pod:
         raise HTTPException(
@@ -72,7 +72,7 @@ async def api_pod_retrieve(
 @podcast_ext.post("/api/v1/pods", status_code=HTTPStatus.CREATED)
 @podcast_ext.put("/api/v1/pods/{pod_id}", status_code=HTTPStatus.OK)
 async def api_pod_create_or_update(
-    data: CreatePodcastpodData,
+    data: CreatePodcastData,
     request: Request,
     pod_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -103,7 +103,7 @@ async def api_pod_create_or_update(
         )
 
     if pod_id:
-        pod = await get_Podcast_pod(pod_id)
+        pod = await get_Podcast(pod_id)
 
         if not pod:
             raise HTTPException(
@@ -123,7 +123,7 @@ async def api_pod_create_or_update(
 
 @podcast_ext.delete("/api/v1/pods/{pod_id}", status_code=HTTPStatus.OK)
 async def api_pod_delete(pod_id, wallet: WalletTypeInfo = Depends(get_key_type)):
-    pod = await get_Podcast_pod(pod_id)
+    pod = await get_Podcast(pod_id)
 
     if not pod:
         raise HTTPException(

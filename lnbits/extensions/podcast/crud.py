@@ -55,7 +55,7 @@ async def create_Podcast(data: CreatePodcastData, wallet_id: str) -> Podcast:
     else:
         pod_id = result[0]
 
-    pod = await get_Podcast_pod(pod_id)
+    pod = await get_Podcast(pod_id)
     assert pod, "Newly created pod couldn't be retrieved"
     return pod
 
@@ -135,7 +135,7 @@ async def create_Episode(data: CreateEpisodeData, wallet_id: str) -> Episode:
     else:
         pod_id = result[0]
 
-    pod = await get_Podcast_pod(pod_id)
+    pod = await get_Podcast(pod_id)
     assert pod, "Newly created pod couldn't be retrieved"
     return pod
 
