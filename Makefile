@@ -46,7 +46,7 @@ test-venv:
 	PYTHONUNBUFFERED=1 \
 	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
-migration:
+test-migration:
 	rm -rf ./migration-data
 	mkdir -p ./migration-data
 	unzip tests/data/mock_data.zip -d ./migration-data
@@ -60,6 +60,9 @@ migration:
 	timeout 5s poetry run lnbits --host 0.0.0.0 --port 5002 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
 	LNBITS_DATA_FOLDER="./migration-data" \
 	LNBITS_DATABASE_URL="postgres://lnbits:lnbits@localhost:5432/migration" \
+	poetry run python tools/conv.py
+
+migration:
 	poetry run python tools/conv.py
 
 bak:

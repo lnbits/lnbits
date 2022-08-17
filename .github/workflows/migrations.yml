@@ -36,4 +36,4 @@ jobs:
           sudo apt install unzip
       - name: Run migrations
         run: |
-          make migration
+          make test-migration

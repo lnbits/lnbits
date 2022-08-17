@@ -63,7 +63,7 @@ sudo su - postgres -c "psql -c 'CREATE DATABASE migration;'"
 ```
 #### run the migration
 ```console
-make migration
+make test-migration
 ```
 sudo su - postgres -c "psql -c 'CREATE ROLE lnbits LOGIN PASSWORD 'lnbits';'"
 #### clean migration database afterwards, fails if you try again
