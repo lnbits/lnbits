@@ -48,4 +48,25 @@ LNbits currently supports SQLite and PostgreSQL databases. There is a migration 
 
 ### Adding mock data to `mock_data.zip`
 
-`mock_data.zip` contains a few lines of sample SQLite data and is used in automated GitHub test to see whether your migration in `conv.py` works. Run your extension and save a few lines of data into a SQLite `your_extension.sqlite3` file. Unzip `tests/data/mock_data.zip`, add `your_extension.sqlite3` and zip it again. Add the updated `mock_data.zip` to your PR.
+`mock_data.zip` contains a few lines of sample SQLite data and is used in automated GitHub test to see whether your migration in `conv.py` works. Run your extension and save a few lines of data into a SQLite `your_extension.sqlite3` file. Unzip `tests/data/mock_data.zip`, add `your_extension.sqlite3`, updated `database.sqlite3` and zip it again. Add the updated `mock_data.zip` to your PR.
+
+### running migration locally
+you will need a running postgres database
+
+#### create lnbits user for migration database
+```console
+sudo su - postgres -c "psql -c 'CREATE ROLE lnbits LOGIN PASSWORD 'lnbits';'"
+```
+#### create migration database
+```console
+sudo su - postgres -c "psql -c 'CREATE DATABASE migration;'"
+```
+#### run the migration
+```console
+make test-migration
+```
+sudo su - postgres -c "psql -c 'CREATE ROLE lnbits LOGIN PASSWORD 'lnbits';'"
+#### clean migration database afterwards, fails if you try again
+```console
+sudo su - postgres -c "psql -c 'DROP DATABASE IF EXISTS migration;'"
+```
