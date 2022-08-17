@@ -194,15 +194,14 @@ Description=LNbits
 
 [Service]
 # replace with the absolute path of your lnbits installation
-WorkingDirectory=/home/bitcoin/lnbits
-# same here
-ExecStart=/home/bitcoin/lnbits/venv/bin/uvicorn lnbits.__main__:app --port 5000
+WorkingDirectory=/home/lnbits/lnbits-legend
+# same here. run `which poetry` if you can't find the poetry binary
+ExecStart=/home/lnbits/.local/bin/poetry run lnbits
 # replace with the user that you're running lnbits on
-User=bitcoin
+User=lnbits
 Restart=always
 TimeoutSec=120
 RestartSec=30
-# this makes sure that you receive logs in real time
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
