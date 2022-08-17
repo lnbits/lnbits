@@ -35,6 +35,7 @@ class FakeWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         # we set a default secret since FakeWallet is used for internal=True invoices
         # and the user might not have configured a secret yet
@@ -61,7 +62,10 @@ class FakeWallet(Wallet):
         data["timestamp"] = datetime.now().timestamp()
         if description_hash:
             data["tags_set"] = ["h"]
-            data["description_hash"] = description_hash.decode("utf-8")
+            data["description_hash"] = description_hash
+        elif unhashed_description:
+            data["tags_set"] = ["d"]
+            data["description_hash"] = hashlib.sha256(unhashed_description).digest()
         else:
             data["tags_set"] = ["d"]
             data["memo"] = memo

@@ -54,8 +54,10 @@ class OpenNodeWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
-        if description_hash:
+        if description_hash or unhashed_description:
             raise Unsupported("description_hash")
 
         async with httpx.AsyncClient() as client:

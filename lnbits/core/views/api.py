@@ -1,7 +1,7 @@
 import asyncio
+import binascii
 import hashlib
 import json
-from binascii import unhexlify
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
@@ -141,6 +141,7 @@ class CreateInvoiceData(BaseModel):
     memo: Optional[str] = None
     unit: Optional[str] = "sat"
     description_hash: Optional[str] = None
+    unhashed_description: Optional[str] = None
     lnurl_callback: Optional[str] = None
     lnurl_balance_check: Optional[str] = None
     extra: Optional[dict] = None
@@ -151,10 +152,28 @@ class CreateInvoiceData(BaseModel):
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash:
-        description_hash = unhexlify(data.description_hash)
+        try:
+            description_hash = binascii.unhexlify(data.description_hash)
+        except binascii.Error:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="'description_hash' must be a valid hex string",
+            )
+        unhashed_description = b""
+        memo = ""
+    elif data.unhashed_description:
+        try:
+            unhashed_description = binascii.unhexlify(data.unhashed_description)
+        except binascii.Error:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="'unhashed_description' must be a valid hex string",
+            )
+        description_hash = b""
         memo = ""
     else:
         description_hash = b""
+        unhashed_description = b""
         memo = data.memo or LNBITS_SITE_TITLE
     if data.unit == "sat":
         amount = int(data.amount)
@@ -170,6 +189,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 amount=amount,
                 memo=memo,
                 description_hash=description_hash,
+                unhashed_description=unhashed_description,
                 extra=data.extra,
                 webhook=data.webhook,
                 internal=data.internal,
@@ -262,7 +282,7 @@ async def api_payments_create(
         return await api_payments_create_invoice(invoiceData, wallet.wallet)
     else:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail="Invoice (or Admin) key required.",
         )
 
