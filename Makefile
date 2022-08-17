@@ -32,11 +32,13 @@ test:
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
 	poetry run pytest
 
 test-real-wallet:
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
 	poetry run pytest
 
 test-venv:
@@ -44,6 +46,7 @@ test-venv:
 	FAKE_WALLET_SECRET="ToTheMoon1" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
+	DEBUG=true \
 	./venv/bin/pytest --durations=1 -s --cov=lnbits --cov-report=xml tests
 
 test-migration:
