@@ -19,16 +19,12 @@ env.read_env()
 # Change these values as needed
 
 
-sqfolder = "data/"
+sqfolder = env.str("LNBITS_DATA_FOLDER", default=None)
 
 LNBITS_DATABASE_URL = env.str("LNBITS_DATABASE_URL", default=None)
 if LNBITS_DATABASE_URL is None:
-    pgdb = "lnbits"
-    pguser = "lnbits"
-    pgpswd = "postgres"
-    pghost = "localhost"
-    pgport = "5432"
-    pgschema = ""
+    print("missing LNBITS_DATABASE_URL")
+    sys.exit(1)
 else:
     # parse postgres://lnbits:postgres@localhost:5432/lnbits
     pgdb = LNBITS_DATABASE_URL.split("/")[-1]
@@ -129,7 +125,7 @@ def migrate_db(file: str, schema: str, exclude_tables: List[str] = []):
     sq = get_sqlite_cursor(file)
     tables = sq.execute(
         """
-        SELECT name FROM sqlite_master 
+        SELECT name FROM sqlite_master
         WHERE type='table' AND name not like 'sqlite?_%' escape '?'
     """
     ).fetchall()
