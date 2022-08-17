@@ -1,0 +1,630 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <q-btn unelevated color="primary" @click="formDialogPodcast.show = true"
+          >New Podcast</q-btn
+        >
+        <q-btn unelevated color="primary" @click="formDialogEpisode.show = true"
+          >New Episode</q-btn
+        >
+      </q-card-section>
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Podcasts</h5>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="Podcastpods"
+          row-key="id"
+          :pagination.sync="PodcastpodsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th auto-width>Title</q-th>
+              <q-th auto-width>Description</q-th>
+              <q-th auto-width>Wallet</q-th>
+              <q-th auto-width>Amount made</q-th>
+              <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="launch"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.Podcast_url"
+                  target="_blank"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="visibility"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openQrCodeDialog(props.row.id)"
+                ></q-btn>
+              </q-td>
+              <q-td auto-width>{{ props.row.description }}</q-td>
+              <q-td auto-width>
+                <span v-if="props.row.min == props.row.max">
+                  {{ props.row.min }}
+                </span>
+                <span v-else>{{ props.row.min }} - {{ props.row.max }}</span>
+              </q-td>
+              <q-td>{{ props.row.currency || 'sat' }}</q-td>
+              <q-td>
+                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
+                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.success_text || props.row.success_url"
+                  size="14px"
+                  name="call_to_action"
+                >
+                  <q-tooltip>
+                    On success, show message '{{ props.row.success_text }}'
+                    <span v-if="props.row.success_url"
+                      >and URL '{{ props.row.success_url }}'</span
+                    >
+                  </q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.comment_chars > 0"
+                  size="14px"
+                  name="insert_comment"
+                >
+                  <q-tooltip>
+                    {{ props.row.comment_chars }}-char comment allowed
+                  </q-tooltip>
+                </q-icon>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                </q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deletePodcastpod(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+
+      
+    </q-card>
+
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Episodes</h5>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="Podcastpods"
+          row-key="id"
+          :pagination.sync="PodcastpodsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th auto-width>Title</q-th>
+              <q-th auto-width>Description</q-th>
+              <q-th auto-width>Podcast</q-th>
+              <q-th auto-width>Amount made</q-th>
+              <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="launch"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  type="a"
+                  :href="props.row.Podcast_url"
+                  target="_blank"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="visibility"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openQrCodeDialog(props.row.id)"
+                ></q-btn>
+              </q-td>
+              <q-td auto-width>{{ props.row.description }}</q-td>
+              <q-td auto-width>
+                <span v-if="props.row.min == props.row.max">
+                  {{ props.row.min }}
+                </span>
+                <span v-else>{{ props.row.min }} - {{ props.row.max }}</span>
+              </q-td>
+              <q-td>{{ props.row.currency || 'sat' }}</q-td>
+              <q-td>
+                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
+                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.success_text || props.row.success_url"
+                  size="14px"
+                  name="call_to_action"
+                >
+                  <q-tooltip>
+                    On success, show message '{{ props.row.success_text }}'
+                    <span v-if="props.row.success_url"
+                      >and URL '{{ props.row.success_url }}'</span
+                    >
+                  </q-tooltip>
+                </q-icon>
+                <q-icon
+                  v-if="props.row.comment_chars > 0"
+                  size="14px"
+                  name="insert_comment"
+                >
+                  <q-tooltip>
+                    {{ props.row.comment_chars }}-char comment allowed
+                  </q-tooltip>
+                </q-icon>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                </q-btn>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deletePodcastpod(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                ></q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+
+      
+    </q-card>
+  </div>
+
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Podcast extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list>
+          {% include "podcast/_api_docs.html" %}
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <q-dialog v-model="formDialogPodcast.show" @hide="closeFormDialogPodcast">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogPodcast.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.podcast_title"
+          type="text"
+          label="Podcast Title *"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.description"
+          type="text"
+          label="Podcast description *"
+        >
+        </q-input>
+
+        <q-file
+            filled
+            dense
+            capture="environment"
+            accept="image/jpeg, image/png"
+            :max-file-size="3*1024**2"
+            label="Podcast thumb"
+            clearable
+            @input="imageAdded"
+            @clear="imageCleared"
+          >
+            <template v-if="formDialogPodcast.data.cover_image" v-slot:before>
+              <img style="height: 1em" :src="formDialogPodcast.data.cover_image" />
+            </template>
+            <template v-if="formDialogPodcast.data.cover_image" v-slot:append>
+              <q-icon
+                name="cancel"
+                @click.stop.prevent="imageCleared"
+                class="cursor-pointer"
+              />
+            </template>
+          </q-file>
+
+          <q-input
+          filled
+          dense
+          v-model.number="formDialogPodcast.data.no_episodes"
+          type="number"
+          min="1"
+          label="Number of episodes"
+        ></q-input>
+        
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogPodcast.data.category"
+          :options="categoryOptions"
+          multiple
+          label="Category *"
+        >
+        </q-select>
+
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogPodcast.data.country_origin"
+          :options="countryOptions"
+          multiple
+          label="Country of origin *"
+        >
+        </q-select>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.hostname"
+          type="text"
+          label="Host name"
+        >
+        </q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.email"
+          type="email"
+          label="Email"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.website"
+          type="website"
+          label="Website"
+        >
+        </q-input>
+
+        <q-toggle
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.explicit"
+          label="Explicit content?"
+        >
+        </q-toggle>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogPodcast.data.language"
+          :options="languageOptions"
+          label="Language"
+        >
+        </q-select>
+        
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogPodcast.data.copyright"
+          type="text"
+          label="Copyright"
+          value="@2022"
+        >
+        </q-input>
+
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialogPodcast.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Podcast</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="
+                formDialogPodcast.data.wallet == null ||
+                formDialogPodcast.data.description == null
+                "
+            type="submit"
+            >Create Podcast</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="formDialogEpisode.show" @hide="closeFormDialogEpisode">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogEpisode.data.podcast"
+          :options="podcastOptions"
+          label="Podcast *"
+        >
+        </q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogEpisode.data.episode_title"
+          type="text"
+          label="Episode title *"
+        >
+        </q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialogEpisode.data.description"
+          type="textarea"
+          rows="3"
+          label="Episode description *"
+        >
+        </q-input>
+
+        <q-file
+            filled
+            dense
+            capture="environment"
+            accept="mp3/mp4/ogg, mp3/mp4/ogg"
+            :max-file-size="3*1024**2"
+            label="Media file"
+            clearable
+            @input="fileAdded"
+            @clear="fileCleared"
+          >
+            <template v-if="formDialogEpisode.data.media_file" v-slot:before>
+              <img style="height: 1em" :src="formDialogEpisode.data.media_file" />
+            </template>
+            <template v-if="formDialogEpisode.data.media_file" v-slot:append>
+              <q-icon
+                name="cancel"
+                @click.stop.prevent="fileCleared"
+                class="cursor-pointer"
+              />
+            </template>
+          </q-file>
+
+          <q-select
+          filled
+          multiple
+          dense
+          emit-value
+          v-model="formDialogEpisode.data.keywords"
+          use-input
+          use-chips
+          multiple
+          hide-dropdown-icon
+          input-debounce="0"
+          new-value-mode="add-unique"
+          label="Keyword tags"
+        ></q-select>
+
+        <q-input
+          filled
+          dense
+          v-model.number="formDialogEpisode.data.series_no"
+          type="number"
+          min="1"
+          label="Series no"
+        ></q-input>
+
+        <q-input
+          filled
+          dense
+          v-model.number="formDialogEpisode.data.episode_no"
+          type="number"
+          min="1"
+          label="Episode no"
+        ></q-input>
+
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogEpisode.data.episode_type"
+          :options="typeOptions"
+          label="Episode type"
+        >
+        </q-select>
+
+        <q-file
+            filled
+            dense
+            capture="environment"
+            accept="image/jpeg, image/png"
+            :max-file-size="3*1024**2"
+            label="Episode thumb (optional)"
+            clearable
+            @input="imageAdded"
+            @clear="imageCleared"
+          >
+            <template v-if="formDialogEpisode.data.cover_image" v-slot:before>
+              <img style="height: 1em" :src="formDialogEpisode.data.cover_image" />
+            </template>
+            <template v-if="formDialogEpisode.data.cover_image" v-slot:append>
+              <q-icon
+                name="cancel"
+                @click.stop.prevent="imageCleared"
+                class="cursor-pointer"
+              />
+            </template>
+          </q-file>
+          <p>Release date/time
+          </p>
+          <q-input v-model="formDialogEpisode.data.publish_date" filled type="date"></q-input>
+          <q-input v-model="formDialogEpisode.data.publish_time" filled type="time"></q-input>   
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialogEpisode.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Episode</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="
+            formDialogEpisode.data.wallet == null ||
+            formDialogEpisode.data.description == null ||
+                (
+                  formDialogEpisode.data.min == null ||
+                  formDialogEpisode.data.min <= 0
+                )
+                "
+            type="submit"
+            >Create Episode</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="qrCodeDialog.show" position="top">
+    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+      {% raw %}
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="qrCodeDialog.data.lnurl"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+      </q-responsive>
+      <p style="word-break: break-all">
+        <strong>ID:</strong> {{ qrCodeDialog.data.id }}<br />
+        <strong>Amount:</strong> {{ qrCodeDialog.data.amount }}<br />
+        <span v-if="qrCodeDialog.data.currency"
+          ><strong>{{ qrCodeDialog.data.currency }} price:</strong> {{
+          fiatRates[qrCodeDialog.data.currency] ?
+          fiatRates[qrCodeDialog.data.currency] + ' sat' : 'Loading...' }}<br
+        /></span>
+        <strong>Accepts comments:</strong> {{ qrCodeDialog.data.comments }}<br />
+        <strong>Dispatches webhook to:</strong> {{ qrCodeDialog.data.webhook
+        }}<br />
+        <strong>On success:</strong> {{ qrCodeDialog.data.success }}<br />
+      </p>
+      {% endraw %}
+      <div class="row q-mt-lg q-gutter-sm">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.lnurl, 'LNURL copied to clipboard!')"
+          class="q-ml-sm"
+          >Copy LNURL</q-btn
+        >
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.Podcast_url, 'pod copied to clipboard!')"
+          >Shareable pod</q-btn
+        >
+        <q-btn
+          outline
+          color="grey"
+          icon="nfc"
+          @click="writeNfcTag(qrCodeDialog.data.lnurl)"
+          :disable="nfcTagWriting"
+        >
+        </q-btn>
+        <q-btn
+          outline
+          color="grey"
+          icon="print"
+          type="a"
+          :href="qrCodeDialog.data.print_url"
+          target="_blank"
+        ></q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/podcast/static/js/index.js"></script>
+{% endblock %}

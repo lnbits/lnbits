@@ -26,6 +26,11 @@ new Vue({
   mixins: [windowMixin],
   data() {
     return {
+      categoryOptions: ['seconds', 'minutes', 'hours'],
+      countryOptions: ['seconds', 'minutes', 'hours'],
+      languageOptions: ['seconds', 'minutes', 'hours'],
+      podcastOptions: ['seconds', 'minutes', 'hours'],
+      typeOptions: ['seconds', 'minutes', 'hours'],
       currencies: [],
       fiatRates: {},
       checker: null,
@@ -36,7 +41,12 @@ new Vue({
         }
       },
       nfcTagWriting: false,
-      formDialog: {
+      formDialogPodcast: {
+        show: false,
+        fixedAmount: true,
+        data: {explicit: false}
+      },
+      formDialogEpisode: {
         show: false,
         fixedAmount: true,
         data: {}
@@ -48,7 +58,53 @@ new Vue({
     }
   },
   methods: {
-    getPodcastpods() {
+    imageAdded(file) {
+      let blobURL = URL.createObjectURL(file)
+      let image = new Image()
+      image.src = blobURL
+      image.onload = async () => {
+        let canvas = document.createElement('canvas')
+        canvas.setAttribute('width', 100)
+        canvas.setAttribute('height', 100)
+        await pica.resize(image, canvas, {
+          quality: 0,
+          alpha: true,
+          unsharpAmount: 95,
+          unsharpRadius: 0.9,
+          unsharpThreshold: 70
+        })
+        this.formDialogPodcast.data.image = canvas.toDataURL()
+        this.formDialogPodcast = {...this.formDialogPodcast}
+      }
+    },
+    imageCleared() {
+      this.formDialogPodcast.data.image = null
+      this.formDialogPodcast = {...this.formDialogPodcast}
+    },
+    fileAdded(file) {
+      let blobURL = URL.createObjectURL(file)
+      let image = new Image()
+      image.src = blobURL
+      image.onload = async () => {
+        let canvas = document.createElement('canvas')
+        canvas.setAttribute('width', 100)
+        canvas.setAttribute('height', 100)
+        await pica.resize(image, canvas, {
+          quality: 0,
+          alpha: true,
+          unsharpAmount: 95,
+          unsharpRadius: 0.9,
+          unsharpThreshold: 70
+        })
+        this.formDialogEpisode.data.image = canvas.toDataURL()
+        this.formDialogEpisode = {...this.formDialogEpisode}
+      }
+    },
+    fileCleared() {
+      this.formDialogEpisode.data.image = null
+      this.formDialogEpisode = {...this.formDialogEpisode}
+    },
+    getPodcasts() {
       LNbits.api
         .request(
           'GET',
@@ -63,7 +119,10 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    closeFormDialog() {
+    closeFormDialogPodcast() {
+      this.resetFormData()
+    },
+    closeFormDialogEpisode() {
       this.resetFormData()
     },
     openQrCodeDialog(podId) {
@@ -126,7 +185,7 @@ new Vue({
         data: {}
       }
     },
-    updatePodcastpod(wallet, data) {
+    updatePodcast(wallet, data) {
       let values = _.omit(
         _.pick(
           data,
@@ -163,7 +222,7 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    createPodcastpod(wallet, data) {
+    createPodcast(wallet, data) {
       LNbits.api
         .request('POST', '/podcast/api/v1/pods', wallet.adminkey, data)
         .then(response => {
@@ -175,7 +234,7 @@ new Vue({
           LNbits.utils.notifyApiError(err)
         })
     },
-    deletePodcastpod(podId) {
+    deletePodcast(podId) {
       var pod = _.findWhere(this.Podcastpods, {id: podId})
 
       LNbits.utils
@@ -246,19 +305,11 @@ new Vue({
   },
   created() {
     if (this.g.user.wallets.length) {
-      var getPodcastpods = this.getPodcastpods
-      getPodcastpods()
+      var getPodcasts = this.getPodcasts
+      getPodcasts()
       this.checker = setInterval(() => {
-        getPodcastpods()
+        getPodcasts()
       }, 20000)
     }
-    LNbits.api
-      .request('GET', '/podcast/api/v1/currencies')
-      .then(response => {
-        this.currencies = ['satoshis', ...response.data]
-      })
-      .catch(err => {
-        LNbits.utils.notifyApiError(err)
-      })
   }
 })
