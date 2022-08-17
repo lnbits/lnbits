@@ -145,7 +145,10 @@ class CoreLightningWallet(Wallet):
         if not r["invoices"]:
             return PaymentStatus(None)
         if r["invoices"][0]["payment_hash"] == checking_id:
-            return PaymentStatus(r["invoices"][0]["status"] == "paid")
+            if r["invoices"][0]["status"] == "paid":
+                return PaymentStatus(True)
+            elif r["invoices"][0]["status"] == "unpaid":
+                return PaymentStatus(False)
         raise KeyError("supplied an invalid checking_id")
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
