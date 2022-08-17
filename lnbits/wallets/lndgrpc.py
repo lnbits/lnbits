@@ -214,6 +214,7 @@ class LndWallet(Wallet):
         """
         try:
             r_hash = parse_checking_id(checking_id)
+            print(f"r_hash: {base64.b64encode(r_hash)}, len = {len(r_hash)}")
             if len(r_hash) != 32:
                 raise binascii.Error
         except binascii.Error:
@@ -221,14 +222,14 @@ class LndWallet(Wallet):
             # that use different checking_id formats
             return PaymentStatus(None)
 
-        # for some reason our checking_ids are in base64 but the payment hashes
-        # returned here are in hex, lnd is weird
-        checking_id = checking_id.replace("_", "/")
-        checking_id = base64.b64decode(checking_id).hex()
-
         resp = self.routerpc.TrackPaymentV2(
             router.TrackPaymentRequest(payment_hash=r_hash)
         )
+        # check for error
+        if resp.code != 0:
+            # print error from grpc response
+            print(f"error: {resp.details}")
+            return PaymentStatus(None)
 
         # HTLCAttempt.HTLCStatus:
         # https://github.com/lightningnetwork/lnd/blob/master/lnrpc/lightning.proto#L3641
