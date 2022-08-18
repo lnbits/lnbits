@@ -32,6 +32,7 @@ from .crud import (
     get_diagonalley_market,
     get_diagonalley_markets,
     get_diagonalley_order,
+    get_diagonalley_order_details,
     get_diagonalley_orders,
     get_diagonalley_product,
     get_diagonalley_products,
@@ -59,24 +60,6 @@ from .models import (
 
 
 ### Products
-"""
-@copilot_ext.get("/api/v1/copilot/{copilot_id}")
-async def api_copilot_retrieve(
-    req: Request,
-    copilot_id: str = Query(None),
-    wallet: WalletTypeInfo = Depends(get_key_type),
-):
-    copilot = await get_copilot(copilot_id)
-    if not copilot:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Copilot not found"
-        )
-    if not copilot.lnurl_toggle:
-        return copilot.dict()
-    return {**copilot.dict(), **{"lnurl": copilot.lnurl(req)}}
-"""
-
-
 @diagonalley_ext.get("/api/v1/products")
 async def api_diagonalley_products(
     wallet: WalletTypeInfo = Depends(get_key_type),
@@ -245,12 +228,18 @@ async def api_diagonalley_orders(
     wallet: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [wallet.wallet.id]
-
     if all_wallets:
         wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
 
+    orders = await get_diagonalley_orders(wallet_ids)
+    orders_with_details = []
+    for order in orders:
+        order = order.dict()
+        order["details"] = await get_diagonalley_order_details(order["id"])
+        orders_with_details.append(order)
     try:
-        return [order.dict() for order in await get_diagonalley_orders(wallet_ids)]
+        return orders_with_details#[order for order in orders]
+        # return [order.dict() for order in await get_diagonalley_orders(wallet_ids)]
     except:
         return {"message": "We could not retrieve the orders."}
 

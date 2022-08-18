@@ -11,6 +11,7 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
 
+from ...core.crud import get_wallet
 from .crud import (
     get_diagonalley_products,
     get_diagonalley_stall,
@@ -32,6 +33,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def display(request: Request, stall_id):
     stall = await get_diagonalley_stall(stall_id)
     products = await get_diagonalley_products(stall_id)
+    wallet = await get_wallet(stall.wallet)
     zones = []
     for id in stall.shippingzones.split(","):
         z = await get_diagonalley_zone(id)
@@ -55,6 +57,7 @@ async def display(request: Request, stall_id):
             "request": request,
             "stall": stall,
             "products": [product.dict() for product in products],
+            "inkey": wallet.inkey
         },
     )
 

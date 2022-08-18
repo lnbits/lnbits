@@ -401,6 +401,7 @@
           {% raw %}
           <template v-slot:header="props">
             <q-tr :props="props">
+              <q-th auto-width></q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -409,6 +410,16 @@
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  size="sm"
+                  color="accent"
+                  round
+                  dense
+                  @click="props.expand = !props.expand"
+                  :icon="props.expand ? 'remove' : 'add'"
+                />
+              </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
@@ -434,6 +445,61 @@
                   icon="cancel"
                   color="pink"
                 ></q-btn>
+              </q-td>
+            </q-tr>
+            <q-tr v-show="props.expand" :props="props">
+              <q-td colspan="100%">
+                <template>
+                  <div class="q-pa-md">
+                    <q-list>
+                      <q-item-label header>Order Details</q-item-label>
+
+                      <q-item v-for="col in props.row.details" :key="col.id">
+                        <q-item-section>
+                          <q-item-label>Products</q-item-label>
+                          <q-item-label caption
+                            >{{ products.length && (_.findWhere(products, {id:
+                            col.product_id})).product }}</q-item-label
+                          >
+                          <q-item-label caption
+                            >Quantity: {{ col.quantity }}</q-item-label
+                          >
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item>
+                        <q-item-section>
+                          <q-item-label>Shipping to</q-item-label>
+                          <q-item-label caption
+                            >{{ props.row.address }}</q-item-label
+                          >
+                        </q-item-section>
+                      </q-item>
+
+                      <q-item>
+                        <q-item-section>
+                          <q-item-label>User info</q-item-label>
+                          <q-item-label caption v-if="props.row.username"
+                            >{{ props.row.username }}</q-item-label
+                          >
+                          <q-item-label caption
+                            >{{ props.row.email }}</q-item-label
+                          >
+                          <q-item-label caption v-if="props.row.pubkey"
+                            >{{ props.row.pubkey }}</q-item-label
+                          >
+                        </q-item-section>
+                      </q-item>
+                      <q-item>
+                        <q-item-section>
+                          <q-item-label>Total</q-item-label>
+                          <q-item-label>{{ props.row.total }}</q-item-label>
+                          <!-- <q-icon name="star" color="yellow" /> -->
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </div>
+                </template>
               </q-td>
             </q-tr>
           </template>
@@ -724,7 +790,6 @@
   }
   const mapProducts = obj => {
     obj._data = _.clone(obj)
-    console.log(obj)
     return obj
   }
   const mapZone = obj => {
@@ -733,6 +798,10 @@
   }
   const mapOrders = obj => {
     obj._data = _.clone(obj)
+    obj.time = Quasar.utils.date.formatDate(
+      new Date(obj.time * 1000),
+      'YYYY-MM-DD HH:mm'
+    )
     return obj
   }
   const mapKeys = obj => {
@@ -822,7 +891,7 @@
         label: '',
         ordersTable: {
           columns: [
-            {
+            /*{
               name: 'product',
               align: 'left',
               label: 'Product',
@@ -833,12 +902,18 @@
               align: 'left',
               label: 'Quantity',
               field: 'quantity'
+            },*/
+            {
+              name: 'id',
+              align: 'left',
+              label: 'ID',
+              field: 'id'
             },
             {
-              name: 'address',
+              name: 'time',
               align: 'left',
-              label: 'Address',
-              field: 'address'
+              label: 'Date',
+              field: 'time'
             },
             {
               name: 'invoiceid',
@@ -1037,7 +1112,6 @@
       ////////////////STALLS//////////////////
       ////////////////////////////////////////
       getStalls: function () {
-        console.log(this.g.user)
         var self = this
         LNbits.api
           .request(
@@ -1048,7 +1122,6 @@
           .then(function (response) {
             if (response.data) {
               self.stalls = response.data.map(mapStalls)
-              console.log(self.stalls)
             }
           })
           .catch(function (error) {
@@ -1072,7 +1145,6 @@
 
         this.stallDialog.data.shippingzones = shippingzones //this.stallDialog.data.shippingzones.split(",")
 
-        console.log(this.stallDialog.data)
         //let zones = this.zoneOptions
         //  .filter(z => z.id == )
         this.stallDialog.show = true
@@ -1096,7 +1168,6 @@
         }
       },
       updateStall: function (data) {
-        console.log(data)
         var self = this
         LNbits.api
           .request(
@@ -1179,7 +1250,6 @@
             self.g.user.wallets[0].inkey
           )
           .then(function (response) {
-            console.log('RESP DATA', response.data)
             if (response.data) {
               self.products = response.data.map(mapProducts)
             }
@@ -1271,7 +1341,6 @@
         let self = this
         const walletId = _.findWhere(this.stalls, {id: data.stall}).wallet
 
-        console.log('DATA', walletId, data)
         LNbits.api
           .request(
             'POST',
@@ -1280,7 +1349,6 @@
             data
           )
           .then(response => {
-            console.log(response)
             self.products.push(mapProducts(response.data))
             self.resetDialog('productDialog')
           })
@@ -1328,7 +1396,6 @@
           )
           .then(function (response) {
             if (response.data) {
-              console.log(response)
               self.zones = response.data.map(mapZone)
             }
           })
@@ -1360,7 +1427,6 @@
         }
       },
       updateZone: function (data) {
-        console.log(data)
         var self = this
         LNbits.api
           .request(
@@ -1370,7 +1436,6 @@
             data
           )
           .then(function (response) {
-            console.log(response)
             self.zones = _.reject(self.zones, function (obj) {
               return obj.id == data.id
             })
@@ -1492,7 +1557,6 @@
           })
       },
       createShop(data) {
-        console.log('data')
         LNbits.api
           .request(
             'POST',
@@ -1551,6 +1615,7 @@
           .then(function (response) {
             if (response.data) {
               self.orders = response.data.map(mapOrders)
+              console.log(self.orders)
             }
           })
           .catch(function (error) {
@@ -1629,7 +1694,7 @@
         this.getProducts()
         this.getZones()
         this.getOrders()
-        this.getMarkets()
+        //this.getMarkets() # NOT YET IMPLEMENTED
         this.customerKeys = [
           'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
           'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'

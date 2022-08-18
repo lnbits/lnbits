@@ -80,14 +80,13 @@ class createOrder(BaseModel):
 
 class Orders(BaseModel):
     id: str
-    productid: str
-    stall: str
-    pubkey: str
-    product: str
-    quantity: int
+    wallet: str
+    username: Optional[str]
+    pubkey: Optional[str]
     shippingzone: str
     address: str
     email: str
+    total: int
     invoiceid: str
     paid: bool
     shipped: bool
