@@ -91,5 +91,11 @@ async def api_schedule_delete(
 
 
 @scheduledpayments_ext.get("/api/v1/events", status_code=HTTPStatus.OK)
-async def api_events():
-    return [event.dict() for event in await get_events()]
+async def api_events(
+    all_wallets: bool = Query(None), wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    wallet_ids = [wallet.wallet.id]
+    if all_wallets:
+        wallet_ids = (await get_user(wallet.wallet.user)).wallet_ids
+
+    return [event.dict() for event in await get_events(wallet_ids)]

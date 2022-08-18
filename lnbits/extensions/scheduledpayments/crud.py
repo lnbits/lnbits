@@ -96,10 +96,19 @@ async def update_schedule(wallet_id: str, data: UpdateScheduleData) -> Schedule:
     return schedule
 
 
-async def get_events() -> List[ScheduleEvent]:
+async def get_events(wallet_ids: Union[str, List[str]]) -> List[ScheduleEvent]:
+    if isinstance(wallet_ids, str):
+        wallet_ids = [wallet_ids]
+
+    q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM scheduledpayments.schedule_events",
-        (),
+        f"""
+        SELECT * 
+        FROM scheduledpayments.schedule_events se
+        JOIN scheduledpayments.schedule s ON s.id = se.schedule_id 
+        WHERE s.wallet IN ({q})
+        """,
+        (*wallet_ids,),
     )
 
     return [ScheduleEvent.from_row(row) for row in rows]

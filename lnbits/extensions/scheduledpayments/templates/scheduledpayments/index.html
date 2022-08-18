@@ -538,7 +538,8 @@
         LNbits.api
           .request(
             'GET',
-            '/scheduledpayments/api/v1/events',
+            '/scheduledpayments/api/v1/events?all_wallets=true',
+            this.g.user.wallets[0].inkey
           )
           .then(function (response) {
             self.scheduleEvents = response.data.map(function (obj) {
