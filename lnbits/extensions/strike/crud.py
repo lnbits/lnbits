@@ -25,11 +25,12 @@ async def create_configuration(
             lnbits_wallet,
             handle,
             description,
+            api_key,
             currency
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (id, data.lnbits_wallet, data.handle, data.description, currency),
+        (id, data.lnbits_wallet, data.handle, data.description, data.api_key, currency),
     )
 
     config = await get_configuration(id)

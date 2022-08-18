@@ -4,6 +4,10 @@ from http import HTTPStatus
 from os import getenv
 from typing import Any, List, Optional
 
+from lnbits.settings import (
+    STRIKE_API_ENDPOINT
+)
+
 import httpx
 from pydantic import BaseModel, parse_obj_as
 from starlette.exceptions import HTTPException
@@ -41,12 +45,12 @@ class StrikeQuote(BaseModel):
     conversionRate: StrikeRate
 
 
-class StrikeApiClient:
-    def __init__(self):
-        endpoint = getenv("STRIKE_API_ENDPOINT") or "https://api.strike.me"
+class StrikeApiClient():
+    def __init__(self, api_key):
+        endpoint = STRIKE_API_ENDPOINT
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
-        self.api_key = getenv("STRIKE_API_KEY")
+        self.api_key = api_key
         self.has_api_key = self.api_key != None
         self.headers = {
             "accept": "application/json",

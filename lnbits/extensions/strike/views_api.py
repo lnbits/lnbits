@@ -22,8 +22,8 @@ from .strike_api import StrikeApiClient, StrikeProfile
 @strike_ext.post("/api/v1/configurations")
 async def api_create_config(data: CreateConfiguration):
     """Create a configuration"""
-
-    client = StrikeApiClient()
+    print(data.api_key)
+    client = StrikeApiClient(data.api_key)
     profile = await client.get_profile(data.handle)
     if not profile:
         raise HTTPException(

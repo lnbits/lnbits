@@ -190,6 +190,13 @@
           type="text"
           label="Config description"
         ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="configDialog.data.api_key"
+          type="text"
+          label="Strike API Key"
+        ></q-input>
         <div class="row q-mt-lg">
           <q-btn
             v-if="configDialog.data.id"
@@ -203,7 +210,7 @@
             v-else
             unelevated
             color="primary"
-            :disable="configDialog.data.handle == null"
+            :disable="configDialog.data.handle == null || configDialog.data.api_key == null"
             type="submit"
           >
             Forward
