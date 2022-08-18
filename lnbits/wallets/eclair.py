@@ -50,7 +50,7 @@ class EclairWallet(Wallet):
     async def status(self) -> StatusResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                f"{self.url}/usablebalances", headers=self.auth, timeout=40
+                f"{self.url}/globalbalance", headers=self.auth, timeout=40
             )
         try:
             data = r.json()
@@ -60,9 +60,11 @@ class EclairWallet(Wallet):
             )
 
         if r.is_error:
-            return StatusResponse(data["error"], 0)
+            return StatusResponse(data.get("error") or "undefined error", 0)
+        if len(data) == 0:
+            return StatusResponse("no data", 0)
 
-        return StatusResponse(None, data[0]["canSend"] * 1000)
+        return StatusResponse(None, int(data.get("total") * 100_000_000_000))
 
     async def create_invoice(
         self,
@@ -118,6 +120,9 @@ class EclairWallet(Wallet):
 
         data = r.json()
 
+        if data["type"] == "payment-failed":
+            return PaymentResponse(False, None, 0, None, "payment failed")
+
         checking_id = data["paymentHash"]
         preimage = data["paymentPreimage"]
 
@@ -137,14 +142,23 @@ class EclairWallet(Wallet):
                 error_message = r.text
                 pass
             return PaymentResponse(
-                True, checking_id, 0, preimage, error_message
+                None, checking_id, 0, preimage, error_message
             )  ## ?? is this ok ??
 
-        data = r.json()
-        fees = [i["status"] for i in data]
-        fee_msat = sum([i["feesPaid"] for i in fees])
+        statuses = {
+            "sent": True,
+            "failed": False,
+            "pending": None,
+        }
 
-        return PaymentResponse(True, checking_id, fee_msat, preimage, None)
+        data = r.json()
+        if data[-1]["status"]["type"] == "sent":
+            fee_msat = -data[-1]["status"]["feesPaid"]
+            preimage = data[-1]["status"]["paymentPreimage"]
+
+        return PaymentResponse(
+            statuses[data[-1]["status"]["type"]], checking_id, fee_msat, preimage, None
+        )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:
@@ -176,10 +190,15 @@ class EclairWallet(Wallet):
         if r.is_error:
             return PaymentStatus(None)
 
-        if data["status"]["type"] != "sent":
+        if data["status"]["type"] == "sent":
+            fee_msat = -data["status"]["feesPaid"]
+            preimage = data["status"]["paymentPreimage"]
+            return PaymentStatus(True, fee_msat, preimage)
+        elif data["status"]["type"] == "failed":
             return PaymentStatus(False)
-
-        return PaymentStatus(True)
+        else:
+            # equal to data["status"]["type"] == "pending":
+            return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
 
