@@ -172,9 +172,9 @@ def register_assets(app: FastAPI):
 
 
 def register_async_tasks(app):
-    @app.api_route("/wallet/webhook", methods=["GET", "POST"])
-    async def webhook_listener(request: Request):
-        return await webhook_handler(request)
+    @app.route("/wallet/webhook")
+    async def webhook_listener():
+        return await webhook_handler()
 
     @app.on_event("startup")
     async def listeners():

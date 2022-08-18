@@ -81,7 +81,7 @@ async def webhook_handler(request):
     """
     handler = getattr(WALLET, "webhook_listener", None)
     if handler:
-        return await handler(request)
+        return await handler()
     raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
 
