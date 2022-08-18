@@ -11,7 +11,8 @@ async def m001_initial(db):
             publickey TEXT,
             privatekey TEXT,
             relays TEXT,
-            shippingzones TEXT NOT NULL
+            shippingzones TEXT NOT NULL,
+            rating INTEGER DEFAULT 0
         );
     """
     )
@@ -20,7 +21,7 @@ async def m001_initial(db):
     Initial products table.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE diagonalley.products (
             id TEXT PRIMARY KEY,
             stall TEXT NOT NULL REFERENCES {db.references_schema}stalls (id),
@@ -30,7 +31,7 @@ async def m001_initial(db):
             image TEXT,
             price INTEGER NOT NULL,
             quantity INTEGER NOT NULL,
-            rating INTEGER NOT NULL
+            rating INTEGER DEFAULT 0
         );
     """
     )
@@ -53,12 +54,13 @@ async def m001_initial(db):
     Initial orders table.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE diagonalley.orders (
             id {db.serial_primary_key},
             wallet TEXT NOT NULL,
+            username TEXT,
             pubkey TEXT,
-            shippingzone INTEGER NOT NULL,
+            shippingzone TEXT NOT NULL,
             address TEXT NOT NULL,
             email TEXT NOT NULL,
             total INTEGER NOT NULL,
@@ -76,11 +78,11 @@ async def m001_initial(db):
     Initial order details table.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE diagonalley.order_details (
             id TEXT PRIMARY KEY,
-            orderid INTEGER NOT NULL REFERENCES {db.references_schema}orders (id)
-            productid TEXT NOT NULL REFERENCES {db.references_schema}products (id),
+            order_id INTEGER NOT NULL REFERENCES {db.references_schema}orders (id),
+            product_id TEXT NOT NULL REFERENCES {db.references_schema}products (id),
             quantity INTEGER NOT NULL
         );
     """
@@ -103,7 +105,7 @@ async def m001_initial(db):
     Initial market stalls table.
     """
     await db.execute(
-        """
+        f"""
         CREATE TABLE diagonalley.market_stalls (
             id TEXT PRIMARY KEY,
             marketid TEXT NOT NULL REFERENCES {db.references_schema}markets (id),

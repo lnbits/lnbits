@@ -80,7 +80,7 @@
         alt="Product Image"
         loading="lazy"
         spinner-color="white"
-        fit="cover"
+        fit="contain"
         height="300px"
       ></q-img>
 
@@ -166,15 +166,15 @@
         <q-input
           filled
           dense
-          v-model.trim="checkoutDialog.data.address_1"
-          label="Address (line 1)"
+          v-model.trim="checkoutDialog.data.address"
+          label="Address"
         ></q-input>
-        <q-input
+        <!-- <q-input
           filled
           dense
           v-model.trim="checkoutDialog.data.address_2"
           label="Address (line 2)"
-        ></q-input>
+        ></q-input> -->
         <q-input
           v-model="checkoutDialog.data.email"
           filled
@@ -182,16 +182,28 @@
           type="email"
           label="Email"
         ></q-input>
+        <p>Select the shipping zone:</p>
+        <div class="row q-mt-lg">
+          <q-option-group
+            :options="stall.zones"
+            type="radio"
+            emit-value
+            v-model="checkoutDialog.data.shippingzone"
+          />
+        </div>
+        <div class="row q-mt-lg">
+          {% raw %} Total: {{ finalCost }} {% endraw %}
+        </div>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
             color="primary"
-            :disable="checkoutDialog.data.address_1 == null
-              || checkoutDialog.data.email == null"
+            :disable="checkoutDialog.data.address == null
+              || checkoutDialog.data.email == null
+              || checkoutDialog.data.shippingzone == null"
             type="submit"
             >Checkout</q-btn
           >
-
           <q-btn
             v-close-popup
             flat
@@ -238,9 +250,25 @@
             p.categories.includes(this.searchText)
           )
         })
+      },
+      finalCost() {
+        if (!this.checkoutDialog.data.shippingzone) return this.cart.total
+
+        let zoneCost = this.stall.zones.find(
+          z => z.value == this.checkoutDialog.data.shippingzone
+        )
+
+        return this.cart.total + zoneCost.cost
       }
     },
     methods: {
+      resetCart() {
+        this.cart = {
+          total: 0,
+          size: 0,
+          products: new Map()
+        }
+      },
       addToCart(item) {
         let prod = this.cart.products
         if (prod.has(item.id)) {
@@ -266,17 +294,28 @@
         this.cartMenu = Array.from(this.cart.products, item => {
           return {id: item[0], ...item[1]}
         })
-        console.log(this.cartMenu)
+        console.log(this.cartMenu, this.cart)
       },
       placeOrder() {
-        // productid: str = Query(...)
-        // stall: str = Query(...)
-        // product: str = Query(...)
-        // quantity: int = Query(..., ge=1)
-        // shippingzone: int = Query(...)
-        // address: str = Query(...)
-        // email: str = Query(...)
-        // invoiceid: str = Query(...)
+        let dialog = this.checkoutDialog.data
+        let data = {
+          ...this.checkoutDialog.data,
+          wallet: this.stall.wallet,
+          total: this.finalCost,
+          products: Array.from(this.cart.products, p => {
+            return {product_id: p[0], quantity: p[1].quantity}
+          })
+        }
+
+        LNbits.api
+          .request('POST', '/diagonalley/api/v1/orders', null, data)
+          .then(res => {
+            this.checkoutDialog = {show: false, data: {}}
+            this.resetCart()
+            console.log(res.data)
+          })
+          .catch(error => LNbits.utils.notifyApiError(error))
+
         return
       }
     },
@@ -287,7 +326,7 @@
       //let stall_ids = new Set()
       //this.products.map(p => stall_ids.add(p.stall))
 
-      console.log(this.stall)
+      console.log(this.stall, this.products)
     }
   })
 </script>

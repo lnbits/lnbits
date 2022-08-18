@@ -3,6 +3,7 @@ from http import HTTPStatus
 from fastapi import Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.responses import HTMLResponse
 
@@ -10,7 +11,12 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists  # type: ignore
 from lnbits.extensions.diagonalley import diagonalley_ext, diagonalley_renderer
 
-from .crud import get_diagonalley_products, get_diagonalley_stall
+from .crud import (
+    get_diagonalley_products,
+    get_diagonalley_stall,
+    get_diagonalley_zone,
+    get_diagonalley_zones,
+)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -26,6 +32,13 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def display(request: Request, stall_id):
     stall = await get_diagonalley_stall(stall_id)
     products = await get_diagonalley_products(stall_id)
+    zones = []
+    for id in stall.shippingzones.split(","):
+        z = await get_diagonalley_zone(id)
+        z = z.dict()
+        zones.append({"label": z["countries"], "cost": z["cost"], "value": z["id"]})
+    
+    logger.debug(f"ZONES {zones}")
 
     if not stall:
         raise HTTPException(
@@ -34,6 +47,7 @@ async def display(request: Request, stall_id):
 
     stall = stall.dict()
     del stall["privatekey"]
+    stall["zones"] = zones
 
     return diagonalley_renderer().TemplateResponse(
         "diagonalley/stall.html",

@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import Request
 from fastapi.param_functions import Query
 from fastapi.params import Depends
+from loguru import logger
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
@@ -16,9 +17,11 @@ from lnbits.decorators import (
     require_invoice_key,
 )
 
+from ...helpers import urlsafe_short_hash
 from . import db, diagonalley_ext
 from .crud import (
     create_diagonalley_order,
+    create_diagonalley_order_details,
     create_diagonalley_product,
     create_diagonalley_stall,
     create_diagonalley_zone,
@@ -254,10 +257,26 @@ async def api_diagonalley_orders(
 
 @diagonalley_ext.post("/api/v1/orders")
 async def api_diagonalley_order_create(
-    data: createOrder, wallet: WalletTypeInfo = Depends(get_key_type)
+    data: createOrder
 ):
-    order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
-    return order.dict()
+    ref = urlsafe_short_hash()
+        
+    payment_hash, payment_request = await create_invoice(
+        wallet_id=data.wallet,
+        amount=data.total,
+        memo=f"New order on Diagon alley",
+        extra={
+            "tag": "diagonalley",
+            "reference": ref,
+        }
+    )
+    order_id = await create_diagonalley_order(invoiceid=payment_hash, data=data)
+    logger.debug(f"ORDER ID {order_id}")
+    logger.debug(f"PRODUCTS {data.products}")
+    await create_diagonalley_order_details(order_id=order_id, data=data.products)
+    return {"payment_hash": payment_hash, "payment_request": payment_request, "order_reference": ref}
+    # order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
+    # return order.dict()
 
 
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")

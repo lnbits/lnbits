@@ -71,15 +71,11 @@ class createOrderDetails(BaseModel):
 class createOrder(BaseModel):
     wallet: str = Query(...)
     pubkey: str = Query(None)
-    shippingzone: int = Query(...)
+    shippingzone: str = Query(...)
     address: str = Query(...)
     email: str = Query(...)
     total: int = Query(...)
-    invoiceid: str = Query(...)
     products: List[createOrderDetails]
-    # stall: str = Query(...)
-    # product: str = Query(...)
-    # quantity: int = Query(..., ge=1)
 
 
 class Orders(BaseModel):
@@ -89,7 +85,7 @@ class Orders(BaseModel):
     pubkey: str
     product: str
     quantity: int
-    shippingzone: int
+    shippingzone: str
     address: str
     email: str
     invoiceid: str

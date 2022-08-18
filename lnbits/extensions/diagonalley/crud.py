@@ -210,30 +210,34 @@ async def delete_diagonalley_stall(stall_id: str) -> None:
 ###Orders
 
 
-async def create_diagonalley_order(wallet_id: str, data: createOrder) -> Orders:
+async def create_diagonalley_order(data: createOrder, invoiceid: str) -> Orders:
+    returning = "" if db.type == SQLITE else "RETURNING ID"
+    method = db.execute if db.type == SQLITE else db.fetchone
 
-    order_id = urlsafe_short_hash()
-    await db.execute(
+    result = await (method)(
         f"""
-            INSERT INTO diagonalley.orders (id, wallet, shippingzone, address, email, total, invoiceid, paid, shipped)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO diagonalley.orders (wallet, shippingzone, address, email, total, invoiceid, paid, shipped)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            {returning}
             """,
         (
-            order_id,
-            wallet_id,
+            data.wallet,
             data.shippingzone,
             data.address,
             data.email,
             data.total,
-            data.invoiceid,
+            invoiceid,
             False,
             False,
         ),
     )
-
-    link = await get_diagonalley_order(order_id)
-    assert link, "Newly created link couldn't be retrieved"
-    return link
+    if db.type == SQLITE:
+        return result._result_proxy.lastrowid
+    else:
+        return result[0]
+    # link = await get_diagonalley_order(link.id)
+    # assert link, "Newly created link couldn't be retrieved"
+    # return link
 
 
 async def create_diagonalley_order_details(
@@ -243,7 +247,7 @@ async def create_diagonalley_order_details(
         item_id = urlsafe_short_hash()
         await db.execute(
             """
-            INSERT INTO diagonalley.order_details (id, orderid, productid, quantity)
+            INSERT INTO diagonalley.order_details (id, order_id, product_id, quantity)
             VALUES (?, ?, ?, ?)
             """,
             (
