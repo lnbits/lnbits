@@ -115,6 +115,12 @@ async def run_scheduled_payment(schedule):
             url = decode_lnurl(schedule.recipient)
         else:
             parts = schedule.recipient.split("@")
+
+            if len(parts) != 2:
+                event.status = f"Error: Bad Lightning Address"
+                event = await update_schedule_event(data=event)
+                return False
+
             username = parts[0]
             domain = parts[1]
             url = f"https://{domain}/.well-known/lnurlp/{username}"
