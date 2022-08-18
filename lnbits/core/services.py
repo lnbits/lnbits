@@ -25,8 +25,8 @@ from lnbits.settings import (
     FAKE_WALLET,
     RESERVE_FEE_MIN,
     RESERVE_FEE_PERCENT,
-    WALLET,
     SERVICE_FEE,
+    WALLET,
 )
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
