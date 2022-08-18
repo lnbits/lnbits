@@ -14,7 +14,7 @@ const COMMAND_CANCEL = '/cancel'
 const COMMAND_XPUB = '/xpub'
 const COMMAND_DH_EXCHANGE = '/dh-exchange'
 const COMMAND_LOG = '/log'
-const COMMAND_CHECK_SECURE_CONNECTION = '/check-connection'
+const COMMAND_CHECK_PAIRING = '/check-pairing'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
 

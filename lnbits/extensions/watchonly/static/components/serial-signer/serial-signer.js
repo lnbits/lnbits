@@ -526,7 +526,7 @@ async function serialSigner(path) {
         const encryptedIvHex = nobleSecp256k1.utils.bytesToHex(iv)
         try {
           await this.writer.write(
-            COMMAND_CHECK_SECURE_CONNECTION +
+            COMMAND_CHECK_PAIRING +
               ' ' +
               encryptedHex +
               encryptedIvHex +
