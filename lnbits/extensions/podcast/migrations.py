@@ -6,9 +6,9 @@ async def m001_initial(db):
         f"""
         CREATE TABLE podcast.Podcast (
             id {db.serial_primary_key},
-            wallet TEXT NOT NULL,
             podcast_title TEXT NOT NULL,
             description TEXT NOT NULL,
+            wallet TEXT NOT NULL,
             cover_image TEXT NOT NULL,
             no_episodes INTEGER NOT NULL,
             category TEXT NOT NULL,

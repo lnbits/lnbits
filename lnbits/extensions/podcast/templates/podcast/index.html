@@ -4,12 +4,20 @@
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" @click="formDialogPodcast.show = true"
-          >New Podcast</q-btn
+        
+        <div class="row justify-start" style="width:280px">
+          <div class="col" style="width:138px">
+            <q-btn label="New Podcast" unelevated color="primary" @click="formDialogPodcast.show = true"
+          ></q-btn
         >
-        <q-btn unelevated color="primary" @click="formDialogEpisode.show = true"
-          >New Episode</q-btn
-        >
+          </div>
+          <div class="col" style="width:138px">
+            <q-btn label="New Episode" unelevated color="primary" @click="formDialogEpisode.show = true" :disabled="!Podcasts[0]"
+          ></q-btn
+        ><q-tooltip v-if="!Podcasts[0]">First make a podcast</q-tooltip>
+          </div>
+        </div>
+        
       </q-card-section>
     </q-card>
 
@@ -23,9 +31,9 @@
         <q-table
           dense
           flat
-          :data="Podcastpods"
+          :data="Podcasts"
           row-key="id"
-          :pagination.sync="PodcastpodsTable.pagination"
+          :pagination.sync="PodcastsTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
@@ -109,7 +117,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="deletePodcastpod(props.row.id)"
+                  @click="deletePodcast(props.row.id)"
                   icon="cancel"
                   color="pink"
                 ></q-btn>
@@ -133,9 +141,9 @@
         <q-table
           dense
           flat
-          :data="Podcastpods"
+          :data="Episodes"
           row-key="id"
-          :pagination.sync="PodcastpodsTable.pagination"
+          :pagination.sync="EpisodesTable.pagination"
         >
           {% raw %}
           <template v-slot:header="props">
@@ -210,7 +218,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="openUpdateDialog(props.row.id)"
+                  @click="openUpdateDialogEpisode(props.row.id)"
                   icon="edit"
                   color="light-blue"
                 >
@@ -219,7 +227,7 @@
                   flat
                   dense
                   size="xs"
-                  @click="deletePodcastpod(props.row.id)"
+                  @click="deletePodcastEpisode(props.row.id)"
                   icon="cancel"
                   color="pink"
                 ></q-btn>
@@ -252,16 +260,8 @@
 
   <q-dialog v-model="formDialogPodcast.show" @hide="closeFormDialogPodcast">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormData" class="q-gutter-md">
-        <q-select
-          filled
-          dense
-          emit-value
-          v-model="formDialogPodcast.data.wallet"
-          :options="g.user.walletOptions"
-          label="Wallet *"
-        >
-        </q-select>
+      <q-form @submit="sendFormDataPodcast" class="q-gutter-md">
+        
         <q-input
           filled
           dense
@@ -274,11 +274,20 @@
           filled
           dense
           v-model.trim="formDialogPodcast.data.description"
-          type="text"
+          type="textarea"
+          rows="3"
           label="Podcast description *"
         >
         </q-input>
-
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialogPodcast.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet to send funds to*"
+        >
+        </q-select>
         <q-file
             filled
             dense
@@ -289,6 +298,7 @@
             clearable
             @input="imageAdded"
             @clear="imageCleared"
+            style="width:75%"
           >
             <template v-if="formDialogPodcast.data.cover_image" v-slot:before>
               <img style="height: 1em" :src="formDialogPodcast.data.cover_image" />
@@ -318,7 +328,7 @@
           v-model="formDialogPodcast.data.category"
           :options="categoryOptions"
           multiple
-          label="Category *"
+          label="Categories (select multiple)"
         >
         </q-select>
 
@@ -328,7 +338,6 @@
           emit-value
           v-model="formDialogPodcast.data.country_origin"
           :options="countryOptions"
-          multiple
           label="Country of origin *"
         >
         </q-select>
@@ -363,7 +372,8 @@
           filled
           dense
           v-model.trim="formDialogPodcast.data.explicit"
-          label="Explicit content?"
+          label=""
+          :label="formDialogPodcast.data.explicit ? 'Explicit content? Yes' : 'Explicit content? No'"
         >
         </q-toggle>
         <q-select
@@ -382,7 +392,6 @@
           v-model.trim="formDialogPodcast.data.copyright"
           type="text"
           label="Copyright"
-          value="@2022"
         >
         </q-input>
 
@@ -415,7 +424,7 @@
 
   <q-dialog v-model="formDialogEpisode.show" @hide="closeFormDialogEpisode">
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-      <q-form @submit="sendFormData" class="q-gutter-md">
+      <q-form @submit="sendFormDataEpisode" class="q-gutter-md">
         <q-select
           filled
           dense
@@ -447,7 +456,7 @@
             filled
             dense
             capture="environment"
-            accept="mp3/mp4/ogg, mp3/mp4/ogg"
+            accept="audio/mp3, video/mp4"
             :max-file-size="3*1024**2"
             label="Media file"
             clearable

@@ -9,7 +9,7 @@ var locationPath = [
   window.location.pathname
 ].join('')
 
-var mapPodcastpod = obj => {
+var mapPodcast = obj => {
   obj._data = _.clone(obj)
   obj.date = Quasar.utils.date.formatDate(
     new Date(obj.time * 1000),
@@ -26,16 +26,403 @@ new Vue({
   mixins: [windowMixin],
   data() {
     return {
-      categoryOptions: ['seconds', 'minutes', 'hours'],
-      countryOptions: ['seconds', 'minutes', 'hours'],
-      languageOptions: ['seconds', 'minutes', 'hours'],
+      categoryOptions: [
+        "Arts",
+        "Books",
+        "Design",
+      "Fashion & Beauty",
+      "Food",
+      "Performing Arts",
+      "Visual Arts",
+      "Business",
+      "Careers",
+      "Entrepreneurship",
+      "Investing",
+      "Management",
+      "Marketing",
+      "Non-Profit",
+      "Comedy",
+      "Comedy Interviews",
+      "Improv",
+      "Stand-Up",
+      "Education",
+      "Courses",
+      "How To",
+      "Language Learning",
+      "Self-Improvement",
+      "Fiction",
+      "Comedy Fiction",
+      "Drama",
+      "Science Fiction",
+      "Government",
+      "History",
+      "Health & Fitness",
+      "Alternative Health",
+      "Fitness",
+      "Medicine",
+      "Mental Health",
+      "Nutrition",
+      "Sexuality",
+      "Kids & Family",
+      "Education for Kids",
+      "Parenting",
+      "Pets & Animals",
+      "Stories for Kids",
+      "Leisure",
+      "Animation & Manga",
+      "Automotive",
+      "Aviation",
+      "Crafts",
+      "Games",
+      "Hobbies",
+      "Home & Garden",
+      "Video Games",
+      "Music",
+      "Music Commentary",
+      "Music History",
+      "Music Interviews",
+      "News",
+      "Business News",
+      "Daily News",
+      "Entertainment News",
+      "News Commentary",
+      "Politics",
+      "Sports News",
+      "Tech News",
+      "Religion & Spirituality",
+      "Buddhism",
+      "Christianity",
+      "Hinduism",
+      "Islam",
+      "Judaism",
+      "Religion",
+      "Spirituality",
+      "Science",
+      "Astronomy",
+      "Chemistry",
+      "Earth Sciences",
+      "Life Sciences",
+      "Mathematics",
+      "Natural Sciences",
+      "Nature",
+      "Physics",
+      "Social Sciences",
+      "Society & Culture",
+      "Documentary",
+      "Personal Journals",
+      "Philosophy",
+      "Places & Travel",
+      "Relationships",
+      "Sports",
+      "Baseball",
+      "Basketball",
+      "Cricket",
+      "Fantasy Sports",
+      "Football",
+      "Golf",
+      "Hockey",
+      "Rugby",
+      "Running",
+      "Soccer",
+      "Swimming",
+      "Tennis",
+      "Volleyball",
+      "Wilderness",
+      "Wrestling",
+      "Technology",
+      "True Crime",
+      "TV & Film",
+      "After Shows",
+      "Film History",
+      "Film Interviews",
+      "Film Reviews",
+      "TV Reviews"],
+      countryOptions: ["Afghanistan",
+      "Albania",
+      "Algeria",
+      "Andorra",
+      "Angola",
+      "Antigua & Deps",
+      "Argentina",
+      "Armenia",
+      "Australia",
+      "Austria",
+      "Azerbaijan",
+      "Bahamas",
+      "Bahrain",
+      "Bangladesh",
+      "Barbados",
+      "Belarus",
+      "Belgium",
+      "Belize",
+      "Benin",
+      "Bhutan",
+      "Bolivia",
+      "Bosnia Herzegovina",
+      "Botswana",
+      "Brazil",
+      "Brunei",
+      "Bulgaria",
+      "Burkina",
+      "Burundi",
+      "Cambodia",
+      "Cameroon",
+      "Canada",
+      "Cape Verde",
+      "Central African Rep",
+      "Chad",
+      "Chile",
+      "China",
+      "Colombia",
+      "Comoros",
+      "Congo",
+      "Congo {Democratic Rep}",
+      "Costa Rica",
+      "Croatia",
+      "Cuba",
+      "Cyprus",
+      "Czech Republic",
+      "Denmark",
+      "Djibouti",
+      "Dominica",
+      "Dominican Republic",
+      "East Timor",
+      "Ecuador",
+      "Egypt",
+      "El Salvador",
+      "Equatorial Guinea",
+      "Eritrea",
+      "Estonia",
+      "Ethiopia",
+      "Fiji",
+      "Finland",
+      "France",
+      "Gabon",
+      "Gambia",
+      "Georgia",
+      "Germany",
+      "Ghana",
+      "Greece",
+      "Grenada",
+      "Guatemala",
+      "Guinea",
+      "Guinea-Bissau",
+      "Guyana",
+      "Haiti",
+      "Honduras",
+      "Hungary",
+      "Iceland",
+      "India",
+      "Indonesia",
+      "Iran",
+      "Iraq",
+      "Ireland {Republic}",
+      "Israel",
+      "Italy",
+      "Ivory Coast",
+      "Jamaica",
+      "Japan",
+      "Jordan",
+      "Kazakhstan",
+      "Kenya",
+      "Kiribati",
+      "Korea North",
+      "Korea South",
+      "Kosovo",
+      "Kuwait",
+      "Kyrgyzstan",
+      "Laos",
+      "Latvia",
+      "Lebanon",
+      "Lesotho",
+      "Liberia",
+      "Libya",
+      "Liechtenstein",
+      "Lithuania",
+      "Luxembourg",
+      "Macedonia",
+      "Madagascar",
+      "Malawi",
+      "Malaysia",
+      "Maldives",
+      "Mali",
+      "Malta",
+      "Marshall Islands",
+      "Mauritania",
+      "Mauritius",
+      "Mexico",
+      "Micronesia",
+      "Moldova",
+      "Monaco",
+      "Mongolia",
+      "Montenegro",
+      "Morocco",
+      "Mozambique",
+      "Myanmar, {Burma}",
+      "Namibia",
+      "Nauru",
+      "Nepal",
+      "Netherlands",
+      "New Zealand",
+      "Nicaragua",
+      "Niger",
+      "Nigeria",
+      "Norway",
+      "Oman",
+      "Pakistan",
+      "Palau",
+      "Panama",
+      "Papua New Guinea",
+      "Paraguay",
+      "Peru",
+      "Philippines",
+      "Poland",
+      "Portugal",
+      "Qatar",
+      "Romania",
+      "Russian Federation",
+      "Rwanda",
+      "St Kitts & Nevis",
+      "St Lucia",
+      "Saint Vincent & the Grenadines",
+      "Samoa",
+      "San Marino",
+      "Sao Tome & Principe",
+      "Saudi Arabia",
+      "Senegal",
+      "Serbia",
+      "Seychelles",
+      "Sierra Leone",
+      "Singapore",
+      "Slovakia",
+      "Slovenia",
+      "Solomon Islands",
+      "Somalia",
+      "South Africa",
+      "South Sudan",
+      "Spain",
+      "Sri Lanka",
+      "Sudan",
+      "Suriname",
+      "Swaziland",
+      "Sweden",
+      "Switzerland",
+      "Syria",
+      "Taiwan",
+      "Tajikistan",
+      "Tanzania",
+      "Thailand",
+      "Togo",
+      "Tonga",
+      "Trinidad & Tobago",
+      "Tunisia",
+      "Turkey",
+      "Turkmenistan",
+      "Tuvalu",
+      "Uganda",
+      "Ukraine",
+      "United Arab Emirates",
+      "United Kingdom",
+      "United States",
+      "Uruguay",
+      "Uzbekistan",
+      "Vanuatu",
+      "Vatican City",
+      "Venezuela",
+      "Vietnam",
+      "Yemen",
+      "Zambia",
+      "Zimbabwe"],
+      languageOptions: ["Afrikaans",
+      "Arabic",
+      "Bengali",
+      "Bulgarian",
+      "Catalan",
+      "Cantonese",
+      "Croatian",
+      "Czech",
+      "Danish",
+      "Dutch",
+      "Lithuanian",
+      "Malay",
+      "Malayalam",
+      "Panjabi",
+      "Tamil",
+      "English",
+      "Finnish",
+      "French",
+      "German",
+      "Greek",
+      "Hebrew",
+      "Hindi",
+      "Hungarian",
+      "Indonesian",
+      "Italian",
+      "Japanese",
+      "Javanese",
+      "Korean",
+      "Norwegian",
+      "Polish",
+      "Portuguese",
+      "Romanian",
+      "Russian",
+      "Serbian",
+      "Slovak",
+      "Slovene",
+      "Spanish",
+      "Swedish",
+      "Telugu",
+      "Thai",
+      "Turkish",
+      "Ukrainian",
+      "Vietnamese",
+      "Welsh",
+      "Sign language",
+      "Algerian",
+      "Aramaic",
+      "Armenian",
+      "Berber",
+      "Burmese",
+      "Bosnian",
+      "Brazilian",
+      "Bulgarian",
+      "Cypriot",
+      "Corsica",
+      "Creole",
+      "Scottish",
+      "Egyptian",
+      "Esperanto",
+      "Estonian",
+      "Finn",
+      "Flemish",
+      "Georgian",
+      "Hawaiian",
+      "Indonesian",
+      "Inuit",
+      "Irish",
+      "Icelandic",
+      "Latin",
+      "Mandarin",
+      "Nepalese",
+      "Sanskrit",
+      "Tagalog",
+      "Tahitian",
+      "Tibetan",
+      "Gypsy",
+      "Wu"],
       podcastOptions: ['seconds', 'minutes', 'hours'],
       typeOptions: ['seconds', 'minutes', 'hours'],
       currencies: [],
       fiatRates: {},
       checker: null,
-      Podcastpods: [],
-      PodcastpodsTable: {
+      Podcasts: [],
+      Episodes: [],
+      PodcastsTable: {
+        pagination: {
+          rowsPerPage: 10
+        }
+      },
+      EpisodesTable: {
         pagination: {
           rowsPerPage: 10
         }
@@ -44,7 +431,8 @@ new Vue({
       formDialogPodcast: {
         show: false,
         fixedAmount: true,
-        data: {explicit: false}
+        data: {explicit: false,
+              copyright: "@2022"}
       },
       formDialogEpisode: {
         show: false,
@@ -112,7 +500,15 @@ new Vue({
           this.g.user.wallets[0].inkey
         )
         .then(response => {
-          this.Podcastpods = response.data.map(mapPodcastpod)
+          this.Podcasts = response.data.map(mapPodcast)
+          for (let i = 0; i < this.Podcasts.length; i++) {
+            this.podcastOptions.push(
+            {
+              label: this.Podcasts[i].title,
+              value: this.Podcasts[i].id
+            })
+          }
+          
         })
         .catch(err => {
           clearInterval(this.checker)
@@ -120,13 +516,13 @@ new Vue({
         })
     },
     closeFormDialogPodcast() {
-      this.resetFormData()
+      this.resetFormDataPodcast()
     },
     closeFormDialogEpisode() {
-      this.resetFormData()
+      this.resetFormDataEpisode()
     },
     openQrCodeDialog(podId) {
-      var pod = _.findWhere(this.Podcastpods, {id: podId})
+      var pod = _.findWhere(this.Podcasts, {id: podId})
       if (pod.currency) this.updateFiatRate(pod.currency)
 
       this.qrCodeDialog.data = {
@@ -154,7 +550,7 @@ new Vue({
       this.qrCodeDialog.show = true
     },
     openUpdateDialog(podId) {
-      const pod = _.findWhere(this.Podcastpods, {id: podId})
+      const pod = _.findWhere(this.Podcasts, {id: podId})
       if (pod.currency) this.updateFiatRate(pod.currency)
 
       this.formDialog.data = _.clone(pod._data)
@@ -162,24 +558,36 @@ new Vue({
       this.formDialog.fixedAmount =
         this.formDialog.data.min === this.formDialog.data.max
     },
-    sendFormData() {
+    sendFormDataPodcast() {
+      console.log(this.formDialogPodcast.data)
+
       const wallet = _.findWhere(this.g.user.wallets, {
-        id: this.formDialog.data.wallet
+        id: this.formDialogPodcast.data.wallet
       })
-      var data = _.omit(this.formDialog.data, 'wallet')
 
-      if (this.formDialog.fixedAmount) data.max = data.min
-      if (data.currency === 'satoshis') data.currency = null
-      if (isNaN(parseInt(data.comment_chars))) data.comment_chars = 0
-
-      if (data.id) {
-        this.updatePodcastpod(wallet, data)
+      if (this.formDialogPodcast.data.id) {
+        this.updatePodcast(wallet, this.formDialogPodcast.data)
       } else {
-        this.createPodcastpod(wallet, data)
+        this.createPodcast(wallet, this.formDialogPodcast.data)
       }
     },
-    resetFormData() {
-      this.formDialog = {
+    resetFormDataPodcast() {
+      this.formDialogPodcast = {
+        show: false,
+        fixedAmount: true,
+        data: {}
+      }
+    },
+    sendFormDataEpisode() {
+
+      if (this.formDialogEpisode.data.id) {
+        this.updateEpisode(this.g.user.wallets[0], this.formDialogEpisode.data)
+      } else {
+        this.createEpisode(this.g.user.wallets[0], this.formDialogEpisode.data)
+      }
+    },
+    resetFormDataEpisode() {
+      this.formDialogEpisode = {
         show: false,
         fixedAmount: true,
         data: {}
@@ -213,10 +621,10 @@ new Vue({
           values
         )
         .then(response => {
-          this.Podcastpods = _.reject(this.Podcastpods, obj => obj.id === data.id)
-          this.Podcastpods.push(mapPodcastpod(response.data))
+          this.Podcasts = _.reject(this.Podcasts, obj => obj.id === data.id)
+          this.Podcasts.push(mapPodcast(response.data))
           this.formDialog.show = false
-          this.resetFormData()
+          this.resetFormDataPodcast()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -226,16 +634,16 @@ new Vue({
       LNbits.api
         .request('POST', '/podcast/api/v1/pods', wallet.adminkey, data)
         .then(response => {
-          this.getPodcastpods()
-          this.formDialog.show = false
-          this.resetFormData()
+          this.getPodcasts()
+          this.formDialogPodcast.show = false
+          this.resetFormDataPodcast()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
     },
     deletePodcast(podId) {
-      var pod = _.findWhere(this.Podcastpods, {id: podId})
+      var pod = _.findWhere(this.Podcasts, {id: podId})
 
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this Podcast pod?')
@@ -247,61 +655,82 @@ new Vue({
               _.findWhere(this.g.user.wallets, {id: pod.wallet}).adminkey
             )
             .then(response => {
-              this.Podcastpods = _.reject(this.Podcastpods, obj => obj.id === podId)
+              this.Podcasts = _.reject(this.Podcasts, obj => obj.id === podId)
             })
             .catch(err => {
               LNbits.utils.notifyApiError(err)
             })
         })
     },
-    updateFiatRate(currency) {
+    updateEpisode(wallet, data) {
+      let values = _.omit(
+        _.pick(
+          data,
+          'description',
+          'min',
+          'max',
+          'webhook_url',
+          'success_text',
+          'success_url',
+          'comment_chars',
+          'currency'
+        ),
+        (value, key) =>
+          (key === 'webhook_url' ||
+            key === 'success_text' ||
+            key === 'success_url') &&
+          (value === null || value === '')
+      )
+
       LNbits.api
-        .request('GET', '/podcast/api/v1/rate/' + currency, null)
+        .request(
+          'PUT',
+          '/podcast/api/v1/pods/' + data.id,
+          wallet.adminkey,
+          values
+        )
         .then(response => {
-          let rates = _.clone(this.fiatRates)
-          rates[currency] = response.data.rate
-          this.fiatRates = rates
+          this.Podcasts = _.reject(this.Podcasts, obj => obj.id === data.id)
+          this.Podcasts.push(mapPodcast(response.data))
+          this.formDialog.show = false
+          this.resetFormDataEpisode()
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
     },
-    writeNfcTag: async function (lnurl) {
-      try {
-        if (typeof NDEFReader == 'undefined') {
-          throw {
-            toString: function () {
-              return 'NFC not supported on this device or browser.'
-            }
-          }
-        }
-
-        const ndef = new NDEFReader()
-
-        this.nfcTagWriting = true
-        this.$q.notify({
-          message: 'Tap your NFC tag to write the Podcast pod to it.'
+    createEpisode(wallet, data) {
+      LNbits.api
+        .request('POST', '/podcast/api/v1/pods', wallet.adminkey, data)
+        .then(response => {
+          this.getEpisodes()
+          this.formDialogEpisode.show = false
+          this.resetFormDataEpisode()
         })
+        .catch(err => {
+          LNbits.utils.notifyApiError(err)
+        })
+    },
+    deleteEpisode(podId) {
+      var pod = _.findWhere(this.Podcasts, {id: podId})
 
-        await ndef.write({
-          records: [{recordType: 'url', data: 'lightning:' + lnurl, lang: 'en'}]
+      LNbits.utils
+        .confirmDialog('Are you sure you want to delete this Podcast pod?')
+        .onOk(() => {
+          LNbits.api
+            .request(
+              'DELETE',
+              '/podcast/api/v1/pods/' + podId,
+              _.findWhere(this.g.user.wallets, {id: pod.wallet}).adminkey
+            )
+            .then(response => {
+              this.Podcasts = _.reject(this.Podcasts, obj => obj.id === podId)
+            })
+            .catch(err => {
+              LNbits.utils.notifyApiError(err)
+            })
         })
-
-        this.nfcTagWriting = false
-        this.$q.notify({
-          type: 'positive',
-          message: 'NFC tag written successfully.'
-        })
-      } catch (error) {
-        this.nfcTagWriting = false
-        this.$q.notify({
-          type: 'negative',
-          message: error
-            ? error.toString()
-            : 'An unexpected error has occurred.'
-        })
-      }
-    }
+    },
   },
   created() {
     if (this.g.user.wallets.length) {

@@ -24,7 +24,6 @@ class CreatePodcastData(BaseModel):
     language: str = Query(None)
     copyright: str = Query(None)
 
-
 class Podcast(BaseModel):
     id: int
     wallet: str
@@ -42,6 +41,10 @@ class Podcast(BaseModel):
     explicit: str
     language: str
     copyright: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Podcast":
+        return cls(**dict(row))
 
 class CreateEpisodeData(BaseModel):
     podcast: str = Query(None)
@@ -67,3 +70,7 @@ class Episode(BaseModel):
     episode_type: str
     episode_image: str
     publish_time: str
+
+    @classmethod
+    def from_row(cls, row: Row) -> "Episode":
+        return cls(**dict(row))
