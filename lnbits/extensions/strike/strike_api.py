@@ -4,13 +4,11 @@ from http import HTTPStatus
 from os import getenv
 from typing import Any, List, Optional
 
-from lnbits.settings import (
-    STRIKE_API_ENDPOINT
-)
-
 import httpx
 from pydantic import BaseModel, parse_obj_as
 from starlette.exceptions import HTTPException
+
+from lnbits.settings import STRIKE_API_ENDPOINT
 
 
 class StrikeCurrency(BaseModel):
@@ -45,7 +43,7 @@ class StrikeQuote(BaseModel):
     conversionRate: StrikeRate
 
 
-class StrikeApiClient():
+class StrikeApiClient:
     def __init__(self, api_key):
         endpoint = STRIKE_API_ENDPOINT
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint

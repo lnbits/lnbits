@@ -11,6 +11,7 @@ from lnbits.tasks import register_invoice_listener
 from .crud import create_forward, get_configuration_by_wallet, update_forward
 from .strike_api import StrikeApiClient
 
+
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
     register_invoice_listener(invoice_queue)
