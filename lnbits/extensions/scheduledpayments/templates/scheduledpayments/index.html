@@ -164,7 +164,6 @@
           v-model.trim="formDialog.data.interval"
           label="Interval *"
           placeholder="20 4 1 * *"
-          for="intervalInput"
           hint="Enter a cron expression or click below to see some common options."
         ></q-input>
         <q-btn
@@ -661,7 +660,6 @@
       },
       setInterval: function(interval) {
         this.formDialog.data.interval = interval
-        document.getElementById('intervalInput').value = interval
         this.$forceUpdate();
       },
       exportCSV: function () {
