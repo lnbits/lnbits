@@ -165,7 +165,7 @@
           label="Interval *"
           placeholder="20 4 1 * *"
           for="intervalInput"
-          hint="Enter a cron expression. Go to https://crontab.guru/examples.html for help, or click below to see some common options."
+          hint="Enter a cron expression or click below to see some common options."
         ></q-input>
         <q-btn
           unelevated
@@ -174,37 +174,51 @@
           v-if="showIntervalSettings === false"
           >See Common Settings</q-btn
         >
-        <ul v-if="showIntervalSettings === true">
-          <li>
-            <a @click="setInterval('* * * * *')">Every Minute</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 * * * *')">Every Hour</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 0 * * *')">Every Day at Midnight</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 8 * * *')">Every Day at 8 AM</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 0 * * 0')">Every Week on Sunday</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 0 1-7,15-21 * 2')"
-              >1st and 3rd Tuesdays of Every Month</a
-            >
-          </li>
-          <li>
-            <a @click="setInterval('0 0 1 * *')">Every Month</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 0 1 */3 *')">Every Quarter</a>
-          </li>
-          <li>
-            <a @click="setInterval('0 0 1 1 *')">Every Year</a>
-          </li>
-        </ul>
+        <div v-if="showIntervalSettings === true">
+          <span
+            >Click an option below to set the interval for this schedule.</span
+          >
+          <ul>
+            <li>
+              <a @click="setInterval('* * * * *')">Every Minute</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 * * * *')">Every Hour</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 0 * * *')">Every Day at Midnight</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 8 * * *')">Every Day at 8 AM</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 0 * * 0')">Every Week on Sunday</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 0 1-7,15-21 * 2')"
+                >1st and 3rd Tuesdays of Every Month</a
+              >
+            </li>
+            <li>
+              <a @click="setInterval('0 0 1 * *')">Every Month</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 0 1 */3 *')">Every Quarter</a>
+            </li>
+            <li>
+              <a @click="setInterval('0 0 1 1 *')">Every Year</a>
+            </li>
+            <li>
+              <a
+                style="color: white"
+                href="https://crontab.guru/examples.html"
+                target="_blank"
+              >
+                See more examples...
+              </a>
+            </li>
+          </ul>
+        </div>
         <q-select
           filled
           dense
@@ -214,7 +228,6 @@
           label="Timezone *"
         ></q-select>
         <q-field
-          ref="startRef"
           filled
           v-model="formDialog.data.start_date"
           label="Start Date"
@@ -231,7 +244,6 @@
           </template>
         </q-field>
         <q-field
-          ref="endRef"
           filled
           v-model="formDialog.data.end_date"
           label="End Date"
