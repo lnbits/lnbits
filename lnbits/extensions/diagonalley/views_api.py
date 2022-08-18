@@ -238,18 +238,16 @@ async def api_diagonalley_orders(
         order["details"] = await get_diagonalley_order_details(order["id"])
         orders_with_details.append(order)
     try:
-        return orders_with_details#[order for order in orders]
+        return orders_with_details  # [order for order in orders]
         # return [order.dict() for order in await get_diagonalley_orders(wallet_ids)]
     except:
         return {"message": "We could not retrieve the orders."}
 
 
 @diagonalley_ext.post("/api/v1/orders")
-async def api_diagonalley_order_create(
-    data: createOrder
-):
+async def api_diagonalley_order_create(data: createOrder):
     ref = urlsafe_short_hash()
-        
+
     payment_hash, payment_request = await create_invoice(
         wallet_id=data.wallet,
         amount=data.total,
@@ -257,13 +255,17 @@ async def api_diagonalley_order_create(
         extra={
             "tag": "diagonalley",
             "reference": ref,
-        }
+        },
     )
     order_id = await create_diagonalley_order(invoiceid=payment_hash, data=data)
     logger.debug(f"ORDER ID {order_id}")
     logger.debug(f"PRODUCTS {data.products}")
     await create_diagonalley_order_details(order_id=order_id, data=data.products)
-    return {"payment_hash": payment_hash, "payment_request": payment_request, "order_reference": ref}
+    return {
+        "payment_hash": payment_hash,
+        "payment_request": payment_request,
+        "order_reference": ref,
+    }
     # order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
     # return order.dict()
 

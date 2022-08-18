@@ -39,7 +39,7 @@ async def display(request: Request, stall_id):
         z = await get_diagonalley_zone(id)
         z = z.dict()
         zones.append({"label": z["countries"], "cost": z["cost"], "value": z["id"]})
-    
+
     logger.debug(f"ZONES {zones}")
 
     if not stall:
@@ -57,7 +57,7 @@ async def display(request: Request, stall_id):
             "request": request,
             "stall": stall,
             "products": [product.dict() for product in products],
-            "inkey": wallet.inkey
+            "inkey": wallet.inkey,
         },
     )
 
