@@ -65,6 +65,9 @@ RESERVE_FEE_MIN = env.int("LNBITS_RESERVE_FEE_MIN", default=2000)
 RESERVE_FEE_PERCENT = env.float("LNBITS_RESERVE_FEE_PERCENT", default=1.0)
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
+STRIKE_API_ENDPOINT = env.str("STRIKE_API_ENDPOINT", default="https://api.strike.me")
+STRIKE_API_KEY = env.str("STRIKE_API_KEY", default=None)
+
 try:
     LNBITS_COMMIT = (
         subprocess.check_output(
