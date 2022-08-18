@@ -244,7 +244,7 @@ async function serialSigner(path) {
             this.handleShowSeedResponse(commandData)
             break
           case COMMAND_PAIR:
-            this.handleDhExchangeResponse(commandData)
+            this.handlePairResponse(commandData)
             break
           case COMMAND_LOG:
             console.log(
@@ -310,7 +310,7 @@ async function serialSigner(path) {
           )
           this.hwwCheckPairing()
         } else {
-          this.hwwDhExchange()
+          this.hwwPair()
         }
       },
       hwwShowPasswordDialog: async function () {
@@ -550,7 +550,7 @@ async function serialSigner(path) {
       handleCheckPairingResponse: async function (res = '') {
         console.log('### handleCheckPairingResponse', res)
       },
-      hwwDhExchange: async function () {
+      hwwPair: async function () {
         try {
           this.decryptionKey = nobleSecp256k1.utils.randomPrivateKey()
           const publicKey = nobleSecp256k1.Point.fromPrivateKey(
@@ -565,20 +565,20 @@ async function serialSigner(path) {
           ])
           this.$q.notify({
             type: 'positive',
-            message: 'Starting secure session!',
+            message: 'Pairing started!',
             timeout: 5000
           })
         } catch (error) {
           this.$q.notify({
             type: 'warning',
-            message: 'Failed to send DH Public Key to device!',
+            message: 'Failed to pair with device!',
             caption: `${error}`,
             timeout: 10000
           })
         }
       },
-      handleDhExchangeResponse: async function (res = '') {
-        console.log('### handleDhExchangeResponse', res)
+      handlePairResponse: async function (res = '') {
+        console.log('### handlePairResponse', res)
         const [statusCode, data] = res.trim().split(' ')
         let pubKeyHex, errorMessage, captionMessage
         switch (statusCode) {
@@ -588,7 +588,7 @@ async function serialSigner(path) {
             break
           case '1':
             errorMessage =
-              'Secure connection can only be established in the first 10 seconds after start-up!'
+              'Device pairing only possible in the first 10 seconds after start-up!'
             captionMessage = 'Restart and try again'
             break
 
@@ -604,7 +604,7 @@ async function serialSigner(path) {
             caption: captionMessage || '',
             timeout: 10000
           })
-
+          this.closeSerialPort()
           return
         }
         const hwwPublicKey = nobleSecp256k1.Point.fromHex('04' + pubKeyHex)
@@ -613,17 +613,30 @@ async function serialSigner(path) {
           .getSharedSecret(this.decryptionKey, hwwPublicKey)
           .slice(1, 33)
 
-        // window.localStorage.setItem('sharedSecret', nobleSecp256k1.utils.bytesToHex(this.sharedSecret))
-        this.addPairedDevice(
-          this.deviceId,
-          nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
-        )
+        const sharedSecretHex = nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
+        const sharedSecredHash = await nobleSecp256k1.utils.sha256(asciiToUint8Array(sharedSecretHex))
+        const fingerprint = nobleSecp256k1.utils.bytesToHex(sharedSecredHash).substring(0, 5).toUpperCase()
+        console.log('### fingerprint', fingerprint)
+        // 
 
-        this.$q.notify({
-          type: 'positive',
-          message: 'Secure session created!',
-          timeout: 5000
+        LNbits.utils
+        .confirmDialog('Confirm code from display: '+fingerprint)
+        .onOk(() => {
+          this.addPairedDevice(
+            this.deviceId,
+            nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
+          )
+  
+  
+          this.$q.notify({
+            type: 'positive',
+            message: 'Paired with device!',
+            timeout: 5000
+          })
+        }).onCancel(() => {
+          this.closeSerialPort()
         })
+
       },
       hwwHelp: async function () {
         try {
@@ -825,12 +838,6 @@ async function serialSigner(path) {
           console.log('### decryptData ', data, command)
           return command
         } catch (error) {
-          this.$q.notify({
-            type: 'warning',
-            message: 'Failed to decrypt message from device!',
-            caption: `${error}`,
-            timeout: 10000
-          })
           return '/error Failed to decrypt message from device!'
         }
       },

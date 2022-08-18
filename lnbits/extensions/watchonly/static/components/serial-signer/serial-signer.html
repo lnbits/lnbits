@@ -351,6 +351,25 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="showConsole" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-input
+        filled
+        dense
+        for="serial-port-console"
+        v-model.trim="receivedData"
+        type="textarea"
+        rows="25"
+        cols="200"
+        label="Console"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="hww.showSeedDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl">
       <span>Check word at position {{hww.seedWordPosition}} on display</span>
