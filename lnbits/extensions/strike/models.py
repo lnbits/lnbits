@@ -10,7 +10,7 @@ class CreateConfiguration(BaseModel):
     lnbits_wallet: str = Query(None)
     handle: str = Query(None)
     description: str = Query(None)
-    api_key: str = Query(None)
+    api_key: Optional[str] = Query(None)
 
 
 class StrikeConfiguration(BaseModel):
@@ -19,7 +19,7 @@ class StrikeConfiguration(BaseModel):
     handle: str
     description: Optional[str]
     currency: Optional[str]
-    api_key: str
+    api_key: Optional[str]
     timestamp: int
 
     @classmethod

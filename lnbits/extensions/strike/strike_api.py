@@ -44,8 +44,12 @@ class StrikeQuote(BaseModel):
 
 
 class StrikeApiClient:
-    def __init__(self, api_key=STRIKE_API_KEY):
+    def __init__(self, api_key):
         endpoint = STRIKE_API_ENDPOINT
+
+        if not api_key:
+            api_key = STRIKE_API_KEY
+
         self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
 
         self.api_key = api_key
