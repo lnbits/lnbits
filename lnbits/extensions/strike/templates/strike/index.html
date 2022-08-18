@@ -49,9 +49,7 @@
                     {{ col.value }}
                   </a>
                 </template>
-                <template v-else>
-                  {{ col.value }}
-                </template>
+                <template v-else> {{ col.value }} </template>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -102,7 +100,6 @@
           </template>
           <template v-slot:body="props">
             <q-tr :props="props">
-
               <q-td auto-width>
                 <q-btn
                   v-if="props.row.status == 'fail'"
@@ -154,7 +151,9 @@
   <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <img :src="($q.dark.isActive) ? 'https://api.strike.me/img/logo.png' : 'https://api.strike.me/img/logo_black.png'">
+        <img
+          :src="($q.dark.isActive) ? 'https://api.strike.me/img/logo.png' : 'https://api.strike.me/img/logo_black.png'"
+        />
         <h6 class="text-subtitle1 q-my-none">
           {{SITE_TITLE}} Strike extension
         </h6>
@@ -196,7 +195,8 @@
             v-if="configDialog.data.id"
             unelevated
             color="primary"
-            type="submit">
+            type="submit"
+          >
             Update Configuration
           </q-btn>
           <q-btn
@@ -204,9 +204,10 @@
             unelevated
             color="primary"
             :disable="configDialog.data.handle == null"
-            type="submit">
+            type="submit"
+          >
             Forward
-            </q-btn>
+          </q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -214,7 +215,6 @@
       </q-form>
     </q-card>
   </q-dialog>
-
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
@@ -223,7 +223,9 @@
       new Date(obj.timestamp * 1000),
       'YYYY-MM-DD HH:mm'
     )
-    obj.lnbits_wallet_name = _.findWhere(user.wallets, {id: obj.lnbits_wallet}).name
+    obj.lnbits_wallet_name = _.findWhere(user.wallets, {
+      id: obj.lnbits_wallet
+    }).name
     obj.amount_formatted = obj?.amount + ' ' + obj?.currency
     obj.spread_formatted = (obj?.spread ?? 0) + '%'
     return obj
@@ -282,17 +284,41 @@
               field: 'timestamp_formatted',
               sortable: true
             },
-            {name: 'sats_original', align: 'right', label: 'Sats Orig', field: 'sats_original', sortable: true},
-            {name: 'sats_forwarded', align: 'right', label: 'Sats Forwarded', field: 'sats_forwarded', sortable: true},
+            {
+              name: 'sats_original',
+              align: 'right',
+              label: 'Sats Orig',
+              field: 'sats_original',
+              sortable: true
+            },
+            {
+              name: 'sats_forwarded',
+              align: 'right',
+              label: 'Sats Forwarded',
+              field: 'sats_forwarded',
+              sortable: true
+            },
             // {name: 'msats_fee', align: 'right', label: 'Fee', field: 'msats_fee', sortable: true},
-            {name: 'amount_formatted', align: 'right', label: 'Amount', field: 'amount_formatted', sortable: true},
+            {
+              name: 'amount_formatted',
+              align: 'right',
+              label: 'Amount',
+              field: 'amount_formatted',
+              sortable: true
+            },
             {
               name: 'message',
               align: 'left',
               label: 'Message',
               field: 'message'
             },
-            {name: 'spread_formatted', align: 'right', label: 'Spread', field: 'spread_formatted', sortable: true},
+            {
+              name: 'spread_formatted',
+              align: 'right',
+              label: 'Spread',
+              field: 'spread_formatted',
+              sortable: true
+            },
             {
               name: 'handle',
               align: 'left',
@@ -307,7 +333,12 @@
               field: 'lnbits_wallet_name',
               sortable: true
             },
-            {name: 'status_info', align: 'left', label: 'Info', field: 'status_info'}
+            {
+              name: 'status_info',
+              align: 'left',
+              label: 'Info',
+              field: 'status_info'
+            }
           ],
           pagination: {
             rowsPerPage: 50
@@ -341,7 +372,9 @@
         var forwards = _.findWhere(this.forwards, {id: id})
 
         LNbits.utils
-          .confirmDialog('Are you sure you want to delete this forwarded invoice?')
+          .confirmDialog(
+            'Are you sure you want to delete this forwarded invoice?'
+          )
           .onOk(function () {
             LNbits.api
               .request(
@@ -411,10 +444,13 @@
               .request(
                 'DELETE',
                 '/strike/api/v1/configurations/' + id,
-                _.findWhere(self.g.user.wallets, {id: configs.lnbits_wallet}).inkey
+                _.findWhere(self.g.user.wallets, {id: configs.lnbits_wallet})
+                  .inkey
               )
               .then(function (response) {
-                self.configurations = _.reject(self.configurations, function (obj) {
+                self.configurations = _.reject(self.configurations, function (
+                  obj
+                ) {
                   return obj.id == id
                 })
               })
@@ -431,7 +467,7 @@
         var refreshIntervalId = setInterval(function () {
           self.getForwards()
         }, 3000)
-      },
+      }
     },
 
     created: function () {

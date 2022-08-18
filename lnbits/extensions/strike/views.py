@@ -28,7 +28,8 @@ async def display(request: Request, id):
     config = await get_configuration(id)
     if not config:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Configuration link does not exist."
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Configuration link does not exist.",
         )
     wallet = await get_wallet(config.lnbits_wallet)
     return strike_renderer().TemplateResponse(

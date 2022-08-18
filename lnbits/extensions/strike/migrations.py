@@ -39,6 +39,7 @@ async def m001_initial(db):
     """
     )
 
+
 async def m002_add_fee_column(db):
     """
     Support for payment fess

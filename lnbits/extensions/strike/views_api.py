@@ -10,12 +10,12 @@ from lnbits.decorators import WalletTypeInfo, get_key_type
 from . import strike_ext
 from .crud import (
     create_configuration,
+    delete_configuration,
     get_configuration,
     get_configurations,
-    delete_configuration,
-    get_forwards
+    get_forwards,
 )
-from .models import StrikeConfiguration, StrikeForward, CreateConfiguration
+from .models import CreateConfiguration, StrikeConfiguration, StrikeForward
 from .strike_api import StrikeApiClient, StrikeProfile
 
 
@@ -25,16 +25,28 @@ async def api_create_config(data: CreateConfiguration):
 
     client = StrikeApiClient()
     profile = await client.get_profile(data.handle)
-    if(not profile):
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Strike account with handle {data.handle} doesn't exist")
+    if not profile:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Strike account with handle {data.handle} doesn't exist",
+        )
 
-    if(not profile.currencies):
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=f"Strike account with handle {data.handle} has no currency configured")
+    if not profile.currencies:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Strike account with handle {data.handle} has no currency configured",
+        )
 
-    default_currency = filter(lambda item: item.isDefaultCurrency == True and item.isAvailable == True, profile.currencies)
+    default_currency = filter(
+        lambda item: item.isDefaultCurrency == True and item.isAvailable == True,
+        profile.currencies,
+    )
 
-    if(not default_currency):
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=f"Strike account with handle {data.handle} has no default and available currency")
+    if not default_currency:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Strike account with handle {data.handle} has no default and available currency",
+        )
 
     try:
         config = await create_configuration(data, list(default_currency)[0].currency)
@@ -42,6 +54,7 @@ async def api_create_config(data: CreateConfiguration):
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return config.dict()
+
 
 @strike_ext.get("/api/v1/configurations")
 async def api_get_configurations(wallet: WalletTypeInfo = Depends(get_key_type)):
@@ -52,6 +65,7 @@ async def api_get_configurations(wallet: WalletTypeInfo = Depends(get_key_type))
         new_configs = await get_configurations(wallet_id)
         configurations += new_configs if new_configs else []
     return [config.dict() for config in configurations] if configurations else []
+
 
 @strike_ext.get("/api/v1/forwards")
 async def api_get_forwards(wallet: WalletTypeInfo = Depends(get_key_type)):

@@ -24,6 +24,7 @@ class StrikeConfiguration(BaseModel):
     def from_row(cls, row: Row) -> "Configurations":
         return cls(**dict(row))
 
+
 class StrikeForward(BaseModel):
     id: str
     lnbits_wallet: str
