@@ -21,7 +21,13 @@ from lnbits.decorators import (
 )
 from lnbits.helpers import url_for, urlsafe_short_hash
 from lnbits.requestvars import g
-from lnbits.settings import FAKE_WALLET, RESERVE_FEE_MIN, RESERVE_FEE_PERCENT, WALLET
+from lnbits.settings import (
+    FAKE_WALLET,
+    RESERVE_FEE_MIN,
+    RESERVE_FEE_PERCENT,
+    WALLET,
+    SERVICE_FEE,
+)
 from lnbits.wallets.base import PaymentResponse, PaymentStatus
 
 from . import db
@@ -33,8 +39,6 @@ from .crud import (
     get_wallet_payment,
     update_payment_status,
 )
-
-EXTRA_FEE = 0.02
 
 try:
     from typing import TypedDict  # type: ignore
@@ -139,7 +143,7 @@ async def pay_invoice(
             # create a new payment from this wallet
             await create_payment(
                 checking_id=internal_id,
-                fee=-EXTRA_FEE * payment_kwargs["amount"],
+                fee=-SERVICE_FEE * payment_kwargs["amount"],
                 pending=False,
                 conn=conn,
                 **payment_kwargs,
@@ -150,7 +154,7 @@ async def pay_invoice(
             # the balance is enough in the next step
             await create_payment(
                 checking_id=temp_id,
-                fee=-fee_reserve_msat - EXTRA_FEE * payment_kwargs["amount"],
+                fee=-fee_reserve_msat - SERVICE_FEE * payment_kwargs["amount"],
                 conn=conn,
                 **payment_kwargs,
             )
@@ -193,7 +197,7 @@ async def pay_invoice(
             async with db.connect() as conn:
                 await create_payment(
                     checking_id=payment.checking_id,
-                    fee=-abs(payment.fee_msat) - EXTRA_FEE * payment_kwargs["amount"],
+                    fee=-abs(payment.fee_msat) - SERVICE_FEE * payment_kwargs["amount"],
                     preimage=payment.preimage,
                     pending=payment.ok == None,
                     conn=conn,
