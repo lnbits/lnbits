@@ -36,6 +36,12 @@ async function serialSigner(path) {
           xpubResolve: null,
           seedWordPosition: 1,
           showSeedDialog: false,
+          config: null,
+          deviceConfig: {
+            name: null,
+            buttonOnePin: 0,
+            buttonTwoPin: 35
+          },
           confirm: {
             outputIndex: 0,
             showFee: false
@@ -237,7 +243,7 @@ async function serialSigner(path) {
           case COMMAND_SEED:
             this.handleShowSeedResponse(commandData)
             break
-          case COMMAND_DH_EXCHANGE:
+          case COMMAND_PAIR:
             this.handleDhExchangeResponse(commandData)
             break
           case COMMAND_LOG:
@@ -258,7 +264,7 @@ async function serialSigner(path) {
           case COMMAND_SEND_PSBT:
           case COMMAND_WIPE:
           case COMMAND_XPUB:
-          case COMMAND_DH_EXCHANGE:
+          case COMMAND_PAIR:
             console.log(
               `   %c${command} ${commandData}`,
               'background: #222; color: yellow'
@@ -551,10 +557,12 @@ async function serialSigner(path) {
             this.decryptionKey
           )
           const publicKeyHex = publicKey.toHex().slice(2)
-          // must not be encrypted
-          await this.writer.write(
-            COMMAND_DH_EXCHANGE + ' ' + publicKeyHex + '\n'
-          )
+
+          await this.sendCommandClearText(COMMAND_PAIR, [
+            publicKeyHex,
+            this.hww.deviceConfig.buttonOnePin,
+            this.hww.deviceConfig.buttonTwoPin
+          ])
           this.$q.notify({
             type: 'positive',
             message: 'Starting secure session!',
@@ -580,7 +588,7 @@ async function serialSigner(path) {
             break
           case '1':
             errorMessage =
-              'Secure connection can only be established in the first 60 seconds after start-up!'
+              'Secure connection can only be established in the first 10 seconds after start-up!'
             captionMessage = 'Restart and try again'
             break
 
@@ -776,7 +784,7 @@ async function serialSigner(path) {
         const commandData = value.substring(command.length).trim()
 
         if (
-          command === COMMAND_DH_EXCHANGE ||
+          command === COMMAND_PAIR ||
           command === COMMAND_LOG ||
           command === COMMAND_PASSWORD_CLEAR ||
           command === COMMAND_PING ||

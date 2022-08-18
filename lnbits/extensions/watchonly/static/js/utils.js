@@ -12,7 +12,7 @@ const COMMAND_RESTORE = '/restore'
 const COMMAND_CONFIRM_NEXT = '/confirm-next'
 const COMMAND_CANCEL = '/cancel'
 const COMMAND_XPUB = '/xpub'
-const COMMAND_DH_EXCHANGE = '/dh-exchange'
+const COMMAND_PAIR = '/pair'
 const COMMAND_LOG = '/log'
 const COMMAND_CHECK_PAIRING = '/check-pairing'
 

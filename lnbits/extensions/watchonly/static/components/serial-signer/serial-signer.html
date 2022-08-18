@@ -124,10 +124,32 @@
       <q-form @submit="hwwConfigAndConnect" class="q-gutter-md">
         <span>Enter Config</span>
 
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.deviceConfig.name"
+          label="Name (optional)"
+        ></q-input>
+        <q-separator></q-separator>
         <serial-port-config
           ref="serialPortConfig"
           :config="hww.config"
         ></serial-port-config>
+        <q-separator></q-separator>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.deviceConfig.buttonOnePin"
+          type="number"
+          label="Pin Number (Button 1)"
+        ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="hww.deviceConfig.buttonTwoPin"
+          type="number"
+          label="Pin Number (Button 2)"
+        ></q-input>
 
         <div class="row q-mt-lg">
           <q-btn unelevated color="primary" type="submit">Connect</q-btn>
