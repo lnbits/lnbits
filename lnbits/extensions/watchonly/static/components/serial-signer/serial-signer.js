@@ -296,13 +296,13 @@ async function serialSigner(path) {
         const device = this.getPairedDevice(deviceId)
 
         if (device) {
-          this.sharedSecret = nobleSecp256k1.utils.hexToBytes(device.sharedSecretHex)
+          this.sharedSecret = nobleSecp256k1.utils.hexToBytes(
+            device.sharedSecretHex
+          )
           this.hwwCheckSecureConnection()
         } else {
           this.hwwDhExchange()
         }
-
-   
       },
       hwwShowPasswordDialog: async function () {
         try {
@@ -516,22 +516,19 @@ async function serialSigner(path) {
       hwwCheckSecureConnection: async function () {
         const testString = 'lnbits'
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
+        console.log('### this.sharedSecret', this.sharedSecret)
         const encrypted = await this.encryptMessage(
           this.sharedSecret,
           iv,
-          testString
+          testString.length + ' ' + testString
         )
 
         const encryptedHex = nobleSecp256k1.utils.bytesToHex(encrypted)
         const encryptedIvHex = nobleSecp256k1.utils.bytesToHex(iv)
         try {
-          await this.writer.write(
-            COMMAND_CHECK_PAIRING +
-              ' ' +
-              encryptedHex +
-              encryptedIvHex +
-              '\n'
-          )
+          await this.sendCommandClearText(COMMAND_CHECK_PAIRING, [
+            encryptedHex + encryptedIvHex
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -541,7 +538,7 @@ async function serialSigner(path) {
           })
         }
       },
-      handleCheckSecureConnectionResponse: async function(res = '') {
+      handleCheckSecureConnectionResponse: async function (res = '') {
         console.log('### handleCheckSecureConnectionResponse', res)
       },
       hwwDhExchange: async function () {
@@ -606,7 +603,10 @@ async function serialSigner(path) {
           .slice(1, 33)
 
         // window.localStorage.setItem('sharedSecret', nobleSecp256k1.utils.bytesToHex(this.sharedSecret))
-        this.addPairedDevice(this.deviceId, nobleSecp256k1.utils.bytesToHex(this.sharedSecret))
+        this.addPairedDevice(
+          this.deviceId,
+          nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
+        )
 
         this.$q.notify({
           type: 'positive',
@@ -693,7 +693,7 @@ async function serialSigner(path) {
         const fingerprint = args[2].trim()
         this.xpubResolve({xpub, fingerprint})
       },
-  
+
       hwwShowSeed: async function () {
         try {
           this.hww.showSeedDialog = true
@@ -765,6 +765,7 @@ async function serialSigner(path) {
       },
       sendCommandClearText: async function (command, attrs = []) {
         const message = [command].concat(attrs).join(' ')
+        console.log('### encryptedIvHex', message)
         await this.writer.write(message + '\n')
       },
       extractCommand: async function (value) {
@@ -835,32 +836,39 @@ async function serialSigner(path) {
         const decryptedBytes = aesCbc.decrypt(encryptedBytes)
         return decryptedBytes
       },
-      getPairedDevices: function() {
-        console.log('### getPairedDevices', window.localStorage.getItem('lnbits-paired-devices'))
-        return  JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) || []
+      getPairedDevices: function () {
+        console.log(
+          '### getPairedDevices',
+          window.localStorage.getItem('lnbits-paired-devices')
+        )
+        return (
+          JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) || []
+        )
       },
-      getPairedDevice: function(deviceId) {
+      getPairedDevice: function (deviceId) {
         const devices = this.getPairedDevices()
         return devices.find(d => d.id === deviceId)
       },
-      removePairedDevice: function(deviceId){
+      removePairedDevice: function (deviceId) {
         const devices = this.getPairedDevices()
         const deviceIndex = devices.indexOf(d => d.id === deviceId)
         if (deviceIndex !== -1) {
           devices.splice(deviceIndex, 1)
         }
       },
-      addPairedDevice: function(deviceId, sharedSecretHex){
+      addPairedDevice: function (deviceId, sharedSecretHex) {
         const devices = this.getPairedDevices()
         devices.push({
           id: deviceId,
           sharedSecretHex: sharedSecretHex,
           pairingDate: new Date().toISOString()
         })
-        window.localStorage.setItem('lnbits-paired-devices', JSON.stringify(devices))
+        window.localStorage.setItem(
+          'lnbits-paired-devices',
+          JSON.stringify(devices)
+        )
       }
     },
-    created: async function () {
-    }
+    created: async function () {}
   })
 }
