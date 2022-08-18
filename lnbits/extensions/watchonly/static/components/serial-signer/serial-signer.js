@@ -213,6 +213,9 @@ async function serialSigner(path) {
           case COMMAND_PING:
             this.handlePingResponse(commandData)
             break
+          case COMMAND_CHECK_PAIRING:
+            this.handleCheckPairingResponse(commandData)
+            break
           case COMMAND_SIGN_PSBT:
             this.handleSignResponse(commandData)
             break
@@ -299,7 +302,7 @@ async function serialSigner(path) {
           this.sharedSecret = nobleSecp256k1.utils.hexToBytes(
             device.sharedSecretHex
           )
-          this.hwwCheckSecureConnection()
+          this.hwwCheckPairing()
         } else {
           this.hwwDhExchange()
         }
@@ -513,7 +516,7 @@ async function serialSigner(path) {
           timeout: 10000
         })
       },
-      hwwCheckSecureConnection: async function () {
+      hwwCheckPairing: async function () {
         const testString = 'lnbits'
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
         console.log('### this.sharedSecret', this.sharedSecret)
@@ -538,8 +541,8 @@ async function serialSigner(path) {
           })
         }
       },
-      handleCheckSecureConnectionResponse: async function (res = '') {
-        console.log('### handleCheckSecureConnectionResponse', res)
+      handleCheckPairingResponse: async function (res = '') {
+        console.log('### handleCheckPairingResponse', res)
       },
       hwwDhExchange: async function () {
         try {
@@ -776,7 +779,8 @@ async function serialSigner(path) {
           command === COMMAND_DH_EXCHANGE ||
           command === COMMAND_LOG ||
           command === COMMAND_PASSWORD_CLEAR ||
-          command === COMMAND_PING
+          command === COMMAND_PING ||
+          command === COMMAND_CHECK_PAIRING
         )
           return {command, commandData}
 
