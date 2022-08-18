@@ -1,0 +1,135 @@
+<q-card>
+  <q-card-section>
+    <div class="row items-center no-wrap q-mb-md">
+      <div v-if="selectable" class="col-3 q-pr-lg">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="utxoSelectionMode"
+          :options="utxoSelectionModes"
+          label="Selection Mode"
+          @input="updateUtxoSelection"
+        ></q-select>
+      </div>
+      <div v-if="selectable" class="col-1 q-pr-lg">
+        <q-btn
+          outline
+          icon="refresh"
+          color="grey"
+          @click="updateUtxoSelection"
+          class="q-ml-sm"
+        ></q-btn>
+      </div>
+      <div v-if="selectable" class="col-5 q-pr-lg"></div>
+      <div v-if="!selectable" class="col-9 q-pr-lg"></div>
+      <div class="col-3 float-right">
+        <q-input
+          borderless
+          dense
+          debounce="300"
+          v-model="filter"
+          placeholder="Search"
+        >
+          <template v-slot:append>
+            <q-icon name="search"></q-icon>
+          </template>
+        </q-input>
+      </div>
+    </div>
+
+    <q-table
+      flat
+      dense
+      :data="utxos"
+      row-key="id"
+      :columns="columns"
+      :pagination.sync="utxosTable.pagination"
+      :filter="filter"
+    >
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td auto-width>
+            <q-btn
+              size="sm"
+              color="accent"
+              round
+              dense
+              @click="props.row.expanded= !props.row.expanded"
+              :icon="props.row.expanded? 'remove' : 'add'"
+            />
+          </q-td>
+
+          <q-td v-if="selectable" key="selected" :props="props">
+            <div>
+              <q-checkbox v-model="props.row.selected"></q-checkbox>
+            </div>
+          </q-td>
+          <q-td key="status" :props="props">
+            <div>
+              <q-badge
+                v-if="props.row.confirmed"
+                @click="props.row.expanded = !props.row.expanded"
+                color="green"
+                class="q-mr-md cursor-pointer"
+              >
+                Confirmed
+              </q-badge>
+              <q-badge
+                v-if="!props.row.confirmed"
+                @click="props.row.expanded = !props.row.expanded"
+                color="orange"
+                class="q-mr-md cursor-pointer"
+              >
+                Pending
+              </q-badge>
+            </div>
+          </q-td>
+          <q-td key="address" :props="props">
+            <div>
+              <a
+                style="color: unset"
+                :href="'https://' + mempoolEndpoint + '/address/' + props.row.address"
+                target="_blank"
+              >
+                {{props.row.address}}</a
+              >
+              <q-badge v-if="props.row.isChange" color="orange" class="q-mr-md">
+                change
+              </q-badge>
+            </div>
+          </q-td>
+
+          <q-td
+            key="amount"
+            :props="props"
+            class="text-green-13 text-weight-bold"
+          >
+            <div>{{satBtc(props.row.amount)}}</div>
+          </q-td>
+
+          <q-td key="date" :props="props"> {{ props.row.date }} </q-td>
+          <q-td key="wallet" :props="props" :class="">
+            <div>{{getWalletName(props.row.wallet)}}</div>
+          </q-td>
+        </q-tr>
+        <q-tr v-show="props.row.expanded" :props="props">
+          <q-td colspan="100%">
+            <div class="row items-center q-mb-md">
+              <div class="col-2 q-pr-lg">Transaction Id</div>
+              <div class="col-10 q-pr-lg">
+                <a
+                  style="color: unset"
+                  :href="'https://' + mempoolEndpoint + '/tx/' + props.row.txId"
+                  target="_blank"
+                >
+                  {{props.row.txId}}</a
+                >
+              </div>
+            </div>
+          </q-td>
+        </q-tr>
+      </template>
+    </q-table>
+  </q-card-section></q-card
+>

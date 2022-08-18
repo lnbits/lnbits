@@ -4,7 +4,6 @@
 <!---->
 {% block scripts %} {{ window_vars(user, wallet) }}
 <script src="/core/static/js/wallet.js"></script>
-<link rel="manifest" href="/manifest/{{ user.id }}.webmanifest" />
 {% endblock %}
 <!---->
 {% block title %} {{ wallet.name }} - {{ SITE_TITLE }} {% endblock %}
@@ -690,7 +689,7 @@
     </q-card>
   </q-dialog>
   <q-tabs
-    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-max"
+    class="lt-md fixed-bottom left-0 right-0 bg-primary text-white shadow-2 z-top"
     active-class="px-0"
     indicator-color="transparent"
   >

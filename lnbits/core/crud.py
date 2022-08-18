@@ -1,15 +1,17 @@
-import json
 import datetime
-from uuid import uuid4
-from typing import List, Optional, Dict, Any
+import json
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+from uuid import uuid4
+
+from loguru import logger
 
 from lnbits import bolt11
-from lnbits.db import Connection, POSTGRES, COCKROACH
+from lnbits.db import COCKROACH, POSTGRES, Connection
 from lnbits.settings import DEFAULT_WALLET_NAME, LNBITS_ADMIN_USERS
 
 from . import db
-from .models import User, Wallet, Payment, BalanceCheck
+from .models import BalanceCheck, Payment, User, Wallet
 
 # accounts
 # --------
@@ -113,7 +115,7 @@ async def create_wallet(
 async def update_wallet(
     wallet_id: str, new_name: str, conn: Optional[Connection] = None
 ) -> Optional[Wallet]:
-    await (conn or db).execute(
+    return await (conn or db).execute(
         """
         UPDATE wallets SET
             name = ?
@@ -183,10 +185,17 @@ async def get_standalone_payment(
     checking_id_or_hash: str,
     conn: Optional[Connection] = None,
     incoming: Optional[bool] = False,
+    wallet_id: Optional[str] = None,
 ) -> Optional[Payment]:
     clause: str = "checking_id = ? OR hash = ?"
+    values = [checking_id_or_hash, checking_id_or_hash]
     if incoming:
         clause = f"({clause}) AND amount > 0"
+
+    if wallet_id:
+        clause = f"({clause}) AND wallet = ?"
+        values.append(wallet_id)
+
     row = await (conn or db).fetchone(
         f"""
         SELECT *
@@ -194,7 +203,7 @@ async def get_standalone_payment(
         WHERE {clause}
         LIMIT 1
         """,
-        (checking_id_or_hash, checking_id_or_hash),
+        tuple(values),
     )
 
     return Payment.from_row(row) if row else None
@@ -327,7 +336,7 @@ async def delete_expired_invoices(
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
-
+        logger.debug(f"Deleting expired invoice: {invoice.payment_hash}")
         await (conn or db).execute(
             """
             DELETE FROM apipayments

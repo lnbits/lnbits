@@ -73,6 +73,7 @@ async def api_link_retrieve(
 @lnurlp_ext.put("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_create_or_update(
     data: CreatePayLinkData,
+    request: Request,
     link_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
@@ -95,7 +96,7 @@ async def api_link_create_or_update(
         data.min *= data.fiat_base_multiplier
         data.max *= data.fiat_base_multiplier
 
-    if "success_url" in data and data.success_url[:8] != "https://":
+    if data.success_url is not None and not data.success_url.startswith("https://"):
         raise HTTPException(
             detail="Success URL must be secure https://...",
             status_code=HTTPStatus.BAD_REQUEST,
@@ -117,10 +118,10 @@ async def api_link_create_or_update(
         link = await update_pay_link(**data.dict(), link_id=link_id)
     else:
         link = await create_pay_link(data, wallet_id=wallet.wallet.id)
-    return {**link.dict(), "lnurl": link.lnurl}
+    return {**link.dict(), "lnurl": link.lnurl(request)}
 
 
-@lnurlp_ext.delete("/api/v1/links/{link_id}")
+@lnurlp_ext.delete("/api/v1/links/{link_id}", status_code=HTTPStatus.OK)
 async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type)):
     link = await get_pay_link(link_id)
 
@@ -135,7 +136,7 @@ async def api_link_delete(link_id, wallet: WalletTypeInfo = Depends(get_key_type
         )
 
     await delete_pay_link(link_id)
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return {"success": True}
 
 
 @lnurlp_ext.get("/api/v1/rate/{currency}", status_code=HTTPStatus.OK)

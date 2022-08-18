@@ -1,8 +1,10 @@
+import base64
+import getpass
+from hashlib import md5
+
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-import base64
-from hashlib import md5
-import getpass
+from loguru import logger
 
 BLOCK_SIZE = 16
 import getpass
@@ -71,10 +73,10 @@ class AESCipher(object):
             final_key += key
         return final_key[:output]
 
-    def decrypt(self, encrypted: str) -> str:
+    def decrypt(self, encrypted: str) -> str:  # type: ignore
         """Decrypts a string using AES-256-CBC."""
         passphrase = self.passphrase
-        encrypted = base64.b64decode(encrypted)
+        encrypted = base64.b64decode(encrypted)  # type: ignore
         assert encrypted[0:8] == b"Salted__"
         salt = encrypted[8:16]
         key_iv = self.bytes_to_key(passphrase.encode(), salt, 32 + 16)
@@ -82,7 +84,7 @@ class AESCipher(object):
         iv = key_iv[32:]
         aes = AES.new(key, AES.MODE_CBC, iv)
         try:
-            return self.unpad(aes.decrypt(encrypted[16:])).decode()
+            return self.unpad(aes.decrypt(encrypted[16:])).decode()  # type: ignore
         except UnicodeDecodeError:
             raise ValueError("Wrong passphrase")
 
@@ -103,5 +105,5 @@ if __name__ == "__main__":
     macaroon = input("Enter macaroon: ")
     macaroon = load_macaroon(macaroon)
     macaroon = AESCipher(description="encryption").encrypt(macaroon.encode())
-    print("Encrypted macaroon:")
-    print(macaroon)
+    logger.info("Encrypted macaroon:")
+    logger.info(macaroon)

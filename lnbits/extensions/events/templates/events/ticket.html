@@ -13,9 +13,8 @@
           <br />
 
           <qrcode
-            :value="'{{ ticket_id }}'"
-            :options="{width: 340}"
-            class="rounded-borders"
+            :value="'ticket://{{ ticket_id }}'"
+            :options="{width: 500}"
           ></qrcode>
           <br />
           <q-btn @click="printWindow" color="grey" class="q-ml-auto">

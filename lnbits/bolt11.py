@@ -1,15 +1,16 @@
-import bitstring  # type: ignore
-import re
 import hashlib
-from typing import List, NamedTuple, Optional
-from bech32 import bech32_encode, bech32_decode, CHARSET
-from ecdsa import SECP256k1, VerifyingKey  # type: ignore
-from ecdsa.util import sigdecode_string  # type: ignore
-from binascii import unhexlify
+import re
 import time
+from binascii import unhexlify
 from decimal import Decimal
+from typing import List, NamedTuple, Optional
+
+import bitstring  # type: ignore
 import embit
 import secp256k1
+from bech32 import CHARSET, bech32_decode, bech32_encode
+from ecdsa import SECP256k1, VerifyingKey  # type: ignore
+from ecdsa.util import sigdecode_string  # type: ignore
 
 
 class Route(NamedTuple):
@@ -60,7 +61,7 @@ def decode(pr: str) -> Invoice:
     invoice = Invoice()
 
     # decode the amount from the hrp
-    m = re.search("[^\d]+", hrp[2:])
+    m = re.search(r"[^\d]+", hrp[2:])
     if m:
         amountstr = hrp[2 + m.end() :]
         if amountstr != "":
@@ -215,7 +216,7 @@ def lnencode(addr, privkey):
                 expirybits = expirybits[5:]
             data += tagged("x", expirybits)
         elif k == "h":
-            data += tagged_bytes("h", hashlib.sha256(v.encode("utf-8")).digest())
+            data += tagged_bytes("h", v)
         elif k == "n":
             data += tagged_bytes("n", v)
         else:
@@ -295,7 +296,7 @@ def _unshorten_amount(amount: str) -> int:
     # BOLT #11:
     # A reader SHOULD fail if `amount` contains a non-digit, or is followed by
     # anything except a `multiplier` in the table above.
-    if not re.fullmatch("\d+[pnum]?", str(amount)):
+    if not re.fullmatch(r"\d+[pnum]?", str(amount)):
         raise ValueError("Invalid amount '{}'".format(amount))
 
     if unit in units:

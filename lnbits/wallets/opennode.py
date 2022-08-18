@@ -1,20 +1,22 @@
 import asyncio
-
-from fastapi.exceptions import HTTPException
-from lnbits.helpers import url_for
 import hmac
-import httpx
 from http import HTTPStatus
 from os import getenv
-from typing import Optional, AsyncGenerator
+from typing import AsyncGenerator, Optional
+
+import httpx
+from fastapi.exceptions import HTTPException
+from loguru import logger
+
+from lnbits.helpers import url_for
 
 from .base import (
-    StatusResponse,
     InvoiceResponse,
     PaymentResponse,
     PaymentStatus,
-    Wallet,
+    StatusResponse,
     Unsupported,
+    Wallet,
 )
 
 
@@ -52,8 +54,10 @@ class OpenNodeWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
-        if description_hash:
+        if description_hash or unhashed_description:
             raise Unsupported("description_hash")
 
         async with httpx.AsyncClient() as client:
@@ -63,7 +67,7 @@ class OpenNodeWallet(Wallet):
                 json={
                     "amount": amount,
                     "description": memo or "",
-                    "callback_url": url_for("/webhook_listener", _external=True),
+                    # "callback_url": url_for("/webhook_listener", _external=True),
                 },
                 timeout=40,
             )
@@ -83,7 +87,7 @@ class OpenNodeWallet(Wallet):
                 f"{self.endpoint}/v2/withdrawals",
                 headers=self.auth,
                 json={"type": "ln", "address": bolt11},
-                timeout=180,
+                timeout=None,
             )
 
         if r.is_error:
@@ -125,7 +129,7 @@ class OpenNodeWallet(Wallet):
         return PaymentStatus(statuses[r.json()["data"]["status"]])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        self.queue = asyncio.Queue(0)
+        self.queue: asyncio.Queue = asyncio.Queue(0)
         while True:
             value = await self.queue.get()
             yield value
@@ -139,7 +143,7 @@ class OpenNodeWallet(Wallet):
         x = hmac.new(self.auth["Authorization"].encode("ascii"), digestmod="sha256")
         x.update(charge_id.encode("ascii"))
         if x.hexdigest() != data["hashed_order"]:
-            print("invalid webhook, not from opennode")
+            logger.error("invalid webhook, not from opennode")
             raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
 
         await self.queue.put(charge_id)

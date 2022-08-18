@@ -668,7 +668,17 @@ new Vue({
       })
     },
     exportCSV: function () {
-      LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments)
+      // status is important for export but it is not in paymentsTable
+      // because it is manually added with payment detail link and icons
+      // and would cause duplication in the list
+      let columns = this.paymentsTable.columns
+      columns.unshift({
+        name: 'pending',
+        align: 'left',
+        label: 'Pending',
+        field: 'pending'
+      })
+      LNbits.utils.exportCSV(columns, this.payments)
     }
   },
   watch: {
@@ -702,3 +712,11 @@ new Vue({
     )
   }
 })
+
+if (navigator.serviceWorker != null) {
+  navigator.serviceWorker
+    .register('/service-worker.js')
+    .then(function (registration) {
+      console.log('Registered events at scope: ', registration.scope)
+    })
+}

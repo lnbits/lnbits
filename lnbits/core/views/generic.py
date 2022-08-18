@@ -7,6 +7,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.params import Depends, Query
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.routing import APIRouter
+from loguru import logger
 from pydantic.types import UUID4
 from starlette.responses import HTMLResponse, JSONResponse
 
@@ -17,10 +18,12 @@ from lnbits.helpers import template_renderer, url_for
 from lnbits.settings import (
     LNBITS_ADMIN_USERS,
     LNBITS_ALLOWED_USERS,
+    LNBITS_CUSTOM_LOGO,
     LNBITS_SITE_TITLE,
     SERVICE_FEE,
 )
 
+from ...helpers import get_valid_extensions
 from ..crud import (
     create_account,
     create_wallet,
@@ -52,9 +55,9 @@ async def home(request: Request, lightning: str = None):
 )
 async def extensions(
     request: Request,
-    user: User = Depends(check_user_exists),
-    enable: str = Query(None),
-    disable: str = Query(None),
+    user: User = Depends(check_user_exists),  # type: ignore
+    enable: str = Query(None),  # type: ignore
+    disable: str = Query(None),  # type: ignore
 ):
     extension_to_enable = enable
     extension_to_disable = disable
@@ -64,18 +67,28 @@ async def extensions(
             HTTPStatus.BAD_REQUEST, "You can either `enable` or `disable` an extension."
         )
 
+    # check if extension exists
+    if extension_to_enable or extension_to_disable:
+        ext = extension_to_enable or extension_to_disable
+        if ext not in [e.code for e in get_valid_extensions()]:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST, f"Extension '{ext}' doesn't exist."
+            )
+
     if extension_to_enable:
+        logger.info(f"Enabling extension: {extension_to_enable} for user {user.id}")
         await update_user_extension(
             user_id=user.id, extension=extension_to_enable, active=True
         )
     elif extension_to_disable:
+        logger.info(f"Disabling extension: {extension_to_disable} for user {user.id}")
         await update_user_extension(
             user_id=user.id, extension=extension_to_disable, active=False
         )
 
     # Update user as his extensions have been updated
     if extension_to_enable or extension_to_disable:
-        user = await get_user(user.id)
+        user = await get_user(user.id)  # type: ignore
 
     return template_renderer().TemplateResponse(
         "core/extensions.html", {"request": request, "user": user.dict()}
@@ -96,10 +109,10 @@ nothing: create everything<br>
 """,
 )
 async def wallet(
-    request: Request = Query(None),
-    nme: Optional[str] = Query(None),
-    usr: Optional[UUID4] = Query(None),
-    wal: Optional[UUID4] = Query(None),
+    request: Request = Query(None),  # type: ignore
+    nme: Optional[str] = Query(None),  # type: ignore
+    usr: Optional[UUID4] = Query(None),  # type: ignore
+    wal: Optional[UUID4] = Query(None),  # type: ignore
 ):
     user_id = usr.hex if usr else None
     wallet_id = wal.hex if wal else None
@@ -108,6 +121,7 @@ async def wallet(
 
     if not user_id:
         user = await get_user((await create_account()).id)
+        logger.info(f"Create user {user.id}")  # type: ignore
     else:
         user = await get_user(user_id)
         if not user:
@@ -121,18 +135,24 @@ async def wallet(
         if LNBITS_ADMIN_USERS and user_id in LNBITS_ADMIN_USERS:
             user.admin = True
     if not wallet_id:
-        if user.wallets and not wallet_name:
-            wallet = user.wallets[0]
+        if user.wallets and not wallet_name:  # type: ignore
+            wallet = user.wallets[0]  # type: ignore
         else:
-            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)
+            wallet = await create_wallet(user_id=user.id, wallet_name=wallet_name)  # type: ignore
+            logger.info(
+                f"Created new wallet {wallet_name if wallet_name else '(no name)'} for user {user.id}"  # type: ignore
+            )
 
         return RedirectResponse(
-            f"/wallet?usr={user.id}&wal={wallet.id}",
+            f"/wallet?usr={user.id}&wal={wallet.id}",  # type: ignore
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
-    wallet = user.get_wallet(wallet_id)
-    if not wallet:
+    logger.debug(
+        f"Access {'user '+ user.id + ' ' if user else ''} {'wallet ' + wallet_name if wallet_name else ''}"
+    )
+    userwallet = user.get_wallet(wallet_id)  # type: ignore
+    if not userwallet:
         return template_renderer().TemplateResponse(
             "error.html", {"request": request, "err": "Wallet not found"}
         )
@@ -141,9 +161,10 @@ async def wallet(
         "core/wallet.html",
         {
             "request": request,
-            "user": user.dict(),
-            "wallet": wallet.dict(),
+            "user": user.dict(),  # type: ignore
+            "wallet": userwallet.dict(),
             "service_fee": service_fee,
+            "web_manifest": f"/manifest/{user.id}.webmanifest",  # type: ignore
         },
     )
 
@@ -197,20 +218,20 @@ async def lnurl_full_withdraw_callback(request: Request):
 
 
 @core_html_routes.get("/deletewallet", response_class=RedirectResponse)
-async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):
+async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query(...)):  # type: ignore
     user = await get_user(usr)
-    user_wallet_ids = [u.id for u in user.wallets]
-    print("USR", user_wallet_ids)
+    user_wallet_ids = [u.id for u in user.wallets]  # type: ignore
 
     if wal not in user_wallet_ids:
         raise HTTPException(HTTPStatus.FORBIDDEN, "Not your wallet.")
     else:
-        await delete_wallet(user_id=user.id, wallet_id=wal)
+        await delete_wallet(user_id=user.id, wallet_id=wal)  # type: ignore
         user_wallet_ids.remove(wal)
+        logger.debug("Deleted wallet {wal} of user {user.id}")
 
     if user_wallet_ids:
         return RedirectResponse(
-            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),
+            url_for("/wallet", usr=user.id, wal=user_wallet_ids[0]),  # type: ignore
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
 
@@ -223,7 +244,7 @@ async def deletewallet(request: Request, wal: str = Query(...), usr: str = Query
 async def lnurl_balance_notify(request: Request, service: str):
     bc = await get_balance_check(request.query_params.get("wal"), service)
     if bc:
-        redeem_lnurl_withdraw(bc.wallet, bc.url)
+        await redeem_lnurl_withdraw(bc.wallet, bc.url)
 
 
 @core_html_routes.get(
@@ -233,7 +254,7 @@ async def lnurlwallet(request: Request):
     async with db.connect() as conn:
         account = await create_account(conn=conn)
         user = await get_user(account.id, conn=conn)
-        wallet = await create_wallet(user_id=user.id, conn=conn)
+        wallet = await create_wallet(user_id=user.id, conn=conn)  # type: ignore
 
     asyncio.create_task(
         redeem_lnurl_withdraw(
@@ -246,9 +267,14 @@ async def lnurlwallet(request: Request):
     )
 
     return RedirectResponse(
-        f"/wallet?usr={user.id}&wal={wallet.id}",
+        f"/wallet?usr={user.id}&wal={wallet.id}",  # type: ignore
         status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
+
+
+@core_html_routes.get("/service-worker.js", response_class=FileResponse)
+async def service_worker():
+    return FileResponse("lnbits/core/static/js/service-worker.js")
 
 
 @core_html_routes.get("/manifest/{usr}.webmanifest")
@@ -258,21 +284,23 @@ async def manifest(usr: str):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
     return {
-        "short_name": "LNbits",
-        "name": "LNbits Wallet",
+        "short_name": LNBITS_SITE_TITLE,
+        "name": LNBITS_SITE_TITLE + " Wallet",
         "icons": [
             {
-                "src": "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
+                "src": LNBITS_CUSTOM_LOGO
+                if LNBITS_CUSTOM_LOGO
+                else "https://cdn.jsdelivr.net/gh/lnbits/lnbits@0.3.0/docs/logos/lnbits.png",
                 "type": "image/png",
                 "sizes": "900x900",
             }
         ],
-        "start_url": "/wallet?usr=" + usr,
-        "background_color": "#3367D6",
-        "description": "Weather forecast information",
+        "start_url": "/wallet?usr=" + usr + "&wal=" + user.wallets[0].id,
+        "background_color": "#1F2234",
+        "description": "Bitcoin Lightning Wallet",
         "display": "standalone",
         "scope": "/",
-        "theme_color": "#3367D6",
+        "theme_color": "#1F2234",
         "shortcuts": [
             {
                 "name": wallet.name,

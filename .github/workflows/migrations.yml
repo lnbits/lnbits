@@ -1,0 +1,39 @@
+name: migrations
+
+on: [pull_request]
+
+jobs:
+  sqlite-to-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: lnbits
+          POSTGRES_PASSWORD: lnbits
+          POSTGRES_DB: migration
+        ports:
+          # maps tcp port 5432 on service container to the host
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    strategy:
+      matrix:
+        python-version: [3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: abatilo/actions-poetry@v2.1.3
+      - name: Install dependencies
+        run: |
+          poetry install
+          sudo apt install unzip
+      - name: Run migrations
+        run: |
+          make test-migration
