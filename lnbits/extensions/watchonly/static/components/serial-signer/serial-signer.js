@@ -92,7 +92,9 @@ async function serialSigner(path) {
           )
 
           this.writer = textEncoder.writable.getWriter()
-          this.hwwDhExchange()
+
+          this.hwwPing()
+
           return true
         } catch (error) {
           this.selectedPort = null
@@ -208,6 +210,9 @@ async function serialSigner(path) {
         this.logPublicCommandsResponse(command, commandData)
 
         switch (command) {
+          case COMMAND_PING:
+            this.handlePingResponse(commandData)
+            break
           case COMMAND_SIGN_PSBT:
             this.handleSignResponse(commandData)
             break
@@ -261,6 +266,43 @@ async function serialSigner(path) {
         this.receivedData += value + '\n'
         const textArea = document.getElementById('serial-port-console')
         if (textArea) textArea.scrollTop = textArea.scrollHeight
+      },
+      hwwPing: async function () {
+        try {
+          await this.sendCommandClearText(COMMAND_PING, [window.location.host])
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to ping Hardware Wallet!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+      handlePingResponse: function (res = '') {
+        console.log('### handlePingResponse', res)
+        const [status, deviceId] = res.split(' ')
+        this.deviceId = deviceId
+
+        if (!this.deviceId) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Missing device ID for Hardware Wallet',
+            timeout: 10000
+          })
+          return
+        }
+
+        const device = this.getPairedDevice(deviceId)
+
+        if (device) {
+          this.sharedSecret = nobleSecp256k1.utils.hexToBytes(device.sharedSecretHex)
+          this.hwwCheckSecureConnection()
+        } else {
+          this.hwwDhExchange()
+        }
+
+   
       },
       hwwShowPasswordDialog: async function () {
         try {
@@ -471,6 +513,37 @@ async function serialSigner(path) {
           timeout: 10000
         })
       },
+      hwwCheckSecureConnection: async function () {
+        const testString = 'lnbits'
+        const iv = window.crypto.getRandomValues(new Uint8Array(16))
+        const encrypted = await this.encryptMessage(
+          this.sharedSecret,
+          iv,
+          testString
+        )
+
+        const encryptedHex = nobleSecp256k1.utils.bytesToHex(encrypted)
+        const encryptedIvHex = nobleSecp256k1.utils.bytesToHex(iv)
+        try {
+          await this.writer.write(
+            COMMAND_CHECK_SECURE_CONNECTION +
+              ' ' +
+              encryptedHex +
+              encryptedIvHex +
+              '\n'
+          )
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to check secure connection!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+      handleCheckSecureConnectionResponse: async function(res = '') {
+        console.log('### handleCheckSecureConnectionResponse', res)
+      },
       hwwDhExchange: async function () {
         try {
           this.decryptionKey = nobleSecp256k1.utils.randomPrivateKey()
@@ -495,6 +568,51 @@ async function serialSigner(path) {
             timeout: 10000
           })
         }
+      },
+      handleDhExchangeResponse: async function (res = '') {
+        console.log('### handleDhExchangeResponse', res)
+        const [statusCode, data] = res.trim().split(' ')
+        let pubKeyHex, errorMessage, captionMessage
+        switch (statusCode) {
+          case '0':
+            pubKeyHex = data
+            if (!data) errorMessage = 'Failed to exchange DH secret!'
+            break
+          case '1':
+            errorMessage =
+              'Secure connection can only be established in the first 60 seconds after start-up!'
+            captionMessage = 'Restart and try again'
+            break
+
+          default:
+            errorMessage = 'Unexpected error code'
+            break
+        }
+
+        if (errorMessage) {
+          this.$q.notify({
+            type: 'warning',
+            message: errorMessage,
+            caption: captionMessage || '',
+            timeout: 10000
+          })
+
+          return
+        }
+        const hwwPublicKey = nobleSecp256k1.Point.fromHex('04' + pubKeyHex)
+
+        this.sharedSecret = nobleSecp256k1
+          .getSharedSecret(this.decryptionKey, hwwPublicKey)
+          .slice(1, 33)
+
+        // window.localStorage.setItem('sharedSecret', nobleSecp256k1.utils.bytesToHex(this.sharedSecret))
+        this.addPairedDevice(this.deviceId, nobleSecp256k1.utils.bytesToHex(this.sharedSecret))
+
+        this.$q.notify({
+          type: 'positive',
+          message: 'Secure session created!',
+          timeout: 5000
+        })
       },
       hwwHelp: async function () {
         try {
@@ -575,47 +693,7 @@ async function serialSigner(path) {
         const fingerprint = args[2].trim()
         this.xpubResolve({xpub, fingerprint})
       },
-      handleDhExchangeResponse: async function (res = '') {
-        console.log('### handleDhExchangeResponse', res)
-        const [statusCode, data] = res.trim().split(' ')
-        let pubKeyHex, errorMessage, captionMessage
-        switch (statusCode) {
-          case '0':
-            pubKeyHex = data
-            if(!data) errorMessage = 'Failed to exchange DH secret!'
-            break
-          case '1':
-            errorMessage = 'Secure connection can only be established in the first 60 seconds after start-up!'
-            captionMessage = 'Restart and try again'
-            break
-
-          default:
-            errorMessage = 'Unexpected error code'
-            break
-        }
-
-        if (errorMessage) {
-          this.$q.notify({
-            type: 'warning',
-            message: errorMessage,
-            caption: captionMessage || '',
-            timeout: 10000
-          })
-
-          return
-        }
-        const hwwPublicKey = nobleSecp256k1.Point.fromHex('04' + pubKeyHex)
-
-        this.sharedSecret = nobleSecp256k1
-          .getSharedSecret(this.decryptionKey, hwwPublicKey)
-          .slice(1, 33)
-
-        this.$q.notify({
-          type: 'positive',
-          message: 'Secure session created!',
-          timeout: 5000
-        })
-      },
+  
       hwwShowSeed: async function () {
         try {
           this.hww.showSeedDialog = true
@@ -673,7 +751,6 @@ async function serialSigner(path) {
       },
 
       sendCommandSecure: async function (command, attrs = []) {
-        console.log('### sendCommandSecure')
         const message = [command].concat(attrs).join(' ')
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
         const encrypted = await this.encryptMessage(
@@ -684,8 +761,11 @@ async function serialSigner(path) {
 
         const encryptedHex = nobleSecp256k1.utils.bytesToHex(encrypted)
         const encryptedIvHex = nobleSecp256k1.utils.bytesToHex(iv)
-        console.log('### encryptedIvHex', encryptedIvHex)
         await this.writer.write(encryptedHex + encryptedIvHex + '\n')
+      },
+      sendCommandClearText: async function (command, attrs = []) {
+        const message = [command].concat(attrs).join(' ')
+        await this.writer.write(message + '\n')
       },
       extractCommand: async function (value) {
         const command = value.split(' ')[0]
@@ -694,7 +774,8 @@ async function serialSigner(path) {
         if (
           command === COMMAND_DH_EXCHANGE ||
           command === COMMAND_LOG ||
-          command === COMMAND_PASSWORD_CLEAR
+          command === COMMAND_PASSWORD_CLEAR ||
+          command === COMMAND_PING
         )
           return {command, commandData}
 
@@ -753,10 +834,33 @@ async function serialSigner(path) {
         const aesCbc = new aesjs.ModeOfOperation.cbc(key, iv)
         const decryptedBytes = aesCbc.decrypt(encryptedBytes)
         return decryptedBytes
+      },
+      getPairedDevices: function() {
+        console.log('### getPairedDevices', window.localStorage.getItem('lnbits-paired-devices'))
+        return  JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) || []
+      },
+      getPairedDevice: function(deviceId) {
+        const devices = this.getPairedDevices()
+        return devices.find(d => d.id === deviceId)
+      },
+      removePairedDevice: function(deviceId){
+        const devices = this.getPairedDevices()
+        const deviceIndex = devices.indexOf(d => d.id === deviceId)
+        if (deviceIndex !== -1) {
+          devices.splice(deviceIndex, 1)
+        }
+      },
+      addPairedDevice: function(deviceId, sharedSecretHex){
+        const devices = this.getPairedDevices()
+        devices.push({
+          id: deviceId,
+          sharedSecretHex: sharedSecretHex,
+          pairingDate: new Date().toISOString()
+        })
+        window.localStorage.setItem('lnbits-paired-devices', JSON.stringify(devices))
       }
     },
     created: async function () {
-      console.log('### nobleSecp256k1.utils', nobleSecp256k1.utils)
     }
   })
 }
