@@ -426,14 +426,15 @@ async function serialSigner(path) {
         }
       },
       handleLogoutResponse: function (res = '') {
-        this.hww.authenticated = !(res.trim() === '1')
-        if (this.hww.authenticated) {
+        const authenticated = !(res.trim() === '1')
+        if (this.hww.authenticated && !authenticated) {
           this.$q.notify({
-            type: 'warning',
-            message: 'Failed to logout from Hardware Wallet',
+            type: 'positive',
+            message: 'Logged Out',
             timeout: 10000
           })
         }
+        this.hww.authenticated = authenticated
       },
       hwwSendPsbt: async function (psbtBase64, tx) {
         try {
@@ -523,13 +524,12 @@ async function serialSigner(path) {
         })
       },
       hwwCheckPairing: async function () {
-        const testString = 'lnbits'
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
         console.log('### this.sharedSecret', this.sharedSecret)
         const encrypted = await this.encryptMessage(
           this.sharedSecret,
           iv,
-          testString.length + ' ' + testString
+          PAIRING_CONTROL_TEXT.length + ' ' + PAIRING_CONTROL_TEXT
         )
 
         const encryptedHex = nobleSecp256k1.utils.bytesToHex(encrypted)
@@ -548,7 +548,31 @@ async function serialSigner(path) {
         }
       },
       handleCheckPairingResponse: async function (res = '') {
-        console.log('### handleCheckPairingResponse', res)
+        const [statusCode, encryptedMessage] = res.split(' ')
+        switch (statusCode) {
+          case '0':
+            const controlText = await this.decryptData(encryptedMessage)
+            if (controlText == PAIRING_CONTROL_TEXT) {
+              this.$q.notify({
+                type: 'positive',
+                message: 'Re-paired with success!',
+                timeout: 10000
+              })
+            } else {
+              this.$q.notify({
+                type: 'warning',
+                message: 'Re-pairing failed!',
+                caption: 'Remove (forget) device and try again!',
+                timeout: 10000
+              })
+            }
+            break
+          default:
+            // noting to do here yet
+            break
+        }
+
+        
       },
       hwwPair: async function () {
         try {

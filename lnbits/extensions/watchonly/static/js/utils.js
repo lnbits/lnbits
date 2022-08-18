@@ -17,6 +17,7 @@ const COMMAND_LOG = '/log'
 const COMMAND_CHECK_PAIRING = '/check-pairing'
 
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
+const PAIRING_CONTROL_TEXT = 'lnbits'
 
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''
