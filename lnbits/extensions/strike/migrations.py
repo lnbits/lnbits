@@ -10,7 +10,7 @@ async def m001_initial(db):
             lnbits_wallet TEXT,
             handle TEXT,
             description TEXT,
-            api_key TEXT DEFAULT NULL,
+            api_key TEXT,
             currency TEXT,
             timestamp TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
