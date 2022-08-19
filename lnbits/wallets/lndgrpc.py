@@ -269,8 +269,8 @@ class LndWallet(Wallet):
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         while True:
-            request = ln.InvoiceSubscription()
             try:
+                request = ln.InvoiceSubscription()
                 async for i in self.rpc.SubscribeInvoices(request):
                     if not i.settled:
                         continue

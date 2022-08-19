@@ -196,10 +196,9 @@ class LndRestWallet(Wallet):
         return PaymentStatus(None)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
-        url = self.endpoint + "/v1/invoices/subscribe"
-
         while True:
             try:
+                url = self.endpoint + "/v1/invoices/subscribe"
                 async with httpx.AsyncClient(
                     timeout=None, headers=self.auth, verify=self.cert
                 ) as client:
