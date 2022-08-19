@@ -94,7 +94,7 @@ async def check_pending_payments():
             incoming=incoming,
             exclude_uncheckable=True,
         ):
-            await payment.check_pending()
+            await payment.check_status()
 
         # we delete expired invoices once upon the first pending check
         if incoming:
