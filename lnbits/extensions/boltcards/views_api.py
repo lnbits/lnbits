@@ -107,6 +107,9 @@ async def api_hits(
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan")
 async def api_scane(p, c, request: Request):
+    # some wallets send everything as lower case, no bueno
+    p = p.upper()
+    c = c.upper()
     card = None
     counter = b""
 
