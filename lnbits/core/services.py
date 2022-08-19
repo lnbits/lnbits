@@ -201,9 +201,14 @@ async def pay_invoice(
             logger.error(
                 f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
             )
+        if payment.checking_id is None:
+            # something went wrong, we will leave the temporary payment in the db
+            # and make sure we don't update or delete it
+            raise PaymentFailure("backend did not return a checking_id.")
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.checking_id:
+        if payment.checking_id and payment.ok != False:
+            # payment.ok can be True (paid) or None (pending)!
             logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
                 await update_payment_details(
@@ -216,16 +221,20 @@ async def pay_invoice(
                 )
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.ok == False:
+            # payment failed
             logger.warning(f"backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
             raise PaymentFailure(
                 payment.error_message
-                or "Payment failed, but backend didn't give us an error message."
+                or "payment failed, but backend didn't give us an error message"
             )
         else:
-            logger.warning(f"payment still in flight: {temp_id}")
+            logger.error(
+                f"didn't receive checking_id from backend or payment failure, payment will be stuck in database: {temp_id}"
+            )
+
     return invoice.payment_hash
 
 
