@@ -141,19 +141,25 @@ class Payment(BaseModel):
         if self.is_uncheckable:
             return
 
+        logger.debug(
+            f"Checking {'outgoing' if self.is_out else 'incoming'} pending payment {self.checking_id}"
+        )
+
         if self.is_out:
             status = await WALLET.get_payment_status(self.checking_id)
         else:
             status = await WALLET.get_invoice_status(self.checking_id)
 
+        logger.debug(f"Status: {status}")
+
         if self.is_out and status.failed:
             logger.info(
-                f" - deleting outgoing failed payment {self.checking_id}: {status}"
+                f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )
             await self.delete()
         elif not status.pending:
             logger.info(
-                f" - marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
+                f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
             )
             await self.set_pending(status.pending)
 

@@ -37,6 +37,22 @@ or
 
 - `LND_REST_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
 
+### LND (gRPC)
+
+Using this wallet requires the installation of the `grpcio` and `protobuf` Python packages.
+
+- `LNBITS_BACKEND_WALLET_CLASS`: **LndWallet**
+- `LND_GRPC_ENDPOINT`: ip_address
+- `LND_GRPC_PORT`: port
+- `LND_GRPC_CERT`: /file/path/tls.cert
+- `LND_GRPC_MACAROON`: /file/path/admin.macaroon or Bech64/Hex
+
+You can also use an AES-encrypted macaroon (more info) instead by using
+
+- `LND_GRPC_MACAROON_ENCRYPTED`: eNcRyPtEdMaCaRoOn
+
+To encrypt your macaroon, run `./venv/bin/python lnbits/wallets/macaroon/macaroon.py`.
+
 ### LNbits
 
 - `LNBITS_BACKEND_WALLET_CLASS`: **LNbitsWallet**

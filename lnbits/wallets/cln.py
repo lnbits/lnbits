@@ -82,21 +82,26 @@ class CoreLightningWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
-        msat = amount * 1000
+        msat: int = int(amount * 1000)
         try:
-            if description_hash and not self.supports_description_hash:
-                raise Unsupported("description_hash")
+            if description_hash and not unhashed_description:
+                raise Unsupported(
+                    "'description_hash' unsupported by CLN, provide 'unhashed_description'"
+                )
+            if unhashed_description and not self.supports_description_hash:
+                raise Unsupported("unhashed_description")
             r = self.ln.invoice(
                 msatoshi=msat,
                 label=label,
-                description=description_hash.decode("utf-8")
-                if description_hash
+                description=unhashed_description.decode("utf-8")
+                if unhashed_description
                 else memo,
                 exposeprivatechannels=True,
                 deschashonly=True
-                if description_hash
+                if unhashed_description
                 else False,  # we can't pass None here
             )
 

@@ -123,7 +123,6 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwConfigAndConnect" class="q-gutter-md">
         <span>Enter Config</span>
-
         <q-input
           filled
           dense
@@ -131,6 +130,7 @@
           label="Name (optional)"
         ></q-input>
         <q-separator></q-separator>
+
         <serial-port-config
           ref="serialPortConfig"
           :config="hww.config"

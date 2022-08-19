@@ -13,6 +13,7 @@
           :network="config.network"
           :sats-denominated="config.sats_denominated"
           @signed:psbt="updateSignedPsbt"
+          class="q-pr-lg float-right"
         ></serial-signer>
       </template>
     </wallet-config>
@@ -33,7 +34,7 @@
     {% raw %}
     <q-card>
       <div class="row q-pt-sm q-pb-sm items-center no-wrap q-mb-md">
-        <div class="col-3 q-pl-md">
+        <div class="col-md-3 col-sm-5 q-pl-md">
           <q-btn
             unelevated
             class="btn-full"
@@ -43,14 +44,14 @@
             >Scan Blockchain</q-btn
           >
         </div>
-        <div class="col-6">
+        <div class="col-md-6 col-sm-2 q-pl-md">
           <q-spinner
             v-if="scan.scanning == true"
             color="primary"
             size="2.55em"
           ></q-spinner>
         </div>
-        <div class="col-3 q-pr-md">
+        <div class="col-md-3 col-sm-5 q-pr-md">
           <q-btn
             v-if="!showPayment"
             unelevated
@@ -170,14 +171,25 @@
         ></qrcode>
       </q-responsive>
       <p v-if="currentAddress">
+        <q-btn
+          flat
+          dense
+          size="ms"
+          icon="content_copy"
+          @click="copyText(props.row.address)"
+          class="q-ml-sm"
+        ></q-btn>
+
         {{ currentAddress.address }}
+
         <q-btn
           flat
           dense
           size="ms"
           icon="launch"
           type="a"
-          :href="mempoolHostname + '/address/' + currentAddress.address"
+          :href="'https://' + mempoolHostname + '/address/' + currentAddress.address"
+
           target="_blank"
         ></q-btn>
       </p>
@@ -239,5 +251,6 @@
 <script src="{{ url_for('watchonly_static', path='components/serial-port-config/serial-port-config.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/crypto/noble-secp256k1.js') }}"></script>
 <script src="{{ url_for('watchonly_static', path='js/crypto/aes.js') }}"></script>
+
 <script src="{{ url_for('watchonly_static', path='js/index.js') }}"></script>
 {% endblock %}
