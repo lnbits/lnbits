@@ -33,14 +33,11 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def display(request: Request, stall_id):
     stall = await get_diagonalley_stall(stall_id)
     products = await get_diagonalley_products(stall_id)
-    wallet = await get_wallet(stall.wallet)
     zones = []
     for id in stall.shippingzones.split(","):
         z = await get_diagonalley_zone(id)
         z = z.dict()
         zones.append({"label": z["countries"], "cost": z["cost"], "value": z["id"]})
-
-    logger.debug(f"ZONES {zones}")
 
     if not stall:
         raise HTTPException(
@@ -57,7 +54,6 @@ async def display(request: Request, stall_id):
             "request": request,
             "stall": stall,
             "products": [product.dict() for product in products],
-            "inkey": wallet.inkey,
         },
     )
 

@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user
 from lnbits.core.services import create_invoice
+from lnbits.core.views.api import api_payment
 from lnbits.decorators import (
     WalletTypeInfo,
     get_key_type,
@@ -33,6 +34,7 @@ from .crud import (
     get_diagonalley_markets,
     get_diagonalley_order,
     get_diagonalley_order_details,
+    get_diagonalley_order_invoiceid,
     get_diagonalley_orders,
     get_diagonalley_product,
     get_diagonalley_products,
@@ -269,6 +271,21 @@ async def api_diagonalley_order_create(data: createOrder):
     # order = await create_diagonalley_order(wallet_id=wallet.wallet.id, data=data)
     # return order.dict()
 
+
+@diagonalley_ext.get("/api/v1/orders/payments/{payment_hash}")
+async def api_diagonalley_check_payment(payment_hash: str):
+    order = await get_diagonalley_order_invoiceid(payment_hash)
+    if not order:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Order does not exist."
+        )
+    try:
+        status = await api_payment(payment_hash)
+
+    except Exception as exc:
+        logger.error(exc)
+        return {"paid": False}
+    return status
 
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")
 async def api_diagonalley_order_delete(

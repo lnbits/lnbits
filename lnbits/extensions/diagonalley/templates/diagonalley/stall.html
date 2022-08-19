@@ -220,25 +220,41 @@
   <q-dialog
     v-model="qrCodeDialog.show"
     position="top"
-    @hide="qrCodeDialog.show = false"
+    @hide="closeQrCodeDialog"
   >
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
-      <a :href="'lightning:' + qrCodeDialog.data.payment_request">
-        <q-responsive :ratio="1" class="q-mx-xs">
-          <qrcode
-            :value="qrCodeDialog.data.payment_request"
-            :options="{width: 400}"
-            class="rounded-borders"
-          ></qrcode>
-        </q-responsive>
-      </a>
-      <br />
-      <q-btn
-        outline
-        color="grey"
-        @click="copyText('lightning:' + qrCodeDialog.data.payment_request, 'Invoice copied to clipboard!')"
-        >Copy Invoice</q-btn
-      >
+    <q-card
+      v-if="!qrCodeDialog.data.payment_request"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    >
+    </q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="'lightning:' + qrCodeDialog.data.payment_request">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="qrCodeDialog.data.payment_request"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn
+          outline
+          color="grey"
+          @click="copyText(qrCodeDialog.data.payment_request)"
+          >Copy invoice</q-btn
+        >
+        <q-btn
+          @click="closeQrCodeDialog"
+          v-close-popup
+          flat
+          color="grey"
+          class="q-ml-auto"
+          >Close</q-btn
+        >
+      </div>
     </q-card>
   </q-dialog>
 </div>
@@ -252,9 +268,6 @@
       return {
         stall: null,
         products: [],
-        wallet: {
-          inkey: null
-        },
         searchText: null,
         cart: {
           total: 0,
@@ -271,8 +284,7 @@
             payment_request: null
           },
           show: false
-        },
-        cancelListener: () => {}
+        }
       }
     },
     computed: {
@@ -297,6 +309,10 @@
       }
     },
     methods: {
+      closeQrCodeDialog() {
+        this.qrCodeDialog.dismissMsg()
+        this.qrCodeDialog.show = false
+      },
       resetCart() {
         this.cart = {
           total: 0,
@@ -341,16 +357,10 @@
             return {product_id: p[0], quantity: p[1].quantity}
           })
         }
-
         LNbits.api
-          .request(
-            'POST',
-            '/diagonalley/api/v1/orders',
-            this.wallet.inkey,
-            data
-          )
+          .request('POST', '/diagonalley/api/v1/orders', null, data)
           .then(res => {
-            this.checkoutDialog = {show: false}
+            this.checkoutDialog = {show: false, data: {}}
 
             return res.data
           })
@@ -358,48 +368,46 @@
             this.qrCodeDialog.data = data
             this.qrCodeDialog.show = true
 
-            qrCodeDialog.dismissMsg = this.$q.notify({
+            this.qrCodeDialog.dismissMsg = this.$q.notify({
               timeout: 0,
               message: 'Waiting for payment...'
             })
+            return data
           })
-          .catch(error => LNbits.utils.notifyApiError(error))
-
-        return
-      },
-      startPaymentNotifier() {
-        this.cancelListener()
-
-        this.cancelListener = LNbits.events.onInvoicePaid(
-          this.wallet,
-          payment => {
-            this.qrCodeDialog = {
-              show: false,
-              data: {
-                payment_request: null
-              }
-            }
-
-            this.checkoutDialog = {data: {}}
-            this.resetCart()
-
-            this.$q.notify({
-              type: 'positive',
-              message: 'Sent, thank you!',
-              icon: 'thumb_up'
-            })
-          }
-        )
+          .then(data => {
+            this.qrCodeDialog.paymentChecker = setInterval(() => {
+              LNbits.api
+                .request(
+                  'GET',
+                  `/diagonalley/api/v1/orders/payments/${this.qrCodeDialog.data.payment_hash}`
+                )
+                .then(res => {
+                  if (res.data.paid) {
+                    this.$q.notify({
+                      type: 'positive',
+                      message: 'Sats received, thanks!',
+                      icon: 'thumb_up'
+                    })
+                    clearInterval(this.qrCodeDialog.paymentChecker)
+                    this.resetCart()
+                    this.closeQrCodeDialog()
+                  }
+                })
+                .catch(error => {
+                  console.error(error)
+                  LNbits.utils.notifyApiError(error)
+                })
+            }, 3000)
+          })
+          .catch(error => {
+            console.error(error)
+            LNbits.utils.notifyApiError(error)
+          })
       }
     },
     created() {
       this.stall = JSON.parse('{{ stall | tojson }}')
       this.products = JSON.parse('{{ products | tojson }}')
-      this.wallet.inkey = '{{ inkey }}'
-
-      this.startPaymentNotifier()
-      //let stall_ids = new Set()
-      //this.products.map(p => stall_ids.add(p.stall))
 
       console.log(this.stall, this.products)
     }
@@ -410,13 +418,3 @@
   }
 </style>
 {% endblock %}
-
-<!-- <pre id="json"></pre>
-
-<script>
-  document.getElementById('json').innerHTML = JSON.stringify(
-    '{{ stall }}',
-    null,
-    2
-  )
-</script> -->

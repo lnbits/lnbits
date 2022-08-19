@@ -275,6 +275,21 @@ async def get_diagonalley_order(order_id: str) -> Optional[Orders]:
     )
     return Orders(**row) if row else None
 
+async def get_diagonalley_order_invoiceid(invoice_id: str) -> Optional[Orders]:
+    row = await db.fetchone(
+        "SELECT * FROM diagonalley.orders WHERE invoiceid = ?", (invoice_id,)
+    )
+    return Orders(**row) if row else None
+
+async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
+    await db.execute(
+            """
+            UPDATE diagonalley.orders
+            SET paid = true
+            WHERE invoiceid = ?
+            """,
+            (payment_hash,),
+        )
 
 async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
     if isinstance(wallet_ids, str):
