@@ -649,28 +649,45 @@ new Vue({
     },
     createEpisode(wallet, data) {
       podcast = data.media_file
-      _.omit(data, 'media_file')
+      data.media_file = String(data.media_file.name)
       LNbits.api
         .request('POST', '/podcast/api/v1/eps', wallet.adminkey, data)
         .then(response => {
-          LNbits.api
-            .request('POST', '/podcast/api/v1/files/', {"file": podcast, "episodename": response.id})
-            .then(response => {
-              this.getEpisodes()
-              this.formDialogEpisode.show = false
+          try{
+            LNbits.api
+              .request('POST', '/podcast/api/v1/files/', {"file": podcast, "episodename": response.id})
+              .then(response => {
+                this.getEpisodes()
+                this.formDialogEpisode.show = false
+                this.resetFormDataEpisode()
+              })
+              .catch(err => {
+                LNbits.utils.notifyApiError(err)
+            })
+          }
+          catch{
+            LNbits.api
+                .request(
+                  'DELETE',
+                  '/podcast/api/v1/eps/' + response.id,
+                  wallet.adminkey
+                )
+                .then(response => {
+                  this.Podcasts = _.reject(this.Podcasts, obj => obj.id === response.id)
+                  this.resetFormDataEpisode()
+                })
+                .catch(err => {
+                  LNbits.utils.notifyApiError(err)
+              })
               this.resetFormDataEpisode()
-          })
-          .catch(err => {
-            this.deleteEpisode(response.id)
-            LNbits.utils.notifyApiError(err)
-          })
+          }
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
         })
     },
-    deleteEpisode(podId) {
-      var pod = _.findWhere(this.Podcasts, {id: podId})
+    deleteEpisode(epsId) {
+      var pod = _.findWhere(this.Podcasts, {id: epsId})
 
       LNbits.utils
         .confirmDialog('Are you sure you want to delete this Podcast pod?')
@@ -678,11 +695,11 @@ new Vue({
           LNbits.api
             .request(
               'DELETE',
-              '/podcast/api/v1/eps/' + podId,
+              '/podcast/api/v1/eps/' + epsId,
               _.findWhere(this.g.user.wallets, {id: pod.wallet}).adminkey
             )
             .then(response => {
-              this.Podcasts = _.reject(this.Podcasts, obj => obj.id === podId)
+              this.Podcasts = _.reject(this.Podcasts, obj => obj.id === epsId)
             })
             .catch(err => {
               LNbits.utils.notifyApiError(err)

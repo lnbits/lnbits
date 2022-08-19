@@ -100,7 +100,7 @@ async def create_Episode(data: CreateEpisodeData, wallet_id: str) -> Episode:
     result = await (method)(
         f"""
         INSERT INTO podcast.Episode (
-            eps_id,
+            id,
             podcast,
             episode_title,
             description,
@@ -130,7 +130,7 @@ async def create_Episode(data: CreateEpisodeData, wallet_id: str) -> Episode:
         ),
     )
 
-    eps = await get_Episode(pod_id)
+    eps = await get_Episode(eps_id)
     assert eps, "Newly created pod couldn't be retrieved"
     return eps
 
@@ -147,7 +147,6 @@ async def get_Episodes(wallet_ids: Union[str, List[str]]) -> List[Episode]:
     rows = await db.fetchall(
         f"""
         SELECT * FROM podcast.Episode WHERE wallet IN ({q})
-        ORDER BY Id
         """,
         (*wallet_ids,),
     )

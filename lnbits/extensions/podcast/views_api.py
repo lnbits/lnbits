@@ -159,8 +159,7 @@ async def api_eps_create_or_update(
     eps_id=None,
     wallet: WalletTypeInfo = Depends(get_key_type),
 ):
-    pod = get_Podcast(data.podcast)
-    pod.wallet
+    pod = await get_Podcast(data.podcast)
     wallet = await get_wallet(pod.wallet)
     if not wallet:
         raise HTTPException(
@@ -181,7 +180,7 @@ async def api_eps_create_or_update(
 
         eps = await update_Episode(**data.dict(), eps_id=eps_id)
     else:
-        eps = await create_Episode(data, wallet_id=wallet.wallet.id)
+        eps = await create_Episode(data, wallet_id=wallet.id)
     return {**eps.dict()}
 
 
