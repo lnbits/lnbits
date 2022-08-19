@@ -112,7 +112,7 @@ async function serialSigner(path) {
 
           this.writer = textEncoder.writable.getWriter()
 
-          this.hwwPing()
+          await this.hwwPing()
 
           return true
         } catch (error) {
