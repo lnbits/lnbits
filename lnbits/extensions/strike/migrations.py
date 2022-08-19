@@ -10,7 +10,6 @@ async def m001_initial(db):
             lnbits_wallet TEXT,
             handle TEXT,
             description TEXT,
-            api_key TEXT,
             currency TEXT,
             timestamp TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now
@@ -47,4 +46,12 @@ async def m002_add_fee_column(db):
     """
     await db.execute(
         "ALTER TABLE strike.forwards ADD COLUMN msats_fee INTEGER DEFAULT 0;"
+    )
+
+async def m003_add_api_key_column(db):
+    """
+    Support for API keys
+    """
+    await db.execute(
+        "ALTER TABLE strike.configurations ADD COLUMN api_key TEXT;"
     )
