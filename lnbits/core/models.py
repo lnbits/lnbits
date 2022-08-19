@@ -151,7 +151,7 @@ class Payment(BaseModel):
 
         await update_payment_status(self.checking_id, pending)
 
-    async def check_pending(self) -> PaymentStatus:
+    async def check_status(self) -> PaymentStatus:
         if self.is_uncheckable:
             return PaymentStatus(None)
 
@@ -167,16 +167,13 @@ class Payment(BaseModel):
         logger.debug(f"Status: {status}")
 
         if self.is_out and status.failed:
-            logger.info(
+            logger.warning(
                 f"Deleting outgoing failed payment {self.checking_id}: {status}"
             )
             await self.delete()
         elif not status.pending:
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
-            )
-            logger.debug(
-                f"update_status (overwrite payment with status)\npayment:{self}\nstatus:{status}"
             )
             await self.update_status(status)
         return status

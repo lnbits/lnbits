@@ -216,7 +216,7 @@ async def pay_invoice(
                 )
                 logger.debug(f"payment successful {payment.checking_id}")
         elif payment.ok == False:
-            logger.debug(f"backend sent payment failure")
+            logger.warning(f"backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
@@ -370,7 +370,7 @@ async def check_transaction_status(
         # note: before, we still checked the status of the payment again
         return PaymentStatus(True)
 
-    status: PaymentStatus = await payment.check_pending()
+    status: PaymentStatus = await payment.check_status()
     return status
 
 
