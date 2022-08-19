@@ -120,7 +120,7 @@ class EclairWallet(Wallet):
 
         data = r.json()
 
-        if data["type"] == "payment-failed" or data["type"] != "payment-received":
+        if data["type"] == "payment-failed":
             return PaymentResponse(False, None, 0, None, "payment failed")
 
         checking_id = data["paymentHash"]
