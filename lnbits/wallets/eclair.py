@@ -120,11 +120,13 @@ class EclairWallet(Wallet):
 
         data = r.json()
 
-        if data["type"] == "payment-failed":
+        if data["type"] == "payment-failed" or data["type"] != "payment-received":
             return PaymentResponse(False, None, 0, None, "payment failed")
 
         checking_id = data["paymentHash"]
         preimage = data["paymentPreimage"]
+
+        # We do all this again to get the fee:
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
@@ -141,9 +143,7 @@ class EclairWallet(Wallet):
             except:
                 error_message = r.text
                 pass
-            return PaymentResponse(
-                None, checking_id, 0, preimage, error_message
-            )  ## ?? is this ok ??
+            return PaymentResponse(None, checking_id, 0, preimage, error_message)
 
         statuses = {
             "sent": True,
@@ -151,13 +151,13 @@ class EclairWallet(Wallet):
             "pending": None,
         }
 
-        data = r.json()
-        if data[-1]["status"]["type"] == "sent":
-            fee_msat = -data[-1]["status"]["feesPaid"]
-            preimage = data[-1]["status"]["paymentPreimage"]
+        data = r.json()[-1]
+        if data["status"]["type"] == "sent":
+            fee_msat = -data["status"]["feesPaid"]
+            preimage = data["status"]["paymentPreimage"]
 
         return PaymentResponse(
-            statuses[data[-1]["status"]["type"]], checking_id, fee_msat, preimage, None
+            statuses[data["status"]["type"]], checking_id, fee_msat, preimage, None
         )
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
@@ -169,59 +169,61 @@ class EclairWallet(Wallet):
             )
         data = r.json()
 
-        if r.is_error or "error" in data:
+        if r.is_error or "error" in data or data.get("status") is None:
             return PaymentStatus(None)
 
-        if data["status"]["type"] != "received":
-            return PaymentStatus(False)
-
-        return PaymentStatus(True)
+        statuses = {
+            "sent": True,
+            "failed": False,
+            "pending": None,
+        }
+        return PaymentStatus(statuses.get(data["status"]["type"]))
 
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                url=f"{self.url}/getsentinfo",
+                f"{self.url}/getsentinfo",
                 headers=self.auth,
                 data={"paymentHash": checking_id},
+                timeout=40,
             )
-
-        data = r.json()[0]
 
         if r.is_error:
             return PaymentStatus(None)
 
+        data = r.json()[-1]
+
+        if r.is_error or "error" in data or data.get("status") is None:
+            return PaymentStatus(None)
+
+        fee_msat, preimage = None, None
         if data["status"]["type"] == "sent":
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]
-            return PaymentStatus(True, fee_msat, preimage)
-        elif data["status"]["type"] == "failed":
-            return PaymentStatus(False)
-        else:
-            # equal to data["status"]["type"] == "pending":
-            return PaymentStatus(None)
+
+        statuses = {
+            "sent": True,
+            "failed": False,
+            "pending": None,
+        }
+        return PaymentStatus(statuses.get(data["status"]["type"]), fee_msat, preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
+        while True:
+            try:
+                async with connect(
+                    self.ws_url,
+                    extra_headers=[("Authorization", self.auth["Authorization"])],
+                ) as ws:
+                    while True:
+                        message = await ws.recv()
+                        message = json.loads(message)
 
-        try:
-            async with connect(
-                self.ws_url,
-                extra_headers=[("Authorization", self.auth["Authorization"])],
-            ) as ws:
-                while True:
-                    message = await ws.recv()
-                    message = json.loads(message)
+                        if message and message["type"] == "payment-received":
+                            yield message["paymentHash"]
 
-                    if message and message["type"] == "payment-received":
-                        yield message["paymentHash"]
-
-        except (
-            OSError,
-            ConnectionClosedOK,
-            ConnectionClosedError,
-            ConnectionClosed,
-        ) as ose:
-            logger.error("OSE", ose)
-            pass
-
-            logger.error("lost connection to eclair's websocket, retrying in 5 seconds")
-            await asyncio.sleep(5)
+            except Exception as exc:
+                logger.error(
+                    f"lost connection to eclair invoices stream: '{exc}', retrying in 5 seconds"
+                )
+                await asyncio.sleep(5)
