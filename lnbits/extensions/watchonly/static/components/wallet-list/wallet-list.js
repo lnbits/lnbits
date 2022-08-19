@@ -255,8 +255,12 @@ async function walletList(path) {
       getXpubFromDevice: async function () {
         try {
           if (!this.serialSignerRef.isConnected()) {
-            const portOpen = await this.serialSignerRef.openSerialPort()
-            if (!portOpen) return
+            this.$q.notify({
+              type: 'warning',
+              message: 'Please connect to a hardware Device first!',
+              timeout: 10000
+            })
+            return
           }
           if (!this.serialSignerRef.isAuthenticated()) {
             await this.serialSignerRef.hwwShowPasswordDialog()

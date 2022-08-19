@@ -87,8 +87,12 @@ async function payment(path) {
         this.showChecking = true
         try {
           if (!this.serialSignerRef.isConnected()) {
-            const portOpen = await this.serialSignerRef.openSerialPort()
-            if (!portOpen) return
+            this.$q.notify({
+              type: 'warning',
+              message: 'Please connect to a Signing device first!',
+              timeout: 10000
+            })
+            return
           }
           if (!this.serialSignerRef.isAuthenticated()) {
             await this.serialSignerRef.hwwShowPasswordDialog()
