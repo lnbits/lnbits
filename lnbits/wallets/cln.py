@@ -110,11 +110,9 @@ class CoreLightningWallet(Wallet):
 
             return InvoiceResponse(True, r["payment_hash"], r["bolt11"], "")
         except RpcError as exc:
-            error_message = f"lightningd '{exc.method}' failed with '{exc.error}'."
-            logger.error("RPC error:", error_message)
+            error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
             return InvoiceResponse(False, None, None, error_message)
         except Exception as e:
-            logger.error("error:", e)
             return InvoiceResponse(False, None, None, str(e))
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
@@ -124,13 +122,19 @@ class CoreLightningWallet(Wallet):
         payload = {
             "bolt11": bolt11,
             "maxfeepercent": "{:.11}".format(fee_limit_percent),
-            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee under 5000 millisatoshi (which is default value of exemptfee)
+            "exemptfee": 0,  # so fee_limit_percent is applied even on payments with fee < 5000 millisatoshi (which is default value of exemptfee)
         }
         try:
             wrapped = async_wrap(_pay_invoice)
             r = await wrapped(self.ln, payload)
+        except RpcError as exc:
+            try:
+                error_message = exc.error["attempts"][-1]["fail_reason"]
+            except:
+                error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
+            return PaymentResponse(False, None, None, error_message)
         except Exception as exc:
-            return PaymentResponse(False, None, 0, None, str(exc))
+            return PaymentResponse(False, None, None, None, str(exc))
 
         fee_msat = -(r["msatoshi_sent"] - r["msatoshi"])
         return PaymentResponse(
