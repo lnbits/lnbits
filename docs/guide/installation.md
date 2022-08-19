@@ -95,6 +95,79 @@ mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
 
+## Option 5: Fly.io
+
+Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
+
+First, sign up for an account at (Fly.io)[https://fly.io] (no credit card required). 
+
+Then, install the Fly.io CLI onto your device (here)[https://fly.io/docs/getting-started/installing-flyctl/]
+
+Once installed, run these commands.
+
+```
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend
+fly auth login
+[complete login process]
+```
+
+Now, create a new file `fly.toml` and paste in the following. Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`.
+
+Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
+
+```
+app = "lnbits"
+kill_signal = "SIGINT"
+kill_timeout = 30
+
+[mounts]
+source="lnbits_data"
+destination="/data"
+
+[env]
+  HOST="127.0.0.1"
+  PORT=5000
+  LNBITS_FORCE_HTTPS=true
+  
+  ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
+
+[experimental]
+  allowed_public_ports = []
+  auto_rollback = true
+
+[[services]]
+  internal_port = 5000
+  protocol = "tcp"
+
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.http_checks]]
+    grace_period = "60s"
+```
+
+Next, create a volume to store the sqlite database for LNBits.
+
+```
+fly volumes create lnbits_data --size 1
+```
+
+You're ready to deploy! Run `fly launch` and follow the steps to finish deployment. You'll select a `region` (up to you, choose the same as you did for the storage volume previously created), `postgres` (choose no), `deploy` (choose yes).
+
+You can use `fly logs` to view the application logs, or `fly ssh console` to get a ssh shell in the running container.
+
 ### Troubleshooting
 
 Problems installing? These commands have helped us install LNbits.
