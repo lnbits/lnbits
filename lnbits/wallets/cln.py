@@ -132,7 +132,7 @@ class CoreLightningWallet(Wallet):
         except Exception as exc:
             return PaymentResponse(False, None, 0, None, str(exc))
 
-        fee_msat = r["msatoshi_sent"] - r["msatoshi"]
+        fee_msat = -(r["msatoshi_sent"] - r["msatoshi"])
         return PaymentResponse(
             True, r["payment_hash"], fee_msat, r["payment_preimage"], None
         )
@@ -144,10 +144,13 @@ class CoreLightningWallet(Wallet):
             return PaymentStatus(None)
         if not r["invoices"]:
             return PaymentStatus(None)
-        if r["invoices"][0]["payment_hash"] == checking_id:
-            if r["invoices"][0]["status"] == "paid":
+
+        invoice_resp = r["invoices"][-1]
+
+        if invoice_resp["payment_hash"] == checking_id:
+            if invoice_resp["status"] == "paid":
                 return PaymentStatus(True)
-            elif r["invoices"][0]["status"] == "unpaid":
+            elif invoice_resp["status"] == "unpaid":
                 return PaymentStatus(None)
         raise KeyError("supplied an invalid checking_id")
 
@@ -158,10 +161,15 @@ class CoreLightningWallet(Wallet):
             return PaymentStatus(None)
         if not r["pays"]:
             return PaymentStatus(None)
-        if r["pays"][0]["payment_hash"] == checking_id:
-            status = r["pays"][0]["status"]
+        payment_resp = r["pays"][-1]
+
+        if payment_resp["payment_hash"] == checking_id:
+            status = payment_resp["status"]
             if status == "complete":
-                return PaymentStatus(True)
+                fee_msat = -(
+                    payment_resp["amount_sent_msat"] - payment_resp["amount_msat"]
+                )
+                return PaymentStatus(True, fee_msat, payment_resp["preimage"])
             elif status == "failed":
                 return PaymentStatus(False)
             return PaymentStatus(None)
