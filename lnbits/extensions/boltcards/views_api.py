@@ -55,25 +55,30 @@ async def api_card_create_or_update(
     card_id: str = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    if(len(bytes.fromhex(data.uid)) != 7):
-        raise HTTPException(
+    try:
+        if len(bytes.fromhex(data.uid)) != 7:
+            raise HTTPException(
                 detail="Invalid bytes for card uid.", status_code=HTTPStatus.BAD_REQUEST
             )
 
-    if(len(bytes.fromhex(data.k0)) != 16):
-        raise HTTPException(
+        if len(bytes.fromhex(data.k0)) != 16:
+            raise HTTPException(
                 detail="Invalid bytes for k0.", status_code=HTTPStatus.BAD_REQUEST
             )
 
-    if(len(bytes.fromhex(data.k1)) != 16):
-        raise HTTPException(
+        if len(bytes.fromhex(data.k1)) != 16:
+            raise HTTPException(
                 detail="Invalid bytes for k1.", status_code=HTTPStatus.BAD_REQUEST
             )
 
-    if(len(bytes.fromhex(data.k2)) != 16):
-        raise HTTPException(
+        if len(bytes.fromhex(data.k2)) != 16:
+            raise HTTPException(
                 detail="Invalid bytes for k2.", status_code=HTTPStatus.BAD_REQUEST
             )
+    except:
+        raise HTTPException(
+            detail="Invalid byte data provided.", status_code=HTTPStatus.BAD_REQUEST
+        )
 
     if card_id:
         card = await get_card(card_id)
