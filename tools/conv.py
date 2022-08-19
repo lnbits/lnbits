@@ -151,6 +151,7 @@ def build_insert_query(schema, tableName, columns):
             VALUES ({values});
         """
 
+
 def to_column_type(columnType):
     if columnType == "TIMESTAMP":
         return "to_timestamp(%s)"

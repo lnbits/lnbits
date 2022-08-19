@@ -571,8 +571,6 @@ async function serialSigner(path) {
             // noting to do here yet
             break
         }
-
-        
       },
       hwwPair: async function () {
         try {
@@ -637,30 +635,36 @@ async function serialSigner(path) {
           .getSharedSecret(this.decryptionKey, hwwPublicKey)
           .slice(1, 33)
 
-        const sharedSecretHex = nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
-        const sharedSecredHash = await nobleSecp256k1.utils.sha256(asciiToUint8Array(sharedSecretHex))
-        const fingerprint = nobleSecp256k1.utils.bytesToHex(sharedSecredHash).substring(0, 5).toUpperCase()
+        const sharedSecretHex = nobleSecp256k1.utils.bytesToHex(
+          this.sharedSecret
+        )
+        const sharedSecredHash = await nobleSecp256k1.utils.sha256(
+          asciiToUint8Array(sharedSecretHex)
+        )
+        const fingerprint = nobleSecp256k1.utils
+          .bytesToHex(sharedSecredHash)
+          .substring(0, 5)
+          .toUpperCase()
         console.log('### fingerprint', fingerprint)
-        // 
+        //
 
         LNbits.utils
-        .confirmDialog('Confirm code from display: '+fingerprint)
-        .onOk(() => {
-          this.addPairedDevice(
-            this.deviceId,
-            nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
-          )
-  
-  
-          this.$q.notify({
-            type: 'positive',
-            message: 'Paired with device!',
-            timeout: 5000
-          })
-        }).onCancel(() => {
-          this.closeSerialPort()
-        })
+          .confirmDialog('Confirm code from display: ' + fingerprint)
+          .onOk(() => {
+            this.addPairedDevice(
+              this.deviceId,
+              nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
+            )
 
+            this.$q.notify({
+              type: 'positive',
+              message: 'Paired with device!',
+              timeout: 5000
+            })
+          })
+          .onCancel(() => {
+            this.closeSerialPort()
+          })
       },
       hwwHelp: async function () {
         try {
