@@ -144,7 +144,8 @@ class ClicheWallet(Wallet):
                         yield data["result"]["payment_hash"]
                 except:
                     continue
-        except:
-            pass
-            logger.error("lost connection to cliche's websocket, retrying in 5 seconds")
+        except Exception as exc:
+            logger.error(
+                "lost connection to cliche's invoices stream: '{exc}', retrying in 5 seconds"
+            )
             await asyncio.sleep(5)
