@@ -5,12 +5,8 @@ async function serialPortConfig(path) {
     props: ['config'],
     template: t,
     data() {
-      return {
-      }
+      return {}
     },
-    methods: {
-
-    },
-
+    methods: {}
   })
 }

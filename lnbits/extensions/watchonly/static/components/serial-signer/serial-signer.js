@@ -336,6 +336,7 @@ async function serialSigner(path) {
           this.hww.showPasswordDialog = true
           await this.sendCommandSecure(COMMAND_PASSWORD)
         } catch (error) {
+          console.log(error)
           this.$q.notify({
             type: 'warning',
             message: 'Failed to connect to Hardware Wallet!',
@@ -599,11 +600,14 @@ async function serialSigner(path) {
           )
           const publicKeyHex = publicKey.toHex().slice(2)
 
-          await this.sendCommandClearText(COMMAND_PAIR, [
-            publicKeyHex,
-            this.config.buttonOnePin,
-            this.config.buttonTwoPin
-          ])
+          const args = [publicKeyHex]
+          if (Number.isInteger(+this.config.buttonOnePin)) {
+            args.push(this.config.buttonOnePin)
+          }
+          if (Number.isInteger(+this.config.buttonTwoPin)) {
+            args.push(this.config.buttonTwoPin)
+          }
+          await this.sendCommandClearText(COMMAND_PAIR, args)
           this.$q.notify({
             type: 'positive',
             message: 'Pairing started!',

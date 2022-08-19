@@ -21,8 +21,8 @@ const PAIRING_CONTROL_TEXT = 'lnbits'
 
 const HWW_DEFAULT_CONFIG = Object.freeze({
   name: '',
-  buttonOnePin: 0,
-  buttonTwoPin: 35,
+  buttonOnePin: '',
+  buttonTwoPin: '',
   baudRate: 9600,
   bufferSize: 255,
   dataBits: 8,
