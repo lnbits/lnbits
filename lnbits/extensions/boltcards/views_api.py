@@ -117,11 +117,14 @@ async def api_scane(p, c, request: Request):
     # so I try one by one until decrypted uid matches
     for cand in await get_all_cards():
         if cand.k1:
-            card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(cand.k1))
+            try:
+                card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(cand.k1))
 
-            if card_uid.hex().upper() == cand.uid:
-                card = cand
-                break
+                if card_uid.hex().upper() == cand.uid:
+                    card = cand
+                    break
+            except:
+                continue
 
     if card == None:
         return {"status": "ERROR", "reason": "Unknown card."}
