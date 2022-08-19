@@ -2,118 +2,89 @@
 %} {% block page %}
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-7 q-gutter-y-md">
-    <q-card>
-      <q-card-section>
-        
-        <div class="row justify-start" style="width:280px">
-          <div class="col" style="width:138px">
-            <q-btn label="New Podcast" unelevated color="primary" @click="formDialogPodcast.show = true"
-          ></q-btn
-        >
-          </div>
-          <div class="col" style="width:138px">
-            <q-btn label="New Episode" unelevated color="primary" @click="formDialogEpisode.show = true" :disabled="!Podcasts[0]"
-          ></q-btn
-        ><q-tooltip v-if="!Podcasts[0]">First make a podcast</q-tooltip>
-          </div>
-        </div>
-        
-      </q-card-section>
-    </q-card>
+
 
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Podcasts</h5>
+            <div class="row justify-start" style="width:150px"> 
+              <div class="col" >
+                <h5 class="text-subtitle1 q-my-none">Podcasts</h5>
+              </div>
+              <div class="col">
+                <q-btn round size="sm" icon="add" unelevated color="primary" @click="formDialogPodcast.show = true">
+                </q-btn>
+              </div>
+            </div>
           </div>
         </div>
         <q-table
+          grid
           dense
           flat
           :data="Podcasts"
           row-key="id"
           :pagination.sync="PodcastsTable.pagination"
+          hide-header
         >
           {% raw %}
-          <template v-slot:header="props">
-            <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th auto-width>Title</q-th>
-              <q-th auto-width>Description</q-th>
-              <q-th auto-width>Wallet</q-th>
-              <q-th auto-width>Amount made</q-th>
-              <q-th auto-width></q-th>
-              <q-th auto-width></q-th>
-            </q-tr>
-          </template>
-          <template v-slot:body="props">
-            <q-tr :props="props">
-              <q-td auto-width>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="launch"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  type="a"
-                  :href="props.row.Podcast_url"
-                  target="_blank"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="xs"
-                  icon="visibility"
-                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
-                  @click="openQrCodeDialog(props.row.id)"
-                ></q-btn>
-              </q-td>
-              <q-td auto-width>{{ props.row.description }}</q-td>
-              <q-td auto-width>
-                <span v-if="props.row.min == props.row.max">
-                  {{ props.row.min }}
-                </span>
-                <span v-else>{{ props.row.min }} - {{ props.row.max }}</span>
-              </q-td>
-              <q-td>{{ props.row.currency || 'sat' }}</q-td>
-              <q-td>
-                <q-icon v-if="props.row.webhook_url" size="14px" name="http">
-                  <q-tooltip>Webhook to {{ props.row.webhook_url}}</q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="props.row.success_text || props.row.success_url"
-                  size="14px"
-                  name="call_to_action"
-                >
-                  <q-tooltip>
-                    On success, show message '{{ props.row.success_text }}'
-                    <span v-if="props.row.success_url"
-                      >and URL '{{ props.row.success_url }}'</span
-                    >
-                  </q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="props.row.comment_chars > 0"
-                  size="14px"
-                  name="insert_comment"
-                >
-                  <q-tooltip>
-                    {{ props.row.comment_chars }}-char comment allowed
-                  </q-tooltip>
-                </q-icon>
-              </q-td>
-              <q-td auto-width>
-                <q-btn
+            <template v-slot:item="props">
+              <div class="q-pa-md row items-start q-gutter-md">
+              <q-card class="my-card" style="width:185px">
+                <q-img :src="props.row.cover_image">
+                  <div class="absolute-bottom">
+                    <div class="text-h6">{{ props.row.podcast_title }}</div>
+                    <div class="text-subtitle2">{{ props.row.hostname }}</div>
+                  </div>
+                </q-img>
+                
+                <q-card-section class="q-pt-none">
+                  <div class="text-caption" style="height:35px">
+                    {{ props.row.description }}
+                  </div>
+                </q-card-section>
+
+                <div class="row" style="width:150px">
+                  <div class="col">
+                    <q-btn
                   flat
                   dense
                   size="xs"
-                  @click="openUpdateDialog(props.row.id)"
+                  icon="visibility"
+                  color="green"
+                  type="a"
+                  :href="props.row.pod_page"
+                  target="_blank"
+                >
+                </q-btn>
+                  </div>
+                  <div class="col">
+                    <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  icon="rss_feed"
+                  color="green"
+                  type="a"
+                  :href="props.row.rss_feed"
+                  target="_blank"
+                >
+                </q-btn>
+                  </div>
+                  <div class="col">
+                    <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdateDialogPodcast(props.row.id)"
                   icon="edit"
                   color="light-blue"
                 >
                 </q-btn>
-                <q-btn
+                  </div>
+                  <div class="col">
+                    <q-btn
                   flat
                   dense
                   size="xs"
@@ -121,8 +92,12 @@
                   icon="cancel"
                   color="pink"
                 ></q-btn>
-              </q-td>
-            </q-tr>
+                  </div>
+                </div>
+              </q-card>
+
+
+            </div>
           </template>
           {% endraw %}
         </q-table>
@@ -135,8 +110,17 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Episodes</h5>
+            <div class="row justify-start" style="width:150px"> 
+              <div class="col" >
+                <h5 class="text-subtitle1 q-my-none">Episodes</h5>
+              </div>
+              <div class="col">
+                <q-btn round size="sm" icon="add" unelevated color="primary" @click="formDialogEpisode.show = true">
+                </q-btn>
+              </div>
+            </div>
           </div>
+
         </div>
         <q-table
           dense
@@ -288,6 +272,7 @@
           label="Wallet to send funds to*"
         >
         </q-select>
+
         <q-file
             filled
             dense
@@ -296,8 +281,8 @@
             :max-file-size="3*1024**2"
             label="Podcast thumb"
             clearable
-            @input="imageAdded"
-            @clear="imageCleared"
+            @input="imageAddedPodcast"
+            @clear="imageClearedPodcast"
             style="width:75%"
           >
             <template v-if="formDialogPodcast.data.cover_image" v-slot:before>
@@ -306,7 +291,7 @@
             <template v-if="formDialogPodcast.data.cover_image" v-slot:append>
               <q-icon
                 name="cancel"
-                @click.stop.prevent="imageCleared"
+                @click.stop.prevent="imageClearedPodcast"
                 class="cursor-pointer"
               />
             </template>
@@ -325,7 +310,7 @@
           filled
           dense
           emit-value
-          v-model="formDialogPodcast.data.category"
+          v-model="formDialogPodcast.data.categories"
           :options="categoryOptions"
           multiple
           label="Categories (select multiple)"
@@ -408,8 +393,17 @@
             unelevated
             color="primary"
             :disable="
+                formDialogPodcast.data.podcast_title == null ||
+                formDialogPodcast.data.description == null ||
                 formDialogPodcast.data.wallet == null ||
-                formDialogPodcast.data.description == null
+                formDialogPodcast.data.cover_image == null ||
+                formDialogPodcast.data.no_episodes == null ||
+                formDialogPodcast.data.categories == null ||
+                formDialogPodcast.data.country_origin == null ||
+                formDialogPodcast.data.hostname == null ||
+                formDialogPodcast.data.explicit == null ||
+                formDialogPodcast.data.language == null ||
+                formDialogPodcast.data.copyright == null
                 "
             type="submit"
             >Create Podcast</q-btn
@@ -452,26 +446,15 @@
         >
         </q-input>
 
-        <q-file
-            filled
-            dense
-            capture="environment"
-            accept="audio/mp3, video/mp4"
-            :max-file-size="3*1024**2"
-            label="Media file"
-            clearable
-            @input="fileAdded"
-            @clear="fileCleared"
-          >
-            <template v-if="formDialogEpisode.data.media_file" v-slot:before>
-              <img style="height: 1em" :src="formDialogEpisode.data.media_file" />
-            </template>
-            <template v-if="formDialogEpisode.data.media_file" v-slot:append>
-              <q-icon
-                name="cancel"
-                @click.stop.prevent="fileCleared"
-                class="cursor-pointer"
-              />
+          <q-file 
+          filled
+          dense
+          outlined 
+          v-model="formDialogEpisode.data.media_file"
+          style="width:75%"
+          accept="audio/*">
+            <template v-slot:prepend>
+              <q-icon name="attach_file" />
             </template>
           </q-file>
 
@@ -487,7 +470,7 @@
           hide-dropdown-icon
           input-debounce="0"
           new-value-mode="add-unique"
-          label="Keyword tags"
+          label="Keyword tags (hit 'enter' between tags)"
         ></q-select>
 
         <q-input
@@ -526,16 +509,17 @@
             :max-file-size="3*1024**2"
             label="Episode thumb (optional)"
             clearable
-            @input="imageAdded"
-            @clear="imageCleared"
+            @input="imageAddedEpisode"
+            @clear="imageClearedEpisode"
+            style="width:75%"
           >
-            <template v-if="formDialogEpisode.data.cover_image" v-slot:before>
-              <img style="height: 1em" :src="formDialogEpisode.data.cover_image" />
+            <template v-if="formDialogEpisode.data.episode_image" v-slot:before>
+              <img style="height: 1em" :src="formDialogEpisode.data.episode_image" />
             </template>
-            <template v-if="formDialogEpisode.data.cover_image" v-slot:append>
+            <template v-if="formDialogEpisode.data.episode_image" v-slot:append>
               <q-icon
                 name="cancel"
-                @click.stop.prevent="imageCleared"
+                @click.stop.prevent="imageClearedEpisode"
                 class="cursor-pointer"
               />
             </template>
@@ -557,13 +541,17 @@
             unelevated
             color="primary"
             :disable="
-            formDialogEpisode.data.wallet == null ||
+            formDialogEpisode.data.podcast == null ||
+            formDialogEpisode.data.episode_title == null ||
             formDialogEpisode.data.description == null ||
-                (
-                  formDialogEpisode.data.min == null ||
-                  formDialogEpisode.data.min <= 0
-                )
-                "
+            formDialogEpisode.data.media_file == null ||
+            formDialogEpisode.data.keywords == null ||
+            formDialogEpisode.data.series_no == null ||
+            formDialogEpisode.data.episode_no == null ||
+            formDialogEpisode.data.episode_type == null ||
+            formDialogEpisode.data.publish_time == null ||
+            formDialogEpisode.data.publish_time == null
+            "
             type="submit"
             >Create Episode</q-btn
           >
@@ -635,5 +623,6 @@
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="https://cdn.jsdelivr.net/npm/pica@6.1.1/dist/pica.min.js"></script>
 <script src="/podcast/static/js/index.js"></script>
 {% endblock %}

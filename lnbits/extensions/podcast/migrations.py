@@ -5,16 +5,15 @@ async def m001_initial(db):
     await db.execute(
         f"""
         CREATE TABLE podcast.Podcast (
-            id {db.serial_primary_key},
+            id TEXT PRIMARY KEY,
             podcast_title TEXT NOT NULL,
             description TEXT NOT NULL,
             wallet TEXT NOT NULL,
             cover_image TEXT NOT NULL,
             no_episodes INTEGER NOT NULL,
-            category TEXT NOT NULL,
+            categories TEXT NOT NULL,
             country_origin TEXT NOT NULL,
             hostname TEXT NOT NULL,
-            name TEXT NOT NULL,
             email TEXT NOT NULL,
             website TEXT NOT NULL,
             explicit BOOL NOT NULL,
@@ -27,7 +26,7 @@ async def m001_initial(db):
     await db.execute(
         f"""
         CREATE TABLE podcast.Episode (
-            id {db.serial_primary_key},
+            id TEXT PRIMARY KEY,
             podcast TEXT NOT NULL,
             episode_title TEXT NOT NULL,
             description TEXT NOT NULL,

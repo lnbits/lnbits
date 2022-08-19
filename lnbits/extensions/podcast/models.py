@@ -14,10 +14,9 @@ class CreatePodcastData(BaseModel):
     podcast_title: str = Query(None)
     cover_image: str = Query(None)
     no_episodes: int = Query(100, ge=1)
-    category: str = Query(None)
+    categories: str = Query(None)
     country_origin: str = Query(None)
     hostname: str = Query(None)
-    name: str = Query(None)
     email: str = Query(None)
     website: str = Query(None)
     explicit: str = Query(None)
@@ -25,20 +24,19 @@ class CreatePodcastData(BaseModel):
     copyright: str = Query(None)
 
 class Podcast(BaseModel):
-    id: int
+    id: str
     wallet: str
     podcast_title: str
     description: str
     podcast_title: str
-    cover_image: str
+    cover_image: Optional[str]
     no_episodes: int
-    category: str
+    categories: str
     country_origin: str
     hostname: str
-    name: str
     email: str
     website: str
-    explicit: str
+    explicit: bool
     language: str
     copyright: str
 
@@ -59,7 +57,7 @@ class CreateEpisodeData(BaseModel):
     publish_time: str = Query(None)
 
 class Episode(BaseModel):
-    id: int
+    id: str
     podcast: str
     episode_title: str
     description: str

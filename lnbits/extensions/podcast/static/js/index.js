@@ -2,6 +2,8 @@
 
 Vue.component(VueQrcode.name, VueQrcode)
 
+const pica = window.pica()
+
 var locationPath = [
   window.location.protocol,
   '//',
@@ -16,8 +18,8 @@ var mapPodcast = obj => {
     'YYYY-MM-DD HH:mm'
   )
   obj.amount = new Intl.NumberFormat(LOCALE).format(obj.amount)
-  obj.print_url = [locationPath, 'print/', obj.id].join('')
-  obj.Podcast_url = [locationPath, obj.id].join('')
+  obj.pod_page = [locationPath, 'player/', obj.id].join('')
+  obj.rss_feed = [locationPath, 'rss/', obj.id].join('')
   return obj
 }
 
@@ -410,8 +412,8 @@ new Vue({
       "Tibetan",
       "Gypsy",
       "Wu"],
-      podcastOptions: ['seconds', 'minutes', 'hours'],
-      typeOptions: ['seconds', 'minutes', 'hours'],
+      podcastOptions: [],
+      typeOptions: [{label:'Episodic (to be played in any order)', value:'Episodic'}, {label:'Serial (to be played in sequence)', value:'Serial'}],
       currencies: [],
       fiatRates: {},
       checker: null,
@@ -446,7 +448,7 @@ new Vue({
     }
   },
   methods: {
-    imageAdded(file) {
+    imageAddedPodcast(file) {
       let blobURL = URL.createObjectURL(file)
       let image = new Image()
       image.src = blobURL
@@ -461,15 +463,15 @@ new Vue({
           unsharpRadius: 0.9,
           unsharpThreshold: 70
         })
-        this.formDialogPodcast.data.image = canvas.toDataURL()
+        this.formDialogPodcast.data.cover_image = canvas.toDataURL()
         this.formDialogPodcast = {...this.formDialogPodcast}
       }
     },
-    imageCleared() {
-      this.formDialogPodcast.data.image = null
+    imageClearedPodcast() {
+      this.formDialogPodcast.data.cover_image = null
       this.formDialogPodcast = {...this.formDialogPodcast}
     },
-    fileAdded(file) {
+    imageAddedEpisode(file) {
       let blobURL = URL.createObjectURL(file)
       let image = new Image()
       image.src = blobURL
@@ -484,12 +486,12 @@ new Vue({
           unsharpRadius: 0.9,
           unsharpThreshold: 70
         })
-        this.formDialogEpisode.data.image = canvas.toDataURL()
+        this.formDialogEpisode.data.episode_image = canvas.toDataURL()
         this.formDialogEpisode = {...this.formDialogEpisode}
       }
     },
-    fileCleared() {
-      this.formDialogEpisode.data.image = null
+    imageClearedEpisode() {
+      this.formDialogEpisode.data.episode_image = null
       this.formDialogEpisode = {...this.formDialogEpisode}
     },
     getPodcasts() {
@@ -501,14 +503,14 @@ new Vue({
         )
         .then(response => {
           this.Podcasts = response.data.map(mapPodcast)
+          this.podcastOptions = []
           for (let i = 0; i < this.Podcasts.length; i++) {
             this.podcastOptions.push(
             {
-              label: this.Podcasts[i].title,
+              label: [this.Podcasts[i].podcast_title, " - ", this.Podcasts[i].id].join(""),
               value: this.Podcasts[i].id
             })
           }
-          
         })
         .catch(err => {
           clearInterval(this.checker)
@@ -521,42 +523,18 @@ new Vue({
     closeFormDialogEpisode() {
       this.resetFormDataEpisode()
     },
-    openQrCodeDialog(podId) {
-      var pod = _.findWhere(this.Podcasts, {id: podId})
-      if (pod.currency) this.updateFiatRate(pod.currency)
-
-      this.qrCodeDialog.data = {
-        id: pod.id,
-        amount:
-          (pod.min === pod.max ? pod.min : `${pod.min} - ${pod.max}`) +
-          ' ' +
-          (pod.currency || 'sat'),
-        currency: pod.currency,
-        comments: pod.comment_chars
-          ? `${pod.comment_chars} characters`
-          : 'no',
-        webhook: pod.webhook_url || 'nowhere',
-        success:
-          pod.success_text || pod.success_url
-            ? 'Display message "' +
-              pod.success_text +
-              '"' +
-              (pod.success_url ? ' and URL "' + pod.success_url + '"' : '')
-            : 'do nothing',
-        lnurl: pod.lnurl,
-        Podcast_url: pod.Podcast_url,
-        print_url: pod.print_url
-      }
-      this.qrCodeDialog.show = true
-    },
-    openUpdateDialog(podId) {
+    openUpdateDialogPodcast(podId) {
       const pod = _.findWhere(this.Podcasts, {id: podId})
       if (pod.currency) this.updateFiatRate(pod.currency)
 
-      this.formDialog.data = _.clone(pod._data)
-      this.formDialog.show = true
-      this.formDialog.fixedAmount =
-        this.formDialog.data.min === this.formDialog.data.max
+      this.formDialogPodcast.data = _.clone(pod._data)
+      this.formDialogPodcast.show = true
+    },
+    openUpdateDialogEpisode(epsId) {
+      const eps = _.findWhere(this.Episodes, {id: epsId})
+
+      this.formDialogEpisode.data = _.clone(eps._data)
+      this.formDialogEpisode.show = true
     },
     sendFormDataPodcast() {
       console.log(this.formDialogPodcast.data)
@@ -564,10 +542,11 @@ new Vue({
       const wallet = _.findWhere(this.g.user.wallets, {
         id: this.formDialogPodcast.data.wallet
       })
-
+      
       if (this.formDialogPodcast.data.id) {
         this.updatePodcast(wallet, this.formDialogPodcast.data)
       } else {
+        this.formDialogPodcast.data.categories = this.formDialogPodcast.data.categories.join()
         this.createPodcast(wallet, this.formDialogPodcast.data)
       }
     },
@@ -579,10 +558,18 @@ new Vue({
       }
     },
     sendFormDataEpisode() {
-
+      const wallet = _.findWhere(this.g.user.wallets, {
+        id: this.formDialogEpisode.data.wallet
+      })
+      if(!this.formDialogEpisode.data.episode_image){
+        var pod = _.findWhere(this.Podcasts, {id: this.formDialogEpisode.data.podcast})
+        this.formDialogEpisode.data.episode_image = pod.cover_image
+      }
+      
       if (this.formDialogEpisode.data.id) {
         this.updateEpisode(this.g.user.wallets[0], this.formDialogEpisode.data)
       } else {
+        this.formDialogEpisode.data.keywords = this.formDialogEpisode.data.keywords.join()
         this.createEpisode(this.g.user.wallets[0], this.formDialogEpisode.data)
       }
     },
@@ -594,36 +581,17 @@ new Vue({
       }
     },
     updatePodcast(wallet, data) {
-      let values = _.omit(
-        _.pick(
-          data,
-          'description',
-          'min',
-          'max',
-          'webhook_url',
-          'success_text',
-          'success_url',
-          'comment_chars',
-          'currency'
-        ),
-        (value, key) =>
-          (key === 'webhook_url' ||
-            key === 'success_text' ||
-            key === 'success_url') &&
-          (value === null || value === '')
-      )
 
       LNbits.api
         .request(
-          'PUT',
+          'POST',
           '/podcast/api/v1/pods/' + data.id,
           wallet.adminkey,
-          values
+          data
         )
         .then(response => {
-          this.Podcasts = _.reject(this.Podcasts, obj => obj.id === data.id)
-          this.Podcasts.push(mapPodcast(response.data))
-          this.formDialog.show = false
+          this.getPodcasts()
+          this.formDialogPodcast.show = false
           this.resetFormDataPodcast()
         })
         .catch(err => {
@@ -663,36 +631,16 @@ new Vue({
         })
     },
     updateEpisode(wallet, data) {
-      let values = _.omit(
-        _.pick(
-          data,
-          'description',
-          'min',
-          'max',
-          'webhook_url',
-          'success_text',
-          'success_url',
-          'comment_chars',
-          'currency'
-        ),
-        (value, key) =>
-          (key === 'webhook_url' ||
-            key === 'success_text' ||
-            key === 'success_url') &&
-          (value === null || value === '')
-      )
-
       LNbits.api
         .request(
-          'PUT',
-          '/podcast/api/v1/pods/' + data.id,
+          'POST',
+          '/podcast/api/v1/eps/' + data.id,
           wallet.adminkey,
-          values
+          data
         )
         .then(response => {
-          this.Podcasts = _.reject(this.Podcasts, obj => obj.id === data.id)
-          this.Podcasts.push(mapPodcast(response.data))
-          this.formDialog.show = false
+          this.getEpisodes()
+          this.formDialogEpisode.show = false
           this.resetFormDataEpisode()
         })
         .catch(err => {
@@ -700,12 +648,22 @@ new Vue({
         })
     },
     createEpisode(wallet, data) {
+      podcast = data.media_file
+      _.omit(data, 'media_file')
       LNbits.api
-        .request('POST', '/podcast/api/v1/pods', wallet.adminkey, data)
+        .request('POST', '/podcast/api/v1/eps', wallet.adminkey, data)
         .then(response => {
-          this.getEpisodes()
-          this.formDialogEpisode.show = false
-          this.resetFormDataEpisode()
+          LNbits.api
+            .request('POST', '/podcast/api/v1/files/', {"file": podcast, "episodename": response.id})
+            .then(response => {
+              this.getEpisodes()
+              this.formDialogEpisode.show = false
+              this.resetFormDataEpisode()
+          })
+          .catch(err => {
+            this.deleteEpisode(response.id)
+            LNbits.utils.notifyApiError(err)
+          })
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
@@ -720,7 +678,7 @@ new Vue({
           LNbits.api
             .request(
               'DELETE',
-              '/podcast/api/v1/pods/' + podId,
+              '/podcast/api/v1/eps/' + podId,
               _.findWhere(this.g.user.wallets, {id: pod.wallet}).adminkey
             )
             .then(response => {
