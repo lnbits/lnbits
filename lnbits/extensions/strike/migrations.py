@@ -48,10 +48,9 @@ async def m002_add_fee_column(db):
         "ALTER TABLE strike.forwards ADD COLUMN msats_fee INTEGER DEFAULT 0;"
     )
 
+
 async def m003_add_api_key_column(db):
     """
     Support for API keys
     """
-    await db.execute(
-        "ALTER TABLE strike.configurations ADD COLUMN api_key TEXT;"
-    )
+    await db.execute("ALTER TABLE strike.configurations ADD COLUMN api_key TEXT;")
