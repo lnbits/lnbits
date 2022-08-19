@@ -99,9 +99,9 @@ docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.en
 
 Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
 
-First, sign up for an account at (Fly.io)[https://fly.io] (no credit card required). 
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
 
-Then, install the Fly.io CLI onto your device (here)[https://fly.io/docs/getting-started/installing-flyctl/]
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/).
 
 Once installed, run these commands.
 
