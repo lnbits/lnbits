@@ -1,9 +1,6 @@
-import re
 from base64 import urlsafe_b64encode
 from typing import List, Optional, Union
 from uuid import uuid4
-
-import httpx
 
 # from lnbits.db import open_ext_db
 from lnbits.db import SQLITE
@@ -290,6 +287,22 @@ async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
             """,
             (payment_hash,),
         )
+
+async def update_diagonalley_product_stock(products):
+    
+    q = "\n".join([f"""WHEN id='{p["product_id"]}' THEN {p["quantity"]}""" for p in products])
+    v = ",".join(["?"] * len(products))
+    
+    await db.execute(
+        f"""
+            UPDATE diagonalley.products
+            SET quantity=(CASE
+                        {q}
+                        END)
+            WHERE id IN ({v});
+        """,
+        (*[p["product_id"] for p in products],)
+    )
 
 async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
     if isinstance(wallet_ids, str):

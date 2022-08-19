@@ -30,19 +30,6 @@ async def on_invoice_paid(payment: Payment) -> None:
     await set_diagonalley_order_paid(payment.payment_hash)
     
     # deduct items sold from stock
+    
     # TODO
 
-    
-    """
-    if "lnticket" != payment.extra.get("tag"):
-        # not a lnticket invoice
-        return
-
-    ticket = await get_ticket(payment.checking_id)
-    if not ticket:
-        print("this should never happen", payment)
-        return
-
-    await payment.set_pending(False)
-    await set_ticket_paid(payment.payment_hash)
-    """

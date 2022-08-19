@@ -17,6 +17,7 @@ from .crud import (
     get_diagonalley_stall,
     get_diagonalley_zone,
     get_diagonalley_zones,
+    update_diagonalley_product_stock,
 )
 
 templates = Jinja2Templates(directory="templates")
@@ -31,6 +32,13 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 @diagonalley_ext.get("/{stall_id}", response_class=HTMLResponse)
 async def display(request: Request, stall_id):
+    # test_qty = 99    
+    # test = [
+    #     {"product_id": "55vpVjWAuQExHsJxT28MYe", "quantity": test_qty},
+    #     {"product_id": "f2eGNsEWgbLJbfAApd3Jw5", "quantity": test_qty},
+    #     {"product_id": "FVqZLZdemWCsiqe9gafvsC", "quantity": test_qty},
+    # ]    
+    # await update_diagonalley_product_stock(test)
     stall = await get_diagonalley_stall(stall_id)
     products = await get_diagonalley_products(stall_id)
     zones = []
@@ -43,7 +51,7 @@ async def display(request: Request, stall_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
         )
-
+    
     stall = stall.dict()
     del stall["privatekey"]
     stall["zones"] = zones
