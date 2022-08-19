@@ -203,12 +203,12 @@ async def pay_invoice(
             )
 
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.ok:
-            logger.debug(f"setting payment as settled {temp_id}")
+        if payment.checking_id:
+            logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
                 await update_payment_details(
                     checking_id=temp_id,
-                    pending=False,
+                    pending=payment.ok != True,
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
                     new_checking_id=payment.checking_id,
