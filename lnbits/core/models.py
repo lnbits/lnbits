@@ -11,10 +11,7 @@ from pydantic import BaseModel
 
 from lnbits.helpers import url_for
 from lnbits.settings import WALLET
-
-from lnbits.wallets.base import (
-    PaymentStatus,
-)
+from lnbits.wallets.base import PaymentStatus
 
 
 class Wallet(BaseModel):
