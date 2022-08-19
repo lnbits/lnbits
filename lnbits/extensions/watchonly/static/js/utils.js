@@ -19,6 +19,18 @@ const COMMAND_CHECK_PAIRING = '/check-pairing'
 const DEFAULT_RECEIVE_GAP_LIMIT = 20
 const PAIRING_CONTROL_TEXT = 'lnbits'
 
+const HWW_DEFAULT_CONFIG = Object.freeze({
+  name: '',
+  buttonOnePin: 0,
+  buttonTwoPin: 35,
+  baudRate: 9600,
+  bufferSize: 255,
+  dataBits: 8,
+  flowControl: 'none',
+  parity: 'none',
+  stopBits: 1
+})
+
 const blockTimeToDate = blockTime =>
   blockTime ? moment(blockTime * 1000).format('LLL') : ''
 

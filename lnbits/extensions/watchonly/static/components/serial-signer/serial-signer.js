@@ -36,12 +36,8 @@ async function serialSigner(path) {
           xpubResolve: null,
           seedWordPosition: 1,
           showSeedDialog: false,
-          config: null,
-          deviceConfig: {
-            name: null,
-            buttonOnePin: 0,
-            buttonTwoPin: 35
-          },
+          // config: null,
+
           confirm: {
             outputIndex: 0,
             showFee: false
@@ -53,12 +49,30 @@ async function serialSigner(path) {
       }
     },
 
+    computed: {
+      pairedDevices: {
+        get: function () {
+          return (
+            JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) ||
+            []
+          )
+        },
+        set: function (devices) {
+          window.localStorage.setItem(
+            'lnbits-paired-devices',
+            JSON.stringify(devices)
+          )
+        }
+      }
+    },
+
     methods: {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this.satsDenominated)
       },
       openSerialPortDialog: async function () {
-        await this.openSerialPort()
+        this.config = {...HWW_DEFAULT_CONFIG}
+        await this.openSerialPort(this.config)
       },
       openSerialPort: async function (config = {baudRate: 9600}) {
         if (!this.checkSerialPortSupported()) return false
@@ -74,11 +88,10 @@ async function serialSigner(path) {
         try {
           this.selectedPort = await navigator.serial.requestPort()
           this.selectedPort.addEventListener('connect', event => {
-            console.log('### this.selectedPort event: connected!', event)
+            // do nothing
           })
 
           this.selectedPort.addEventListener('disconnect', () => {
-            console.log('### this.selectedPort event: disconnected!', event)
             this.selectedPort = null
             this.hww.authenticated = false
             this.$q.notify({
@@ -113,7 +126,13 @@ async function serialSigner(path) {
           return false
         }
       },
-      openSerialPortConfig: async function () {
+      openSerialPortConfig: async function (deviceId) {
+        const device = this.getPairedDevice(deviceId)
+        if (device) {
+          this.config = device.config
+        } else {
+          this.config = {...HWW_DEFAULT_CONFIG}
+        }
         this.hww.showConfigDialog = true
       },
       closeSerialPort: async function () {
@@ -289,7 +308,6 @@ async function serialSigner(path) {
         }
       },
       handlePingResponse: function (res = '') {
-        console.log('### handlePingResponse', res)
         const [status, deviceId] = res.split(' ')
         this.deviceId = deviceId
 
@@ -373,8 +391,10 @@ async function serialSigner(path) {
       },
       hwwConfigAndConnect: async function () {
         this.hww.showConfigDialog = false
-        const config = this.$refs.serialPortConfig.getConfig()
-        await this.openSerialPort(config)
+        if (this.config.deviceId) {
+          this.updatePairedDeviceConfig(this.config.deviceId, this.config)
+        }
+        await this.openSerialPort(this.config)
         return true
       },
       hwwLogin: async function () {
@@ -525,7 +545,6 @@ async function serialSigner(path) {
       },
       hwwCheckPairing: async function () {
         const iv = window.crypto.getRandomValues(new Uint8Array(16))
-        console.log('### this.sharedSecret', this.sharedSecret)
         const encrypted = await this.encryptMessage(
           this.sharedSecret,
           iv,
@@ -582,8 +601,8 @@ async function serialSigner(path) {
 
           await this.sendCommandClearText(COMMAND_PAIR, [
             publicKeyHex,
-            this.hww.deviceConfig.buttonOnePin,
-            this.hww.deviceConfig.buttonTwoPin
+            this.config.buttonOnePin,
+            this.config.buttonTwoPin
           ])
           this.$q.notify({
             type: 'positive',
@@ -600,7 +619,6 @@ async function serialSigner(path) {
         }
       },
       handlePairResponse: async function (res = '') {
-        console.log('### handlePairResponse', res)
         const [statusCode, data] = res.trim().split(' ')
         let pubKeyHex, errorMessage, captionMessage
         switch (statusCode) {
@@ -645,15 +663,14 @@ async function serialSigner(path) {
           .bytesToHex(sharedSecredHash)
           .substring(0, 5)
           .toUpperCase()
-        console.log('### fingerprint', fingerprint)
-        //
 
         LNbits.utils
           .confirmDialog('Confirm code from display: ' + fingerprint)
           .onOk(() => {
             this.addPairedDevice(
               this.deviceId,
-              nobleSecp256k1.utils.bytesToHex(this.sharedSecret)
+              nobleSecp256k1.utils.bytesToHex(this.sharedSecret),
+              this.config
             )
 
             this.$q.notify({
@@ -773,7 +790,6 @@ async function serialSigner(path) {
       },
       handleShowSeedResponse: function (res = '') {
         const args = res.trim().split(' ')
-        console.log('### handleShowSeedResponse: ', res)
       },
       hwwRestore: async function () {
         try {
@@ -817,7 +833,6 @@ async function serialSigner(path) {
       },
       sendCommandClearText: async function (command, attrs = []) {
         const message = [command].concat(attrs).join(' ')
-        console.log('### encryptedIvHex', message)
         await this.writer.write(message + '\n')
       },
       extractCommand: async function (value) {
@@ -863,7 +878,6 @@ async function serialSigner(path) {
           const command = data
             .substring(len.length + 1, +len + len.length + 1)
             .trim()
-          console.log('### decryptData ', data, command)
           return command
         } catch (error) {
           return '/error Failed to decrypt message from device!'
@@ -883,37 +897,35 @@ async function serialSigner(path) {
         const decryptedBytes = aesCbc.decrypt(encryptedBytes)
         return decryptedBytes
       },
-      getPairedDevices: function () {
-        console.log(
-          '### getPairedDevices',
-          window.localStorage.getItem('lnbits-paired-devices')
-        )
-        return (
-          JSON.parse(window.localStorage.getItem('lnbits-paired-devices')) || []
-        )
-      },
+
       getPairedDevice: function (deviceId) {
-        const devices = this.getPairedDevices()
-        return devices.find(d => d.id === deviceId)
+        return this.pairedDevices.find(d => d.id === deviceId)
       },
       removePairedDevice: function (deviceId) {
-        const devices = this.getPairedDevices()
-        const deviceIndex = devices.indexOf(d => d.id === deviceId)
+        const devices = this.pairedDevices
+        const deviceIndex = devices.findIndex(d => d.id === deviceId)
         if (deviceIndex !== -1) {
           devices.splice(deviceIndex, 1)
         }
+        this.pairedDevices = devices
       },
-      addPairedDevice: function (deviceId, sharedSecretHex) {
-        const devices = this.getPairedDevices()
-        devices.push({
+      addPairedDevice: function (deviceId, sharedSecretHex, config) {
+        const devices = this.pairedDevices
+        config.deviceId = deviceId
+        devices.unshift({
           id: deviceId,
           sharedSecretHex: sharedSecretHex,
-          pairingDate: new Date().toISOString()
+          pairingDate: new Date().toISOString(),
+          config
         })
-        window.localStorage.setItem(
-          'lnbits-paired-devices',
-          JSON.stringify(devices)
-        )
+        this.pairedDevices = devices
+      },
+      updatePairedDeviceConfig(deviceId, config) {
+        const device = this.getPairedDevice(deviceId)
+        if (device) {
+          this.removePairedDevice(deviceId)
+          this.addPairedDevice(deviceId, device.sharedSecretHex, config)
+        }
       }
     },
     created: async function () {}

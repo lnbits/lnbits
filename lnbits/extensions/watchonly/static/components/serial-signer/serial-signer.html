@@ -47,6 +47,27 @@
         </q-item-section>
       </q-item>
       <q-item
+        v-for="device in pairedDevices"
+        :key="device.id"
+        v-if="!selectedPort"
+        clickable
+        v-close-popup
+      >
+        <q-item-section>
+          <q-item-label @click="openSerialPortConfig(device.id)"
+            >Paired Device ({{device.config.name || 'no-name'}})
+          </q-item-label>
+          <q-item-label caption @click="openSerialPortConfig(device.id)"
+            >{{device.id}}
+          </q-item-label>
+          <q-item-label caption @click="removePairedDevice(device.id)">
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Forget</q-btn
+            >
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item
         v-if="selectedPort"
         clickable
         v-close-popup
@@ -123,33 +144,10 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwConfigAndConnect" class="q-gutter-md">
         <span>Enter Config</span>
-        <q-input
-          filled
-          dense
-          v-model.trim="hww.deviceConfig.name"
-          label="Name (optional)"
-        ></q-input>
-        <q-separator></q-separator>
-
         <serial-port-config
           ref="serialPortConfig"
-          :config="hww.config"
+          :config="config"
         ></serial-port-config>
-        <q-separator></q-separator>
-        <q-input
-          filled
-          dense
-          v-model.trim="hww.deviceConfig.buttonOnePin"
-          type="number"
-          label="Pin Number (Button 1)"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="hww.deviceConfig.buttonTwoPin"
-          type="number"
-          label="Pin Number (Button 2)"
-        ></q-input>
 
         <div class="row q-mt-lg">
           <q-btn unelevated color="primary" type="submit">Connect</q-btn>
