@@ -100,7 +100,7 @@ class LNPayWallet(Wallet):
             )
 
         if r.is_error:
-            return PaymentResponse(False, None, 0, None, data["message"])
+            return PaymentResponse(False, None, None, None, data["message"])
 
         checking_id = data["lnTx"]["id"]
         fee_msat = 0

@@ -186,9 +186,9 @@ class LndWallet(Wallet):
         try:
             resp = await self.routerpc.SendPaymentV2(req).read()
         except RpcError as exc:
-            return PaymentResponse(False, "", 0, None, exc._details)
+            return PaymentResponse(False, None, None, None, exc._details)
         except Exception as exc:
-            return PaymentResponse(False, "", 0, None, str(exc))
+            return PaymentResponse(False, None, None, None, str(exc))
 
         # PaymentStatus from https://github.com/lightningnetwork/lnd/blob/master/channeldb/payments.go#L178
         statuses = {

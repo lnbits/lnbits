@@ -98,14 +98,16 @@ class ClicheWallet(Wallet):
         if data.get("error") is not None and data["error"].get("message"):
             logger.error(data["error"]["message"])
             error_message = data["error"]["message"]
-            return PaymentResponse(False, None, 0, error_message)
+            return PaymentResponse(False, None, None, error_message)
 
         if data.get("result") is not None and data["result"].get("payment_hash"):
             checking_id = data["result"]["payment_hash"]
         else:
-            return PaymentResponse(False, checking_id, 0, "Could not get payment hash")
+            return PaymentResponse(
+                False, checking_id, None, "Could not get payment hash"
+            )
 
-        return PaymentResponse(True, checking_id, 0, error_message)
+        return PaymentResponse(True, checking_id, None, error_message)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         ws = create_connection(self.endpoint)

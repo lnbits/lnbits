@@ -116,12 +116,12 @@ class EclairWallet(Wallet):
             except:
                 error_message = r.text
                 pass
-            return PaymentResponse(False, None, 0, None, error_message)
+            return PaymentResponse(False, None, None, None, error_message)
 
         data = r.json()
 
         if data["type"] == "payment-failed":
-            return PaymentResponse(False, None, 0, None, "payment failed")
+            return PaymentResponse(False, None, None, None, "payment failed")
 
         checking_id = data["paymentHash"]
         preimage = data["paymentPreimage"]
@@ -143,7 +143,7 @@ class EclairWallet(Wallet):
             except:
                 error_message = r.text
                 pass
-            return PaymentResponse(None, checking_id, 0, preimage, error_message)
+            return PaymentResponse(None, checking_id, None, preimage, error_message)
 
         statuses = {
             "sent": True,
