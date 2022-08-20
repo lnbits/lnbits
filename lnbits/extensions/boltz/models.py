@@ -53,3 +53,17 @@ class CreateReverseSubmarineSwap(BaseModel):
     onchain_address: str = Query(
         ..., regex="^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$"
     )
+
+
+class SwapStatus(BaseModel):
+    swap_id: str
+    wallet: str
+    status: str = ""
+    message: str = ""
+    boltz: str = ""
+    mempool: str = ""
+    address: str = ""
+    block_height: int = 0
+    timeout_block_height: int = 0
+    can_refund: bool = False
+    reverse: bool = False

@@ -26,7 +26,13 @@ from lnbits.core.services import (
     pay_invoice,
 )
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import DEBUG
+from lnbits.settings import (
+    BOLTZ_MEMPOOL_SPACE_URL,
+    BOLTZ_MEMPOOL_SPACE_URL_WS,
+    BOLTZ_NETWORK,
+    BOLTZ_URL,
+    DEBUG,
+)
 
 from .crud import update_swap_status
 from .models import (
@@ -34,13 +40,7 @@ from .models import (
     CreateSubmarineSwap,
     ReverseSubmarineSwap,
     SubmarineSwap,
-)
-
-from lnbits.settings import (
-    BOLTZ_NETWORK,
-    BOLTZ_URL,
-    BOLTZ_MEMPOOL_SPACE_URL,
-    BOLTZ_MEMPOOL_SPACE_URL_WS,
+    SwapStatus,
 )
 
 net = NETWORKS[BOLTZ_NETWORK]
@@ -51,47 +51,46 @@ logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
 logger.debug(f"Bitcoin Network: {net['name']}")
 
 
-def get_swap_status(swap):
-    status = ""
-    can_refund = False
+def get_swap_status(swap) -> SwapStatus:
+    swap_status = SwapStatus(
+        wallet=swap.wallet,
+        swap_id=swap.id,
+    )
     try:
         boltz_request = get_boltz_status(swap.boltz_id)
-        boltz_status = boltz_request["status"]
+        swap_status.boltz = boltz_request["status"]
     except httpx.HTTPStatusError as exc:
         json = exc.response.json()
-        boltz_status = json["error"]
+        swap_status.boltz = json["error"]
 
     if type(swap) == SubmarineSwap:
-        address = swap.address
+        swap_status.reverse = False
+        swap_status.address = swap.address
     else:
-        address = swap.lockup_address
+        swap_status.reverse = True
+        swap_status.address = swap.lockup_address
 
-    mempool_status = get_mempool_tx_status(address)
-    block_height = get_mempool_blockheight()
+    swap_status.mempool = get_mempool_tx_status(swap_status.address)
+    swap_status.block_height = get_mempool_blockheight()
 
-    if block_height >= swap.timeout_block_height:
-        can_refund = True
-        status += "hit timeout_block_height"
+    if swap_status.block_height >= swap.timeout_block_height:
+        swap_status.can_refund = True
+        swap_status.message += "hit timeout_block_height"
     else:
-        status += "timeout_block_height not exceeded "
+        swap_status.message += "timeout_block_height not exceeded"
 
-    if mempool_status == "transaction.unknown":
-        can_refund = False
-        status += ", lockup_tx not in mempool"
+    if swap_status.mempool == "transaction.unknown":
+        swap_status.can_refund = False
+        swap_status.message += ", lockup_tx not in mempool"
 
-    if can_refund == True:
-        status += ", refund is possible"
+    if swap_status.can_refund == True:
+        swap_status.message += ", refund is possible"
 
-    timeout_block_height = f"{str(swap.timeout_block_height)} -> {str(block_height)}"
+    swap_status.timeout_block_height = (
+        f"{str(swap.timeout_block_height)} -> {str(swap_status.block_height)}"
+    )
 
-    return {
-        "wallet": swap.wallet,
-        "status": status,
-        "swap_id": swap.id,
-        "boltz": boltz_status,
-        "mempool": mempool_status,
-        "timeout_block_height": timeout_block_height,
-    }
+    return swap_status
 
 
 async def create_reverse_swap(
@@ -468,9 +467,9 @@ def req_wrap(funcname, *args, **kwargs):
     except httpx.RequestError as exc:
         msg = f"Unreachable: {exc.request.url!r}."
         logger.error(msg)
-        raise Exception(msg)
+        raise
     except httpx.HTTPStatusError as exc:
         msg = f"HTTP Status Error: {exc.response.status_code} while requesting {exc.request.url!r}."
         logger.error(msg)
         logger.error(exc.response.content)
-        raise Exception(msg)
+        raise
