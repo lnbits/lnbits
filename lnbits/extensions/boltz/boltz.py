@@ -8,6 +8,8 @@ from starlette.exceptions import HTTPException
 from http import HTTPStatus
 from sseclient import SSEClient
 
+from websockets import connect
+
 from typing import Union
 
 from embit import ec, script
@@ -35,6 +37,7 @@ from .models import (
 net = NETWORKS['regtest']
 BOLTZ_URL = "http://127.0.0.1:9001"
 MEMPOOL_SPACE_URL = "http://127.0.0.1"
+MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1"
 
 # net = NETWORKS['main']
 # BOLTZ_URL = "https://boltz.exchange/api"
@@ -52,11 +55,11 @@ def get_mempool_fees() -> int:
         timeout=40,
     )
     handle_request_errors(res)
-    data = json.loads(res)
+    data = json.loads(res.text)
     try:
-        value = int(data.hourFee)
+        value = int(data["hourFee"])
     except ValueError:
-        msg = 'get_mempool_fees: ' + data.hourFee + ' value is not an integer'
+        msg = 'get_mempool_fees: ' + data["hourFee"] + ' value is not an integer'
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
     return value
@@ -110,59 +113,36 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
         claim_privkey = claim_privkey.wif(net),
         preimage = preimage.hex(),
         boltz_id = res["id"],
-        invoice = res["invoice"],
         timeout_block_height = res["timeoutBlockHeight"],
         lockup_address = res["lockupAddress"],
         onchain_amount = res["onchainAmount"],
         redeem_script = res["redeemScript"],
         time = getTimestamp(),
     )
-
-    asyncio.ensure_future(wait_for_onchain_tx(swap))
-
-    # TODO: think about what happens if pay_invoice fails
-    # ensure_future is used because pay_invoice is stuck
-    # as long as boltz does not see the onchain tx
-    asyncio.ensure_future(pay_invoice(
-       wallet_id=data.wallet,
-       payment_request=res["invoice"],
-       description=f"reverse submarine swap for {data.amount} sats on boltz.exchange",
-       extra={"tag": "boltz"},
-    ))
-
+    asyncio.ensure_future(wait_for_onchain_tx(swap, res["invoice"]))
     return swap
 
-def listen_to_stream_swap_status(swap: ReverseSubmarineSwap):
-    messages = SSEClient(BOLTZ_URL + "/streamswapstatus?id=" + swap.boltz_id)
-    for msg in messages:
-        data = json.loads(msg.data)
-        if swap.instant_settlement == True:
-            status = "transaction.mempool"
-        else:
-            status = "transaction.confirmed"
-        if data["status"] == status:
-            return swap
-        if  data["status"] == "transaction.failed":
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="boltz status transaction.failed! no onchain funds at boltz"
-            )
-        if  data["status"] == "invoice.expired":
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="ln invoice has expired!"
-            )
+async def wait_for_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], invoice):
+    uri = MEMPOOL_SPACE_URL_WS + f"/api/v1/ws"
+    async with connect(uri) as websocket:
+        await websocket.send(json.dumps({'track-address': swap.lockup_address }))
+        # ensure_future is used because pay_invoice is stuck as long as boltz does not
+        # see the onchain claim tx and it ends up in deadlock
+        # TODO: what happens when payment fails?
+        asyncio.ensure_future(pay_invoice(
+           wallet_id=swap.wallet,
+           payment_request=invoice,
+           description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
+           extra={"tag": "boltz"},
+        ))
+        data = await websocket.recv()
+        message = json.loads(data)
+        mempool_lockup_tx = get_mempool_tx(message["address-transactions"], swap.lockup_address)
+        tx = await create_onchain_tx(swap, mempool_lockup_tx)
+        await send_onchain_tx(tx)
 
-async def wait_for_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap]):
-    loop = asyncio.get_running_loop()
-    try:
-        swap = await loop.run_in_executor(None, listen_to_stream_swap_status, swap)
-    except HTTPException:
-        # TODO: what todo?!
-        print("listen_to_stream_swap_status failed")
-    tx = await create_onchain_tx(swap)
-    return await send_onchain_tx(tx)
 
-def get_mempool_tx(address):
-    txs = create_get_request(MEMPOOL_SPACE_URL + f"/api/address/{address}/txs")
+def get_mempool_tx(txs, address):
     if len(txs) == 0:
         return None
     tx = None
@@ -244,7 +224,7 @@ def get_fee_estimation() -> int:
 
 # claim tx for reverse swaps
 # refund tx for normal swaps
-async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap]) -> Transaction:
+async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap], mempool_lockup_tx) -> Transaction:
 
     if type(swap) == SubmarineSwap:
         current_block_height = get_mempool_blockheight()
@@ -269,10 +249,7 @@ async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap]) ->
 
     fees = get_fee_estimation()
 
-    mempool = get_mempool_tx(onchain_address)
-    if mempool == None:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="could not find onchain tx in mempool.")
-    tx, txid, vout_cnt, vout_amount = mempool
+    tx, txid, vout_cnt, vout_amount = mempool_lockup_tx
 
     script_pubkey = script.address_to_scriptpubkey(onchain_address)
 
