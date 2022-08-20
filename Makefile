@@ -36,6 +36,10 @@ test:
 	poetry run pytest
 
 test-real-wallet:
+	BOLTZ_NETWORK="regtest" \
+	BOLTZ_URL="http://127.0.0.1:9001" \
+	BOLTZ_MEMPOOL_SPACE_URL="http://127.0.0.1:8080" \
+	BOLTZ_MEMPOOL_SPACE_URL_WS="ws://127.0.0.1:8080" \
 	LNBITS_DATA_FOLDER="./tests/data" \
 	PYTHONUNBUFFERED=1 \
 	DEBUG=true \
