@@ -3,12 +3,6 @@ from typing import List, Optional, Union
 
 from starlette.exceptions import HTTPException
 
-from .boltz import (
-    create_swap,
-    create_reverse_swap,
-)
-from lnbits.helpers import urlsafe_short_hash
-
 from . import db
 from .models import (
     CreateSubmarineSwap,
@@ -36,10 +30,8 @@ async def get_submarine_swap(swap_id) -> SubmarineSwap:
     row = await db.fetchone("SELECT * FROM boltz.submarineswap WHERE id = ?", (swap_id,))
     return SubmarineSwap(**row) if row else None
 
-async def create_submarine_swap(data: CreateSubmarineSwap) -> Optional[SubmarineSwap]:
+async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
 
-    swap_id = urlsafe_short_hash()
-    swap = await create_swap(swap_id, data)
     await db.execute(
         """
         INSERT INTO boltz.submarineswap (
@@ -58,7 +50,7 @@ async def create_submarine_swap(data: CreateSubmarineSwap) -> Optional[Submarine
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            swap_id,
+            swap.id,
             swap.wallet,
             swap.status,
             swap.boltz_id,
@@ -71,7 +63,7 @@ async def create_submarine_swap(data: CreateSubmarineSwap) -> Optional[Submarine
             swap.amount
         )
     )
-    return await get_submarine_swap(swap_id)
+    return await get_submarine_swap(swap.id)
 
 async def delete_submarine_swap(swap_id):
     await db.execute("DELETE FROM boltz.submarineswap WHERE id = ?", (swap_id,))
@@ -96,10 +88,8 @@ async def get_reverse_submarine_swap(swap_id) -> SubmarineSwap:
     row = await db.fetchone("SELECT * FROM boltz.reverse_submarineswap WHERE id = ?", (swap_id,))
     return ReverseSubmarineSwap(**row) if row else None
 
-async def create_reverse_submarine_swap(data: CreateReverseSubmarineSwap) -> Optional[ReverseSubmarineSwap]:
+async def create_reverse_submarine_swap(swap: ReverseSubmarineSwap) -> Optional[ReverseSubmarineSwap]:
 
-    swap_id = urlsafe_short_hash()
-    swap = await create_reverse_swap(swap_id, data)
     await db.execute(
         """
         INSERT INTO boltz.reverse_submarineswap (
@@ -120,7 +110,7 @@ async def create_reverse_submarine_swap(data: CreateReverseSubmarineSwap) -> Opt
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            swap_id,
+            swap.id,
             swap.wallet,
             swap.status,
             swap.boltz_id,
@@ -135,7 +125,7 @@ async def create_reverse_submarine_swap(data: CreateReverseSubmarineSwap) -> Opt
             swap.amount
         )
     )
-    return await get_reverse_submarine_swap(swap_id)
+    return await get_reverse_submarine_swap(swap.id)
 
 async def delete_reverse_submarine_swap(swap_id):
     await db.execute("DELETE FROM boltz.reverse_submarineswap WHERE id = ?", (swap_id,))
