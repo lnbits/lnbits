@@ -52,7 +52,13 @@ else:
 
 
 def get_boltz_pairs():
-    return create_get_request(BOLTZ_URL + "/getpairs")
+    res = httpx.get(
+        BOLTZ_URL + "/getpairs",
+        headers={"Content-Type": "application/json"},
+        timeout=40,
+    )
+    handle_request_errors(res)
+    return res.json()
 
 
 def get_boltz_status(boltzid):
@@ -429,16 +435,6 @@ def create_post_request(url, payload={}):
     res = httpx.post(
         url,
         json=payload,
-        headers={"Content-Type": "application/json"},
-        timeout=40,
-    )
-    handle_request_errors(res)
-    return res.json()
-
-
-def create_get_request(url):
-    res = httpx.get(
-        url,
         headers={"Content-Type": "application/json"},
         timeout=40,
     )
