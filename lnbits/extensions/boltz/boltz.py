@@ -46,8 +46,8 @@ if DEBUG:
 else:
     net = NETWORKS["main"]
     BOLTZ_URL = "https://boltz.exchange/api"
-    MEMPOOL_SPACE_URL = "https://mempool.space/api"
-    MEMPOOL_SPACE_URL_WS = "ws://mempool.space/api"
+    MEMPOOL_SPACE_URL = "https://mempool.space"
+    MEMPOOL_SPACE_URL_WS = "wss://mempool.space"
 
 
 def get_boltz_pairs():
@@ -342,13 +342,13 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
             "invoice": payment_request,
         },
     )
-
     return SubmarineSwap(
         id=swap_id,
         time=getTimestamp(),
         wallet=data.wallet,
         amount=data.amount,
         refund_privkey=refund_privkey.wif(net),
+        refund_address=data.refund_address,
         boltz_id=res["id"],
         status="pending",
         address=res["address"],
@@ -357,7 +357,6 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         bip21=res["bip21"],
         redeem_script=res["redeemScript"],
     )
-
 
 def get_fee_estimation() -> int:
     # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
@@ -379,12 +378,12 @@ async def create_onchain_tx(
             raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=msg)
         privkey = ec.PrivateKey.from_wif(swap.refund_privkey)
         preimage = b""
-        onchain_address = swap.address
+        onchain_address = swap.refund_address
         sequence = 0xFFFFFFFE
     else:
         privkey = ec.PrivateKey.from_wif(swap.claim_privkey)
         preimage = unhexlify(swap.preimage)
-        onchain_address = swap.lockup_address
+        onchain_address = swap.onchain_address
         sequence = 0xFFFFFFFF
 
     locktime = swap.timeout_block_height

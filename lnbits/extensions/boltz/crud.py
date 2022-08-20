@@ -46,6 +46,7 @@ async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
             status,
             boltz_id,
             refund_privkey,
+            refund_address,
             expected_amount,
             timeout_block_height,
             address,
@@ -53,7 +54,7 @@ async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap.id,
@@ -61,6 +62,7 @@ async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
             swap.status,
             swap.boltz_id,
             swap.refund_privkey,
+            swap.refund_address,
             swap.expected_amount,
             swap.timeout_block_height,
             swap.address,

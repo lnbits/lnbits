@@ -181,6 +181,15 @@
           type="number"
           ></q-input
         >
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="submarineSwapDialog.data.refund_address"
+          type="string"
+          label="Onchain address to receive funds if swap fails"
+          ></q-input
+        >
         <div class="row q-mt-lg">
           <q-btn
             v-if="submarineSwapDialog.data.id"
@@ -407,14 +416,11 @@
         statuses: [],
         submarineSwapDialog: {
           show: false,
-          data: {
-            amount: 10000,
-          }
+          data: {}
         },
         reverseSubmarineSwapDialog: {
           show: false,
           data: {
-            amount: 10000,
             instant_settlement: true,
           }
         },
@@ -484,11 +490,11 @@
               align: 'left',
               label: 'wallet',
               field: (data) => {
-                var wallet = this.g.user.wallets.filter(function(w) {
-                  return w.id === data.wallet;
+                let wallet = _.findWhere(this.g.user.wallets, {
+                  id: data.wallet
                 });
-                if (wallet.length > 0) {
-                  return wallet[0].name;
+                if (wallet) {
+                  return wallet.name;
                 }
               },
             },
@@ -538,10 +544,12 @@
               align: 'left',
               label: 'wallet',
               field: (data) => {
-                return this.g.user.wallets.filter(function(w) {
-                  console.log(w.id, data.wallet, w.id === data.wallet);
-                  return w.id === data.wallet;
-                })[0].name;
+                let wallet = _.findWhere(this.g.user.wallets, {
+                  id: data.wallet
+                });
+                if (wallet) {
+                  return wallet.name;
+                }
               },
             },
             {
@@ -597,6 +605,8 @@
         const data = this.submarineSwapDialog.data;
         let limits = this.getLimits();
         return data.wallet == null
+            || data.refund_address == null
+            || data.refund_address.search(/^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/) !== 0
             || data.amount < limits.min
             || data.amount > limits.max;
       },
@@ -726,12 +736,7 @@
           id: this.submarineSwapDialog.data.wallet
         })
         let data = this.submarineSwapDialog.data;
-
-        if (data.id) {
-          this.updateSwapOut(wallet, data)
-        } else {
-          this.createSubmarineSwap(wallet, data)
-        }
+        this.createSubmarineSwap(wallet, data);
       },
       exportSubmarineSwapCSV() {
         LNbits.utils.exportCSV(this.submarineSwapTable.columns, this.submarineSwaps)

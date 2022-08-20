@@ -13,6 +13,7 @@ class SubmarineSwap(BaseModel):
     time: int
     status: str
     refund_privkey: str
+    refund_address: str
     boltz_id: str
     expected_amount: int
     timeout_block_height: int
@@ -23,6 +24,7 @@ class SubmarineSwap(BaseModel):
 
 class CreateSubmarineSwap(BaseModel):
     wallet: str = Query(...)
+    refund_address: str = Query(...)
     amount: int = Query(..., ge=10000, le=4294967)
 
 
