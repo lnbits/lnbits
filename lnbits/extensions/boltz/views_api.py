@@ -14,7 +14,10 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from . import boltz_ext
 from .boltz import (
     MEMPOOL_SPACE_URL,
-    create_refund_tx, create_reverse_swap, create_swap, get_boltz_pairs,
+    create_refund_tx,
+    create_reverse_swap,
+    create_swap,
+    get_boltz_pairs,
     get_swap_status,
 )
 from .crud import (
@@ -69,7 +72,9 @@ async def api_submarineswap(
         400: {"description": "when swap_id is missing"},
         404: {"description": "when swap is not found"},
         405: {"description": "when swap is already refunded"},
-        500: {"description": "when something goes wrong creating the refund onchain tx"},
+        500: {
+            "description": "when something goes wrong creating the refund onchain tx"
+        },
     },
 )
 async def api_submarineswap_refund(
@@ -94,9 +99,7 @@ async def api_submarineswap_refund(
     try:
         await create_refund_tx(swap)
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     await update_swap_status(swap, "refunded")
     return swap
@@ -109,9 +112,7 @@ async def api_submarineswap_create(
     try:
         data = await create_swap(data)
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
     swap = await create_submarine_swap(data)
     return swap.dict()
 
@@ -146,9 +147,7 @@ async def api_reverse_submarineswap_create(
     try:
         data, task = await create_reverse_swap(data)
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
@@ -192,8 +191,7 @@ async def api_submarineswap_status(
     response_description="list of pending swaps",
 )
 async def api_check_swaps(
-    g: WalletTypeInfo = Depends(require_admin_key),
-    all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(require_admin_key), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
@@ -210,8 +208,6 @@ async def api_boltz_config():
     try:
         res = get_boltz_pairs()
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
     return res["pairs"]["BTC/BTC"]
