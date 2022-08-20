@@ -35,4 +35,5 @@ async def get_random_invoice_data():
     return {"out": False, "amount": 10, "memo": f"test_memo_{get_random_string(10)}"}
 
 
-is_regtest: bool = wallet_class.__name__ != "FakeWallet"
+is_fake: bool = wallet_class.__name__ == "FakeWallet"
+is_regtest: bool = not is_fake
