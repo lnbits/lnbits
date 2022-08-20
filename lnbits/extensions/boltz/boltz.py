@@ -6,7 +6,7 @@ import os
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 from http import HTTPStatus
-from typing import Union
+from typing import Awaitable, Union
 
 import httpx
 from embit import ec, script
@@ -58,8 +58,10 @@ def get_swap_status(swap):
     try:
         boltz_request = get_boltz_status(swap.boltz_id)
         boltz_status = boltz_request["status"]
-    except:
-        boltz_status = "boltz is offline"
+    except httpx.HTTPStatusError as exc:
+        json = exc.response.json()
+        boltz_status = json["error"]
+
     if type(swap) == SubmarineSwap:
         address = swap.address
     else:
@@ -163,23 +165,40 @@ async def create_reverse_swap(
     )
 
     logger.debug(f"Boltz - waiting for onchain tx, reverse swap_id: {swap.id}")
-    return swap, asyncio.create_task(wait_for_onchain_tx(swap, res["invoice"]))
+    return swap, create_task_log_exception(
+        swap.id, wait_for_onchain_tx(swap, res["invoice"])
+    )
+
+
+def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Task:
+    async def _log_exception(awaitable):
+        try:
+            return await awaitable
+        except Exception as e:
+            logger.error(f"Boltz - reverse swap failed!: {swap_id}")
+            logger.error(e)
+            await update_swap_status(swap_id, "failed")
+
+    return asyncio.create_task(_log_exception(awaitable))
 
 
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
     async with connect(f"{MEMPOOL_SPACE_URL_WS}/api/v1/ws") as websocket:
-        logger.debug(f"Boltz - mempool websocket connected... waiting for onchain tx")
+        logger.debug(
+            f"Boltz - mempool websocket connected... waiting for onchain tx: {swap.lockup_address}"
+        )
         await websocket.send(json.dumps({"track-address": swap.lockup_address}))
 
         # create_task is used because pay_invoice is stuck as long as boltz does not
         # see the onchain claim tx and it ends up in deadlock
-        task = asyncio.create_task(
+        task = create_task_log_exception(
+            swap.id,
             pay_invoice(
                 wallet_id=swap.wallet,
                 payment_request=invoice,
                 description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
                 extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
-            )
+            ),
         )
         logger.debug(f"Boltz - task pay_invoice created, reverse swap_id: {swap.id}")
 
@@ -202,12 +221,12 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
                 logger.debug(
                     f"Boltz - awaited pay_invoice task, reverse swap completed"
                 )
-                await update_swap_status(swap, "complete")
+                await update_swap_status(swap.id, "complete")
             except:
                 logger.error(
                     f"Boltz - could not await pay_invoice task, reverse swap failed"
                 )
-                await update_swap_status(swap, "failed")
+                await update_swap_status(swap.id, "failed")
         else:
             logger.error(f"Boltz - mempool lockup tx not found.")
 
@@ -237,14 +256,14 @@ def get_mempool_tx(address):
         f"{MEMPOOL_SPACE_URL}/api/address/{address}/txs",
         headers={"Content-Type": "text/plain"},
     )
-    txs = json.loads(res.text)
+    txs = res.json()
     return get_mempool_tx_from_txs(txs, address)
 
 
 def get_mempool_tx_from_txs(txs, address):
     if len(txs) == 0:
         return None
-    tx, txid, vout_cnt, vout_amount = None
+    tx = txid = vout_cnt = vout_amount = None
     for i, a_tx in enumerate(txs):
         for vout in a_tx["vout"]:
             if vout["scriptpubkey_address"] == address:
@@ -363,10 +382,8 @@ async def create_onchain_tx(
 
     # TODO: 2 rounds for fee calculation, look at vbytes after signing and do another TX
     s = script.Script(data=redeem_script)
-    for i in range(len(vin)):
-        inp = vin[i]
+    for i, inp in enumerate(vin):
         if is_refund_tx:
-            #    OP_PUSHDATA34     OP_0     OP_PUSHDATA35
             rs = bytes([34]) + bytes([0]) + bytes([32]) + sha256(redeem_script).digest()
             tx.vin[i].script_sig = script.Script(data=rs)
         h = tx.sighash_segwit(i, s, vout_amount)
@@ -406,7 +423,8 @@ def get_mempool_fees() -> int:
         f"{MEMPOOL_SPACE_URL}/api/v1/fees/recommended",
         headers={"Content-Type": "text/plain"},
     )
-    return int(res.text)
+    fees = res.json()
+    return int(fees["economyFee"])
 
 
 def get_mempool_blockheight() -> int:
@@ -419,13 +437,14 @@ def get_mempool_blockheight() -> int:
 
 
 async def send_onchain_tx(tx: Transaction):
-    res = req_wrap(
+    raw = hexlify(tx.serialize())
+    logger.debug(f"Boltz - mempool sending onchain tx: {raw}")
+    req_wrap(
         "post",
         f"{MEMPOOL_SPACE_URL}/api/tx",
         headers={"Content-Type": "text/plain"},
-        data=hexlify(tx.serialize()),
+        data=raw,
     )
-    return res.json()
 
 
 def req_wrap(funcname, *args, **kwargs):
@@ -445,4 +464,6 @@ def req_wrap(funcname, *args, **kwargs):
     except httpx.HTTPStatusError as exc:
         msg = f"HTTP Status Error: {exc.response.status_code} while requesting {exc.request.url!r}."
         logger.error(msg)
-        raise Exception(msg)
+        logger.error(exc.response.content)
+        raise
+        # raise Exception(msg)

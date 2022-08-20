@@ -30,10 +30,10 @@ async def on_invoice_paid(payment: Payment) -> None:
         swap = await get_submarine_swap(swap_id)
 
     if not swap:
-        logger.error("swap not found. updating status failed.")
+        logger.error(f"swap_id: {swap_id} not found. updating status failed.")
         return
 
     logger.info(
-        f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap.id}"
+        f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap_id}"
     )
-    await update_swap_status(swap, "complete")
+    await update_swap_status(swap_id, "complete")
