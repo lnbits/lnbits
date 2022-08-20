@@ -183,12 +183,13 @@ async def api_submarineswap_status(
     name=f"boltz.swap_check",
     summary="list all pending swaps",
     description="""
-        This endpoint gives you a list of pending swaps.
+        This endpoint gives you 2 lists of pending swaps and reverse swaps.
     """,
     response_description="list of pending swaps",
 )
 async def api_check_swaps(
-    g: WalletTypeInfo = Depends(require_admin_key), all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(require_admin_key),  #type: ignore
+    all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
@@ -196,6 +197,8 @@ async def api_check_swaps(
     status = []
     for swap in await get_pending_submarine_swaps(wallet_ids):
         status.append(get_swap_status(swap))
+    for reverseswap in await get_pending_reverse_submarine_swaps(wallet_ids):
+        status.append(get_swap_status(reverseswap))
     return status
 
 

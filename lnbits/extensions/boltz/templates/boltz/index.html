@@ -11,7 +11,7 @@
           @click="submarineSwapDialog.show = true"
         >
           <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">
-            Send onchain funds offchain (BTC <- LN)
+            Send onchain funds offchain (BTC -> LN)
           </q-tooltip>
         </q-btn>
         <q-btn
@@ -76,7 +76,14 @@
                   icon="visibility"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
-                ></q-btn>
+                >
+                  <q-tooltip
+                    class="bg-grey-8"
+                    anchor="bottom left"
+                    self="top left"
+                    >open swap onchain details</q-tooltip
+                  >
+                </q-btn>
                 <q-btn
                   unelevated
                   dense
@@ -84,7 +91,14 @@
                   icon="info"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openStatusDialog(props.row.id)"
-                ></q-btn>
+                >
+                  <q-tooltip
+                    class="bg-grey-8"
+                    anchor="bottom left"
+                    self="top left"
+                    >open swap status info</q-tooltip
+                  >
+                </q-btn>
                 <q-btn
                   unelevated
                   dense
@@ -92,7 +106,14 @@
                   icon="flip_to_front"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openMempool(props.row.id)"
-                ></q-btn>
+                >
+                  <q-tooltip
+                    class="bg-grey-8"
+                    anchor="bottom left"
+                    self="top left"
+                    >open tx on mempool.space</q-tooltip
+                  >
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -142,7 +163,14 @@
                   icon="info"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openStatusDialog(props.row.id, true)"
-                ></q-btn>
+                >
+                  <q-tooltip
+                    class="bg-grey-8"
+                    anchor="bottom left"
+                    self="top left"
+                    >open swap status info</q-tooltip
+                  >
+                </q-btn>
                 <q-btn
                   unelevated
                   dense
@@ -150,7 +178,14 @@
                   icon="flip_to_front"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openMempool(props.row.id)"
-                ></q-btn>
+                >
+                  <q-tooltip
+                    class="bg-grey-8"
+                    anchor="bottom left"
+                    self="top left"
+                    >open tx on mempool.space</q-tooltip
+                  >
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -217,7 +252,7 @@
             color="primary"
             :disable="disableSubmarineSwapDialog()"
             type="submit"
-            label="Create Submarine Swap"
+            label="Create Swap (IN)"
           ></q-btn>
           <q-btn
             v-close-popup
@@ -289,7 +324,7 @@
             color="primary"
             :disable="disableReverseSubmarineSwapDialog()"
             type="submit"
-            label="Create Submarine Swap"
+            label="Create Reverse Swap (OUT)"
           ></q-btn>
           <q-btn
             v-close-popup
@@ -352,8 +387,8 @@
           @click="refundSwap(statusDialog.data.swap_id)"
           v-if="!statusDialog.data.reverse"
           class="q-ml-sm"
-          >Refund</q-btn
-        >
+          >Refund
+        </q-btn>
         <q-btn
           outline
           color="grey"
@@ -368,7 +403,7 @@
   </q-dialog>
   <q-dialog v-model="allStatusDialog.show" maximized position="top">
     <q-card v-if="allStatusDialog.data" class="q-pa-lg lnbits__dialog-card">
-      <h4>pending swaps status</h4>
+      <h5>pending swaps</h5>
       <q-table
         dense
         flat
@@ -396,7 +431,14 @@
                 icon="cached"
                 :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                 @click="refundSwap(props.row.swap_id)"
-              ></q-btn>
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                  >refund swap</q-tooltip
+                >
+              </q-btn>
               <q-btn
                 unelevated
                 dense
@@ -404,7 +446,14 @@
                 icon="download"
                 :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                 @click="downloadRefundFile(props.row.swap_id)"
-              ></q-btn>
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                  >dowload refund file</q-tooltip
+                >
+              </q-btn>
               <q-btn
                 unelevated
                 dense
@@ -412,7 +461,58 @@
                 icon="flip_to_front"
                 :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                 @click="openMempool(props.row.swap_id)"
-              ></q-btn>
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                  >open tx on mempool.space</q-tooltip
+                >
+              </q-btn>
+            </q-td>
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+              {{ col.value }}
+            </q-td>
+          </q-tr>
+        </template>
+        {% endraw %}
+      </q-table>
+      <h5>pending reverse swaps</h5>
+      <q-table
+        dense
+        flat
+        :data="allStatusDialog.data.reverse_swaps"
+        row-key="id"
+        :columns="allStatusTable.columns"
+        :rows-per-page-options="[0]"
+      >
+        {% raw %}
+        <template v-slot:header="props">
+          <q-tr :props="props">
+            <q-th auto-width></q-th>
+            <q-th v-for="col in props.cols" :key="col.name" :props="props">
+              {{ col.label }}
+            </q-th>
+          </q-tr>
+        </template>
+        <template v-slot:body="props">
+          <q-tr :props="props">
+            <q-td style="width: 10%">
+              <q-btn
+                unelevated
+                dense
+                size="xs"
+                icon="flip_to_front"
+                :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                @click="openMempool(props.row.swap_id)"
+              >
+                <q-tooltip
+                  class="bg-grey-8"
+                  anchor="bottom left"
+                  self="top left"
+                  >open tx on mempool.space</q-tooltip
+                >
+              </q-btn>
             </q-td>
             <q-td v-for="col in props.cols" :key="col.name" :props="props">
               {{ col.value }}
@@ -889,9 +989,9 @@
           )
           .then(res => {
             this.allStatusDialog.data = {
-              swaps: res.data
+              swaps: _.where(res.data, {reverse: false}),
+              reverse_swaps: _.where(res.data, {reverse: true})
             }
-            console.log(this.allStatusDialog)
             this.allStatusDialog.show = true
           })
           .catch(error => {
