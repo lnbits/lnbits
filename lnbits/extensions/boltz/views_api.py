@@ -10,6 +10,10 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import perform_lnurlauth, redeem_lnurl_withdraw
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
+from lnbits.helpers import urlsafe_short_hash
+
+
+
 from .models import (
     SubmarineSwap,
     ReverseSubmarineSwap,
@@ -20,6 +24,8 @@ from .models import (
 from . import boltz_ext
 
 from .boltz import (
+    create_swap,
+    create_reverse_swap,
     create_refund_tx,
     get_boltz_pairs,
     get_swap_status,
@@ -67,6 +73,8 @@ async def api_submarineswap_create(
     data: CreateSubmarineSwap,
     wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
+    swap_id = urlsafe_short_hash()
+    data = await create_swap(swap_id, data)
     swap = await create_submarine_swap(data)
     return swap.dict()
 
@@ -86,6 +94,8 @@ async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
     wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
+    swap_id = urlsafe_short_hash()
+    data = await create_reverse_swap(swap_id, data)
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
 

@@ -18,7 +18,6 @@ from hashlib import (
     sha256
 )
 
-from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.services import (
     get_wallet,
     fee_reserve,
@@ -29,8 +28,7 @@ from lnbits.core.services import (
     pay_invoice
 )
 
-# from .crud import update_swap_status
-# from lnbits.core.services import db
+from .crud import update_swap_status
 
 from .models import (
     CreateSubmarineSwap,
@@ -199,9 +197,9 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
     async with connect(uri) as websocket:
         await websocket.send(json.dumps({'track-address': swap.lockup_address }))
 
-        # ensure_future is used because pay_invoice is stuck as long as boltz does not
+        # create_task is used because pay_invoice is stuck as long as boltz does not
         # see the onchain claim tx and it ends up in deadlock
-        task = asyncio.ensure_future(pay_invoice(
+        task = asyncio.create_task(pay_invoice(
            wallet_id=swap.wallet,
            payment_request=invoice,
            description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
@@ -210,9 +208,6 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
 
         data = await websocket.recv()
         message = json.loads(data)
-
-        print("!!!!!!! MESSAGE !!!!!!")
-        print(message)
 
         try:
             txs = message["address-transactions"]
@@ -226,7 +221,11 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
         if mempool_lockup_tx:
             tx = await create_onchain_tx(swap, mempool_lockup_tx)
             await send_onchain_tx(tx)
-            await task
+            try:
+                await task
+                await update_swap_status(swap, "complete")
+            except:
+                await update_swap_status(swap, "failed")
 
 
 

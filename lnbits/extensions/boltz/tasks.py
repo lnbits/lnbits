@@ -1,7 +1,6 @@
 import asyncio
 
 from lnbits.core.models import Payment
-# from lnbits.extensions.satspay.crud import check_address_balance, get_charge
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_submarine_swap, get_reverse_submarine_swap, update_swap_status
