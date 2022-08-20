@@ -128,7 +128,7 @@ class OpenNodeWallet(Wallet):
             "initial": None,
             "pending": None,
             "confirmed": True,
-            "error": None,
+            "error": False,
             "failed": False,
         }
         fee_msat = -data.get("fee") * 1000
