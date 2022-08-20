@@ -71,7 +71,6 @@ def get_swap_status(swap) -> SwapStatus:
         swap_status.reverse = True
         swap_status.address = swap.lockup_address
 
-
     swap_status.block_height = get_mempool_blockheight()
 
     if swap_status.block_height >= swap.timeout_block_height:
@@ -80,7 +79,6 @@ def get_swap_status(swap) -> SwapStatus:
         swap_status.message += "hit timeout_block_height"
     else:
         swap_status.message += "timeout_block_height not exceeded"
-
 
     mempool_tx = get_mempool_tx(swap_status.address)
     if mempool_tx == None:
@@ -231,7 +229,9 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
         try:
             message = json.loads(result)
         except Exception as exc:
-            logger.error(f"Boltz - cannot parse mempool data, happens if pay_invoice task is done before the websocket task, when testing with a mocked pay_invoice function.")
+            logger.error(
+                f"Boltz - cannot parse mempool data, happens if pay_invoice task is done before the websocket task, when testing with a mocked pay_invoice function."
+            )
             wstask.cancel()
             raise
 

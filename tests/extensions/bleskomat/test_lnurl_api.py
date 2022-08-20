@@ -12,7 +12,7 @@ from lnbits.extensions.bleskomat.helpers import (
 from lnbits.settings import HOST, PORT
 from tests.conftest import client
 from tests.extensions.bleskomat.conftest import bleskomat, lnurl
-from tests.helpers import credit_wallet
+from tests.helpers import credit_wallet, is_regtest
 from tests.mocks import WALLET
 
 
@@ -97,6 +97,7 @@ async def test_bleskomat_lnurl_api_valid_signature(client, bleskomat):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_regtest, reason="this test is only passes in fakewallet")
 async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
     bleskomat = lnurl["bleskomat"]
     secret = lnurl["secret"]
@@ -116,6 +117,7 @@ async def test_bleskomat_lnurl_api_action_insufficient_balance(client, lnurl):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_regtest, reason="this test is only passes in fakewallet")
 async def test_bleskomat_lnurl_api_action_success(client, lnurl):
     bleskomat = lnurl["bleskomat"]
     secret = lnurl["secret"]

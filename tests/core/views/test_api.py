@@ -13,7 +13,7 @@ from lnbits.core.views.api import (
 )
 from lnbits.settings import wallet_class
 
-from ...helpers import get_random_invoice_data
+from ...helpers import get_random_invoice_data, is_regtest
 
 
 # check if the client is working
@@ -162,6 +162,7 @@ async def test_pay_invoice_invoicekey(client, invoice, inkey_headers_from):
 
 # check POST /api/v1/payments: payment with admin key [should pass]
 @pytest.mark.asyncio
+@pytest.mark.skipif(is_regtest, reason="this only works in fakewallet")
 async def test_pay_invoice_adminkey(client, invoice, adminkey_headers_from):
     data = {"out": True, "bolt11": invoice["payment_request"]}
     # try payment with admin key

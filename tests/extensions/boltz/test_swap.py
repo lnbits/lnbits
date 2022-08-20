@@ -3,17 +3,15 @@ import asyncio
 import pytest
 import pytest_asyncio
 
+from lnbits.extensions.boltz.boltz import create_reverse_swap, create_swap
 from lnbits.extensions.boltz.crud import (
     create_reverse_submarine_swap,
     create_submarine_swap,
     get_reverse_submarine_swap,
     get_submarine_swap,
 )
-from lnbits.extensions.boltz.boltz import create_reverse_swap, create_swap
 from tests.extensions.boltz.conftest import reverse_swap, swap
-from tests.helpers import is_regtest, is_fake
-
-
+from tests.helpers import is_fake, is_regtest
 
 # @pytest.mark.asyncio
 # async def test_create_swap(client, swap):
