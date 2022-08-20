@@ -11,19 +11,16 @@ from lnbits.extensions.boltz.models import (
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
 )
-from tests.helpers import credit_wallet, is_regtest
 from tests.mocks import WALLET
 
 
 @pytest_asyncio.fixture(scope="session")
 async def swap(from_wallet):
-    data = CreateSubmarineSwap(
+    return CreateSubmarineSwap(
         wallet=from_wallet.id,
         refund_address="bcrt1q3cwq33y435h52gq3qqsdtczh38ltlnf69zvypm",
         amount=50_000,
     )
-    if is_regtest:
-        return await create_swap(data)
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -34,5 +31,4 @@ async def reverse_swap(from_wallet):
         onchain_address="bcrt1q4vfyszl4p8cuvqh07fyhtxve5fxq8e2ux5gx43",
         amount=50_000,
     )
-    if is_regtest:
-        return await create_reverse_swap(data)
+    return await create_reverse_swap(data)

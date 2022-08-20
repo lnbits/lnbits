@@ -61,6 +61,8 @@ def get_swap_status(swap) -> SwapStatus:
     except httpx.HTTPStatusError as exc:
         json = exc.response.json()
         swap_status.boltz = json["error"]
+        if "could not find" in swap_status.boltz:
+            swap_status.exists = False
 
     if type(swap) == SubmarineSwap:
         swap_status.reverse = False
@@ -222,11 +224,18 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
 
         # pay_invoice already failed, do not wait for onchain tx anymore
         if result is None:
+            logger.debug(f"Boltz - pay_invoice already failed cancel websocket task.")
             wstask.cancel()
-            return
+            raise
+
+        try:
+            message = json.loads(result)
+        except Exception as exc:
+            logger.debug(f"Boltz - cannot parse mempool data, happens if pay_invoice task is done before the websocket task, when testing with a mocked pay_invoice function.")
+            wstask.cancel()
+            raise
 
         logger.debug(f"Boltz - awaited mempool websocket")
-        message = json.loads(result)
 
         try:
             txs = message["address-transactions"]
@@ -299,7 +308,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
             extra={"tag": "boltz", "swap_id": swap_id},
         )
     except Exception as e:
-        msg = "Boltz swap create_invoice failed"
+        msg = "Boltz - swap create_invoice failed"
         logger.error(msg)
         raise Exception(msg)
 
