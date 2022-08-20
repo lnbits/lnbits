@@ -35,6 +35,7 @@ async def m001_initial(db):
             preimage TEXT NOT NULL,
             claim_privkey TEXT NOT NULL,
             lockup_address TEXT NOT NULL,
+            invoice TEXT NOT NULL,
             onchain_amount INT NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now

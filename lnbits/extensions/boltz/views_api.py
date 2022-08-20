@@ -12,12 +12,6 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
 from lnbits.core.crud import get_user
-from lnbits.core.services import (
-    fee_reserve,
-    get_wallet,
-    perform_lnurlauth,
-    redeem_lnurl_withdraw,
-)
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL
 
@@ -94,7 +88,7 @@ async def api_submarineswap_refund(swap_id: str):
     swap = await get_submarine_swap(swap_id)
     if swap == None:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="submarine swap does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
         )
 
     if swap.status == "refunded":
@@ -104,8 +98,8 @@ async def api_submarineswap_refund(swap_id: str):
 
     try:
         await create_refund_tx(swap)
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
 
     await update_swap_status(swap.id, "refunded")
     return swap
@@ -142,12 +136,8 @@ async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    # check if we can pay the invoice before we create the actual swap on boltz
-    amount_msat = data.amount * 1000
-    fee_reserve_msat = fee_reserve(amount_msat)
-    wallet = await get_wallet(data.wallet)
-    assert wallet
-    if wallet.balance_msat - fee_reserve_msat < amount_msat:
+
+    if not await check_balance(data):
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )

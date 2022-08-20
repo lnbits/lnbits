@@ -40,6 +40,7 @@ class ReverseSubmarineSwap(BaseModel):
     preimage: str
     claim_privkey: str
     lockup_address: str
+    invoice: str
     onchain_amount: int
     timeout_block_height: int
     redeem_script: str
@@ -52,7 +53,7 @@ class CreateReverseSubmarineSwap(BaseModel):
     # validate on-address, bcrt1 for regtest addresses
     onchain_address: str = Query(
         ..., regex="^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$"
-    )
+    )  # type: ignore
 
 
 class SwapStatus(BaseModel):

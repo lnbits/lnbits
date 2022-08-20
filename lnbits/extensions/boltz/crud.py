@@ -160,13 +160,14 @@ async def create_reverse_submarine_swap(
             preimage,
             claim_privkey,
             lockup_address,
+            invoice,
             onchain_amount,
             onchain_address,
             timeout_block_height,
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap.id,
@@ -177,6 +178,7 @@ async def create_reverse_submarine_swap(
             swap.preimage,
             swap.claim_privkey,
             swap.lockup_address,
+            swap.invoice,
             swap.onchain_amount,
             swap.onchain_address,
             swap.timeout_block_height,
@@ -189,6 +191,7 @@ async def create_reverse_submarine_swap(
 
 async def update_swap_status(swap_id: str, status: str):
 
+    reverse = ""
     swap = await get_submarine_swap(swap_id)
     if swap is None:
         swap = await get_reverse_submarine_swap(swap_id)
@@ -205,6 +208,7 @@ async def update_swap_status(swap_id: str, status: str):
             + "'"
         )
     if type(swap) == ReverseSubmarineSwap:
+        reverse = "reverse"
         await db.execute(
             "UPDATE boltz.reverse_submarineswap SET status='"
             + status
@@ -213,10 +217,7 @@ async def update_swap_status(swap_id: str, status: str):
             + "'"
         )
 
-    message = f"Boltz - swap status change: {status}. boltz_id: {swap.boltz_id}, wallet: {swap.wallet}"
-    if status == "failed":
-        logger.error(message)
-    else:
-        logger.info(message)
+    message = f"Boltz - {reverse} swap status change: {status}. boltz_id: {swap.boltz_id}, wallet: {swap.wallet}"
+    logger.info(message)
 
     return swap
