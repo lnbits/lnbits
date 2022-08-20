@@ -17,7 +17,6 @@ from websockets import connect
 
 from lnbits import bolt11
 from lnbits.core.services import (
-    check_invoice_status,
     create_invoice,
     create_payment,
     delete_payment,
