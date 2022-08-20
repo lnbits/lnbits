@@ -17,7 +17,6 @@ from lnbits.helpers import urlsafe_short_hash
 
 from hashlib import sha256
 
-from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.services import (
     get_wallet,
     fee_reserve,
