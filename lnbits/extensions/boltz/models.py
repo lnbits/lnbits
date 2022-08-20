@@ -10,6 +10,7 @@ class SubmarineSwap(BaseModel):
     wallet: str
     amount: int
     time: int
+    status: str
     refund_privkey: str
     boltz_id: str
     expected_amount: int
@@ -29,6 +30,7 @@ class ReverseSubmarineSwap(BaseModel):
     onchain_address: str
     instant_settlement: bool
     time: int
+    status: str
     boltz_id: str
     preimage: str
     claim_privkey: str
