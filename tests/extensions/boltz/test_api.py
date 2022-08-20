@@ -91,4 +91,12 @@ async def test_endpoints_unauthenticated(client):
     assert response.status_code == 400
     # https://github.com/lnbits/lnbits-legend/pull/848
     # response = await client.post("/boltz/api/v1/swap")
-    # assert response.status_code == 400
+    # assert response.status_code == 401
+    # response = await client.post("/boltz/api/v1/swap/reverse")
+    # assert response.status_code == 401
+    # response = await client.post("/boltz/api/v1/swap/status")
+    # assert response.status_code == 401
+    # response = await client.post("/boltz/api/v1/swap/check")
+    # assert response.status_code == 401
+    # response = await client.post("/boltz/api/v1/swap/refund")
+    # assert response.status_code == 401

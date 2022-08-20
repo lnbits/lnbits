@@ -35,5 +35,4 @@ async def reverse_swap(from_wallet):
         amount=50_000,
     )
     if is_regtest:
-        WALLET.pay_invoice.reset_mock()
         return await create_reverse_swap(data)
