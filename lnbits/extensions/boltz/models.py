@@ -65,5 +65,8 @@ class SwapStatus(BaseModel):
     address: str = ""
     block_height: int = 0
     timeout_block_height: int = 0
+    is_done: bool = False
+    has_lockup: bool = False
+    hit_timeout: bool = False
     can_refund: bool = False
     reverse: bool = False

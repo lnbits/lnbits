@@ -17,16 +17,31 @@ from .crud import (
 
 
 async def check_for_pending_swaps():
-    swaps = await get_all_pending_submarine_swaps()
-    reverse_swaps = await get_all_pending_reverse_submarine_swaps()
+
+    try:
+        swaps = await get_all_pending_submarine_swaps()
+        reverse_swaps = await get_all_pending_reverse_submarine_swaps()
+    except:
+        # database is not created yet, do nothing
+        return
+
     logger.debug(f"Boltz - startup swap check")
     logger.debug(f"Boltz - {len(swaps)} pending swaps")
     for swap in swaps:
         try:
             swap_status = get_swap_status(swap)
             logger.debug(f"Boltz - swap: {swap.id} - {swap_status.message}")
-            if swap_status.can_refund is True:
-                logger.debug(f"Boltz - refunding swap: {swap.id}...")
+            if swap_status.hit_timeout is True:
+                if swap_status.has_lockup is False:
+                    logger.debug(f"Boltz - swap: {swap.id} hit timeout, but no lockup tx...")
+                    await update_swap_status(swap.id, "timeout")
+                else:
+                    if swap_status.is_done is True:
+                        logger.debug(f"Boltz - swap: {swap.id} is already done...")
+                        await update_swap_status(swap.id, "complete")
+                    else:
+                        if swap_status.can_refund is True:
+                            logger.debug(f"Boltz - refunding swap: {swap.id}...")
         except Exception as exc:
             logger.error(f"Boltz - swap: {swap.id} - {str(exc)}")
             # await update_swap_status(swap.id, "failed")
