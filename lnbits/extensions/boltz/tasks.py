@@ -7,8 +7,6 @@ from lnbits.tasks import register_invoice_listener
 
 from .crud import get_reverse_submarine_swap, get_submarine_swap, update_swap_status
 
-# from .crud import get_ticket, set_ticket_paid
-
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
