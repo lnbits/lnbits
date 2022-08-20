@@ -28,8 +28,8 @@ async def swap():
         amount=50000,
     )
     if is_regtest:
-        data = await create_swap(data)
-        swap = await create_submarine_swap(data)
+        swap = await create_swap(data)
+        # swap = await create_submarine_swap(data)
         return swap
 
 
@@ -64,6 +64,4 @@ async def reverse_swap():
         amount=50000,
     )
     if is_regtest:
-        data, task = await create_reverse_swap(data)
-        swap = await create_reverse_submarine_swap(data)
-        return swap, task
+        return await create_reverse_swap(data)
