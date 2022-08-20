@@ -1,0 +1,64 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="About Boltz"
+  :content-inset-level="0.5"
+>
+  <q-card>
+    <q-card-section>
+      <h5 class="text-subtitle1 q-my-none">
+        Boltz.exchange: Do onchain to offchain and vice-versa swaps
+      </h5>
+      <p>
+        Submarine and Reverse Submarine Swaps on LNbits via boltz.exchange API<br />
+
+        <p>Link : <a target="_blank" href="https://boltz.exchange">https://boltz.exchange </a></p>
+        <p><a target="_blank" href="https://github.com/lnbits/lnbits-legend/tree/master/lnbits/extensions/boltz">
+          More details
+        </a></p>
+        <small>Created by, <a target="_blank" href="https://github.com/dni">dni</a></small>
+      </p>
+    </q-card-section>
+  </q-card>
+</q-expansion-item>
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="GET submarineswap">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-light-blue">GET</span> /boltz/api/v1/submarineswap</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON list of submarine swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ root_url }}/boltz/api/v1/submarineswap -H
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item group="api" dense expand-separator label="POST submarineswap">
+    <q-card>
+      <q-card-section>
+        <code><span class="text-light-blue">POST</span> /boltz/api/v1/submarineswap</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>JSON create a submarine swaps</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ root_url }}/boltz/api/v1/submarineswap -H
+          "X-Api-Key: {{ user.wallets[0].inkey }}"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>
