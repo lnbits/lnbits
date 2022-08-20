@@ -36,11 +36,12 @@ from .models import (
     ReverseSubmarineSwap,
 )
 
-# from .settings import DEBUG
-# if DEBUG:
-#     print("debug")
-# else:
-#     print("production")
+from lnbits.settings import DEBUG
+
+if DEBUG:
+    print("debug")
+else:
+    print("production")
 
 net = NETWORKS["regtest"]
 BOLTZ_URL = "http://boltz:9001"
@@ -50,6 +51,7 @@ MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
 # net = NETWORKS['main']
 # BOLTZ_URL = "https://boltz.exchange/api"
 # MEMPOOL_SPACE_URL = "https://mempool.space/api"
+# MEMPOOL_SPACE_URL_WS = "ws://mempool.space/api"
 
 
 def get_boltz_pairs():
@@ -203,7 +205,7 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap):
         time=getTimestamp(),
     )
 
-    asyncio.ensure_future(wait_for_onchain_tx(swap, res["invoice"]))
+    asyncio.create_task(wait_for_onchain_tx(swap, res["invoice"]))
     return swap
 
 
