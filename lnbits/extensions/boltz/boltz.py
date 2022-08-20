@@ -242,6 +242,10 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
             except:
                 await update_swap_status(swap, "failed")
 
+async def create_refund_tx(swap: SubmarineSwap):
+    mempool_lockup_tx = get_mempool_tx(swap.address)
+    tx = await create_onchain_tx(swap, mempool_lockup_tx)
+    await send_onchain_tx(tx)
 
 async def create_refund_tx(swap: SubmarineSwap):
     mempool_lockup_tx = get_mempool_tx(swap.address)
