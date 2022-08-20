@@ -16,11 +16,12 @@ from tests.mocks import WALLET
 
 @pytest_asyncio.fixture(scope="session")
 async def swap(from_wallet):
-    return CreateSubmarineSwap(
+    data = CreateSubmarineSwap(
         wallet=from_wallet.id,
         refund_address="bcrt1q3cwq33y435h52gq3qqsdtczh38ltlnf69zvypm",
         amount=20_000,
     )
+    return await create_swap(data)
 
 
 @pytest_asyncio.fixture(scope="session")

@@ -13,13 +13,14 @@ from lnbits.extensions.boltz.crud import (
 from tests.extensions.boltz.conftest import reverse_swap, swap
 from tests.helpers import is_fake, is_regtest
 
-# @pytest.mark.asyncio
-# async def test_create_swap(client, swap):
-#     newswap = await get_submarine_swap(swap.id)
-#     assert newswap.status == "pending"
-#     assert newswap.boltz_id is not None
-#     assert newswap.refund_privkey is not None
-#     assert newswap.refund_address is not None
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(is_fake, reason="this test is only passes in regtest")
+async def test_create_swap(client, swap):
+    assert swap.status == "pending"
+    assert swap.boltz_id is not None
+    assert swap.refund_privkey is not None
+    assert swap.refund_address is not None
 
 
 @pytest.mark.asyncio

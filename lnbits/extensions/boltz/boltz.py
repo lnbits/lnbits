@@ -87,7 +87,7 @@ def get_swap_status(swap) -> SwapStatus:
         swap_status.message += ", lockup_tx not in mempool"
     else:
         swap_status.has_lockup = True
-        tx, *_ = get_mempool_tx(address)
+        tx, *_ = get_mempool_tx(swap_status.address)
         if output_spent:
             swap_status.is_done = True
         else:
