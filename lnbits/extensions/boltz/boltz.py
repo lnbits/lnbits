@@ -70,18 +70,34 @@ def get_swap_status(swap) -> SwapStatus:
         swap_status.reverse = True
         swap_status.address = swap.lockup_address
 
-    swap_status.mempool = get_mempool_tx_status(swap_status.address)
+
     swap_status.block_height = get_mempool_blockheight()
 
     if swap_status.block_height >= swap.timeout_block_height:
         swap_status.can_refund = True
+        swap_status.hit_timeout = True
         swap_status.message += "hit timeout_block_height"
     else:
         swap_status.message += "timeout_block_height not exceeded"
 
-    if swap_status.mempool == "transaction.unknown":
+
+    mempool_tx = get_mempool_tx(swap_status.address)
+    if mempool_tx == None:
+        swap_status.mempool = "transaction.unknown"
         swap_status.can_refund = False
         swap_status.message += ", lockup_tx not in mempool"
+    else:
+        swap_status.has_lockup = True
+        tx, *_ = get_mempool_tx(address)
+        if output_spent:
+            swap_status.is_done = True
+        else:
+            swap_status.can_refund = True
+
+        if tx["status"]["confirmed"] == True:
+            swap_status.mempool = "transaction.confirmed"
+        else:
+            swap_status.mempool = "transaction.unconfirmed"
 
     if swap_status.can_refund == True:
         swap_status.message += ", refund is possible"
@@ -242,19 +258,6 @@ async def create_refund_tx(swap: SubmarineSwap):
     mempool_lockup_tx = get_mempool_tx(swap.address)
     tx = await create_onchain_tx(swap, mempool_lockup_tx)
     await send_onchain_tx(tx)
-
-
-def get_mempool_tx_status(address):
-    mempool_tx = get_mempool_tx(address)
-    if mempool_tx == None:
-        status = "transaction.unknown"
-    else:
-        tx, *_ = get_mempool_tx(address)
-        if tx["status"]["confirmed"] == True:
-            status = "transaction.confirmed"
-        else:
-            status = "transaction.unconfirmed"
-    return status
 
 
 def get_mempool_tx(address):
@@ -471,5 +474,5 @@ def req_wrap(funcname, *args, **kwargs):
     except httpx.HTTPStatusError as exc:
         msg = f"HTTP Status Error: {exc.response.status_code} while requesting {exc.request.url!r}."
         logger.error(msg)
-        logger.error(exc.response.content)
+        logger.error(exc.response.json()["error"])
         raise

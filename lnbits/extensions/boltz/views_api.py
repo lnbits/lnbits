@@ -1,3 +1,4 @@
+import httpx
 from datetime import datetime
 from http import HTTPStatus
 
@@ -115,8 +116,8 @@ async def api_submarineswap_create(
 ):
     try:
         data = await create_swap(data)
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.json()["error"])
     swap = await create_submarine_swap(data)
     return swap.dict()
 
