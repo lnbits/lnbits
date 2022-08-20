@@ -64,7 +64,6 @@ def get_boltz_pairs():
     return create_get_request(BOLTZ_URL + "/getpairs")
 
 
-
 def get_boltz_pairs():
     return create_get_request(BOLTZ_URL + "/getpairs")
 
@@ -117,7 +116,6 @@ def get_swap_status(swap):
         + " -> "
         + str(block_height),
     }
-
 
 
 def get_swap_status(swap):
@@ -269,12 +267,14 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
 
         # create_task is used because pay_invoice is stuck as long as boltz does not
         # see the onchain claim tx and it ends up in deadlock
-        task = asyncio.create_task(pay_invoice(
-           wallet_id=swap.wallet,
-           payment_request=invoice,
-           description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
-           extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
-        ))
+        task = asyncio.create_task(
+            pay_invoice(
+                wallet_id=swap.wallet,
+                payment_request=invoice,
+                description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
+                extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
+            )
+        )
 
         data = await websocket.recv()
         message = json.loads(data)
@@ -299,10 +299,12 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
             except:
                 await update_swap_status(swap, "failed")
 
+
 async def create_refund_tx(swap: SubmarineSwap):
     mempool_lockup_tx = get_mempool_tx(swap.address)
     tx = await create_onchain_tx(swap, mempool_lockup_tx)
     await send_onchain_tx(tx)
+
 
 async def create_refund_tx(swap: SubmarineSwap):
     mempool_lockup_tx = get_mempool_tx(swap.address)
@@ -418,6 +420,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         bip21=res["bip21"],
         redeem_script=res["redeemScript"],
     )
+
 
 def get_fee_estimation() -> int:
     # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)

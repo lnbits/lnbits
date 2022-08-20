@@ -36,6 +36,7 @@ async def get_submarine_swap(swap_id) -> SubmarineSwap:
     )
     return SubmarineSwap(**row) if row else None
 
+
 async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
 
     await db.execute(
@@ -74,7 +75,6 @@ async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
     return await get_submarine_swap(swap.id)
 
 
-
 async def delete_submarine_swap(swap_id):
     await db.execute("DELETE FROM boltz.submarineswap WHERE id = ?", (swap_id,))
 
@@ -105,7 +105,10 @@ async def get_reverse_submarine_swap(swap_id) -> SubmarineSwap:
     )
     return ReverseSubmarineSwap(**row) if row else None
 
-async def create_reverse_submarine_swap(swap: ReverseSubmarineSwap) -> Optional[ReverseSubmarineSwap]:
+
+async def create_reverse_submarine_swap(
+    swap: ReverseSubmarineSwap,
+) -> Optional[ReverseSubmarineSwap]:
 
     await db.execute(
         """
@@ -143,7 +146,6 @@ async def create_reverse_submarine_swap(swap: ReverseSubmarineSwap) -> Optional[
         ),
     )
     return await get_reverse_submarine_swap(swap.id)
-
 
 
 async def delete_reverse_submarine_swap(swap_id):

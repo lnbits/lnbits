@@ -44,6 +44,7 @@ from .crud import (
 async def api_mempool_url():
     return MEMPOOL_SPACE_URL
 
+
 @boltz_ext.get("/api/v1/mempool-url")
 async def api_mempool_url():
     return MEMPOOL_SPACE_URL
