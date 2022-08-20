@@ -39,7 +39,7 @@ from .crud import (
 )
 
 
-@boltz_ext.get("/api/v1/mempool-url")
+@boltz_ext.get("/api/v1/submarineswap/mempool")
 async def api_mempool_url():
     return MEMPOOL_SPACE_URL
 
@@ -56,7 +56,7 @@ async def api_submarineswap(
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
 
-@boltz_ext.get("/api/v1/submarineswap-refund/{submarineSwapId}")
+@boltz_ext.get("/api/v1/submarineswap/refund/{submarineSwapId}")
 async def api_submarineswap_refund(submarineSwapId: str):
     swap = await get_submarine_swap(submarineSwapId)
     if swap == None:
@@ -82,7 +82,7 @@ async def api_submarineswap_create(
 
 
 # REVERSE SWAP
-@boltz_ext.get("/api/v1/reverse-submarineswap")
+@boltz_ext.get("/api/v1/submarineswap/reverse")
 async def api_reverse_submarineswap(
     g: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
@@ -93,7 +93,7 @@ async def api_reverse_submarineswap(
     return [swap.dict() for swap in await get_reverse_submarine_swaps(wallet_ids)]
 
 
-@boltz_ext.post("/api/v1/reverse-submarineswap")
+@boltz_ext.post("/api/v1/submarineswap/reverse")
 async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
     wallet: WalletTypeInfo = Depends(require_admin_key),
@@ -104,7 +104,7 @@ async def api_reverse_submarineswap_create(
 
 
 # STATUS
-@boltz_ext.get("/api/v1/swap-status/{swap_id}")
+@boltz_ext.get("/api/v1/submarineswap/status/{swap_id}")
 async def api_submarineswap_status(swap_id: str):
     swap = await get_submarine_swap(swap_id)
     if swap == None:
@@ -116,7 +116,7 @@ async def api_submarineswap_status(swap_id: str):
     return get_swap_status(swap)
 
 
-@boltz_ext.get("/api/v1/check-swaps")
+@boltz_ext.get("/api/v1/submarineswap/check")
 async def api_check_swaps(
     g: WalletTypeInfo = Depends(get_key_type),
     all_wallets: bool = Query(False),
@@ -131,7 +131,7 @@ async def api_check_swaps(
     return status
 
 
-@boltz_ext.get("/api/v1/boltz-config")
+@boltz_ext.get("/api/v1/submarineswap/boltz")
 async def api_boltz_config():
     res = get_boltz_pairs()
     return res["pairs"]["BTC/BTC"]
