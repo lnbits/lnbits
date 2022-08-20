@@ -10,7 +10,6 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import perform_lnurlauth, redeem_lnurl_withdraw
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
-
 from .models import (
     SubmarineSwap,
     ReverseSubmarineSwap,
@@ -38,11 +37,6 @@ from .crud import (
     get_reverse_submarine_swaps,
     get_reverse_submarine_swap,
 )
-
-
-@boltz_ext.get("/api/v1/mempool-url")
-async def api_mempool_url():
-    return MEMPOOL_SPACE_URL
 
 
 @boltz_ext.get("/api/v1/mempool-url")

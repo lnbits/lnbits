@@ -3,6 +3,8 @@ from typing import List, Optional, Union
 
 from starlette.exceptions import HTTPException
 
+from loguru import logger
+
 from . import db
 from .models import (
     CreateSubmarineSwap,
@@ -10,7 +12,6 @@ from .models import (
     CreateReverseSubmarineSwap,
     ReverseSubmarineSwap,
 )
-
 
 """
 Submarine Swaps
@@ -155,6 +156,7 @@ async def delete_reverse_submarine_swap(swap_id):
 async def update_swap_status(
     swap: Union[ReverseSubmarineSwap, SubmarineSwap], status: str
 ):
+
     if type(swap) == SubmarineSwap:
         await db.execute(
             "UPDATE boltz.submarineswap SET status='"
@@ -171,4 +173,11 @@ async def update_swap_status(
             + swap.id
             + "'"
         )
+
+    message = f" - swap status change: {status}. boltz_id: {swap.boltz_id}, wallet: {swap.wallet}"
+    if status == "failed":
+        logger.error(message)
+    else:
+        logger.info(message)
+
     return swap
