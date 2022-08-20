@@ -620,7 +620,14 @@
         else {
           var address = swap.address;
         }
-        window.open(this.mempool+"/address/"+address, "_blank");
+        var mempool_address = this.mempool;
+
+        // used for development, replace docker hosts with localhost
+        if (mempool_address.search("mempool-web") !== -1) {
+          mempool_address = mempool_address.replace("mempool-web", "localhost");
+        }
+
+        window.open(mempool_address+"/address/"+address, "_blank");
       },
       openStatusDialog(swap_id, reverse) {
         let url = '/boltz/api/v1/swap-status/'+swap_id
