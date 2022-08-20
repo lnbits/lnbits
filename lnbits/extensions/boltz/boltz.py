@@ -13,6 +13,7 @@ from embit import ec, script
 from embit.networks import NETWORKS
 from embit.transaction import Transaction, TransactionInput, TransactionOutput, SIGHASH
 from binascii import unhexlify, hexlify
+from lnbits.helpers import urlsafe_short_hash
 
 from hashlib import sha256
 
@@ -137,7 +138,7 @@ def get_mempool_blockheight() -> int:
     return value
 
 
-async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
+async def create_reverse_swap(data: CreateReverseSubmarineSwap):
     """explanation taken from electrum
     send on Lightning, receive on-chain
     - User generates preimage, RHASH. Sends RHASH to server.
@@ -148,6 +149,8 @@ async def create_reverse_swap(swap_id, data: CreateReverseSubmarineSwap):
     - Server fulfills HTLC using preimage.
     Note: expected_onchain_amount_sat is BEFORE deducting the on-chain claim tx fee.
     """
+
+    swap_id = urlsafe_short_hash()
 
     # check if we can pay the invoice before we create the actual swap on boltz
     amount_msat = data.amount * 1000
@@ -316,7 +319,7 @@ async def send_onchain_tx(tx: Transaction):
 
 
 # send on on-chain, receive lightning
-async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
+async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
     try:
         payment_hash, payment_request = await create_invoice(
             wallet_id=data.wallet,
@@ -341,6 +344,7 @@ async def create_swap(swap_id: str, data: CreateSubmarineSwap) -> SubmarineSwap:
         },
     )
 
+    swap_id = urlsafe_short_hash()
     return SubmarineSwap(
         id=swap_id,
         time=getTimestamp(),
