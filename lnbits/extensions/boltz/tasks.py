@@ -1,7 +1,9 @@
 import asyncio
+from loguru import logger
 
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
+
 
 from .crud import get_submarine_swap, get_reverse_submarine_swap, update_swap_status
 
@@ -30,7 +32,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         swap = await get_submarine_swap(swap_id)
 
     if not swap:
-        print("swap not found, this should never happen", payment)
+        logger.error("swap not found. updating status failed.")
         return
 
     await update_swap_status(swap, "complete")
