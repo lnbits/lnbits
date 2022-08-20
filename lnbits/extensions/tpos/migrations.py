@@ -35,6 +35,7 @@ async def m003_addtip_options(db):
     """
     )
 
+
 async def m004_add_webhook(db):
     """
     Add webhook functionality to TPoS

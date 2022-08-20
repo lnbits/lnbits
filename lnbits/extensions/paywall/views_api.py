@@ -91,7 +91,7 @@ async def api_paywal_check_invoice(
     try:
         status = await api_payment(payment_hash)
         is_paid = status["paid"]
-        
+
     except Exception:
         return {"paid": False}
 
@@ -102,16 +102,16 @@ async def api_paywal_check_invoice(
 
         if paywall.webhook:
             async with httpx.AsyncClient() as client:
-                    await client.post(
-                        paywall.webhook,
-                        json={
-                            "paywall": paywall.id,
-                            "memo": paywall.memo,
-                            "amount": paywall.amount,
-                            "url": paywall.url,
-                        },
-                        timeout=40,
-                    )
+                await client.post(
+                    paywall.webhook,
+                    json={
+                        "paywall": paywall.id,
+                        "memo": paywall.memo,
+                        "amount": paywall.amount,
+                        "url": paywall.url,
+                    },
+                    timeout=40,
+                )
 
         return {"paid": True, "url": paywall.url, "remembers": paywall.remembers}
     return {"paid": False}
