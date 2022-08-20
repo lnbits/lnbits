@@ -148,13 +148,14 @@ async def create_reverse_submarine_swap(
     return await get_reverse_submarine_swap(swap.id)
 
 
-async def delete_reverse_submarine_swap(swap_id):
-    await db.execute("DELETE FROM boltz.reverse_submarineswap WHERE id = ?", (swap_id,))
+async def update_swap_status(swap_id: str, status: str):
 
+    swap = await get_submarine_swap(swap_id)
+    if swap is None:
+        swap = await get_reverse_submarine_swap(swap_id)
 
-async def update_swap_status(
-    swap: Union[ReverseSubmarineSwap, SubmarineSwap], status: str
-):
+    if swap is None:
+        return None
 
     if type(swap) == SubmarineSwap:
         await db.execute(

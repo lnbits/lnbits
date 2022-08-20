@@ -674,9 +674,8 @@
         LNbits.api
           .request(
             'POST',
-            '/boltz/api/v1/swap/refund',
-            this.g.user.wallets[0].adminkey,
-            {swap_id: swapId}
+            '/boltz/api/v1/swap/refund?swap_id=' + swapId,
+            this.g.user.wallets[0].adminkey
           )
           .then(res => {
             this.resetStatusDialog()
@@ -707,9 +706,8 @@
         LNbits.api
           .request(
             'POST',
-            '/boltz/api/v1/swap/status',
-            this.g.user.wallets[0].adminkey,
-            {swap_id: swap_id}
+            '/boltz/api/v1/swap/status?swap_id=' + swap_id,
+            this.g.user.wallets[0].adminkey
           )
           .then(res => {
             this.resetStatusDialog()
@@ -880,7 +878,7 @@
         LNbits.api
           .request(
             'POST',
-            '/boltz/api/v1/swap/check?all_wallets=true',
+            '/boltz/api/v1/swap/check',
             this.g.user.wallets[0].adminkey
           )
           .then(res => {
