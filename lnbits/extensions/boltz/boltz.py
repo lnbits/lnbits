@@ -44,7 +44,7 @@ if DEBUG:
     MEMPOOL_SPACE_URL = "http://mempool-web:8080"
     MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
 else:
-    net = NETWORKS['main']
+    net = NETWORKS["main"]
     BOLTZ_URL = "https://boltz.exchange/api"
     MEMPOOL_SPACE_URL = "https://mempool.space/api"
     MEMPOOL_SPACE_URL_WS = "ws://mempool.space/api"
