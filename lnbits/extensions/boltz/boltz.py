@@ -229,7 +229,7 @@ def get_fee_estimation() -> int:
 async def create_onchain_tx(swap: Union[ReverseSubmarineSwap, SubmarineSwap]) -> Transaction:
 
     if type(swap) == SubmarineSwap:
-        # current_block_height = get_mempool_blockheight()
+        current_block_height = get_mempool_blockheight()
         if current_block_height <= swap.timeout_block_height:
             msg = f"refund not possible, timeout_block_height ({swap.timeout_block_height}) is not yet exceeded ({current_block_height})"
             raise HTTPException(
