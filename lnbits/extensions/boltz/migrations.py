@@ -27,7 +27,7 @@ async def m001_initial(db):
             wallet TEXT NOT NULL,
             onchain_address TEXT NOT NULL,
             amount INT NOT NULL,
-            instant_settlement INT NOT NULL,
+            instant_settlement BOOLEAN NOT NULL,
             status TEXT NOT NULL,
             boltz_id TEXT NOT NULL,
             timeout_block_height INT NOT NULL,
