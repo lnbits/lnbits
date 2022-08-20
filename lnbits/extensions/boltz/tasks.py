@@ -21,6 +21,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     if "boltz" != payment.extra.get("tag"):
         # not a boltz invoice
         return
+
     await payment.set_pending(False)
     swap_id = payment.extra.get("swap_id")
     if payment.extra.get("reverse") != None:
