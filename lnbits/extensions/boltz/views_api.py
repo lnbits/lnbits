@@ -73,7 +73,7 @@ async def api_submarineswap(
     responses={
         400: {"description": "when swap_id is missing"},
         404: {"description": "when swap is not found"},
-        405: {"description": "when swap is already refunded"},
+        405: {"description": "when swap is not pending"},
         500: {
             "description": "when something goes wrong creating the refund onchain tx"
         },
@@ -91,9 +91,9 @@ async def api_submarineswap_refund(swap_id: str):
             status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
         )
 
-    if swap.status == "refunded":
+    if swap.status != "pending":
         raise HTTPException(
-            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="swap already refunded."
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="swap is not pending."
         )
 
     try:
