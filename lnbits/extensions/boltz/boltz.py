@@ -40,13 +40,13 @@ from .models import (
 if DEBUG:
     net = NETWORKS["regtest"]
     BOLTZ_URL = "http://127.0.0.1:9001"
-    MEMPOOL_SPACE_URL = "http://127.0.0.1:8080/api"
-    MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1:8080/api"
+    MEMPOOL_SPACE_URL = "http://127.0.0.1:8080"
+    MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1:8080"
 else:
     net = NETWORKS["main"]
     BOLTZ_URL = "https://boltz.exchange/api"
-    MEMPOOL_SPACE_URL = "https://mempool.space/api"
-    MEMPOOL_SPACE_URL_WS = "wss://mempool.space/api"
+    MEMPOOL_SPACE_URL = "https://mempool.space"
+    MEMPOOL_SPACE_URL_WS = "wss://mempool.space"
 
 logger.debug(f"MEMPOOL_SPACE_URL: {MEMPOOL_SPACE_URL}")
 logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
@@ -115,7 +115,7 @@ def get_swap_status(swap):
 
 def get_mempool_fees() -> int:
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/v1/fees/recommended",
+        MEMPOOL_SPACE_URL + "/api/v1/fees/recommended",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
@@ -132,7 +132,7 @@ def get_mempool_fees() -> int:
 
 def get_mempool_blockheight() -> int:
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/blocks/tip/height",
+        MEMPOOL_SPACE_URL + "/api/blocks/tip/height",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
@@ -213,7 +213,7 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap):
 
 
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
-    uri = MEMPOOL_SPACE_URL_WS + f"/v1/ws"
+    uri = MEMPOOL_SPACE_URL_WS + f"/api/v1/ws"
     async with connect(uri) as websocket:
         logger.debug(f"Boltz - mempool websocket connected... waiting for onchain tx")
 
@@ -283,7 +283,7 @@ def get_mempool_tx_status(address):
 
 def get_mempool_tx(address):
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/address/" + address + "/txs",
+        MEMPOOL_SPACE_URL + "/api/address/" + address + "/txs",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
@@ -326,7 +326,7 @@ def get_mempool_tx_from_txs(txs, address):
 
 async def send_onchain_tx(tx: Transaction):
     res = httpx.post(
-        MEMPOOL_SPACE_URL + "/tx",
+        MEMPOOL_SPACE_URL + "/api/tx",
         headers={"Content-Type": "text/plain"},
         data=hexlify(tx.serialize()),
         timeout=40,
