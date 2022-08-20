@@ -1,7 +1,7 @@
-import httpx
 from datetime import datetime
 from http import HTTPStatus
 
+import httpx
 from fastapi import status
 from fastapi.encoders import jsonable_encoder
 from fastapi.param_functions import Body
@@ -117,7 +117,9 @@ async def api_submarineswap_create(
     try:
         data = await create_swap(data)
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.json()["error"])
+        raise HTTPException(
+            status_code=exc.response.status_code, detail=exc.response.json()["error"]
+        )
     swap = await create_submarine_swap(data)
     return swap.dict()
 
@@ -173,8 +175,7 @@ async def api_reverse_submarineswap_create(
     },
 )
 async def api_submarineswap_status(
-    swap_id: str,
-    wallet: WalletTypeInfo = Depends(require_admin_key)  #type: ignore
+    swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
 ):
     swap = await get_submarine_swap(swap_id)
     if swap == None:
