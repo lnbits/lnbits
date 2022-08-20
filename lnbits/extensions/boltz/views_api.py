@@ -78,7 +78,14 @@ async def api_submarineswap_refund(
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="swap already refunded."
         )
-    await create_refund_tx(swap)
+
+    try:
+        await create_refund_tx(swap)
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
     await update_swap_status(swap, "refunded")
     return swap
 
@@ -87,7 +94,12 @@ async def api_submarineswap_refund(
 async def api_submarineswap_create(
     data: CreateSubmarineSwap, wallet: WalletTypeInfo = Depends(require_admin_key)
 ):
-    data = await create_swap(data)
+    try:
+        data = await create_swap(data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        )
     swap = await create_submarine_swap(data)
     return swap.dict()
 
@@ -119,7 +131,13 @@ async def api_reverse_submarineswap_create(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )
 
-    data, task = await create_reverse_swap(data)
+    try:
+        data, task = await create_reverse_swap(data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
 
@@ -156,5 +174,11 @@ async def api_check_swaps(
 
 @boltz_ext.get("/api/v1/swap/boltz")
 async def api_boltz_config():
-    res = get_boltz_pairs()
+    try:
+        res = get_boltz_pairs()
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
     return res["pairs"]["BTC/BTC"]
