@@ -1,5 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
+from pydantic import BaseModel
 
 from fastapi.param_functions import Body
 from fastapi.params import Depends, Query
@@ -35,6 +36,8 @@ from .models import (
     SubmarineSwap,
 )
 
+class SwapId(BaseModel):
+    swap_id: str
 
 @boltz_ext.get("/api/v1/swap/mempool")
 async def api_mempool_url():
@@ -52,17 +55,25 @@ async def api_submarineswap(
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
+@boltz_ext.post("/api/v1/swap/refund")
+async def api_submarineswap_refund(
+    g: WalletTypeInfo = Depends(get_key_type),
+    q: SwapId = Body(),
+):
+    if q.swap_id == None:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="swap_id missing"
+        )
 
-@boltz_ext.get("/api/v1/swap/refund/{submarineSwapId}")
-async def api_submarineswap_refund(submarineSwapId: str):
-    swap = await get_submarine_swap(submarineSwapId)
+    swap = await get_submarine_swap(q.swap_id)
     if swap == None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="submarine swap does not exist."
         )
+
     if swap.status == "refunded":
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="swap already refunded."
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="swap already refunded."
         )
     await create_refund_tx(swap)
     await update_swap_status(swap, "refunded")
@@ -101,11 +112,14 @@ async def api_reverse_submarineswap_create(
 
 
 # STATUS
-@boltz_ext.get("/api/v1/swap/status/{swap_id}")
-async def api_submarineswap_status(swap_id: str):
-    swap = await get_submarine_swap(swap_id)
+@boltz_ext.post("/api/v1/swap/status")
+async def api_submarineswap_status(
+    g: WalletTypeInfo = Depends(get_key_type),
+    q: SwapId = Body(),
+):
+    swap = await get_submarine_swap(q.swap_id)
     if swap == None:
-        swap = await get_reverse_submarine_swap(swap_id)
+        swap = await get_reverse_submarine_swap(q.swap_id)
         if swap == None:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
@@ -113,10 +127,10 @@ async def api_submarineswap_status(swap_id: str):
     return get_swap_status(swap)
 
 
-@boltz_ext.get("/api/v1/swap/check")
+@boltz_ext.post("/api/v1/swap/check")
 async def api_check_swaps(
     g: WalletTypeInfo = Depends(get_key_type),
-    all_wallets: bool = Query(False),
+    all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
