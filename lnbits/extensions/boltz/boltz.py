@@ -13,7 +13,6 @@ from embit import ec, script
 from embit.networks import NETWORKS
 from embit.transaction import SIGHASH, Transaction, TransactionInput, TransactionOutput
 from loguru import logger
-from starlette.exceptions import HTTPException
 from websockets import connect
 
 from lnbits import bolt11
@@ -37,44 +36,20 @@ from .models import (
     SubmarineSwap,
 )
 
-if DEBUG:
-    net = NETWORKS["regtest"]
-    BOLTZ_URL = "http://127.0.0.1:9001"
-    MEMPOOL_SPACE_URL = "http://127.0.0.1:8080"
-    MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1:8080"
-else:
-    net = NETWORKS["main"]
-    BOLTZ_URL = "https://boltz.exchange/api"
-    MEMPOOL_SPACE_URL = "https://mempool.space"
-    MEMPOOL_SPACE_URL_WS = "wss://mempool.space"
+# if DEBUG:
+net = NETWORKS["regtest"]
+BOLTZ_URL = "http://127.0.0.1:9001"
+MEMPOOL_SPACE_URL = "http://127.0.0.1:8080"
+MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1:8080"
+# else:
+#     net = NETWORKS["main"]
+#     BOLTZ_URL = "https://boltz.exchange/api"
+#     MEMPOOL_SPACE_URL = "https://mempool.space"
+#     MEMPOOL_SPACE_URL_WS = "wss://mempool.space"
 
 logger.debug(f"MEMPOOL_SPACE_URL: {MEMPOOL_SPACE_URL}")
 logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
 logger.debug(f"Bitcoin Network: {net['name']}")
-
-
-def get_boltz_pairs():
-    try:
-        res = httpx.get(
-            BOLTZ_URL + "/getpairs",
-            headers={"Content-Type": "application/json"},
-            timeout=40,
-        )
-        handle_request_errors(res)
-        return res.json()
-    except httpx.RequestError as exc:
-        msg = f"BOLTZ_URL is unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
-
-
-def get_boltz_status(boltzid):
-    return create_post_request(
-        BOLTZ_URL + "/swapstatus",
-        {
-            "id": boltzid,
-        },
-    )
 
 
 def get_swap_status(swap):
@@ -106,62 +81,16 @@ def get_swap_status(swap):
     if can_refund == True:
         status += ", refund is possible"
 
+    timeout_block_height = f"{str(swap.timeout_block_height)} -> {str(block_height)}"
+
     return {
         "wallet": swap.wallet,
         "status": status,
         "swap_id": swap.id,
         "boltz": boltz_status,
         "mempool": mempool_status,
-        "timeout_block_height": str(swap.timeout_block_height)
-        + " -> "
-        + str(block_height),
+        "timeout_block_height": timeout_block_height,
     }
-
-
-def get_mempool_fees() -> int:
-    try:
-        res = httpx.get(
-            MEMPOOL_SPACE_URL + "/api/v1/fees/recommended",
-            headers={"Content-Type": "text/plain"},
-            timeout=40,
-        )
-        handle_request_errors(res)
-        data = json.loads(res.text)
-        try:
-            value = int(data["hourFee"])
-        except ValueError:
-            msg = "get_mempool_fees: " + data["hourFee"] + " value is not an integer"
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg
-            )
-
-        return value
-    except httpx.RequestError as exc:
-        msg = f"MEMPOOL_URL is unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
-
-
-def get_mempool_blockheight() -> int:
-    try:
-        res = httpx.get(
-            MEMPOOL_SPACE_URL + "/api/blocks/tip/height",
-            headers={"Content-Type": "text/plain"},
-            timeout=40,
-        )
-        handle_request_errors(res)
-        try:
-            value = int(res.text)
-        except ValueError:
-            msg = "get_mempool_blockheight: " + res.text + " value is not an integer"
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg
-            )
-        return value
-    except httpx.RequestError as exc:
-        msg = f"MEMPOOL_URL is unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 async def create_reverse_swap(
@@ -186,7 +115,7 @@ async def create_reverse_swap(
     wallet = await get_wallet(data.wallet)
     assert wallet
     if wallet.balance_msat - fee_reserve_msat < amount_msat:
-        logger.debug(
+        logger.error(
             f"Boltz - reverse swap, insufficient balance. this should never be called before checking: {wallet.balance_msat} msat"
         )
         return False
@@ -196,17 +125,21 @@ async def create_reverse_swap(
     preimage = os.urandom(32)
     preimage_hash = sha256(preimage).hexdigest()
 
-    res = create_post_request(
-        BOLTZ_URL + "/createswap",
-        {
+    res = req_wrap(
+        "post",
+        f"{BOLTZ_URL}/createswap",
+        json={
             "type": "reversesubmarine",
             "pairId": "BTC/BTC",
             "orderSide": "buy",
             "invoiceAmount": data.amount,
             "preimageHash": preimage_hash,
             "claimPublicKey": claim_pubkey_hex,
+            "referralId": "lnbits",
         },
+        headers={"Content-Type": "application/json"},
     )
+    res = res.json()
 
     logger.info(
         f"Boltz - created reverse swap, boltz_id: {res['id']}. wallet: {data.wallet}"
@@ -234,10 +167,8 @@ async def create_reverse_swap(
 
 
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
-    uri = MEMPOOL_SPACE_URL_WS + f"/api/v1/ws"
-    async with connect(uri) as websocket:
+    async with connect(f"{MEMPOOL_SPACE_URL_WS}/api/v1/ws") as websocket:
         logger.debug(f"Boltz - mempool websocket connected... waiting for onchain tx")
-
         await websocket.send(json.dumps({"track-address": swap.lockup_address}))
 
         # create_task is used because pay_invoice is stuck as long as boltz does not
@@ -260,9 +191,7 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
             txs = message["address-transactions"]
         except IndexError as e:
             logger.error("Boltz - index error in mempool address-transactions")
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="no txs in mempool"
-            )
+            raise Exception("no txs in mempool")
 
         mempool_lockup_tx = get_mempool_tx_from_txs(txs, swap.lockup_address)
         if mempool_lockup_tx:
@@ -294,7 +223,7 @@ def get_mempool_tx_status(address):
     if mempool_tx == None:
         status = "transaction.unknown"
     else:
-        tx, _, _, _ = get_mempool_tx(address)
+        tx, *_ = get_mempool_tx(address)
         if tx["status"]["confirmed"] == True:
             status = "transaction.confirmed"
         else:
@@ -303,67 +232,32 @@ def get_mempool_tx_status(address):
 
 
 def get_mempool_tx(address):
-    try:
-        res = httpx.get(
-            MEMPOOL_SPACE_URL + "/api/address/" + address + "/txs",
-            headers={"Content-Type": "text/plain"},
-            timeout=40,
-        )
-        handle_request_errors(res)
-        txs = json.loads(res.text)
-        return get_mempool_tx_from_txs(txs, address)
-    except httpx.RequestError as exc:
-        msg = f"MEMPOOL_SPACE_URL is unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
+    res = req_wrap(
+        "get",
+        f"{MEMPOOL_SPACE_URL}/api/address/{address}/txs",
+        headers={"Content-Type": "text/plain"},
+    )
+    txs = json.loads(res.text)
+    return get_mempool_tx_from_txs(txs, address)
 
 
 def get_mempool_tx_from_txs(txs, address):
     if len(txs) == 0:
         return None
-    tx = None
-    txid = None
-    vout_cnt = None
-    vout_amount = None
-    for a_tx in txs:
-        i = 0
+    tx, txid, vout_cnt, vout_amount = None
+    for i, a_tx in enumerate(txs):
         for vout in a_tx["vout"]:
             if vout["scriptpubkey_address"] == address:
                 tx = a_tx
                 txid = a_tx["txid"]
                 vout_cnt = i
                 vout_amount = vout["value"]
-            i += 1
     # should never happen
     if tx == None:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="tx not found"
-        )
+        raise Exception("mempool tx not found")
     if txid == None:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="txid not found"
-        )
-    if vout_cnt == None:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="vout_cnt not found"
-        )
+        raise Exception("mempool txid not found")
     return tx, txid, vout_cnt, vout_amount
-
-
-async def send_onchain_tx(tx: Transaction):
-    try:
-        res = httpx.post(
-            MEMPOOL_SPACE_URL + "/api/tx",
-            headers={"Content-Type": "text/plain"},
-            data=hexlify(tx.serialize()),
-            timeout=40,
-        )
-        handle_request_errors(res)
-        return res
-    except httpx.RequestError as exc:
-        msg = f"MEMPOOL_SPACE_URL is unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 # send on on-chain, receive lightning
@@ -377,21 +271,27 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
             extra={"tag": "boltz", "swap_id": swap_id},
         )
     except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+        msg = "Boltz swap create_invoice failed"
+        logger.error(msg)
+        raise Exception(msg)
 
     refund_privkey = ec.PrivateKey(os.urandom(32), True, net)
     refund_pubkey_hex = hexlify(refund_privkey.sec()).decode("UTF-8")
 
-    res = create_post_request(
-        BOLTZ_URL + "/createswap",
-        {
+    res = req_wrap(
+        "post",
+        f"{BOLTZ_URL}/createswap",
+        json={
             "type": "submarine",
             "pairId": "BTC/BTC",
             "orderSide": "sell",
             "refundPublicKey": refund_pubkey_hex,
             "invoice": payment_request,
+            "referralId": "lnbits",
         },
+        headers={"Content-Type": "application/json"},
     )
+    res = res.json()
     logger.info(
         f"Boltz - created normal swap, boltz_id: {res['id']}. wallet: {data.wallet}"
     )
@@ -434,7 +334,8 @@ async def create_onchain_tx(
         current_block_height = get_mempool_blockheight()
         if current_block_height <= swap.timeout_block_height:
             msg = f"refund not possible, timeout_block_height ({swap.timeout_block_height}) is not yet exceeded ({current_block_height})"
-            raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=msg)
+            logger.debug(msg)
+            raise Exception(msg)
         privkey = ec.PrivateKey.from_wif(swap.refund_privkey)
         onchain_address = swap.refund_address
         sequence = 0xFFFFFFFE
@@ -481,29 +382,67 @@ def get_timestamp():
     return calendar.timegm(date.utctimetuple())
 
 
-def create_post_request(url, payload={}):
-    payload["referralId"] = "lnbits"
-    try:
-        res = httpx.post(
-            url,
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=40,
-        )
-        handle_request_errors(res)
-        return res.json()
-    except httpx.RequestError as exc:
-        msg = f"URL is unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
+def get_boltz_pairs():
+    res = req_wrap(
+        "get",
+        f"{BOLTZ_URL}/getpairs",
+        headers={"Content-Type": "application/json"},
+    )
+    return res.json()
 
 
-def handle_request_errors(res):
+def get_boltz_status(boltzid):
+    res = req_wrap(
+        "post",
+        f"{BOLTZ_URL}/swapstatus",
+        json={"id": boltzid},
+    )
+    return res.json()
+
+
+def get_mempool_fees() -> int:
+    res = req_wrap(
+        "get",
+        f"{MEMPOOL_SPACE_URL}/api/v1/fees/recommended",
+        headers={"Content-Type": "text/plain"},
+    )
+    return int(res.text)
+
+
+def get_mempool_blockheight() -> int:
+    res = req_wrap(
+        "get",
+        f"{MEMPOOL_SPACE_URL}/api/blocks/tip/height",
+        headers={"Content-Type": "text/plain"},
+    )
+    return int(res.text)
+
+
+async def send_onchain_tx(tx: Transaction):
+    res = req_wrap(
+        "post",
+        f"{MEMPOOL_SPACE_URL}/api/tx",
+        headers={"Content-Type": "text/plain"},
+        data=hexlify(tx.serialize()),
+    )
+    return res.json()
+
+
+def req_wrap(funcname, *args, **kwargs):
     try:
+        try:
+            func = getattr(httpx, funcname)
+        except AttributeError:
+            logger.error('httpx function not found "%s"' % funcname)
+        else:
+            res = func(*args, timeout=30, **kwargs)
         res.raise_for_status()
+        return res
+    except httpx.RequestError as exc:
+        msg = f"Unreachable: {exc.request.url!r}."
+        logger.error(msg)
+        raise Exception(msg)
     except httpx.HTTPStatusError as exc:
-        content = exc.response.content.decode("UTF-8")
-        if content:
-            content = f" Content: {content}"
-        msg = f"Error response {exc.response.status_code} while requesting {exc.request.url!r}.{content}"
-        raise HTTPException(status_code=exc.response.status_code, detail=msg)
+        msg = f"HTTP Status Error: {exc.response.status_code} while requesting {exc.request.url!r}."
+        logger.error(msg)
+        raise Exception(msg)
