@@ -6,9 +6,6 @@ from starlette.responses import HTMLResponse
 from lnbits.core.models import Payment, User
 from lnbits.decorators import check_user_exists
 
-# from lnbits.extensions.swap.crud import get_recurrents
-# from lnbits.extensions.swap.tasks import on_invoice_paid
-
 from . import boltz_ext, boltz_renderer
 
 templates = Jinja2Templates(directory="templates")
