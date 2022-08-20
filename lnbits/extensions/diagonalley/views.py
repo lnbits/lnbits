@@ -32,7 +32,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 
 @diagonalley_ext.get("/{stall_id}", response_class=HTMLResponse)
 async def display(request: Request, stall_id):
-    # test_qty = 99    
+    # test_qty = 10    
     # test = [
     #     {"product_id": "55vpVjWAuQExHsJxT28MYe", "quantity": test_qty},
     #     {"product_id": "f2eGNsEWgbLJbfAApd3Jw5", "quantity": test_qty},

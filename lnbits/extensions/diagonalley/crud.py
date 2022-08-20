@@ -290,7 +290,7 @@ async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
 
 async def update_diagonalley_product_stock(products):
     
-    q = "\n".join([f"""WHEN id='{p["product_id"]}' THEN {p["quantity"]}""" for p in products])
+    q = "\n".join([f"""WHEN id='{p.product_id}' THEN quantity - {p.quantity}""" for p in products])
     v = ",".join(["?"] * len(products))
     
     await db.execute(
@@ -301,7 +301,7 @@ async def update_diagonalley_product_stock(products):
                         END)
             WHERE id IN ({v});
         """,
-        (*[p["product_id"] for p in products],)
+        (*[p.product_id for p in products],)
     )
 
 async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:

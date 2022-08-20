@@ -5,7 +5,12 @@ from loguru import logger
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_diagonalley_order_invoiceid, set_diagonalley_order_paid
+from .crud import (
+    get_diagonalley_order_details,
+    get_diagonalley_order_invoiceid,
+    set_diagonalley_order_paid,
+    update_diagonalley_product_stock,
+)
 
 
 async def wait_for_paid_invoices():
@@ -30,6 +35,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     await set_diagonalley_order_paid(payment.payment_hash)
     
     # deduct items sold from stock
+    details = await get_diagonalley_order_details(order.id)
+    await update_diagonalley_product_stock(details)
     
-    # TODO
 
