@@ -145,7 +145,7 @@ def get_mempool_blockheight() -> int:
     return value
 
 
-async def create_reverse_swap(data: CreateReverseSubmarineSwap):
+async def create_reverse_swap(data: CreateReverseSubmarineSwap) -> ReverseSubmarineSwap:
     """explanation taken from electrum
     send on Lightning, receive on-chain
     - User generates preimage, RHASH. Sends RHASH to server.
@@ -165,9 +165,10 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap):
     wallet = await get_wallet(data.wallet)
     assert wallet
     if wallet.balance_msat - fee_reserve_msat < amount_msat:
-        raise HTTPException(
-            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
+        logger.debug(
+            f"Boltz - reverse swap, insufficient balance. this should never be called before checking: {wallet.balance_msat} msat"
         )
+        return False
 
     claim_privkey = ec.PrivateKey(os.urandom(32), True, net)
     claim_pubkey_hex = hexlify(claim_privkey.sec()).decode("UTF-8")
