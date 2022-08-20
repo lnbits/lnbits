@@ -14,10 +14,7 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 from . import boltz_ext
 from .boltz import (
     MEMPOOL_SPACE_URL,
-    create_refund_tx,
-    create_reverse_swap,
-    create_swap,
-    get_boltz_pairs,
+    create_refund_tx, create_reverse_swap, create_swap, get_boltz_pairs,
     get_swap_status,
 )
 from .crud import (
@@ -58,12 +55,27 @@ async def api_submarineswap(
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
 
-@boltz_ext.post("/api/v1/swap/refund")
+@boltz_ext.post(
+    "/api/v1/swap/refund",
+    name=f"boltz.swap_refund",
+    summary="refund of a swap",
+    description="""
+        This endpoint attempts to refund a normal swaps, creates onchain tx and sets swap status ro refunded.
+    """,
+    response_description="refunded swap with status set to refunded",
+    dependencies=[Depends(require_admin_key)],
+    response_model=str,
+    responses={
+        400: {"description": "when swap_id is missing"},
+        404: {"description": "when swap is not found"},
+        405: {"description": "when swap is already refunded"},
+        500: {"description": "when something goes wrong creating the refund onchain tx"},
+    },
+)
 async def api_submarineswap_refund(
-    g: WalletTypeInfo = Depends(get_key_type),
-    q: SwapId = Body(),
+    swap_id: int = Query(..., description="The ID of the swap"),
 ):
-    if q.swap_id == None:
+    if swap_id == None:
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail="swap_id missing"
         )
@@ -143,14 +155,26 @@ async def api_reverse_submarineswap_create(
 
 
 # STATUS
-@boltz_ext.post("/api/v1/swap/status")
+@boltz_ext.post(
+    "/api/v1/swap/status",
+    name=f"boltz.swap_status",
+    summary="shows the status of a swap",
+    description="""
+        This endpoint attempts to get the status of the swap.
+    """,
+    response_description="status of swap json",
+    dependencies=[Depends(require_admin_key)],
+    response_model=str,
+    responses={
+        404: {"description": "when swap_id is not found"},
+    },
+)
 async def api_submarineswap_status(
-    g: WalletTypeInfo = Depends(get_key_type),
-    q: SwapId = Body(),
+    swap_id: int = Query(..., description="The ID of the swap"),
 ):
-    swap = await get_submarine_swap(q.swap_id)
+    swap = await get_submarine_swap(swap_id)
     if swap == None:
-        swap = await get_reverse_submarine_swap(q.swap_id)
+        swap = await get_reverse_submarine_swap(swap_id)
         if swap == None:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
@@ -158,9 +182,18 @@ async def api_submarineswap_status(
     return get_swap_status(swap)
 
 
-@boltz_ext.post("/api/v1/swap/check")
+@boltz_ext.post(
+    "/api/v1/swap/check",
+    name=f"boltz.swap_check",
+    summary="list all pending swaps",
+    description="""
+        This endpoint gives you a list of pending swaps.
+    """,
+    response_description="list of pending swaps",
+)
 async def api_check_swaps(
-    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(require_admin_key),
+    all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
