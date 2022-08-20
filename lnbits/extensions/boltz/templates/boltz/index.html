@@ -635,7 +635,7 @@
         hiddenElement.click();
       },
       refundSwap(swapId) {
-        let url = '/boltz/api/v1/submarineswap-refund/'+swapId
+        let url = '/boltz/api/v1/swap/refund/'+swapId
         LNbits.api
           .request('GET', url)
           .then(res => {
@@ -665,7 +665,7 @@
         window.open(mempool_address+"/address/"+address, "_blank");
       },
       openStatusDialog(swap_id, reverse) {
-        let url = '/boltz/api/v1/swap-status/'+swap_id
+        let url = '/boltz/api/v1/swap/status/'+swap_id
         LNbits.api
           .request('GET', url)
           .then(res => {
@@ -746,7 +746,7 @@
       },
       createSubmarineSwap(wallet, data){
         LNbits.api
-          .request('POST', '/boltz/api/v1/submarineswap', this.g.user.wallets[0].adminkey, data)
+          .request('POST', '/boltz/api/v1/swap', this.g.user.wallets[0].adminkey, data)
           .then(res => {
             this.submarineSwaps.unshift(res.data);
             this.resetSubmarineSwapDialog();
@@ -758,7 +758,7 @@
       },
       createReverseSubmarineSwap(wallet, data){
         LNbits.api
-          .request('POST', '/boltz/api/v1/reverse-submarineswap', this.g.user.wallets[0].adminkey, data)
+          .request('POST', '/boltz/api/v1/swap/reverse', this.g.user.wallets[0].adminkey, data)
           .then(res => {
             this.reverseSubmarineSwaps.unshift(res.data);
             this.resetReverseSubmarineSwapDialog();
@@ -771,7 +771,7 @@
         LNbits.api
           .request(
             'GET',
-            '/boltz/api/v1/submarineswap?all_wallets=true',
+            '/boltz/api/v1/swap?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -785,7 +785,7 @@
         LNbits.api
           .request(
             'GET',
-            '/boltz/api/v1/reverse-submarineswap?all_wallets=true',
+            '/boltz/api/v1/swap/reverse?all_wallets=true',
             this.g.user.wallets[0].inkey
           )
           .then(response => {
@@ -796,7 +796,7 @@
           })
       },
       getMempool(){
-        LNbits.api.request('GET', '/boltz/api/v1/mempool-url')
+        LNbits.api.request('GET', '/boltz/api/v1/swap/mempool')
           .then(res => {
             this.mempool = res.data;
           })
@@ -806,7 +806,7 @@
           });
       },
       getBoltzConfig(){
-        LNbits.api.request('GET', '/boltz/api/v1/boltz-config')
+        LNbits.api.request('GET', '/boltz/api/v1/swap/boltz')
           .then(res => {
             this.boltzConfig = res;
           })
@@ -816,7 +816,7 @@
           });
       },
       checkSwaps(){
-        LNbits.api.request('GET', '/boltz/api/v1/check-swaps?all_wallets=true', this.g.user.wallets[0].inkey)
+        LNbits.api.request('GET', '/boltz/api/v1/swap/check?all_wallets=true', this.g.user.wallets[0].inkey)
           .then(res => {
             this.allStatusDialog.data = {
               swaps: res.data
