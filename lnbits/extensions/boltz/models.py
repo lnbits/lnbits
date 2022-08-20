@@ -23,9 +23,9 @@ class SubmarineSwap(BaseModel):
 
 
 class CreateSubmarineSwap(BaseModel):
-    wallet: str = Query(...) #type: ignore
-    refund_address: str = Query(...) #type: ignore
-    amount: int = Query(..., ge=10000, le=4294967) #type: ignore
+    wallet: str = Query(...)  # type: ignore
+    refund_address: str = Query(...)  # type: ignore
+    amount: int = Query(..., ge=10000, le=4294967)  # type: ignore
 
 
 class ReverseSubmarineSwap(BaseModel):
@@ -46,9 +46,9 @@ class ReverseSubmarineSwap(BaseModel):
 
 
 class CreateReverseSubmarineSwap(BaseModel):
-    wallet: str = Query(...) #type: ignore
-    amount: int = Query(..., ge=10000, le=4294967) #type: ignore
-    instant_settlement: bool = Query(...) #type: ignore
+    wallet: str = Query(...)  # type: ignore
+    amount: int = Query(..., ge=10000, le=4294967)  # type: ignore
+    instant_settlement: bool = Query(...)  # type: ignore
     # validate on-address, bcrt1 for regtest addresses
     onchain_address: str = Query(
         ..., regex="^(bcrt1|bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$"

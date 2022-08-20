@@ -46,6 +46,7 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
+from .utils import check_balance
 
 
 @boltz_ext.get("/api/v1/swap/mempool")

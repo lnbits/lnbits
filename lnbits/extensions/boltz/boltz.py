@@ -1,7 +1,4 @@
 import asyncio
-import calendar
-import datetime
-import json
 import os
 from binascii import hexlify, unhexlify
 from hashlib import sha256
@@ -13,27 +10,21 @@ from embit import ec, script
 from embit.networks import NETWORKS
 from embit.transaction import SIGHASH, Transaction, TransactionInput, TransactionOutput
 from loguru import logger
-from websockets import connect
 
-from lnbits import bolt11
-from lnbits.core.services import (
-    create_invoice,
-    create_payment,
-    delete_payment,
-    fee_reserve,
-    get_wallet,
-    pay_invoice,
-)
+from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.helpers import urlsafe_short_hash
-from lnbits.settings import (
-    BOLTZ_MEMPOOL_SPACE_URL,
-    BOLTZ_MEMPOOL_SPACE_URL_WS,
-    BOLTZ_NETWORK,
-    BOLTZ_URL,
-    DEBUG,
-)
+from lnbits.settings import BOLTZ_NETWORK, BOLTZ_URL
 
 from .crud import update_swap_status
+from .mempool import (
+    get_fee_estimation,
+    get_mempool_blockheight,
+    get_mempool_fees,
+    get_mempool_tx,
+    get_mempool_tx_from_txs,
+    send_onchain_tx,
+    wait_for_websocket_message,
+)
 from .models import (
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
@@ -41,6 +32,7 @@ from .models import (
     SubmarineSwap,
     SwapStatus,
 )
+from .utils import check_balance, get_timestamp, req_wrap
 
 net = NETWORKS[BOLTZ_NETWORK]
 
