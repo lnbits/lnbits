@@ -35,4 +35,7 @@ async def on_invoice_paid(payment: Payment) -> None:
         logger.error("swap not found. updating status failed.")
         return
 
+    logger.info(
+        f"Boltz - lightning invoice is paid, normal swap completed. swap_id: {swap.id}"
+    )
     await update_swap_status(swap, "complete")

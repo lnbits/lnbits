@@ -173,7 +173,7 @@ async def update_swap_status(
             + "'"
         )
 
-    message = f" - swap status change: {status}. boltz_id: {swap.boltz_id}, wallet: {swap.wallet}"
+    message = f"Boltz - swap status change: {status}. boltz_id: {swap.boltz_id}, wallet: {swap.wallet}"
     if status == "failed":
         logger.error(message)
     else:
