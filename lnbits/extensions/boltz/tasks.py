@@ -34,8 +34,8 @@ async def check_for_pending_swaps():
             if swap_status.exists is False:
                 logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
                 await update_swap_status(swap.id, "failed")
-            if swap_status.hit_timeout is True:
-                if swap_status.has_lockup is False:
+            if swap_status.hit_timeout:
+                if not swap_status.has_lockup:
                     logger.debug(
                         f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
                     )
@@ -46,7 +46,10 @@ async def check_for_pending_swaps():
                         await update_swap_status(swap.id, "complete")
                     else:
                         if swap_status.can_refund is True:
+                            # TODO: actual refund
                             logger.debug(f"Boltz - refunding swap: {swap.id}...")
+                            # await update_swap_status(swap.id, "refunded")
+
         except Exception as exc:
             logger.error(f"Boltz - swap: {swap.id} - {str(exc)}")
 
@@ -57,6 +60,7 @@ async def check_for_pending_swaps():
             logger.debug(
                 f"Boltz - reverse_swap: {reverse_swap.id} - {swap_status.message}"
             )
+            # TODO: instant settlement
             if swap_status.exists is False:
                 logger.debug(
                     f"Boltz - reverse_swap: {reverse_swap.boltz_id} does not exist."

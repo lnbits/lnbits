@@ -2,7 +2,6 @@ import asyncio
 import os
 from binascii import hexlify, unhexlify
 from hashlib import sha256
-from http import HTTPStatus
 from typing import Awaitable, Union
 
 import httpx
@@ -35,69 +34,59 @@ from .models import (
 from .utils import check_balance, get_timestamp, req_wrap
 
 net = NETWORKS[BOLTZ_NETWORK]
-
-logger.debug(f"BOLTZ_MEMPOOL_SPACE_URL: {BOLTZ_MEMPOOL_SPACE_URL}")
-logger.debug(f"BOLTZ_MEMPOOL_SPACE_URL_WS: {BOLTZ_MEMPOOL_SPACE_URL_WS}")
 logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
 logger.debug(f"Bitcoin Network: {net['name']}")
 
 
-def get_swap_status(swap) -> SwapStatus:
-    swap_status = SwapStatus(
-        wallet=swap.wallet,
-        swap_id=swap.id,
-    )
+async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
+    swap_id = urlsafe_short_hash()
     try:
-        boltz_request = get_boltz_status(swap.boltz_id)
-        swap_status.boltz = boltz_request["status"]
-    except httpx.HTTPStatusError as exc:
-        json = exc.response.json()
-        swap_status.boltz = json["error"]
-        if "could not find" in swap_status.boltz:
-            swap_status.exists = False
+        payment_hash, payment_request = await create_invoice(
+            wallet_id=data.wallet,
+            amount=data.amount,
+            memo=f"submarine swap of {data.amount} sats on boltz.exchange",
+            extra={"tag": "boltz", "swap_id": swap_id},
+        )
+    except Exception as exc:
+        msg = f"Boltz - create_invoice failed {str(exc)}"
+        logger.error(msg)
+        raise
 
-    if type(swap) == SubmarineSwap:
-        swap_status.reverse = False
-        swap_status.address = swap.address
-    else:
-        swap_status.reverse = True
-        swap_status.address = swap.lockup_address
+    refund_privkey = ec.PrivateKey(os.urandom(32), True, net)
+    refund_pubkey_hex = hexlify(refund_privkey.sec()).decode("UTF-8")
 
-    swap_status.block_height = get_mempool_blockheight()
-
-    if swap_status.block_height >= swap.timeout_block_height:
-        swap_status.can_refund = True
-        swap_status.hit_timeout = True
-        swap_status.message += "hit timeout_block_height"
-    else:
-        swap_status.message += "timeout_block_height not exceeded"
-
-    mempool_tx = get_mempool_tx(swap_status.address)
-    if mempool_tx == None:
-        swap_status.mempool = "transaction.unknown"
-        swap_status.can_refund = False
-        swap_status.message += ", lockup_tx not in mempool"
-    else:
-        swap_status.has_lockup = True
-        tx, *_ = get_mempool_tx(swap_status.address)
-        if output_spent:
-            swap_status.is_done = True
-        else:
-            swap_status.can_refund = True
-
-        if tx["status"]["confirmed"] == True:
-            swap_status.mempool = "transaction.confirmed"
-        else:
-            swap_status.mempool = "transaction.unconfirmed"
-
-    if swap_status.can_refund == True:
-        swap_status.message += ", refund is possible"
-
-    swap_status.timeout_block_height = (
-        f"{str(swap.timeout_block_height)} -> {str(swap_status.block_height)}"
+    res = req_wrap(
+        "post",
+        f"{BOLTZ_URL}/createswap",
+        json={
+            "type": "submarine",
+            "pairId": "BTC/BTC",
+            "orderSide": "sell",
+            "refundPublicKey": refund_pubkey_hex,
+            "invoice": payment_request,
+            "referralId": "lnbits",
+        },
+        headers={"Content-Type": "application/json"},
     )
-
-    return swap_status
+    res = res.json()
+    logger.info(
+        f"Boltz - created normal swap, boltz_id: {res['id']}. wallet: {data.wallet}"
+    )
+    return SubmarineSwap(
+        id=swap_id,
+        time=get_timestamp(),
+        wallet=data.wallet,
+        amount=data.amount,
+        refund_privkey=refund_privkey.wif(net),
+        refund_address=data.refund_address,
+        boltz_id=res["id"],
+        status="pending",
+        address=res["address"],
+        expected_amount=res["expectedAmount"],
+        timeout_block_height=res["timeoutBlockHeight"],
+        bip21=res["bip21"],
+        redeem_script=res["redeemScript"],
+    )
 
 
 async def create_reverse_swap(
@@ -116,14 +105,9 @@ async def create_reverse_swap(
 
     swap_id = urlsafe_short_hash()
 
-    # check if we can pay the invoice before we create the actual swap on boltz
-    amount_msat = data.amount * 1000
-    fee_reserve_msat = fee_reserve(amount_msat)
-    wallet = await get_wallet(data.wallet)
-    assert wallet
-    if wallet.balance_msat - fee_reserve_msat < amount_msat:
+    if not await check_balance(data):
         logger.error(
-            f"Boltz - reverse swap, insufficient balance. this should never be called before checking: {wallet.balance_msat} msat"
+            f"Boltz - reverse swap, insufficient balance. create_reverse_swap should never be called before balance checking."
         )
         return False
 
@@ -166,13 +150,15 @@ async def create_reverse_swap(
         lockup_address=res["lockupAddress"],
         onchain_amount=res["onchainAmount"],
         redeem_script=res["redeemScript"],
+        invoice=res["invoice"],
         time=get_timestamp(),
     )
 
     logger.debug(f"Boltz - waiting for onchain tx, reverse swap_id: {swap.id}")
-    return swap, create_task_log_exception(
-        swap.id, wait_for_onchain_tx(swap, res["invoice"])
+    task: asyncio.Task = create_task_log_exception(
+        swap.id, wait_for_onchain_tx(swap, swap_websocket_callback_initial)
     )
+    return swap, task
 
 
 def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Task:
@@ -186,167 +172,98 @@ def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Tas
     return asyncio.create_task(_log_exception(awaitable))
 
 
-async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
-    async with connect(f"{BOLTZ_MEMPOOL_SPACE_URL_WS}/api/v1/ws") as websocket:
-        logger.debug(
-            f"Boltz - mempool websocket connected... waiting for onchain tx: {swap.lockup_address}"
+async def swap_websocket_callback_initial(swap):
+
+    wstask = asyncio.create_task(
+        wait_for_websocket_message(
+            {"track-address": swap.lockup_address}, "address-transactions"
         )
-        await websocket.send(json.dumps({"track-address": swap.lockup_address}))
+    )
+    logger.debug(
+        f"Boltz - created task, waiting on mempool websocket for address: {swap.lockup_address}"
+    )
 
-        # create_task is used because pay_invoice is stuck as long as boltz does not
-        # see the onchain claim tx and it ends up in deadlock
-        task: asyncio.Task = create_task_log_exception(
-            swap.id,
-            pay_invoice(
-                wallet_id=swap.wallet,
-                payment_request=invoice,
-                description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
-                extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
-            ),
-        )
-        logger.debug(f"Boltz - task pay_invoice created, reverse swap_id: {swap.id}")
+    # create_task is used because pay_invoice is stuck as long as boltz does not
+    # see the onchain claim tx and it ends up in deadlock
+    task: asyncio.Task = create_task_log_exception(
+        swap.id,
+        pay_invoice(
+            wallet_id=swap.wallet,
+            payment_request=swap.invoice,
+            description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
+            extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
+        ),
+    )
+    logger.debug(f"Boltz - task pay_invoice created, reverse swap_id: {swap.id}")
 
-        wstask = asyncio.create_task(websocket.recv())
-        done, pending = await asyncio.wait(
-            [task, wstask], return_when=asyncio.FIRST_COMPLETED
-        )
-        result = done.pop().result()
+    done, pending = await asyncio.wait(
+        [task, wstask], return_when=asyncio.FIRST_COMPLETED
+    )
+    message = done.pop().result()
 
-        # pay_invoice already failed, do not wait for onchain tx anymore
-        if result is None:
-            logger.debug(f"Boltz - pay_invoice already failed cancel websocket task.")
-            wstask.cancel()
-            raise
+    # pay_invoice already failed, do not wait for onchain tx anymore
+    if message is None:
+        logger.debug(f"Boltz - pay_invoice already failed cancel websocket task.")
+        wstask.cancel()
+        raise
 
-        try:
-            message = json.loads(result)
-        except Exception as exc:
-            logger.error(
-                f"Boltz - cannot parse mempool data, happens if pay_invoice task is done before the websocket task, when testing with a mocked pay_invoice function."
+    return task, message
+
+
+async def swap_websocket_callback_restart(swap):
+    logger.debug(f"Boltz - swap_websocket_callback_restart called...")
+    message = await wait_for_websocket_message(
+        {"track-address": swap.lockup_address}, "address-transactions"
+    )
+    return None, message
+
+
+async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, callback):
+    task, txs = await callback(swap)
+    mempool_lockup_tx = get_mempool_tx_from_txs(txs, swap.lockup_address)
+    if mempool_lockup_tx:
+        tx, txid, *_ = mempool_lockup_tx
+        if swap.instant_settlement or tx["status"]["confirmed"]:
+            logger.debug(
+                f"Boltz - reverse swap instant settlement, claiming immediatly..."
             )
-            wstask.cancel()
-            raise
-
-        logger.debug(f"Boltz - awaited mempool websocket")
-
-        try:
-            txs = message["address-transactions"]
-        except IndexError as e:
-            logger.error("Boltz - index error in mempool address-transactions")
-            raise Exception("no txs in mempool")
-
-        mempool_lockup_tx = get_mempool_tx_from_txs(txs, swap.lockup_address)
-        if mempool_lockup_tx:
-            tx = await create_onchain_tx(swap, mempool_lockup_tx)
-            await send_onchain_tx(tx)
-            try:
-                await task
-                logger.debug(
-                    f"Boltz - awaited pay_invoice task, reverse swap completed"
-                )
-                await update_swap_status(swap.id, "complete")
-            except:
-                logger.error(
-                    f"Boltz - could not await pay_invoice task, reverse swap failed"
-                )
-                await update_swap_status(swap.id, "failed")
+            await create_claim_tx(swap, mempool_lockup_tx)
         else:
-            logger.error(f"Boltz - mempool lockup tx not found.")
+            logger.debug(f"Boltz - reverse swap, waiting for confirmation...")
+            confirmed = await wait_for_websocket_message(
+                {"track-tx": txid}, "txConfirmed"
+            )
+            if confirmed:
+                logger.debug(
+                    f"Boltz - reverse swap lockup transaction confirmed! claiming..."
+                )
+                await create_claim_tx(swap, mempool_lockup_tx)
+            else:
+                logger.debug(
+                    f"Boltz - reverse swap lockup transaction still not confirmed."
+                )
+        try:
+            if task:
+                await task
+        except:
+            logger.error(
+                f"Boltz - could not await pay_invoice task, but sent onchain. should never happen!"
+            )
+    else:
+        logger.error(f"Boltz - mempool lockup tx not found.")
+
+
+async def create_claim_tx(swap: ReverseSubmarineSwap, mempool_lockup_tx):
+    tx = await create_onchain_tx(swap, mempool_lockup_tx)
+    await send_onchain_tx(tx)
+    logger.debug(f"Boltz - onchain tx sent, reverse swap completed")
+    await update_swap_status(swap.id, "complete")
 
 
 async def create_refund_tx(swap: SubmarineSwap):
     mempool_lockup_tx = get_mempool_tx(swap.address)
     tx = await create_onchain_tx(swap, mempool_lockup_tx)
     await send_onchain_tx(tx)
-
-
-def get_mempool_tx(address):
-    res = req_wrap(
-        "get",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/address/{address}/txs",
-        headers={"Content-Type": "text/plain"},
-    )
-    txs = res.json()
-    return get_mempool_tx_from_txs(txs, address)
-
-
-def get_mempool_tx_from_txs(txs, address):
-    if len(txs) == 0:
-        return None
-    tx = txid = vout_cnt = vout_amount = None
-    for a_tx in txs:
-        for i, vout in enumerate(a_tx["vout"]):
-            if vout["scriptpubkey_address"] == address:
-                tx = a_tx
-                txid = a_tx["txid"]
-                vout_cnt = i
-                vout_amount = vout["value"]
-    # should never happen
-    if tx == None:
-        raise Exception("mempool tx not found")
-    if txid == None:
-        raise Exception("mempool txid not found")
-    return tx, txid, vout_cnt, vout_amount
-
-
-# send on on-chain, receive lightning
-async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
-    swap_id = urlsafe_short_hash()
-    try:
-        payment_hash, payment_request = await create_invoice(
-            wallet_id=data.wallet,
-            amount=data.amount,
-            memo=f"submarine swap of {data.amount} sats on boltz.exchange",
-            extra={"tag": "boltz", "swap_id": swap_id},
-        )
-    except Exception as e:
-        msg = "Boltz - swap create_invoice failed"
-        logger.error(msg)
-        raise Exception(msg)
-
-    refund_privkey = ec.PrivateKey(os.urandom(32), True, net)
-    refund_pubkey_hex = hexlify(refund_privkey.sec()).decode("UTF-8")
-
-    res = req_wrap(
-        "post",
-        f"{BOLTZ_URL}/createswap",
-        json={
-            "type": "submarine",
-            "pairId": "BTC/BTC",
-            "orderSide": "sell",
-            "refundPublicKey": refund_pubkey_hex,
-            "invoice": payment_request,
-            "referralId": "lnbits",
-        },
-        headers={"Content-Type": "application/json"},
-    )
-    res = res.json()
-    logger.info(
-        f"Boltz - created normal swap, boltz_id: {res['id']}. wallet: {data.wallet}"
-    )
-    return SubmarineSwap(
-        id=swap_id,
-        time=get_timestamp(),
-        wallet=data.wallet,
-        amount=data.amount,
-        refund_privkey=refund_privkey.wif(net),
-        refund_address=data.refund_address,
-        boltz_id=res["id"],
-        status="pending",
-        address=res["address"],
-        expected_amount=res["expectedAmount"],
-        timeout_block_height=res["timeoutBlockHeight"],
-        bip21=res["bip21"],
-        redeem_script=res["redeemScript"],
-    )
-
-
-def get_fee_estimation() -> int:
-    # TODO: hardcoded maximum tx size, in the future we try to get the size of the tx via embit
-    # we need a function like Transaction.vsize()
-    tx_size_vbyte = 200
-    mempool_fees = get_mempool_fees()
-    return mempool_fees * tx_size_vbyte
 
 
 # a submarine swap consists of 2 onchain tx's a lockup and a redeem tx.
@@ -404,9 +321,62 @@ async def create_onchain_tx(
     return tx
 
 
-def get_timestamp():
-    date = datetime.datetime.utcnow()
-    return calendar.timegm(date.utctimetuple())
+def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapStatus:
+    swap_status = SwapStatus(
+        wallet=swap.wallet,
+        swap_id=swap.id,
+    )
+    try:
+        boltz_request = get_boltz_status(swap.boltz_id)
+        swap_status.boltz = boltz_request["status"]
+    except httpx.HTTPStatusError as exc:
+        json = exc.response.json()
+        swap_status.boltz = json["error"]
+        if "could not find" in swap_status.boltz:
+            swap_status.exists = False
+
+    if type(swap) == SubmarineSwap:
+        swap_status.reverse = False
+        swap_status.address = swap.address
+    else:
+        swap_status.reverse = True
+        swap_status.address = swap.lockup_address
+
+    swap_status.block_height = get_mempool_blockheight()
+
+    if swap_status.block_height >= swap.timeout_block_height:
+        swap_status.can_refund = True
+        swap_status.hit_timeout = True
+        swap_status.message += "hit timeout_block_height"
+    else:
+        swap_status.message += "timeout_block_height not exceeded"
+
+    mempool_tx = get_mempool_tx(swap_status.address)
+    if mempool_tx == None:
+        swap_status.mempool = "transaction.unknown"
+        swap_status.can_refund = False
+        swap_status.message += ", lockup_tx not in mempool"
+    else:
+        swap_status.has_lockup = True
+        # tx, *_ = get_mempool_tx(swap_status.address)
+        # if output_spent:
+        #     swap_status.is_done = True
+        # else:
+        #     swap_status.can_refund = True
+
+        # if tx["status"]["confirmed"] == True:
+        #     swap_status.mempool = "transaction.confirmed"
+        # else:
+        #     swap_status.mempool = "transaction.unconfirmed"
+
+    if swap_status.can_refund == True:
+        swap_status.message += ", refund is possible"
+
+    swap_status.timeout_block_height = (
+        f"{str(swap.timeout_block_height)} -> {str(swap_status.block_height)}"
+    )
+
+    return swap_status
 
 
 def get_boltz_pairs():
@@ -425,54 +395,3 @@ def get_boltz_status(boltzid):
         json={"id": boltzid},
     )
     return res.json()
-
-
-def get_mempool_fees() -> int:
-    res = req_wrap(
-        "get",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/v1/fees/recommended",
-        headers={"Content-Type": "text/plain"},
-    )
-    fees = res.json()
-    return int(fees["economyFee"])
-
-
-def get_mempool_blockheight() -> int:
-    res = req_wrap(
-        "get",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/blocks/tip/height",
-        headers={"Content-Type": "text/plain"},
-    )
-    return int(res.text)
-
-
-async def send_onchain_tx(tx: Transaction):
-    raw = hexlify(tx.serialize())
-    logger.debug(f"Boltz - mempool sending onchain tx: {raw}")
-    req_wrap(
-        "post",
-        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/tx",
-        headers={"Content-Type": "text/plain"},
-        content=raw,
-    )
-
-
-def req_wrap(funcname, *args, **kwargs):
-    try:
-        try:
-            func = getattr(httpx, funcname)
-        except AttributeError:
-            logger.error('httpx function not found "%s"' % funcname)
-        else:
-            res = func(*args, timeout=30, **kwargs)
-        res.raise_for_status()
-        return res
-    except httpx.RequestError as exc:
-        msg = f"Unreachable: {exc.request.url!r}."
-        logger.error(msg)
-        raise
-    except httpx.HTTPStatusError as exc:
-        msg = f"HTTP Status Error: {exc.response.status_code} while requesting {exc.request.url!r}."
-        logger.error(msg)
-        logger.error(exc.response.json()["error"])
-        raise
