@@ -64,6 +64,10 @@ async def api_submarineswap_refund(submarineSwapId: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="submarine swap does not exist."
         )
+    if swap.status == "refunded":
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="swap already refunded."
+        )
     await create_refund_tx(swap)
     await update_swap_status(swap, "refunded")
     return swap
