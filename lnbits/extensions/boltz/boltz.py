@@ -39,14 +39,18 @@ from .models import (
 
 if DEBUG:
     net = NETWORKS["regtest"]
-    BOLTZ_URL = "http://boltz:9001"
-    MEMPOOL_SPACE_URL = "http://mempool-web:8080"
-    MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
+    BOLTZ_URL = "http://127.0.0.1:9001"
+    MEMPOOL_SPACE_URL = "http://127.0.0.1:8080/api"
+    MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1:8080/api"
 else:
     net = NETWORKS["main"]
     BOLTZ_URL = "https://boltz.exchange/api"
-    MEMPOOL_SPACE_URL = "https://mempool.space"
-    MEMPOOL_SPACE_URL_WS = "wss://mempool.space"
+    MEMPOOL_SPACE_URL = "https://mempool.space/api"
+    MEMPOOL_SPACE_URL_WS = "wss://mempool.space/api"
+
+logger.debug(f"MEMPOOL_SPACE_URL: {MEMPOOL_SPACE_URL}")
+logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
+logger.debug(f"Bitcoin Network: {net['name']}")
 
 
 def get_boltz_pairs():
@@ -111,7 +115,7 @@ def get_swap_status(swap):
 
 def get_mempool_fees() -> int:
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/v1/fees/recommended",
+        MEMPOOL_SPACE_URL + "/v1/fees/recommended",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
@@ -128,7 +132,7 @@ def get_mempool_fees() -> int:
 
 def get_mempool_blockheight() -> int:
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/blocks/tip/height",
+        MEMPOOL_SPACE_URL + "/blocks/tip/height",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
@@ -183,7 +187,7 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap):
     )
 
     logger.info(
-        f" - created reverse swap, boltz_id: {res['id']}. wallet: {data.wallet}"
+        f"Boltz - created reverse swap, boltz_id: {res['id']}. wallet: {data.wallet}"
     )
 
     swap = ReverseSubmarineSwap(
@@ -204,12 +208,15 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap):
     )
 
     asyncio.create_task(wait_for_onchain_tx(swap, res["invoice"]))
+    logger.debug(f"Boltz - waiting for onchain tx, reverse swap_id: {swap.id}")
     return swap
 
 
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
-    uri = MEMPOOL_SPACE_URL_WS + f"/api/v1/ws"
+    uri = MEMPOOL_SPACE_URL_WS + f"/v1/ws"
     async with connect(uri) as websocket:
+        logger.debug(f"Boltz - mempool websocket connected... waiting for onchain tx")
+
         await websocket.send(json.dumps({"track-address": swap.lockup_address}))
 
         # create_task is used because pay_invoice is stuck as long as boltz does not
@@ -222,14 +229,16 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
                 extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
             )
         )
+        logger.debug(f"Boltz - task pay_invoice created, reverse swap_id: {swap.id}")
 
         data = await websocket.recv()
+        logger.debug(f"Boltz - awaited mempool websocket")
         message = json.loads(data)
 
         try:
             txs = message["address-transactions"]
         except IndexError as e:
-            logger.error("index error in mempool address-transactions")
+            logger.error("Boltz - index error in mempool address-transactions")
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="no txs in mempool"
             )
@@ -240,9 +249,17 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
             await send_onchain_tx(tx)
             try:
                 await task
+                logger.debug(
+                    f"Boltz - awaited pay_invoice task, reverse swap completed"
+                )
                 await update_swap_status(swap, "complete")
             except:
+                logger.error(
+                    f"Boltz - could not await pay_invoice task, reverse swap failed"
+                )
                 await update_swap_status(swap, "failed")
+        else:
+            logger.error(f"Boltz - mempool lockup tx not found.")
 
 
 async def create_refund_tx(swap: SubmarineSwap):
@@ -266,7 +283,7 @@ def get_mempool_tx_status(address):
 
 def get_mempool_tx(address):
     res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/address/" + address + "/txs",
+        MEMPOOL_SPACE_URL + "/address/" + address + "/txs",
         headers={"Content-Type": "text/plain"},
         timeout=40,
     )
@@ -309,7 +326,7 @@ def get_mempool_tx_from_txs(txs, address):
 
 async def send_onchain_tx(tx: Transaction):
     res = httpx.post(
-        MEMPOOL_SPACE_URL + "/api/tx",
+        MEMPOOL_SPACE_URL + "/tx",
         headers={"Content-Type": "text/plain"},
         data=hexlify(tx.serialize()),
         timeout=40,
@@ -344,7 +361,9 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
             "invoice": payment_request,
         },
     )
-    logger.info(f" - created swap, boltz_id: {res['id']}. wallet: {data.wallet}")
+    logger.info(
+        f"Boltz - created normal swap, boltz_id: {res['id']}. wallet: {data.wallet}"
+    )
     return SubmarineSwap(
         id=swap_id,
         time=get_timestamp(),
