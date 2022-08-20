@@ -419,7 +419,6 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         redeem_script=res["redeemScript"],
     )
 
-
 def get_fee_estimation() -> int:
     # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
     tx_size_vbyte = 200
