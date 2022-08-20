@@ -282,8 +282,8 @@ def get_mempool_tx_from_txs(txs, address):
     if len(txs) == 0:
         return None
     tx = txid = vout_cnt = vout_amount = None
-    for i, a_tx in enumerate(txs):
-        for vout in a_tx["vout"]:
+    for a_tx in txs:
+        for i, vout in enumerate(a_tx["vout"]):
             if vout["scriptpubkey_address"] == address:
                 tx = a_tx
                 txid = a_tx["txid"]
