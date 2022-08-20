@@ -39,7 +39,10 @@ from .models import (
 from lnbits.settings import DEBUG
 
 if DEBUG:
-    print("debug")
+    net = NETWORKS["regtest"]
+    BOLTZ_URL = "http://boltz:9001"
+    MEMPOOL_SPACE_URL = "http://mempool-web:8080"
+    MEMPOOL_SPACE_URL_WS = "ws://mempool-web:8080"
 else:
     print("production")
 
