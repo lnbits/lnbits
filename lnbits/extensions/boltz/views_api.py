@@ -1,9 +1,9 @@
 from datetime import datetime
 from http import HTTPStatus
-from pydantic import BaseModel
 
 from fastapi.param_functions import Body
 from fastapi.params import Depends, Query
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
@@ -36,8 +36,10 @@ from .models import (
     SubmarineSwap,
 )
 
+
 class SwapId(BaseModel):
     swap_id: str
+
 
 @boltz_ext.get("/api/v1/swap/mempool")
 async def api_mempool_url():
@@ -54,6 +56,7 @@ async def api_submarineswap(
     if all_wallets:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
+
 
 @boltz_ext.post("/api/v1/swap/refund")
 async def api_submarineswap_refund(
@@ -106,6 +109,16 @@ async def api_reverse_submarineswap_create(
     data: CreateReverseSubmarineSwap,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
+    # check if we can pay the invoice before we create the actual swap on boltz
+    amount_msat = data.amount * 1000
+    fee_reserve_msat = fee_reserve(amount_msat)
+    wallet = await get_wallet(data.wallet)
+    assert wallet
+    if wallet.balance_msat - fee_reserve_msat < amount_msat:
+        raise HTTPException(
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
+        )
+
     data = await create_reverse_swap(data)
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
@@ -129,8 +142,7 @@ async def api_submarineswap_status(
 
 @boltz_ext.post("/api/v1/swap/check")
 async def api_check_swaps(
-    g: WalletTypeInfo = Depends(get_key_type),
-    all_wallets: bool = Query(False)
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
 ):
     wallet_ids = [g.wallet.id]
     if all_wallets:
