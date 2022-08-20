@@ -175,8 +175,7 @@ def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Tas
         try:
             return await awaitable
         except Exception as e:
-            logger.error(f"Boltz - reverse swap failed!: {swap_id}")
-            logger.error(e)
+            logger.error(f"Boltz - reverse swap failed!: {swap_id} - {e}")
             await update_swap_status(swap_id, "failed")
 
     return asyncio.create_task(_log_exception(awaitable))
@@ -191,7 +190,7 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
 
         # create_task is used because pay_invoice is stuck as long as boltz does not
         # see the onchain claim tx and it ends up in deadlock
-        task = create_task_log_exception(
+        task: asyncio.Task = create_task_log_exception(
             swap.id,
             pay_invoice(
                 wallet_id=swap.wallet,
@@ -202,9 +201,19 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
         )
         logger.debug(f"Boltz - task pay_invoice created, reverse swap_id: {swap.id}")
 
-        data = await websocket.recv()
+        wstask = asyncio.create_task(websocket.recv())
+        done, pending = await asyncio.wait(
+            [task, wstask], return_when=asyncio.FIRST_COMPLETED
+        )
+        result = done.pop().result()
+
+        # pay_invoice already failed, done wait for onchain tx anymore
+        if result is None:
+            wstask.cancel()
+            return
+
         logger.debug(f"Boltz - awaited mempool websocket")
-        message = json.loads(data)
+        message = json.loads(result)
 
         try:
             txs = message["address-transactions"]
@@ -443,7 +452,7 @@ async def send_onchain_tx(tx: Transaction):
         "post",
         f"{MEMPOOL_SPACE_URL}/api/tx",
         headers={"Content-Type": "text/plain"},
-        data=raw,
+        content=raw,
     )
 
 
