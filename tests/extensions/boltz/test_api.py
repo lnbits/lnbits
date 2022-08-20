@@ -13,10 +13,7 @@ async def test_mempool_url(client):
 @pytest.mark.asyncio
 async def test_boltz_config(client):
     response = await client.get("/boltz/api/v1/swap/boltz")
-    if is_regtest:
-        assert response.status_code == 200
-    else:
-        assert response.status_code == 500
+    assert response.status_code == 200
 
 
 get_urls_private = [
