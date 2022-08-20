@@ -1,11 +1,47 @@
 import asyncio
 
+import httpx
 from loguru import logger
 
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_reverse_submarine_swap, get_submarine_swap, update_swap_status
+from .boltz import get_swap_status
+from .crud import (
+    get_all_pending_reverse_submarine_swaps,
+    get_all_pending_submarine_swaps,
+    get_reverse_submarine_swap,
+    get_submarine_swap,
+    update_swap_status,
+)
+
+
+async def check_for_pending_swaps():
+    swaps = await get_all_pending_submarine_swaps()
+    reverse_swaps = await get_all_pending_reverse_submarine_swaps()
+    logger.debug(f"Boltz - startup swap check")
+    logger.debug(f"Boltz - {len(swaps)} pending swaps")
+    for swap in swaps:
+        try:
+            swap_status = get_swap_status(swap)
+            logger.debug(f"Boltz - swap: {swap.id} - {swap_status.message}")
+            if swap_status.can_refund is True:
+                logger.debug(f"Boltz - refunding swap: {swap.id}...")
+        except Exception as exc:
+            logger.error(f"Boltz - swap: {swap.id} - {str(exc)}")
+            # await update_swap_status(swap.id, "failed")
+
+    logger.debug(f"Boltz - {len(reverse_swaps)} pending reverse swaps")
+    for reverse_swap in reverse_swaps:
+        try:
+            swap_status = get_swap_status(swap)
+            logger.debug(f"Boltz - swap: {swap.id} - {swap_status.message}")
+            if swap_status.can_refund is True:
+                logger.debug(
+                    f"Boltz - reverse swap: {swap.id} starting watching for onchain lockup tx again..."
+                )
+        except Exception as exc:
+            logger.error(f"Boltz - reverse swap: {swap.id} - {str(exc)}")
 
 
 async def wait_for_paid_invoices():

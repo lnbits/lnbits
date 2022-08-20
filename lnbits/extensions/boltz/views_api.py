@@ -18,6 +18,7 @@ from lnbits.core.services import (
     redeem_lnurl_withdraw,
 )
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL
 
 from . import boltz_ext
 from .boltz import (
@@ -27,10 +28,11 @@ from .boltz import (
     get_boltz_pairs,
     get_swap_status,
 )
-
 from .crud import (
     create_reverse_submarine_swap,
     create_submarine_swap,
+    get_pending_reverse_submarine_swaps,
+    get_pending_submarine_swaps,
     get_reverse_submarine_swap,
     get_reverse_submarine_swaps,
     get_submarine_swap,
@@ -43,7 +45,7 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL
+
 
 @boltz_ext.get("/api/v1/swap/mempool")
 async def api_mempool_url():
@@ -197,9 +199,8 @@ async def api_check_swaps(
     if all_wallets:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     status = []
-    for swap in await get_submarine_swaps(wallet_ids):
-        if swap.status == "pending":
-            status.append(get_swap_status(swap))
+    for swap in await get_pending_submarine_swaps(wallet_ids):
+        status.append(get_swap_status(swap))
     return status
 
 
