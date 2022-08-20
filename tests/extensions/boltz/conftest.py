@@ -1,3 +1,4 @@
+import asyncio
 import json
 import secrets
 
@@ -14,14 +15,10 @@ from lnbits.extensions.boltz.models import (
     CreateReverseSubmarineSwap,
     CreateSubmarineSwap,
 )
-from tests.helpers import credit_wallet
-
-# boltz_mock= {
-#     "boltz_id": "testing_001",
-# }
+from tests.helpers import credit_wallet, is_regtest
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def swap():
     user = await create_account()
     wallet = await create_wallet(user_id=user.id, wallet_name="boltz_test")
@@ -30,12 +27,13 @@ async def swap():
         refund_address="bcrt1q3cwq33y435h52gq3qqsdtczh38ltlnf69zvypm",
         amount=50000,
     )
-    data = await create_swap(data)
-    swap = await create_submarine_swap(data)
-    return swap
+    if is_regtest:
+        data = await create_swap(data)
+        swap = await create_submarine_swap(data)
+        return swap
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def reverse_swap_fail():
     user = await create_account()
     wallet = await create_wallet(user_id=user.id, wallet_name="boltz_test")
@@ -45,10 +43,11 @@ async def reverse_swap_fail():
         onchain_address="bcrt1q3cwq33y435h52gq3qqsdtczh38ltlnf69zvypm",
         amount=50000,
     )
-    return await create_reverse_swap(data)
+    if is_regtest:
+        return await create_reverse_swap(data)
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def reverse_swap():
     user = await create_account()
     wallet = await create_wallet(user_id=user.id, wallet_name="boltz_test")
@@ -64,6 +63,7 @@ async def reverse_swap():
         onchain_address="bcrt1q3cwq33y435h52gq3qqsdtczh38ltlnf69zvypm",
         amount=50000,
     )
-    data = await create_reverse_swap(data)
-    swap = await create_reverse_submarine_swap(data)
-    return swap
+    if is_regtest:
+        data, task = await create_reverse_swap(data)
+        swap = await create_reverse_submarine_swap(data)
+        return swap, task

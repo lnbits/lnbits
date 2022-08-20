@@ -119,7 +119,7 @@ async def api_reverse_submarineswap_create(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail="Insufficient balance."
         )
 
-    data = await create_reverse_swap(data)
+    data, task = await create_reverse_swap(data)
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
 

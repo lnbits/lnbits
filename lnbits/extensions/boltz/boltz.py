@@ -54,13 +54,18 @@ logger.debug(f"Bitcoin Network: {net['name']}")
 
 
 def get_boltz_pairs():
-    res = httpx.get(
-        BOLTZ_URL + "/getpairs",
-        headers={"Content-Type": "application/json"},
-        timeout=40,
-    )
-    handle_request_errors(res)
-    return res.json()
+    try:
+        res = httpx.get(
+            BOLTZ_URL + "/getpairs",
+            headers={"Content-Type": "application/json"},
+            timeout=40,
+        )
+        handle_request_errors(res)
+        return res.json()
+    except httpx.RequestError as exc:
+        msg = f"BOLTZ_URL is unreachable: {exc.request.url!r}."
+        logger.error(msg)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 def get_boltz_status(boltzid):
@@ -114,38 +119,54 @@ def get_swap_status(swap):
 
 
 def get_mempool_fees() -> int:
-    res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/v1/fees/recommended",
-        headers={"Content-Type": "text/plain"},
-        timeout=40,
-    )
-    handle_request_errors(res)
-    data = json.loads(res.text)
     try:
-        value = int(data["hourFee"])
-    except ValueError:
-        msg = "get_mempool_fees: " + data["hourFee"] + " value is not an integer"
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
+        res = httpx.get(
+            MEMPOOL_SPACE_URL + "/api/v1/fees/recommended",
+            headers={"Content-Type": "text/plain"},
+            timeout=40,
+        )
+        handle_request_errors(res)
+        data = json.loads(res.text)
+        try:
+            value = int(data["hourFee"])
+        except ValueError:
+            msg = "get_mempool_fees: " + data["hourFee"] + " value is not an integer"
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg
+            )
 
-    return value
+        return value
+    except httpx.RequestError as exc:
+        msg = f"MEMPOOL_URL is unreachable: {exc.request.url!r}."
+        logger.error(msg)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 def get_mempool_blockheight() -> int:
-    res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/blocks/tip/height",
-        headers={"Content-Type": "text/plain"},
-        timeout=40,
-    )
-    handle_request_errors(res)
     try:
-        value = int(res.text)
-    except ValueError:
-        msg = "get_mempool_blockheight: " + res.text + " value is not an integer"
+        res = httpx.get(
+            MEMPOOL_SPACE_URL + "/api/blocks/tip/height",
+            headers={"Content-Type": "text/plain"},
+            timeout=40,
+        )
+        handle_request_errors(res)
+        try:
+            value = int(res.text)
+        except ValueError:
+            msg = "get_mempool_blockheight: " + res.text + " value is not an integer"
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg
+            )
+        return value
+    except httpx.RequestError as exc:
+        msg = f"MEMPOOL_URL is unreachable: {exc.request.url!r}."
+        logger.error(msg)
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
-    return value
 
 
-async def create_reverse_swap(data: CreateReverseSubmarineSwap) -> ReverseSubmarineSwap:
+async def create_reverse_swap(
+    data: CreateReverseSubmarineSwap,
+) -> [ReverseSubmarineSwap, asyncio.Task]:
     """explanation taken from electrum
     send on Lightning, receive on-chain
     - User generates preimage, RHASH. Sends RHASH to server.
@@ -208,9 +229,8 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap) -> ReverseSubmar
         time=get_timestamp(),
     )
 
-    asyncio.create_task(wait_for_onchain_tx(swap, res["invoice"]))
     logger.debug(f"Boltz - waiting for onchain tx, reverse swap_id: {swap.id}")
-    return swap
+    return swap, asyncio.create_task(wait_for_onchain_tx(swap, res["invoice"]))
 
 
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
@@ -283,14 +303,19 @@ def get_mempool_tx_status(address):
 
 
 def get_mempool_tx(address):
-    res = httpx.get(
-        MEMPOOL_SPACE_URL + "/api/address/" + address + "/txs",
-        headers={"Content-Type": "text/plain"},
-        timeout=40,
-    )
-    handle_request_errors(res)
-    txs = json.loads(res.text)
-    return get_mempool_tx_from_txs(txs, address)
+    try:
+        res = httpx.get(
+            MEMPOOL_SPACE_URL + "/api/address/" + address + "/txs",
+            headers={"Content-Type": "text/plain"},
+            timeout=40,
+        )
+        handle_request_errors(res)
+        txs = json.loads(res.text)
+        return get_mempool_tx_from_txs(txs, address)
+    except httpx.RequestError as exc:
+        msg = f"MEMPOOL_SPACE_URL is unreachable: {exc.request.url!r}."
+        logger.error(msg)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 def get_mempool_tx_from_txs(txs, address):
@@ -326,14 +351,19 @@ def get_mempool_tx_from_txs(txs, address):
 
 
 async def send_onchain_tx(tx: Transaction):
-    res = httpx.post(
-        MEMPOOL_SPACE_URL + "/api/tx",
-        headers={"Content-Type": "text/plain"},
-        data=hexlify(tx.serialize()),
-        timeout=40,
-    )
-    handle_request_errors(res)
-    return res
+    try:
+        res = httpx.post(
+            MEMPOOL_SPACE_URL + "/api/tx",
+            headers={"Content-Type": "text/plain"},
+            data=hexlify(tx.serialize()),
+            timeout=40,
+        )
+        handle_request_errors(res)
+        return res
+    except httpx.RequestError as exc:
+        msg = f"MEMPOOL_SPACE_URL is unreachable: {exc.request.url!r}."
+        logger.error(msg)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 # send on on-chain, receive lightning
@@ -453,14 +483,19 @@ def get_timestamp():
 
 def create_post_request(url, payload={}):
     payload["referralId"] = "lnbits"
-    res = httpx.post(
-        url,
-        json=payload,
-        headers={"Content-Type": "application/json"},
-        timeout=40,
-    )
-    handle_request_errors(res)
-    return res.json()
+    try:
+        res = httpx.post(
+            url,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=40,
+        )
+        handle_request_errors(res)
+        return res.json()
+    except httpx.RequestError as exc:
+        msg = f"URL is unreachable: {exc.request.url!r}."
+        logger.error(msg)
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=msg)
 
 
 def handle_request_errors(res):
