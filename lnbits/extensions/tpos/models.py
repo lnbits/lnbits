@@ -10,6 +10,7 @@ class CreateTposData(BaseModel):
     currency: str
     tip_options: str = Query(None)
     tip_wallet: str = Query(None)
+    webhook: str = Query(None)
 
 
 class TPoS(BaseModel):
@@ -19,6 +20,7 @@ class TPoS(BaseModel):
     currency: str
     tip_options: Optional[str]
     tip_wallet: Optional[str]
+    webhook: Optional[str]
 
     @classmethod
     def from_row(cls, row: Row) -> "TPoS":

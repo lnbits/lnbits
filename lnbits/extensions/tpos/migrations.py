@@ -34,3 +34,13 @@ async def m003_addtip_options(db):
         ALTER TABLE tpos.tposs ADD tip_options TEXT NULL;
     """
     )
+
+async def m004_add_webhook(db):
+    """
+    Add webhook functionality to TPoS
+    """
+    await db.execute(
+        """
+        ALTER TABLE tpos.tposs ADD COLUMN webhook TEXT;
+    """
+    )

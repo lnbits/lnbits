@@ -156,4 +156,18 @@ async def api_tpos_check_invoice(tpos_id: str, payment_hash: str):
     except Exception as exc:
         logger.error(exc)
         return {"paid": False}
+    
+    # Call webhook
+    if(status["paid"] and tpos.webhook):
+        async with httpx.AsyncClient() as client:
+                await client.post(
+                    tpos.webhook,
+                    json={
+                        "tpos": tpos.id,
+                        "name": tpos.name,
+                        "payment_hash": payment_hash,
+                    },
+                    timeout=40,
+                )
+
     return status

@@ -140,6 +140,14 @@
           new-value-mode="add-unique"
           label="Tip % Options"
         ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.webhook"
+          type="text"
+          label="Webhook (optional)"
+          hint="A URL to be called whenever this TPoS receives a payment."
+        ></q-input>
         <div class="row q-mt-lg">
           <q-btn
             unelevated
@@ -369,6 +377,12 @@
               align: 'left',
               label: 'Tip Options %',
               field: 'tip_options'
+            },
+            {
+              name: 'webhook',
+              align: 'left',
+              label: 'Webhook',
+              field: 'webhook'
             }
           ],
           pagination: {
@@ -409,7 +423,8 @@
                 this.formDialog.data.tip_options.map(str => parseInt(str))
               )
             : JSON.stringify([]),
-          tip_wallet: this.formDialog.data.tip_wallet || ''
+          tip_wallet: this.formDialog.data.tip_wallet || '',
+          webhook: this.formDialog.data.webhook
         }
         var self = this
 
