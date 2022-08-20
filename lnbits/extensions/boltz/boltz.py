@@ -36,11 +36,12 @@ from .models import (
     ReverseSubmarineSwap,
 )
 
-# from .settings import DEBUG
-# if DEBUG:
-#     print("debug")
-# else:
-#     print("production")
+from lnbits.settings import DEBUG
+
+if DEBUG:
+    print("debug")
+else:
+    print("production")
 
 from lnbits.settings import DEBUG
 
