@@ -35,8 +35,8 @@ async def test_create_reverse_swap(client, reverse_swap):
         assert swap.claim_privkey is not None
         assert swap.onchain_address is not None
         assert swap.lockup_address is not None
-        newswap = await create_reverse_submarine_swap(swap)
-        await wait_for_onchain
-        newswap = await get_reverse_submarine_swap(swap.id)
-        assert newswap is not None
-        assert newswap.status == "complete"
+        # newswap = await create_reverse_submarine_swap(swap)
+        # await wait_for_onchain
+        # newswap = await get_reverse_submarine_swap(swap.id)
+        # assert newswap is not None
+        # assert newswap.status == "complete"
