@@ -7,6 +7,7 @@ async def m001_initial(db):
             amount INT NOT NULL,
             status TEXT NOT NULL,
             boltz_id TEXT NOT NULL,
+            refund_address TEXT NOT NULL,
             refund_privkey TEXT NOT NULL,
             expected_amount INT NOT NULL,
             timeout_block_height INT NOT NULL,
