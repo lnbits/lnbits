@@ -17,6 +17,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 from hashlib import sha256
 
+from lnbits.helpers import urlsafe_short_hash
 from lnbits.core.services import (
     get_wallet,
     fee_reserve,
@@ -35,6 +36,11 @@ from .models import (
     CreateReverseSubmarineSwap,
     ReverseSubmarineSwap,
 )
+# from .settings import DEBUG
+# if DEBUG:
+#     print("debug")
+# else:
+#     print("production")
 
 from lnbits.settings import DEBUG
 
@@ -53,6 +59,10 @@ else:
 def get_boltz_pairs():
     return create_get_request(BOLTZ_URL + "/getpairs")
 
+
+
+def get_boltz_pairs():
+    return create_get_request(BOLTZ_URL + "/getpairs")
 
 def get_boltz_status(boltzid):
     return create_post_request(
@@ -103,6 +113,44 @@ def get_swap_status(swap):
         + str(block_height),
     }
 
+
+
+def get_swap_status(swap):
+    status = ""
+    can_refund = False
+    try:
+        boltz_request = get_boltz_status(swap.boltz_id)
+        boltz_status = boltz_request["status"]
+    except:
+        boltz_status = "boltz is offline"
+    if type(swap) == SubmarineSwap:
+        address = swap.address
+    else:
+        address = swap.lockup_address
+
+    mempool_status = get_mempool_tx_status(address)
+    block_height = get_mempool_blockheight()
+
+    if block_height >= swap.timeout_block_height:
+        can_refund = True
+        status += "hit timeout_block_height"
+    else:
+        status += "timeout_block_height not exceeded "
+
+    if mempool_status == "transaction.unknown":
+        can_refund = False
+        status += ", lockup_tx not in mempool"
+
+    if can_refund == True:
+        status += ", refund is possible"
+
+    return {
+        "status": status,
+        "swap_id": swap.id,
+        "boltz": boltz_status,
+        "mempool": mempool_status,
+        "timeout_block_height": str(swap.timeout_block_height)+" -> "+str(block_height),
+    }
 
 def get_mempool_fees() -> int:
     res = httpx.get(
