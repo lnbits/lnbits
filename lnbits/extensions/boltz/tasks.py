@@ -31,6 +31,9 @@ async def check_for_pending_swaps():
         try:
             swap_status = get_swap_status(swap)
             logger.debug(f"Boltz - swap: {swap.id} - {swap_status.message}")
+            if swap_status.exists is False:
+                logger.debug(f"Boltz - swap: {swap.boltz_id} does not exist.")
+                await update_swap_status(swap.id, "failed")
             if swap_status.hit_timeout is True:
                 if swap_status.has_lockup is False:
                     logger.debug(f"Boltz - swap: {swap.id} hit timeout, but no lockup tx...")
@@ -44,19 +47,21 @@ async def check_for_pending_swaps():
                             logger.debug(f"Boltz - refunding swap: {swap.id}...")
         except Exception as exc:
             logger.error(f"Boltz - swap: {swap.id} - {str(exc)}")
-            # await update_swap_status(swap.id, "failed")
 
     logger.debug(f"Boltz - {len(reverse_swaps)} pending reverse swaps")
     for reverse_swap in reverse_swaps:
         try:
-            swap_status = get_swap_status(swap)
-            logger.debug(f"Boltz - swap: {swap.id} - {swap_status.message}")
+            swap_status = get_swap_status(reverse_swap)
+            logger.debug(f"Boltz - reverse_swap: {reverse_swap.id} - {swap_status.message}")
+            if swap_status.exists is False:
+                logger.debug(f"Boltz - reverse_swap: {reverse_swap.boltz_id} does not exist.")
+                await update_swap_status(reverse_swap.id, "failed")
             if swap_status.can_refund is True:
                 logger.debug(
-                    f"Boltz - reverse swap: {swap.id} starting watching for onchain lockup tx again..."
+                    f"Boltz - reverse swap: {reverse_swap.id} starting watching for onchain lockup tx again..."
                 )
         except Exception as exc:
-            logger.error(f"Boltz - reverse swap: {swap.id} - {str(exc)}")
+            logger.error(f"Boltz - reverse swap: {reverse_swap.id} - {str(exc)}")
 
 
 async def wait_for_paid_invoices():

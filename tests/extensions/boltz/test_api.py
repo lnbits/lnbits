@@ -12,9 +12,8 @@ async def test_mempool_url(client):
 
 @pytest.mark.asyncio
 async def test_boltz_config(client):
-    if is_regtest:
-        response = await client.get("/boltz/api/v1/swap/boltz")
-        assert response.status_code == 200
+    response = await client.get("/boltz/api/v1/swap/boltz")
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio
@@ -41,46 +40,44 @@ async def test_endpoints_inkey(client, inkey_headers_to):
 
 @pytest.mark.asyncio
 async def test_endpoints_adminkey_nocontent(client, adminkey_headers_to):
-    if is_regtest:
-        response = await client.post(
-            "/boltz/api/v1/swap/check", headers=adminkey_headers_to
-        )
-        assert response.status_code == 200
-        response = await client.post("/boltz/api/v1/swap", headers=adminkey_headers_to)
-        assert response.status_code == 204
-        response = await client.post(
-            "/boltz/api/v1/swap/reverse", headers=adminkey_headers_to
-        )
-        assert response.status_code == 204
-        response = await client.post(
-            "/boltz/api/v1/swap/refund", headers=adminkey_headers_to
-        )
-        assert response.status_code == 204
-        response = await client.post(
-            "/boltz/api/v1/swap/status", headers=adminkey_headers_to
-        )
-        assert response.status_code == 204
+    response = await client.post(
+        "/boltz/api/v1/swap/check", headers=adminkey_headers_to
+    )
+    assert response.status_code == 200
+    response = await client.post("/boltz/api/v1/swap", headers=adminkey_headers_to)
+    assert response.status_code == 204
+    response = await client.post(
+        "/boltz/api/v1/swap/reverse", headers=adminkey_headers_to
+    )
+    assert response.status_code == 204
+    response = await client.post(
+        "/boltz/api/v1/swap/refund", headers=adminkey_headers_to
+    )
+    assert response.status_code == 204
+    response = await client.post(
+        "/boltz/api/v1/swap/status", headers=adminkey_headers_to
+    )
+    assert response.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_endpoints_adminkey(client, adminkey_headers_to):
-    if is_regtest:
         # response = await client.post("/boltz/api/v1/swap", json={"swap_id": "wrong"}, headers=adminkey_headers_to)
         # assert response.status_code == 200
         # response = await client.post("/boltz/api/v1/swap/reverse", headers=adminkey_headers_to)
         # assert response.status_code == 200
-        response = await client.post(
-            "/boltz/api/v1/swap/refund",
-            params={"swap_id": "wrong"},
-            headers=adminkey_headers_to,
-        )
-        assert response.status_code == 404
-        response = await client.post(
-            "/boltz/api/v1/swap/status",
-            params={"swap_id": "wrong"},
-            headers=adminkey_headers_to,
-        )
-        assert response.status_code == 404
+    response = await client.post(
+        "/boltz/api/v1/swap/refund",
+        params={"swap_id": "wrong"},
+        headers=adminkey_headers_to,
+    )
+    assert response.status_code == 404
+    response = await client.post(
+        "/boltz/api/v1/swap/status",
+        params={"swap_id": "wrong"},
+        headers=adminkey_headers_to,
+    )
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -94,8 +91,8 @@ async def test_endpoints_unauthenticated(client):
     # assert response.status_code == 401
     # response = await client.post("/boltz/api/v1/swap/reverse")
     # assert response.status_code == 401
-    # response = await client.post("/boltz/api/v1/swap/status")
-    # assert response.status_code == 401
+    response = await client.post("/boltz/api/v1/swap/status")
+    assert response.status_code == 401
     # response = await client.post("/boltz/api/v1/swap/check")
     # assert response.status_code == 401
     # response = await client.post("/boltz/api/v1/swap/refund")
