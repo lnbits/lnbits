@@ -671,9 +671,13 @@
         hiddenElement.click()
       },
       refundSwap(swapId) {
-        let url = '/boltz/api/v1/swap/refund/' + swapId
         LNbits.api
-          .request('GET', url)
+          .request(
+            'POST',
+            '/boltz/api/v1/swap/refund',
+            this.g.user.wallets[0].adminkey,
+            {swap_id: swapId}
+          )
           .then(res => {
             this.resetStatusDialog()
           })
@@ -700,9 +704,13 @@
         window.open(mempool_address + '/address/' + address, '_blank')
       },
       openStatusDialog(swap_id, reverse) {
-        let url = '/boltz/api/v1/swap/status/' + swap_id
         LNbits.api
-          .request('GET', url)
+          .request(
+            'POST',
+            '/boltz/api/v1/swap/status',
+            this.g.user.wallets[0].adminkey,
+            { swap_id: swap_id }
+          )
           .then(res => {
             this.resetStatusDialog()
             this.statusDialog.data = {
@@ -871,9 +879,9 @@
       checkSwaps() {
         LNbits.api
           .request(
-            'GET',
+            'POST',
             '/boltz/api/v1/swap/check?all_wallets=true',
-            this.g.user.wallets[0].inkey
+            this.g.user.wallets[0].adminkey,
           )
           .then(res => {
             this.allStatusDialog.data = {
