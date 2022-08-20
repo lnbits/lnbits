@@ -1,16 +1,15 @@
 from http import HTTPStatus
 from typing import List, Optional, Union
 
-from starlette.exceptions import HTTPException
-
 from loguru import logger
+from starlette.exceptions import HTTPException
 
 from . import db
 from .models import (
-    CreateSubmarineSwap,
-    SubmarineSwap,
     CreateReverseSubmarineSwap,
+    CreateSubmarineSwap,
     ReverseSubmarineSwap,
+    SubmarineSwap,
 )
 
 """

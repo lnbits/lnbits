@@ -1,8 +1,10 @@
 from urllib.parse import urlparse
+
 from fastapi import Request
 from fastapi.params import Depends
 from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
+
 from lnbits.core.models import Payment, User
 from lnbits.decorators import check_user_exists
 
