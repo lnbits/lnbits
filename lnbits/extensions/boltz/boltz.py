@@ -196,7 +196,7 @@ async def create_reverse_swap(data: CreateReverseSubmarineSwap):
         lockup_address=res["lockupAddress"],
         onchain_amount=res["onchainAmount"],
         redeem_script=res["redeemScript"],
-        time=getTimestamp(),
+        time=get_timestamp(),
     )
 
     asyncio.create_task(wait_for_onchain_tx(swap, res["invoice"]))
@@ -343,7 +343,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
     logger.info(f" - created swap, boltz_id: {res['id']}. wallet: {data.wallet}")
     return SubmarineSwap(
         id=swap_id,
-        time=getTimestamp(),
+        time=get_timestamp(),
         wallet=data.wallet,
         amount=data.amount,
         refund_privkey=refund_privkey.wif(net),
@@ -377,7 +377,6 @@ async def create_onchain_tx(
             msg = f"refund not possible, timeout_block_height ({swap.timeout_block_height}) is not yet exceeded ({current_block_height})"
             raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=msg)
         privkey = ec.PrivateKey.from_wif(swap.refund_privkey)
-        preimage = b""
         onchain_address = swap.refund_address
         sequence = 0xFFFFFFFE
     else:
@@ -420,7 +419,7 @@ async def create_onchain_tx(
     return tx
 
 
-def getTimestamp():
+def get_timestamp():
     date = datetime.datetime.utcnow()
     return calendar.timegm(date.utctimetuple())
 

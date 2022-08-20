@@ -26,7 +26,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     await payment.set_pending(False)
     swap_id = payment.extra.get("swap_id")
-    if payment.extra.get("reverse") != None:
+    if payment.extra.get("reverse") is not None:
         swap = await get_reverse_submarine_swap(swap_id)
     else:
         swap = await get_submarine_swap(swap_id)
