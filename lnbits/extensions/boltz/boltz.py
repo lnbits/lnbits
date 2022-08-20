@@ -39,6 +39,12 @@ logger.debug(f"Bitcoin Network: {net['name']}")
 
 
 async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
+
+    if not check_boltz_limits(data.amount):
+        msg = f"Boltz - swap not in boltz limits"
+        logger.warning(msg)
+        raise Exception(msg)
+
     swap_id = urlsafe_short_hash()
     try:
         payment_hash, payment_request = await create_invoice(
@@ -102,6 +108,11 @@ async def create_reverse_swap(
     - Server fulfills HTLC using preimage.
     Note: expected_onchain_amount_sat is BEFORE deducting the on-chain claim tx fee.
     """
+
+    if not check_boltz_limits(data.amount):
+        msg = f"Boltz - reverse swap not in boltz limits"
+        logger.warning(msg)
+        raise Exception(msg)
 
     swap_id = urlsafe_short_hash()
 
@@ -377,6 +388,15 @@ def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapSta
     )
 
     return swap_status
+
+
+def check_boltz_limits(amount):
+    try:
+        pairs = get_boltz_pairs()
+        limits = pairs["pairs"]["BTC/BTC"]["limits"]
+        return amount >= limits["minimal"] and amount <= limits["maximal"]
+    except:
+        return False
 
 
 def get_boltz_pairs():

@@ -111,6 +111,10 @@ async def api_submarineswap_create(
 ):
     try:
         data = await create_swap(data)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc)
+        )
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
             status_code=exc.response.status_code, detail=exc.response.json()["error"]
@@ -144,8 +148,14 @@ async def api_reverse_submarineswap_create(
 
     try:
         data, task = await create_reverse_swap(data)
-    except Exception as e:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=exc.response.status_code, detail=exc.response.json()["error"]
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc)
+        )
 
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
