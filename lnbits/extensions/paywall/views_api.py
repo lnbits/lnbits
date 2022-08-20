@@ -1,10 +1,12 @@
 from http import HTTPStatus
 
+import httpx
 from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.core.services import check_transaction_status, create_invoice
+from lnbits.core.views.api import api_payment
 from lnbits.decorators import WalletTypeInfo, get_key_type
 
 from . import paywall_ext
@@ -87,8 +89,9 @@ async def api_paywal_check_invoice(
             status_code=HTTPStatus.NOT_FOUND, detail="Paywall does not exist."
         )
     try:
-        status = await check_transaction_status(paywall.wallet, payment_hash)
-        is_paid = not status.pending
+        status = await api_payment(payment_hash)
+        is_paid = status["paid"]
+        
     except Exception:
         return {"paid": False}
 
@@ -96,6 +99,19 @@ async def api_paywal_check_invoice(
         wallet = await get_wallet(paywall.wallet)
         payment = await wallet.get_payment(payment_hash)
         await payment.set_pending(False)
+
+        if paywall.webhook:
+            async with httpx.AsyncClient() as client:
+                    await client.post(
+                        paywall.webhook,
+                        json={
+                            "paywall": paywall.id,
+                            "memo": paywall.memo,
+                            "amount": paywall.amount,
+                            "url": paywall.url,
+                        },
+                        timeout=40,
+                    )
 
         return {"paid": True, "url": paywall.url, "remembers": paywall.remembers}
     return {"paid": False}

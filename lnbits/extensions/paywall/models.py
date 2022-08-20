@@ -12,6 +12,7 @@ class CreatePaywall(BaseModel):
     description: str = Query(None)
     amount: int = Query(..., ge=0)
     remembers: bool = Query(...)
+    webhook: str = Query(None)
 
 
 class CreatePaywallInvoice(BaseModel):
@@ -32,6 +33,7 @@ class Paywall(BaseModel):
     time: int
     remembers: bool
     extras: Optional[dict]
+    webhook: Optional[str]
 
     @classmethod
     def from_row(cls, row: Row) -> "Paywall":

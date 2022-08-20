@@ -61,3 +61,13 @@ async def m002_redux(db):
         )
 
     await db.execute("DROP TABLE paywall.paywalls_old")
+
+async def m003_add_webhook(db):
+    """
+    Add webhook functionality to Paywall
+    """
+    await db.execute(
+        """
+        ALTER TABLE paywall.paywalls ADD COLUMN webhook TEXT;
+    """
+    )

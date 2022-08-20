@@ -10,8 +10,8 @@ async def create_paywall(wallet_id: str, data: CreatePaywall) -> Paywall:
     paywall_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO paywall.paywalls (id, wallet, url, memo, description, amount, remembers)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO paywall.paywalls (id, wallet, url, memo, description, amount, remembers, webhook)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             paywall_id,
@@ -21,6 +21,7 @@ async def create_paywall(wallet_id: str, data: CreatePaywall) -> Paywall:
             data.description,
             data.amount,
             int(data.remembers),
+            data.webhook,
         ),
     )
 

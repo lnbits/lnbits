@@ -138,6 +138,14 @@
           label="Amount (sat) *"
           hint="This is the minimum amount users can pay/donate."
         ></q-input>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialog.data.webhook"
+          type="text"
+          label="Webhook (optional)"
+          hint="A URL to be called whenever this paywall receives a payment."
+        ></q-input>
         <q-list>
           <q-item tag="label" class="rounded-borders">
             <q-item-section avatar>
@@ -211,6 +219,12 @@
               field: 'remembers'
             },
             {
+              name: 'webhook',
+              align: 'left',
+              label: 'Webhook',
+              field: 'webhook'
+            },
+            {
               name: 'date',
               align: 'left',
               label: 'Date',
@@ -252,7 +266,8 @@
           memo: this.formDialog.data.memo,
           amount: this.formDialog.data.amount,
           description: this.formDialog.data.description,
-          remembers: this.formDialog.data.remembers
+          remembers: this.formDialog.data.remembers,
+          webhook: this.formDialog.data.webhook
         }
         var self = this
 
