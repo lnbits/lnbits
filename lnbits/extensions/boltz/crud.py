@@ -26,7 +26,7 @@ async def get_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List[Submari
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM boltz.submarineswap WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM boltz.submarineswap WHERE wallet IN ({q}) order by time DESC", (*wallet_ids,)
     )
 
     return [SubmarineSwap(**row) for row in rows]
@@ -44,6 +44,7 @@ async def create_submarine_swap(data: CreateSubmarineSwap) -> Optional[Submarine
         INSERT INTO boltz.submarineswap (
             id,
             wallet,
+            status,
             boltz_id,
             refund_privkey,
             expected_amount,
@@ -53,11 +54,12 @@ async def create_submarine_swap(data: CreateSubmarineSwap) -> Optional[Submarine
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap_id,
             swap.wallet,
+            swap.status,
             swap.boltz_id,
             swap.refund_privkey,
             swap.expected_amount,
@@ -84,7 +86,7 @@ async def get_reverse_submarine_swaps(wallet_ids: Union[str, List[str]]) -> List
 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
-        f"SELECT * FROM boltz.reverse_submarineswap WHERE wallet IN ({q})", (*wallet_ids,)
+        f"SELECT * FROM boltz.reverse_submarineswap WHERE wallet IN ({q}) order by time DESC", (*wallet_ids,)
     )
 
     return [ReverseSubmarineSwap(**row) for row in rows]
@@ -102,6 +104,7 @@ async def create_reverse_submarine_swap(data: CreateReverseSubmarineSwap) -> Opt
         INSERT INTO boltz.reverse_submarineswap (
             id,
             wallet,
+            status,
             boltz_id,
             instant_settlement,
             preimage,
@@ -113,11 +116,12 @@ async def create_reverse_submarine_swap(data: CreateReverseSubmarineSwap) -> Opt
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap_id,
             swap.wallet,
+            swap.status,
             swap.boltz_id,
             swap.instant_settlement,
             swap.preimage,
@@ -134,3 +138,10 @@ async def create_reverse_submarine_swap(data: CreateReverseSubmarineSwap) -> Opt
 
 async def delete_reverse_submarine_swap(swap_id):
     await db.execute("DELETE FROM boltz.reverse_submarineswap WHERE id = ?", (swap_id,))
+
+async def update_swap_status(swap: Union[ReverseSubmarineSwap, SubmarineSwap], status: str):
+    if type(swap) == SubmarineSwap:
+        await db.execute("UPDATE boltz.submarineswap SET status='"+status+"' WHERE id='"+swap.id+"'")
+    if type(swap) == ReverseSubmarineSwap:
+        await db.execute("UPDATE boltz.reverse_submarineswap SET status='"+status+"' WHERE id='"+swap.id+"'")
+    return swap
