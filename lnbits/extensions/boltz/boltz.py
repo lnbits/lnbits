@@ -365,19 +365,24 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
 
 
 def get_fee_estimation() -> int:
-    # hardcoded maximum tx size, in the future we try to get the size of the tx via embit (not possible yet)
+    # TODO: hardcoded maximum tx size, in the future we try to get the size of the tx via embit
+    # we need a function like Transaction.vsize()
     tx_size_vbyte = 200
     mempool_fees = get_mempool_fees()
     return mempool_fees * tx_size_vbyte
 
 
-# claim tx for reverse swaps
-# refund tx for normal swaps
+# a submarine swap consists of 2 onchain tx's a lockup and a redeem tx.
+# we create a tx to redeem the funds locked by the onchain lockup tx.
+# claim tx for reverse swaps, refund tx for normal swaps they are the same
+# onchain redeem tx, the difference between them is the private key, onchain_address,
+# input sequence and input script_sig
 async def create_onchain_tx(
     swap: Union[ReverseSubmarineSwap, SubmarineSwap], mempool_lockup_tx
 ) -> Transaction:
 
-    if type(swap) == SubmarineSwap:
+    is_refund_tx = type(swap) == SubmarineSwap
+    if is_refund_tx:
         current_block_height = get_mempool_blockheight()
         if current_block_height <= swap.timeout_block_height:
             msg = f"refund not possible, timeout_block_height ({swap.timeout_block_height}) is not yet exceeded ({current_block_height})"
@@ -404,17 +409,15 @@ async def create_onchain_tx(
     vout = [TransactionOutput(vout_amount - fees, script_pubkey)]
     tx = Transaction(vin=vin, vout=vout)
 
-    if type(swap) == SubmarineSwap:
+    if is_refund_tx:
         tx.locktime = locktime
 
     # TODO: 2 rounds for fee calculation, look at vbytes after signing and do another TX
     s = script.Script(data=redeem_script)
     for i in range(len(vin)):
         inp = vin[i]
-        if type(swap) == SubmarineSwap:
-            # OP_0 == 0
-            # OP_PUSHDATA34 == 34
-            # OP_PUSHDATA35 == 35
+        if is_refund_tx:
+            #    OP_PUSHDATA34     OP_0     OP_PUSHDATA35
             rs = bytes([34]) + bytes([0]) + bytes([32]) + sha256(redeem_script).digest()
             tx.vin[i].script_sig = script.Script(data=rs)
         h = tx.sighash_segwit(i, s, vout_amount)
