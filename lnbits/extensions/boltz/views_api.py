@@ -21,13 +21,13 @@ from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
 from . import boltz_ext
 from .boltz import (
-    MEMPOOL_SPACE_URL,
     create_refund_tx,
     create_reverse_swap,
     create_swap,
     get_boltz_pairs,
     get_swap_status,
 )
+
 from .crud import (
     create_reverse_submarine_swap,
     create_submarine_swap,
@@ -43,11 +43,11 @@ from .models import (
     ReverseSubmarineSwap,
     SubmarineSwap,
 )
-
+from lnbits.settings import BOLTZ_MEMPOOL_SPACE_URL
 
 @boltz_ext.get("/api/v1/swap/mempool")
 async def api_mempool_url():
-    return MEMPOOL_SPACE_URL
+    return BOLTZ_MEMPOOL_SPACE_URL
 
 
 # NORMAL SWAP

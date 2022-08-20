@@ -36,18 +36,17 @@ from .models import (
     SubmarineSwap,
 )
 
-# if DEBUG:
-net = NETWORKS["regtest"]
-BOLTZ_URL = "http://127.0.0.1:9001"
-MEMPOOL_SPACE_URL = "http://127.0.0.1:8080"
-MEMPOOL_SPACE_URL_WS = "ws://127.0.0.1:8080"
-# else:
-#     net = NETWORKS["main"]
-#     BOLTZ_URL = "https://boltz.exchange/api"
-#     MEMPOOL_SPACE_URL = "https://mempool.space"
-#     MEMPOOL_SPACE_URL_WS = "wss://mempool.space"
+from lnbits.settings import (
+    BOLTZ_NETWORK,
+    BOLTZ_URL,
+    BOLTZ_MEMPOOL_SPACE_URL,
+    BOLTZ_MEMPOOL_SPACE_URL_WS,
+)
 
-logger.debug(f"MEMPOOL_SPACE_URL: {MEMPOOL_SPACE_URL}")
+net = NETWORKS[BOLTZ_NETWORK]
+
+logger.debug(f"BOLTZ_MEMPOOL_SPACE_URL: {BOLTZ_MEMPOOL_SPACE_URL}")
+logger.debug(f"BOLTZ_MEMPOOL_SPACE_URL_WS: {BOLTZ_MEMPOOL_SPACE_URL_WS}")
 logger.debug(f"BOLTZ_URL: {BOLTZ_URL}")
 logger.debug(f"Bitcoin Network: {net['name']}")
 
@@ -182,7 +181,7 @@ def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Tas
 
 
 async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
-    async with connect(f"{MEMPOOL_SPACE_URL_WS}/api/v1/ws") as websocket:
+    async with connect(f"{BOLTZ_MEMPOOL_SPACE_URL_WS}/api/v1/ws") as websocket:
         logger.debug(
             f"Boltz - mempool websocket connected... waiting for onchain tx: {swap.lockup_address}"
         )
@@ -207,7 +206,7 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
         )
         result = done.pop().result()
 
-        # pay_invoice already failed, done wait for onchain tx anymore
+        # pay_invoice already failed, do not wait for onchain tx anymore
         if result is None:
             wstask.cancel()
             return
@@ -262,7 +261,7 @@ def get_mempool_tx_status(address):
 def get_mempool_tx(address):
     res = req_wrap(
         "get",
-        f"{MEMPOOL_SPACE_URL}/api/address/{address}/txs",
+        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/address/{address}/txs",
         headers={"Content-Type": "text/plain"},
     )
     txs = res.json()
@@ -429,7 +428,7 @@ def get_boltz_status(boltzid):
 def get_mempool_fees() -> int:
     res = req_wrap(
         "get",
-        f"{MEMPOOL_SPACE_URL}/api/v1/fees/recommended",
+        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/v1/fees/recommended",
         headers={"Content-Type": "text/plain"},
     )
     fees = res.json()
@@ -439,7 +438,7 @@ def get_mempool_fees() -> int:
 def get_mempool_blockheight() -> int:
     res = req_wrap(
         "get",
-        f"{MEMPOOL_SPACE_URL}/api/blocks/tip/height",
+        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/blocks/tip/height",
         headers={"Content-Type": "text/plain"},
     )
     return int(res.text)
@@ -450,7 +449,7 @@ async def send_onchain_tx(tx: Transaction):
     logger.debug(f"Boltz - mempool sending onchain tx: {raw}")
     req_wrap(
         "post",
-        f"{MEMPOOL_SPACE_URL}/api/tx",
+        f"{BOLTZ_MEMPOOL_SPACE_URL}/api/tx",
         headers={"Content-Type": "text/plain"},
         content=raw,
     )
@@ -474,5 +473,4 @@ def req_wrap(funcname, *args, **kwargs):
         msg = f"HTTP Status Error: {exc.response.status_code} while requesting {exc.request.url!r}."
         logger.error(msg)
         logger.error(exc.response.content)
-        raise
-        # raise Exception(msg)
+        raise Exception(msg)
