@@ -11,9 +11,8 @@ from lnbits.extensions.boltz.crud import (
 )
 from lnbits.extensions.boltz.boltz import create_reverse_swap, create_swap
 from tests.extensions.boltz.conftest import reverse_swap, swap
-from tests.helpers import is_regtest
+from tests.helpers import is_regtest, is_fake
 
-from lnbits.settings import wallet_class
 
 
 # @pytest.mark.asyncio
@@ -26,10 +25,7 @@ from lnbits.settings import wallet_class
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(
-    wallet_class.__name__ in ["FakeWallet"],
-    reason="this test is only runs in regtest",
-)
+@pytest.mark.skipif(is_fake, reason="this test is only passes in regtest")
 async def test_create_reverse_swap(client, reverse_swap):
     swap, wait_for_onchain = reverse_swap
     assert swap.status == "pending"

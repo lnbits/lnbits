@@ -167,13 +167,15 @@ async def api_reverse_submarineswap_create(
         This endpoint attempts to get the status of the swap.
     """,
     response_description="status of swap json",
-    dependencies=[Depends(require_admin_key)],
     response_model=dict,
     responses={
         404: {"description": "when swap_id is not found"},
     },
 )
-async def api_submarineswap_status(swap_id: str):
+async def api_submarineswap_status(
+    swap_id: str,
+    wallet: WalletTypeInfo = Depends(require_admin_key)  #type: ignore
+):
     swap = await get_submarine_swap(swap_id)
     if swap == None:
         swap = await get_reverse_submarine_swap(swap_id)

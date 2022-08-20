@@ -231,7 +231,7 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, invoice):
         try:
             message = json.loads(result)
         except Exception as exc:
-            logger.debug(f"Boltz - cannot parse mempool data, happens if pay_invoice task is done before the websocket task, when testing with a mocked pay_invoice function.")
+            logger.error(f"Boltz - cannot parse mempool data, happens if pay_invoice task is done before the websocket task, when testing with a mocked pay_invoice function.")
             wstask.cancel()
             raise
 

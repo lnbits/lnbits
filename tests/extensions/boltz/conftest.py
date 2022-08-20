@@ -19,7 +19,7 @@ async def swap(from_wallet):
     return CreateSubmarineSwap(
         wallet=from_wallet.id,
         refund_address="bcrt1q3cwq33y435h52gq3qqsdtczh38ltlnf69zvypm",
-        amount=50_000,
+        amount=20_000,
     )
 
 
@@ -29,6 +29,6 @@ async def reverse_swap(from_wallet):
         wallet=from_wallet.id,
         instant_settlement=True,
         onchain_address="bcrt1q4vfyszl4p8cuvqh07fyhtxve5fxq8e2ux5gx43",
-        amount=50_000,
+        amount=20_000,
     )
     return await create_reverse_swap(data)
