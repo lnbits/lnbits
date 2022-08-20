@@ -1,43 +1,41 @@
-import os
 import asyncio
-import json
-import httpx
 import calendar
 import datetime
-from starlette.exceptions import HTTPException
+import json
+import os
+from binascii import hexlify, unhexlify
+from hashlib import sha256
 from http import HTTPStatus
-from lnbits import bolt11
-from websockets import connect
 from typing import Union
+
+import httpx
 from embit import ec, script
 from embit.networks import NETWORKS
-from embit.transaction import Transaction, TransactionInput, TransactionOutput, SIGHASH
-from binascii import unhexlify, hexlify
-from lnbits.helpers import urlsafe_short_hash
+from embit.transaction import SIGHASH, Transaction, TransactionInput, TransactionOutput
 from loguru import logger
+from starlette.exceptions import HTTPException
+from websockets import connect
 
-from hashlib import sha256
-
+from lnbits import bolt11
 from lnbits.core.services import (
-    get_wallet,
-    fee_reserve,
     check_invoice_status,
     create_invoice,
     create_payment,
     delete_payment,
+    fee_reserve,
+    get_wallet,
     pay_invoice,
 )
+from lnbits.helpers import urlsafe_short_hash
+from lnbits.settings import DEBUG
 
 from .crud import update_swap_status
-
 from .models import (
-    CreateSubmarineSwap,
-    SubmarineSwap,
     CreateReverseSubmarineSwap,
+    CreateSubmarineSwap,
     ReverseSubmarineSwap,
+    SubmarineSwap,
 )
-
-from lnbits.settings import DEBUG
 
 if DEBUG:
     net = NETWORKS["regtest"]

@@ -10,32 +10,29 @@ from lnbits.core.crud import get_user
 from lnbits.core.services import perform_lnurlauth, redeem_lnurl_withdraw
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
 
-from .models import (
-    SubmarineSwap,
-    ReverseSubmarineSwap,
-    CreateSubmarineSwap,
-    CreateReverseSubmarineSwap,
-)
-
 from . import boltz_ext
-
 from .boltz import (
-    create_swap,
-    create_reverse_swap,
+    MEMPOOL_SPACE_URL,
     create_refund_tx,
+    create_reverse_swap,
+    create_swap,
     get_boltz_pairs,
     get_swap_status,
-    MEMPOOL_SPACE_URL,
 )
-
 from .crud import (
-    update_swap_status,
-    create_submarine_swap,
-    get_submarine_swaps,
-    get_submarine_swap,
     create_reverse_submarine_swap,
-    get_reverse_submarine_swaps,
+    create_submarine_swap,
     get_reverse_submarine_swap,
+    get_reverse_submarine_swaps,
+    get_submarine_swap,
+    get_submarine_swaps,
+    update_swap_status,
+)
+from .models import (
+    CreateReverseSubmarineSwap,
+    CreateSubmarineSwap,
+    ReverseSubmarineSwap,
+    SubmarineSwap,
 )
 
 
