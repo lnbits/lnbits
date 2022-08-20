@@ -145,6 +145,7 @@ def get_swap_status(swap):
         status += ", refund is possible"
 
     return {
+        "wallet": swap.wallet,
         "status": status,
         "swap_id": swap.id,
         "boltz": boltz_status,
