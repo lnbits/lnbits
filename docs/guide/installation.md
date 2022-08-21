@@ -101,7 +101,7 @@ Fly.io is a docker container hosting platform that has a generous free tier. You
 
 First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
 
-Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/).
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. If you don't you'll have to call Fly from `~/.fly/bin/flyctl`.
 
 Once installed, run these commands.
 
