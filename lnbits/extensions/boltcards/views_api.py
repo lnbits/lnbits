@@ -145,7 +145,7 @@ async def api_scane(p, c, request: Request):
             try:
                 card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(cand.k1))
 
-                if card_uid.hex().upper() == cand.uid:
+                if card_uid.hex().upper() == cand.uid.upper():
                     card = cand
                     break
             except:
