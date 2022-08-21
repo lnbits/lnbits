@@ -29,7 +29,7 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             card_id,
             wallet_id,
             data.card_name,
-            data.uid,
+            data.uid.upper(),
             data.counter,
             data.withdraw,
             data.k0,
@@ -46,6 +46,8 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
 async def update_card(card_id: str, **kwargs) -> Optional[Card]:
     if "is_unique" in kwargs:
         kwargs["is_unique"] = int(kwargs["is_unique"])
+    if "uid" in kwargs:
+        kwargs["uid"] = kwargs["uid"].upper()
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE boltcards.cards SET {q} WHERE id = ?",
@@ -84,7 +86,9 @@ async def get_card(card_id: str) -> Optional[Card]:
 
 
 async def get_card_by_uid(card_uid: str) -> Optional[Card]:
-    row = await db.fetchone("SELECT * FROM boltcards.cards WHERE uid = ?", (card_uid,))
+    row = await db.fetchone(
+        "SELECT * FROM boltcards.cards WHERE uid = ?", (card_uid.upper(),)
+    )
     if not row:
         return None
 
