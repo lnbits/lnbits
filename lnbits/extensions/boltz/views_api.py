@@ -1,5 +1,6 @@
 from datetime import datetime
 from http import HTTPStatus
+from typing import List
 
 import httpx
 from fastapi import status
@@ -10,7 +11,6 @@ from loguru import logger
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from typing import List
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
@@ -53,7 +53,7 @@ from .utils import check_balance
         This endpoint gets the URL from mempool.space
     """,
     response_description="mempool.space url",
-    response_model=str
+    response_model=str,
 )
 async def api_mempool_url():
     return BOLTZ_MEMPOOL_SPACE_URL
@@ -69,7 +69,7 @@ async def api_mempool_url():
     """,
     response_description="list of normal swaps",
     dependencies=[Depends(get_key_type)],
-    response_model=List[SubmarineSwap]
+    response_model=List[SubmarineSwap],
 )
 async def api_submarineswap(
     g: WalletTypeInfo = Depends(get_key_type),
@@ -102,7 +102,7 @@ async def api_submarineswap(
 )
 async def api_submarineswap_refund(
     swap_id: str,
-    g: WalletTypeInfo = Depends(require_admin_key), #type: ignore
+    g: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
 ):
     if swap_id == None:
         raise HTTPException(
@@ -146,7 +146,7 @@ async def api_submarineswap_refund(
 )
 async def api_submarineswap_create(
     data: CreateSubmarineSwap,
-    wallet: WalletTypeInfo = Depends(require_admin_key),  #type: ignore
+    wallet: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
 ):
     try:
         data = await create_swap(data)
@@ -170,10 +170,10 @@ async def api_submarineswap_create(
     """,
     response_description="list of reverse swaps",
     dependencies=[Depends(get_key_type)],
-    response_model=List[ReverseSubmarineSwap]
+    response_model=List[ReverseSubmarineSwap],
 )
 async def api_reverse_submarineswap(
-    g: WalletTypeInfo = Depends(get_key_type),  #type:ignore
+    g: WalletTypeInfo = Depends(get_key_type),  # type:ignore
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]
@@ -254,7 +254,7 @@ async def api_submarineswap_status(
         This endpoint gives you 2 lists of pending swaps and reverse swaps.
     """,
     response_description="list of pending swaps",
-    response_model=List[SwapStatus]
+    response_model=List[SwapStatus],
 )
 async def api_check_swaps(
     g: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
@@ -279,7 +279,7 @@ async def api_check_swaps(
         This endpoint gets configuration for boltz. (limits, fees...)
     """,
     response_description="dict of boltz config",
-    response_model=dict
+    response_model=dict,
 )
 async def api_boltz_config():
     try:
