@@ -159,6 +159,9 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
         try:
             card = await get_card_by_uid(card_uid)
             card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
+
+            if card.uid.upper() != card_uid.hex().upper():
+                return {"status": "ERROR", "reason": "Card UID mis-match."}
         except:
             return {"status": "ERROR", "reason": "Error decrypting card."}
 
