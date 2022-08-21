@@ -10,6 +10,7 @@ class SubmarineSwap(BaseModel):
     id: str
     wallet: str
     amount: int
+    payment_hash: str
     time: int
     status: str
     refund_privkey: str
@@ -25,7 +26,7 @@ class SubmarineSwap(BaseModel):
 class CreateSubmarineSwap(BaseModel):
     wallet: str = Query(...)  # type: ignore
     refund_address: str = Query(...)  # type: ignore
-    amount: int = Query(..., ge=10000, le=4294967)  # type: ignore
+    amount: int = Query(...)  # type: ignore
 
 
 class ReverseSubmarineSwap(BaseModel):
@@ -41,6 +42,7 @@ class ReverseSubmarineSwap(BaseModel):
     claim_privkey: str
     lockup_address: str
     invoice: str
+    preimage_hash: str
     onchain_amount: int
     timeout_block_height: int
     redeem_script: str
@@ -48,7 +50,7 @@ class ReverseSubmarineSwap(BaseModel):
 
 class CreateReverseSubmarineSwap(BaseModel):
     wallet: str = Query(...)  # type: ignore
-    amount: int = Query(..., ge=10000, le=4294967)  # type: ignore
+    amount: int = Query(...)  # type: ignore
     instant_settlement: bool = Query(...)  # type: ignore
     # validate on-address, bcrt1 for regtest addresses
     onchain_address: str = Query(
@@ -66,9 +68,9 @@ class SwapStatus(BaseModel):
     address: str = ""
     block_height: int = 0
     timeout_block_height: int = 0
-    exists: bool = True
-    is_done: bool = False
+    lockup = ""
     has_lockup: bool = False
     hit_timeout: bool = False
-    can_refund: bool = False
+    confirmed: bool = True
+    exists: bool = True
     reverse: bool = False
