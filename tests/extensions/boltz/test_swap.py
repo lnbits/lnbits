@@ -10,7 +10,7 @@ from lnbits.extensions.boltz.crud import (
     get_reverse_submarine_swap,
     get_submarine_swap,
 )
-from tests.extensions.boltz.conftest import reverse_swap, swap
+from tests.extensions.boltz.conftest import reverse_swap
 from tests.helpers import is_fake, is_regtest
 
 
