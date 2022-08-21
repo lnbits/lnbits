@@ -88,8 +88,7 @@ async def test_endpoints_adminkey_fakewallet(client, from_wallet, adminkey_heade
     response = await client.post(
         "/boltz/api/v1/swap", json=swap, headers=adminkey_headers_to
     )
-    assert response.status_code == 400
-    assert response.json()["detail"] == "could not find route to pay invoice"
+    assert response.status_code == 405
     reverse_swap = {
         "wallet": from_wallet.id,
         "instant_settlement": True,

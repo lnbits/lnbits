@@ -112,9 +112,7 @@ async def api_submarineswap_create(
     try:
         data = await create_swap(data)
     except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc)
-        )
+        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
             status_code=exc.response.status_code, detail=exc.response.json()["error"]
@@ -153,9 +151,7 @@ async def api_reverse_submarineswap_create(
             status_code=exc.response.status_code, detail=exc.response.json()["error"]
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc)
-        )
+        raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
 
     swap = await create_reverse_submarine_swap(data)
     return swap.dict()
@@ -198,7 +194,7 @@ async def api_submarineswap_status(
     response_description="list of pending swaps",
 )
 async def api_check_swaps(
-    g: WalletTypeInfo = Depends(require_admin_key),  #type: ignore
+    g: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
     all_wallets: bool = Query(False),
 ):
     wallet_ids = [g.wallet.id]

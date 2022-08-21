@@ -4,6 +4,7 @@ async def m001_initial(db):
         CREATE TABLE boltz.submarineswap (
             id TEXT PRIMARY KEY,
             wallet TEXT NOT NULL,
+            payment_hash TEXT NOT NULL,
             amount INT NOT NULL,
             status TEXT NOT NULL,
             boltz_id TEXT NOT NULL,
@@ -36,6 +37,7 @@ async def m001_initial(db):
             claim_privkey TEXT NOT NULL,
             lockup_address TEXT NOT NULL,
             invoice TEXT NOT NULL,
+            preimage_hash TEXT NOT NULL,
             onchain_amount INT NOT NULL,
             time TIMESTAMP NOT NULL DEFAULT """
         + db.timestamp_now

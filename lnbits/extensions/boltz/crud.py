@@ -65,6 +65,7 @@ async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
         INSERT INTO boltz.submarineswap (
             id,
             wallet,
+            payment_hash,
             status,
             boltz_id,
             refund_privkey,
@@ -76,11 +77,12 @@ async def create_submarine_swap(swap: SubmarineSwap) -> Optional[SubmarineSwap]:
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap.id,
             swap.wallet,
+            swap.payment_hash,
             swap.status,
             swap.boltz_id,
             swap.refund_privkey,
@@ -161,13 +163,14 @@ async def create_reverse_submarine_swap(
             claim_privkey,
             lockup_address,
             invoice,
+            preimage_hash,
             onchain_amount,
             onchain_address,
             timeout_block_height,
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap.id,
@@ -179,6 +182,7 @@ async def create_reverse_submarine_swap(
             swap.claim_privkey,
             swap.lockup_address,
             swap.invoice,
+            swap.preimage_hash,
             swap.onchain_amount,
             swap.onchain_address,
             swap.timeout_block_height,

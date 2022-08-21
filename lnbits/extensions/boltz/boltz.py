@@ -50,7 +50,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         payment_hash, payment_request = await create_invoice(
             wallet_id=data.wallet,
             amount=data.amount,
-            memo=f"submarine swap of {data.amount} sats on boltz.exchange",
+            memo=f"swap of {data.amount} sats on boltz.exchange",
             extra={"tag": "boltz", "swap_id": swap_id},
         )
     except Exception as exc:
@@ -83,6 +83,7 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
         time=get_timestamp(),
         wallet=data.wallet,
         amount=data.amount,
+        payment_hash=payment_hash,
         refund_privkey=refund_privkey.wif(net),
         refund_address=data.refund_address,
         boltz_id=res["id"],
@@ -95,19 +96,22 @@ async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
     )
 
 
+"""
+explanation taken from electrum
+send on Lightning, receive on-chain
+- User generates preimage, RHASH. Sends RHASH to server.
+- Server creates an LN invoice for RHASH.
+- User pays LN invoice - except server needs to hold the HTLC as preimage is unknown.
+- Server creates on-chain output locked to RHASH.
+- User spends on-chain output, revealing preimage.
+- Server fulfills HTLC using preimage.
+Note: expected_onchain_amount_sat is BEFORE deducting the on-chain claim tx fee.
+"""
+
+
 async def create_reverse_swap(
     data: CreateReverseSubmarineSwap,
 ) -> [ReverseSubmarineSwap, asyncio.Task]:
-    """explanation taken from electrum
-    send on Lightning, receive on-chain
-    - User generates preimage, RHASH. Sends RHASH to server.
-    - Server creates an LN invoice for RHASH.
-    - User pays LN invoice - except server needs to hold the HTLC as preimage is unknown.
-    - Server creates on-chain output locked to RHASH.
-    - User spends on-chain output, revealing preimage.
-    - Server fulfills HTLC using preimage.
-    Note: expected_onchain_amount_sat is BEFORE deducting the on-chain claim tx fee.
-    """
 
     if not check_boltz_limits(data.amount):
         msg = f"Boltz - reverse swap not in boltz limits"
@@ -155,6 +159,7 @@ async def create_reverse_swap(
         instant_settlement=data.instant_settlement,
         claim_privkey=claim_privkey.wif(net),
         preimage=preimage.hex(),
+        preimage_hash=preimage_hash,
         status="pending",
         boltz_id=res["id"],
         timeout_block_height=res["timeoutBlockHeight"],
@@ -164,12 +169,38 @@ async def create_reverse_swap(
         invoice=res["invoice"],
         time=get_timestamp(),
     )
-
     logger.debug(f"Boltz - waiting for onchain tx, reverse swap_id: {swap.id}")
-    task: asyncio.Task = create_task_log_exception(
+    task = create_task_log_exception(
         swap.id, wait_for_onchain_tx(swap, swap_websocket_callback_initial)
     )
     return swap, task
+
+
+def start_onchain_listener(swap: ReverseSubmarineSwap) -> asyncio.Task:
+    return create_task_log_exception(
+        swap.id, wait_for_onchain_tx(swap, swap_websocket_callback_restart)
+    )
+
+
+async def start_confirmation_listener(
+    swap: ReverseSubmarineSwap, mempool_lockup_tx
+) -> asyncio.Task:
+    logger.debug(f"Boltz - reverse swap, waiting for confirmation...")
+
+    # this is used if we start listener after lnbits restart
+    if mempool_lockup_tx is None:
+        mempool_lockup_tx = get_mempool_tx(txs, swap.lockup_address)
+        if mempool_lockup_tx is None:
+            raise Exception("Boltz - no mempool tx")
+
+    tx, txid, *_ = mempool_lockup_tx
+
+    confirmed = await wait_for_websocket_message({"track-tx": txid}, "txConfirmed")
+    if confirmed:
+        logger.debug(f"Boltz - reverse swap lockup transaction confirmed! claiming...")
+        await create_claim_tx(swap, mempool_lockup_tx)
+    else:
+        logger.debug(f"Boltz - reverse swap lockup transaction still not confirmed.")
 
 
 def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Task:
@@ -201,7 +232,7 @@ async def swap_websocket_callback_initial(swap):
         pay_invoice(
             wallet_id=swap.wallet,
             payment_request=swap.invoice,
-            description=f"reverse submarine swap for {swap.amount} sats on boltz.exchange",
+            description=f"reverse swap for {swap.amount} sats on boltz.exchange",
             extra={"tag": "boltz", "swap_id": swap.id, "reverse": True},
         ),
     )
@@ -240,19 +271,7 @@ async def wait_for_onchain_tx(swap: ReverseSubmarineSwap, callback):
             )
             await create_claim_tx(swap, mempool_lockup_tx)
         else:
-            logger.debug(f"Boltz - reverse swap, waiting for confirmation...")
-            confirmed = await wait_for_websocket_message(
-                {"track-tx": txid}, "txConfirmed"
-            )
-            if confirmed:
-                logger.debug(
-                    f"Boltz - reverse swap lockup transaction confirmed! claiming..."
-                )
-                await create_claim_tx(swap, mempool_lockup_tx)
-            else:
-                logger.debug(
-                    f"Boltz - reverse swap lockup transaction still not confirmed."
-                )
+            await start_confirmation_listener(swap, mempool_lockup_tx)
         try:
             if task:
                 await task
@@ -277,24 +296,33 @@ async def create_refund_tx(swap: SubmarineSwap):
     await send_onchain_tx(tx)
 
 
-# a submarine swap consists of 2 onchain tx's a lockup and a redeem tx.
-# we create a tx to redeem the funds locked by the onchain lockup tx.
-# claim tx for reverse swaps, refund tx for normal swaps they are the same
-# onchain redeem tx, the difference between them is the private key, onchain_address,
-# input sequence and input script_sig
+def check_block_height(block_height: int):
+    current_block_height = get_mempool_blockheight()
+    if current_block_height <= block_height:
+        msg = f"refund not possible, timeout_block_height ({block_height}) is not yet exceeded ({current_block_height})"
+        logger.debug(msg)
+        raise Exception(msg)
+
+
+"""
+a submarine swap consists of 2 onchain tx's a lockup and a redeem tx.
+we create a tx to redeem the funds locked by the onchain lockup tx.
+claim tx for reverse swaps, refund tx for normal swaps they are the same
+onchain redeem tx, the difference between them is the private key, onchain_address,
+input sequence and input script_sig
+"""
+
+
 async def create_onchain_tx(
     swap: Union[ReverseSubmarineSwap, SubmarineSwap], mempool_lockup_tx
 ) -> Transaction:
 
     is_refund_tx = type(swap) == SubmarineSwap
     if is_refund_tx:
-        current_block_height = get_mempool_blockheight()
-        if current_block_height <= swap.timeout_block_height:
-            msg = f"refund not possible, timeout_block_height ({swap.timeout_block_height}) is not yet exceeded ({current_block_height})"
-            logger.debug(msg)
-            raise Exception(msg)
+        check_block_height(swap.timeout_block_height)
         privkey = ec.PrivateKey.from_wif(swap.refund_privkey)
         onchain_address = swap.refund_address
+        preimage = b""
         sequence = 0xFFFFFFFE
     else:
         privkey = ec.PrivateKey.from_wif(swap.claim_privkey)
@@ -333,10 +361,12 @@ async def create_onchain_tx(
 
 
 def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapStatus:
+
     swap_status = SwapStatus(
         wallet=swap.wallet,
         swap_id=swap.id,
     )
+
     try:
         boltz_request = get_boltz_status(swap.boltz_id)
         swap_status.boltz = boltz_request["status"]
@@ -354,38 +384,29 @@ def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapSta
         swap_status.address = swap.lockup_address
 
     swap_status.block_height = get_mempool_blockheight()
+    swap_status.timeout_block_height = (
+        f"{str(swap.timeout_block_height)} -> current: {str(swap_status.block_height)}"
+    )
 
     if swap_status.block_height >= swap.timeout_block_height:
-        swap_status.can_refund = True
         swap_status.hit_timeout = True
-        swap_status.message += "hit timeout_block_height"
-    else:
-        swap_status.message += "timeout_block_height not exceeded"
 
     mempool_tx = get_mempool_tx(swap_status.address)
     if mempool_tx == None:
+        swap_status.has_lockup = False
+        swap_status.lockup = mempool_tx
+        swap_status.confirmed = False
         swap_status.mempool = "transaction.unknown"
-        swap_status.can_refund = False
-        swap_status.message += ", lockup_tx not in mempool"
+        swap_status.message = "lockup tx not in mempool"
     else:
         swap_status.has_lockup = True
-        # tx, *_ = get_mempool_tx(swap_status.address)
-        # if output_spent:
-        #     swap_status.is_done = True
-        # else:
-        #     swap_status.can_refund = True
-
-        # if tx["status"]["confirmed"] == True:
-        #     swap_status.mempool = "transaction.confirmed"
-        # else:
-        #     swap_status.mempool = "transaction.unconfirmed"
-
-    if swap_status.can_refund == True:
-        swap_status.message += ", refund is possible"
-
-    swap_status.timeout_block_height = (
-        f"{str(swap.timeout_block_height)} -> {str(swap_status.block_height)}"
-    )
+        tx, *_ = mempool_tx
+        if tx["status"]["confirmed"] == True:
+            swap_status.mempool = "transaction.confirmed"
+            swap_status.confirmed = True
+        else:
+            swap_status.confirmed = False
+            swap_status.mempool = "transaction.unconfirmed"
 
     return swap_status
 
