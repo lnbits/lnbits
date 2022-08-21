@@ -8,6 +8,7 @@ from lnbits.core.services import check_transaction_status
 from lnbits.tasks import register_invoice_listener
 
 from .boltz import (
+    create_claim_tx,
     create_refund_tx,
     get_swap_status,
     start_confirmation_listener,
@@ -31,7 +32,7 @@ A. normal swaps
 
 B. reverse swaps
   1. test: create instant -> kill -> boltz does lockup -> not confirmed -> start lnbits -> should claim/complete
-  2. test: create instant -> kill -> no lockup -> start lnbits -> should start onchain listener -> boltz does lockup -> should claim/complete
+  2. test: create instant -> kill -> no lockup -> start lnbits -> should start onchain listener -> boltz does lockup -> should claim/complete (difficult to test)
   3. test: create -> kill -> boltz does lockup -> not confirmed -> start lnbits -> should start tx listener -> after confirmation -> should claim/complete
   4. test: create -> kill -> boltz does lockup -> confirmed -> start lnbits -> should claim/complete
   5. test: create -> kill -> boltz does lockup -> hit timeout -> boltz refunds -> start -> should timeout
@@ -89,9 +90,6 @@ async def check_for_pending_swaps():
         for reverse_swap in reverse_swaps:
             try:
                 swap_status = get_swap_status(reverse_swap)
-                logger.debug(
-                    f"Boltz - reverse_swap: {reverse_swap.id} - {swap_status.message}"
-                )
 
                 if swap_status.exists is False:
                     logger.debug(
@@ -110,13 +108,19 @@ async def check_for_pending_swaps():
 
                 if not swap_status.has_lockup:
                     # start listener for onchain address
-                    start_onchain_listener(swap)
+                    logger.debug(
+                        f"Boltz - reverse_swap: {reverse_swap.boltz_id} restarted onchain address listener."
+                    )
+                    await start_onchain_listener(reverse_swap)
                     continue
 
                 if reverse_swap.instant_settlement or swap_status.confirmed:
-                    await create_claim_tx(swap, swap_status.lockup)
+                    await create_claim_tx(reverse_swap, swap_status.lockup)
                 else:
-                    start_confirmation_listener(swap, swap_status.lockup)
+                    logger.debug(
+                        f"Boltz - reverse_swap: {reverse_swap.boltz_id} restarted confirmation listener."
+                    )
+                    await start_confirmation_listener(reverse_swap, swap_status.lockup)
 
             except Exception as exc:
                 logger.error(f"Boltz - reverse swap: {reverse_swap.id} - {str(exc)}")
