@@ -114,6 +114,8 @@ fly auth login
 
 Now, create a new file `fly.toml` and paste in the following. Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`.
 
+Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
+
 Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
 
 ```
@@ -122,8 +124,8 @@ kill_signal = "SIGINT"
 kill_timeout = 30
 
 [mounts]
-source="lnbits_data"
-destination="/data"
+  source="lnbits_data"
+  destination="/data"
 
 [env]
   HOST="127.0.0.1"
