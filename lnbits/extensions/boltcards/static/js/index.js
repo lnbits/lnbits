@@ -25,6 +25,12 @@ new Vue({
       cardsTable: {
         columns: [
           {
+            name: 'id',
+            align: 'left',
+            label: 'ID',
+            field: 'id'
+          },
+          {
             name: 'card_name',
             align: 'left',
             label: 'Card name',
@@ -156,6 +162,7 @@ new Vue({
 
       this.qrCodeDialog.data = {
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,
+        id: card.id,
         name: card.card_name,
         uid: card.uid,
         k0: card.k0,
