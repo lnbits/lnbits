@@ -25,6 +25,7 @@ from .crud import (
     get_all_cards,
     get_card,
     get_card_by_otp,
+    get_card_by_uid,
     get_cards,
     get_hits,
     update_card,
@@ -131,15 +132,15 @@ async def api_hits(
 
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan")
-@boltcards_ext.get("/api/v1/scan/{card_id}")
-async def api_scan(p, c, request: Request, card_id: str = None):
+@boltcards_ext.get("/api/v1/scan/{card_uid}")
+async def api_scan(p, c, request: Request, card_uid: str = None):
     # some wallets send everything as lower case, no bueno
     p = p.upper()
     c = c.upper()
     card = None
     counter = b""
 
-    if not card_id:
+    if not card_uid:
         # since this route is common to all cards I don't know whitch 'meta key' to use
         # so I try one by one until decrypted uid matches
         for cand in await get_all_cards():
@@ -156,7 +157,7 @@ async def api_scan(p, c, request: Request, card_id: str = None):
                     continue
     else:
         try:
-            card = await get_card(card_id)
+            card = await get_card_by_uid(card_uid)
             card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
         except:
             return {"status": "ERROR", "reason": "Error decrypting card."}
