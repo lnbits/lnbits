@@ -25,10 +25,10 @@ Create a withdraw link within the LNURLw extension before adding a card. Enable 
 So far, regarding the keys, the app can only write a new key set on an empty card (with zero keys). **When you write non zero (and 'non debug') keys, they can't be rewrite with this app.** You have to do it on your computer. 
 
 - Read the card with the app. Note UID so you can fill it in the extension later.
-- Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{card_id}`
-    - `{card_id}` is optional. This field denotes the internal LNBits ID for the card you set up. 
-    - If you include the `{card_id}`, there is a slight potential privacy leak where each place you tap your card will see this `{card_id}` in plain-text. As one example, merchants could potentially use this static identifier for the card to build a profile around you. If you are on a shared, large LNBits host this option is probably best for you as the system is more efficient this way.
-    - If you don't include `{card_id}`, then you will have gained a tiny bit more privacy by not exposing any static identifier to anyone. The downside to this is that the processing LNBits does after you tap your card is more computationally expensive. If you are on a dedicated, private LNBits instance this option is probably best for you as the efficiency gains of adding `{card_id}` are irrelevant in this use case.
+- Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{card_uid}`
+    - `{card_uid}` is optional. This field denotes the 14-character (7 byte) UID unique to each NFC cardr from the factory.
+    - If you include the `{card_uid}`, there is a slight potential privacy leak where each place you tap your card will see this `{card_uid}` in plain-text. As one example, merchants could potentially use this static identifier for the card to build a profile around you. If you are on a shared, large LNBits host this option is probably best for you as the system is more efficient this way.
+    - If you don't include `{card_uid}`, then you will have gained a tiny bit more privacy by not exposing any static identifier to anyone. The downside to this is that the processing LNBits does after you tap your card is more computationally expensive. If you are on a dedicated, private LNBits instance this option is probably best for you as the efficiency gains of adding `{card_uid}` are irrelevant in this use case.
 
 - Add new card in the extension. 
     - Leaving any key array empty means that key is 16bytes of zero (00000000000000000000000000000000). 
@@ -49,8 +49,8 @@ Then fill up the card parameters in the extension. Card Auth key (K0) can be omi
 - In the TagWriter app tap Write tags
 - New Data Set > Link
 - Set URI type to Custom URL
-- URL should look like lnurlw://YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{YOUR_CARD_ID}?p=00000000000000000000000000000000&c=0000000000000000
-    - See note above about including `{card_id}` in the URL.
+- URL should look like lnurlw://YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{YOUR_card_uid}?p=00000000000000000000000000000000&c=0000000000000000
+    - See note above about including `{card_uid}` in the URL.
 - click Configure mirroring options
 - Select Card Type NTAG 424 DNA
 - Check Enable SDM Mirroring
