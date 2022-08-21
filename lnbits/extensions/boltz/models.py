@@ -67,8 +67,8 @@ class SwapStatus(BaseModel):
     mempool: str = ""
     address: str = ""
     block_height: int = 0
-    timeout_block_height: int = 0
-    lockup = ""
+    timeout_block_height: str = ""
+    lockup: Optional[dict] = {}
     has_lockup: bool = False
     hit_timeout: bool = False
     confirmed: bool = True
