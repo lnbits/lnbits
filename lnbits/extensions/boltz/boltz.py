@@ -187,12 +187,6 @@ async def start_confirmation_listener(
 ) -> asyncio.Task:
     logger.debug(f"Boltz - reverse swap, waiting for confirmation...")
 
-    # this is used if we start listener after lnbits restart
-    if mempool_lockup_tx is None:
-        mempool_lockup_tx = get_mempool_tx(txs, swap.lockup_address)
-        if mempool_lockup_tx is None:
-            raise Exception("Boltz - no mempool tx")
-
     tx, txid, *_ = mempool_lockup_tx
 
     confirmed = await wait_for_websocket_message({"track-tx": txid}, "txConfirmed")
