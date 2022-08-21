@@ -1,5 +1,7 @@
 # flake8: noqa
 
+
+from .lntips import LnTipsWallet
 from .cliche import ClicheWallet
 from .cln import CoreLightningWallet  # legacy .env support
 from .cln import CoreLightningWallet as CLightningWallet

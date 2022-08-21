@@ -33,7 +33,7 @@ class LNbitsWallet(Wallet):
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.get(
-                    url=f"{self.endpoint}/api/v1/wallet", headers=self.key, timeout=15
+                    url=f"{self.endpoint}/api/v1/balance", headers=self.key, timeout=15
                 )
             except Exception as exc:
                 return StatusResponse(
