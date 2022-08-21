@@ -133,7 +133,7 @@ async def api_hits(
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan")
 @boltcards_ext.get("/api/v1/scan/{card_uid}")
-async def api_scane(p, c, card_uid: str = None, request: Request):
+async def api_scane(p, c, request: Request, card_uid: str = None):
     # some wallets send everything as lower case, no bueno
     p = p.upper()
     c = c.upper()
@@ -146,7 +146,9 @@ async def api_scane(p, c, card_uid: str = None, request: Request):
         for cand in await get_all_cards():
             if cand.k1:
                 try:
-                    card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(cand.k1))
+                    card_uid, counter = decryptSUN(
+                        bytes.fromhex(p), bytes.fromhex(cand.k1)
+                    )
 
                     if card_uid.hex().upper() == cand.uid.upper():
                         card = cand
