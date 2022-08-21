@@ -392,9 +392,9 @@ def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapSta
         swap_status.hit_timeout = True
 
     mempool_tx = get_mempool_tx(swap_status.address)
+    swap_status.lockup = mempool_tx
     if mempool_tx == None:
         swap_status.has_lockup = False
-        swap_status.lockup = mempool_tx
         swap_status.confirmed = False
         swap_status.mempool = "transaction.unknown"
         swap_status.message = "lockup tx not in mempool"
