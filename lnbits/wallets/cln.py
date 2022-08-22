@@ -134,7 +134,7 @@ class CoreLightningWallet(Wallet):
                 error_message = f"CLN method '{exc.method}' failed with '{exc.error.get('message') or exc.error}'."
             return PaymentResponse(False, None, None, error_message)
         except Exception as exc:
-            return PaymentResponse(False, None, None, None, str(exc))
+            return PaymentResponse(None, None, None, None, str(exc))
 
         fee_msat = -(r["msatoshi_sent"] - r["msatoshi"])
         return PaymentResponse(
