@@ -39,7 +39,6 @@ logger.debug(f"Bitcoin Network: {net['name']}")
 
 
 async def create_swap(data: CreateSubmarineSwap) -> SubmarineSwap:
-
     if not check_boltz_limits(data.amount):
         msg = f"Boltz - swap not in boltz limits"
         logger.warning(msg)
@@ -112,7 +111,6 @@ Note: expected_onchain_amount_sat is BEFORE deducting the on-chain claim tx fee.
 async def create_reverse_swap(
     data: CreateReverseSubmarineSwap,
 ) -> [ReverseSubmarineSwap, asyncio.Task]:
-
     if not check_boltz_limits(data.amount):
         msg = f"Boltz - reverse swap not in boltz limits"
         logger.warning(msg)
@@ -207,7 +205,6 @@ def create_task_log_exception(swap_id: str, awaitable: Awaitable) -> asyncio.Tas
 
 
 async def swap_websocket_callback_initial(swap):
-
     wstask = asyncio.create_task(
         wait_for_websocket_message(
             {"track-address": swap.lockup_address}, "address-transactions"
@@ -308,7 +305,6 @@ input sequence and input script_sig
 async def create_onchain_tx(
     swap: Union[ReverseSubmarineSwap, SubmarineSwap], mempool_lockup_tx
 ) -> Transaction:
-
     is_refund_tx = type(swap) == SubmarineSwap
     if is_refund_tx:
         check_block_height(swap.timeout_block_height)
@@ -353,7 +349,6 @@ async def create_onchain_tx(
 
 
 def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapStatus:
-
     swap_status = SwapStatus(
         wallet=swap.wallet,
         swap_id=swap.id,

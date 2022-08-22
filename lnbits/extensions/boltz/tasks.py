@@ -40,7 +40,6 @@ B. reverse swaps
 
 
 async def check_for_pending_swaps():
-
     try:
         swaps = await get_all_pending_submarine_swaps()
         reverse_swaps = await get_all_pending_reverse_submarine_swaps()
