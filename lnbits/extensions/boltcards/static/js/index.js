@@ -13,13 +13,14 @@ new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data: function () {
-    return {
+    return { 
+      toggleAdvanced: false,
       cards: [],
       hits: [],
       withdrawsOptions: [],
       cardDialog: {
         show: false,
-        data: {},
+        data: {counter:1},
         temp: {}
       },
       cardsTable: {
@@ -193,6 +194,7 @@ new Vue({
       this.cardDialog.data = {}
     },
     sendFormData: function () {
+      this.generateKeys()
       let wallet = _.findWhere(this.g.user.wallets, {
         id: this.cardDialog.data.wallet
       })
