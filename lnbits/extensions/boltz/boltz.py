@@ -121,9 +121,7 @@ async def create_reverse_swap(
     swap_id = urlsafe_short_hash()
 
     if not await check_balance(data):
-        logger.error(
-            f"Boltz - reverse swap, insufficient balance. create_reverse_swap should never be called before balance checking."
-        )
+        logger.error(f"Boltz - reverse swap, insufficient balance.")
         return False
 
     claim_privkey = ec.PrivateKey(os.urandom(32), True, net)
