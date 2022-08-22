@@ -144,7 +144,7 @@ async def on_invoice_paid(payment: Payment) -> None:
     swap = await get_submarine_swap(swap_id)
 
     if not swap:
-        logger.error(f"swap_id: {swap_id} not found. updating status failed.")
+        logger.error(f"swap_id: {swap_id} not found.")
         return
 
     logger.info(
