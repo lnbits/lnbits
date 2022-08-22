@@ -4,6 +4,17 @@
       <q-input
         filled
         dense
+        v-model.trim="config.name"
+        label="Name (optional)"
+      ></q-input>
+    </div>
+  </div>
+  <q-separator class="q-mt-sm"></q-separator>
+  <div class="row q-mt-md">
+    <div class="col-12">
+      <q-input
+        filled
+        dense
         v-model.trim="config.baudRate"
         type="number"
         label="Baud Rate"
@@ -61,6 +72,28 @@
         v-model.trim="config.stopBits"
         type="number"
         label="Stop Bits"
+      ></q-input>
+    </div>
+  </div>
+
+  <q-separator class="q-mt-sm"></q-separator>
+  <div class="row q-mt-md">
+    <div class="col-12">
+      <q-input
+        filled
+        dense
+        v-model.trim="config.buttonOnePin"
+        label="Pin Number (Button 1)"
+      ></q-input>
+    </div>
+  </div>
+  <div class="row q-mt-md">
+    <div class="col-12">
+      <q-input
+        filled
+        dense
+        v-model.trim="config.buttonTwoPin"
+        label="Pin Number (Button 2)"
       ></q-input>
     </div>
   </div>
