@@ -42,7 +42,6 @@ class ReverseSubmarineSwap(BaseModel):
     claim_privkey: str
     lockup_address: str
     invoice: str
-    preimage_hash: str
     onchain_amount: int
     timeout_block_height: int
     redeem_script: str

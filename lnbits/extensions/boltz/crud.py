@@ -163,14 +163,13 @@ async def create_reverse_submarine_swap(
             claim_privkey,
             lockup_address,
             invoice,
-            preimage_hash,
             onchain_amount,
             onchain_address,
             timeout_block_height,
             redeem_script,
             amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             swap.id,
@@ -182,7 +181,6 @@ async def create_reverse_submarine_swap(
             swap.claim_privkey,
             swap.lockup_address,
             swap.invoice,
-            swap.preimage_hash,
             swap.onchain_amount,
             swap.onchain_address,
             swap.timeout_block_height,

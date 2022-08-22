@@ -155,7 +155,6 @@ async def create_reverse_swap(
         instant_settlement=data.instant_settlement,
         claim_privkey=claim_privkey.wif(net),
         preimage=preimage.hex(),
-        preimage_hash=preimage_hash,
         status="pending",
         boltz_id=res["id"],
         timeout_block_height=res["timeoutBlockHeight"],
