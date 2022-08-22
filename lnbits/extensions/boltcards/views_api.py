@@ -1,11 +1,3 @@
-# views_api.py is for you API endpoints that could be hit by another service
-
-# add your dependencies here
-
-# import httpx
-# (use httpx just like requests, except instead of response.ok there's only the
-#  response.is_error that is its inverse)
-
 import secrets
 from http import HTTPStatus
 
@@ -15,7 +7,6 @@ from starlette.requests import Request
 
 from lnbits.core.crud import get_user
 from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
-from lnbits.extensions.withdraw import get_withdraw_link
 
 from . import boltcards_ext
 from .crud import (
@@ -128,89 +119,3 @@ async def api_hits(
         cards_ids.append(card.id)
 
     return [hit.dict() for hit in await get_hits(cards_ids)]
-
-
-# /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
-@boltcards_ext.get("/api/v1/scan")
-@boltcards_ext.get("/api/v1/scan/{card_uid}")
-async def api_scan(p, c, request: Request, card_uid: str = None):
-    # some wallets send everything as lower case, no bueno
-    p = p.upper()
-    c = c.upper()
-    card = None
-    counter = b""
-
-    if not card_uid:
-        # since this route is common to all cards I don't know whitch 'meta key' to use
-        # so I try one by one until decrypted uid matches
-        for cand in await get_all_cards():
-            if cand.k1:
-                try:
-                    card_uid, counter = decryptSUN(
-                        bytes.fromhex(p), bytes.fromhex(cand.k1)
-                    )
-
-                    if card_uid.hex().upper() == cand.uid.upper():
-                        card = cand
-                        break
-                except:
-                    continue
-    else:
-        try:
-            card = await get_card_by_uid(card_uid)
-            card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
-
-            if card.uid.upper() != card_uid.hex().upper():
-                return {"status": "ERROR", "reason": "Card UID mis-match."}
-        except:
-            return {"status": "ERROR", "reason": "Error decrypting card."}
-
-    if card == None:
-        return {"status": "ERROR", "reason": "Unknown card."}
-
-    if c != getSunMAC(card_uid, counter, bytes.fromhex(card.k2)).hex().upper():
-        return {"status": "ERROR", "reason": "CMAC does not check."}
-
-    ctr_int = int.from_bytes(counter, "little")
-    if ctr_int <= card.counter:
-        return {"status": "ERROR", "reason": "This link is already used."}
-
-    await update_card_counter(ctr_int, card.id)
-
-    # gathering some info for hit record
-    ip = request.client.host
-    if "x-real-ip" in request.headers:
-        ip = request.headers["x-real-ip"]
-    elif "x-forwarded-for" in request.headers:
-        ip = request.headers["x-forwarded-for"]
-
-    agent = request.headers["user-agent"] if "user-agent" in request.headers else ""
-
-    await create_hit(card.id, ip, agent, card.counter, ctr_int)
-
-    link = await get_withdraw_link(card.withdraw, 0)
-    return link.lnurl_response(request)
-
-
-# /boltcards/api/v1/auth?a=00000000000000000000000000000000
-@boltcards_ext.get("/api/v1/auth")
-async def api_auth(a, request: Request):
-    if a == "00000000000000000000000000000000":
-        response = {"k0": "0" * 32, "k1": "1" * 32, "k2": "2" * 32}
-        return response
-
-    card = await get_card_by_otp(a)
-
-    if not card:
-        raise HTTPException(
-            detail="Card does not exist.", status_code=HTTPStatus.NOT_FOUND
-        )
-
-    new_otp = secrets.token_hex(16)
-    print(card.otp)
-    print(new_otp)
-    await update_card_otp(new_otp, card.id)
-
-    response = {"k0": card.k0, "k1": card.k1, "k2": card.k2}
-
-    return response

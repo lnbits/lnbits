@@ -17,10 +17,14 @@ new Vue({
       toggleAdvanced: false,
       cards: [],
       hits: [],
-      withdrawsOptions: [],
       cardDialog: {
         show: false,
-        data: {counter:1},
+        data: {
+          counter:1,
+          k0: '',
+          k1: '',
+          k2: '',
+          card_name:''},
         temp: {}
       },
       cardsTable: {
@@ -133,25 +137,6 @@ new Vue({
           console.log(self.hits)
         })
     },
-    getWithdraws: function () {
-      var self = this
-
-      LNbits.api
-        .request(
-          'GET',
-          '/withdraw/api/v1/links?all_wallets=true',
-          this.g.user.wallets[0].inkey
-        )
-        .then(function (response) {
-          self.withdrawsOptions = response.data.map(function (obj) {
-            return {
-              label: [obj.title, ' - ', obj.id].join(''),
-              value: obj.id
-            }
-          })
-          console.log(self.withdraws)
-        })
-    },
     openQrCodeDialog(cardId) {
       var card = _.findWhere(this.cards, {id: cardId})
 
@@ -166,6 +151,7 @@ new Vue({
       this.qrCodeDialog.show = true
     },
     generateKeys: function () {
+      this.cardDialog.show = true
       const genRanHex = size =>
         [...Array(size)]
           .map(() => Math.floor(Math.random() * 16).toString(16))
@@ -194,7 +180,6 @@ new Vue({
       this.cardDialog.data = {}
     },
     sendFormData: function () {
-      this.generateKeys()
       let wallet = _.findWhere(this.g.user.wallets, {
         id: this.cardDialog.data.wallet
       })

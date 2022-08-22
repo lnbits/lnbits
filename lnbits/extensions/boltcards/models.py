@@ -10,7 +10,8 @@ class Card(BaseModel):
     card_name: str
     uid: str
     counter: int
-    withdraw: str
+    tx_limit: int
+    daily_limit: int
     k0: str
     k1: str
     k2: str
@@ -20,12 +21,24 @@ class Card(BaseModel):
     otp: str
     time: int
 
+    def from_row(cls, row: Row) -> "Card":
+        return cls(**dict(row))
+
+    def lnurl(self, req: Request) -> Lnurl:
+        url = req.url_for(
+            "boltcard.lnurl_response", device_id=self.id, _external=True
+        )
+        return lnurl_encode(url)
+
+    async def lnurlpay_metadata(self) -> LnurlPayMetadata:
+        return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
 class CreateCardData(BaseModel):
     card_name: str = Query(...)
     uid: str = Query(...)
     counter: int = Query(0)
-    withdraw: str = Query(...)
+    tx_limit: int = Query(0)
+    daily_limit: int = Query(0)
     k0: str = Query(ZERO_KEY)
     k1: str = Query(ZERO_KEY)
     k2: str = Query(ZERO_KEY)
@@ -33,12 +46,18 @@ class CreateCardData(BaseModel):
     prev_k1: str = Query(ZERO_KEY)
     prev_k2: str = Query(ZERO_KEY)
 
-
 class Hit(BaseModel):
     id: str
     card_id: str
     ip: str
+    spent: bool
     useragent: str
     old_ctr: int
     new_ctr: int
+    time: int
+
+class Refund(BaseModel):
+    id: str
+    hit_id: str
+    refund_amount: int
     time: int
