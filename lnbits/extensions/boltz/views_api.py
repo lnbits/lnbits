@@ -236,11 +236,9 @@ async def api_reverse_submarineswap_create(
 async def api_submarineswap_status(
     swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
 ):
-    swap = await get_submarine_swap(swap_id)
+    swap = await get_submarine_swap(swap_id) or await get_reverse_submarine_swap(swap_id)
     if swap == None:
-        swap = await get_reverse_submarine_swap(swap_id)
-        if swap == None:
-            raise HTTPException(
+        raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
             )
     return get_swap_status(swap)
