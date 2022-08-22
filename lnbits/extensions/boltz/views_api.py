@@ -40,7 +40,6 @@ from .models import (
     CreateSubmarineSwap,
     ReverseSubmarineSwap,
     SubmarineSwap,
-    SwapStatus,
 )
 from .utils import check_balance
 
@@ -228,7 +227,6 @@ async def api_reverse_submarineswap_create(
         This endpoint attempts to get the status of the swap.
     """,
     response_description="status of swap json",
-    response_model=SwapStatus,
     responses={
         404: {"description": "when swap_id is not found"},
     },
@@ -254,7 +252,6 @@ async def api_submarineswap_status(
         This endpoint gives you 2 lists of pending swaps and reverse swaps.
     """,
     response_description="list of pending swaps",
-    response_model=List[SwapStatus],
 )
 async def api_check_swaps(
     g: WalletTypeInfo = Depends(require_admin_key),  # type: ignore
