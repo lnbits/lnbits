@@ -73,7 +73,7 @@ async def check_for_pending_swaps():
                 else:
                     if swap_status.hit_timeout:
                         if not swap_status.has_lockup:
-                            logger.debug(
+                            logger.warning(
                                 f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
                             )
                             await update_swap_status(swap.id, "timeout")
