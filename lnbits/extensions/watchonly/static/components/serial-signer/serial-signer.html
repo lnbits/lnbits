@@ -428,6 +428,31 @@
           </template>
         </q-input>
         <br />
+        <q-toggle
+          label="Passphrase (optional)"
+          color="secodary"
+          v-model="hww.hasPassphrase"
+        ></q-toggle>
+        <br />
+        <q-input
+          v-if="hww.hasPassphrase"
+          v-model.trim="hww.passphrase"
+          filled
+          :type="hww.showPassphrase ? 'text' : 'password'"
+          filled
+          dense
+          label="Passphrase"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showPassphrase ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showPassphrase = !hww.showPassphrase"
+            />
+          </template>
+        </q-input>
+        <q-separator></q-separator>
+        <br />
         <span>Enter new password (8 numbers/letters)</span>
         <q-input
           v-model.trim="hww.password"
@@ -453,15 +478,7 @@
           type="password"
           label="Confirm Password"
         ></q-input>
-        <br /><br />
-        <q-badge
-          color="pink"
-          text-color="black"
-          class="text-subtitle2"
-          multi-line
-        >
-          For test purposes only. Do not enter word list with real funds!!!
-        </q-badge>
+        <br />
         <q-separator></q-separator>
         <q-badge
           color="pink"

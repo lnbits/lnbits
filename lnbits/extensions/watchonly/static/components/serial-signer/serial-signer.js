@@ -22,6 +22,9 @@ async function serialSigner(path) {
           showPassword: false,
           mnemonic: null,
           showMnemonic: false,
+          passphrase: null,
+          showPassphrase: false,
+          hasPassphrase: false,
           authenticated: false,
           showPasswordDialog: false,
           showConfigDialog: false,
@@ -797,9 +800,17 @@ async function serialSigner(path) {
       },
       hwwRestore: async function () {
         try {
+          let mnemonicWithPassphrase = this.hww.mnemonic
+          if (
+            this.hww.hasPassphrase &&
+            this.hww.passphrase &&
+            this.hww.passphrase.length
+          ) {
+            mnemonicWithPassphrase += '/' + this.hww.passphrase
+          }
           await this.sendCommandSecure(COMMAND_RESTORE, [
             this.hww.password,
-            this.hww.mnemonic
+            mnemonicWithPassphrase
           ])
         } catch (error) {
           this.$q.notify({
@@ -811,6 +822,7 @@ async function serialSigner(path) {
         } finally {
           this.hww.showRestoreDialog = false
           this.hww.mnemonic = null
+          this.hww.passphrase = null
           this.hww.showMnemonic = false
           this.hww.password = null
           this.hww.confirmedPassword = null
