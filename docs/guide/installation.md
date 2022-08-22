@@ -20,7 +20,7 @@ cd lnbits-legend/
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt install python3.9
+sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
@@ -94,6 +94,80 @@ cp .env.example .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
+
+## Option 5: Fly.io
+
+Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
+
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
+
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). 
+
+After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. Something like:
+
+```
+flyctl was installed successfully to /home/ubuntu/.fly/bin/flyctl
+Manually add the directory to your $HOME/.bash_profile (or similar)
+  export FLYCTL_INSTALL="/home/ubuntu/.fly"
+  export PATH="$FLYCTL_INSTALL/bin:$PATH"
+```
+
+You can either run those commands, then `source ~/.bash_profile` or, if you don't, you'll have to call Fly from `~/.fly/bin/flyctl`.
+
+Once installed, run the following commands.
+
+```
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend
+fly auth login
+[complete login process]
+fly launch
+```
+
+You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
+
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings. 
+
+Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
+
+Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
+
+```
+...
+kill_timeout = 30
+...
+
+...
+[mounts]
+  source="lnbits_data"
+  destination="/data"
+...
+
+...
+[env]
+  HOST="127.0.0.1"
+  PORT=5000
+  LNBITS_FORCE_HTTPS=true
+  LNBITS_DATA_FOLDER="/data"
+  
+  ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
+...
+
+...
+[[services]]
+  internal_port = 5000
+...
+```
+
+Next, create a volume to store the sqlite database for LNBits. Be sure to choose the same region for the volume that you chose earlier.
+
+```
+fly volumes create lnbits_data --size 1
+```
+
+You're ready to deploy! Run `fly deploy` and follow the steps to finish deployment. You'll select a `region` (up to you, choose the same as you did for the storage volume previously created), `postgres` (choose no), `deploy` (choose yes).
+
+You can use `fly logs` to view the application logs, or `fly ssh console` to get a ssh shell in the running container.
 
 ### Troubleshooting
 
@@ -170,8 +244,9 @@ LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 
 # START LNbits
 # STOP LNbits
-# on the LNBits folder, locate and edit 'tools/conv.py' with the relevant credentials
-python3 tools/conv.py
+poetry run python tools/conv.py
+# or
+make migration
 ```
 
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
@@ -194,15 +269,14 @@ Description=LNbits
 
 [Service]
 # replace with the absolute path of your lnbits installation
-WorkingDirectory=/home/bitcoin/lnbits
-# same here
-ExecStart=/home/bitcoin/lnbits/venv/bin/uvicorn lnbits.__main__:app --port 5000
+WorkingDirectory=/home/lnbits/lnbits-legend
+# same here. run `which poetry` if you can't find the poetry binary
+ExecStart=/home/lnbits/.local/bin/poetry run lnbits
 # replace with the user that you're running lnbits on
-User=bitcoin
+User=lnbits
 Restart=always
 TimeoutSec=120
 RestartSec=30
-# this makes sure that you receive logs in real time
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

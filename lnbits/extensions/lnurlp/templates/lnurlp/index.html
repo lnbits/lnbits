@@ -296,16 +296,17 @@
         <q-btn
           outline
           color="grey"
+          icon="link"
           @click="copyText(qrCodeDialog.data.pay_url, 'Link copied to clipboard!')"
-          >Shareable link</q-btn
-        >
+          ><q-tooltip>Copy sharable link</q-tooltip>
+        </q-btn>
         <q-btn
           outline
           color="grey"
           icon="nfc"
           @click="writeNfcTag(qrCodeDialog.data.lnurl)"
           :disable="nfcTagWriting"
-        >
+          ><q-tooltip>Write to NFC</q-tooltip>
         </q-btn>
         <q-btn
           outline
@@ -314,7 +315,8 @@
           type="a"
           :href="qrCodeDialog.data.print_url"
           target="_blank"
-        ></q-btn>
+          ><q-tooltip>Print</q-tooltip></q-btn
+        >
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>

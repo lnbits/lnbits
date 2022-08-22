@@ -232,6 +232,9 @@ new Vue({
         generateChart(this.$refs.canvas, this.payments)
       })
     },
+    focusInput(el) {
+      this.$nextTick(() => this.$refs[el].focus())
+    },
     showReceiveDialog: function () {
       this.receive.show = true
       this.receive.status = 'pending'
@@ -243,6 +246,7 @@ new Vue({
       this.receive.paymentChecker = null
       this.receive.minMax = [0, 2100000000000000]
       this.receive.lnurl = null
+      this.focusInput('setAmount')
     },
     showParseDialog: function () {
       this.parse.show = true
@@ -668,7 +672,17 @@ new Vue({
       })
     },
     exportCSV: function () {
-      LNbits.utils.exportCSV(this.paymentsTable.columns, this.payments)
+      // status is important for export but it is not in paymentsTable
+      // because it is manually added with payment detail link and icons
+      // and would cause duplication in the list
+      let columns = this.paymentsTable.columns
+      columns.unshift({
+        name: 'pending',
+        align: 'left',
+        label: 'Pending',
+        field: 'pending'
+      })
+      LNbits.utils.exportCSV(columns, this.payments)
     }
   },
   watch: {

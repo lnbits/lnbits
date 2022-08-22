@@ -1,7 +1,7 @@
 import asyncio
+import binascii
 import hashlib
 import json
-from binascii import unhexlify
 from http import HTTPStatus
 from io import BytesIO
 from typing import Dict, List, Optional, Tuple, Union
@@ -152,11 +152,23 @@ class CreateInvoiceData(BaseModel):
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
     if data.description_hash:
-        description_hash = unhexlify(data.description_hash)
+        try:
+            description_hash = binascii.unhexlify(data.description_hash)
+        except binascii.Error:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="'description_hash' must be a valid hex string",
+            )
         unhashed_description = b""
         memo = ""
     elif data.unhashed_description:
-        unhashed_description = unhexlify(data.unhashed_description)
+        try:
+            unhashed_description = binascii.unhexlify(data.unhashed_description)
+        except binascii.Error:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="'unhashed_description' must be a valid hex string",
+            )
         description_hash = b""
         memo = ""
     else:

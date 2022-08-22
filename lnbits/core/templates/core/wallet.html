@@ -428,6 +428,7 @@
           :options="receive.units"
         ></q-select>
         <q-input
+          ref="setAmount"
           filled
           dense
           v-model.number="receive.data.amount"

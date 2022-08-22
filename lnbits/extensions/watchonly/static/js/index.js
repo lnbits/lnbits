@@ -386,6 +386,13 @@ const watchOnly = async () => {
           this.addresses = addresses
           this.scanAddressWithAmount()
         }
+      },
+      handleBroadcastSuccess: async function (txId) {
+        this.tab = 'history'
+        this.searchInTab({tab: 'history', value: txId})
+        this.showPayment = false
+        await this.refreshAddresses()
+        await this.scanAddressWithAmount()
       }
     },
     created: async function () {

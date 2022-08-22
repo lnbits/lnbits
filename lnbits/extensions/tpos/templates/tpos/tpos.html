@@ -14,7 +14,7 @@
       <div class="row justify-center full-width">
         <div class="col-12 col-sm-8 col-md-6 col-lg-4 text-center">
           <h3 class="q-mb-md">{% raw %}{{ famount }}{% endraw %}</h3>
-          <h5 class="q-mt-none">
+          <h5 class="q-mt-none q-mb-sm">
             {% raw %}{{ fsat }}{% endraw %} <small>sat</small>
           </h5>
         </div>
@@ -174,8 +174,21 @@
             >
             {% endraw %}
           </h5>
+          <q-btn
+            outline
+            color="grey"
+            icon="nfc"
+            @click="readNfcTag()"
+            :disable="nfcTagReading"
+          ></q-btn>
         </div>
         <div class="row q-mt-lg">
+          <q-btn
+            outline
+            color="grey"
+            @click="copyText(invoiceDialog.data.payment_request)"
+            >Copy invoice</q-btn
+          >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
         </div>
       </q-card>
@@ -281,6 +294,7 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        nfcTagReading: false,
         invoiceDialog: {
           show: false,
           data: null,
@@ -356,7 +370,7 @@
         this.showInvoice()
       },
       submitForm: function () {
-        if (this.tip_options) {
+        if (this.tip_options.length) {
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -408,6 +422,98 @@
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
+          })
+      },
+      readNfcTag: function () {
+        try {
+          const self = this
+
+          if (typeof NDEFReader == 'undefined') {
+            throw {
+              toString: function () {
+                return 'NFC not supported on this device or browser.'
+              }
+            }
+          }
+
+          const ndef = new NDEFReader()
+
+          const readerAbortController = new AbortController()
+          readerAbortController.signal.onabort = event => {
+            console.log('All NFC Read operations have been aborted.')
+          }
+
+          this.nfcTagReading = true
+          this.$q.notify({
+            message: 'Tap your NFC tag to pay this invoice with LNURLw.'
+          })
+
+          return ndef.scan({signal: readerAbortController.signal}).then(() => {
+            ndef.onreadingerror = () => {
+              self.nfcTagReading = false
+
+              this.$q.notify({
+                type: 'negative',
+                message: 'There was an error reading this NFC tag.'
+              })
+
+              readerAbortController.abort()
+            }
+
+            ndef.onreading = ({message}) => {
+              //Decode NDEF data from tag
+              const textDecoder = new TextDecoder('utf-8')
+
+              const record = message.records.find(el => {
+                const payload = textDecoder.decode(el.data)
+                return payload.toUpperCase().indexOf('LNURL') !== -1
+              })
+
+              const lnurl = textDecoder.decode(record.data)
+
+              //User feedback, show loader icon
+              self.nfcTagReading = false
+              self.payInvoice(lnurl, readerAbortController)
+
+              this.$q.notify({
+                type: 'positive',
+                message: 'NFC tag read successfully.'
+              })
+            }
+          })
+        } catch (error) {
+          this.nfcTagReading = false
+          this.$q.notify({
+            type: 'negative',
+            message: error
+              ? error.toString()
+              : 'An unexpected error has occurred.'
+          })
+        }
+      },
+      payInvoice: function (lnurl, readerAbortController) {
+        const self = this
+
+        return axios
+          .post(
+            '/tpos/api/v1/tposs/' +
+              self.tposId +
+              '/invoices/' +
+              self.invoiceDialog.data.payment_request +
+              '/pay',
+            {
+              lnurl: lnurl
+            }
+          )
+          .then(response => {
+            if (!response.data.success) {
+              this.$q.notify({
+                type: 'negative',
+                message: response.data.detail
+              })
+            }
+
+            readerAbortController.abort()
           })
       },
       getRates: function () {
