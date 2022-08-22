@@ -1,5 +1,15 @@
 from fastapi.params import Query
 from pydantic import BaseModel
+from sqlite3 import Row
+from typing import Optional
+
+from fastapi import Request
+from lnurl import Lnurl
+from lnurl import encode as lnurl_encode  # type: ignore
+from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from pydantic import BaseModel
+from pydantic.main import BaseModel
 
 ZERO_KEY = "00000000000000000000000000000000"
 
@@ -56,8 +66,14 @@ class Hit(BaseModel):
     new_ctr: int
     time: int
 
+    def from_row(cls, row: Row) -> "Hit":
+        return cls(**dict(row))
+
 class Refund(BaseModel):
     id: str
     hit_id: str
     refund_amount: int
     time: int
+
+    def from_row(cls, row: Row) -> "Refund":
+        return cls(**dict(row))

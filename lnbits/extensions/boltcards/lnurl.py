@@ -10,6 +10,14 @@ from fastapi import Request
 from fastapi.param_functions import Query
 from starlette.exceptions import HTTPException
 
+import secrets
+from http import HTTPStatus
+
+from fastapi.params import Depends, Query
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
+
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 
@@ -24,12 +32,15 @@ from .crud import (
     get_card_by_otp,
     get_card_by_uid,
     get_hit,
+    get_hits_today,
     update_card,
     update_card_counter,
     update_card_otp,
 )
 from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
+
+###############LNURLWITHDRAW#################
 
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
 @boltcards_ext.get("/api/v1/scan/{card_uid}")
@@ -70,15 +81,14 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
 
     agent = request.headers["user-agent"] if "user-agent" in request.headers else ""
     todays_hits = await get_hits_today(card.id)
-    int hits_amount = 0
+
+    hits_amount = 0
     for hit in todays_hits:
         hits_amount = hits_amount + hit.amount
     if (hits_amount + card.tx_limit) > card.daily_limit:
         return {"status": "ERROR", "reason": "Max daily liit spent."}
     hit = await create_hit(card.id, ip, agent, card.counter, ctr_int)
-
-   # link = await get_withdraw_link(card.withdraw, 0)
-    return link.lnurl_response(request)
+    lnurlpay = lnurl_encode(request.url_for("boltcards.lnurlp_response", hit_id=hit.id))
     return {
         "tag": "withdrawRequest",
         "callback": request.url_for(
@@ -87,7 +97,7 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
         "k1": hit.id,
         "minWithdrawable": 1 * 1000,
         "maxWithdrawable": card.tx_limit * 1000,
-        "defaultDescription": f"Boltcard (Refunds address {lnurl_encode(req.url_for("boltcards.lnurlp_response", hit_id=hit.id))})",
+        "defaultDescription": f"Boltcard (refund address {lnurlpay})",
     }
 
 @boltcards_ext.get(
@@ -149,12 +159,12 @@ async def api_auth(a, request: Request):
 
 ###############LNURLPAY REFUNDS#################
 
-@satsdice_ext.get(
+@boltcards_ext.get(
     "/api/v1/lnurlp/{hit_id}",
     response_class=HTMLResponse,
     name="boltcards.lnurlp_response",
 )
-async def api_lnurlp_response(req: Request, hit_id: str = Query(None)):
+async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     hit = await get_hit(hit_id) 
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
@@ -168,12 +178,12 @@ async def api_lnurlp_response(req: Request, hit_id: str = Query(None)):
     return json.dumps(payResponse)
 
 
-@satsdice_ext.get(
+@boltcards_ext.get(
     "/api/v1/lnurlp/cb/{hit_id}",
     response_class=HTMLResponse,
     name="boltcards.lnurlp_callback",
 )
-async def api_lnurlp_callback(
+async def lnurlp_callback(
     req: Request, hit_id: str = Query(None), amount: str = Query(None)
 ):
     hit = await get_hit(hit_id) 

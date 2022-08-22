@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 from lnbits.helpers import urlsafe_short_hash
 
 from . import db
-from .models import Card, CreateCardData, Hit
+from .models import Card, CreateCardData, Hit, Refund
 
 
 async def create_card(data: CreateCardData, wallet_id: str) -> Card:
@@ -139,6 +139,13 @@ async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
     q = ",".join(["?"] * len(cards_ids))
     rows = await db.fetchall(
         f"SELECT * FROM boltcards.hits WHERE card_id IN ({q})", (*cards_ids,)
+    )
+
+    return [Hit(**row) for row in rows]
+
+async def get_hits_today(card_id: Union[str, List[str]]) -> List[Hit]:
+    rows = await db.fetchall(
+        f"SELECT * FROM boltcards.hits WHERE card_id = ? AND timestamp >= DATE() AND timestamp < DATE() + INTERVAL ? DAY", (card_id, 1)
     )
 
     return [Hit(**row) for row in rows]

@@ -16,7 +16,6 @@ boltcards_static_files = [
 
 boltcards_ext: APIRouter = APIRouter(prefix="/boltcards", tags=["boltcards"])
 
-
 def boltcards_renderer():
     return template_renderer(["lnbits/extensions/boltcards/templates"])
 

@@ -52,6 +52,33 @@ new Vue({
           rowsPerPage: 10
         }
       },
+      refundsTable: {
+        columns: [
+          {
+            name: 'hit_id',
+            align: 'left',
+            label: 'Hit ID',
+            field: 'hit_id'
+          },
+          {
+            name: 'refund_amount',
+            align: 'left',
+            label: 'Refund Amount',
+            field: 'oldrefund_amount_ctr'
+          },
+          {
+            name: 'time',
+            align: 'left',
+            label: 'Time',
+            field: 'time'
+          }
+        ],
+        pagination: {
+          rowsPerPage: 10,
+          sortBy: 'date',
+          descending: true
+        }
+      },
       hitsTable: {
         columns: [
           {
