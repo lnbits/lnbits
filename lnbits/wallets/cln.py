@@ -117,6 +117,11 @@ class CoreLightningWallet(Wallet):
 
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         invoice = lnbits_bolt11.decode(bolt11)
+
+        previous_payment = await self.get_payment_status(invoice.payment_hash)
+        if previous_payment.paid:
+            return PaymentResponse(False, None, None, None, "invoice already paid")
+
         fee_limit_percent = fee_limit_msat / invoice.amount_msat * 100
 
         payload = {
@@ -136,7 +141,7 @@ class CoreLightningWallet(Wallet):
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
 
-        fee_msat = -(r["msatoshi_sent"] - r["msatoshi"])
+        fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
         return PaymentResponse(
             True, r["payment_hash"], fee_msat, r["payment_preimage"], None
         )
