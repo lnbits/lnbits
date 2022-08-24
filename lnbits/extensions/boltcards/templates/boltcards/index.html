@@ -5,7 +5,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" v-on:click="generateKeys"
+        <q-btn unelevated color="primary" v-on:click="addCardOpen"
           >Add Card</q-btn
         >
       </q-card-section>
@@ -234,7 +234,7 @@
       v-model="toggleAdvanced"
       label="Show advanced options"
     ></q-toggle>
-    <div v-if="toggleAdvanced">
+    <div v-show="toggleAdvanced">
         <q-input
           filled
           dense
@@ -281,6 +281,7 @@
             class="q-ml-auto"
             v-on:click="generateKeys"
             v-on:click.right="debugKeys"
+            v-el:keybtn
             >Generate keys</q-btn
           >
       </div>  

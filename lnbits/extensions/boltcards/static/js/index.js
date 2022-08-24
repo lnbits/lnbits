@@ -17,6 +17,7 @@ new Vue({
       toggleAdvanced: false,
       cards: [],
       hits: [],
+      refunds: [],
       cardDialog: {
         show: false,
         data: {
@@ -164,6 +165,23 @@ new Vue({
           console.log(self.hits)
         })
     },
+    getRefunds: function () {
+      var self = this
+
+      LNbits.api
+        .request(
+          'GET',
+          '/boltcards/api/v1/refunds?all_wallets=true',
+          this.g.user.wallets[0].inkey
+        )
+        .then(function (response) {
+          self.refunds = response.data.map(function (obj) {
+            obj.card_name = self.cards.find(d => d.id == obj.card_id).card_name
+            return mapCards(obj)
+          })
+          console.log(self.hits)
+        })
+    },
     openQrCodeDialog(cardId) {
       var card = _.findWhere(this.cards, {id: cardId})
 
@@ -177,8 +195,13 @@ new Vue({
       }
       this.qrCodeDialog.show = true
     },
-    generateKeys: function () {
+    addCardOpen: function () {
       this.cardDialog.show = true
+      var elem = this.$els.myBtn
+      elem.click()
+    },
+    generateKeys: function () {
+      
       const genRanHex = size =>
         [...Array(size)]
           .map(() => Math.floor(Math.random() * 16).toString(16))
@@ -307,7 +330,7 @@ new Vue({
     if (this.g.user.wallets.length) {
       this.getCards()
       this.getHits()
-      this.getWithdraws()
+      this.getRefunds()
     }
   }
 })

@@ -119,3 +119,19 @@ async def api_hits(
         cards_ids.append(card.id)
 
     return [hit.dict() for hit in await get_hits(cards_ids)]
+
+@boltcards_ext.get("/api/v1/refunds")
+async def api_hits(
+    g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
+):
+    wallet_ids = [g.wallet.id]
+
+    if all_wallets:
+        wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
+    cards = await get_cards(wallet_ids)
+    cards_ids = []
+    for card in cards:
+        cards_ids.append(card.id)
+
+    return [hit.dict() for hit in await get_hits(cards_ids)]
