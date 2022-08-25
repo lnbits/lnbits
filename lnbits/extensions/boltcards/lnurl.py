@@ -30,7 +30,7 @@ from .crud import (
     create_hit,
     get_card,
     get_card_by_otp,
-    get_card_by_uid,
+    get_card,
     get_hit,
     get_hits_today,
     update_card,
@@ -43,18 +43,18 @@ from .nxp424 import decryptSUN, getSunMAC
 ###############LNURLWITHDRAW#################
 
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
-@boltcards_ext.get("/api/v1/scan/{card_uid}")
-async def api_scan(p, c, request: Request, card_uid: str = None):
+@boltcards_ext.get("/api/v1/scan/{card_id}")
+async def api_scan(p, c, request: Request, card_id: str = None):
     # some wallets send everything as lower case, no bueno
     p = p.upper()
     c = c.upper()
     card = None
     counter = b""
     try:
-        card = await get_card_by_uid(card_uid)
-        card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
+        card = await get_card(card_id)
+        card_id, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
 
-        if card.uid.upper() != card_uid.hex().upper():
+        if card.uid.upper() != card_id.hex().upper():
             return {"status": "ERROR", "reason": "Card UID mis-match."}
     except:
         return {"status": "ERROR", "reason": "Error decrypting card."}
@@ -62,7 +62,7 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
     if card == None:
         return {"status": "ERROR", "reason": "Unknown card."}
 
-    if c != getSunMAC(card_uid, counter, bytes.fromhex(card.k2)).hex().upper():
+    if c != getSunMAC(card_id, counter, bytes.fromhex(card.k2)).hex().upper():
         return {"status": "ERROR", "reason": "CMAC does not check."}
 
     ctr_int = int.from_bytes(counter, "little")
