@@ -83,9 +83,10 @@ class CoreLightningWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
     ) -> InvoiceResponse:
         label = "lbl{}".format(random.random())
-        msat: int = int(amount * 1000)
+        msat: int = int(amount) if use_msat else int(amount * 1000)
         try:
             if description_hash and not unhashed_description:
                 raise Unsupported(

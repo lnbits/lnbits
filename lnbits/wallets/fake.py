@@ -44,6 +44,7 @@ class FakeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
     ) -> InvoiceResponse:
         # we set a default secret since FakeWallet is used for internal=True invoices
         # and the user might not have configured a secret yet
@@ -60,7 +61,8 @@ class FakeWallet(Wallet):
             "expires": None,
             "route": None,
         }
-        data["amount"] = amount * 1000
+        msat = amount if use_msat else amount * 1000
+        data["amount"] = msat
         data["timestamp"] = datetime.now().timestamp()
         if description_hash:
             data["tags_set"] = ["h"]

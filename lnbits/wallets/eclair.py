@@ -72,9 +72,11 @@ class EclairWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
     ) -> InvoiceResponse:
 
-        data: Dict = {"amountMsat": amount * 1000}
+        msat = amount if use_msat else amount * 1000
+        data: Dict = {"amountMsat": msat}
         if description_hash:
             data["description_hash"] = description_hash.hex()
         elif unhashed_description:

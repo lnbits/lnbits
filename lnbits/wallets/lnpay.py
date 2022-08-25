@@ -53,8 +53,12 @@ class LNPayWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
         **kwargs,
     ) -> InvoiceResponse:
+        if use_msat:
+            errmsg = "lnpay backend does not support msat invoice precision"
+            return InvoiceResponse(False, None, None, errmsg)
         data: Dict = {"num_satoshis": f"{amount}"}
         if description_hash:
             data["description_hash"] = description_hash.hex()

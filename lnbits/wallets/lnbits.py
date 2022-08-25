@@ -58,7 +58,11 @@ class LNbitsWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
     ) -> InvoiceResponse:
+        if use_msat:
+            errmsg = "lnbits backend does not support msat invoice precision"
+            return InvoiceResponse(False, None, None, errmsg)
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
             data["description_hash"] = description_hash.hex()

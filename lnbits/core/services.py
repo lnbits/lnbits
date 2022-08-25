@@ -61,6 +61,7 @@ async def create_invoice(
     webhook: Optional[str] = None,
     internal: Optional[bool] = False,
     conn: Optional[Connection] = None,
+    use_msat: bool = False,
 ) -> Tuple[str, str]:
     invoice_memo = None if description_hash else memo
 
@@ -72,13 +73,14 @@ async def create_invoice(
         memo=invoice_memo,
         description_hash=description_hash,
         unhashed_description=unhashed_description,
+        use_msat=use_msat,
     )
     if not ok:
         raise InvoiceFailure(error_message or "unexpected backend error.")
 
     invoice = bolt11.decode(payment_request)
 
-    amount_msat = amount * 1000
+    amount_msat = amount if use_msat else amount * 1000
     await create_payment(
         wallet_id=wallet_id,
         checking_id=checking_id,

@@ -94,15 +94,17 @@ class SparkWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
         **kwargs,
     ) -> InvoiceResponse:
         label = "lbs{}".format(random.random())
         checking_id = label
 
+        msat = amount if use_msat else amount * 1000
         try:
             if description_hash:
                 r = await self.invoicewithdescriptionhash(
-                    msatoshi=amount * 1000,
+                    msatoshi=msat,
                     label=label,
                     description_hash=description_hash.hex(),
                 )
@@ -114,7 +116,7 @@ class SparkWallet(Wallet):
                 )
             else:
                 r = await self.invoice(
-                    msatoshi=amount * 1000,
+                    msatoshi=msat,
                     label=label,
                     description=memo or "",
                     exposeprivatechannels=True,

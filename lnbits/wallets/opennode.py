@@ -55,8 +55,12 @@ class OpenNodeWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
         **kwargs,
     ) -> InvoiceResponse:
+        if use_msat:
+            errmsg = "opennode backend does not support msat invoice precision"
+            return InvoiceResponse(False, None, None, errmsg)
         if description_hash or unhashed_description:
             raise Unsupported("description_hash")
 

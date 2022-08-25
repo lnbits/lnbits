@@ -155,6 +155,7 @@ class CreateInvoiceData(BaseModel):
 
 
 async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
+    use_msat = False
     if data.description_hash:
         try:
             description_hash = binascii.unhexlify(data.description_hash)
@@ -181,6 +182,9 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
         memo = data.memo or LNBITS_SITE_TITLE
     if data.unit == "sat":
         amount = int(data.amount)
+    elif data.unit == "msat":
+        amount = int(data.amount)
+        use_msat = True
     else:
         assert data.unit is not None, "unit not set"
         price_in_sats = await fiat_amount_as_satoshis(data.amount, data.unit)
@@ -198,6 +202,7 @@ async def api_payments_create_invoice(data: CreateInvoiceData, wallet: Wallet):
                 webhook=data.webhook,
                 internal=data.internal,
                 conn=conn,
+                use_msat=use_msat,
             )
         except InvoiceFailure as e:
             raise HTTPException(status_code=520, detail=str(e))

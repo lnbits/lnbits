@@ -18,6 +18,8 @@ class VoidWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
         **kwargs,
     ) -> InvoiceResponse:
         raise Unsupported("")

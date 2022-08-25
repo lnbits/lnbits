@@ -74,9 +74,14 @@ class LndRestWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
+        use_msat: bool = False,
         **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"value": amount, "private": True}
+        data: Dict = {"private": True}
+        if use_msat:
+            data["value_msat"] = amount
+        else:
+            data["value"] = amount
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"
