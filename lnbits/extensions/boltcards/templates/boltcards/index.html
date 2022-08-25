@@ -5,7 +5,7 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" v-on:click="addCardOpen"
+        <q-btn unelevated color="primary" class="addCardBtn" v-on:click="addCardOpen"
           >Add Card</q-btn
         >
       </q-card-section>
@@ -187,7 +187,6 @@
           label="Wallet *"
         >
         </q-select>
-
         <div class="row">
           <div class="col">
             <q-input
@@ -211,24 +210,41 @@
             ></q-input>
           </div>
         </div>
+        <q-input
+        filled
+        dense
+        emit-value
+        v-model.trim="cardDialog.data.card_name"
+        type="text"
+        label="Card name "
+      ></q-input>
+        <div class="row">
+          <div class="col-10">
+           
 
+        <q-input
+            filled
+            dense
+            emit-value
+            v-model.trim="cardDialog.data.uid"
+            type="text"
+            label="Card UID "
+          ><q-tooltip>Get from the card you'll use, using an NFC app</q-tooltip></q-input>
+
+
+          </div>
+          <div class="col-2 q-pl-sm">
+            <q-btn
+            outline
+            disable
+            color="grey"
+            icon="nfc"
+            :disable="nfcTagReading"
+          ><q-tooltip>Tap card to scan UID (coming soon)</q-tooltip></q-btn>
+        </div>
+        </div>
         
-        <q-input
-          filled
-          dense
-          emit-value
-          v-model.trim="cardDialog.data.card_name"
-          type="text"
-          label="Card name "
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="cardDialog.data.uid"
-          type="text"
-          label="Card UID"
-        ><q-tooltip>From the NFC 424 ntag card that will be loaded</q-tooltip>
-        </q-input>
+      
         <q-toggle
         @click="toggleKeys"
       v-model="toggleAdvanced"
