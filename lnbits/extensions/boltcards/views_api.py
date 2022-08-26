@@ -26,6 +26,7 @@ from .crud import (
 from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
 
+from loguru import logger
 
 @boltcards_ext.get("/api/v1/cards")
 async def api_cards(
@@ -47,6 +48,7 @@ async def api_card_create_or_update(
     card_id: str = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
+    logger.debug(len(bytes.fromhex(data.uid)))
     try:
         if len(bytes.fromhex(data.uid)) != 7:
             raise HTTPException(

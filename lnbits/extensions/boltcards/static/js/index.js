@@ -18,6 +18,7 @@ new Vue({
       cards: [],
       hits: [],
       refunds: [],
+      lnurlLink: location.hostname + '/boltcards/api/v1/scan/',
       cardDialog: {
         show: false,
         data: {
@@ -43,10 +44,10 @@ new Vue({
             field: 'counter'
           },
           {
-            name: 'withdraw',
+            name: 'uid',
             align: 'left',
-            label: 'Withdraw ID',
-            field: 'withdraw'
+            label: 'Card ID',
+            field: 'uid'
           }
         ],
         pagination: {
@@ -150,7 +151,6 @@ new Vue({
     },
     getHits: function () {
       var self = this
-
       LNbits.api
         .request(
           'GET',
@@ -167,7 +167,6 @@ new Vue({
     },
     getRefunds: function () {
       var self = this
-
       LNbits.api
         .request(
           'GET',
@@ -184,7 +183,6 @@ new Vue({
     },
     openQrCodeDialog(cardId) {
       var card = _.findWhere(this.cards, {id: cardId})
-
       this.qrCodeDialog.data = {
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,
         name: card.card_name,
@@ -197,11 +195,9 @@ new Vue({
     },
     addCardOpen: function () {
       this.cardDialog.show = true
-      var elem = this.$els.myBtn
-      elem.click()
+      this.generateKeys()
     },
     generateKeys: function () {
-      
       const genRanHex = size =>
         [...Array(size)]
           .map(() => Math.floor(Math.random() * 16).toString(16))

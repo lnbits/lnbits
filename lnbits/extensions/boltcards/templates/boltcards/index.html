@@ -34,6 +34,7 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
+              <q-th auto-width>Base URL</q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -52,6 +53,14 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
                 ></q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  outline
+                  color="grey"
+                  @click="copyText(lnurlLink + props.row.uid)"
+             lnurlLink     >lnurl://...<q-tooltip>Click to copy, then add to NFC card</q-tooltip>
+                  </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
@@ -193,7 +202,7 @@
               filled
               dense
               emit-value
-              v-model.trim="cardDialog.data.trans_limit"
+              v-model.trim="cardDialog.data.tx_limit"
               type="number"
               label="Max transaction (sats)"
               class="q-pr-sm"

@@ -1,9 +1,12 @@
 import base64
 import hashlib
 import hmac
+import json
 from http import HTTPStatus
 from io import BytesIO
 from typing import Optional
+
+from loguru import logger
 
 from embit import bech32, compact
 from fastapi import Request
@@ -33,6 +36,7 @@ from .crud import (
     get_card_by_uid,
     get_hit,
     get_hits_today,
+    spend_hit,
     update_card,
     update_card_counter,
     update_card_otp,
@@ -50,10 +54,10 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
     c = c.upper()
     card = None
     counter = b""
+
     try:
         card = await get_card_by_uid(card_uid)
         card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
-
         if card.uid.upper() != card_uid.hex().upper():
             return {"status": "ERROR", "reason": "Card UID mis-match."}
     except:
@@ -67,8 +71,8 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
 
     ctr_int = int.from_bytes(counter, "little")
     
-    if ctr_int <= card.counter:
-        return {"status": "ERROR", "reason": "This link is already used."}
+ #   if ctr_int <= card.counter:
+ #       return {"status": "ERROR", "reason": "This link is already used."}
 
     await update_card_counter(ctr_int, card.id)
 
@@ -86,13 +90,13 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
     for hit in todays_hits:
         hits_amount = hits_amount + hit.amount
     if (hits_amount + card.tx_limit) > card.daily_limit:
-        return {"status": "ERROR", "reason": "Max daily liit spent."}
+        return {"status": "ERROR", "reason": "Max daily limit spent."}
     hit = await create_hit(card.id, ip, agent, card.counter, ctr_int)
     lnurlpay = lnurl_encode(request.url_for("boltcards.lnurlp_response", hit_id=hit.id))
     return {
         "tag": "withdrawRequest",
         "callback": request.url_for(
-            "boltcards.lnurl_callback"
+            "boltcards.lnurl_callback", hitid=hit.id
         ),
         "k1": hit.id,
         "minWithdrawable": 1 * 1000,
@@ -166,14 +170,15 @@ async def api_auth(a, request: Request):
 )
 async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     hit = await get_hit(hit_id) 
+    card = await get_card(hit.card_id) 
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
     payResponse = {
         "tag": "payRequest",
         "callback": req.url_for("boltcards.lnurlp_callback", hit_id=hit_id),
         "metadata": LnurlPayMetadata(json.dumps([["text/plain", "Refund"]])),
-        "minSendable": math.ceil(link.min_bet * 1) * 1000,
-        "maxSendable": round(link.max_bet * 1) * 1000,
+        "minSendable": 1 * 1000,
+        "maxSendable": card.tx_limit * 1000,
     }
     return json.dumps(payResponse)
 
@@ -187,14 +192,15 @@ async def lnurlp_callback(
     req: Request, hit_id: str = Query(None), amount: str = Query(None)
 ):
     hit = await get_hit(hit_id) 
+    card = await get_card(hit.card_id) 
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
 
     payment_hash, payment_request = await create_invoice(
-        wallet_id=link.wallet,
-        amount=int(amount / 1000),
+        wallet_id=card.wallet,
+        amount=int(amount) / 1000,
         memo=f"Refund {hit_id}",
-        unhashed_description=LnurlPayMetadata(json.dumps([["text/plain", hit_id]])).encode("utf-8"),
+        unhashed_description=LnurlPayMetadata(json.dumps([["text/plain", "Refund"]])).encode("utf-8"),
         extra={"refund": hit_id},
     )
 
