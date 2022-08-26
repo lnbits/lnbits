@@ -97,7 +97,7 @@ async def check_pending_payments():
             incoming=incoming,
             exclude_uncheckable=True,
         ):
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await payment.check_status()
         logger.debug("Task: pending payments check finished")
         # we delete expired invoices once upon the first pending check
