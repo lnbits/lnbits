@@ -62,10 +62,9 @@ class LNbitsWallet(Wallet):
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
             data["description_hash"] = description_hash.hex()
-        elif unhashed_description:
-            data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["memo"] = memo or ""
+        if unhashed_description:
+            data["unhashed_description"] = unhashed_description.hex()
+        data["memo"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
