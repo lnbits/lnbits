@@ -20,5 +20,6 @@ def boltcards_renderer():
     return template_renderer(["lnbits/extensions/boltcards/templates"])
 
 from .lnurl import *  # noqa
+from .tasks import *  # noqa
 from .views import *  # noqa
 from .views_api import *  # noqa

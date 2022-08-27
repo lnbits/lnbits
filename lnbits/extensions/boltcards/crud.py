@@ -71,12 +71,6 @@ async def get_cards(wallet_ids: Union[str, List[str]]) -> List[Card]:
     return [Card(**row) for row in rows]
 
 
-async def get_all_cards() -> List[Card]:
-    rows = await db.fetchall(f"SELECT * FROM boltcards.cards")
-
-    return [Card(**row) for row in rows]
-
-
 async def get_card(card_id: str) -> Optional[Card]:
     row = await db.fetchone("SELECT * FROM boltcards.cards WHERE id = ?", (card_id,))
     if not row:
@@ -188,3 +182,41 @@ async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
     hit = await get_hit(hit_id)
     assert hit, "Newly recorded hit couldn't be retrieved"
     return hit
+
+async def create_refund(hit_id, refund_amount) -> Refund:
+    refund_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO boltcards.hits (
+            id,
+            hit_id,
+            refund_amount,
+            payment_hash
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            refund_id,
+            hit_id,
+            refund_amount,
+            payment_hash,
+        ),
+    )
+    refund = await get_refund(refund_id)
+    assert refund, "Newly recorded hit couldn't be retrieved"
+    return refund
+
+async def get_refund(refund_id: str) -> Optional[Refund]:
+    row = await db.fetchone(f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id))
+    if not row:
+        return None
+    refund = dict(**row)
+    return Refund.parse_obj(refund)
+
+async def get_refunds(hits_ids: Union[str, List[str]]) -> List[Refund]:
+    q = ",".join(["?"] * len(hits_ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM boltcards.refunds WHERE hit_id IN ({q})", (*hits_ids,)
+    )
+
+    return [Refund(**row) for row in rows]

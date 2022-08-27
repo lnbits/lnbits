@@ -140,7 +140,7 @@ new Vue({
         .request(
           'GET',
           '/boltcards/api/v1/cards?all_wallets=true',
-          this.g.user.wallets[0].inkey
+          this.g.user.wallets[0].adminkey
         )
         .then(function (response) {
           self.cards = response.data.map(function (obj) {

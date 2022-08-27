@@ -13,7 +13,6 @@ from .crud import (
     create_card,
     create_hit,
     delete_card,
-    get_all_cards,
     get_card,
     get_card_by_otp,
     get_card_by_uid,
@@ -22,6 +21,7 @@ from .crud import (
     update_card,
     update_card_counter,
     update_card_otp,
+    get_refunds,
 )
 from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
@@ -135,5 +135,9 @@ async def api_hits(
     cards_ids = []
     for card in cards:
         cards_ids.append(card.id)
+    hits = await get_hits(cards_ids)
+    hits_ids = []
+    for hit in hits:
+        hits_ids.append(hit.id)
 
-    return [hit.dict() for hit in await get_hits(cards_ids)]
+    return [refund.dict() for refund in await get_refunds(hits_ids)]
