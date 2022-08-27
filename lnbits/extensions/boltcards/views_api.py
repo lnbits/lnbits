@@ -13,7 +13,6 @@ from .crud import (
     create_card,
     create_hit,
     delete_card,
-    get_all_cards,
     get_card,
     get_card_by_otp,
     get_card_by_uid,
@@ -22,10 +21,12 @@ from .crud import (
     update_card,
     update_card_counter,
     update_card_otp,
+    get_refunds,
 )
 from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
 
+from loguru import logger
 
 @boltcards_ext.get("/api/v1/cards")
 async def api_cards(
@@ -47,6 +48,7 @@ async def api_card_create_or_update(
     card_id: str = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
+    logger.debug(len(bytes.fromhex(data.uid)))
     try:
         if len(bytes.fromhex(data.uid)) != 7:
             raise HTTPException(
@@ -133,5 +135,9 @@ async def api_hits(
     cards_ids = []
     for card in cards:
         cards_ids.append(card.id)
+    hits = await get_hits(cards_ids)
+    hits_ids = []
+    for hit in hits:
+        hits_ids.append(hit.id)
 
-    return [hit.dict() for hit in await get_hits(cards_ids)]
+    return [refund.dict() for refund in await get_refunds(hits_ids)]

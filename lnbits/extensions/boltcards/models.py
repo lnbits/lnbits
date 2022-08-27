@@ -64,6 +64,7 @@ class Hit(BaseModel):
     useragent: str
     old_ctr: int
     new_ctr: int
+    amount: int
     time: int
 
     def from_row(cls, row: Row) -> "Hit":

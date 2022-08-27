@@ -18,6 +18,7 @@ new Vue({
       cards: [],
       hits: [],
       refunds: [],
+      lnurlLink: location.hostname + '/boltcards/api/v1/scan/',
       cardDialog: {
         show: false,
         data: {
@@ -43,10 +44,10 @@ new Vue({
             field: 'counter'
           },
           {
-            name: 'withdraw',
+            name: 'uid',
             align: 'left',
-            label: 'Withdraw ID',
-            field: 'withdraw'
+            label: 'Card ID',
+            field: 'uid'
           }
         ],
         pagination: {
@@ -139,7 +140,7 @@ new Vue({
         .request(
           'GET',
           '/boltcards/api/v1/cards?all_wallets=true',
-          this.g.user.wallets[0].inkey
+          this.g.user.wallets[0].adminkey
         )
         .then(function (response) {
           self.cards = response.data.map(function (obj) {

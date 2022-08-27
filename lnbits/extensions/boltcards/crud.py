@@ -8,28 +8,32 @@ from .models import Card, CreateCardData, Hit, Refund
 
 
 async def create_card(data: CreateCardData, wallet_id: str) -> Card:
-    card_id = urlsafe_short_hash()
+    card_id = urlsafe_short_hash().upper()
     await db.execute(
         """
         INSERT INTO boltcards.cards (
             id,
+            uid,
             wallet,
             card_name,
             counter,
-            withdraw,
+            tx_limit,
+            daily_limit,
             k0,
             k1,
             k2,
             otp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             card_id,
+            data.uid.upper(),
             wallet_id,
             data.card_name,
             data.counter,
-            data.withdraw,
+            data.tx_limit,
+            data.daily_limit,
             data.k0,
             data.k1,
             data.k2,
@@ -63,12 +67,6 @@ async def get_cards(wallet_ids: Union[str, List[str]]) -> List[Card]:
     rows = await db.fetchall(
         f"SELECT * FROM boltcards.cards WHERE wallet IN ({q})", (*wallet_ids,)
     )
-
-    return [Card(**row) for row in rows]
-
-
-async def get_all_cards() -> List[Card]:
-    rows = await db.fetchall(f"SELECT * FROM boltcards.cards")
 
     return [Card(**row) for row in rows]
 
@@ -143,11 +141,16 @@ async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
 
 async def get_hits_today(card_id: Union[str, List[str]]) -> List[Hit]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltcards.hits WHERE card_id = ? AND timestamp >= DATE() AND timestamp < DATE() + INTERVAL ? DAY", (card_id, 1)
+        f"SELECT * FROM boltcards.hits WHERE card_id = ? AND time >= DATE('now') AND time < DATE('now', '+1 day')", (card_id,)
     )
 
     return [Hit(**row) for row in rows]
 
+async def spend_hit(id: str):
+    await db.execute(
+        "UPDATE boltcards.hits SET spent = ? WHERE id = ?",
+        (True, id),
+    )
 
 async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
     hit_id = urlsafe_short_hash()
@@ -157,21 +160,63 @@ async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
             id,
             card_id,
             ip,
+            spent,
             useragent,
             old_ctr,
-            new_ctr
+            new_ctr,
+            amount
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             hit_id,
             card_id,
             ip,
+            False,
             useragent,
             old_ctr,
             new_ctr,
+            0,
         ),
     )
     hit = await get_hit(hit_id)
     assert hit, "Newly recorded hit couldn't be retrieved"
     return hit
+
+async def create_refund(hit_id, refund_amount) -> Refund:
+    refund_id = urlsafe_short_hash()
+    await db.execute(
+        """
+        INSERT INTO boltcards.hits (
+            id,
+            hit_id,
+            refund_amount,
+            payment_hash
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            refund_id,
+            hit_id,
+            refund_amount,
+            payment_hash,
+        ),
+    )
+    refund = await get_refund(refund_id)
+    assert refund, "Newly recorded hit couldn't be retrieved"
+    return refund
+
+async def get_refund(refund_id: str) -> Optional[Refund]:
+    row = await db.fetchone(f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id))
+    if not row:
+        return None
+    refund = dict(**row)
+    return Refund.parse_obj(refund)
+
+async def get_refunds(hits_ids: Union[str, List[str]]) -> List[Refund]:
+    q = ",".join(["?"] * len(hits_ids))
+    rows = await db.fetchall(
+        f"SELECT * FROM boltcards.refunds WHERE hit_id IN ({q})", (*hits_ids,)
+    )
+
+    return [Refund(**row) for row in rows]
