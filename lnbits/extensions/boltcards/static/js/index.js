@@ -9,6 +9,7 @@ const mapCards = obj => {
   return obj
 }
 
+
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
@@ -18,7 +19,6 @@ new Vue({
       cards: [],
       hits: [],
       refunds: [],
-      lnurlLink: location.hostname + '/boltcards/api/v1/scan/',
       cardDialog: {
         show: false,
         data: {
@@ -44,10 +44,10 @@ new Vue({
             field: 'counter'
           },
           {
-            name: 'uid',
+            name: 'withdraw',
             align: 'left',
-            label: 'Card ID',
-            field: 'uid'
+            label: 'Withdraw ID',
+            field: 'withdraw'
           }
         ],
         pagination: {
@@ -66,7 +66,7 @@ new Vue({
             name: 'refund_amount',
             align: 'left',
             label: 'Refund Amount',
-            field: 'oldrefund_amount_ctr'
+            field: 'refund_amount'
           },
           {
             name: 'time',
@@ -140,13 +140,12 @@ new Vue({
         .request(
           'GET',
           '/boltcards/api/v1/cards?all_wallets=true',
-          this.g.user.wallets[0].adminkey
+          this.g.user.wallets[0].inkey
         )
         .then(function (response) {
           self.cards = response.data.map(function (obj) {
             return mapCards(obj)
           })
-          console.log(self.cards)
         })
     },
     getHits: function () {
@@ -162,7 +161,6 @@ new Vue({
             obj.card_name = self.cards.find(d => d.id == obj.card_id).card_name
             return mapCards(obj)
           })
-          console.log(self.hits)
         })
     },
     getRefunds: function () {
@@ -175,10 +173,8 @@ new Vue({
         )
         .then(function (response) {
           self.refunds = response.data.map(function (obj) {
-            obj.card_name = self.cards.find(d => d.id == obj.card_id).card_name
             return mapCards(obj)
           })
-          console.log(self.hits)
         })
     },
     openQrCodeDialog(cardId) {
@@ -252,7 +248,6 @@ new Vue({
     },
     updateCardDialog: function (formId) {
       var card = _.findWhere(this.cards, {id: formId})
-      console.log(card.id)
       this.cardDialog.data = _.clone(card)
 
       this.cardDialog.temp.k0 = this.cardDialog.data.k0
@@ -273,8 +268,6 @@ new Vue({
         data.prev_k1 = this.cardDialog.temp.k1
         data.prev_k2 = this.cardDialog.temp.k2
       }
-
-      console.log(data)
 
       LNbits.api
         .request(
@@ -320,7 +313,13 @@ new Vue({
     },
     exportCardsCSV: function () {
       LNbits.utils.exportCSV(this.cardsTable.columns, this.cards)
-    }
+    },
+    exportHitsCSV: function () {
+      LNbits.utils.exportCSV(this.hitsTable.columns, this.hits)
+    },
+    exportRefundsCSV: function () {
+      LNbits.utils.exportCSV(this.refundsTable.columns, this.refunds)
+    },
   },
   created: function () {
     if (this.g.user.wallets.length) {
