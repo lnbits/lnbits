@@ -16,6 +16,7 @@ new Vue({
   data: function () {
     return { 
       toggleAdvanced: false,
+      nfcTagReading: false,
       cards: [],
       hits: [],
       refunds: [],
@@ -194,6 +195,7 @@ new Vue({
       this.generateKeys()
     },
     generateKeys: function () {
+      var self = this
       const genRanHex = size =>
         [...Array(size)]
           .map(() => Math.floor(Math.random() * 16).toString(16))
@@ -203,20 +205,17 @@ new Vue({
         typeof this.cardDialog.data.card_name === 'string' &&
         this.cardDialog.data.card_name.search('debug') > -1
 
-      this.cardDialog.data.k0 = debugcard
+        self.cardDialog.data.k0 = debugcard
         ? '11111111111111111111111111111111'
         : genRanHex(32)
-      this.$refs['k0'].value = this.cardDialog.data.k0
 
-      this.cardDialog.data.k1 = debugcard
+      self.cardDialog.data.k1 = debugcard
         ? '22222222222222222222222222222222'
         : genRanHex(32)
-      this.$refs['k1'].value = this.cardDialog.data.k1
 
-      this.cardDialog.data.k2 = debugcard
+      self.cardDialog.data.k2 = debugcard
         ? '33333333333333333333333333333333'
         : genRanHex(32)
-      this.$refs['k2'].value = this.cardDialog.data.k2
     },
     closeFormDialog: function () {
       this.cardDialog.data = {}
@@ -283,6 +282,28 @@ new Vue({
           self.cards.push(mapCards(response.data))
           self.cardDialog.show = false
           self.cardDialog.data = {}
+        })
+        .catch(function (error) {
+          LNbits.utils.notifyApiError(error)
+        })
+    },
+    enableCard: function (wallet, card_id, enable) {
+      var self = this
+      let fullWallet = _.findWhere(self.g.user.wallets, {
+        id: wallet
+      })
+      LNbits.api
+        .request(
+          'GET',
+          '/boltcards/api/v1/cards/enable/' + card_id + '/' + enable,
+          fullWallet.adminkey
+        )
+        .then(function (response) {
+          console.log(response.data)
+          self.cards = _.reject(self.cards, function (obj) {
+            return obj.id == response.data.id
+          })
+          self.cards.push(mapCards(response.data))
         })
         .catch(function (error) {
           LNbits.utils.notifyApiError(error)

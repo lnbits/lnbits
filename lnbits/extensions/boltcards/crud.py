@@ -19,12 +19,13 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             counter,
             tx_limit,
             daily_limit,
+            enable,
             k0,
             k1,
             k2,
             otp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             card_id,
@@ -34,6 +35,7 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             data.counter,
             data.tx_limit,
             data.daily_limit,
+            True,
             data.k0,
             data.k1,
             data.k2,
@@ -104,7 +106,17 @@ async def get_card_by_otp(otp: str) -> Optional[Card]:
 
 
 async def delete_card(card_id: str) -> None:
+    # Delete cards
+    card = await get_card(card_id)
     await db.execute("DELETE FROM boltcards.cards WHERE id = ?", (card_id,))
+    # Delete hits
+    hits = await get_hits([card_id])
+    for hit in hits:
+        await db.execute("DELETE FROM boltcards.hits WHERE id = ?", (hit.id,))
+        # Delete refunds
+        refunds = await get_refunds([hit])
+        for refund in refunds:
+            await db.execute("DELETE FROM boltcards.refunds WHERE id = ?", (refund.hit_id,))
 
 
 async def update_card_counter(counter: int, id: str):
@@ -113,6 +125,12 @@ async def update_card_counter(counter: int, id: str):
         (counter, id),
     )
 
+async def enable_disable_card(enable: bool, id: str) -> Optional[Card]:
+    row = await db.execute(
+        "UPDATE boltcards.cards SET enable = ? WHERE id = ?",
+        (enable, id),
+    )
+    return await get_card(id)
 
 async def update_card_otp(otp: str, id: str):
     await db.execute(

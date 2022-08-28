@@ -57,6 +57,8 @@ async def api_scan(p, c, request: Request, card_id: str = None):
 
     try:
         card = await get_card_by_uid(card_uid)
+        if not card.enable:
+            return {"status": "ERROR", "reason": "Card is disabled."}
         card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
         if card.uid.upper() != card_uid.hex().upper():
             return {"status": "ERROR", "reason": "Card UID mis-match."}
@@ -173,6 +175,8 @@ async def lnurlp_response(req: Request, hit_id: str = Query(None)):
     card = await get_card(hit.card_id) 
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
+    if not card.enable:
+        return {"status": "ERROR", "reason": "Card is disabled."}
     payResponse = {
         "tag": "payRequest",
         "callback": req.url_for("boltcards.lnurlp_callback", hit_id=hit_id),
