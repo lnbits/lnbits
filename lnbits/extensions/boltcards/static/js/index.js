@@ -45,10 +45,22 @@ new Vue({
             field: 'counter'
           },
           {
-            name: 'withdraw',
+            name: 'wallet',
             align: 'left',
-            label: 'Withdraw ID',
-            field: 'withdraw'
+            label: 'Wallet',
+            field: 'wallet'
+          },
+          {
+            name: 'tx_limit',
+            align: 'left',
+            label: 'Max tx',
+            field: 'tx_limit'
+          },
+          {
+            name: 'daily_limit',
+            align: 'left',
+            label: 'Daily tx limit',
+            field: 'daily_limit'
           }
         ],
         pagination: {
