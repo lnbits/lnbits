@@ -48,11 +48,10 @@
                 <q-btn
                   unelevated
                   dense
-                  size="xs"
-                  icon="visibility"
+                  icon="qr_code"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
-                ></q-btn>
+                ><q-tooltip>Card key credentials</q-tooltip></q-btn>
               </q-td>
               <q-td auto-width>
                 <q-btn
