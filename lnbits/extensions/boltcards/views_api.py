@@ -21,6 +21,7 @@ from .crud import (
     update_card,
     update_card_counter,
     update_card_otp,
+    enable_disable_card,
     get_refunds,
 )
 from .models import CreateCardData
@@ -89,6 +90,25 @@ async def api_card_create_or_update(
         card = await create_card(wallet_id=wallet.wallet.id, data=data)
     return card.dict()
 
+@boltcards_ext.get("/api/v1/cards/enable/{card_id}/{enable}", status_code=HTTPStatus.OK)
+async def enable_card(
+    card_id,
+    enable,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+):
+    card = await get_card(card_id)
+    if not card:
+        raise HTTPException(
+            detail="No card found.", status_code=HTTPStatus.NOT_FOUND
+        )
+    if card.wallet != wallet.wallet.id:
+        raise HTTPException(
+            detail="Not your card.", status_code=HTTPStatus.FORBIDDEN
+        )
+    card = await enable_disable_card(enable=enable, id=card_id)
+    logger.debug(enable)
+    logger.debug(card)
+    return card.dict()
 
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
 async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admin_key)):

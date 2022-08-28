@@ -66,6 +66,20 @@
                 {{ col.value }}
               </q-td>
               <q-td auto-width>
+              <q-btn
+                  v-if="props.row.enable"
+                  dense
+                  @click="enableCard(props.row.wallet, props.row.id, false)"
+                  color="pink"
+                >DISABLE</q-btn>
+                <q-btn
+                v-else
+                dense
+                @click="enableCard(props.row.wallet, props.row.id, true)"
+                color="green"
+              >ENABLE</q-btn>
+              </q-td>
+              <q-td auto-width>
                 <q-btn
                   flat
                   dense
@@ -73,8 +87,7 @@
                   @click="updateCardDialog(props.row.id)"
                   icon="edit"
                   color="light-blue"
-                >
-                </q-btn>
+                ><q-tooltip>Edit card</q-tooltip></q-btn>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -84,7 +97,7 @@
                   @click="deleteCard(props.row.id)"
                   icon="cancel"
                   color="pink"
-                ></q-btn>
+                ><q-tooltip>Deleting card will also delete all records</q-tooltip></q-btn>
               </q-td>
             </q-tr>
           </template>
@@ -255,7 +268,6 @@
         
       
         <q-toggle
-        @click="toggleKeys"
       v-model="toggleAdvanced"
       label="Show advanced options"
     ></q-toggle>
@@ -263,7 +275,7 @@
         <q-input
           filled
           dense
-          ref="k0"
+          
           v-model.trim="cardDialog.data.k0"
           type="text"
           label="Card Auth key (K0)"
@@ -274,7 +286,7 @@
         <q-input
           filled
           dense
-          ref="k1"
+          
           v-model.trim="cardDialog.data.k1"
           type="text"
           label="Card Meta key (K1)"
@@ -283,7 +295,7 @@
         <q-input
           filled
           dense
-          ref="k2"
+          
           v-model.trim="cardDialog.data.k2"
           type="text"
           label="Card File key (K2)"
