@@ -32,6 +32,7 @@ from . import boltcards_ext
 from .crud import (
     create_hit,
     get_card,
+    get_card_by_uid,
     get_card_by_otp,
     get_card,
     get_hit,
@@ -47,34 +48,31 @@ from .nxp424 import decryptSUN, getSunMAC
 ###############LNURLWITHDRAW#################
 
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
-@boltcards_ext.get("/api/v1/scan/{card_id}")
-async def api_scan(p, c, request: Request, card_id: str = None):
+@boltcards_ext.get("/api/v1/scan/{card_uid}")
+async def api_scan(p, c, request: Request, card_uid: str = None):
     # some wallets send everything as lower case, no bueno
     p = p.upper()
     c = c.upper()
     card = None
     counter = b""
-
+    card = await get_card_by_uid(card_uid)
+    if not card:
+        return {"status": "ERROR", "reason": "No card."}
+    if not card.enable:
+        return {"status": "ERROR", "reason": "Card is disabled."}   
     try:
-        card = await get_card_by_uid(card_uid)
-        if not card.enable:
-            return {"status": "ERROR", "reason": "Card is disabled."}
         card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
         if card.uid.upper() != card_uid.hex().upper():
             return {"status": "ERROR", "reason": "Card UID mis-match."}
+        if c != getSunMAC(card_uid, counter, bytes.fromhex(card.k2)).hex().upper():
+            return {"status": "ERROR", "reason": "CMAC does not check."}
     except:
         return {"status": "ERROR", "reason": "Error decrypting card."}
 
-    if card == None:
-        return {"status": "ERROR", "reason": "Unknown card."}
-
-    if c != getSunMAC(card_id, counter, bytes.fromhex(card.k2)).hex().upper():
-        return {"status": "ERROR", "reason": "CMAC does not check."}
-
     ctr_int = int.from_bytes(counter, "little")
     
- #   if ctr_int <= card.counter:
- #       return {"status": "ERROR", "reason": "This link is already used."}
+    if ctr_int <= card.counter:
+        return {"status": "ERROR", "reason": "This link is already used."}
 
     await update_card_counter(ctr_int, card.id)
 
@@ -117,26 +115,23 @@ async def lnurl_callback(
     k1: str = Query(None),
 ):
     hit = await get_hit(k1) 
-    card = await get_card(hit.id) 
+    card = await get_card(hit.card_id) 
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
-
-    if pr:
+    try:
         if hit.id != k1:
             return {"status": "ERROR", "reason": "Bad K1"}
         if hit.spent:
             return {"status": "ERROR", "reason": f"Payment already claimed"}
         hit = await spend_hit(hit.id)
-        if not hit:
-            return {"status": "ERROR", "reason": f"Payment failed"}
         await pay_invoice(
             wallet_id=card.wallet,
             payment_request=pr,
-            max_sat=card.tx_limit / 1000,
+            max_sat=card.tx_limit,
             extra={"tag": "boltcard"},
         )
         return {"status": "OK"}
-    else:
+    except:
         return {"status": "ERROR", "reason": f"Payment failed"}
 
 

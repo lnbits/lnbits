@@ -49,7 +49,6 @@ async def api_card_create_or_update(
     card_id: str = None,
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ):
-    logger.debug(len(bytes.fromhex(data.uid)))
     try:
         if len(bytes.fromhex(data.uid)) != 7:
             raise HTTPException(
@@ -106,8 +105,6 @@ async def enable_card(
             detail="Not your card.", status_code=HTTPStatus.FORBIDDEN
         )
     card = await enable_disable_card(enable=enable, id=card_id)
-    logger.debug(enable)
-    logger.debug(card)
     return card.dict()
 
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
