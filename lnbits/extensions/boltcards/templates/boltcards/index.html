@@ -5,16 +5,18 @@
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>
-        <q-btn unelevated color="primary" class="addCardBtn" v-on:click="addCardOpen"
-          >Add Card</q-btn
-        >
-      </q-card-section>
-    </q-card>
-    <q-card>
-      <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Cards</h5>
+            <div class="row justify-start" style="width:150px"> 
+              <div class="col" >
+                <h5 class="text-subtitle1 q-my-none">Cards</h5>
+              </div>
+              <div class="col">
+                <q-btn round size="sm" icon="add" unelevated color="primary" @click="addCardOpen">
+                  <q-tooltip>Add card</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCardsCSV"
