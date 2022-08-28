@@ -50,7 +50,7 @@ class CreateCardData(BaseModel):
     counter: int = Query(0)
     tx_limit: int = Query(0)
     daily_limit: int = Query(0)
-    enable: bool = Query(...)
+    enable: bool = Query(True)
     k0: str = Query(ZERO_KEY)
     k1: str = Query(ZERO_KEY)
     k2: str = Query(ZERO_KEY)
