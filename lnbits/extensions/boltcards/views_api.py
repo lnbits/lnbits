@@ -74,7 +74,11 @@ async def api_card_create_or_update(
         raise HTTPException(
             detail="Invalid byte data provided.", status_code=HTTPStatus.BAD_REQUEST
         )
-
+    checkUid = await get_card_by_uid(data.uid)
+    if checkUid:
+        raise HTTPException(
+            detail="UID already registered. Delete registered card and try again.", status_code=HTTPStatus.BAD_REQUEST
+        )
     if card_id:
         card = await get_card(card_id)
         if not card:
