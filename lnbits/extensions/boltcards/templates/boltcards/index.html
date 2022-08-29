@@ -188,8 +188,7 @@
           <q-input filled dense v-model.number="cardDialog.data.counter" type="number" label="Initial counter">
             <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left">Zero if you don't know.</q-tooltip>
           </q-input>
-          <q-btn unelevated color="primary" class="q-ml-auto" v-on:click="generateKeys" v-on:click.right="debugKeys"
-            v-el:keybtn>Generate keys</q-btn>
+          <q-btn unelevated color="primary" class="q-ml-auto" v-on:click="generateKeys" v-on:click.right="debugKeys">Generate keys</q-btn>
         </div>
         <div class="row q-mt-lg">
           <q-btn v-if="cardDialog.data.id" unelevated color="primary" type="submit">Update Card</q-btn>
@@ -208,7 +207,7 @@
         <qrcode :value="qrCodeDialog.data.link" :options="{width: 800}" class="rounded-borders"></qrcode>
       </q-responsive>
       <p style="word-break: break-all" class="text-center">
-        (Keys for bolt-nfc-android-app)
+        (Keys for <a href="https://play.google.com/store/apps/details?id=com.lightningnfcapp" target="_blank">bolt-nfc-android-app</a>)
       </p>
       <p style="word-break: break-all">
         <strong>Name:</strong> {{ qrCodeDialog.data.name }}<br />
