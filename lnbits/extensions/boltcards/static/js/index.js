@@ -230,69 +230,6 @@ new Vue({
         ? '33333333333333333333333333333333'
         : genRanHex(32)
     },
-    readNfcTag: function () {
-      try {
-        const self = this
-
-        if (typeof NDEFReader == 'undefined') {
-          throw {
-            toString: function () {
-              return 'NFC not supported on this device or browser.'
-            }
-          }
-        }
-
-        const ndef = new NDEFReader()
-
-        const readerAbortController = new AbortController()
-        readerAbortController.signal.onabort = event => {
-          console.log('All NFC Read operations have been aborted.')
-        }
-
-        this.nfcTagReading = true
-        this.$q.notify({
-          message: 'Tap your NFC tag to read its UID'
-        })
-
-        return ndef.scan({signal: readerAbortController.signal}).then(() => {
-          ndef.onreadingerror = () => {
-            self.nfcTagReading = false
-
-            this.$q.notify({
-              type: 'negative',
-              message: 'There was an error reading this NFC tag.'
-            })
-
-            readerAbortController.abort()
-          }
-
-          ndef.onreading = ({message, serialNumber}) => {
-            self.nfcTagReading = false
-
-            self.cardDialog.data.uid = serialNumber
-              .replaceAll(':', '')
-              .toUpperCase()
-
-            this.$q.notify({
-              type: 'positive',
-              message: 'NFC tag read successfully.'
-            })
-
-            setTimeout(() => {
-              readerAbortController.abort()
-            }, 1000)
-          }
-        })
-      } catch (error) {
-        this.nfcTagReading = false
-        this.$q.notify({
-          type: 'negative',
-          message: error
-            ? error.toString()
-            : 'An unexpected error has occurred.'
-        })
-      }
-    },
     closeFormDialog: function () {
       this.cardDialog.data = {}
     },
