@@ -92,7 +92,7 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
         "k1": hit.id,
         "minWithdrawable": 1 * 1000,
         "maxWithdrawable": card.tx_limit * 1000,
-        "defaultDescription": f"Boltcard (refund address {lnurlpay})",
+        "defaultDescription": f"Boltcard (refund address lnurl://{lnurlpay})",
     }
 
 
