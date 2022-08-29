@@ -4,7 +4,7 @@ This extension allows you to link your Bolt Card (or other compatible NXP NTAG d
 
 **Disclaimer:** ***Use this only if you either know what you are doing or are a reckless lightning pioneer. Only you are responsible for all your sats, cards and other devices. Always backup all your card keys!***
 
-***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNBits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [bolt-nfc-android-app](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes.
+***In order to use this extension you need to be able to setup your own card.*** That means writing a URL template pointing to your LNBits instance, configuring some SUN (SDM) settings and optionally changing the card's keys. There's a [guide](https://www.whitewolftech.com/articles/payment-card/) to set it up with a card reader connected to your computer. It can be done (without setting the keys) with [TagWriter app by NXP](https://play.google.com/store/apps/details?id=com.nxp.nfc.tagwriter) Android app. Last but not least, an OSS android app by name [bolt-nfc-android-app](https://github.com/boltcard/bolt-nfc-android-app) is being developed for these purposes. It's available from Google Play [here](https://play.google.com/store/apps/details?id=com.lightningnfcapp).
 
 ## About the keys
 
@@ -18,29 +18,32 @@ The key #00, K0 (also know as auth key) is skipped to be use as authentification
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
-## LNURLw 
-Create a withdraw link within the LNURLw extension before adding a card. Enable the `Use unique withdraw QR codes to reduce 'assmilking'` option. 
-
 ## Setting the card - bolt-nfc-android-app (easy way)
 So far, regarding the keys, the app can only write a new key set on an empty card (with zero keys). **When you write non zero (and 'non debug') keys, they can't be rewrite with this app.** You have to do it on your computer. 
 
 - Read the card with the app. Note UID so you can fill it in the extension later.
 - Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{card_uid}`
-    - `{card_uid}` is optional. This field denotes the 14-character (7 byte) UID unique to each NFC cardr from the factory.
-    - If you include the `{card_uid}`, there is a slight potential privacy leak where each place you tap your card will see this `{card_uid}` in plain-text. As one example, merchants could potentially use this static identifier for the card to build a profile around you. If you are on a shared, large LNBits host this option is probably best for you as the system is more efficient this way.
-    - If you don't include `{card_uid}`, then you will have gained a tiny bit more privacy by not exposing any static identifier to anyone. The downside to this is that the processing LNBits does after you tap your card is more computationally expensive. If you are on a dedicated, private LNBits instance this option is probably best for you as the efficiency gains of adding `{card_uid}` are irrelevant in this use case.
 
 - Add new card in the extension. 
-    - Leaving any key array empty means that key is 16bytes of zero (00000000000000000000000000000000). 
-    - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead.
-    - Leaving initial counter empty means zero. 
-- Open the card details. **Backup the keys.** Scan the QR with the app to write the keys on the card.
+    - Set a max sats per transaction. Any transaction greater than this amount will be rejected.
+    - Set a max sats per day. After the card spends this amount of sats in a day, additional transactions will be rejected.
+    - Set a card name. This is just for your reference inside LNBits.
+    - Set the card UID. This is the unique identifier on your NFC card and is 7 bytes.
+        - If on an Android device with a newish version of Chrome, you can click the icon next to the input and tap your card to autofill this field.
+    - Advanced Options
+        - Card Keys (k0, k1, k2) will be automatically generated if not explicitly set.
+            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in debug mode.
+            - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead.
+    - Click CREATE CARD button
+- Click the QR code button next to a card to view its details. You can scan the QR code with the Android app to import the keys. 
+- Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. You can then paste this into the Android app to import the keys.
+- Tap the NFC card to write the keys to the card.
 
 ## Setting the card - computer (hard way)
 
 Follow the guide. 
 
-The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000`
+The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan/{YOUR_card_uid}?p=00000000000000000000000000000000&c=0000000000000000`
 
 Then fill up the card parameters in the extension. Card Auth key (K0) can be omitted. Initical counter can be 0.
 
@@ -50,7 +53,6 @@ Then fill up the card parameters in the extension. Card Auth key (K0) can be omi
 - New Data Set > Link
 - Set URI type to Custom URL
 - URL should look like lnurlw://YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{YOUR_card_uid}?p=00000000000000000000000000000000&c=0000000000000000
-    - See note above about including `{card_uid}` in the URL.
 - click Configure mirroring options
 - Select Card Type NTAG 424 DNA
 - Check Enable SDM Mirroring
