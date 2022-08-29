@@ -250,7 +250,7 @@ new Vue({
           })
         })
     },
-    openQrCodeDialog (cardId) {
+    openQrCodeDialog(cardId) {
       var card = _.findWhere(this.cards, {id: cardId})
       this.qrCodeDialog.data = {
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,

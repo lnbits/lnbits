@@ -7,7 +7,7 @@ from lnbits.core import db as core_db
 from lnbits.core.models import Payment
 from lnbits.tasks import register_invoice_listener
 
-from .crud import get_hit, create_refund
+from .crud import create_refund, get_hit
 
 
 async def wait_for_paid_invoices():
