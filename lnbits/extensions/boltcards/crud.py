@@ -214,19 +214,17 @@ async def create_refund(hit_id, refund_amount) -> Refund:
     refund_id = urlsafe_short_hash()
     await db.execute(
         """
-        INSERT INTO boltcards.hits (
+        INSERT INTO boltcards.refunds (
             id,
             hit_id,
-            refund_amount,
-            payment_hash
+            refund_amount
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?)
         """,
         (
             refund_id,
             hit_id,
             refund_amount,
-            payment_hash,
         ),
     )
     refund = await get_refund(refund_id)

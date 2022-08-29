@@ -20,16 +20,28 @@ async def wait_for_paid_invoices():
 
 
 async def on_invoice_paid(payment: Payment) -> None:
-    if payment.extra.get("tag")[0:6] != "Refund":
-        # not an lnurlp invoice
+    if not payment.extra.get("refund"):
         return
 
     if payment.extra.get("wh_status"):
         # this webhook has already been sent
         return
-    hit = await get_hit(payment.extra.get("tag")[7 : len(payment.extra.get("tag"))])
+    hit = await get_hit(payment.extra.get("refund"))
+
     if hit:
         refund = await create_refund(
-            hit_id=hit.id, refund_amount=payment.extra.get("amount")
+            hit_id=hit.id, refund_amount=(payment.amount / 1000)
         )
         await mark_webhook_sent(payment, 1)
+
+
+async def mark_webhook_sent(payment: Payment, status: int) -> None:
+    payment.extra["wh_status"] = status
+
+    await core_db.execute(
+        """
+        UPDATE apipayments SET extra = ?
+        WHERE hash = ?
+        """,
+        (json.dumps(payment.extra), payment.payment_hash),
+    )

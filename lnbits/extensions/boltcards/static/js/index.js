@@ -84,10 +84,10 @@ new Vue({
             field: 'refund_amount'
           },
           {
-            name: 'time',
+            name: 'date',
             align: 'left',
             label: 'Time',
-            field: 'time'
+            field: 'date'
           }
         ],
         pagination: {
