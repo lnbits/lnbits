@@ -378,7 +378,7 @@ async def subscribe(request: Request, wallet: Wallet):
         while True:
             payment: Payment = await payment_queue.get()
             if payment.wallet_id == this_wallet_id:
-                logger.debug("payment receieved", payment)
+                logger.debug("payment received", payment)
                 await send_queue.put(("payment-received", payment))
 
     asyncio.create_task(payment_received())
