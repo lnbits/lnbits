@@ -18,6 +18,7 @@ class Card(BaseModel):
     wallet: str
     card_name: str
     uid: str
+    external_id: str
     counter: int
     tx_limit: int
     daily_limit: int

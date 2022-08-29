@@ -9,11 +9,14 @@ from .models import Card, CreateCardData, Hit, Refund
 
 async def create_card(data: CreateCardData, wallet_id: str) -> Card:
     card_id = urlsafe_short_hash().upper()
+    extenal_id = urlsafe_short_hash().lower()
+
     await db.execute(
         """
         INSERT INTO boltcards.cards (
             id,
             uid,
+            external_id,
             wallet,
             card_name,
             counter,
@@ -25,11 +28,12 @@ async def create_card(data: CreateCardData, wallet_id: str) -> Card:
             k2,
             otp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             card_id,
             data.uid.upper(),
+            extenal_id,
             wallet_id,
             data.card_name,
             data.counter,
@@ -86,6 +90,18 @@ async def get_card(card_id: str) -> Optional[Card]:
 async def get_card_by_uid(card_uid: str) -> Optional[Card]:
     row = await db.fetchone(
         "SELECT * FROM boltcards.cards WHERE uid = ?", (card_uid.upper(),)
+    )
+    if not row:
+        return None
+
+    card = dict(**row)
+
+    return Card.parse_obj(card)
+
+
+async def get_card_by_external_id(external_id: str) -> Optional[Card]:
+    row = await db.fetchone(
+        "SELECT * FROM boltcards.cards WHERE external_id = ?", (external_id.lower(),)
     )
     if not row:
         return None

@@ -259,6 +259,7 @@ new Vue({
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,
         name: card.card_name,
         uid: card.uid,
+        external_id: card.external_id,
         k0: card.k0,
         k1: card.k1,
         k2: card.k2

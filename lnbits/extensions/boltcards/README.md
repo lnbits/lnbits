@@ -22,7 +22,8 @@ The key #00, K0 (also know as auth key) is skipped to be use as authentification
 So far, regarding the keys, the app can only write a new key set on an empty card (with zero keys). **When you write non zero (and 'non debug') keys, they can't be rewrite with this app.** You have to do it on your computer. 
 
 - Read the card with the app. Note UID so you can fill it in the extension later.
-- Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{card_uid}`
+- Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{external_id}`
+    - `{external_id}` should be replaced with the External ID found in the LNBits dialog.
 
 - Add new card in the extension. 
     - Set a max sats per transaction. Any transaction greater than this amount will be rejected.
@@ -43,7 +44,7 @@ So far, regarding the keys, the app can only write a new key set on an empty car
 
 Follow the guide. 
 
-The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan/{YOUR_card_uid}?p=00000000000000000000000000000000&c=0000000000000000`
+The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan/{YOUR_card_external_id}?p=00000000000000000000000000000000&c=0000000000000000`
 
 Then fill up the card parameters in the extension. Card Auth key (K0) can be omitted. Initical counter can be 0.
 
@@ -52,7 +53,7 @@ Then fill up the card parameters in the extension. Card Auth key (K0) can be omi
 - In the TagWriter app tap Write tags
 - New Data Set > Link
 - Set URI type to Custom URL
-- URL should look like lnurlw://YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{YOUR_card_uid}?p=00000000000000000000000000000000&c=0000000000000000
+- URL should look like lnurlw://YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{YOUR_card_external_id}?p=00000000000000000000000000000000&c=0000000000000000
 - click Configure mirroring options
 - Select Card Type NTAG 424 DNA
 - Check Enable SDM Mirroring

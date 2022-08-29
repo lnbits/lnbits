@@ -376,6 +376,7 @@
       <p style="word-break: break-all">
         <strong>Name:</strong> {{ qrCodeDialog.data.name }}<br />
         <strong>UID:</strong> {{ qrCodeDialog.data.uid }}<br />
+        <strong>External ID:</strong> {{ qrCodeDialog.data.external_id }}<br />
         <strong>Lock key:</strong> {{ qrCodeDialog.data.k0 }}<br />
         <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
         <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
@@ -386,7 +387,7 @@
         unelevated
         outline
         color="grey"
-        @click="copyText(lnurlLink + qrCodeDialog.data.uid)"
+        @click="copyText(lnurlLink + qrCodeDialog.data.external_id)"
         label="Base url (LNURL://)"
       >
       </q-btn>

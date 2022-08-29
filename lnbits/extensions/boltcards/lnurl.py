@@ -26,8 +26,8 @@ from . import boltcards_ext
 from .crud import (
     create_hit,
     get_card,
+    get_card_by_external_id,
     get_card_by_otp,
-    get_card_by_uid,
     get_hit,
     get_hits_today,
     spend_hit,
@@ -41,14 +41,14 @@ from .nxp424 import decryptSUN, getSunMAC
 ###############LNURLWITHDRAW#################
 
 # /boltcards/api/v1/scan?p=00000000000000000000000000000000&c=0000000000000000
-@boltcards_ext.get("/api/v1/scan/{card_uid}")
-async def api_scan(p, c, request: Request, card_uid: str = None):
+@boltcards_ext.get("/api/v1/scan/{external_id}")
+async def api_scan(p, c, request: Request, external_id: str = None):
     # some wallets send everything as lower case, no bueno
     p = p.upper()
     c = c.upper()
     card = None
     counter = b""
-    card = await get_card_by_uid(card_uid)
+    card = await get_card_by_external_id(external_id)
     if not card:
         return {"status": "ERROR", "reason": "No card."}
     if not card.enable:

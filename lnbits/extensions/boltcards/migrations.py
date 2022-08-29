@@ -9,6 +9,7 @@ async def m001_initial(db):
             wallet TEXT NOT NULL,
             card_name TEXT NOT NULL,
             uid TEXT NOT NULL UNIQUE,
+            external_id TEXT NOT NULL UNIQUE,
             counter INT NOT NULL DEFAULT 0,
             tx_limit TEXT NOT NULL,
             daily_limit TEXT NOT NULL,
