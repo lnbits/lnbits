@@ -9,12 +9,11 @@ const mapCards = obj => {
   return obj
 }
 
-
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data: function () {
-    return { 
+    return {
       toggleAdvanced: false,
       nfcTagReading: false,
       cards: [],
@@ -23,11 +22,12 @@ new Vue({
       cardDialog: {
         show: false,
         data: {
-          counter:1,
+          counter: 1,
           k0: '',
           k1: '',
           k2: '',
-          card_name:''},
+          card_name: ''
+        },
         temp: {}
       },
       cardsTable: {
@@ -190,7 +190,7 @@ new Vue({
           })
         })
     },
-    openQrCodeDialog(cardId) {
+    openQrCodeDialog (cardId) {
       var card = _.findWhere(this.cards, {id: cardId})
       this.qrCodeDialog.data = {
         link: window.location.origin + '/boltcards/api/v1/auth?a=' + card.otp,
@@ -217,7 +217,7 @@ new Vue({
         typeof this.cardDialog.data.card_name === 'string' &&
         this.cardDialog.data.card_name.search('debug') > -1
 
-        self.cardDialog.data.k0 = debugcard
+      self.cardDialog.data.k0 = debugcard
         ? '11111111111111111111111111111111'
         : genRanHex(32)
 
@@ -352,7 +352,7 @@ new Vue({
     },
     exportRefundsCSV: function () {
       LNbits.utils.exportCSV(this.refundsTable.columns, this.refunds)
-    },
+    }
   },
   created: function () {
     if (this.g.user.wallets.length) {

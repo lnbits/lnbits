@@ -59,7 +59,7 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
     if not card:
         return {"status": "ERROR", "reason": "No card."}
     if not card.enable:
-        return {"status": "ERROR", "reason": "Card is disabled."}   
+        return {"status": "ERROR", "reason": "Card is disabled."}
     try:
         card_uid, counter = decryptSUN(bytes.fromhex(p), bytes.fromhex(card.k1))
         if card.uid.upper() != card_uid.hex().upper():
@@ -70,7 +70,7 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
         return {"status": "ERROR", "reason": "Error decrypting card."}
 
     ctr_int = int.from_bytes(counter, "little")
-    
+
     if ctr_int <= card.counter:
         return {"status": "ERROR", "reason": "This link is already used."}
 
@@ -95,14 +95,13 @@ async def api_scan(p, c, request: Request, card_uid: str = None):
     lnurlpay = lnurl_encode(request.url_for("boltcards.lnurlp_response", hit_id=hit.id))
     return {
         "tag": "withdrawRequest",
-        "callback": request.url_for(
-            "boltcards.lnurl_callback", hitid=hit.id
-        ),
+        "callback": request.url_for("boltcards.lnurl_callback", hitid=hit.id),
         "k1": hit.id,
         "minWithdrawable": 1 * 1000,
         "maxWithdrawable": card.tx_limit * 1000,
         "defaultDescription": f"Boltcard (refund address {lnurlpay})",
     }
+
 
 @boltcards_ext.get(
     "/api/v1/lnurl/cb/{hitid}",
@@ -114,8 +113,8 @@ async def lnurl_callback(
     pr: str = Query(None),
     k1: str = Query(None),
 ):
-    hit = await get_hit(k1) 
-    card = await get_card(hit.card_id) 
+    hit = await get_hit(k1)
+    card = await get_card(hit.card_id)
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
     try:
@@ -158,7 +157,9 @@ async def api_auth(a, request: Request):
 
     return response
 
+
 ###############LNURLPAY REFUNDS#################
+
 
 @boltcards_ext.get(
     "/api/v1/lnurlp/{hit_id}",
@@ -166,8 +167,8 @@ async def api_auth(a, request: Request):
     name="boltcards.lnurlp_response",
 )
 async def lnurlp_response(req: Request, hit_id: str = Query(None)):
-    hit = await get_hit(hit_id) 
-    card = await get_card(hit.card_id) 
+    hit = await get_hit(hit_id)
+    card = await get_card(hit.card_id)
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
     if not card.enable:
@@ -190,8 +191,8 @@ async def lnurlp_response(req: Request, hit_id: str = Query(None)):
 async def lnurlp_callback(
     req: Request, hit_id: str = Query(None), amount: str = Query(None)
 ):
-    hit = await get_hit(hit_id) 
-    card = await get_card(hit.card_id) 
+    hit = await get_hit(hit_id)
+    card = await get_card(hit.card_id)
     if not hit:
         return {"status": "ERROR", "reason": f"LNURL-pay record not found."}
 
@@ -199,14 +200,12 @@ async def lnurlp_callback(
         wallet_id=card.wallet,
         amount=int(amount) / 1000,
         memo=f"Refund {hit_id}",
-        unhashed_description=LnurlPayMetadata(json.dumps([["text/plain", "Refund"]])).encode("utf-8"),
+        unhashed_description=LnurlPayMetadata(
+            json.dumps([["text/plain", "Refund"]])
+        ).encode("utf-8"),
         extra={"refund": hit_id},
     )
 
     payResponse = {"pr": payment_request, "successAction": success_action, "routes": []}
 
     return json.dumps(payResponse)
-
-
-
-

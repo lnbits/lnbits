@@ -27,8 +27,9 @@ async def on_invoice_paid(payment: Payment) -> None:
     if payment.extra.get("wh_status"):
         # this webhook has already been sent
         return
-    hit = await get_hit(payment.extra.get("tag")[7:len(payment.extra.get("tag"))])
+    hit = await get_hit(payment.extra.get("tag")[7 : len(payment.extra.get("tag"))])
     if hit:
-        refund = await create_refund(hit_id=hit.id, refund_amount=payment.extra.get("amount"))
+        refund = await create_refund(
+            hit_id=hit.id, refund_amount=payment.extra.get("amount")
+        )
         await mark_webhook_sent(payment, 1)
-

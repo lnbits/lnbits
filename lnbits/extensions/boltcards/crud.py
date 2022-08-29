@@ -116,7 +116,9 @@ async def delete_card(card_id: str) -> None:
         # Delete refunds
         refunds = await get_refunds([hit])
         for refund in refunds:
-            await db.execute("DELETE FROM boltcards.refunds WHERE id = ?", (refund.hit_id,))
+            await db.execute(
+                "DELETE FROM boltcards.refunds WHERE id = ?", (refund.hit_id,)
+            )
 
 
 async def update_card_counter(counter: int, id: str):
@@ -125,12 +127,14 @@ async def update_card_counter(counter: int, id: str):
         (counter, id),
     )
 
+
 async def enable_disable_card(enable: bool, id: str) -> Optional[Card]:
     row = await db.execute(
         "UPDATE boltcards.cards SET enable = ? WHERE id = ?",
         (enable, id),
     )
     return await get_card(id)
+
 
 async def update_card_otp(otp: str, id: str):
     await db.execute(
@@ -157,18 +161,22 @@ async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
 
     return [Hit(**row) for row in rows]
 
+
 async def get_hits_today(card_id: Union[str, List[str]]) -> List[Hit]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltcards.hits WHERE card_id = ? AND time >= DATE('now') AND time < DATE('now', '+1 day')", (card_id,)
+        f"SELECT * FROM boltcards.hits WHERE card_id = ? AND time >= DATE('now') AND time < DATE('now', '+1 day')",
+        (card_id,),
     )
 
     return [Hit(**row) for row in rows]
+
 
 async def spend_hit(id: str):
     await db.execute(
         "UPDATE boltcards.hits SET spent = ? WHERE id = ?",
         (True, id),
     )
+
 
 async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
     hit_id = urlsafe_short_hash()
@@ -201,6 +209,7 @@ async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
     assert hit, "Newly recorded hit couldn't be retrieved"
     return hit
 
+
 async def create_refund(hit_id, refund_amount) -> Refund:
     refund_id = urlsafe_short_hash()
     await db.execute(
@@ -224,12 +233,16 @@ async def create_refund(hit_id, refund_amount) -> Refund:
     assert refund, "Newly recorded hit couldn't be retrieved"
     return refund
 
+
 async def get_refund(refund_id: str) -> Optional[Refund]:
-    row = await db.fetchone(f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id))
+    row = await db.fetchone(
+        f"SELECT * FROM boltcards.refunds WHERE id = ?", (refund_id)
+    )
     if not row:
         return None
     refund = dict(**row)
     return Refund.parse_obj(refund)
+
 
 async def get_refunds(hits_ids: Union[str, List[str]]) -> List[Refund]:
     q = ",".join(["?"] * len(hits_ids))

@@ -36,13 +36,12 @@ class Card(BaseModel):
         return cls(**dict(row))
 
     def lnurl(self, req: Request) -> Lnurl:
-        url = req.url_for(
-            "boltcard.lnurl_response", device_id=self.id, _external=True
-        )
+        url = req.url_for("boltcard.lnurl_response", device_id=self.id, _external=True)
         return lnurl_encode(url)
 
     async def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
+
 
 class CreateCardData(BaseModel):
     card_name: str = Query(...)
@@ -58,6 +57,7 @@ class CreateCardData(BaseModel):
     prev_k1: str = Query(ZERO_KEY)
     prev_k2: str = Query(ZERO_KEY)
 
+
 class Hit(BaseModel):
     id: str
     card_id: str
@@ -71,6 +71,7 @@ class Hit(BaseModel):
 
     def from_row(cls, row: Row) -> "Hit":
         return cls(**dict(row))
+
 
 class Refund(BaseModel):
     id: str

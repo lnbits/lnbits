@@ -7,12 +7,19 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <div class="row justify-start" style="width:150px"> 
-              <div class="col" >
+            <div class="row justify-start" style="width:150px">
+              <div class="col">
                 <h5 class="text-subtitle1 q-my-none">Cards</h5>
               </div>
               <div class="col">
-                <q-btn round size="sm" icon="add" unelevated color="primary" @click="addCardOpen">
+                <q-btn
+                  round
+                  size="sm"
+                  icon="add"
+                  unelevated
+                  color="primary"
+                  @click="addCardOpen"
+                >
                   <q-tooltip>Add card</q-tooltip>
                 </q-btn>
               </div>
@@ -53,32 +60,38 @@
                   icon="qr_code"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
-                ><q-tooltip>Card key credentials</q-tooltip></q-btn>
+                  ><q-tooltip>Card key credentials</q-tooltip></q-btn
+                >
               </q-td>
               <q-td auto-width>
                 <q-btn
                   outline
                   color="grey"
                   @click="copyText(lnurlLink + props.row.uid)"
-             lnurlLink     >lnurl://...<q-tooltip>Click to copy, then add to NFC card</q-tooltip>
-                  </q-btn>
+                  lnurlLink
+                  >lnurl://...<q-tooltip
+                    >Click to copy, then add to NFC card</q-tooltip
+                  >
+                </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.value }}
               </q-td>
               <q-td auto-width>
-              <q-btn
+                <q-btn
                   v-if="props.row.enable"
                   dense
                   @click="enableCard(props.row.wallet, props.row.id, false)"
                   color="pink"
-                >DISABLE</q-btn>
+                  >DISABLE</q-btn
+                >
                 <q-btn
-                v-else
-                dense
-                @click="enableCard(props.row.wallet, props.row.id, true)"
-                color="green"
-              >ENABLE</q-btn>
+                  v-else
+                  dense
+                  @click="enableCard(props.row.wallet, props.row.id, true)"
+                  color="green"
+                  >ENABLE</q-btn
+                >
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -88,7 +101,8 @@
                   @click="updateCardDialog(props.row.id)"
                   icon="edit"
                   color="light-blue"
-                ><q-tooltip>Edit card</q-tooltip></q-btn>
+                  ><q-tooltip>Edit card</q-tooltip></q-btn
+                >
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -98,7 +112,10 @@
                   @click="deleteCard(props.row.id)"
                   icon="cancel"
                   color="pink"
-                ><q-tooltip>Deleting card will also delete all records</q-tooltip></q-btn>
+                  ><q-tooltip
+                    >Deleting card will also delete all records</q-tooltip
+                  ></q-btn
+                >
               </q-td>
             </q-tr>
           </template>
@@ -220,7 +237,7 @@
               type="number"
               label="Max transaction (sats)"
               class="q-pr-sm"
-           ></q-input>
+            ></q-input>
           </div>
           <div class="col">
             <q-input
@@ -234,86 +251,82 @@
           </div>
         </div>
         <q-input
-        filled
-        dense
-        emit-value
-        v-model.trim="cardDialog.data.card_name"
-        type="text"
-        label="Card name "
-      ></q-input>
+          filled
+          dense
+          emit-value
+          v-model.trim="cardDialog.data.card_name"
+          type="text"
+          label="Card name "
+        ></q-input>
         <div class="row">
           <div class="col-10">
-           
-
-        <q-input
-            filled
-            dense
-            emit-value
-            v-model.trim="cardDialog.data.uid"
-            type="text"
-            label="Card UID "
-          ><q-tooltip>Get from the card you'll use, using an NFC app</q-tooltip></q-input>
-
-
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="cardDialog.data.uid"
+              type="text"
+              label="Card UID "
+              ><q-tooltip
+                >Get from the card you'll use, using an NFC app</q-tooltip
+              ></q-input
+            >
           </div>
           <div class="col-2 q-pl-sm">
             <q-btn
-            outline
-            disable
-            color="grey"
-            icon="nfc"
-            :disable="nfcTagReading"
-          ><q-tooltip>Tap card to scan UID (coming soon)</q-tooltip></q-btn>
+              outline
+              disable
+              color="grey"
+              icon="nfc"
+              :disable="nfcTagReading"
+              ><q-tooltip>Tap card to scan UID (coming soon)</q-tooltip></q-btn
+            >
+          </div>
         </div>
-        </div>
-        
-      
+
         <q-toggle
-      v-model="toggleAdvanced"
-      label="Show advanced options"
-    ></q-toggle>
-    <div v-show="toggleAdvanced">
-        <q-input
-          filled
-          dense
-          
-          v-model.trim="cardDialog.data.k0"
-          type="text"
-          label="Card Auth key (K0)"
-          hint="Used to authentificate with the card (16 bytes in HEX). "
-          @randomkey
-        >
-        </q-input>
-        <q-input
-          filled
-          dense
-          
-          v-model.trim="cardDialog.data.k1"
-          type="text"
-          label="Card Meta key (K1)"
-          hint="Used for encypting of the message (16 bytes in HEX)."
-        ></q-input>
-        <q-input
-          filled
-          dense
-          
-          v-model.trim="cardDialog.data.k2"
-          type="text"
-          label="Card File key (K2)"
-          hint="Used for CMAC of the message (16 bytes in HEX)."
-        >
-        </q-input>
-        <q-input
-          filled
-          dense
-          v-model.number="cardDialog.data.counter"
-          type="number"
-          label="Initial counter"
-          ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-            >Zero if you don't know.</q-tooltip
-          ></q-input
-        >
-        <q-btn
+          v-model="toggleAdvanced"
+          label="Show advanced options"
+        ></q-toggle>
+        <div v-show="toggleAdvanced">
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k0"
+            type="text"
+            label="Card Auth key (K0)"
+            hint="Used to authentificate with the card (16 bytes in HEX). "
+            @randomkey
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k1"
+            type="text"
+            label="Card Meta key (K1)"
+            hint="Used for encypting of the message (16 bytes in HEX)."
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k2"
+            type="text"
+            label="Card File key (K2)"
+            hint="Used for CMAC of the message (16 bytes in HEX)."
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="cardDialog.data.counter"
+            type="number"
+            label="Initial counter"
+            ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+              >Zero if you don't know.</q-tooltip
+            ></q-input
+          >
+          <q-btn
             unelevated
             color="primary"
             class="q-ml-auto"
@@ -322,7 +335,7 @@
             v-el:keybtn
             >Generate keys</q-btn
           >
-      </div>  
+        </div>
         <div class="row q-mt-lg">
           <q-btn
             v-if="cardDialog.data.id"
