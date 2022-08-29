@@ -26,6 +26,7 @@ new Vue({
           k0: '',
           k1: '',
           k2: '',
+          uid: '',
           card_name: ''
         },
         temp: {}
@@ -146,6 +147,64 @@ new Vue({
     }
   },
   methods: {
+    readNfcTag: function () {
+      try {
+        const self = this
+
+        if (typeof NDEFReader == 'undefined') {
+          throw {
+            toString: function () {
+              return 'NFC not supported on this device or browser.'
+            }
+          }
+        }
+
+        const ndef = new NDEFReader()
+
+        const readerAbortController = new AbortController()
+        readerAbortController.signal.onabort = event => {
+          console.log('All NFC Read operations have been aborted.')
+        }
+
+        this.nfcTagReading = true
+        this.$q.notify({
+          message: 'Tap your NFC tag to pay this invoice with LNURLw.'
+        })
+
+        return ndef.scan({signal: readerAbortController.signal}).then(() => {
+          ndef.onreadingerror = () => {
+            self.nfcTagReading = false
+
+            this.$q.notify({
+              type: 'negative',
+              message: 'There was an error reading this NFC tag.'
+            })
+
+            readerAbortController.abort()
+          }
+
+          ndef.onreading = ({message, serialNumber}) => {
+            //Decode NDEF data from tag
+            var self = this
+            self.cardDialog.data.uid = serialNumber
+              .toUpperCase()
+              .replaceAll(':', '')
+            this.$q.notify({
+              type: 'positive',
+              message: 'NFC tag read successfully.'
+            })
+          }
+        })
+      } catch (error) {
+        this.nfcTagReading = false
+        this.$q.notify({
+          type: 'negative',
+          message: error
+            ? error.toString()
+            : 'An unexpected error has occurred.'
+        })
+      }
+    },
     getCards: function () {
       var self = this
 
