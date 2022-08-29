@@ -278,7 +278,8 @@
               color="grey"
               icon="nfc"
               :disable="nfcTagReading"
-              ><q-tooltip>Tap card to scan UID (coming soon)</q-tooltip></q-btn
+              @click="readNfcTag"
+              ><q-tooltip>Tap card to scan UID</q-tooltip></q-btn
             >
           </div>
         </div>
