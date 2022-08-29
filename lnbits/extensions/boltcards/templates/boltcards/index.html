@@ -43,7 +43,6 @@
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th auto-width>Base URL</q-th>
               <q-th v-for="col in props.cols" :key="col.name" :props="props">
                 {{ col.label }}
               </q-th>
@@ -60,18 +59,8 @@
                   icon="qr_code"
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="openQrCodeDialog(props.row.id)"
-                  ><q-tooltip>Card key credentials</q-tooltip></q-btn
                 >
-              </q-td>
-              <q-td auto-width>
-                <q-btn
-                  outline
-                  color="grey"
-                  @click="copyText(lnurlLink + props.row.uid)"
-                  lnurlLink
-                  >lnurl://...<q-tooltip
-                    >Click to copy, then add to NFC card</q-tooltip
-                  >
+                  <q-tooltip>Card key credentials</q-tooltip>
                 </q-btn>
               </q-td>
               <q-td v-for="col in props.cols" :key="col.name" :props="props">
@@ -90,8 +79,8 @@
                   dense
                   @click="enableCard(props.row.wallet, props.row.id, true)"
                   color="green"
-                  >ENABLE</q-btn
-                >
+                  >ENABLE
+                </q-btn>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -101,8 +90,9 @@
                   @click="updateCardDialog(props.row.id)"
                   icon="edit"
                   color="light-blue"
-                  ><q-tooltip>Edit card</q-tooltip></q-btn
                 >
+                  <q-tooltip>Edit card</q-tooltip>
+                </q-btn>
               </q-td>
               <q-td auto-width>
                 <q-btn
@@ -112,10 +102,11 @@
                   @click="deleteCard(props.row.id)"
                   icon="cancel"
                   color="pink"
-                  ><q-tooltip
-                    >Deleting card will also delete all records</q-tooltip
-                  ></q-btn
                 >
+                  <q-tooltip
+                    >Deleting card will also delete all records</q-tooltip
+                  >
+                </q-btn>
               </q-td>
             </q-tr>
           </template>
@@ -257,7 +248,8 @@
           v-model.trim="cardDialog.data.card_name"
           type="text"
           label="Card name "
-        ></q-input>
+        >
+        </q-input>
         <div class="row">
           <div class="col-10">
             <q-input
@@ -267,10 +259,11 @@
               v-model.trim="cardDialog.data.uid"
               type="text"
               label="Card UID "
-              ><q-tooltip
-                >Get from the card you'll use, using an NFC app</q-tooltip
-              ></q-input
             >
+              <q-tooltip
+                >Get from the card you'll use, using an NFC app</q-tooltip
+              >
+            </q-input>
           </div>
           <div class="col-2 q-pl-sm">
             <q-btn
@@ -279,8 +272,10 @@
               color="grey"
               icon="nfc"
               :disable="nfcTagReading"
-              ><q-tooltip>Tap card to scan UID (coming soon)</q-tooltip></q-btn
+              @click="readNfcTag()"
             >
+              <q-tooltip>Tap card to scan UID</q-tooltip>
+            </q-btn>
           </div>
         </div>
 
@@ -322,10 +317,11 @@
             v-model.number="cardDialog.data.counter"
             type="number"
             label="Initial counter"
-            ><q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
-              >Zero if you don't know.</q-tooltip
-            ></q-input
           >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+              >Zero if you don't know.</q-tooltip
+            >
+          </q-input>
           <q-btn
             unelevated
             color="primary"
@@ -350,8 +346,8 @@
             color="primary"
             :disable="cardDialog.data.uid == null"
             type="submit"
-            >Create Card</q-btn
-          >
+            >Create Card
+          </q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -371,7 +367,7 @@
         ></qrcode>
       </q-responsive>
       <p style="word-break: break-all" class="text-center">
-        (QR code is for setting the keys with bolt-nfc-android-app)
+        (Keys for bolt-nfc-android-app)
       </p>
       <p style="word-break: break-all">
         <strong>Name:</strong> {{ qrCodeDialog.data.name }}<br />
@@ -380,6 +376,26 @@
         <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
         <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
       </p>
+      <br />
+
+      <q-btn
+        unelevated
+        outline
+        color="grey"
+        @click="copyText(lnurlLink + qrCodeDialog.data.uid)"
+        label="Base url (LNURL://)"
+      >
+      </q-btn>
+      <q-btn
+        unelevated
+        outline
+        color="grey"
+        @click="copyText(qrCodeDialog.data.link)"
+        label="Keys/Auth link"
+      >
+      </q-btn>
+      <q-tooltip>Click to copy, then add to NFC card</q-tooltip>
+
       {% endraw %}
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
