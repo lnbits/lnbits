@@ -199,6 +199,6 @@ async def lnurlp_callback(
         extra={"refund": hit_id},
     )
 
-    payResponse = {"pr": payment_request, "successAction": success_action, "routes": []}
+    payResponse = {"pr": payment_request, "routes": []}
 
     return json.dumps(payResponse)
