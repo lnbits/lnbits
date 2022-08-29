@@ -16,7 +16,6 @@ new Vue({
     return {
       toggleAdvanced: false,
       nfcTagReading: false,
-      lnurlLink: `lnurlw://${window.location.host}/boltcards/api/v1/scan/`,
       cards: [],
       hits: [],
       refunds: [],
