@@ -2,6 +2,7 @@ import secrets
 from http import HTTPStatus
 
 from fastapi.params import Depends, Query
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 
@@ -13,21 +14,19 @@ from .crud import (
     create_card,
     create_hit,
     delete_card,
+    enable_disable_card,
     get_card,
     get_card_by_otp,
     get_card_by_uid,
     get_cards,
     get_hits,
+    get_refunds,
     update_card,
     update_card_counter,
     update_card_otp,
-    enable_disable_card,
-    get_refunds,
 )
 from .models import CreateCardData
 from .nxp424 import decryptSUN, getSunMAC
-
-from loguru import logger
 
 
 @boltcards_ext.get("/api/v1/cards")

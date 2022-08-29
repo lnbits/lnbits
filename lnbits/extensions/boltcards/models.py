@@ -1,9 +1,8 @@
-from fastapi.params import Query
-from pydantic import BaseModel
 from sqlite3 import Row
 from typing import Optional
 
 from fastapi import Request
+from fastapi.params import Query
 from lnurl import Lnurl
 from lnurl import encode as lnurl_encode  # type: ignore
 from lnurl.models import LnurlPaySuccessAction, UrlAction  # type: ignore

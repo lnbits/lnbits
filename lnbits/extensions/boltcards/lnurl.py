@@ -2,21 +2,19 @@ import base64
 import hashlib
 import hmac
 import json
+import secrets
 from http import HTTPStatus
 from io import BytesIO
 from typing import Optional
 
-from loguru import logger
-
 from embit import bech32, compact
 from fastapi import Request
 from fastapi.param_functions import Query
-from starlette.exceptions import HTTPException
-
-import secrets
-from http import HTTPStatus
-
 from fastapi.params import Depends, Query
+from lnurl import Lnurl, LnurlWithdrawResponse
+from lnurl import encode as lnurl_encode  # type: ignore
+from lnurl.types import LnurlPayMetadata  # type: ignore
+from loguru import logger
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
@@ -24,17 +22,12 @@ from starlette.responses import HTMLResponse
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 
-from lnurl import Lnurl, LnurlWithdrawResponse
-from lnurl import encode as lnurl_encode  # type: ignore
-from lnurl.types import LnurlPayMetadata  # type: ignore
-
 from . import boltcards_ext
 from .crud import (
     create_hit,
     get_card,
-    get_card_by_uid,
     get_card_by_otp,
-    get_card,
+    get_card_by_uid,
     get_hit,
     get_hits_today,
     spend_hit,
