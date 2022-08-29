@@ -2,5 +2,5 @@
   "name": "Bolt Cards",
   "short_description": "Self custody Bolt Cards with one time LNURLw",
   "icon": "payment",
-  "contributors": ["iwarpbtc"]
+  "contributors": ["iwarpbtc", "arcbtc", "leesalminen"]
 }

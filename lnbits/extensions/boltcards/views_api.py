@@ -29,6 +29,7 @@ from .nxp424 import decryptSUN, getSunMAC
 
 from loguru import logger
 
+
 @boltcards_ext.get("/api/v1/cards")
 async def api_cards(
     g: WalletTypeInfo = Depends(get_key_type), all_wallets: bool = Query(False)
@@ -89,6 +90,7 @@ async def api_card_create_or_update(
         card = await create_card(wallet_id=wallet.wallet.id, data=data)
     return card.dict()
 
+
 @boltcards_ext.get("/api/v1/cards/enable/{card_id}/{enable}", status_code=HTTPStatus.OK)
 async def enable_card(
     card_id,
@@ -97,15 +99,12 @@ async def enable_card(
 ):
     card = await get_card(card_id)
     if not card:
-        raise HTTPException(
-            detail="No card found.", status_code=HTTPStatus.NOT_FOUND
-        )
+        raise HTTPException(detail="No card found.", status_code=HTTPStatus.NOT_FOUND)
     if card.wallet != wallet.wallet.id:
-        raise HTTPException(
-            detail="Not your card.", status_code=HTTPStatus.FORBIDDEN
-        )
+        raise HTTPException(detail="Not your card.", status_code=HTTPStatus.FORBIDDEN)
     card = await enable_disable_card(enable=enable, id=card_id)
     return card.dict()
+
 
 @boltcards_ext.delete("/api/v1/cards/{card_id}")
 async def api_card_delete(card_id, wallet: WalletTypeInfo = Depends(require_admin_key)):
@@ -138,6 +137,7 @@ async def api_hits(
         cards_ids.append(card.id)
 
     return [hit.dict() for hit in await get_hits(cards_ids)]
+
 
 @boltcards_ext.get("/api/v1/refunds")
 async def api_hits(
