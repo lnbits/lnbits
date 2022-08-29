@@ -220,6 +220,9 @@ new Vue({
             return mapCards(obj)
           })
         })
+        .then(function () {
+          self.getHits()
+        })
     },
     getHits: function () {
       var self = this
@@ -417,7 +420,6 @@ new Vue({
   created: function () {
     if (this.g.user.wallets.length) {
       this.getCards()
-      this.getHits()
       this.getRefunds()
     }
   }
