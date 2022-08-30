@@ -170,7 +170,7 @@ new Vue({
 
         this.nfcTagReading = true
         this.$q.notify({
-          message: 'Tap your NFC tag to pay this invoice with LNURLw.'
+          message: 'Tap your NFC tag to copy its UID here.'
         })
 
         return ndef.scan({signal: readerAbortController.signal}).then(() => {
