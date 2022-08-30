@@ -86,6 +86,9 @@ async def check_pending_payments():
     incoming = True
 
     while True:
+        logger.debug(
+            f"Task: checking all pending payments (incoming={incoming}, outgoing={outgoing}) of last 15 days"
+        )
         for payment in await get_payments(
             since=(int(time.time()) - 60 * 60 * 24 * 15),  # 15 days ago
             complete=False,
@@ -94,11 +97,14 @@ async def check_pending_payments():
             incoming=incoming,
             exclude_uncheckable=True,
         ):
-            await payment.check_pending()
-
+            await payment.check_status()
+        logger.debug("Task: pending payments check finished")
         # we delete expired invoices once upon the first pending check
         if incoming:
+            logger.debug("Task: deleting all expired invoices")
             await delete_expired_invoices()
+        logger.debug("Task: expired invoice deletion finished")
+
         # after the first check we will only check outgoing, not incoming
         # that will be handled by the global invoice listeners, hopefully
         incoming = False

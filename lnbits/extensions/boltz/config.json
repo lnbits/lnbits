@@ -1,0 +1,6 @@
+{
+  "name": "Boltz",
+  "short_description": "Perform onchain/offchain swaps via https://boltz.exchange/",
+  "icon": "swap_horiz",
+  "contributors": ["dni"]
+}
