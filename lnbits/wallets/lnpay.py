@@ -100,7 +100,7 @@ class LNPayWallet(Wallet):
             )
 
         if r.is_error:
-            return PaymentResponse(False, None, 0, None, data["message"])
+            return PaymentResponse(False, None, None, None, data["message"])
 
         checking_id = data["lnTx"]["id"]
         fee_msat = 0
@@ -113,15 +113,18 @@ class LNPayWallet(Wallet):
     async def get_payment_status(self, checking_id: str) -> PaymentStatus:
         async with httpx.AsyncClient() as client:
             r = await client.get(
-                url=f"{self.endpoint}/lntx/{checking_id}?fields=settled",
+                url=f"{self.endpoint}/lntx/{checking_id}",
                 headers=self.auth,
             )
 
         if r.is_error:
             return PaymentStatus(None)
 
+        data = r.json()
+        preimage = data["payment_preimage"]
+        fee_msat = data["fee_msat"]
         statuses = {0: None, 1: True, -1: False}
-        return PaymentStatus(statuses[r.json()["settled"]])
+        return PaymentStatus(statuses[data["settled"]], fee_msat, preimage)
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         self.queue: asyncio.Queue = asyncio.Queue(0)

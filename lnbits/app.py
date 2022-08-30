@@ -122,10 +122,10 @@ def check_funding_source(app: FastAPI) -> None:
                     f"The backend for {WALLET.__class__.__name__} isn't working properly: '{error_message}'",
                     RuntimeWarning,
                 )
-                logger.info("Retrying connection to backend in 5 seconds...")
-                await asyncio.sleep(5)
             except:
                 pass
+            logger.info("Retrying connection to backend in 5 seconds...")
+            await asyncio.sleep(5)
         signal.signal(signal.SIGINT, original_sigint_handler)
         logger.info(
             f"✔️ Backend {WALLET.__class__.__name__} connected and with a balance of {balance} msat."

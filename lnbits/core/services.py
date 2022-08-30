@@ -31,8 +31,10 @@ from .crud import (
     delete_payment,
     get_wallet,
     get_wallet_payment,
+    update_payment_details,
     update_payment_status,
 )
+from .models import Payment
 
 try:
     from typing import TypedDict  # type: ignore
@@ -101,11 +103,20 @@ async def pay_invoice(
     description: str = "",
     conn: Optional[Connection] = None,
 ) -> str:
+    """
+    Pay a Lightning invoice.
+    First, we create a temporary payment in the database with fees set to the reserve fee.
+    We then check whether the balance of the payer would go negative.
+    We then attempt to pay the invoice through the backend.
+    If the payment is successful, we update the payment in the database with the payment details.
+    If the payment is unsuccessful, we delete the temporary payment.
+    If the payment is still in flight, we hope that some other process will regularly check for the payment.
+    """
     invoice = bolt11.decode(payment_request)
     fee_reserve_msat = fee_reserve(invoice.amount_msat)
     async with (db.reuse_conn(conn) if conn else db.connect()) as conn:
-        temp_id = f"temp_{urlsafe_short_hash()}"
-        internal_id = f"internal_{urlsafe_short_hash()}"
+        temp_id = invoice.payment_hash
+        internal_id = f"internal_{invoice.payment_hash}"
 
         if invoice.amount_msat == 0:
             raise ValueError("Amountless invoices not supported.")
@@ -185,30 +196,41 @@ async def pay_invoice(
         payment: PaymentResponse = await WALLET.pay_invoice(
             payment_request, fee_reserve_msat
         )
+
+        if payment.checking_id and payment.checking_id != temp_id:
+            logger.warning(
+                f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
+            )
+
         logger.debug(f"backend: pay_invoice finished {temp_id}")
-        if payment.ok and payment.checking_id:
-            logger.debug(f"creating final payment {payment.checking_id}")
+        if payment.checking_id and payment.ok != False:
+            # payment.ok can be True (paid) or None (pending)!
+            logger.debug(f"updating payment {temp_id}")
             async with db.connect() as conn:
-                await create_payment(
-                    checking_id=payment.checking_id,
+                await update_payment_details(
+                    checking_id=temp_id,
+                    pending=payment.ok != True,
                     fee=payment.fee_msat,
                     preimage=payment.preimage,
-                    pending=payment.ok == None,
+                    new_checking_id=payment.checking_id,
                     conn=conn,
-                    **payment_kwargs,
                 )
-                logger.debug(f"deleting temporary payment {temp_id}")
-                await delete_payment(temp_id, conn=conn)
-        else:
-            logger.debug(f"backend payment failed")
+                logger.debug(f"payment successful {payment.checking_id}")
+        elif payment.checking_id is None and payment.ok == False:
+            # payment failed
+            logger.warning(f"backend sent payment failure")
             async with db.connect() as conn:
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
             raise PaymentFailure(
-                payment.error_message
-                or "Payment failed, but backend didn't give us an error message."
+                f"payment failed: {payment.error_message}"
+                or "payment failed, but backend didn't give us an error message"
             )
-        logger.debug(f"payment successful {payment.checking_id}")
+        else:
+            logger.warning(
+                f"didn't receive checking_id from backend, payment may be stuck in database: {temp_id}"
+            )
+
     return invoice.payment_hash
 
 
@@ -344,23 +366,16 @@ async def perform_lnurlauth(
 async def check_transaction_status(
     wallet_id: str, payment_hash: str, conn: Optional[Connection] = None
 ) -> PaymentStatus:
-    payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    payment: Optional[Payment] = await get_wallet_payment(
+        wallet_id, payment_hash, conn=conn
+    )
     if not payment:
         return PaymentStatus(None)
-    if payment.is_out:
-        status = await WALLET.get_payment_status(payment.checking_id)
-    else:
-        status = await WALLET.get_invoice_status(payment.checking_id)
     if not payment.pending:
-        return status
-    if payment.is_out and status.failed:
-        logger.info(f"deleting outgoing failed payment {payment.checking_id}: {status}")
-        await payment.delete()
-    elif not status.pending:
-        logger.info(
-            f"marking '{'in' if payment.is_in else 'out'}' {payment.checking_id} as not pending anymore: {status}"
-        )
-        await payment.set_pending(status.pending)
+        # note: before, we still checked the status of the payment again
+        return PaymentStatus(True)
+
+    status: PaymentStatus = await payment.check_status()
     return status
 
 

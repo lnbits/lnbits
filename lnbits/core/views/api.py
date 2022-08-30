@@ -402,6 +402,10 @@ async def subscribe(request: Request, wallet: Wallet):
 async def api_payments_sse(
     request: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
+    if wallet is None or wallet.wallet is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet does not exist."
+        )
     return EventSourceResponse(
         subscribe(request, wallet.wallet), ping=20, media_type="text/event-stream"
     )
@@ -436,7 +440,7 @@ async def api_payment(payment_hash, X_Api_Key: Optional[str] = Header(None)):
         return {"paid": True, "preimage": payment.preimage}
 
     try:
-        await payment.check_pending()
+        await payment.check_status()
     except Exception:
         if wallet and wallet.id == payment.wallet_id:
             return {"paid": False, "details": payment}
