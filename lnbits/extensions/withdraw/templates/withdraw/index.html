@@ -428,6 +428,7 @@
           icon="nfc"
           @click="writeNfcTag(qrCodeDialog.data.lnurl)"
           :disable="nfcTagWriting"
+          v-if="nfcSupported"
           ><q-tooltip>Write to NFC</q-tooltip></q-btn
         >
         <q-btn

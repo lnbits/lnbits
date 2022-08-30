@@ -180,6 +180,7 @@
             icon="nfc"
             @click="readNfcTag()"
             :disable="nfcTagReading"
+            v-if="nfcSupported"
           ></q-btn>
         </div>
         <div class="row q-mt-lg">
@@ -295,6 +296,7 @@
         stack: [],
         tipAmount: 0.0,
         nfcTagReading: false,
+        nfcSupported: (typeof NDEFReader != 'undefined'),
         invoiceDialog: {
           show: false,
           data: null,
