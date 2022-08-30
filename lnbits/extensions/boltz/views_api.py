@@ -123,7 +123,8 @@ async def api_submarineswap_refund(
         await create_refund_tx(swap)
     except httpx.RequestError as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Unreachable: {exc.request.url!r}.",
         )
     except Exception as exc:
         raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
@@ -155,7 +156,8 @@ async def api_submarineswap_create(
         swap_data = await create_swap(data)
     except httpx.RequestError as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Unreachable: {exc.request.url!r}.",
         )
     except Exception as exc:
         raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
@@ -218,7 +220,8 @@ async def api_reverse_submarineswap_create(
         swap_data, task = await create_reverse_swap(data)
     except httpx.RequestError as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Unreachable: {exc.request.url!r}.",
         )
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
@@ -257,10 +260,13 @@ async def api_swap_status(
         status = get_swap_status(swap)
     except httpx.RequestError as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Unreachable: {exc.request.url!r}.",
         )
     except Exception as exc:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        )
     return status
 
 
@@ -288,10 +294,13 @@ async def api_check_swaps(
             status.append(get_swap_status(reverseswap))
     except httpx.RequestError as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Unreachable: {exc.request.url!r}.",
         )
     except Exception as exc:
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc)
+        )
     return status
 
 
@@ -310,7 +319,8 @@ async def api_boltz_config():
         res = get_boltz_pairs()
     except httpx.RequestError as exc:
         raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Unreachable: {exc.request.url!r}.",
         )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
