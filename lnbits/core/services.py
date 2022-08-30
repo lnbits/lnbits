@@ -197,8 +197,8 @@ async def pay_invoice(
             payment_request, fee_reserve_msat
         )
 
-        if payment.checking_id != temp_id:
-            logger.error(
+        if payment.checking_id and payment.checking_id != temp_id:
+            logger.warning(
                 f"backend sent unexpected checking_id (expected: {temp_id} got: {payment.checking_id})"
             )
 
