@@ -50,7 +50,7 @@ class EclairWallet(Wallet):
     async def status(self) -> StatusResponse:
         async with httpx.AsyncClient() as client:
             r = await client.post(
-                f"{self.url}/globalbalance", headers=self.auth, timeout=40
+                f"{self.url}/globalbalance", headers=self.auth, timeout=5
             )
         try:
             data = r.json()
@@ -173,8 +173,8 @@ class EclairWallet(Wallet):
             return PaymentStatus(None)
 
         statuses = {
-            "sent": True,
-            "failed": False,
+            "received": True,
+            "expired": False,
             "pending": None,
         }
         return PaymentStatus(statuses.get(data["status"]["type"]))
