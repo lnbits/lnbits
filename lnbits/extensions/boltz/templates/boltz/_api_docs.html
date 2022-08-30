@@ -57,7 +57,6 @@
           ><span class="text-light-blue">GET</span>
           /boltz/api/v1/swap/reverse</code
         >
-        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
@@ -65,7 +64,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ root_url }}/boltz/api/v1/swap/reverse -H "X-Api-Key:
-          {{ user.wallets[0].inkey }}"
+          {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -83,6 +82,7 @@
           /boltz/api/v1/swap/reverse</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code>{"wallet": &lt;string&gt;, "onchain_address": &lt;string&gt;, "amount": &lt;integer&gt;, "instant_settlement": &lt;boolean&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
@@ -90,7 +90,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ root_url }}/boltz/api/v1/swap/reverse -H "X-Api-Key:
-          {{ user.wallets[0].inkey }}"
+          {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -99,7 +99,6 @@
     <q-card>
       <q-card-section>
         <code><span class="text-light-blue">GET</span> /boltz/api/v1/swap</code>
-        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
@@ -107,7 +106,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ root_url }}/boltz/api/v1/swap -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -119,6 +118,7 @@
           ><span class="text-light-blue">POST</span> /boltz/api/v1/swap</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <code>{"wallet": &lt;string&gt;, "refund_address": &lt;string&gt;, "amount": &lt;integer&gt;}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
@@ -126,7 +126,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ root_url }}/boltz/api/v1/swap -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -135,10 +135,9 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-light-blue">GET</span>
+          ><span class="text-light-blue">POST</span>
           /boltz/api/v1/swap/refund/{swap_id}</code
         >
-        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
@@ -146,7 +145,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ root_url }}/boltz/api/v1/swap/refund/{swap_id} -H
-          "X-Api-Key: {{ user.wallets[0].inkey }}"
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -155,7 +154,7 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-light-blue">GET</span>
+          ><span class="text-light-blue">POST</span>
           /boltz/api/v1/swap/status/{swap_id}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">
@@ -165,7 +164,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ root_url }}/boltz/api/v1/swap/status/{swap_id} -H
-          "X-Api-Key: {{ user.wallets[0].inkey }}"
+          "X-Api-Key: {{ user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
@@ -184,7 +183,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X GET {{ root_url }}/boltz/api/v1/swap/check -H "X-Api-Key: {{
-          user.wallets[0].inkey }}"
+          user.wallets[0].adminkey }}"
         </code>
       </q-card-section>
     </q-card>
