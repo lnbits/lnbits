@@ -1,0 +1,414 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block page %}
+
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <div class="row justify-start" style="width: 150px">
+              <div class="col">
+                <h5 class="text-subtitle1 q-my-none">Cards</h5>
+              </div>
+              <div class="col">
+                <q-btn
+                  round
+                  size="sm"
+                  icon="add"
+                  unelevated
+                  color="primary"
+                  @click="addCardOpen"
+                >
+                  <q-tooltip>Add card</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCardsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="cards"
+          row-key="id"
+          :columns="cardsTable.columns"
+          :pagination.sync="cardsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>
+                <q-btn
+                  unelevated
+                  dense
+                  icon="qr_code"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="openQrCodeDialog(props.row.id)"
+                >
+                  <q-tooltip>Card key credentials</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  v-if="props.row.enable"
+                  dense
+                  @click="enableCard(props.row.wallet, props.row.id, false)"
+                  color="pink"
+                  >DISABLE</q-btn
+                >
+                <q-btn
+                  v-else
+                  dense
+                  @click="enableCard(props.row.wallet, props.row.id, true)"
+                  color="green"
+                  >ENABLE
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="updateCardDialog(props.row.id)"
+                  icon="edit"
+                  color="light-blue"
+                >
+                  <q-tooltip>Edit card</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td auto-width>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteCard(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                >
+                  <q-tooltip
+                    >Deleting card will also delete all records</q-tooltip
+                  >
+                </q-btn>
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Hits</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCardsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="hits"
+          row-key="id"
+          :columns="hitsTable.columns"
+          :pagination.sync="hitsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Refunds</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportRefundsCSV"
+              >Export to CSV</q-btn
+            >
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="refunds"
+          row-key="id"
+          :columns="refundsTable.columns"
+          :pagination.sync="refundsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+            </q-tr>
+          </template>
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-md-4 col-lg-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} Bolt Cards extension
+        </h6>
+      </q-card-section>
+      <q-card-section class="q-pa-none">
+        <q-separator></q-separator>
+        <q-list> {% include "boltcards/_api_docs.html" %} </q-list>
+      </q-card-section>
+    </q-card>
+  </div>
+  <q-dialog v-model="cardDialog.show" position="top" @hide="closeFormDialog">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormData" class="q-gutter-md">
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="cardDialog.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        >
+        </q-select>
+        <div class="row">
+          <div class="col">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="cardDialog.data.tx_limit"
+              type="number"
+              label="Max transaction (sats)"
+              class="q-pr-sm"
+            ></q-input>
+          </div>
+          <div class="col">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="cardDialog.data.daily_limit"
+              type="number"
+              label="Daily limit (sats)"
+            ></q-input>
+          </div>
+        </div>
+        <q-input
+          filled
+          dense
+          emit-value
+          v-model.trim="cardDialog.data.card_name"
+          type="text"
+          label="Card name "
+        >
+        </q-input>
+        <div class="row">
+          <div v-bind:class="{'col-10': nfcSupported, 'col-12': !nfcSupported}">
+            <q-input
+              filled
+              dense
+              emit-value
+              v-model.trim="cardDialog.data.uid"
+              type="text"
+              label="Card UID "
+            >
+              <q-tooltip
+                >Get from the card you'll use, using an NFC app</q-tooltip
+              >
+            </q-input>
+          </div>
+          <div class="col-2 q-pl-sm" v-if="nfcSupported">
+            <q-btn
+              outline
+              disable
+              color="grey"
+              icon="nfc"
+              :disable="nfcTagReading"
+              @click="readNfcTag()"
+            >
+              <q-tooltip>Tap card to scan UID</q-tooltip>
+            </q-btn>
+          </div>
+        </div>
+
+        <q-toggle
+          v-model="toggleAdvanced"
+          label="Show advanced options"
+        ></q-toggle>
+        <div v-show="toggleAdvanced">
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k0"
+            type="text"
+            label="Card Auth key (K0)"
+            hint="Used to authentificate with the card (16 bytes in HEX). "
+            @randomkey
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k1"
+            type="text"
+            label="Card Meta key (K1)"
+            hint="Used for encypting of the message (16 bytes in HEX)."
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k2"
+            type="text"
+            label="Card File key (K2)"
+            hint="Used for CMAC of the message (16 bytes in HEX)."
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="cardDialog.data.counter"
+            type="number"
+            label="Initial counter"
+          >
+            <q-tooltip class="bg-grey-8" anchor="bottom left" self="top left"
+              >Zero if you don't know.</q-tooltip
+            >
+          </q-input>
+          <q-btn
+            unelevated
+            color="primary"
+            class="q-ml-auto"
+            v-on:click="generateKeys"
+            v-on:click.right="debugKeys"
+            >Generate keys</q-btn
+          >
+        </div>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="cardDialog.data.id"
+            unelevated
+            color="primary"
+            type="submit"
+            >Update Card</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="cardDialog.data.uid == null"
+            type="submit"
+            >Create Card
+          </q-btn>
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="qrCodeDialog.show" position="top">
+    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+      {% raw %}
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="qrCodeDialog.data.link"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+      </q-responsive>
+      <p style="word-break: break-all" class="text-center">
+        (Keys for
+        <a
+          href="https://play.google.com/store/apps/details?id=com.lightningnfcapp"
+          target="_blank"
+          >bolt-nfc-android-app</a
+        >)
+      </p>
+      <p style="word-break: break-all">
+        <strong>Name:</strong> {{ qrCodeDialog.data.name }}<br />
+        <strong>UID:</strong> {{ qrCodeDialog.data.uid }}<br />
+        <strong>External ID:</strong> {{ qrCodeDialog.data.external_id }}<br />
+        <strong>Lock key:</strong> {{ qrCodeDialog.data.k0 }}<br />
+        <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
+        <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
+      </p>
+      <br />
+
+      <q-btn
+        unelevated
+        outline
+        color="grey"
+        @click="copyText(lnurlLink + qrCodeDialog.data.external_id)"
+        label="Base url (LNURL://)"
+      >
+      </q-btn>
+      <q-btn
+        unelevated
+        outline
+        color="grey"
+        @click="copyText(qrCodeDialog.data.link)"
+        label="Keys/Auth link"
+      >
+      </q-btn>
+      <q-tooltip>Click to copy, then add to NFC card</q-tooltip>
+
+      {% endraw %}
+      <div class="row q-mt-lg q-gutter-sm">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+
+{% endblock %} {% block scripts %} {{ window_vars(user) }}
+<script src="/boltcards/static/js/index.js"></script>
+{% endblock %}
