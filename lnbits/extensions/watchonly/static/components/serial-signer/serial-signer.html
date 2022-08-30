@@ -47,6 +47,27 @@
         </q-item-section>
       </q-item>
       <q-item
+        v-for="device in pairedDevices"
+        :key="device.id"
+        v-if="!selectedPort"
+        clickable
+        v-close-popup
+      >
+        <q-item-section>
+          <q-item-label @click="openSerialPortConfig(device.id)"
+            >Paired Device ({{device.config.name || 'no-name'}})
+          </q-item-label>
+          <q-item-label caption @click="openSerialPortConfig(device.id)"
+            >{{device.id}}
+          </q-item-label>
+          <q-item-label caption @click="removePairedDevice(device.id)">
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+              >Forget</q-btn
+            >
+          </q-item-label>
+        </q-item-section>
+      </q-item>
+      <q-item
         v-if="selectedPort"
         clickable
         v-close-popup
@@ -123,10 +144,9 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="hwwConfigAndConnect" class="q-gutter-md">
         <span>Enter Config</span>
-
         <serial-port-config
           ref="serialPortConfig"
-          :config="hww.config"
+          :config="config"
         ></serial-port-config>
 
         <div class="row q-mt-lg">
@@ -223,7 +243,7 @@
         <div class="row q-mt-lg">
           <div class="col-12">
             <q-badge class="text-subtitle2" color="yellow" text-color="black">
-              <span>Check data on the display of the hardware device.</span>
+              <span>Confirm then check the Hardware Device.</span>
             </q-badge>
           </div>
         </div>
@@ -329,6 +349,25 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="showConsole" position="top">
+    <q-card class="q-pa-lg q-pt-xl">
+      <q-input
+        filled
+        dense
+        for="serial-port-console"
+        v-model.trim="receivedData"
+        type="textarea"
+        rows="25"
+        cols="200"
+        label="Console"
+      ></q-input>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="hww.showSeedDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl">
       <span>Check word at position {{hww.seedWordPosition}} on display</span>
@@ -389,6 +428,31 @@
           </template>
         </q-input>
         <br />
+        <q-toggle
+          label="Passphrase (optional)"
+          color="secodary"
+          v-model="hww.hasPassphrase"
+        ></q-toggle>
+        <br />
+        <q-input
+          v-if="hww.hasPassphrase"
+          v-model.trim="hww.passphrase"
+          filled
+          :type="hww.showPassphrase ? 'text' : 'password'"
+          filled
+          dense
+          label="Passphrase"
+        >
+          <template v-slot:append>
+            <q-icon
+              :name="hww.showPassphrase ? 'visibility' : 'visibility_off'"
+              class="cursor-pointer"
+              @click="hww.showPassphrase = !hww.showPassphrase"
+            />
+          </template>
+        </q-input>
+        <q-separator></q-separator>
+        <br />
         <span>Enter new password (8 numbers/letters)</span>
         <q-input
           v-model.trim="hww.password"
@@ -414,15 +478,7 @@
           type="password"
           label="Confirm Password"
         ></q-input>
-        <br /><br />
-        <q-badge
-          color="pink"
-          text-color="black"
-          class="text-subtitle2"
-          multi-line
-        >
-          For test purposes only. Do not enter word list with real funds!!!
-        </q-badge>
+        <br />
         <q-separator></q-separator>
         <q-badge
           color="pink"

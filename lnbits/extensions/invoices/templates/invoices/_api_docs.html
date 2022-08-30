@@ -1,0 +1,153 @@
+<q-expansion-item
+  group="extras"
+  icon="swap_vertical_circle"
+  label="API info"
+  :content-inset-level="0.5"
+>
+  <q-expansion-item group="api" dense expand-separator label="List Invoices">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span> /invoices/api/v1/invoices</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>[&lt;invoice_object&gt;, ...]</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url }}invoices/api/v1/invoices -H
+          "X-Api-Key: &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item group="api" dense expand-separator label="Fetch Invoice">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /invoices/api/v1/invoice/{invoice_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{invoice_object}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url
+          }}invoices/api/v1/invoice/{invoice_id} -H "X-Api-Key:
+          &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item group="api" dense expand-separator label="Create Invoice">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">POST</span> /invoices/api/v1/invoice</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{invoice_object}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url }}invoices/api/v1/invoice -H
+          "X-Api-Key: &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item group="api" dense expand-separator label="Update Invoice">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">POST</span>
+          /invoices/api/v1/invoice/{invoice_id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{invoice_object}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url
+          }}invoices/api/v1/invoice/{invoice_id} -H "X-Api-Key:
+          &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Create Invoice Payment"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">POST</span>
+          /invoices/api/v1/invoice/{invoice_id}/payments</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{payment_object}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url
+          }}invoices/api/v1/invoice/{invoice_id}/payments -H "X-Api-Key:
+          &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Check Invoice Payment Status"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">GET</span>
+          /invoices/api/v1/invoice/{invoice_id}/payments/{payment_hash}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X GET {{ request.base_url
+          }}invoices/api/v1/invoice/{invoice_id}/payments/{payment_hash} -H
+          "X-Api-Key: &lt;invoice_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+</q-expansion-item>

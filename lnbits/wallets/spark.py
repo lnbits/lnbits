@@ -93,6 +93,8 @@ class SparkWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
     ) -> InvoiceResponse:
         label = "lbs{}".format(random.random())
         checking_id = label
@@ -102,7 +104,13 @@ class SparkWallet(Wallet):
                 r = await self.invoicewithdescriptionhash(
                     msatoshi=amount * 1000,
                     label=label,
-                    description_hash=hashlib.sha256(description_hash).hexdigest(),
+                    description_hash=description_hash.hex(),
+                )
+            elif unhashed_description:
+                r = await self.invoicewithdescriptionhash(
+                    msatoshi=amount * 1000,
+                    label=label,
+                    description_hash=hashlib.sha256(unhashed_description).hexdigest(),
                 )
             else:
                 r = await self.invoice(
@@ -129,7 +137,7 @@ class SparkWallet(Wallet):
                 pays = listpays["pays"]
 
                 if len(pays) == 0:
-                    return PaymentResponse(False, None, 0, None, str(exc))
+                    return PaymentResponse(False, None, None, None, str(exc))
 
                 pay = pays[0]
                 payment_hash = pay["payment_hash"]
@@ -140,11 +148,9 @@ class SparkWallet(Wallet):
                     )
 
                 if pay["status"] == "failed":
-                    return PaymentResponse(False, None, 0, None, str(exc))
+                    return PaymentResponse(False, None, None, None, str(exc))
                 elif pay["status"] == "pending":
-                    return PaymentResponse(
-                        None, payment_hash, fee_limit_msat, None, None
-                    )
+                    return PaymentResponse(None, payment_hash, None, None, None)
                 elif pay["status"] == "complete":
                     r = pay
                     r["payment_preimage"] = pay["preimage"]
@@ -155,7 +161,7 @@ class SparkWallet(Wallet):
                     # this is good
                     pass
 
-        fee_msat = r["msatoshi_sent"] - r["msatoshi"]
+        fee_msat = -int(r["msatoshi_sent"] - r["msatoshi"])
         preimage = r["payment_preimage"]
         return PaymentResponse(True, r["payment_hash"], fee_msat, preimage, None)
 
@@ -193,7 +199,10 @@ class SparkWallet(Wallet):
         if r["pays"][0]["payment_hash"] == checking_id:
             status = r["pays"][0]["status"]
             if status == "complete":
-                return PaymentStatus(True)
+                fee_msat = -int(
+                    r["pays"][0]["amount_sent_msat"] - r["pays"][0]["amount_msat"]
+                )
+                return PaymentStatus(True, fee_msat, r["pays"][0]["preimage"])
             elif status == "failed":
                 return PaymentStatus(False)
             return PaymentStatus(None)

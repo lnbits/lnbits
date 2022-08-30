@@ -1,16 +1,16 @@
 <div>
   <q-card>
     <div class="row items-center no-wrap q-mb-md">
-      <div class="col-2 q-ml-lg">
+      <div class="col-md-2 col-xs-4 q-ml-lg">
         <q-btn unelevated @click="show = true" color="primary" icon="settings">
         </q-btn>
       </div>
-      <div class="col-8">
+      <div class="col-md-8 col-xs-4">
         <div class="row justify-center q-gutter-x-md items-center">
-          <div class="text-h3">{{satBtc(total)}}</div>
+          <div :class="{'text-h4': $q.screen.gt.md}">{{satBtc(total)}}</div>
         </div>
       </div>
-      <div class="col-2 float-right">
+      <div class="col-md-2 col-xs-4 q-pr-lg">
         <slot name="serial"></slot>
       </div>
     </div>
