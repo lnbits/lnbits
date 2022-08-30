@@ -296,7 +296,7 @@
         stack: [],
         tipAmount: 0.0,
         nfcTagReading: false,
-        nfcSupported: (typeof NDEFReader != 'undefined'),
+        nfcSupported: typeof NDEFReader != 'undefined',
         invoiceDialog: {
           show: false,
           data: null,

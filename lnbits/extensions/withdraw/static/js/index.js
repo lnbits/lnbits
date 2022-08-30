@@ -57,7 +57,7 @@ new Vue({
         }
       },
       nfcTagWriting: false,
-      nfcSupported: (typeof NDEFReader != 'undefined'),
+      nfcSupported: typeof NDEFReader != 'undefined',
       formDialog: {
         show: false,
         secondMultiplier: 'seconds',
