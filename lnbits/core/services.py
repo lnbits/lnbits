@@ -106,7 +106,7 @@ async def pay_invoice(
     """
     Pay a Lightning invoice.
     First, we create a temporary payment in the database with fees set to the reserve fee.
-    We then check whether the balance of the payer wold go negative.
+    We then check whether the balance of the payer would go negative.
     We then attempt to pay the invoice through the backend.
     If the payment is successful, we update the payment in the database with the payment details.
     If the payment is unsuccessful, we delete the temporary payment.

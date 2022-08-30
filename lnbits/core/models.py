@@ -129,9 +129,7 @@ class Payment(BaseModel):
 
     @property
     def is_uncheckable(self) -> bool:
-        return self.checking_id.startswith(  # before: or self.checking_id.startswith("temp_")
-            "internal_"
-        )
+        return self.checking_id.startswith("internal_")
 
     async def update_status(self, status: PaymentStatus) -> None:
         from .crud import update_payment_details
