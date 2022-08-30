@@ -223,7 +223,7 @@ async def pay_invoice(
                 logger.debug(f"deleting temporary payment {temp_id}")
                 await delete_payment(temp_id, conn=conn)
             raise PaymentFailure(
-                payment.error_message
+                f"payment failed: {payment.error_message}"
                 or "payment failed, but backend didn't give us an error message"
             )
         else:
