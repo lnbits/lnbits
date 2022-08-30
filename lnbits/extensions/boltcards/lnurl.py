@@ -6,6 +6,7 @@ import secrets
 from http import HTTPStatus
 from io import BytesIO
 from typing import Optional
+from urllib.parse import urlparse
 
 from embit import bech32, compact
 from fastapi import Request
@@ -142,11 +143,18 @@ async def api_auth(a, request: Request):
         )
 
     new_otp = secrets.token_hex(16)
-    print(card.otp)
-    print(new_otp)
     await update_card_otp(new_otp, card.id)
 
-    response = {"k0": card.k0, "k1": card.k1, "k2": card.k2}
+    lnurlw_base = (
+        f"{urlparse(str(request.url)).netloc}/boltcards/api/v1/scan/{card.external_id}"
+    )
+
+    response = {
+        "k0": card.k0,
+        "k1": card.k1,
+        "k2": card.k2,
+        "lnurlw_base": lnurlw_base,
+    }
 
     return response
 
