@@ -121,6 +121,10 @@ async def api_submarineswap_refund(
 
     try:
         await create_refund_tx(swap)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+        )
     except Exception as exc:
         raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
 
@@ -149,6 +153,10 @@ async def api_submarineswap_create(
 ):
     try:
         swap_data = await create_swap(data)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+        )
     except Exception as exc:
         raise HTTPException(status_code=HTTPStatus.METHOD_NOT_ALLOWED, detail=str(exc))
     except httpx.HTTPStatusError as exc:
@@ -208,6 +216,10 @@ async def api_reverse_submarineswap_create(
 
     try:
         swap_data, task = await create_reverse_swap(data)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+        )
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
             status_code=exc.response.status_code, detail=exc.response.json()["error"]
@@ -231,7 +243,7 @@ async def api_reverse_submarineswap_create(
         404: {"description": "when swap_id is not found"},
     },
 )
-async def api_submarineswap_status(
+async def api_swap_status(
     swap_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)  # type: ignore
 ):
     swap = await get_submarine_swap(swap_id) or await get_reverse_submarine_swap(
@@ -241,7 +253,15 @@ async def api_submarineswap_status(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="swap does not exist."
         )
-    return get_swap_status(swap)
+    try:
+        status = get_swap_status(swap)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc))
+    return status
 
 
 @boltz_ext.post(
@@ -261,10 +281,17 @@ async def api_check_swaps(
     if all_wallets:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
     status = []
-    for swap in await get_pending_submarine_swaps(wallet_ids):
-        status.append(get_swap_status(swap))
-    for reverseswap in await get_pending_reverse_submarine_swaps(wallet_ids):
-        status.append(get_swap_status(reverseswap))
+    try:
+        for swap in await get_pending_submarine_swaps(wallet_ids):
+            status.append(get_swap_status(swap))
+        for reverseswap in await get_pending_reverse_submarine_swaps(wallet_ids):
+            status.append(get_swap_status(reverseswap))
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(exc))
     return status
 
 
@@ -281,6 +308,10 @@ async def api_check_swaps(
 async def api_boltz_config():
     try:
         res = get_boltz_pairs()
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=f"Unreachable: {exc.request.url!r}."
+        )
     except Exception as e:
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=str(e))
 
