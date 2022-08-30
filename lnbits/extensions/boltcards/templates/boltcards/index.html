@@ -251,7 +251,7 @@
         >
         </q-input>
         <div class="row">
-          <div class="col-10">
+          <div v-bind:class="{'col-10': nfcSupported, 'col-12': !nfcSupported}">
             <q-input
               filled
               dense
@@ -265,7 +265,7 @@
               >
             </q-input>
           </div>
-          <div class="col-2 q-pl-sm">
+          <div class="col-2 q-pl-sm" v-if="nfcSupported">
             <q-btn
               outline
               disable
