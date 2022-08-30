@@ -77,6 +77,16 @@ async def api_submarineswap(
     wallet_ids = [g.wallet.id]
     if all_wallets:
         wallet_ids = (await get_user(g.wallet.user)).wallet_ids
+
+    for swap in await get_pending_submarine_swaps(wallet_ids):
+        swap_status = get_swap_status(swap)
+        if swap_status.hit_timeout:
+            if not swap_status.has_lockup:
+                logger.warning(
+                    f"Boltz - swap: {swap.id} hit timeout, but no lockup tx..."
+                )
+                await update_swap_status(swap.id, "timeout")
+
     return [swap.dict() for swap in await get_submarine_swaps(wallet_ids)]
 
 
