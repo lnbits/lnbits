@@ -6,6 +6,7 @@ from lnbits.helpers import urlsafe_short_hash
 from . import db
 from .models import Card, CreateCardData, Hit, Refund
 
+from datetime import date, datetime
 
 async def create_card(data: CreateCardData, wallet_id: str) -> Card:
     card_id = urlsafe_short_hash().upper()
