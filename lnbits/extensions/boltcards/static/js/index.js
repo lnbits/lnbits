@@ -106,6 +106,12 @@ new Vue({
             field: 'card_name'
           },
           {
+            name: 'amount',
+            align: 'left',
+            label: 'Amount',
+            field: 'amount'
+          },
+          {
             name: 'old_ctr',
             align: 'left',
             label: 'Old counter',
