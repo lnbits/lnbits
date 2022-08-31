@@ -268,7 +268,9 @@ new Vue({
         external_id: card.external_id,
         k0: card.k0,
         k1: card.k1,
-        k2: card.k2
+        k2: card.k2,
+        k3: card.k1,
+        k4: card.k2
       }
       this.qrCodeDialog.show = true
     },
