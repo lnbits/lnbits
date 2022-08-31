@@ -190,11 +190,12 @@ async def get_hits_today(card_id: str) -> Optional[Hit]:
     return [Hit(**row) for row in updatedrow]
 
 
-async def spend_hit(id: str):
+async def spend_hit(id: str, amount: int):
     await db.execute(
-        "UPDATE boltcards.hits SET spent = ? WHERE id = ?",
-        (True, id),
+        "UPDATE boltcards.hits SET spent = ?, amount = ? WHERE id = ?",
+        (True, amount, id),
     )
+    return await get_hit(id)
 
 
 async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
