@@ -85,7 +85,7 @@ async def api_scan(p, c, request: Request, external_id: str = None):
     hits_amount = 0
     for hit in todays_hits:
         hits_amount = hits_amount + hit.amount
-    if (hits_amount + card.tx_limit) > card.daily_limit:
+    if hits_amount > card.daily_limit:
         return {"status": "ERROR", "reason": "Max daily limit spent."}
     hit = await create_hit(card.id, ip, agent, card.counter, ctr_int)
     lnurlpay = lnurl_encode(request.url_for("boltcards.lnurlp_response", hit_id=hit.id))
