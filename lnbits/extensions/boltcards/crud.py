@@ -6,6 +6,7 @@ from lnbits.helpers import urlsafe_short_hash
 from . import db
 from .models import Card, CreateCardData, Hit, Refund
 
+from datetime import date, datetime
 
 async def create_card(data: CreateCardData, wallet_id: str) -> Card:
     card_id = urlsafe_short_hash().upper()
@@ -178,20 +179,24 @@ async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
     return [Hit(**row) for row in rows]
 
 
-async def get_hits_today(card_id: Union[str, List[str]]) -> List[Hit]:
+async def get_hits_today(card_id: str) -> Optional[Hit]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltcards.hits WHERE card_id = ? AND time >= DATE('now') AND time < DATE('now', '+1 day')",
-        (card_id,),
+        f"SELECT * FROM boltcards.hits WHERE card_id = ?", (card_id,),
     )
+    updatedrow = []
+    for row in rows:
+        if datetime.now().date() == datetime.fromtimestamp(row.time).date():
+            updatedrow.append(row)
 
-    return [Hit(**row) for row in rows]
+    return [Hit(**row) for row in updatedrow]
 
 
-async def spend_hit(id: str):
+async def spend_hit(id: str, amount: int):
     await db.execute(
-        "UPDATE boltcards.hits SET spent = ? WHERE id = ?",
-        (True, id),
+        "UPDATE boltcards.hits SET spent = ?, amount = ? WHERE id = ?",
+        (True, amount, id),
     )
+    return await get_hit(id)
 
 
 async def create_hit(card_id, ip, useragent, old_ctr, new_ctr) -> Hit:
