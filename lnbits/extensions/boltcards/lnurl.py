@@ -151,12 +151,18 @@ async def api_auth(a, request: Request):
     )
 
     response = {
+        "card_name": card.name,
+        "id": 1,
         "k0": card.k0,
         "k1": card.k1,
         "k2": card.k2,
+        "k3": card.k1,
+        "k4": card.k2,
         "lnurlw_base": lnurlw_base,
+        "protocol_name": "new_bolt_card_response",
+        "protocol_version": 1
     }
-
+    
     return response
 
 
