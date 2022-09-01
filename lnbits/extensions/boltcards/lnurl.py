@@ -21,7 +21,6 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from lnbits import bolt11
-
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 
@@ -98,6 +97,7 @@ async def api_scan(p, c, request: Request, external_id: str = None):
         "defaultDescription": f"Boltcard (refund address lnurl://{lnurlpay})",
     }
 
+
 @boltcards_ext.get(
     "/api/v1/lnurl/cb/{hitid}",
     status_code=HTTPStatus.OK,
@@ -129,11 +129,18 @@ async def lnurl_callback(
     except:
         return {"status": "ERROR", "reason": f"Payment failed"}
 
+
 # /boltcards/api/v1/auth?a=00000000000000000000000000000000
 @boltcards_ext.get("/api/v1/auth")
 async def api_auth(a, request: Request):
     if a == "00000000000000000000000000000000":
-        response = {"k0": "0" * 32, "k1": "1" * 32, "k2": "2" * 32}
+        response = {
+            "k0": "0" * 32,
+            "k1": "1" * 32,
+            "k2": "2" * 32,
+            "k3": 2 * 32,
+            "k4": 2 * 32,
+        }
         return response
 
     card = await get_card_by_otp(a)
@@ -147,14 +154,19 @@ async def api_auth(a, request: Request):
     await update_card_otp(new_otp, card.id)
 
     lnurlw_base = (
-        f"{urlparse(str(request.url)).netloc}/boltcards/api/v1/scan/{card.external_id}"
+        f"lnurlw://{urlparse(str(request.url)).netloc}/boltcards/api/v1/scan/{card.external_id}"
     )
 
     response = {
         "k0": card.k0,
         "k1": card.k1,
         "k2": card.k2,
+        "k3": card.k3,
+        "k4": card.k4,
         "lnurlw_base": lnurlw_base,
+        "protocol_name": "new_bolt_card_response",
+        "protocol_version": 1,
+        "card_name": card.card_name,
     }
 
     return response

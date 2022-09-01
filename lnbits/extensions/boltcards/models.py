@@ -26,9 +26,13 @@ class Card(BaseModel):
     k0: str
     k1: str
     k2: str
+    k3: str
+    k4: str
     prev_k0: str
     prev_k1: str
     prev_k2: str
+    prev_k3: str
+    prev_k4: str
     otp: str
     time: int
 
@@ -53,9 +57,13 @@ class CreateCardData(BaseModel):
     k0: str = Query(ZERO_KEY)
     k1: str = Query(ZERO_KEY)
     k2: str = Query(ZERO_KEY)
+    k3: str = Query(ZERO_KEY)
+    k4: str = Query(ZERO_KEY)
     prev_k0: str = Query(ZERO_KEY)
     prev_k1: str = Query(ZERO_KEY)
     prev_k2: str = Query(ZERO_KEY)
+    prev_k3: str = Query(ZERO_KEY)
+    prev_k4: str = Query(ZERO_KEY)
 
 
 class Hit(BaseModel):

@@ -58,3 +58,29 @@ async def m001_initial(db):
         );
     """
     )
+
+
+async def m002_more_keys(db):
+    await db.execute(
+        """
+        ALTER TABLE boltcards.cards ADD k3 TEXT NOT NULL DEFAULT '00000000000000000000000000000000';
+        """
+    )
+
+    await db.execute(
+        """
+        ALTER TABLE boltcards.cards ADD k4 TEXT NOT NULL DEFAULT '00000000000000000000000000000000';
+        """
+    )
+
+    await db.execute(
+        """
+        ALTER TABLE boltcards.cards ADD prev_k3 TEXT NOT NULL DEFAULT '00000000000000000000000000000000';
+        """
+    )
+
+    await db.execute(
+        """
+        ALTER TABLE boltcards.cards ADD prev_k4 TEXT NOT NULL DEFAULT '00000000000000000000000000000000';
+        """
+    )

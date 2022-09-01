@@ -27,6 +27,8 @@ new Vue({
           k0: '',
           k1: '',
           k2: '',
+          k3: '',
+          k4: '',
           uid: '',
           card_name: ''
         },
@@ -268,7 +270,9 @@ new Vue({
         external_id: card.external_id,
         k0: card.k0,
         k1: card.k1,
-        k2: card.k2
+        k2: card.k2,
+        k3: card.k3,
+        k4: card.k4
       }
       this.qrCodeDialog.show = true
     },
@@ -297,6 +301,14 @@ new Vue({
 
       self.cardDialog.data.k2 = debugcard
         ? '33333333333333333333333333333333'
+        : genRanHex(32)
+
+      self.cardDialog.data.k3 = debugcard
+        ? '44444444444444444444444444444444'
+        : genRanHex(32)
+
+      self.cardDialog.data.k4 = debugcard
+        ? '55555555555555555555555555555555'
         : genRanHex(32)
     },
     closeFormDialog: function () {
@@ -334,6 +346,8 @@ new Vue({
       this.cardDialog.temp.k0 = this.cardDialog.data.k0
       this.cardDialog.temp.k1 = this.cardDialog.data.k1
       this.cardDialog.temp.k2 = this.cardDialog.data.k2
+      this.cardDialog.temp.k3 = this.cardDialog.data.k3
+      this.cardDialog.temp.k4 = this.cardDialog.data.k4
 
       this.cardDialog.show = true
     },
@@ -343,11 +357,15 @@ new Vue({
       if (
         this.cardDialog.temp.k0 != data.k0 ||
         this.cardDialog.temp.k1 != data.k1 ||
-        this.cardDialog.temp.k2 != data.k2
+        this.cardDialog.temp.k2 != data.k2 ||
+        this.cardDialog.temp.k3 != data.k3 ||
+        this.cardDialog.temp.k4 != data.k4
       ) {
         data.prev_k0 = this.cardDialog.temp.k0
         data.prev_k1 = this.cardDialog.temp.k1
         data.prev_k2 = this.cardDialog.temp.k2
+        data.prev_k3 = this.cardDialog.temp.k3
+        data.prev_k4 = this.cardDialog.temp.k4
       }
 
       LNbits.api

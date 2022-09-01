@@ -69,6 +69,16 @@ async def api_card_create_or_update(
             raise HTTPException(
                 detail="Invalid bytes for k2.", status_code=HTTPStatus.BAD_REQUEST
             )
+
+        if len(bytes.fromhex(data.k3)) != 16:
+            raise HTTPException(
+                detail="Invalid bytes for k3.", status_code=HTTPStatus.BAD_REQUEST
+            )
+
+        if len(bytes.fromhex(data.k4)) != 16:
+            raise HTTPException(
+                detail="Invalid bytes for k4.", status_code=HTTPStatus.BAD_REQUEST
+            )
     except:
         raise HTTPException(
             detail="Invalid byte data provided.", status_code=HTTPStatus.BAD_REQUEST

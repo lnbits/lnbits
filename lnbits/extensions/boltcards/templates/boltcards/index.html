@@ -314,6 +314,24 @@
           <q-input
             filled
             dense
+            v-model.trim="cardDialog.data.k3"
+            type="text"
+            label="Key 3 (K3)"
+            hint="16 bytes in HEX."
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="cardDialog.data.k4"
+            type="text"
+            label="Key 4 (K4)"
+            hint="16 bytes in HEX."
+          >
+          </q-input>
+          <q-input
+            filled
+            dense
             v-model.number="cardDialog.data.counter"
             type="number"
             label="Initial counter"
@@ -380,6 +398,8 @@
         <strong>Lock key:</strong> {{ qrCodeDialog.data.k0 }}<br />
         <strong>Meta key:</strong> {{ qrCodeDialog.data.k1 }}<br />
         <strong>File key:</strong> {{ qrCodeDialog.data.k2 }}<br />
+        <strong>Key 3:</strong> {{ qrCodeDialog.data.k3 }}<br />
+        <strong>Key 4:</strong> {{ qrCodeDialog.data.k4 }}<br />
       </p>
       <br />
 
