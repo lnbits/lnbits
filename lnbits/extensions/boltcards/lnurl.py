@@ -85,7 +85,7 @@ async def api_scan(p, c, request: Request, external_id: str = None):
     hits_amount = 0
     for hit in todays_hits:
         hits_amount = hits_amount + hit.amount
-    if (hits_amount + card.tx_limit) > card.daily_limit:
+    if hits_amount > card.daily_limit:
         return {"status": "ERROR", "reason": "Max daily limit spent."}
     hit = await create_hit(card.id, ip, agent, card.counter, ctr_int)
     lnurlpay = lnurl_encode(request.url_for("boltcards.lnurlp_response", hit_id=hit.id))
@@ -137,7 +137,6 @@ async def api_auth(a, request: Request):
         return response
 
     card = await get_card_by_otp(a)
-
     if not card:
         raise HTTPException(
             detail="Card does not exist.", status_code=HTTPStatus.NOT_FOUND
@@ -151,14 +150,19 @@ async def api_auth(a, request: Request):
     )
 
     response = {
+        "card_name": card.card_name,
+        "id": 1,
         "k0": card.k0,
         "k1": card.k1,
         "k2": card.k2,
-        "lnurlw_base": lnurlw_base,
+        "k3": card.k1,
+        "k4": card.k2,
+        "lnurlw_base": "lnurlw://" + lnurlw_base,
+        "protocol_name": "new_bolt_card_response",
+        "protocol_version": 1
     }
-
+    
     return response
-
 
 ###############LNURLPAY REFUNDS#################
 
