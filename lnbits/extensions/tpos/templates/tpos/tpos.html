@@ -253,7 +253,7 @@
         name="check"
         transition-show="fade"
         class="text-light-green"
-        style="font-size: 40em"
+        style="font-size: min(90vw, 40em)"
       ></q-icon>
     </q-dialog>
   </q-page>
@@ -413,9 +413,19 @@
                     dialog.show = false
 
                     self.complete.show = true
-                    setTimeout(function () {
-                      self.complete.show = false
-                    }, 5000)
+                    self.$q.notify({
+                      type: 'positive',
+                      message: 'Sats received, thanks!',
+                      icon: 'thumb_up',
+                      timeout: 0,
+                      actions: [
+                        {
+                          label: 'Dismiss',
+                          color: 'white',
+                          handler: () => (self.complete.show = false)
+                        }
+                      ]
+                    })
                   }
                 })
             }, 3000)
