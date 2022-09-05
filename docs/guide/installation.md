@@ -20,7 +20,7 @@ cd lnbits-legend/
 sudo apt update
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt install python3.9
+sudo apt install python3.9 python3.9-distutils
 
 curl -sSL https://install.python-poetry.org | python3 -
 export PATH="/home/ubuntu/.local/bin:$PATH" # or whatever is suggested in the poetry install notes printed to terminal
@@ -94,6 +94,80 @@ cp .env.example .env
 mkdir data
 docker run --detach --publish 5000:5000 --name lnbits-legend --volume ${PWD}/.env:/app/.env --volume ${PWD}/data/:/app/data lnbits-legend
 ```
+
+## Option 5: Fly.io
+
+Fly.io is a docker container hosting platform that has a generous free tier. You can host LNBits for free on Fly.io for personal use.
+
+First, sign up for an account at [Fly.io](https://fly.io) (no credit card required). 
+
+Then, install the Fly.io CLI onto your device [here](https://fly.io/docs/getting-started/installing-flyctl/). 
+
+After install is complete, the command will output a command you should copy/paste/run to get `fly` into your `$PATH`. Something like:
+
+```
+flyctl was installed successfully to /home/ubuntu/.fly/bin/flyctl
+Manually add the directory to your $HOME/.bash_profile (or similar)
+  export FLYCTL_INSTALL="/home/ubuntu/.fly"
+  export PATH="$FLYCTL_INSTALL/bin:$PATH"
+```
+
+You can either run those commands, then `source ~/.bash_profile` or, if you don't, you'll have to call Fly from `~/.fly/bin/flyctl`.
+
+Once installed, run the following commands.
+
+```
+git clone https://github.com/lnbits/lnbits-legend.git
+cd lnbits-legend
+fly auth login
+[complete login process]
+fly launch
+```
+
+You'll be prompted to enter an app name, region, postgres (choose no), deploy now (choose no).
+
+You'll now find a file in the directory called `fly.toml`. Open that file and modify/add the following settings. 
+
+Note: Be sure to replace `${PUT_YOUR_LNBITS_ENV_VARS_HERE}` with all relevant environment variables in `.env` or `.env.example`. Environment variable strings should be quoted here, so if in `.env` you have `LNBITS_ENDPOINT=https://legend.lnbits.com` in `fly.toml` you should have `LNBITS_ENDPOINT="https://legend.lnbits.com"`.
+
+Note: Don't enter secret environment variables here. Fly.io offers secrets (via the `fly secrets` command) that are exposed as environment variables in your runtime. So, for example, if using the LND_REST funding source, you can run `fly secrets set LND_REST_MACAROON=<hex_macaroon_data>`.
+
+```
+...
+kill_timeout = 30
+...
+
+...
+[mounts]
+  source="lnbits_data"
+  destination="/data"
+...
+
+...
+[env]
+  HOST="127.0.0.1"
+  PORT=5000
+  LNBITS_FORCE_HTTPS=true
+  LNBITS_DATA_FOLDER="/data"
+  
+  ${PUT_YOUR_LNBITS_ENV_VARS_HERE}
+...
+
+...
+[[services]]
+  internal_port = 5000
+...
+```
+
+Next, create a volume to store the sqlite database for LNBits. Be sure to choose the same region for the volume that you chose earlier.
+
+```
+fly volumes create lnbits_data --size 1
+```
+
+You're ready to deploy! Run `fly deploy` and follow the steps to finish deployment. You'll select a `region` (up to you, choose the same as you did for the storage volume previously created), `postgres` (choose no), `deploy` (choose yes).
+
+You can use `fly logs` to view the application logs, or `fly ssh console` to get a ssh shell in the running container.
 
 ### Troubleshooting
 
@@ -170,8 +244,9 @@ LNBITS_DATABASE_URL="postgres://postgres:postgres@localhost/lnbits"
 
 # START LNbits
 # STOP LNbits
-# on the LNBits folder, locate and edit 'tools/conv.py' with the relevant credentials
-python3 tools/conv.py
+poetry run python tools/conv.py
+# or
+make migration
 ```
 
 Hopefully, everything works and get migrated... Launch LNbits again and check if everything is working properly.
@@ -194,15 +269,14 @@ Description=LNbits
 
 [Service]
 # replace with the absolute path of your lnbits installation
-WorkingDirectory=/home/bitcoin/lnbits
-# same here
-ExecStart=/home/bitcoin/lnbits/venv/bin/uvicorn lnbits.__main__:app --port 5000
+WorkingDirectory=/home/lnbits/lnbits-legend
+# same here. run `which poetry` if you can't find the poetry binary
+ExecStart=/home/lnbits/.local/bin/poetry run lnbits
 # replace with the user that you're running lnbits on
-User=bitcoin
+User=lnbits
 Restart=always
 TimeoutSec=120
 RestartSec=30
-# this makes sure that you receive logs in real time
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
@@ -215,6 +289,47 @@ Save the file and run the following commands:
 sudo systemctl enable lnbits.service
 sudo systemctl start lnbits.service
 ```
+
+## Running behind an apache2 reverse proxy over https
+Install apache2 and enable apache2 mods
+```sh
+apt-get install apache2 certbot
+a2enmod headers ssl proxy proxy-http
+```
+create a ssl certificate with letsencrypt
+```sh
+certbot certonly --webroot --agree-tos --text --non-interactive --webroot-path /var/www/html -d lnbits.org
+```
+create a apache2 vhost at: /etc/apache2/sites-enabled/lnbits.conf
+```sh
+cat <<EOF > /etc/apache2/sites-enabled/lnbits.conf
+<VirtualHost *:443>
+  ServerName lnbits.org
+  SSLEngine On
+  SSLProxyEngine On
+  SSLCertificateFile /etc/letsencrypt/live/lnbits.org/fullchain.pem
+  SSLCertificateKeyFile /etc/letsencrypt/live/lnbits.org/privkey.pem
+  Include /etc/letsencrypt/options-ssl-apache.conf
+  LogLevel info
+  ErrorLog /var/log/apache2/lnbits.log
+  CustomLog /var/log/apache2/lnbits-access.log combined
+  RequestHeader set "X-Forwarded-Proto" expr=%{REQUEST_SCHEME}
+  RequestHeader set "X-Forwarded-SSL" expr=%{HTTPS}
+  ProxyPreserveHost On
+  ProxyPass / http://localhost:5000/
+  ProxyPassReverse / http://localhost:5000/
+  <Proxy *>
+      Order deny,allow
+      Allow from all
+  </Proxy>
+</VirtualHost>
+EOF
+```
+restart apache2
+```sh
+service restart apache2
+```
+
 
 ## Using https without reverse proxy
 The most common way of using LNbits via https is to use a reverse proxy such as Caddy, nginx, or ngriok. However, you can also run LNbits via https without additional software. This is useful for development purposes or if you want to use LNbits in your local network.
@@ -232,16 +347,22 @@ chmod +x mkcert-v*-linux-amd64
 sudo cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 ```
 #### Create certificate
-To create a certificate, first `cd` into your lnbits folder and execute the following command ([more info](https://kifarunix.com/how-to-create-self-signed-ssl-certificate-with-mkcert-on-ubuntu-18-04/))
+To create a certificate, first `cd` into your LNbits folder and execute the following command on Linux:
+```sh
+openssl req -new -newkey rsa:4096 -x509 -sha256 -days 3650 -nodes -out cert.pem -keyout key.pem
+```
+This will create two new files (`key.pem` and `cert.pem `).
+
+Alternatively, you can use mkcert ([more info](https://kifarunix.com/how-to-create-self-signed-ssl-certificate-with-mkcert-on-ubuntu-18-04/)):
 ```sh
 # add your local IP (192.x.x.x) as well if you want to use it in your local network
 mkcert localhost 127.0.0.1 ::1
 ```
 
-This will create two new files (`localhost-key.pem` and `localhost.pem `) which you can then pass to uvicorn when you start LNbits:
+You can then pass the certificate files to uvicorn when you start LNbits:
 
 ```sh
-./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./localhost-key.pem --ssl-certfile ./localhost.pem
+./venv/bin/uvicorn lnbits.__main__:app --host 0.0.0.0 --port 5000 --ssl-keyfile ./key.pem --ssl-certfile ./cert.pem
 ```
 
 

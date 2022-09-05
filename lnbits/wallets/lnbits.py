@@ -57,12 +57,15 @@ class LNbitsWallet(Wallet):
         amount: int,
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
         data: Dict = {"out": False, "amount": amount}
         if description_hash:
-            data["description_hash"] = hashlib.sha256(description_hash).hexdigest()
-        else:
-            data["memo"] = memo or ""
+            data["description_hash"] = description_hash.hex()
+        if unhashed_description:
+            data["unhashed_description"] = unhashed_description.hex()
+
+        data["memo"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
@@ -91,15 +94,25 @@ class LNbitsWallet(Wallet):
                 json={"out": True, "bolt11": bolt11},
                 timeout=None,
             )
-        ok, checking_id, fee_msat, error_message = not r.is_error, None, 0, None
+        ok, checking_id, fee_msat, preimage, error_message = (
+            not r.is_error,
+            None,
+            None,
+            None,
+            None,
+        )
 
         if r.is_error:
             error_message = r.json()["detail"]
+            return PaymentResponse(None, None, None, None, error_message)
         else:
             data = r.json()
-            checking_id = data["checking_id"]
+            checking_id = data["payment_hash"]
 
-        return PaymentResponse(ok, checking_id, fee_msat, error_message)
+        # we do this to get the fee and preimage
+        payment: PaymentStatus = await self.get_payment_status(checking_id)
+
+        return PaymentResponse(ok, checking_id, payment.fee_msat, payment.preimage)
 
     async def get_invoice_status(self, checking_id: str) -> PaymentStatus:
         try:
@@ -122,8 +135,11 @@ class LNbitsWallet(Wallet):
 
         if r.is_error:
             return PaymentStatus(None)
+        data = r.json()
+        if "paid" not in data and "details" not in data:
+            return PaymentStatus(None)
 
-        return PaymentStatus(r.json()["paid"])
+        return PaymentStatus(data["paid"], data["details"]["fee"], data["preimage"])
 
     async def paid_invoices_stream(self) -> AsyncGenerator[str, None]:
         url = f"{self.endpoint}/api/v1/payments/sse"

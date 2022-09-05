@@ -365,6 +365,11 @@ async def create_payment(
     webhook: Optional[str] = None,
     conn: Optional[Connection] = None,
 ) -> Payment:
+
+    # todo: add this when tests are fixed
+    # previous_payment = await get_wallet_payment(wallet_id, payment_hash, conn=conn)
+    # assert previous_payment is None, "Payment already exists"
+
     await (conn or db).execute(
         """
         INSERT INTO apipayments
@@ -402,6 +407,40 @@ async def update_payment_status(
         "UPDATE apipayments SET pending = ? WHERE checking_id = ?",
         (pending, checking_id),
     )
+
+
+async def update_payment_details(
+    checking_id: str,
+    pending: Optional[bool] = None,
+    fee: Optional[int] = None,
+    preimage: Optional[str] = None,
+    new_checking_id: Optional[str] = None,
+    conn: Optional[Connection] = None,
+) -> None:
+
+    set_clause: List[str] = []
+    set_variables: List[Any] = []
+
+    if new_checking_id is not None:
+        set_clause.append("checking_id = ?")
+        set_variables.append(new_checking_id)
+    if pending is not None:
+        set_clause.append("pending = ?")
+        set_variables.append(pending)
+    if fee is not None:
+        set_clause.append("fee = ?")
+        set_variables.append(fee)
+    if preimage is not None:
+        set_clause.append("preimage = ?")
+        set_variables.append(preimage)
+
+    set_variables.append(checking_id)
+
+    await (conn or db).execute(
+        f"UPDATE apipayments SET {', '.join(set_clause)} WHERE checking_id = ?",
+        tuple(set_variables),
+    )
+    return
 
 
 async def delete_payment(checking_id: str, conn: Optional[Connection] = None) -> None:

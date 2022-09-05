@@ -33,7 +33,6 @@ async function payment(path) {
         signedTxHex: null,
         sentTxId: null,
         signedTxId: null,
-        paymentTab: 'destination',
         sendToList: [{address: '', amount: undefined}],
         changeWallet: null,
         changeAddress: {},
@@ -83,12 +82,27 @@ async function payment(path) {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this.satsDenominated)
       },
+      clearState: function () {
+        this.psbtBase64 = null
+        this.psbtBase64Signed = null
+        this.signedTx = null
+        this.signedTxHex = null
+        this.signedTxId = null
+        this.sendToList = [{address: '', amount: undefined}]
+        this.showChecking = false
+        this.showPsbt = false
+        this.showFinalTx = false
+      },
       checkAndSend: async function () {
         this.showChecking = true
         try {
           if (!this.serialSignerRef.isConnected()) {
-            const portOpen = await this.serialSignerRef.openSerialPort()
-            if (!portOpen) return
+            this.$q.notify({
+              type: 'warning',
+              message: 'Please connect to a Signing device first!',
+              timeout: 10000
+            })
+            return
           }
           if (!this.serialSignerRef.isAuthenticated()) {
             await this.serialSignerRef.hwwShowPasswordDialog()
@@ -139,7 +153,6 @@ async function payment(path) {
       },
       createPsbt: async function () {
         try {
-          console.log('### this.createPsbt')
           this.tx = this.createTx()
           for (const input of this.tx.inputs) {
             input.tx_hex = await this.fetchTxHex(input.tx_id)
@@ -233,8 +246,6 @@ async function payment(path) {
           this.showChecking = true
           this.psbtBase64Signed = psbtBase64
 
-          console.log('### payment updateSignedPsbt psbtBase64', psbtBase64)
-
           const data = await this.extractTxFromPsbt(psbtBase64)
           this.showFinalTx = true
           if (data) {
@@ -249,7 +260,6 @@ async function payment(path) {
         }
       },
       extractTxFromPsbt: async function (psbtBase64) {
-        console.log('### extractTxFromPsbt psbtBase64', psbtBase64)
         try {
           const {data} = await LNbits.api.request(
             'PUT',
@@ -260,13 +270,12 @@ async function payment(path) {
               inputs: this.tx.inputs
             }
           )
-          console.log('### extractTxFromPsbt data', data)
           return data
         } catch (error) {
-          console.log('### error', error)
           this.$q.notify({
             type: 'warning',
             message: 'Cannot finalize PSBT!',
+            caption: `${error}`,
             timeout: 10000
           })
           LNbits.utils.notifyApiError(error)
@@ -289,8 +298,8 @@ async function payment(path) {
             timeout: 10000
           })
 
-          // todo: event rescan with amount
-          // todo: display tx id
+          this.clearState()
+          this.$emit('broadcast-done', this.sentTxId)
         } catch (error) {
           this.sentTxId = null
           this.$q.notify({

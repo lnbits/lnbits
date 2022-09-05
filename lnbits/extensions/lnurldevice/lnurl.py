@@ -205,7 +205,7 @@ async def lnurl_callback(
         wallet_id=device.wallet,
         amount=lnurldevicepayment.sats / 1000,
         memo=device.title,
-        description_hash=(await device.lnurlpay_metadata()).encode("utf-8"),
+        unhashed_description=(await device.lnurlpay_metadata()).encode("utf-8"),
         extra={"tag": "PoS"},
     )
     lnurldevicepayment = await update_lnurldevicepayment(

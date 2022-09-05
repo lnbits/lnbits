@@ -55,6 +55,8 @@ FAKE_WALLET = getattr(wallets_module, "FakeWallet")()
 DEFAULT_WALLET_NAME = env.str("LNBITS_DEFAULT_WALLET_NAME", default="LNbits wallet")
 PREFER_SECURE_URLS = env.bool("LNBITS_FORCE_HTTPS", default=True)
 
+RESERVE_FEE_MIN = env.int("LNBITS_RESERVE_FEE_MIN", default=2000)
+RESERVE_FEE_PERCENT = env.float("LNBITS_RESERVE_FEE_PERCENT", default=1.0)
 SERVICE_FEE = env.float("LNBITS_SERVICE_FEE", default=0.0)
 
 try:
@@ -67,3 +69,13 @@ try:
     )
 except:
     LNBITS_COMMIT = "unknown"
+
+
+BOLTZ_NETWORK = env.str("BOLTZ_NETWORK", default="main")
+BOLTZ_URL = env.str("BOLTZ_URL", default="https://boltz.exchange/api")
+BOLTZ_MEMPOOL_SPACE_URL = env.str(
+    "BOLTZ_MEMPOOL_SPACE_URL", default="https://mempool.space"
+)
+BOLTZ_MEMPOOL_SPACE_URL_WS = env.str(
+    "BOLTZ_MEMPOOL_SPACE_URL_WS", default="wss://mempool.space"
+)

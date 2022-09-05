@@ -74,6 +74,16 @@ async function addressList(path) {
       satBtc(val, showUnit = true) {
         return satOrBtc(val, showUnit, this.satsDenominated)
       },
+      // todo: bad. base.js not present in custom components
+      copyText: function (text, message, position) {
+        var notify = this.$q.notify
+        Quasar.utils.copyToClipboard(text).then(function () {
+          notify({
+            message: message || 'Copied to clipboard!',
+            position: position || 'bottom'
+          })
+        })
+      },
       getWalletName: function (walletId) {
         const wallet = (this.accounts || []).find(wl => wl.id === walletId)
         return wallet ? wallet.title : 'unknown'

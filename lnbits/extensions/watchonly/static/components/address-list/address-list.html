@@ -111,7 +111,7 @@
         <q-td colspan="100%">
           <div class="row items-center q-mt-md q-mb-lg">
             <div class="col-2 q-pr-lg"></div>
-            <div class="col-4 q-pr-lg">
+            <div class="col-2 q-pr-lg">
               <q-btn
                 unelevated
                 dense
@@ -121,6 +121,16 @@
                 @click="showAddressDetails(props.row)"
               >
                 QR Code</q-btn
+              >
+            </div>
+            <div class="col-2 q-pr-lg">
+              <q-btn
+                outline
+                color="grey"
+                icon="content_copy"
+                @click="copyText(props.row.address)"
+                class="q-ml-sm"
+                >Copy</q-btn
               >
             </div>
             <div class="col-2 q-pr-lg">

@@ -9,9 +9,9 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_USER: lnbits
+          POSTGRES_PASSWORD: lnbits
+          POSTGRES_DB: migration
         ports:
           # maps tcp port 5432 on service container to the host
           - 5432:5432
@@ -36,11 +36,4 @@ jobs:
           sudo apt install unzip
       - name: Run migrations
         run: |
-          rm -rf ./data
-          mkdir -p ./data
-          export LNBITS_DATA_FOLDER="./data"
-          unzip tests/data/mock_data.zip -d ./data
-          timeout 5s poetry run lnbits --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-          export LNBITS_DATABASE_URL="postgres://postgres:postgres@0.0.0.0:5432/postgres"
-          timeout 5s poetry run lnbits --host 0.0.0.0 --port 5001 || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
-          poetry run python tools/conv.py
+          make test-migration
