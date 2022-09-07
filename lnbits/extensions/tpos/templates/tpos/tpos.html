@@ -175,7 +175,6 @@
             {% endraw %}
           </h5>
           <q-btn
-            v-if="hasNFC"
             outline
             color="grey"
             icon="nfc"
@@ -546,8 +545,6 @@
       setInterval(function () {
         getRates()
       }, 120000)
-
-      this.hasNFC = 'NDEFReader' in window
     }
   })
 </script>
