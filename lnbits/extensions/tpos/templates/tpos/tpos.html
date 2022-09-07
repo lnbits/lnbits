@@ -175,6 +175,7 @@
             {% endraw %}
           </h5>
           <q-btn
+            v-if="hasNFC"
             outline
             color="grey"
             icon="nfc"
@@ -294,6 +295,7 @@
         exchangeRate: null,
         stack: [],
         tipAmount: 0.0,
+        hasNFC: false,
         nfcTagReading: false,
         invoiceDialog: {
           show: false,
@@ -370,7 +372,7 @@
         this.showInvoice()
       },
       submitForm: function () {
-        if (this.tip_options.length) {
+        if (this.tip_options && this.tip_options.length) {
           this.showTipModal()
         } else {
           this.showInvoice()
@@ -544,6 +546,8 @@
       setInterval(function () {
         getRates()
       }, 120000)
+
+      this.hasNFC = 'NDEFReader' in window
     }
   })
 </script>
