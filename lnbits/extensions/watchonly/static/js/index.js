@@ -172,10 +172,6 @@ const watchOnly = async () => {
         this.$refs.paymentRef.updateSignedPsbt(psbtBase64)
       },
 
-      //################### SERIAL PORT ###################
-
-      //################### HARDWARE WALLET ###################
-
       //################### UTXOs ###################
       scanAllAddresses: async function () {
         await this.refreshAddresses()
@@ -379,6 +375,26 @@ const watchOnly = async () => {
       },
       showAddressDetails: function (addressData) {
         this.openQrCodeDialog(addressData)
+      },
+      showAddressDetailsWithConfirmation: function ({addressData, wallet}) {
+        this.showAddressDetails(addressData)
+        if (this.$refs.serialSigner.isConnected()) {
+          if (this.$refs.serialSigner.isAuthenticated()) {
+            if (wallet.meta?.accountPath) {
+              const branchIndex = addressData.isChange ? 1 : 0
+              const path =
+                wallet.meta.accountPath +
+                `/${branchIndex}/${addressData.addressIndex}`
+              this.$refs.serialSigner.hwwShowAddress(path, addressData.address)
+            }
+          } else {
+            this.$q.notify({
+              type: 'warning',
+              message: 'Please login in order to confirm address on device',
+              timeout: 10000
+            })
+          }
+        }
       },
       initUtxos: function (addresses) {
         if (!this.fetchedUtxos && addresses.length) {

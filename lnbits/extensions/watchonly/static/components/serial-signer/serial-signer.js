@@ -403,7 +403,10 @@ async function serialSigner(path) {
       },
       hwwLogin: async function () {
         try {
-          await this.sendCommandSecure(COMMAND_PASSWORD, [this.hww.password])
+          await this.sendCommandSecure(COMMAND_PASSWORD, [
+            this.hww.password,
+            this.hww.passphrase
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -414,7 +417,9 @@ async function serialSigner(path) {
         } finally {
           this.hww.showPasswordDialog = false
           this.hww.password = null
+          this.hww.passphrase = null
           this.hww.showPassword = false
+          this.hww.showPassphrase = false
         }
       },
       handleLoginResponse: function (res = '') {
@@ -440,6 +445,22 @@ async function serialSigner(path) {
       hwwLogout: async function () {
         try {
           await this.sendCommandSecure(COMMAND_PASSWORD_CLEAR)
+        } catch (error) {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Failed to logout from Hardware Wallet!',
+            caption: `${error}`,
+            timeout: 10000
+          })
+        }
+      },
+      hwwShowAddress: async function (path, address) {
+        try {
+          await this.sendCommandSecure(COMMAND_ADDRESS, [
+            this.network,
+            path,
+            address
+          ])
         } catch (error) {
           this.$q.notify({
             type: 'warning',
@@ -800,17 +821,9 @@ async function serialSigner(path) {
       },
       hwwRestore: async function () {
         try {
-          let mnemonicWithPassphrase = this.hww.mnemonic
-          if (
-            this.hww.hasPassphrase &&
-            this.hww.passphrase &&
-            this.hww.passphrase.length
-          ) {
-            mnemonicWithPassphrase += '/' + this.hww.passphrase
-          }
           await this.sendCommandSecure(COMMAND_RESTORE, [
             this.hww.password,
-            mnemonicWithPassphrase
+            this.hww.mnemonic
           ])
         } catch (error) {
           this.$q.notify({
@@ -822,7 +835,6 @@ async function serialSigner(path) {
         } finally {
           this.hww.showRestoreDialog = false
           this.hww.mnemonic = null
-          this.hww.passphrase = null
           this.hww.showMnemonic = false
           this.hww.password = null
           this.hww.confirmedPassword = null

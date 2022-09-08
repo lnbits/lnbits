@@ -93,6 +93,7 @@ async def api_wallet_create_or_update(
             address_no=-1,  # so fresh address on empty wallet can get address with index 0
             balance=0,
             network=network["name"],
+            meta=data.meta,
         )
 
         wallets = await get_watch_wallets(w.wallet.user, network["name"])
@@ -137,7 +138,7 @@ async def api_wallet_delete(wallet_id, w: WalletTypeInfo = Depends(require_admin
     await delete_watch_wallet(wallet_id)
     await delete_addresses_for_wallet(wallet_id)
 
-    raise HTTPException(status_code=HTTPStatus.NO_CONTENT)
+    return "", HTTPStatus.NO_CONTENT
 
 
 #############################ADDRESSES##########################

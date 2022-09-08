@@ -23,9 +23,10 @@ async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
             type,
             address_no,
             balance,
-            network
+            network,
+            meta
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             wallet_id,
@@ -37,6 +38,7 @@ async def create_watch_wallet(w: WalletAccount) -> WalletAccount:
             w.address_no,
             w.balance,
             w.network,
+            w.meta,
         ),
     )
 
