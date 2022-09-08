@@ -22,7 +22,7 @@ from .macaroon import AESCipher, load_macaroon
 
 
 class LndRestWallet(Wallet):
-    """https://api.lightning.community/rest/index.html#lnd-rest-api-reference"""
+    """https://api.lightning.community/#lnd-rest-api-reference"""
 
     def __init__(self):
         endpoint = getenv("LND_REST_ENDPOINT")
