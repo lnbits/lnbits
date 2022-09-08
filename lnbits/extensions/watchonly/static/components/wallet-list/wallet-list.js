@@ -233,7 +233,7 @@ async function walletList(path) {
         const addressData = mapAddressesData(data)
 
         addressData.note = `Shared on ${currentDateTime()}`
-        const lastAcctiveAddress =
+        const lastActiveAddress =
           this.addresses
             .filter(
               a =>
@@ -243,7 +243,7 @@ async function walletList(path) {
         addressData.gapLimitExceeded =
           !addressData.isChange &&
           addressData.addressIndex >
-            lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+            lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
 
         const wallet = this.walletAccounts.find(w => w.id === walletId) || {}
         wallet.address_no = addressData.addressIndex

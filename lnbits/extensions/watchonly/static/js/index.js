@@ -227,7 +227,7 @@ const watchOnly = async () => {
             newAddr => !this.addresses.find(a => a.address === newAddr.address)
           )
 
-          const lastAcctiveAddress =
+          const lastActiveAddress =
             uniqueAddresses.filter(a => !a.isChange && a.hasActivity).pop() ||
             {}
 
@@ -237,7 +237,7 @@ const watchOnly = async () => {
             a.gapLimitExceeded =
               !a.isChange &&
               a.addressIndex >
-                lastAcctiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
+                lastActiveAddress.addressIndex + DEFAULT_RECEIVE_GAP_LIMIT
           })
           this.addresses.push(...uniqueAddresses)
         }
