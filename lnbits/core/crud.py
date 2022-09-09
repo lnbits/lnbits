@@ -336,7 +336,9 @@ async def delete_expired_invoices(
         expiration_date = datetime.datetime.fromtimestamp(invoice.date + invoice.expiry)
         if expiration_date > datetime.datetime.utcnow():
             continue
-        logger.debug(f"Deleting expired invoice: {invoice.payment_hash}")
+        logger.debug(
+            f"Deleting expired invoice: {invoice.payment_hash} (expired: {expiration_date})"
+        )
         await (conn or db).execute(
             """
             DELETE FROM apipayments
