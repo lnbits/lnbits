@@ -393,9 +393,23 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="hww.showSeedDialog" position="top">
+  <q-dialog v-model="hww.showSeedDialog" @hide="closeSeedDialog" position="top">
     <q-card class="q-pa-lg q-pt-xl">
-      <span>Check word at position {{hww.seedWordPosition}} on display</span>
+      <span>Check word at position {{hww.seedWordPosition}} on device</span>
+      <div class="row q-mt-lg">
+        <div class="col-12">
+          <q-toggle
+            label="Show Seed Word"
+            color="secodary"
+            v-model="hww.showSeedWord"
+          ></q-toggle>
+        </div>
+      </div>
+      <div v-if="hww.showSeedWord" class="row q-mt-lg">
+        <div class="col-12">
+          <q-input readonly v-model.trim="hww.seedWord"></q-input>
+        </div>
+      </div>
 
       <div class="row q-mt-lg">
         <div class="col-4">

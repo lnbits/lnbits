@@ -38,6 +38,8 @@ async function serialSigner(path) {
           psbtSentResolve: null,
           xpubResolve: null,
           seedWordPosition: 1,
+          seedWord: null,
+          showSeedWord: false,
           showSeedDialog: false,
           // config: null,
 
@@ -373,6 +375,10 @@ async function serialSigner(path) {
             timeout: 10000
           })
         }
+      },
+      closeSeedDialog: function () {
+        this.hww.seedWord = null
+        this.hww.showSeedWord = false
       },
       hwwConfirmNext: async function () {
         this.hww.confirm.outputIndex += 1
@@ -817,7 +823,8 @@ async function serialSigner(path) {
         await this.sendCommandSecure(COMMAND_SEED, [this.hww.seedWordPosition])
       },
       handleShowSeedResponse: function (res = '') {
-        const args = res.trim().split(' ')
+        const [pos, word] = res.trim().split(' ')
+        this.hww.seedWord = `${pos}. ${word}`
       },
       hwwRestore: async function () {
         try {
