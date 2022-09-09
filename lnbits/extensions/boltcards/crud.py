@@ -1,4 +1,5 @@
 import secrets
+from datetime import date, datetime
 from typing import List, Optional, Union
 
 from lnbits.helpers import urlsafe_short_hash
@@ -6,7 +7,6 @@ from lnbits.helpers import urlsafe_short_hash
 from . import db
 from .models import Card, CreateCardData, Hit, Refund
 
-from datetime import date, datetime
 
 async def create_card(data: CreateCardData, wallet_id: str) -> Card:
     card_id = urlsafe_short_hash().upper()
@@ -181,7 +181,8 @@ async def get_hits(cards_ids: Union[str, List[str]]) -> List[Hit]:
 
 async def get_hits_today(card_id: str) -> Optional[Hit]:
     rows = await db.fetchall(
-        f"SELECT * FROM boltcards.hits WHERE card_id = ?", (card_id,),
+        f"SELECT * FROM boltcards.hits WHERE card_id = ?",
+        (card_id,),
     )
     updatedrow = []
     for row in rows:
