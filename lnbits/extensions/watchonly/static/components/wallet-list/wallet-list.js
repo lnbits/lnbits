@@ -16,6 +16,8 @@ async function walletList(path) {
       return {
         walletAccounts: [],
         address: {},
+        showQrCodeDialog: false,
+        qrCodeValue: null,
         formDialog: {
           show: false,
 
@@ -296,6 +298,10 @@ async function walletList(path) {
             position: position || 'bottom'
           })
         })
+      },
+      openQrCodeDialog: function (qrCodeValue) {
+        this.qrCodeValue = qrCodeValue
+        this.showQrCodeDialog = true
       }
     },
     created: async function () {
