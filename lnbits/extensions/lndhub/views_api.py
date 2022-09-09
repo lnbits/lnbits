@@ -132,8 +132,6 @@ async def lndhub_gettxs(
     ):
         await payment.check_status()
 
-        await asyncio.sleep(0.1)
-
     return [
         {
             "payment_preimage": payment.preimage,
@@ -180,7 +178,6 @@ async def lndhub_getuserinvoices(
         await invoice.set_pending(
             (await WALLET.get_invoice_status(invoice.checking_id)).pending
         )
-        await asyncio.sleep(0.1)
 
     return [
         {
