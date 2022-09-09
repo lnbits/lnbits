@@ -327,6 +327,7 @@ async def delete_expired_invoices(
           AND amount > 0 AND time < {db.timestamp_now} - {db.interval_seconds(86400)}
         """
     )
+    logger.debug(f"Checking expiry of {len(rows)} invoices")
     for (payment_request,) in rows:
         try:
             invoice = bolt11.decode(payment_request)
