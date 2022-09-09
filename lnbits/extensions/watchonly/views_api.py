@@ -269,7 +269,6 @@ async def api_psbt_create(
         for i, inp in enumerate(inputs_extra):
             psbt.inputs[i].bip32_derivations = inp["bip32_derivations"]
             psbt.inputs[i].non_witness_utxo = inp.get("non_witness_utxo", None)
-            print("### ", inp.get("non_witness_utxo", None))
 
         outputs_extra = []
         bip32_derivations = {}
@@ -344,11 +343,8 @@ async def api_tx_broadcast(
         async with httpx.AsyncClient() as client:
             r = await client.post(endpoint + "/api/tx", data=data.tx_hex)
             tx_id = r.text
-            print("### broadcast tx_id: ", tx_id)
             return tx_id
-        # return "0f0f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0f0f0f0f00f0f0f0f0f0f0.mock.transaction.id"
     except Exception as e:
-        print("### broadcast error: ", str(e))
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
 
 
