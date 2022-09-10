@@ -108,6 +108,62 @@ class LndRestWallet(Wallet):
 
         return InvoiceResponse(True, checking_id, payment_request, None)
 
+    async def create_hold_invoice(
+        self,
+        amount: int,
+        hash: bytes,
+        memo: Optional[str] = None,
+        description_hash: Optional[bytes] = None,
+        unhashed_description: Optional[bytes] = None,
+        **kwargs,
+    ) -> InvoiceResponse:
+        data: Dict = {"value": amount, "private": True, "hash": base64.b64encode(hash).decode("ascii")}
+        if description_hash:
+            data["description_hash"] = base64.b64encode(description_hash).decode(
+                "ascii"
+            )
+        elif unhashed_description:
+            data["description_hash"] = base64.b64encode(
+                hashlib.sha256(unhashed_description).digest()
+            ).decode("ascii")
+        else:
+            data["memo"] = memo or ""
+
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            r = await client.post(
+                url=f"{self.endpoint}/v2/invoices/hodl", headers=self.auth, json=data
+            )
+
+        if r.is_error:
+            error_message = r.text
+            try:
+                error_message = r.json()["error"]
+            except Exception:
+                pass
+            return InvoiceResponse(False, None, None, error_message)
+
+        data = r.json()
+        payment_request = data["payment_request"]
+        payment_hash = base64.b64encode(hash).decode("ascii")
+        checking_id = payment_hash
+
+        return InvoiceResponse(True, checking_id, payment_request, None)
+
+    async def settle_hold_invoice(self, preimage: str) -> PaymentResponse:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            data: Dict = {"preimage": base64.b64encode(preimage).decode("ascii")}
+            r = await client.post(
+                url=f"{self.endpoint}/v2/invoices/settle",
+                headers=self.auth,
+                json=data,
+            )
+
+        if r.is_error or r.json().get("payment_error"):
+            error_message = r.json().get("payment_error") or r.text
+            return False
+
+        return True
+
     async def pay_invoice(self, bolt11: str, fee_limit_msat: int) -> PaymentResponse:
         async with httpx.AsyncClient(verify=self.cert) as client:
             # set the fee limit for the payment
