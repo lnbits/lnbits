@@ -52,6 +52,7 @@ from ..services import (
     create_invoice,
     create_hold_invoice,
     settle_hold_invoice,
+    cancel_hold_invoice,
     pay_invoice,
     perform_lnurlauth,
 )
@@ -330,6 +331,22 @@ async def api_payments_settle_invoice(preimage: str, wallet: Wallet):
         "settle_result": str(settle_result),
     }
 
+async def api_payments_cancel_invoice(payment_hash: str, wallet: Wallet):
+    try:
+        cancel_result = await cancel_hold_invoice(wallet_id=wallet.id, payment_hash=binascii.unhexlify(payment_hash))
+    except ValueError as e:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(e))
+    except PaymentFailure as e:
+        raise HTTPException(status_code=520, detail=str(e))
+    except Exception as exc:
+        raise exc
+
+    return {
+        "cancel_result": str(cancel_result),
+    }
+
 async def api_payments_pay_invoice(bolt11: str, wallet: Wallet):
     try:
         payment_hash = await pay_invoice(wallet_id=wallet.id, payment_request=bolt11)
@@ -411,6 +428,22 @@ async def api_payments_settle(
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
             detail="Invoice (or Admin) key required.",
+        )
+
+class CancelInvoice(BaseModel):
+    payment_hash: str
+
+@core_app.post("/api/v1/payments/cancel")
+async def api_payments_cancel(
+    data: CancelInvoice, wallet: WalletTypeInfo = Depends(require_invoice_key),
+):
+    if wallet.wallet_type == 0:
+        # admin key
+        return await api_payments_cancel_invoice(data.payment_hash, wallet.wallet)
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Admin key required.",
         )
 
 @core_app.post("/api/v1/payments/lnurl")

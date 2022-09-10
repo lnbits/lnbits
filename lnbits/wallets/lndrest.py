@@ -159,7 +159,20 @@ class LndRestWallet(Wallet):
             )
 
         if r.is_error or r.json().get("payment_error"):
-            error_message = r.json().get("payment_error") or r.text
+            return False
+
+        return True
+
+    async def cancel_hold_invoice(self, payment_hash: str) -> PaymentResponse:
+        async with httpx.AsyncClient(verify=self.cert) as client:
+            data: Dict = {"payment_hash": base64.b64encode(payment_hash).decode("ascii")}
+            r = await client.post(
+                url=f"{self.endpoint}/v2/invoices/cancel",
+                headers=self.auth,
+                json=data,
+            )
+
+        if r.is_error or r.json().get("payment_error"):
             return False
 
         return True

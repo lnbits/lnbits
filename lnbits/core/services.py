@@ -144,6 +144,20 @@ async def settle_hold_invoice(
 
     return True
 
+async def cancel_hold_invoice(
+    *,
+    wallet_id: str,
+    payment_hash: bytes,
+    conn: Optional[Connection] = None,
+) -> bool:
+    ok = await WALLET.cancel_hold_invoice(
+        payment_hash=payment_hash
+    )
+    if not ok:
+        raise InvoiceFailure("Unexpected backend error.")
+
+    return True
+
 async def pay_invoice(
     *,
     wallet_id: str,
