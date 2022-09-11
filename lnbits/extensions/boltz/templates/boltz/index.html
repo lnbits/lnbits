@@ -373,6 +373,7 @@
     <q-card v-if="statusDialog.data" class="q-pa-lg lnbits__dialog-card">
       <div>
         {% raw %}
+        <b>Status: </b> {{ statusDialog.data.status }} <br />
         <b>Wallet: </b> {{ statusDialog.data.wallet }} <br />
         <b>Boltz Status: </b> {{ statusDialog.data.boltz }} <br />
         <b>Mempool Status: </b> {{ statusDialog.data.mempool }} <br />
@@ -816,6 +817,7 @@
               swap_id: swap_id,
               wallet: res.data.wallet,
               boltz: res.data.boltz,
+              status: res.data.status,
               mempool: res.data.mempool,
               timeout_block_height: res.data.timeout_block_height,
               date: new Date().toUTCString()

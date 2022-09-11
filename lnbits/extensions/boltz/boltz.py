@@ -348,6 +348,7 @@ def get_swap_status(swap: Union[SubmarineSwap, ReverseSubmarineSwap]) -> SwapSta
     swap_status = SwapStatus(
         wallet=swap.wallet,
         swap_id=swap.id,
+        status=swap.status,
     )
 
     try:
