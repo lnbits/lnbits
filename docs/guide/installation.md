@@ -10,7 +10,7 @@ You can choose between four package managers, `poetry`, `nix` and `venv`.
 
 By default, LNbits will use SQLite as its database. You can also use PostgreSQL which is recommended for applications with a high load (see guide below).
 
-## Option 1: poetry
+## Option 1 (recommended): poetry
 
 ```sh
 git clone https://github.com/lnbits/lnbits-legend.git
