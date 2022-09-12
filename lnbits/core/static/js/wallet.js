@@ -369,9 +369,9 @@ new Vue({
     decodeRequest: function () {
       this.parse.show = true
       let req = this.parse.data.request.toLowerCase()
-      if (this.parse.data.request.startsWith('lightning:')) {
+      if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
         this.parse.data.request = this.parse.data.request.slice(10)
-      } else if (this.parse.data.request.startsWith('lnurl:')) {
+      } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
         this.parse.data.request = this.parse.data.request.slice(6)
       } else if (req.indexOf('lightning=lnurl1') !== -1) {
         this.parse.data.request = this.parse.data.request
