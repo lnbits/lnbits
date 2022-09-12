@@ -9,6 +9,7 @@ from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
 from pydantic import BaseModel
 
+from lnbits.db import Connection
 from lnbits.helpers import url_for
 from lnbits.settings import WALLET
 from lnbits.wallets.base import PaymentStatus
@@ -131,7 +132,11 @@ class Payment(BaseModel):
     def is_uncheckable(self) -> bool:
         return self.checking_id.startswith("internal_")
 
-    async def update_status(self, status: PaymentStatus) -> None:
+    async def update_status(
+        self,
+        status: PaymentStatus,
+        conn: Optional[Connection] = None,
+    ) -> None:
         from .crud import update_payment_details
 
         await update_payment_details(
@@ -139,6 +144,7 @@ class Payment(BaseModel):
             pending=status.pending,
             fee=status.fee_msat,
             preimage=status.preimage,
+            conn=conn,
         )
 
     async def set_pending(self, pending: bool) -> None:
@@ -146,7 +152,10 @@ class Payment(BaseModel):
 
         await update_payment_status(self.checking_id, pending)
 
-    async def check_status(self) -> PaymentStatus:
+    async def check_status(
+        self,
+        conn: Optional[Connection] = None,
+    ) -> PaymentStatus:
         if self.is_uncheckable:
             return PaymentStatus(None)
 
@@ -170,7 +179,7 @@ class Payment(BaseModel):
             logger.info(
                 f"Marking '{'in' if self.is_in else 'out'}' {self.checking_id} as not pending anymore: {status}"
             )
-            await self.update_status(status)
+            await self.update_status(status, conn=conn)
         return status
 
     async def delete(self) -> None:
