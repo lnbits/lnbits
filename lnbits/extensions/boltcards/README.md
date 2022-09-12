@@ -10,18 +10,17 @@ This extension allows you to link your Bolt Card (or other compatible NXP NTAG d
 
 ## About the keys
 
-Up to five 16-byte keys can be stored on the card, numbered from 00 to 04. In the empty state they all should be set to zeros (00000000000000000000000000000000). For this extension only two keys need to be set:
+Up to five 16-byte keys can be stored on the card, numbered from 00 to 04. In the empty state they all should be set to zeros (00000000000000000000000000000000). For this extension only two keys need to be set, but for the security reasons all five keys should be changed from default (empty) state. The keys directly needed by this extension are: 
 
-One for encrypting the card UID and the counter (p parameter), let's called it meta key, key #01 or K1.
+- One for encrypting the card UID and the counter (p parameter), let's called it meta key, key #01 or K1.
 
-One for calculating CMAC (c parameter), let's called it file key, key #02 or K2.
+- One for calculating CMAC (c parameter), let's called it file key, key #02 or K2.
 
-The key #00, K0 (also know as auth key) is skipped to be use as authentification key. Is not needed by this extension, but can be filled in order to write the keys in cooperation with bolt-nfc-android-app. 
+The key #00, K0 (also know as auth key) is skipped to be used as authentification key. It is not needed by this extension, but should be filled in order to write the keys in cooperation with bolt-nfc-android-app. In this case also K3 is set to same value as K1 and K4 as K2, so all keys are changed from default values. Keep that in your mind in case you need to reset the keys manually.
 
 ***Always backup all keys that you're trying to write on the card. Without them you may not be able to change them in the future!***
 
 ## Setting the card - bolt-nfc-android-app (easy way)
-So far, regarding the keys, the app can only write a new key set on an empty card (with zero keys). **When you write non zero (and 'non debug') keys, they can't be rewrite with this app.** You have to do it on your computer. 
 
 - Read the card with the app. Note UID so you can fill it in the extension later.
 - Write the link on the card. It shoud be like `YOUR_LNBITS_DOMAIN/boltcards/api/v1/scan/{external_id}`
@@ -35,10 +34,10 @@ So far, regarding the keys, the app can only write a new key set on an empty car
         - If on an Android device with a newish version of Chrome, you can click the icon next to the input and tap your card to autofill this field.
     - Advanced Options
         - Card Keys (k0, k1, k2) will be automatically generated if not explicitly set.
-            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in debug mode.
-            - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead.
+            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in default state.
+            - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead. 
     - Click CREATE CARD button
-- Click the QR code button next to a card to view its details. You can scan the QR code with the Android app to import the keys. 
+- Click the QR code button next to a card to view its details. Backup the keys! You can scan the QR code with the Android app to import the keys. 
 - Click the "KEYS / AUTH LINK" button to copy the auth URL to the clipboard. You can then paste this into the Android app to import the keys.
 - Tap the NFC card to write the keys to the card.
 
@@ -48,7 +47,7 @@ Follow the guide.
 
 The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan/{YOUR_card_external_id}?p=00000000000000000000000000000000&c=0000000000000000`
 
-Then fill up the card parameters in the extension. Card Auth key (K0) can be omitted. Initical counter can be 0.
+Then fill up the card parameters in the extension. Card Auth key (K0) can be filled just for the record. Initical counter can be 0.
 
 ## Setting the card - android NXP app (hard way)
 - If you don't know the card ID, use NXP TagInfo app to find it out.
