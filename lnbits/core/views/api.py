@@ -370,11 +370,6 @@ async def subscribe_wallet_invoices(request: Request, wallet: Wallet):
     Listenes invoming payments for a wallet and yields jsons with payment details.
     """
     this_wallet_id = wallet.id
-    if this_wallet_id in api_invoice_listeners:
-        logger.warning(
-            f"already subscribed to invoices for wallet {this_wallet_id}. skipping."
-        )
-        return
 
     payment_queue: asyncio.Queue[Payment] = asyncio.Queue(0)
 

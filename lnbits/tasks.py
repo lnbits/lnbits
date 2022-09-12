@@ -29,7 +29,6 @@ from .core import db
 
 #     return recorder
 
-
 # async def run_deferred_async():
 #     for func in deferred_async:
 #         asyncio.create_task(catch_everything_and_restart(func))
@@ -83,11 +82,12 @@ class SseListenersDict(dict):
 invoice_listeners: Dict[str, asyncio.Queue] = SseListenersDict("invoice_listeners")
 
 
-def register_invoice_listener(send_chan: asyncio.Queue, name: str = "no_name"):
+def register_invoice_listener(send_chan: asyncio.Queue, name: str = None):
     """
     A method intended for extensions (and core/tasks.py) to call when they want to be notified about
     new invoice payments incoming. Will emit all incoming payments.
     """
+    name = name or f"no_name_{time.time()}"
     logger.debug(f"sse: registering invoice listener {name}")
     invoice_listeners[name] = send_chan
 
