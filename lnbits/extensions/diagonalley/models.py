@@ -104,5 +104,6 @@ class Market(BaseModel):
     usr: str
     name: Optional[str]
 
+
 class CreateMarketStalls(BaseModel):
     stallid: str

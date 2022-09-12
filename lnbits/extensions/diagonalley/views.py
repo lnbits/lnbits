@@ -44,7 +44,7 @@ async def display(request: Request, stall_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Stall does not exist."
         )
-    
+
     stall = stall.dict()
     del stall["privatekey"]
     stall["zones"] = zones

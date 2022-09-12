@@ -290,6 +290,7 @@ async def api_diagonalley_check_payment(payment_hash: str):
         return {"paid": False}
     return status
 
+
 @diagonalley_ext.delete("/api/v1/orders/{order_id}")
 async def api_diagonalley_order_delete(
     order_id: str, wallet: WalletTypeInfo = Depends(get_key_type)

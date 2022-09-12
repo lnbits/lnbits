@@ -274,27 +274,32 @@ async def get_diagonalley_order(order_id: str) -> Optional[Orders]:
     )
     return Orders(**row) if row else None
 
+
 async def get_diagonalley_order_invoiceid(invoice_id: str) -> Optional[Orders]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.orders WHERE invoiceid = ?", (invoice_id,)
     )
     return Orders(**row) if row else None
 
+
 async def set_diagonalley_order_paid(payment_hash: str) -> Orders:
     await db.execute(
-            """
+        """
             UPDATE diagonalley.orders
             SET paid = true
             WHERE invoiceid = ?
             """,
-            (payment_hash,),
-        )
+        (payment_hash,),
+    )
+
 
 async def update_diagonalley_product_stock(products):
-    
-    q = "\n".join([f"""WHEN id='{p.product_id}' THEN quantity - {p.quantity}""" for p in products])
+
+    q = "\n".join(
+        [f"""WHEN id='{p.product_id}' THEN quantity - {p.quantity}""" for p in products]
+    )
     v = ",".join(["?"] * len(products))
-    
+
     await db.execute(
         f"""
             UPDATE diagonalley.products
@@ -303,8 +308,9 @@ async def update_diagonalley_product_stock(products):
                         END)
             WHERE id IN ({v});
         """,
-        (*[p.product_id for p in products],)
+        (*[p.product_id for p in products],),
     )
+
 
 async def get_diagonalley_orders(wallet_ids: Union[str, List[str]]) -> List[Orders]:
     if isinstance(wallet_ids, str):
@@ -344,20 +350,21 @@ async def get_diagonalley_market_stalls(market_id: str):
 
     return [{**row} for row in rows]
 
+
 async def create_diagonalley_market(data: CreateMarket):
     market_id = urlsafe_short_hash()
 
     await db.execute(
-            """
+        """
             INSERT INTO diagonalley.markets (id, usr, name)
             VALUES (?, ?, ?)
             """,
-            (
-                market_id,
-                data.usr,
-                data.name,
-            ),
-        )
+        (
+            market_id,
+            data.usr,
+            data.name,
+        ),
+    )
     market = await get_diagonalley_market(market_id)
     assert market, "Newly created market couldn't be retrieved"
     return market

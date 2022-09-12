@@ -33,9 +33,7 @@ async def on_invoice_paid(payment: Payment) -> None:
 
     # set order as paid
     await set_diagonalley_order_paid(payment.payment_hash)
-    
+
     # deduct items sold from stock
     details = await get_diagonalley_order_details(order.id)
     await update_diagonalley_product_stock(details)
-    
-
