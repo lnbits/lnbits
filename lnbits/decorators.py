@@ -153,18 +153,27 @@ async def get_key_type(
                 LNBITS_ADMIN_USERS and wallet.wallet.user not in LNBITS_ADMIN_USERS
             ) and (LNBITS_ADMIN_EXTENSIONS and pathname in LNBITS_ADMIN_EXTENSIONS):
                 raise HTTPException(
+<<<<<<< HEAD
                     status_code=HTTPStatus.FORBIDDEN,
                     detail="User not authorized for this extension.",
+=======
+                    status_code=HTTPStatus.UNAUTHORIZED, detail="User not authorized."
+>>>>>>> 09f09050 (check wallet existence in key check)
                 )
             return wallet
         except HTTPException as e:
             if e.status_code == HTTPStatus.BAD_REQUEST:
                 raise
+<<<<<<< HEAD
             elif e.status_code == HTTPStatus.UNAUTHORIZED:
                 # we pass this in case it is not an invoice key, nor an admin key, and then return NOT_FOUND at the end of this block
                 pass
             else:
                 raise
+=======
+            if e.status_code == HTTPStatus.UNAUTHORIZED:
+                pass
+>>>>>>> 09f09050 (check wallet existence in key check)
         except:
             raise
     raise HTTPException(
