@@ -9,9 +9,9 @@ from lnurl import encode as lnurl_encode  # type: ignore
 from loguru import logger
 from pydantic import BaseModel
 
+from lnbits.db import Connection
 from lnbits.helpers import url_for
 from lnbits.settings import WALLET
-from lnbits.db import Connection
 from lnbits.wallets.base import PaymentStatus
 
 
