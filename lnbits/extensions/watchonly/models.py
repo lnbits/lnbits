@@ -19,7 +19,7 @@ class WalletAccount(BaseModel):
     title: str
     address_no: int
     balance: int
-    type: str = ""
+    type: Optional[str] = ""
     network: str = "Mainnet"
 
     @classmethod

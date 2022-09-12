@@ -21,7 +21,6 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from lnbits import bolt11
-
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 
@@ -98,6 +97,7 @@ async def api_scan(p, c, request: Request, external_id: str = None):
         "defaultDescription": f"Boltcard (refund address lnurl://{lnurlpay})",
     }
 
+
 @boltcards_ext.get(
     "/api/v1/lnurl/cb/{hitid}",
     status_code=HTTPStatus.OK,
@@ -129,6 +129,7 @@ async def lnurl_callback(
     except:
         return {"status": "ERROR", "reason": f"Payment failed"}
 
+
 # /boltcards/api/v1/auth?a=00000000000000000000000000000000
 @boltcards_ext.get("/api/v1/auth")
 async def api_auth(a, request: Request):
@@ -159,10 +160,11 @@ async def api_auth(a, request: Request):
         "k4": card.k2,
         "lnurlw_base": "lnurlw://" + lnurlw_base,
         "protocol_name": "new_bolt_card_response",
-        "protocol_version": 1
+        "protocol_version": 1,
     }
-    
+
     return response
+
 
 ###############LNURLPAY REFUNDS#################
 
