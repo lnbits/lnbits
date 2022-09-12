@@ -21,6 +21,8 @@ from lnbits.decorators import (
 from ...helpers import urlsafe_short_hash
 from . import db, diagonalley_ext
 from .crud import (
+    create_diagonalley_market,
+    create_diagonalley_market_stalls,
     create_diagonalley_order,
     create_diagonalley_order_details,
     create_diagonalley_product,
@@ -42,6 +44,7 @@ from .crud import (
     get_diagonalley_stalls,
     get_diagonalley_zone,
     get_diagonalley_zones,
+    update_diagonalley_market,
     update_diagonalley_product,
     update_diagonalley_stall,
     update_diagonalley_zone,
@@ -439,7 +442,6 @@ async def api_diagonalley_stall_create(
     market_id: str = None,
     wallet: WalletTypeInfo = Depends(require_invoice_key),
 ):
-
     if market_id:
         market = await get_diagonalley_market(market_id)
         if not market:
@@ -451,5 +453,6 @@ async def api_diagonalley_stall_create(
         market = await update_diagonalley_market(market_id, **data.dict())
     else:
         market = await create_diagonalley_market(data=data)
+        await create_diagonalley_market_stalls(market_id=market.id, data=data.stalls)
 
     return market.dict()

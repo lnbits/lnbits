@@ -179,12 +179,12 @@
       </q-form>
     </q-card>
   </q-dialog>
-  <!-- SHOP DIALOG -->
+  <!-- MARKETPLACE/SHOP DIALOG -->
   <q-dialog v-model="marketDialog.show" position="top">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="sendShopFormData" class="q-gutter-md">
+      <q-form @submit="sendMarketplaceFormData" class="q-gutter-md">
         <q-toggle
-          label="Activate shop"
+          label="Activate marketplace"
           color="primary"
           v-model="marketDialog.data.activate"
         ></q-toggle>
@@ -197,13 +197,19 @@
           label="Stalls"
           v-model.trim="marketDialog.data.stalls"
         ></q-select>
+        <q-input
+          filled
+          dense
+          v-model.trim="marketDialog.data.name"
+          label="Name"
+        ></q-input>
         <div class="row q-mt-lg">
           <q-btn
             v-if="marketDialog.data.id"
             unelevated
             color="primary"
             type="submit"
-            >Update Relay</q-btn
+            >Update Marketplace</q-btn
           >
           <q-btn
             v-else
@@ -212,7 +218,7 @@
             :disable="marketDialog.data.activate == null
               || marketDialog.data.stalls == null"
             type="submit"
-            >Launch</q-btn
+            >Launch Marketplace</q-btn
           >
 
           <q-btn
@@ -368,7 +374,7 @@
           >+ Store
           <q-tooltip> Create a store to list products on </q-tooltip></q-btn
         >
-        <q-btn unelevated color="primary" @click="shopDialog.show = true"
+        <q-btn unelevated color="primary" @click="marketDialog.show = true"
           >Launch frontend shop (not Nostr)
           <q-tooltip>
             Makes a simple frontend shop for your stalls</q-tooltip
@@ -805,6 +811,11 @@
     return obj
   }
   const mapKeys = obj => {
+    obj._data = _.clone(obj)
+    return obj
+  }
+
+  const mapMarkets = obj => {
     obj._data = _.clone(obj)
     return obj
   }
@@ -1505,7 +1516,7 @@
           )
           .then(response => {
             if (response.data) {
-              this.shops = response.data.map(mapShops)
+              this.markets = response.data.map(mapMarkets)
             }
           })
           .catch(error => {
@@ -1514,12 +1525,12 @@
       },
       openShopUpdateDialog: function (linkId) {
         var self = this
-        var link = _.findWhere(self.shops, {id: linkId})
+        var link = _.findWhere(self.markets, {id: linkId})
 
-        this.shopDialog.data = _.clone(link._data)
-        this.shopDialog.show = true
+        this.marketDialog.data = _.clone(link._data)
+        this.marketDialog.show = true
       },
-      sendShopFormData: function () {
+      sendMarketplaceFormData: function () {
         let data = {...this.marketDialog.data}
 
         if (!data.usr) {
@@ -1529,7 +1540,7 @@
         if (data.id) {
           this.updateZone(data)
         } else {
-          this.createZone(data)
+          this.createMarketplace(data)
         }
       },
       updateShop: function (data) {
@@ -1539,24 +1550,24 @@
             'PUT',
             '/diagonalley/api/v1/shops' + data.id,
             _.findWhere(self.g.user.wallets, {
-              id: self.shopDialog.data.wallet
+              id: self.marketDialog.data.wallet
             }).inkey,
             _.pick(data, 'countries', 'cost')
           )
           .then(function (response) {
-            self.shops = _.reject(self.shops, function (obj) {
+            self.markets = _.reject(self.markets, function (obj) {
               return obj.id == data.id
             })
-            self.shops.push(mapShops(response.data))
-            self.shopDialog.show = false
-            self.shopDialog.data = {}
+            self.markets.push(mapShops(response.data))
+            self.marketDialog.show = false
+            self.marketDialog.data = {}
             data = {}
           })
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
       },
-      createShop(data) {
+      createMarketplace(data) {
         LNbits.api
           .request(
             'POST',
@@ -1565,9 +1576,9 @@
             data
           )
           .then(response => {
-            this.shops.push(mapShops(response.data))
-            this.shopDialog.show = false
-            this.shopDialog.data = {}
+            this.markets.push(mapMarkets(response.data))
+            this.marketDialog.show = false
+            this.marketDialog.data = {}
             data = {}
           })
           .catch(error => {
@@ -1576,7 +1587,7 @@
       },
       deleteShop: function (shopId) {
         var self = this
-        var shop = _.findWhere(self.shops, {id: shopId})
+        var shop = _.findWhere(self.markets, {id: shopId})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this Shop link?')
@@ -1588,7 +1599,7 @@
                 _.findWhere(self.g.user.wallets, {id: shop.wallet}).inkey
               )
               .then(function (response) {
-                self.shops = _.reject(self.shops, function (obj) {
+                self.markets = _.reject(self.markets, function (obj) {
                   return obj.id == shopId
                 })
               })
@@ -1598,7 +1609,7 @@
           })
       },
       exportShopsCSV: function () {
-        LNbits.utils.exportCSV(this.shopsTable.columns, this.shops)
+        LNbits.utils.exportCSV(this.shopsTable.columns, this.markets)
       },
       ////////////////////////////////////////
       ////////////////ORDERS//////////////////
@@ -1694,7 +1705,7 @@
         this.getProducts()
         this.getZones()
         this.getOrders()
-        //this.getMarkets() # NOT YET IMPLEMENTED
+        this.getMarkets() // NOT YET IMPLEMENTED
         this.customerKeys = [
           'cb4c0164fe03fcdadcbfb4f76611c71620790944c24f21a1cd119395cdedfe1b',
           'a9c17358a6dc4ceb3bb4d883eb87967a66b3453a0f3199f0b1c8eef8070c6a07'

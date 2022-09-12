@@ -9,6 +9,8 @@ from lnbits.settings import WALLET
 
 from . import db
 from .models import (
+    CreateMarket,
+    CreateMarketStalls,
     Market,
     OrderDetail,
     Orders,
@@ -332,11 +334,55 @@ async def get_diagonalley_market(market_id: str) -> Optional[Market]:
     row = await db.fetchone(
         "SELECT * FROM diagonalley.markets WHERE id = ?", (market_id,)
     )
-    Market(**row) if row else None
+    return Market(**row) if row else None
 
 
 async def get_diagonalley_market_stalls(market_id: str):
     rows = await db.fetchall(
         "SELECT * FROM diagonalley.market_stalls WHERE marketid = ?", (market_id,)
     )
-    return [Stalls(**row) for row in rows]
+
+    return [{**row} for row in rows]
+
+async def create_diagonalley_market(data: CreateMarket):
+    market_id = urlsafe_short_hash()
+
+    await db.execute(
+            """
+            INSERT INTO diagonalley.markets (id, usr, name)
+            VALUES (?, ?, ?)
+            """,
+            (
+                market_id,
+                data.usr,
+                data.name,
+            ),
+        )
+    market = await get_diagonalley_market(market_id)
+    assert market, "Newly created market couldn't be retrieved"
+    return market
+
+
+async def create_diagonalley_market_stalls(
+    market_id: str, data: List[CreateMarketStalls]
+):
+    for stallid in data:
+        id = urlsafe_short_hash()
+
+        await db.execute(
+            """
+            INSERT INTO diagonalley.market_stalls (id, marketid, stallid)
+            VALUES (?, ?, ?)
+            """,
+            (
+                id,
+                market_id,
+                stallid,
+            ),
+        )
+    market_stalls = await get_diagonalley_market_stalls(market_id)
+    return market_stalls
+
+
+async def update_diagonalley_market(market_id):
+    pass
