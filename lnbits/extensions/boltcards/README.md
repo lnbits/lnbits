@@ -34,7 +34,7 @@ The key #00, K0 (also know as auth key) is skipped to be used as authentificatio
         - If on an Android device with a newish version of Chrome, you can click the icon next to the input and tap your card to autofill this field.
     - Advanced Options
         - Card Keys (k0, k1, k2) will be automatically generated if not explicitly set.
-            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in default state.
+            - Set to 16 bytes of 0s (00000000000000000000000000000000) to leave the keys in default (empty) state.
             - GENERATE KEY button fill the keys randomly. If there is "debug" in the card name, a debug set of keys is filled instead. 
     - Click CREATE CARD button
 - Click the QR code button next to a card to view its details. Backup the keys! You can scan the QR code with the Android app to import the keys. 
@@ -47,7 +47,7 @@ Follow the guide.
 
 The URI should be `lnurlw://YOUR-DOMAIN.COM/boltcards/api/v1/scan/{YOUR_card_external_id}?p=00000000000000000000000000000000&c=0000000000000000`
 
-Then fill up the card parameters in the extension. Card Auth key (K0) can be filled just for the record. Initical counter can be 0.
+Then fill up the card parameters in the extension. Card Auth key (K0) can be filled in the extension just for the record. Initical counter can be 0.
 
 ## Setting the card - android NXP app (hard way)
 - If you don't know the card ID, use NXP TagInfo app to find it out.
