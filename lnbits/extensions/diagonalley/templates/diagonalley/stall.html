@@ -130,11 +130,10 @@
           >
         </div>
         <div
-          v-if="item.description"
           class="text-caption text-grey ellipsis-2-lines"
           style="min-height: 40px"
         >
-          {{ item.description }}
+          <p v-if="item.description">{{ item.description }}</p>
         </div>
       </q-card-section>
 
