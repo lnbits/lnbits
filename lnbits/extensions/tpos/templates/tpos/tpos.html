@@ -414,19 +414,6 @@
                     dialog.show = false
 
                     self.complete.show = true
-                    self.$q.notify({
-                      type: 'positive',
-                      message: 'Sats received, thanks!',
-                      icon: 'thumb_up',
-                      timeout: 0,
-                      actions: [
-                        {
-                          label: 'Dismiss',
-                          color: 'white',
-                          handler: () => (self.complete.show = false)
-                        }
-                      ]
-                    })
                   }
                 })
             }, 3000)
